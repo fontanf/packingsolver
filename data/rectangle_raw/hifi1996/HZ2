@@ -1,0 +1,15 @@
+99 80
+5
+21 13 285
+54 20 1083
+24 23 556
+18 15 273 
+36 17 729
+
+
+Acknowledgements : Many thanks to "Ramon Alvarez-Valdes
+of DEIO - Universitat de Valencia" for the "error" remarked
+on the DATA HZ2. The piece p4=(18,35) (Page 562 in the paper 
+"A recursive exact algorithm for weighted two-dimensional cutting" 
+(with V. Zissimopoulos) EJOR, 91, 553-564) 
+is replaced by the piece p4=(18,15).

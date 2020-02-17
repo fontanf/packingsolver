@@ -1,0 +1,28 @@
+{
+	"Name": "W",
+	"Objects": [
+		{ "Height": 40, "Length": 70, "Stock": null, "Cost": 2800  }
+	],
+	"Items": [
+        { "Length": 17, "Height": 9, "Demand": 1, "DemandMax": null, "Value": 153 },
+        { "Length": 24, "Height": 15, "Demand": 1, "DemandMax": null, "Value": 360 },
+        { "Length": 24, "Height": 15, "Demand": 2, "DemandMax": null, "Value": 360 },
+        { "Length": 25, "Height": 16, "Demand": 4, "DemandMax": null, "Value": 400 },
+        { "Length": 27, "Height": 17, "Demand": 2, "DemandMax": null, "Value": 459 },
+        { "Length": 11, "Height": 19, "Demand": 4, "DemandMax": null, "Value": 209 },
+        { "Length": 12, "Height": 21, "Demand": 3, "DemandMax": null, "Value": 357 },
+        { "Length": 32, "Height": 22, "Demand": 3, "DemandMax": null, "Value": 704 },
+        { "Length": 14, "Height": 23, "Demand": 4, "DemandMax": null, "Value": 322 },
+        { "Length": 34, "Height": 24, "Demand": 4, "DemandMax": null, "Value": 816 },
+        { "Length": 35, "Height": 25, "Demand": 3, "DemandMax": null, "Value": 875 },
+        { "Length": 36, "Height": 26, "Demand": 4, "DemandMax": null, "Value": 936 },
+        { "Length": 37, "Height": 27, "Demand": 3, "DemandMax": null, "Value": 999 },
+        { "Length": 38, "Height": 28, "Demand": 4, "DemandMax": null, "Value": 1064 },
+        { "Length": 18, "Height": 29, "Demand": 3, "DemandMax": null, "Value": 522 },
+        { "Length": 39, "Height": 29, "Demand": 4, "DemandMax": null, "Value": 1131 },
+        { "Length": 41, "Height": 30, "Demand": 2, "DemandMax": null, "Value": 1230 },
+        { "Length": 21, "Height": 31, "Demand": 3, "DemandMax": null, "Value": 651 },
+        { "Length": 43, "Height": 31, "Demand": 4, "DemandMax": null, "Value": 1333 },
+        { "Length": 23, "Height": 33, "Demand": 4, "DemandMax": null, "Value": 759 }
+	]
+}

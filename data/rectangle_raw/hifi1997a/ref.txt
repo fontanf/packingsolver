@@ -1,0 +1,1 @@
+An improvement of Viswanathan and Bagchi's exact Algorithm for constrained two-dimensional cutting stock

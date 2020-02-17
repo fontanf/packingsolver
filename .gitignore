@@ -1,0 +1,9 @@
+bazel-*
+.vscode
+checker/checker
+checker/logs/*
+log*
+checker/*
+OLD
+instances/*
+output/*

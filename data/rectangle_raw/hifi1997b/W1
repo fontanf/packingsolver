@@ -1,0 +1,44 @@
+5000 5000 
+20
+437 731 2223
+732 822 1431
+637 932 3876
+822 598 1154
+1004 569 1675
+469 791 1342
+932 648 2998
+2110 931 2125
+598 562 1564
+659 721 1786
+921 3721 3002
+1490 1830 1761
+1320 1740 931
+932 2100 2239
+639 732 891
+1093 1321 1453
+1221 2407 932
+893 747 1209
+547 891 671
+532 2131 1763
+============================================
+The solutions produced by the DHKD algorithm:
+============================================
+
+LB : denotes the initial Lower Bound;
+UB : denotes the Upper Bound (using a relaxed knapsack);
+Sol : represents the solution given by the algorithm;
+Depth : is the parameter used by the algorithm;
+
+Optimal Solution = Not Known
+Best Solution = 35159
+============================================
+
+Depth >= 2;
+LB = 34520   
+UB = 38936  
+Sol = 35159
+Ratio = 0.903
+============================================
+
+
+
