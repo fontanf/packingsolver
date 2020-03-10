@@ -16,6 +16,8 @@ For academic collaboration, please do not hesitate to contact Luc Libralesso.
 
 Note: PackingSolver favours efficiency and flexibility over ease of use. Therefore, some knowledge about tree search algorithms and packing problems is required in order to use it.
 
+A solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
+
 Compile:
 ```shell
 bazel build -- //...
@@ -37,7 +39,7 @@ Execute:
 
 Problem types: `rectangleguillotine` (`RG`)
 
-The problem type defines the the certificate format.
+The problem type defines the certificate format.
 Each problem type has a list of available objectives and a list of available branching schemes.
 
 Each branching scheme has a list a compatible algorithms.
@@ -87,6 +89,6 @@ All experiments can be reproduced using the following scripts:
 ./packingsolver/scripts/bench "3NEG-KP-O" "3NEG-KP-R" "3NEGV-KP-O" "3HG-KP-O" # ~10h
 ./packingsolver/scripts/bench "2NEG-KP-O" "2NEGH-KP-O" "2NEGV-KP-O" "2NEGH-KP-R" "2G-KP-O" "2GH-KP-O" "2GV-KP-O" # 1h
 ./packingsolver/scripts/bench "3NEGH-SPP-O" "3NEGH-SPP-R" # ~10h
-./packingsolver/scripts/bench "2NEGH-SPP-O" # ~2h
+./packingsolver/scripts/bench "2NEGH-SPP-O" "2NEGH-SPP-R" # ~2h
 ```
 

@@ -299,9 +299,9 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
-/********************************** CutInfo ***********************************/
+/********************************** SubPlate **********************************/
 
-bool BranchingScheme::CutInfo::operator==(const BranchingScheme::CutInfo& c) const
+bool BranchingScheme::SubPlate::operator==(const BranchingScheme::SubPlate& c) const
 {
     return ((node == c.node) && (n == c.n)
             && (l == c.l) && (r == c.r)
@@ -309,7 +309,7 @@ bool BranchingScheme::CutInfo::operator==(const BranchingScheme::CutInfo& c) con
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BranchingScheme::CutInfo& c)
+        std::ostream &os, const BranchingScheme::SubPlate& c)
 {
     os << "node " << c.node << " n " << c.n
         << " l " << c.l << " b " << c.b
@@ -336,8 +336,7 @@ BranchingScheme::Node::Node(const BranchingScheme& branching_scheme):
     branching_scheme_(branching_scheme)
 {
     // Initialize pos_stack_
-    for (StackId i=0; i<instance().stack_number(); ++i)
-        pos_stack_.push_back(0);
+    pos_stack_.resize(instance().stack_number(), 0);
     compute_ub_profit();
 }
 
@@ -353,8 +352,8 @@ BranchingScheme::Node::Node(const BranchingScheme::Node& node):
     waste_(node.waste_),
     profit_(node.profit_),
     ub_profit_(node.ub_profit_),
-    curr_cut_(node.curr_cut_),
-    prev_cut_(node.prev_cut_),
+    subplates_curr_(node.subplates_curr_),
+    subplates_prev_(node.subplates_prev_),
     x1_max_(node.x1_max_),
     y2_max_(node.y2_max_),
     z1_(node.z1_),
@@ -376,8 +375,8 @@ BranchingScheme::Node& BranchingScheme::Node::operator=(const BranchingScheme::N
         waste_                   = node.waste_;
         profit_                  = node.profit_;
         ub_profit_               = node.ub_profit_;
-        prev_cut_                = node.prev_cut_;
-        curr_cut_                = node.curr_cut_;
+        subplates_prev_                = node.subplates_prev_;
+        subplates_curr_                = node.subplates_curr_;
         x1_max_                  = node.x1_max_;
         y2_max_                  = node.y2_max_;
         z1_                      = node.z1_;
@@ -403,24 +402,24 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     os << "x1_max " << node.x1_max() << " y2_max " << node.y2_max()
         << " z1 " << node.z1() << " z2 " << node.z2() << std::endl;
     os << "pos_stack" << std::flush;
-    for (StackId s=0; s<node.instance().stack_number(); ++s)
+    for (StackId s = 0; s < node.instance().stack_number(); ++s)
         os << " " << node.pos_stack(s);
     os << std::endl;
-    for (Depth d=0; d<=3; ++d) {
-        SolutionNodeId idc = node.curr_cut(d).node;
-        os << "curr_cut(" << d << ") node " << idc;
+    for (Depth d = 0; d <= 3; ++d) {
+        SolutionNodeId idc = node.subplate_curr(d).node;
+        os << "subplate_curr(" << d << ") node " << idc;
         if (idc != -1)
             os
-                << " n " << node.curr_cut(d).n
+                << " n " << node.subplate_curr(d).n
                 << " p " << node.node(idc).p;
-        os << " - " << node.curr_cut(d) << std::endl;
-        SolutionNodeId idp = node.prev_cut(d).node;
-        os << "prev_cut(" << d << ") node " << idp;
+        os << " - " << node.subplate_curr(d) << std::endl;
+        SolutionNodeId idp = node.subplate_prev(d).node;
+        os << "subplate_prev(" << d << ") node " << idp;
         if (idp != -1)
             os
-                << " n " << node.prev_cut(d).n
+                << " n " << node.subplate_prev(d).n
                 << " p " << node.node(idp).p;
-        os << " - " << node.prev_cut(d) << std::endl;
+        os << " - " << node.subplate_prev(d) << std::endl;
     }
     os << std::endl;
 
@@ -475,46 +474,46 @@ bool BranchingScheme::Node::bound(const Solution& sol_best) const
 
 /****************************** apply_insertion *******************************/
 
-void BranchingScheme::Node::update_prev_cuts_and_curr_cuts(Depth df, ItemPos n)
+void BranchingScheme::Node::update_subplates_prev_and_curr(Depth df, ItemPos n)
 {
     switch (df) {
     case -1: case -2: {
-        prev_cut_[0] = curr_cut(0);
-        curr_cut_[0] = {.node = static_cast<SolutionNodeId>(-bin_number()),
+        subplates_prev_[0] = subplate_curr(0);
+        subplates_curr_[0] = {.node = static_cast<SolutionNodeId>(-bin_number()),
             .n = n, .l = 0, .b = 0};
-        for (Depth d=1; d<=3; ++d) {
-            prev_cut_[d].node = -1;
-            curr_cut_[d] = {
+        for (Depth d = 1; d <= 3; ++d) {
+            subplates_prev_[d].node = -1;
+            subplates_curr_[d] = {
                 .node = static_cast<SolutionNodeId>(node_number() + d - 1),
                 .n = n, .l = 0, .b = 0};
         }
         break;
     } case 0: {
-        curr_cut_[0].n += n;
-        prev_cut_[1] = curr_cut(1);
-        curr_cut_[1] = {.node = node_number(), .n = n, .l = x1_prev(), .b = 0};
-        prev_cut_[2].node = -1;
-        curr_cut_[2] = {.node = static_cast<SolutionNodeId>(node_number() + 1),
+        subplates_curr_[0].n += n;
+        subplates_prev_[1] = subplate_curr(1);
+        subplates_curr_[1] = {.node = node_number(), .n = n, .l = x1_prev(), .b = 0};
+        subplates_prev_[2].node = -1;
+        subplates_curr_[2] = {.node = static_cast<SolutionNodeId>(node_number() + 1),
             .n = n, .l = x1_prev(), .b = 0};
-        prev_cut_[3].node = -1;
-        curr_cut_[3] = {.node = static_cast<SolutionNodeId>(node_number() + 2),
+        subplates_prev_[3].node = -1;
+        subplates_curr_[3] = {.node = static_cast<SolutionNodeId>(node_number() + 2),
             .n = n, .l = x1_prev(), .b = 0};
         break;
     } case 1: {
-        curr_cut_[0].n += n;
-        curr_cut_[1].n += n;
-        prev_cut_[2] = curr_cut(2);
-        curr_cut_[2] = {.node = node_number(), .n = n, .l = x1_prev(), .b = y2_prev()};
-        prev_cut_[3].node = -1;
-        curr_cut_[3] = {.node = static_cast<SolutionNodeId>(node_number() + 1),
+        subplates_curr_[0].n += n;
+        subplates_curr_[1].n += n;
+        subplates_prev_[2] = subplate_curr(2);
+        subplates_curr_[2] = {.node = node_number(), .n = n, .l = x1_prev(), .b = y2_prev()};
+        subplates_prev_[3].node = -1;
+        subplates_curr_[3] = {.node = static_cast<SolutionNodeId>(node_number() + 1),
             .n = n, .l = x1_prev(), .b = y2_prev()};
         break;
     } case 2: {
-        curr_cut_[0].n += n;
-        curr_cut_[1].n += n;
-        curr_cut_[2].n += n;
-        prev_cut_[3] = curr_cut(3);
-        curr_cut_[3] = {.node = node_number(), .n = n, .l = x3_curr(), .b = y2_prev()};
+        subplates_curr_[0].n += n;
+        subplates_curr_[1].n += n;
+        subplates_curr_[2].n += n;
+        subplates_prev_[3] = subplate_curr(3);
+        subplates_curr_[3] = {.node = node_number(), .n = n, .l = x3_curr(), .b = y2_prev()};
         break;
     } default: {
         assert(false);
@@ -623,11 +622,11 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
         }
     }
 
-    // Update prev_cut_ and curr_cut_
-    update_prev_cuts_and_curr_cuts(insertion.df, n);
+    // Update subplates_prev_ and subplates_curr_
+    update_subplates_prev_and_curr(insertion.df, n);
 
     // Update nodes_
-    SolutionNodeId f = (insertion.df <= -1)? -bin_number(): curr_cut(insertion.df).node;
+    SolutionNodeId f = (insertion.df <= -1)? -bin_number(): subplate_curr(insertion.df).node;
     Depth d = (insertion.df <= -1)? 0: insertion.df;
     SolutionNodeId c = nodes_.size() - 1;
     do {
@@ -644,30 +643,30 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     z2_ = insertion.z2;
 
     // Update rights and lefts
-    curr_cut_[0].r = insertion.x1;
-    if (curr_cut_[0].t < insertion.y2)
-        curr_cut_[0].t = insertion.y2;
-    curr_cut_[1].r = insertion.x1;
-    curr_cut_[1].t = insertion.y2;
-    curr_cut_[2].r = insertion.x3;
-    curr_cut_[2].t = insertion.y2;
-    curr_cut_[3].r = insertion.x3;
-    curr_cut_[3].t = insertion.y2; // insertion.y4?
-    nodes_[curr_cut(1).node].p = insertion.x1;
-    nodes_[curr_cut(2).node].p = insertion.y2;
-    nodes_[curr_cut(3).node].p = insertion.x3;
+    subplates_curr_[0].r = insertion.x1;
+    if (subplates_curr_[0].t < insertion.y2)
+        subplates_curr_[0].t = insertion.y2;
+    subplates_curr_[1].r = insertion.x1;
+    subplates_curr_[1].t = insertion.y2;
+    subplates_curr_[2].r = insertion.x3;
+    subplates_curr_[2].t = insertion.y2;
+    subplates_curr_[3].r = insertion.x3;
+    subplates_curr_[3].t = insertion.y2; // insertion.y4?
+    nodes_[subplate_curr(1).node].p = insertion.x1;
+    nodes_[subplate_curr(2).node].p = insertion.y2;
+    nodes_[subplate_curr(3).node].p = insertion.x3;
 
-    assert(curr_cut(0).node == -1 || curr_cut(0).l < curr_cut(0).r);
-    assert(curr_cut(0).node == -1 || curr_cut(0).r - curr_cut(0).l
+    assert(subplate_curr(0).node == -1 || subplate_curr(0).l < subplate_curr(0).r);
+    assert(subplate_curr(0).node == -1 || subplate_curr(0).r - subplate_curr(0).l
             >= branching_scheme().min_waste());
-    assert(curr_cut(1).node == -1 || curr_cut(1).l < curr_cut(1).r);
-    assert(curr_cut(1).node == -1 || curr_cut(1).r - curr_cut(1).l
+    assert(subplate_curr(1).node == -1 || subplate_curr(1).l < subplate_curr(1).r);
+    assert(subplate_curr(1).node == -1 || subplate_curr(1).r - subplate_curr(1).l
             >= branching_scheme().min_waste());
-    assert(curr_cut(2).node == -1 || curr_cut(2).l < curr_cut(2).r);
-    assert(curr_cut(2).node == -1 || curr_cut(2).r - curr_cut(2).l
+    assert(subplate_curr(2).node == -1 || subplate_curr(2).l < subplate_curr(2).r);
+    assert(subplate_curr(2).node == -1 || subplate_curr(2).r - subplate_curr(2).l
             >= branching_scheme().min_waste());
-    assert(curr_cut(3).node == -1 || curr_cut(3).l < curr_cut(3).r);
-    assert(curr_cut(3).node == -1 || curr_cut(3).r - curr_cut(3).l
+    assert(subplate_curr(3).node == -1 || subplate_curr(3).l < subplate_curr(3).r);
+    assert(subplate_curr(3).node == -1 || subplate_curr(3).r - subplate_curr(3).l
             >= branching_scheme().min_waste());
 
     // Update current_area_ and waste_
@@ -784,7 +783,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::Node::children(Info& in
             // Try adding it with a second item
             if (branching_scheme().cut_type_2() == CutType2::Roadef2018) {
                 LOG(info, "try adding with a second item" << std::endl);
-                for (StackId s2=s; s2<instance().stack_number(); ++s2) {
+                for (StackId s2 = s; s2 < instance().stack_number(); ++s2) {
                     ItemTypeId j2 = -1;
                     if (s2 == s) {
                         if (pos_stack_[s2] + 1 == instance().stack_size(s2))
@@ -909,13 +908,13 @@ bool BranchingScheme::Node::check_symmetries(Depth df, Info& info) const
         LOG_FOLD_END(info, "no item");
         return true;
     }
-    if (prev_cut_[df + 1].node == -1) {
+    if (subplates_prev_[df + 1].node == -1) {
         LOG_FOLD_END(info, "no previous " << df + 1 << "-cut");
         return true;
     }
 
-    LOG(info, "prev_cut[" << df + 1 << "] " << prev_cut(df + 1) << std::endl);
-    LOG(info, "curr_cut[" << df + 1 << "] " << curr_cut(df + 1) << std::endl);
+    LOG(info, "subplate_prev[" << df + 1 << "] " << subplate_prev(df + 1) << std::endl);
+    LOG(info, "subplate_curr[" << df + 1 << "] " << subplate_curr(df + 1) << std::endl);
 
     // Check defects
     BinPos i = bin_number() - 1;
@@ -931,9 +930,9 @@ bool BranchingScheme::Node::check_symmetries(Depth df, Info& info) const
         /*
         BinId i0 = bin_number_ - 2;
         Length x1 = 0;
-        Length x2 = std::max(prev_cut(0).r, curr_cut(0).r);
+        Length x2 = std::max(subplate_prev(0).r, subplate_curr(0).r);
         Length y1 = 0;
-        Length y2 = std::max(prev_cut(0).t, curr_cut(0).t);
+        Length y2 = std::max(subplate_prev(0).t, subplate_curr(0).t);
 
         DefectId k1 = rect_intersects_defect(x1, x2, y1, y2, i);
         if (k1 >= 0) {
@@ -953,10 +952,10 @@ bool BranchingScheme::Node::check_symmetries(Depth df, Info& info) const
         // Note: if you want to remove the return, you need to check defect
         // intersections.
 
-        Length x1 = prev_cut_[1].l;
-        Length x2 = curr_cut_[1].r;
+        Length x1 = subplates_prev_[1].l;
+        Length x2 = subplates_curr_[1].r;
         Length y1 = 0;
-        Length y2 = std::max(prev_cut(1).t, curr_cut(1).t);
+        Length y2 = std::max(subplate_prev(1).t, subplate_curr(1).t);
 
         DefectId k = instance().rect_intersects_defect(x1, x2, y1, y2, i, o);
         if (k != -1) {
@@ -965,14 +964,14 @@ bool BranchingScheme::Node::check_symmetries(Depth df, Info& info) const
         }
         break;
     } case 1: {
-        Length x1 = curr_cut_[2].l;
-        Length x2 = std::max(prev_cut(2).r, curr_cut(2).r);
-        Length y1 = prev_cut_[2].b;
-        Length y2 = curr_cut_[2].t;
+        Length x1 = subplates_curr_[2].l;
+        Length x2 = std::max(subplate_prev(2).r, subplate_curr(2).r);
+        Length y1 = subplates_prev_[2].b;
+        Length y2 = subplates_curr_[2].t;
 
-        Length y_new = prev_cut(2).b + curr_cut(2).t - curr_cut(2).b;
+        Length y_new = subplate_prev(2).b + subplate_curr(2).t - subplate_curr(2).b;
         Length w = instance().bin(i).width(o);
-        DefectId k0 = instance().y_intersects_defect(curr_cut(2).l, w, y_new, i, o);
+        DefectId k0 = instance().y_intersects_defect(subplate_curr(2).l, w, y_new, i, o);
         if (k0 != -1) {
             LOG_FOLD_END(info, "intersects defect");
             return true;
@@ -985,12 +984,12 @@ bool BranchingScheme::Node::check_symmetries(Depth df, Info& info) const
         }
         break;
     } case 2: {
-        Length x1 = prev_cut_[3].l;
-        Length x2 = curr_cut_[3].r;
-        Length y1 = curr_cut_[3].b;
-        Length y2 = std::max(prev_cut(3).t, curr_cut(3).t);
+        Length x1 = subplates_prev_[3].l;
+        Length x2 = subplates_curr_[3].r;
+        Length y1 = subplates_curr_[3].b;
+        Length y2 = std::max(subplate_prev(3).t, subplate_curr(3).t);
 
-        Length x_new = prev_cut(3).l + curr_cut(3).r - curr_cut(3).l;
+        Length x_new = subplate_prev(3).l + subplate_curr(3).r - subplate_curr(3).l;
         DefectId k0 = instance().x_intersects_defect(x_new, i, o);
         if (k0 != -1) {
             LOG_FOLD_END(info, "intersects defect");
@@ -1010,9 +1009,9 @@ bool BranchingScheme::Node::check_symmetries(Depth df, Info& info) const
 
     // Compute min
     ItemTypeId jmin_curr = instance().item_number();
-    LOG(info, "curr_cut_[" << df + 1 << "]");
-    ItemPos n1 = curr_cut(df + 1).n;
-    ItemPos n2 = curr_cut(df + 1).n + prev_cut(df + 1).n;
+    LOG(info, "subplates_curr_[" << df + 1 << "]");
+    ItemPos n1 = subplate_curr(df + 1).n;
+    ItemPos n2 = subplate_curr(df + 1).n + subplate_prev(df + 1).n;
     assert(n1 != 0);
     assert(n2 > n1);
     assert(n2 <= item_number());
@@ -1024,7 +1023,7 @@ bool BranchingScheme::Node::check_symmetries(Depth df, Info& info) const
     LOG(info, " jmin_curr " << jmin_curr << std::endl);
 
     ItemTypeId jmin_prev = instance().item_number();
-    LOG(info, "prev_cut_[" << df + 1 << "]");
+    LOG(info, "subplates_prev_[" << df + 1 << "]");
     for (auto item = items().rbegin() + n1; item < items().rbegin() + n2; ++item) {
         LOG(info, " " << item->j);
         if (jmin_prev > item->j)

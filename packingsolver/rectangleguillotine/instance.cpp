@@ -181,44 +181,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 
 /********************************** Instance **********************************/
 
-const Item& Instance::item(StackId s, ItemPos j_pos) const
-{
-    assert(j_pos < stack_sizes_[s]);
-
-    if (all_item_type_one_copy_)
-        return stacks_[s][j_pos];
-
-    ItemPos j_tmp = 0;
-    ItemTypeId j = 0;
-    for (;;) {
-        if (j_tmp <= j_pos && j_pos < j_tmp + stacks_[s][j].copies) {
-            return stacks_[s][j];
-        } else {
-            j_tmp += stacks_[s][j].copies;
-            j++;
-        }
-    }
-}
-
-const Bin& Instance::bin(BinPos i_pos) const
-{
-    assert(i_pos < bin_number_);
-
-    if (all_bin_type_one_copy_)
-        return bins_[i_pos];
-
-    BinPos i_tmp = 0;
-    BinTypeId i = 0;
-    for (;;) {
-        if (i_tmp <= i_pos && i_pos < i_tmp + bins_[i].copies) {
-            return bins_[i];
-        } else {
-            i_tmp += bins_[i].copies;
-            i++;
-        }
-    }
-}
-
 Area Instance::previous_bin_area(BinPos i_pos) const
 {
     assert(i_pos < bin_number_);
@@ -511,48 +473,6 @@ Counter Instance::state_number() const
 }
 
 /******************************************************************************/
-
-Length Instance::left(const Defect& defect, CutOrientation o) const
-{
-    return (o == CutOrientation::Vertical)?  defect.pos.x: defect.pos.y;
-}
-
-Length Instance::right(const Defect& defect, CutOrientation o) const
-{
-    return (o == CutOrientation::Vertical)?
-        defect.pos.x + defect.rect.w:
-        defect.pos.y + defect.rect.h;
-}
-
-Length Instance::top(const Defect& defect, CutOrientation o) const
-{
-    return (o == CutOrientation::Vertical)?
-        defect.pos.y + defect.rect.h:
-        defect.pos.x + defect.rect.w;
-}
-
-Length Instance::bottom(const Defect& defect, CutOrientation o) const
-{
-    return (o == CutOrientation::Vertical)? defect.pos.y: defect.pos.x;
-}
-
-Length Instance::width(const Item& item, bool rotate, CutOrientation o) const
-{
-    if (o == CutOrientation::Vertical) {
-        return (!rotate)? item.rect.w: item.rect.h;
-    } else {
-        return (!rotate)? item.rect.h: item.rect.w;
-    }
-}
-
-Length Instance::height(const Item& item, bool rotate, CutOrientation o) const
-{
-    if (o == CutOrientation::Vertical) {
-        return (!rotate)? item.rect.h: item.rect.w;
-    } else {
-        return (!rotate)? item.rect.w: item.rect.h;
-    }
-}
 
 DefectId Instance::rect_intersects_defect(
         Length l, Length r, Length b, Length t, BinTypeId i, CutOrientation o) const

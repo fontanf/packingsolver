@@ -629,7 +629,7 @@ for problem in sys.argv[1:]:
         pdp.append((problem, ["berkey1987", "martello1998"], [
                 "--objective", "strip-packing",
                 "--bin-infinite-height",
-                "--time-limit", "30",
+                "--time-limit", "60",
                 "-q", "\"RG -p 3NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
                 "-q", "\"RG -p 3NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
                 "-q", "\"RG -p 3NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
@@ -646,7 +646,7 @@ for problem in sys.argv[1:]:
         pdp.append((problem, ["berkey1987", "martello1998"], [
                 "--objective", "strip-packing",
                 "--bin-infinite-height",
-                "--time-limit", "30",
+                "--time-limit", "60",
                 "-q", "\"RG -p 3NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 0\"",
                 "-q", "\"RG -p 3NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
                 "-q", "\"RG -p 3NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
@@ -675,6 +675,15 @@ for problem in sys.argv[1:]:
                 "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
                 "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 2\"",
                 "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+            ]))
+    elif problem == "2NEGH-SPP-R": #
+        pdp.append((problem, ["berkey1987", "martello1998"], [
+                "--objective", "strip-packing",
+                "--bin-infinite-height",
+                "--time-limit", "10",
+                "-q", "\"RG -p 2NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
 
     elif problem == "test":

@@ -118,7 +118,7 @@ void MbaStar<Solution, BranchingScheme>::run()
 
         LOG_FOLD_END(info_, "");
         std::stringstream ss;
-        ss << "MBA* (thread " << thread_id_ << ") q " << q_sizemax_;
+        ss << "MBA* (thread " << thread_id_ << ")";
         PUT(info_, ss.str(), "QueueMaxSize", q_sizemax_);
     }
 mbastarend:

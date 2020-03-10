@@ -21,7 +21,7 @@ public:
     struct Insertion;
     struct SolutionNode;
     struct NodeItem;
-    struct CutInfo;
+    struct SubPlate;
     struct Front;
 
     struct Parameters
@@ -159,19 +159,19 @@ struct BranchingScheme::Insertion
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Insertion& insertion);
 std::ostream& operator<<(std::ostream &os, const std::vector<BranchingScheme::Insertion>& insertions);
 
-/********************************** CutInfo ***********************************/
+/********************************** SubPlate **********************************/
 
-struct BranchingScheme::CutInfo
+struct BranchingScheme::SubPlate
 {
     SolutionNodeId node;
     ItemPos n;
     Length l, b, r, t;
 
-    bool operator==(const BranchingScheme::CutInfo& c) const;
-    bool operator!=(const BranchingScheme::CutInfo& c) const { return !(*this == c); }
+    bool operator==(const BranchingScheme::SubPlate& c) const;
+    bool operator!=(const BranchingScheme::SubPlate& c) const { return !(*this == c); }
 };
 
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::CutInfo& ins);
+std::ostream& operator<<(std::ostream &os, const BranchingScheme::SubPlate& ins);
 
 /*********************************** Front ************************************/
 
@@ -257,17 +257,17 @@ public:
     const NodeItem& item(ItemPos j) const { return items_[j]; }
     const std::vector<NodeItem>& items() const { return items_; }
 
-    const std::array<CutInfo, 4>& prev_cut() const { return prev_cut_; };
-    const std::array<CutInfo, 4>& curr_cut() const { return curr_cut_; };
-    inline const CutInfo& prev_cut(Depth d) const { return prev_cut_[d]; };
-    inline const CutInfo& curr_cut(Depth d) const { return curr_cut_[d]; };
+    const std::array<SubPlate, 4>& subplate_prev() const { return subplates_prev_; };
+    const std::array<SubPlate, 4>& subplate_curr() const { return subplates_curr_; };
+    inline const SubPlate& subplate_prev(Depth d) const { return subplates_prev_[d]; };
+    inline const SubPlate& subplate_curr(Depth d) const { return subplates_curr_[d]; };
 
-    inline Length x1_curr() const { return (curr_cut(1).node == -1)? 0: node(curr_cut(1).node).p; }
-    inline Length x1_prev() const { return (prev_cut(1).node == -1)? 0: node(prev_cut(1).node).p; }
-    inline Length y2_curr() const { return (curr_cut(2).node == -1)? 0: node(curr_cut(2).node).p; }
-    inline Length y2_prev() const { return (prev_cut(2).node == -1)? 0: node(prev_cut(2).node).p; }
-    inline Length x3_curr() const { return (curr_cut(3).node == -1)? x1_prev(): node(curr_cut(3).node).p; }
-    inline Length x3_prev() const { return (prev_cut(3).node == -1)? x1_prev(): node(prev_cut(3).node).p; }
+    inline Length x1_curr() const { return (subplate_curr(1).node == -1)? 0: node(subplate_curr(1).node).p; }
+    inline Length x1_prev() const { return (subplate_prev(1).node == -1)? 0: node(subplate_prev(1).node).p; }
+    inline Length y2_curr() const { return (subplate_curr(2).node == -1)? 0: node(subplate_curr(2).node).p; }
+    inline Length y2_prev() const { return (subplate_prev(2).node == -1)? 0: node(subplate_prev(2).node).p; }
+    inline Length x3_curr() const { return (subplate_curr(3).node == -1)? x1_prev(): node(subplate_curr(3).node).p; }
+    inline Length x3_prev() const { return (subplate_prev(3).node == -1)? x1_prev(): node(subplate_prev(3).node).p; }
     inline Front front() const { return {.i = static_cast<BinPos>(bin_number()-1), .o = first_stage_orientation(bin_number() - 1), .x1_prev = x1_prev(), .x3_curr = x3_curr(), .x1_curr = x1_curr(), .y2_prev = y2_prev(), .y2_curr = y2_curr(), .z1 = z1(), .z2 = z2()}; }
 
     inline Length x1_max() const { return x1_max_; }
@@ -313,8 +313,8 @@ private:
     Profit profit_          = 0;
     Profit ub_profit_       = -1;
 
-    std::array<CutInfo, 4> curr_cut_ {{{.node = -1}, {.node = -1}, {.node = -1}, {.node = -1}}};
-    std::array<CutInfo, 4> prev_cut_ {{{.node = -1}, {.node = -1}, {.node = -1}, {.node = -1}}};
+    std::array<SubPlate, 4> subplates_curr_ {{{.node = -1}, {.node = -1}, {.node = -1}, {.node = -1}}};
+    std::array<SubPlate, 4> subplates_prev_ {{{.node = -1}, {.node = -1}, {.node = -1}, {.node = -1}}};
 
     /**
      * x1_max_ is the maximum position of the current 1-cut.
@@ -365,7 +365,7 @@ private:
      * children
      */
     void compute_ub_profit();
-    void update_prev_cuts_and_curr_cuts(Depth df, ItemPos n);
+    void update_subplates_prev_and_curr(Depth df, ItemPos n);
 
     /**
      * Insertion of one item.

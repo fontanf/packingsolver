@@ -56,7 +56,7 @@ std::ostream& operator<<(std::ostream &os, const Item& item);
 struct Defect
 {
     DefectId id;
-    BinPos bin_id;
+    BinTypeId bin_id;
     Coord pos;
     Rectangle rect;
 };
@@ -133,8 +133,8 @@ public:
     inline const Defect& defect(DefectId k)    const { return defects_[k]; }
     inline const Bin&    bin_type(BinTypeId i) const { return bins_[i]; }
 
-    const Item& item(StackId s, ItemPos j_pos) const;
-    const Bin& bin(BinPos i_pos) const;
+    inline const Item& item(StackId s, ItemPos j_pos) const;
+    inline const Bin& bin(BinPos i_pos) const;
     Area previous_bin_area(BinPos i_pos) const;
 
     inline const std::vector<Item>&              items()          const { return items_; }
@@ -142,13 +142,13 @@ public:
     inline const std::vector<std::vector<Item>>& stacks()         const { return stacks_; }
     inline const std::vector<Defect>&            defects()        const { return defects_; }
 
-    Length  width(const Item& item, bool rotate, CutOrientation o) const;
-    Length height(const Item& item, bool rotate, CutOrientation o) const;
+    inline Length  width(const Item& item, bool rotate, CutOrientation o) const;
+    inline Length height(const Item& item, bool rotate, CutOrientation o) const;
 
-    Length   left(const Defect& defect, CutOrientation o) const;
-    Length  right(const Defect& defect, CutOrientation o) const;
-    Length    top(const Defect& defect, CutOrientation o) const;
-    Length bottom(const Defect& defect, CutOrientation o) const;
+    inline Length   left(const Defect& defect, CutOrientation o) const;
+    inline Length  right(const Defect& defect, CutOrientation o) const;
+    inline Length    top(const Defect& defect, CutOrientation o) const;
+    inline Length bottom(const Defect& defect, CutOrientation o) const;
 
     DefectId rect_intersects_defect(
             Length l, Length r, Length b, Length t, BinTypeId i, CutOrientation o) const;
@@ -184,6 +184,88 @@ private:
 };
 
 std::ostream& operator<<(std::ostream &os, const Instance& ins);
+
+/****************************** inlined methods *******************************/
+
+const Item& Instance::item(StackId s, ItemPos j_pos) const
+{
+    assert(j_pos < stack_sizes_[s]);
+
+    if (all_item_type_one_copy_)
+        return stacks_[s][j_pos];
+
+    ItemPos j_tmp = 0;
+    ItemTypeId j = 0;
+    for (;;) {
+        if (j_tmp <= j_pos && j_pos < j_tmp + stacks_[s][j].copies) {
+            return stacks_[s][j];
+        } else {
+            j_tmp += stacks_[s][j].copies;
+            j++;
+        }
+    }
+}
+
+const Bin& Instance::bin(BinPos i_pos) const
+{
+    assert(i_pos < bin_number_);
+
+    if (all_bin_type_one_copy_)
+        return bins_[i_pos];
+
+    BinPos i_tmp = 0;
+    BinTypeId i = 0;
+    for (;;) {
+        if (i_tmp <= i_pos && i_pos < i_tmp + bins_[i].copies) {
+            return bins_[i];
+        } else {
+            i_tmp += bins_[i].copies;
+            i++;
+        }
+    }
+}
+
+Length Instance::left(const Defect& defect, CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)?  defect.pos.x: defect.pos.y;
+}
+
+Length Instance::right(const Defect& defect, CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)?
+        defect.pos.x + defect.rect.w:
+        defect.pos.y + defect.rect.h;
+}
+
+Length Instance::top(const Defect& defect, CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)?
+        defect.pos.y + defect.rect.h:
+        defect.pos.x + defect.rect.w;
+}
+
+Length Instance::bottom(const Defect& defect, CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)? defect.pos.y: defect.pos.x;
+}
+
+Length Instance::width(const Item& item, bool rotate, CutOrientation o) const
+{
+    if (o == CutOrientation::Vertical) {
+        return (!rotate)? item.rect.w: item.rect.h;
+    } else {
+        return (!rotate)? item.rect.h: item.rect.w;
+    }
+}
+
+Length Instance::height(const Item& item, bool rotate, CutOrientation o) const
+{
+    if (o == CutOrientation::Vertical) {
+        return (!rotate)? item.rect.h: item.rect.w;
+    } else {
+        return (!rotate)? item.rect.w: item.rect.h;
+    }
+}
 
 }
 }
