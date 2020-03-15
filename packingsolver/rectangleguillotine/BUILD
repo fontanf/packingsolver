@@ -11,6 +11,10 @@ cc_library(
                 "branching_scheme.cpp",
         ],
         deps = ["//packingsolver/algorithms:common"],
+        copts = select({
+                "@bazel_tools//src/conditions:windows": ['/std:c++latest'],
+                "//conditions:default":                 ["-std=c++14"],
+        }),
         visibility = ["//visibility:public"],
 )
 
@@ -28,6 +32,10 @@ cc_test(
                 "@googletest//:gtest_main",
                 "//packingsolver/algorithms:algorithms",
         ],
+        copts = select({
+                "@bazel_tools//src/conditions:windows": ['/std:c++latest'],
+                "//conditions:default":                 ["-std=c++14"],
+        }),
         data = [
                 "//data/rectangle:rectangle",
         ],

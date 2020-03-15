@@ -16,8 +16,6 @@ For academic collaboration, please do not hesitate to contact Luc Libralesso.
 
 Note: PackingSolver favours efficiency and flexibility over ease of use. Therefore, some knowledge about tree search algorithms and packing problems is required in order to use it.
 
-A solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
-
 Compile:
 ```shell
 bazel build -- //...
@@ -25,17 +23,10 @@ bazel build -- //...
 
 Execute:
 ```shell
-./bazel-bin/packingsolver/main -v \
-    --problem-type rectangleguillotine \
-    --objective knapsack \
-    --items data/rectangle/alvarez2002/ATP30_items.csv \
-    --bins  data/rectangle/alvarez2002/ATP30_bins.csv \
-    --certificate ATP30_solution.csv \
-    --output      ATP30_output.json \
-    --time-limit 2 \
-    -q "RG -p 3NHO -s 2" -a "MBA* -f 1.5 -c 4" \
-    -q "RG -p 3NHO -s 3" -a "MBA* -f 1.5 -c 4"
+./bazel-bin/packingsolver/main  --verbose  --problem-type rectangleguillotine  --objective knapsack  --items data/rectangle/alvarez2002/ATP35_items.csv  --bins data/rectangle/alvarez2002/ATP35_bins.csv  --certificate ATP35_solution.csv  --output ATP35_output.json  --time-limit 1  -q "RG -p 3NHO -s 2" -a "MBA* -f 1.5 -c 4"  -q "RG -p 3NHO -s 3" -a "MBA* -f 1.5 -c 4"
 ```
+
+A solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
 
 Problem types: `rectangleguillotine` (`RG`)
 
@@ -83,12 +74,12 @@ Do not hesitate to contact us if you are aware of any variant or article that we
 
 All experiments can be reproduced using the following scripts:
 ```shell
-./packingsolver/scripts/bench "roadef2018_A" "roadef2018_B" "roadef2018_X" # ~50h
-./packingsolver/scripts/bench "3NEGH-BPP-O" "3NEGH-BPP-R" "3GH-BPP-O" "3HGV-BPP-O" # ~30h
-./packingsolver/scripts/bench "2NEGH-BPP-O" "2NEGH-BPP-R" "2GH-BPP-O" # ~30h
-./packingsolver/scripts/bench "3NEG-KP-O" "3NEG-KP-R" "3NEGV-KP-O" "3HG-KP-O" # ~10h
-./packingsolver/scripts/bench "2NEG-KP-O" "2NEGH-KP-O" "2NEGV-KP-O" "2NEGH-KP-R" "2G-KP-O" "2GH-KP-O" "2GV-KP-O" # 1h
-./packingsolver/scripts/bench "3NEGH-SPP-O" "3NEGH-SPP-R" # ~10h
-./packingsolver/scripts/bench "2NEGH-SPP-O" "2NEGH-SPP-R" # ~2h
+python3 packingsolver/scripts/bench.py "roadef2018_A" "roadef2018_B" "roadef2018_X" # ~50h
+python3 packingsolver/scripts/bench.py "3NEGH-BPP-O" "3NEGH-BPP-R" "3GH-BPP-O" "3HGV-BPP-O" # ~30h
+python3 packingsolver/scripts/bench.py "2NEGH-BPP-O" "2NEGH-BPP-R" "2GH-BPP-O" # ~30h
+python3 packingsolver/scripts/bench.py "3NEG-KP-O" "3NEG-KP-R" "3NEGV-KP-O" "3HG-KP-O" # ~10h
+python3 packingsolver/scripts/bench.py "2NEG-KP-O" "2NEGH-KP-O" "2NEGV-KP-O" "2NEGH-KP-R" "2G-KP-O" "2GH-KP-O" "2GV-KP-O" # 1h
+python3 packingsolver/scripts/bench.py "3NEGH-SPP-O" "3NEGH-SPP-R" # ~10h
+python3 packingsolver/scripts/bench.py "2NEGH-SPP-O" "2NEGH-SPP-R" # ~2h
 ```
 

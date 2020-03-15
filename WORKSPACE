@@ -1,29 +1,21 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
-http_archive(
+git_repository(
     name = "googletest",
-    build_file_content = """
-cc_library(
-        name = "gtest",
-        srcs = ["googletest-release-1.8.0/googletest/src/gtest-all.cc", "googletest-release-1.8.0/googlemock/src/gmock-all.cc",],
-        hdrs = glob(["**/*.h", "googletest-release-1.8.0/googletest/src/*.cc", "googletest-release-1.8.0/googlemock/src/*.cc",]),
-        includes = ["googletest-release-1.8.0/googlemock", "googletest-release-1.8.0/googletest", "googletest-release-1.8.0/googletest/include", "googletest-release-1.8.0/googlemock/include",],
-        linkopts = ["-pthread"],
-        visibility = ["//visibility:public"],
+    remote = "https://github.com/google/googletest.git",
+    commit = "703bd9caab50b139428cea1aaff9974ebee5742e",
+    shallow_since = "1570114335 -0400",
 )
 
-cc_library(
-        name = "gtest_main",
-        srcs = ["googletest-release-1.8.0/googlemock/src/gmock_main.cc"],
-        linkopts = ["-pthread"],
-        visibility = ["//visibility:public"],
-        deps = [":gtest"],
+git_repository(
+    name = "com_github_nelhage_rules_boost",
+    commit = "9f9fb8b2f0213989247c9d5c0e814a8451d18d7f",
+    remote = "https://github.com/nelhage/rules_boost",
+    shallow_since = "1570056263 -0700",
 )
-""",
-    url = "https://github.com/google/googletest/archive/release-1.8.0.zip",
-    sha256 = "f3ed3b58511efd272eb074a3a6d6fb79d7c2e6a0e374323d1e6bcbcc1ef141bf",
-)
+load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
+boost_deps()
 
 http_archive(
     name = "json",
@@ -44,10 +36,5 @@ git_repository(
     remote = "https://github.com/fontanf/benchtools.git",
     commit = "fe56ed683d32f70cd248d77cd4107e57eee05758",
     shallow_since = "1576623294 +0100",
-)
-
-local_repository(
-    name = "benchtools_",
-    path = "/home/florian/Dev/benchtools/",
 )
 
