@@ -227,6 +227,9 @@ if __name__ == "__main__":
     for f in ["christofides1977/cgcut" + str(i) + ".txt" for i in range(1, 4)]:
         convert_generic(f, "nwh", "whcp")
 
+    for f in ["beng1982/BENG" + str(i) for i in range(1, 11)]:
+        convert_generic(f, "nwh", "xwh")
+
     for f in ["wang1983/" + i for i in ["WANG1", "WANG2", "WANG3"]]:
         convert_generic(f, "xnwh", "whc")
     convert_generic("wang1983/W", "whn", "whc")
@@ -282,6 +285,12 @@ if __name__ == "__main__":
     for f in ["martello1998/Class_" + "{:02d}".format(c) + ".2bp" for c in range(7, 11)]:
         convert_berkey1987(f)
 
+    for f in ["hopper2000/" + a + str(b) + c \
+            for a in ["n", "t"] \
+            for b in range(1, 8) \
+            for c in ["a", "b", "c", "d", "e"]]:
+        convert_generic(f, "nwh", "wh")
+
     for f in ["cung2000/" + i for i in ["CHL2", "CHL3", "CHL4"]]:
         convert_generic(f, "whn", "whpc")
     for f in ["cung2000/" + i for i in ["CHL1", "Hchl1", "Hchl2", "Hchl9"]]:
@@ -313,11 +322,17 @@ if __name__ == "__main__":
     for f in ["beasley2004/ngcutfs" + str(i) + ".txt" for i in range(1, 4)]:
         convert_beasley2004(f)
 
+    for f in ["burke2004/BKW" + str(i) for i in range(1, 14)]:
+        convert_generic(f, "nwh", "xwh")
+
     for f in ["imahori2005/" + a + b + c \
             for a in ["A", "B", "C", "D"] \
             for b in ["L", "S", "V"] \
             for c in ["X", "Y", "Z", "ZZ", "ZZZ"]]:
         convert_generic(f, "whn", "whc")
+
+    for f in ["pinto2005/" + str(i) for i in [50, 100, 500, 1000, 5000, 10000, 15000]]:
+        convert_generic(f, "whn", "wh")
 
     for f in ["cui2008/" + str(i) for i in range(1, 21)]:
         convert_generic(f, "nwh", "whcxp")
@@ -365,15 +380,4 @@ if __name__ == "__main__":
                              (3, 150, 150), (3, 250, 250), (4, 150, 150), (4, 250, 250)] \
             for m in [25, 50] for i in range(1, 6)]:
         convert_generic(f, "whn", "whpc")
-
-    for f in ["wei2011/N/N" + str(i) + c + ".txt" for i in range(1, 8) for c in ["a", "b", "c", "d", "e"]]:
-        convert_generic(f, "whn", "wh")
-    for f in ["wei2011/T/T" + str(i) + c + ".txt" for i in range(1, 8) for c in ["a", "b", "c", "d", "e"]]:
-        convert_generic(f, "whn", "wh")
-    for f in ["wei2011/C/lw" + str(i) + ".txt" for i in [ \
-            161, 163, 172, 251, 252, 253, 281, 283, 292, 491, 492, 493, \
-            731, 732, 733, 971, 972, 973, 1961, 1963, 1972]]:
-        convert_generic(f, "whn", "wh")
-    for f in ["wei2011/Burke/n" + str(i) + ".txt" for i in range(1, 14)]:
-        convert_generic(f, "whn", "wh")
 

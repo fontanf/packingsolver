@@ -13,6 +13,8 @@ datas["roadef2018_X"] = ["roadef2018/X" + str(i) for i in range(1, 16)]
 
 datas["christofides1977"] = ["christofides1977/cgcut" + str(i) + ".txt" for i in range(1, 4)]
 
+datas["beng1982"] = ["beng1982/BENG" + str(i) for i in range(1, 11)]
+
 datas["wang1983"] = ["wang1983/" + i for i in ["WANG1", "WANG2", "WANG3", "W"]]
 
 datas["beasley1985"] = ["beasley1985/gcut" + str(i) + ".txt" for i in range(1, 14)]
@@ -48,6 +50,13 @@ datas["martello1998"] = ["martello1998/Class_" + "{:02d}".format(c) + ".2bp_" + 
         for n in [20, 40, 60, 80, 100] \
         for i in range(1, 11)]
 
+datas["hopper2000_n"] = ["hopper2000/n" + str(b) + c \
+            for b in range(1, 8) \
+            for c in ["a", "b", "c", "d", "e"]]
+datas["hopper2000_t"] = ["hopper2000/t" + str(b) + c \
+            for b in range(1, 8) \
+            for c in ["a", "b", "c", "d", "e"]]
+
 datas["cung2000_cw"] = ["cung2000/" + i for i in ["CHL1", "CHL2", "CHL3", "CHL4",
     "Hchl1", "Hchl2", "Hchl9"]]
 datas["cung2000_cu"] = ["cung2000/" + i for i in ["CHL1s", "CHL2s", "CHL3s", "CHL4s",
@@ -71,10 +80,14 @@ datas["beasley2004_ngcutfs"] = ["beasley2004/ngcutfs" + str(i) + ".txt_" + str(j
         for i in range(1, 4) \
         for j in range(1, 211)]
 
+datas["burke2004"] = ["burke2004/BKW" + str(i) for i in range(1, 14)]
+
 datas["imahori2005"] = ["imahori2005/" + a + b + c \
         for a in ["A", "B", "C", "D"] \
         for b in ["L", "S", "V"] \
         for c in ["X", "Y", "Z", "ZZ", "ZZZ"]]
+
+datas["pinto2005"] = ["pinto2005/" + str(i) for i in [50, 100, 500, 1000, 5000, 10000, 15000]]
 
 datas["hifi2008_cu"] = ["hifi2008/" + t + "T_" + i +  "H.txt" \
         for t in ["nice", "path"] \
@@ -117,17 +130,6 @@ datas["velasco2019"] = ["velasco2019/P" + str(cl) + "_" + str(l) + "_"  + str(h)
                          (3, 150, 150), (3, 250, 250), (4, 150, 150), (4, 250, 250)] \
         for m in [25, 50] \
         for i in range(1, 6)]
-
-datas["hopper2000_n"] = ["wei2011/N/N" + str(i) + c + ".txt" \
-        for i in range(1, 8) \
-        for c in ["a", "b", "c", "d", "e"]]
-datas["hopper2000_t"] = ["wei2011/T/T" + str(i) + c + ".txt" \
-        for i in range(1, 8) \
-        for c in ["a", "b", "c", "d", "e"]]
-datas["hopper2001_c"] = ["wei2011/C/lw" + str(i) + ".txt" for i in [ \
-        161, 163, 172, 251, 252, 253, 281, 283, 292, 491, 492, 493, \
-        731, 732, 733, 971, 972, 973, 1961, 1963, 1972]]
-datas["burke2004"] = ["wei2011/Burke/n" + str(i) + ".txt" for i in range(1, 14)]
 
 ################################################################################
 
@@ -608,7 +610,7 @@ for problem in sys.argv[1:]:
     # SPP
 
     elif problem == "3NEGH-SPP-O": # bortfeldt2012 wei2014
-        pdp.append((problem, ["kroger1995", "hopper2000_n", "hopper2000_t", "hopper2001_c"], [
+        pdp.append((problem, ["kroger1995", "hopper2000_n", "hopper2000_t", "hopper2001a"], [
                 "--objective", "strip-packing",
                 "--bin-infinite-height",
                 "--time-limit", "30",
@@ -633,7 +635,7 @@ for problem in sys.argv[1:]:
                 "-q", "\"RG -p 3NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "3NEGH-SPP-R": # kroger1993 schneke1996 mumford2003 zhang2006 bortfeldt2006 cui2008 bortfeldt2012 cui2013 wei2014
-        pdp.append((problem, ["kroger1995", "hopper2000_n", "hopper2000_t", "hopper2001_c", "burke2004"], [
+        pdp.append((problem, ["kroger1995", "hopper2000_n", "hopper2000_t", "hopper2001a", "burke2004"], [
                 "--objective", "strip-packing",
                 "--bin-infinite-height",
                 "--time-limit", "30",
