@@ -2,7 +2,7 @@ cc_library(
         name = "common",
         hdrs = ["common.hpp"],
         srcs = ["common.cpp"],
-        deps = ["@benchtools//:info"],
+        deps = ["@optimizationtools//optimizationtools:info"],
         visibility = ["//visibility:public"],
 )
 

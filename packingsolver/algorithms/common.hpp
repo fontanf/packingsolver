@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "benchtools/info.hpp"
+#include "optimizationtools/info.hpp"
 
 namespace packingsolver
 {
@@ -21,7 +21,7 @@ typedef int64_t Seed;
 typedef int16_t GuideId;
 typedef int64_t Counter;
 
-using benchtools::Info;
+using optimizationtools::Info;
 
 enum class ProblemType { RectangleGuillotine, Rectangle };
 enum class Objective { Default, BinPacking, StripPacking, Knapsack, BinPackingLeftovers };

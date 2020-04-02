@@ -32,9 +32,9 @@ cc_library(
 )
 
 git_repository(
-    name = "benchtools",
-    remote = "https://github.com/fontanf/benchtools.git",
-    commit = "fe56ed683d32f70cd248d77cd4107e57eee05758",
-    shallow_since = "1576623294 +0100",
+    name = "optimizationtools",
+    remote = "https://github.com/fontanf/optimizationtools.git",
+    commit = "aa1f5edb039109ac2eb7133e47e17d483299cf13",
+    shallow_since = "1585857862 +0200",
 )
 

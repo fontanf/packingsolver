@@ -1,3 +1,5 @@
+load("//packingsolver:variables.bzl", "STDCPP")
+
 cc_binary(
         name = "main",
         srcs = ["main.cpp"],
@@ -6,10 +8,7 @@ cc_binary(
                 "//packingsolver/rectangleguillotine:rectangleguillotine",
                 "@boost//:program_options",
         ],
-        copts = select({
-                "@bazel_tools//src/conditions:windows": ['/std:c++latest'],
-                "//conditions:default":                 ["-std=c++14"],
-        }),
+        copts = STDCPP,
         linkopts = select({
                 "@bazel_tools//src/conditions:windows": [],
                 "//conditions:default":                 ["-lpthread"],

@@ -1,3 +1,5 @@
+load("//packingsolver:variables.bzl", "STDCPP")
+
 cc_library(
         name = "rectangleguillotine",
         hdrs = [
@@ -11,10 +13,7 @@ cc_library(
                 "branching_scheme.cpp",
         ],
         deps = ["//packingsolver/algorithms:common"],
-        copts = select({
-                "@bazel_tools//src/conditions:windows": ['/std:c++latest'],
-                "//conditions:default":                 ["-std=c++14"],
-        }),
+        copts = STDCPP,
         visibility = ["//visibility:public"],
 )
 
@@ -32,13 +31,8 @@ cc_test(
                 "@googletest//:gtest_main",
                 "//packingsolver/algorithms:algorithms",
         ],
-        copts = select({
-                "@bazel_tools//src/conditions:windows": ['/std:c++latest'],
-                "//conditions:default":                 ["-std=c++14"],
-        }),
-        data = [
-                "//data/rectangle:rectangle",
-        ],
+        copts = STDCPP,
+        data = ["//data/rectangle:rectangle"],
         timeout = "short",
 )
 
