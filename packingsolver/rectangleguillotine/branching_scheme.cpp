@@ -1455,7 +1455,8 @@ void BranchingScheme::Node::insertion_defect(std::vector<Insertion>& insertions,
 {
     LOG_FOLD_START(info, "insertion_defect"
             << " k " << k.id << " df " << df << std::endl);
-    assert(-1 <= df); assert(df <= 3);
+    assert(-2 <= df);
+    assert(df <= 3);
 
     // Check defect intersection
     BinPos i = last_bin(df);
@@ -2052,7 +2053,6 @@ bool BranchingScheme::Node::check(const std::vector<Solution::Node>& nodes) cons
     std::vector<ItemPos> items(instance().item_number(), 0);
 
     for (const Solution::Node& node: nodes) {
-        CutOrientation o = first_stage_orientation(node.i);
         Length w = instance().bin(node.i).rect.w;
         Length h = instance().bin(node.i).rect.h;
 
@@ -2061,10 +2061,10 @@ bool BranchingScheme::Node::check(const std::vector<Solution::Node>& nodes) cons
         // Check defect intersection
         if (!branching_scheme().cut_through_defects()) {
             for (Defect defect: instance().bin(node.i).defects) { // for each defect in the bin
-                Length l = instance().left(defect, o);
-                Length r = instance().right(defect, o);
-                Length t = instance().top(defect, o);
-                Length b = instance().bottom(defect, o);
+                Length l = defect.pos.x;
+                Length r = defect.pos.x + defect.rect.w;
+                Length b = defect.pos.y;
+                Length t = defect.pos.y + defect.rect.h;
                 if (
                            (node.l > l && node.l < r && node.b < t && node.t > b)
                         || (node.r > l && node.r < r && node.b < t && node.t > b)
@@ -2074,6 +2074,7 @@ bool BranchingScheme::Node::check(const std::vector<Solution::Node>& nodes) cons
                     std::cerr << "\033[31m" << "ERROR, "
                         "Node " << node << " cut intersects defect " << defect
                         << "\033[0m" << std::endl;
+                    assert(false);
                     return false;
                 }
             }
@@ -2099,16 +2100,11 @@ bool BranchingScheme::Node::check(const std::vector<Solution::Node>& nodes) cons
                 Rectangle r1;
                 r1.w = node.r - node.l;
                 r1.h = node.t - node.b;
-                Coord c2;
-                c2.x = instance().left(defect, o);
-                c2.y = instance().bottom(defect, o);
-                Rectangle r2;
-                r2.w = instance().right(defect, o) - instance().left(defect, o);
-                r2.h = instance().top(defect, o) - instance().bottom(defect, o);
-                if (rect_intersection(c1, r1, c2, r2)) {
+                if (rect_intersection(c1, r1, defect.pos, defect.rect)) {
                     std::cerr << "\033[31m" << "ERROR, "
                         "Node " << node << " intersects defect " << defect
                         << "\033[0m" << std::endl;
+                    assert(false);
                     return false;
                 }
             }

@@ -6,6 +6,55 @@
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 
+TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
+{
+    /**
+     * Test added to fix a bug when converting nodes to solutions with
+     * two-staged guillotine cuts and defects.
+     *
+     * |-------------------------|------------------------| 3210
+     * |                         |                        |
+     * |                         |                        | 3000
+     * |                         |                        |
+     * |                         |                        |
+     * |                         |                        |
+     * |                         |                        |
+     * |                         |                        |
+     * |                         | x                      |
+     * |                         |------------------------| 500
+     * |                         |                        |
+     * |-------------------------|------------------------|
+     *                         3000                     6000
+     */
+
+    Info info;
+
+    Instance instance(Objective::BinPackingLeftovers);
+    instance.add_item(3000, 3210, -1, 1, false, true);
+    instance.add_item(3000, 500, -1, 1, false, true);
+    instance.add_bin(6000, 3210);
+    instance.add_defect(0, 3100, 600, 2, 2);
+
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    p.cut_type_1 = CutType1::TwoStagedGuillotine;
+    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme::Node node(branching_scheme);
+
+    BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -2, .x1 = 3210, .y2 = 3000, .x3 = 3210, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0};
+    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
+    node.apply_insertion(i0, info);
+
+    BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 1, .x1 = 3210, .y2 = 6000, .x3 = 500, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0};
+    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
+    node.apply_insertion(i1, info);
+
+    Solution solution(instance);
+    solution = node.convert(solution);
+}
+
 TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
 {
     Info info = Info()
