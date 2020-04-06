@@ -4,9 +4,9 @@ def Settings( **kwargs ):
                 '-x', 'c++',
                 '-Wall', '-Wextra', '-Werror',
                 '-I', '.',
-                '-I', './bazel-packingsolver/external/json/single_include',
-                '-I', './bazel-packingsolver/external/googletest/googletest-release-1.8.0/googletest/include/',
-                '-I', './bazel-packingsolver/external/',
+                '-I', './bazel-packingsolver/external/json/single_include/',
+                '-I', './bazel-packingsolver/external/googletest/googletest/include/',
+                '-I', './bazel-packingsolver/external/optimizationtools/',
                 ],
             }
 
