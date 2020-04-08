@@ -375,8 +375,8 @@ BranchingScheme::Node& BranchingScheme::Node::operator=(const BranchingScheme::N
         waste_                   = node.waste_;
         profit_                  = node.profit_;
         ub_profit_               = node.ub_profit_;
-        subplates_prev_                = node.subplates_prev_;
-        subplates_curr_                = node.subplates_curr_;
+        subplates_prev_          = node.subplates_prev_;
+        subplates_curr_          = node.subplates_curr_;
         x1_max_                  = node.x1_max_;
         y2_max_                  = node.y2_max_;
         z1_                      = node.z1_;
@@ -1239,7 +1239,7 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
         LOG_FOLD_END(info, "too wide x " << x << " > w " << w);
         return;
     }
-    if (x > w || y > h) {
+    if (y > h) {
         LOG_FOLD_END(info, "too high y " << y << " > h " << h);
         return;
     }
@@ -1293,8 +1293,13 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
             LOG(info, "f_it " << front(*it) << std::endl);
             if (dominates(front(insertion), front(*it), branching_scheme())) {
                 LOG(info, "dominates " << *it << std::endl);
-                *it = insertions.back();
-                insertions.pop_back();
+                if (std::next(it) != insertions.end()) {
+                    *it = insertions.back();
+                    insertions.pop_back();
+                } else {
+                    insertions.pop_back();
+                    break;
+                }
             } else if (dominates(front(*it), front(insertion), branching_scheme())) {
                 LOG_FOLD_END(info, "dominated by " << *it);
                 return;
@@ -1360,8 +1365,13 @@ void BranchingScheme::Node::insertion_1_item_4cut(std::vector<Insertion>& insert
             LOG(info, "f_it " << front(*it) << std::endl);
             if (dominates(front(insertion), front(*it), branching_scheme())) {
                 LOG(info, "dominates " << *it << std::endl);
-                *it = insertions.back();
-                insertions.pop_back();
+                if (std::next(it) != insertions.end()) {
+                    *it = insertions.back();
+                    insertions.pop_back();
+                } else {
+                    insertions.pop_back();
+                    break;
+                }
             } else if (dominates(front(*it), front(insertion), branching_scheme())) {
                 LOG_FOLD_END(info, "dominated by " << *it);
                 return;
@@ -1432,8 +1442,13 @@ void BranchingScheme::Node::insertion_2_items(std::vector<Insertion>& insertions
             LOG(info, "f_it " << front(*it) << std::endl);
             if (dominates(front(insertion), front(*it), branching_scheme())) {
                 LOG(info, "dominates " << *it << std::endl);
-                *it = insertions.back();
-                insertions.pop_back();
+                if (std::next(it) != insertions.end()) {
+                    *it = insertions.back();
+                    insertions.pop_back();
+                } else {
+                    insertions.pop_back();
+                    break;
+                }
             } else if (dominates(front(*it), front(insertion), branching_scheme())) {
                 LOG_FOLD_END(info, "dominated by " << *it);
                 return;
@@ -1498,8 +1513,13 @@ void BranchingScheme::Node::insertion_defect(std::vector<Insertion>& insertions,
             LOG(info, "f_it " << front(*it) << std::endl);
             if (dominates(front(insertion), front(*it), branching_scheme())) {
                 LOG(info, "dominates " << *it << std::endl);
-                *it = insertions.back();
-                insertions.pop_back();
+                if (std::next(it) != insertions.end()) {
+                    *it = insertions.back();
+                    insertions.pop_back();
+                } else {
+                    insertions.pop_back();
+                    break;
+                }
             } else if (dominates(front(*it), front(insertion), branching_scheme())) {
                 LOG_FOLD_END(info, "dominated by " << *it);
                 return;
