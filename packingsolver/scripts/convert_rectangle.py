@@ -1,6 +1,7 @@
 import os
 import os.path
 import csv
+import json
 
 def words(filename):
     f = open(os.path.join("data", "rectangle_raw", filename), "r")
@@ -218,6 +219,36 @@ def convert_martin2019b(filename):
         defects["HEIGHT"].append(y2 - y1)
     write_dict(defects, filename + "_defects.csv")
 
+def convert_long2020(filename):
+    w = words(filename)
+
+    bins = {"WIDTH": [], "HEIGHT": []}
+    items = {"WIDTH": [], "HEIGHT": [], "COPIES": []}
+
+    for _ in range(48):
+        next(w)
+
+    first = True
+    while next(w, None):
+        items["COPIES"].append(int(next(w)))
+        items["HEIGHT"].append(int(next(w)))
+        items["WIDTH"].append(int(next(w)))
+        if first:
+            x = int(next(w));
+            bins["HEIGHT"].append(int(next(w)))
+            bins["WIDTH"].append(int(next(w)))
+        else:
+            for _ in range(3):
+                next(w)
+        first = False
+
+    write_dict(bins, filename + "_bins.csv")
+    write_dict(items, filename + "_items.csv")
+    p = os.path.join("data", "rectangle", filename.replace(" ", "_"))
+    data = {"max1cut": x}
+    with open(p + "_parameters.json", "w") as params_file:
+        params_file.write(json.dumps(data, ensure_ascii=False))
+
 ################################################################################
 
 if __name__ == "__main__":
@@ -276,6 +307,9 @@ if __name__ == "__main__":
         convert_generic(f, "whn", "whp")
     for f in ["hifi1997b/" + i for i in ["U1", "U2", "U3"]]:
         convert_generic(f, "whn", "wh")
+
+    for f in ["hifi1998/SCP" + str(i) for i in range(1, 26)]:
+        convert_generic(f, "whn", "whc")
 
     for f in ["fayard1998/CW" + str(i) for i in range(1, 12)]:
         convert_generic(f, "whn", "whpc")
@@ -367,12 +401,17 @@ if __name__ == "__main__":
         convert_roadef2018(f)
 
     # for f in ["martin2019a/os" + o + "_is" + i + "_m" + m +  "_" + j \
-            # for o in ["02", "06"]       for i in ["01", "02", "03", "04", "06", "07", "08", "11", "12", "16"] \
-            # for m in ["10", "20", "40"] for j in ["01", "02", "03", "04", "05"]]:
+            # for o in ["02", "06"] \
+            # for i in ["01", "02", "03", "04", "06", "07", "08", "11", "12", "16"] \
+            # for m in ["10", "20", "40"] \
+            # for j in ["01", "02", "03", "04", "05"]]:
         # convert_generic(f, "whn", "whc")
     # for f in ["martin2019b/inst_" + LW + "_" + str(m) + "_"  + str(rho) + "_" + str(i) + "_" + str(d)
             # for LW in ["75_75", "125_50", "150_150", "225_100", "300_300", "450_200"] \
-            # for m in [5, 10, 15, 20, 25] for rho in [6, 8, 10] for i in range(1, 16) for d in [1, 2, 3, 4]]:
+            # for m in [5, 10, 15, 20, 25] \
+            # for rho in [6, 8, 10] \
+            # for i in range(1, 16) \
+            # for d in [1, 2, 3, 4]]:
         # convert_martin2019b(f)
 
     for f in ["velasco2019/P" + str(cl) + "_" + str(l) + "_"  + str(h) + "_" + str(m) + "_" + str(i) + ".txt"
@@ -380,4 +419,7 @@ if __name__ == "__main__":
                              (3, 150, 150), (3, 250, 250), (4, 150, 150), (4, 250, 250)] \
             for m in [25, 50] for i in range(1, 6)]:
         convert_generic(f, "whn", "whpc")
+
+    for f in ["long2020/Instance " + str(i) + ".txt" for i in range(1, 26)]:
+        convert_long2020(f)
 

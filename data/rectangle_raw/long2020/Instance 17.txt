@@ -1,0 +1,31 @@
+instance 11
+description of notations:
+i: ID of item
+d: demand of item
+wi: width of item
+li: length of item
+Sl: the maximal cutting length of the double side split shear
+W: width of bin
+L: length of bin
+
+instance features(i d wi li Sl W L):
+1 39 5 46 87 27 105
+2 39 7 64 87 27 105
+3 39 8 67 87 27 105
+4 39 9 70 87 27 105
+5 39 11 23 87 27 105
+6 39 11 42 87 27 105
+7 39 12 22 87 27 105
+8 39 12 30 87 27 105
+9 39 12 81 87 27 105
+10 39 15 17 87 27 105
+11 39 15 37 87 27 105
+12 39 15 41 87 27 105
+13 39 16 37 87 27 105
+14 39 19 17 87 27 105
+15 39 19 25 87 27 105
+16 39 19 68 87 27 105
+17 39 22 24 87 27 105
+18 39 22 35 87 27 105
+19 39 24 14 87 27 105
+20 39 25 37 87 27 105
