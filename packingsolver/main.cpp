@@ -98,8 +98,12 @@ std::pair<Counter, GuideId> read_dpastar_args(std::vector<char*> argv)
 }
 
 rectangleguillotine::BranchingScheme::Parameters read_rg_branching_scheme_parameters(
-        std::vector<char*> argv)
+        std::vector<std::string> args)
 {
+    std::vector<char*> argv;
+    for(Counter i = 0; i < (Counter)args.size(); ++i)
+        argv.push_back(const_cast<char*>(args[i].c_str()));
+
     rectangleguillotine::BranchingScheme::Parameters p0;
     std::string predefined = "";
     po::options_description desc("Allowed options");
@@ -192,18 +196,12 @@ int run_rectangleguillotine(
         Counter thread_id,
         rectangleguillotine::Solution& solution,
         const rectangleguillotine::Instance& instance,
-        std::string branching_scheme_str,
+        const std::vector<std::string> branching_scheme_args,
         std::string algorithm_str,
         Info info)
 {
-    // Parse branching scheme
-    std::vector<std::string> branching_scheme_args = po::split_unix(branching_scheme_str);
-    std::vector<char*> branching_scheme_argv;
-    for(Counter i = 0; i < (Counter)branching_scheme_args.size(); ++i)
-        branching_scheme_argv.push_back(const_cast<char*>(branching_scheme_args[i].c_str()));
-
     if (branching_scheme_args[0] == "RG") {
-        rectangleguillotine::BranchingScheme::Parameters parameters = read_rg_branching_scheme_parameters(branching_scheme_argv);
+        rectangleguillotine::BranchingScheme::Parameters parameters = read_rg_branching_scheme_parameters(branching_scheme_args);
         rectangleguillotine::BranchingScheme branching_scheme(instance, parameters);
         run_rectangleguillotine_2(thread_id, solution, branching_scheme, algorithm_str, info);
     } else {
@@ -219,6 +217,7 @@ int main(int argc, char *argv[])
     std::string items_path = "";
     std::string bins_path = "";
     std::string defects_path = "";
+    std::string parameters_path = "";
     std::string certificate_path = "";
     std::string output_path = "";
     std::string log_path = "";
@@ -250,6 +249,7 @@ int main(int argc, char *argv[])
         ("items,i",       po::value<std::string>(&items_path)->required(), "Items path")
         ("bins,b",        po::value<std::string>(&bins_path),              "Bins path")
         ("defects,d",     po::value<std::string>(&defects_path),           "Defects path")
+        ("parameters",    po::value<std::string>(&parameters_path),        "Parameters path")
         ("bin-infinite-width", "")
         ("bin-infinite-height", "")
         ("bin-infinite-copies", "")
@@ -290,9 +290,23 @@ int main(int argc, char *argv[])
     if (!vm.count("-b"))
         if (std::ifstream(items_path + "_bins.csv").good())
             bins_path = items_path + "_bins.csv";
+    if (!vm.count("parameters"))
+        if (std::ifstream(items_path + "_parameters.txt").good())
+            parameters_path = items_path + "_parameters.txt";
     if (!std::ifstream(items_path).good())
         if (std::ifstream(items_path + "_items.csv").good())
             items_path = items_path + "_items.csv";
+
+    // Read parameters
+    std::vector<std::string> parameters;
+    if (parameters_path != "") {
+        std::ifstream parameters_file(parameters_path);
+        if (!parameters_file.good())
+            std::cerr << "\033[31m" << "ERROR, unable to open file \"" << parameters_path << "\"" << "\033[0m" << std::endl;
+        std::string parameters_line;
+        std::getline(parameters_file, parameters_line);
+        parameters = po::split_unix(parameters_line);
+    }
 
     Info info = Info()
         .set_verbose(vm.count("verbose"))
@@ -321,11 +335,16 @@ int main(int argc, char *argv[])
         rectangleguillotine::Solution solution(instance);
         solution.algorithm_start(info);
         for (Counter i = 0; i < (Counter)algorithms.size(); ++i) {
+            // Parse branching scheme
+            std::vector<std::string> branching_scheme_args = po::split_unix(branching_schemes[i]);
+            // Insert parameters at the beginning of branching_scheme_args
+            branching_scheme_args.insert(branching_scheme_args.begin() + 1,
+                    parameters.begin(), parameters.end());
             threads.push_back(std::thread(run_rectangleguillotine,
                         i + 1,
                         std::ref(solution),
                         std::ref(instance),
-                        branching_schemes[i],
+                        branching_scheme_args,
                         algorithms[i],
                         Info(info, true, "thread" + std::to_string(i))));
         }
