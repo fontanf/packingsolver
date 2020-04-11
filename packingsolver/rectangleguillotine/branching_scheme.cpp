@@ -1260,8 +1260,11 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 0};
     LOG(info, insertion << std::endl);
 
-    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine)
+    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine) {
+        if (insertion.x1 != w && insertion.x1 + branching_scheme().min_waste() > w)
+            return;
         insertion.x1 = w;
+    }
 
     if (branching_scheme().cut_type_2() == CutType2::Exact
             || branching_scheme().cut_type_2() == CutType2::Homogenous)
@@ -1345,8 +1348,11 @@ void BranchingScheme::Node::insertion_1_item_4cut(std::vector<Insertion>& insert
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 1};
     LOG(info, insertion << std::endl);
 
-    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine)
+    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine) {
+        if (insertion.x1 != w && insertion.x1 + branching_scheme().min_waste() > w)
+            return;
         insertion.x1 = w;
+    }
 
     if (df >= 1)
         insertion_item_update_x1_z1(info, insertion);
@@ -1423,8 +1429,11 @@ void BranchingScheme::Node::insertion_2_items(std::vector<Insertion>& insertions
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 2};
     LOG(info, insertion << std::endl);
 
-    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine)
+    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine) {
+        if (insertion.x1 != w && insertion.x1 + branching_scheme().min_waste() > w)
+            return;
         insertion.x1 = w;
+    }
 
     if (df >= 1)
         insertion_item_update_x1_z1(info, insertion);

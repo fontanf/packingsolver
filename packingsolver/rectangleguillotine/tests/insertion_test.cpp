@@ -1369,3 +1369,90 @@ TEST(RectangleGuillotineBranchingScheme, InsertionSymmetry)
     EXPECT_EQ(node.children(info), is2);
 }
 
+TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteI)
+{
+    /**
+     * This insertion is not valid since it violates the minimum waste
+     * constraint. The two insertion is also not valid.
+     *
+     * |--------------------------------------------------| 3210
+     * |------|                                           | 3200
+     * |      |                                           |
+     * |      |                                           |
+     * |      |                                           |
+     * |      |                                           |
+     * |  0   |                                           |
+     * |      |                                           |
+     * |      |                                           |
+     * |      |                                           |
+     * |      |                                           |
+     * |------|-------------------------------------------|
+     *       500                                        6000
+     */
+
+    Info info;
+
+    Instance instance(Objective::BinPackingLeftovers);
+    instance.add_item(500, 3200, -1, 1, false, true);
+    instance.add_item(500, 3200, -1, 1, false, false);
+    instance.add_bin(6000, 3210);
+
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    p.cut_type_1 = CutType1::TwoStagedGuillotine;
+    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme::Node node(branching_scheme);
+
+    std::vector<BranchingScheme::Insertion> is {
+        {.j1 = 0, .j2 = -1, .df = -2, .x1 = 3210, .y2 = 3200, .x3 = 500, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0},
+    };
+
+    EXPECT_EQ(node.children(info), is);
+}
+
+TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteII)
+{
+    /**
+     * Same as above, but with an insertion above a defect.
+     * The defect insertion remains valid.
+     *
+     * Note: in the defect insertion, the position of x3 is 3200, which would
+     * violate the minimum waste constraint. However, this cut is removed when
+     * converting the Node to a Solution.
+     *
+     * |--------------------------------------------------| 3210
+     * |  |---|                                           | 3200
+     * | x|   |                                           | 3190
+     * |  |   |                                           |
+     * |  |   |                                           |
+     * |  |   |                                           |
+     * |  |   |                                           | 1500
+     * |  |   |                                           |
+     * |  |   |                                           |
+     * |  |   |                                           |
+     * |  |   |                                           |
+     * |--|---|-------------------------------------------|
+     *   250 500                                        6000
+     */
+
+    Info info;
+
+    Instance instance(Objective::BinPackingLeftovers);
+    instance.add_item(250, 3200, -1, 1, false, true);
+    instance.add_bin(6000, 3210);
+    instance.add_defect(0, 240, 3190, 10, 10);
+
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    p.cut_type_1 = CutType1::TwoStagedGuillotine;
+    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme::Node node(branching_scheme);
+
+    std::vector<BranchingScheme::Insertion> is {
+        {.j1 = 0, .j2 = -1, .df = -2, .x1 = 3210, .y2 = 3200, .x3 = 250, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0},
+        {.j1 = -1, .j2 = -1, .df = -2, .x1 = 3210, .y2 = 250, .x3 = 3200, .x1_max = 3210, .y2_max = 6000, .z1 = 1, .z2 = 1},
+    };
+
+    EXPECT_EQ(node.children(info), is);
+}
+
