@@ -117,6 +117,7 @@ rectangleguillotine::BranchingScheme::Parameters read_rg_branching_scheme_parame
         ("min2cut,", po::value<Length>(&p0.min2cut), "")
         ("max2cut,", po::value<Length>(&p0.max2cut), "")
         ("min-waste,", po::value<Length>(&p0.min_waste), "")
+        ("one2cut,", "")
         ("no-item-rotation,", "")
         ("cut-through-defects", "")
         ("symmetry,s", po::value<Depth>(&p0.symmetry_depth), "")
@@ -146,6 +147,7 @@ rectangleguillotine::BranchingScheme::Parameters read_rg_branching_scheme_parame
     if (vm.count("min2cut")) p.min2cut = p0.min2cut;
     if (vm.count("max2cut")) p.max2cut = p0.max2cut;
     if (vm.count("min-waste")) p.min_waste = p0.min_waste;
+    if (vm.count("one2cut")) p.one2cut = true;
     if (vm.count("no-item-rotation")) p.no_item_rotation = true;
     if (vm.count("cut-through-defects")) p.cut_through_defects = true;
     if (vm.count("symmetry")) p.symmetry_depth = p0.symmetry_depth;

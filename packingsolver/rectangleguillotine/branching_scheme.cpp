@@ -234,6 +234,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         << " min2cut " << parameters.min2cut
         << " max2cut " << parameters.max2cut
         << " min_waste " << parameters.min_waste
+        << " one2cut " << parameters.one2cut
         << " no_item_rotation " << parameters.no_item_rotation
         << " cut_through_defects " << parameters.cut_through_defects
         << " symmetry_depth " << parameters.symmetry_depth
@@ -1260,12 +1261,21 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 0};
     LOG(info, insertion << std::endl);
 
+    // 2-staged
     if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine) {
         if (insertion.x1 != w && insertion.x1 + branching_scheme().min_waste() > w)
             return;
         insertion.x1 = w;
     }
 
+    // one2cut
+    if (branching_scheme().one2cut() && y2_prev(df) != 0 && insertion.y2 != h) {
+        if (insertion.y2 + branching_scheme().min_waste() > h)
+            return;
+        insertion.y2 = h;
+    }
+
+    // Homogenous
     if (branching_scheme().cut_type_2() == CutType2::Exact
             || branching_scheme().cut_type_2() == CutType2::Homogenous)
         insertion.z2 = 2;
@@ -1348,11 +1358,16 @@ void BranchingScheme::Node::insertion_1_item_4cut(std::vector<Insertion>& insert
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 1};
     LOG(info, insertion << std::endl);
 
+    // 2-staged
     if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine) {
         if (insertion.x1 != w && insertion.x1 + branching_scheme().min_waste() > w)
             return;
         insertion.x1 = w;
     }
+
+    // one2cut
+    if (branching_scheme().one2cut() && y2_prev(df) != 0 && insertion.y2 != h)
+        insertion.y2 = h;
 
     if (df >= 1)
         insertion_item_update_x1_z1(info, insertion);
@@ -1429,11 +1444,16 @@ void BranchingScheme::Node::insertion_2_items(std::vector<Insertion>& insertions
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 2};
     LOG(info, insertion << std::endl);
 
+    // 2-staged
     if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine) {
         if (insertion.x1 != w && insertion.x1 + branching_scheme().min_waste() > w)
             return;
         insertion.x1 = w;
     }
+
+    // one2cut
+    if (branching_scheme().one2cut() && y2_prev(df) != 0 && insertion.y2 != h)
+        return;
 
     if (df >= 1)
         insertion_item_update_x1_z1(info, insertion);
@@ -1502,9 +1522,13 @@ void BranchingScheme::Node::insertion_defect(std::vector<Insertion>& insertions,
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 1, .z2 = 1};
     LOG(info, insertion << std::endl);
 
-    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine
-            || branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine)
+    // 2-staged
+    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine)
         insertion.x1 = w;
+
+    // one2cut
+    if (branching_scheme().one2cut() && y2_prev(df) != 0 && insertion.y2 != h)
+        insertion.y2 = h;
 
     if (df >= 1)
         insertion_defect_update_x1_z1(info, insertion);

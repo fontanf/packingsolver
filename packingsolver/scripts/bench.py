@@ -42,6 +42,8 @@ datas["lai1997"] = ["lai1997/" + i for i in ["1", "2", "3"]]
 datas["hifi1997a_cw"] = ["hifi1997a/" + i for i in ["2", "3", "A1", "A2"]]
 datas["hifi1997a_cu"] = ["hifi1997a/" + i for i in ["2s", "3s", "A1s", "A2s", "A3", "A4", "A5", "HH"]]
 
+datas["hifi1998"] = ["hifi1998/SCP" + str(i) for i in range(1, 26)]
+
 datas["fayard1998_cw"] = ["fayard1998/CW" + str(i) for i in range(1, 12)]
 datas["fayard1998_cu"] = ["fayard1998/CU" + str(i) for i in range(1, 12)]
 
@@ -119,17 +121,23 @@ for wh in ["W500H1000", "W1000H2000"]:
 # TODO clautiaux2019
 
 # datas["martin2019a"] = ["martin2019a/os" + o + "_is" + i + "_m" + m +  "_" + j \
-        # for o in ["02", "06"]       for i in ["01", "02", "03", "04", "06", "07", "08", "11", "12", "16"] \
-        # for m in ["10", "20", "40"] for j in ["01", "02", "03", "04", "05"]]
+        # for o in ["02", "06"] \
+        # for i in ["01", "02", "03", "04", "06", "07", "08", "11", "12", "16"] \
+        # for m in ["10", "20", "40"] \
+        # for j in ["01", "02", "03", "04", "05"]]
 # datas["martin2019b"] = ["martin2019b/inst_" + LW + "_" + str(m) + "_"  + str(rho) + "_" + str(i) + "_" + str(d)
         # for LW in ["75_75", "125_50", "150_150", "225_100", "300_300", "450_200"] \
-        # for m in [5, 10, 15, 20, 25] for rho in [6, 8, 10] for i in range(1, 16) for d in [1, 2, 3, 4]]
+        # for m in [5, 10, 15, 20, 25] \
+        # for rho in [6, 8, 10] for i in range(1, 16) \
+        # for d in [1, 2, 3, 4]]
 
 datas["velasco2019"] = ["velasco2019/P" + str(cl) + "_" + str(l) + "_"  + str(h) + "_" + str(m) + "_" + str(i) + ".txt"
         for cl, l, h in [(1, 100, 200), (1, 100, 400), (2, 200, 100), (2, 400, 100), \
                          (3, 150, 150), (3, 250, 250), (4, 150, 150), (4, 250, 250)] \
         for m in [25, 50] \
         for i in range(1, 6)]
+
+datas["long2020"] = ["long2020/Instance_" + str(i) + ".txt" for i in range(1, 26)]
 
 ################################################################################
 
@@ -199,6 +207,17 @@ for problem in sys.argv[1:]:
                 "-q", "\"RG -p 3NHR -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
                 "-q", "\"RG -p 3NHR -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
                 "-q", "\"RG -p 3NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+            ]))
+    elif problem == "long2020": # long2020
+        pdp.append((problem, [
+                "long2020",
+            ], [
+                "--objective", "bin-packing",
+                "--bin-infinite-copies",
+                "--time-limit", "10",
+                "-q", "\"RG -p 3NVO --one2cut -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NVO --one2cut -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3NVO --one2cut -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "3GH-BPP-O": # puchinger2007 alvelos2009
         pdp.append((problem, [

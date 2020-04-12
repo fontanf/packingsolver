@@ -34,6 +34,7 @@ public:
         Length min2cut = 0;
         Length max2cut = -1;
         Length min_waste = 1;
+        bool one2cut = false;
         bool no_item_rotation = false;
         bool cut_through_defects = false;
         Depth symmetry_depth = 2;
@@ -75,6 +76,7 @@ public:
     Length min2cut() const { return parameters_.min2cut; }
     Length max2cut() const { return parameters_.max2cut; }
     Length min_waste() const { return parameters_.min_waste; }
+    bool one2cut() const { return parameters_.one2cut; }
     bool no_item_rotation() const { return parameters_.no_item_rotation; }
     bool cut_through_defects() const { return parameters_.cut_through_defects; }
     Depth symmetry_depth() const { return parameters_.symmetry_depth; }
