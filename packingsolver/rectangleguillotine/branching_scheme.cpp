@@ -1562,43 +1562,34 @@ void BranchingScheme::Node::insertion_defect(std::vector<Insertion>& insertions,
 
 void BranchingScheme::Node::update_x1curr(Insertion& insertion, Info& info) const
 {
-    (void)info;
     LOG(info, "i.x3 " << insertion.x3 << " x1_curr() " << x1_curr() << std::endl);
     Length min_waste = branching_scheme().min_waste();
     if (insertion.z1 == 0) {
-        if (insertion.x3 + min_waste <= x1_curr()) {
+        if (insertion.x1 + min_waste <= x1_curr()) {
             insertion.x1 = x1_curr();
             insertion.z1 = z1();
-        } else if (insertion.x3 < x1_curr()) { // x - min_waste < insertion.xk < x
+        } else if (insertion.x1 < x1_curr()) { // x - min_waste < insertion.xk < x
             if (z1() == 0) {
                 insertion.x1 = x1_curr() + min_waste;
                 insertion.z1 = 1;
             } else {
-                insertion.x1 = insertion.x3 + min_waste;
+                insertion.x1 = insertion.x1 + min_waste;
                 insertion.z1 = 1;
             }
-        } else if (insertion.x3 == x1_curr()) {
-            insertion.z1 = 0;
-        } else { // x1_curr() < insertion.x3
-            if (z1() == 0 && insertion.x3 < x1_curr() + min_waste) {
-                insertion.x1 = insertion.x3 + min_waste;
+        } else if (insertion.x1 == x1_curr()) {
+        } else { // x1_curr() < insertion.x1
+            if (z1() == 0 && insertion.x1 < x1_curr() + min_waste) {
+                insertion.x1 = insertion.x1 + min_waste;
                 insertion.z1 = 1;
-            } else {
-                insertion.x1 = insertion.x3;
-                insertion.z1 = 0;
             }
         }
     } else { // insertion.z1 == 1
-        if (insertion.x3 <= x1_curr()) {
+        if (insertion.x1 <= x1_curr()) {
             insertion.x1 = x1_curr();
             insertion.z1 = z1();
-        } else { // x1_curr() <= insertion.x3
-            if (z1() == 0 && x1_curr() + min_waste > insertion.x3) {
-                insertion.x1 = insertion.x3 + min_waste;
-                insertion.z1 = 1;
-            } else { // last_1cut_x_ == 1)
-                insertion.x1 = insertion.x3;
-                insertion.z1 = 1;
+        } else { // x1_curr() <= insertion.x1
+            if (z1() == 0 && x1_curr() + min_waste > insertion.x1) {
+                insertion.x1 = x1_curr() + min_waste;
             }
         }
     }
@@ -1624,14 +1615,8 @@ bool BranchingScheme::Node::update_y2curr(Insertion& insertion, Info& info) cons
                 insertion.z2 = 1;
             }
         } else if (insertion.y2 == y2_curr()) {
-            if (z2() == 2) {
-                insertion.y2 = y2_curr();
+            if (z2() == 2)
                 insertion.z2 = 2;
-            } else {
-                insertion.y2 = y2_curr();
-                insertion.z2 = 0;
-            }
-            return true;
         } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
             if (z2() == 2) {
                 LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
@@ -1640,16 +1625,11 @@ bool BranchingScheme::Node::update_y2curr(Insertion& insertion, Info& info) cons
                 insertion.y2 = insertion.y2 + min_waste;
                 insertion.z2 = 1;
             } else { // z2() == 1
-                insertion.y2 = insertion.y2;
-                insertion.z2 = 0;
             }
         } else { // y2_curr() + min_waste <= insertion.y2
             if (z2() == 2) {
                 LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                 return false;
-            } else {
-                insertion.y2 = insertion.y2;
-                insertion.z2 = 0;
             }
         }
     } else if (insertion.z2 == 1) {
@@ -1662,18 +1642,12 @@ bool BranchingScheme::Node::update_y2curr(Insertion& insertion, Info& info) cons
                 return false;
             } else if (z2() == 0) {
                 insertion.y2 = y2_curr() + min_waste;
-                insertion.z2 = 1;
             } else { // z2() == 1
-                insertion.y2 = insertion.y2;
-                insertion.z2 = 1;
             }
         } else {
             if (z2() == 2) {
                 LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                 return false;
-            } else {
-                insertion.y2 = insertion.y2;
-                insertion.z2 = 1;
             }
         }
     } else { // insertion.z2 == 2
@@ -1681,7 +1655,6 @@ bool BranchingScheme::Node::update_y2curr(Insertion& insertion, Info& info) cons
             LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
             return false;
         } else if (insertion.y2 == y2_curr()) {
-            insertion.y2 = y2_curr();
         } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
             if (z2() == 2) {
                 LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
@@ -1690,14 +1663,11 @@ bool BranchingScheme::Node::update_y2curr(Insertion& insertion, Info& info) cons
                 LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                 return false;
             } else { // z2() == 1
-                insertion.y2 = insertion.y2;
             }
         } else { // y2_curr() + min_waste <= insertion.y2
             if (z2() == 2) {
                 LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                 return false;
-            } else {
-                insertion.y2 = insertion.y2;
             }
         }
     }
