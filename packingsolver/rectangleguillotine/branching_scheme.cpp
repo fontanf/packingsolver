@@ -1261,32 +1261,12 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 0};
     LOG(info, insertion << std::endl);
 
-    // 2-staged
-    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine) {
-        if (insertion.x1 != w && insertion.x1 + branching_scheme().min_waste() > w)
-            return;
-        insertion.x1 = w;
-    }
-
-    // one2cut
-    if (branching_scheme().one2cut() && y2_prev(df) != 0 && insertion.y2 != h) {
-        if (insertion.y2 + branching_scheme().min_waste() > h)
-            return;
-        insertion.y2 = h;
-    }
-
-    // Homogenous
+    // Update insertion.z2 with respect to cut_type_2()
     if (branching_scheme().cut_type_2() == CutType2::Exact
             || branching_scheme().cut_type_2() == CutType2::Homogenous)
         insertion.z2 = 2;
 
-    if (df >= 1)
-        update_x1curr(insertion, info);
-    if (df == 2 && !update_y2curr(insertion, info))
-        return;
-    if (!compute_width(insertion, info))
-        return;
-    if (!compute_height(insertion, info))
+    if (!update(insertion, info))
         return;
 
     // Check dominance
@@ -1349,24 +1329,7 @@ void BranchingScheme::Node::insertion_1_item_4cut(std::vector<Insertion>& insert
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 1};
     LOG(info, insertion << std::endl);
 
-    // 2-staged
-    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine) {
-        if (insertion.x1 != w && insertion.x1 + branching_scheme().min_waste() > w)
-            return;
-        insertion.x1 = w;
-    }
-
-    // one2cut
-    if (branching_scheme().one2cut() && y2_prev(df) != 0 && insertion.y2 != h)
-        insertion.y2 = h;
-
-    if (df >= 1)
-        update_x1curr(insertion, info);
-    if (df == 2 && !update_y2curr(insertion, info))
-        return;
-    if (!compute_width(insertion, info))
-        return;
-    if (!compute_height(insertion, info))
+    if (!update(insertion, info))
         return;
 
     // Check dominance
@@ -1435,24 +1398,7 @@ void BranchingScheme::Node::insertion_2_items(std::vector<Insertion>& insertions
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 2};
     LOG(info, insertion << std::endl);
 
-    // 2-staged
-    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine) {
-        if (insertion.x1 != w && insertion.x1 + branching_scheme().min_waste() > w)
-            return;
-        insertion.x1 = w;
-    }
-
-    // one2cut
-    if (branching_scheme().one2cut() && y2_prev(df) != 0 && insertion.y2 != h)
-        return;
-
-    if (df >= 1)
-        update_x1curr(insertion, info);
-    if (df == 2 && !update_y2curr(insertion, info))
-        return;
-    if (!compute_width(insertion, info))
-        return;
-    if (!compute_height(insertion, info))
+    if (!update(insertion, info))
         return;
 
     // Check dominance
@@ -1513,21 +1459,7 @@ void BranchingScheme::Node::insertion_defect(std::vector<Insertion>& insertions,
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 1, .z2 = 1};
     LOG(info, insertion << std::endl);
 
-    // 2-staged
-    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine)
-        insertion.x1 = w;
-
-    // one2cut
-    if (branching_scheme().one2cut() && y2_prev(df) != 0 && insertion.y2 != h)
-        insertion.y2 = h;
-
-    if (df >= 1)
-        update_x1curr(insertion, info);
-    if (df == 2 && !update_y2curr(insertion, info))
-        return;
-    if (!compute_width(insertion, info))
-        return;
-    if (!compute_height(insertion, info))
+    if (!update(insertion, info))
         return;
 
     // Check dominance
@@ -1560,128 +1492,151 @@ void BranchingScheme::Node::insertion_defect(std::vector<Insertion>& insertions,
     LOG_FOLD_END(info, "");
 }
 
-void BranchingScheme::Node::update_x1curr(Insertion& insertion, Info& info) const
+bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
 {
-    LOG(info, "i.x3 " << insertion.x3 << " x1_curr() " << x1_curr() << std::endl);
     Length min_waste = branching_scheme().min_waste();
-    if (insertion.z1 == 0) {
-        if (insertion.x1 + min_waste <= x1_curr()) {
-            insertion.x1 = x1_curr();
-            insertion.z1 = z1();
-        } else if (insertion.x1 < x1_curr()) { // x - min_waste < insertion.xk < x
-            if (z1() == 0) {
-                insertion.x1 = x1_curr() + min_waste;
-                insertion.z1 = 1;
-            } else {
-                insertion.x1 = insertion.x1 + min_waste;
-                insertion.z1 = 1;
-            }
-        } else if (insertion.x1 == x1_curr()) {
-        } else { // x1_curr() < insertion.x1
-            if (z1() == 0 && insertion.x1 < x1_curr() + min_waste) {
-                insertion.x1 = insertion.x1 + min_waste;
-                insertion.z1 = 1;
-            }
-        }
-    } else { // insertion.z1 == 1
-        if (insertion.x1 <= x1_curr()) {
-            insertion.x1 = x1_curr();
-            insertion.z1 = z1();
-        } else { // x1_curr() <= insertion.x1
-            if (z1() == 0 && x1_curr() + min_waste > insertion.x1) {
-                insertion.x1 = x1_curr() + min_waste;
-            }
-        }
-    }
-}
-
-bool BranchingScheme::Node::update_y2curr(Insertion& insertion, Info& info) const
-{
-    LOG(info, "i.y2 " << insertion.y2 << " y2_curr() " << y2_curr() << std::endl);
-    Length min_waste = branching_scheme().min_waste();
-    if (insertion.z2 == 0) {
-        if (insertion.y2 + min_waste <= y2_curr()) {
-            insertion.y2 = y2_curr();
-            insertion.z2 = z2();
-        } else if (insertion.y2 < y2_curr()) { // y_curr() - min_waste < insertion.y4 < y_curr()
-            if (z2() == 2) {
-                LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                return false;
-            } else if (z2() == 0) {
-                insertion.y2 = y2_curr() + min_waste;
-                insertion.z2 = 1;
-            } else { // z2() == 1
-                insertion.y2 = insertion.y2 + min_waste;
-                insertion.z2 = 1;
-            }
-        } else if (insertion.y2 == y2_curr()) {
-            if (z2() == 2)
-                insertion.z2 = 2;
-        } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
-            if (z2() == 2) {
-                LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                return false;
-            } else if (z2() == 0) {
-                insertion.y2 = insertion.y2 + min_waste;
-                insertion.z2 = 1;
-            } else { // z2() == 1
-            }
-        } else { // y2_curr() + min_waste <= insertion.y2
-            if (z2() == 2) {
-                LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                return false;
-            }
-        }
-    } else if (insertion.z2 == 1) {
-        if (insertion.y2 <= y2_curr()) {
-            insertion.y2 = y2_curr();
-            insertion.z2 = z2();
-        } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
-            if (z2() == 2) {
-                LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                return false;
-            } else if (z2() == 0) {
-                insertion.y2 = y2_curr() + min_waste;
-            } else { // z2() == 1
-            }
-        } else {
-            if (z2() == 2) {
-                LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                return false;
-            }
-        }
-    } else { // insertion.z2 == 2
-        if (insertion.y2 < y2_curr()) {
-            LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-            return false;
-        } else if (insertion.y2 == y2_curr()) {
-        } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
-            if (z2() == 2) {
-                LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                return false;
-            } else if (z2() == 0) {
-                LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                return false;
-            } else { // z2() == 1
-            }
-        } else { // y2_curr() + min_waste <= insertion.y2
-            if (z2() == 2) {
-                LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-bool BranchingScheme::Node::compute_width(Insertion& insertion, Info& info) const
-{
     BinPos i = last_bin(insertion.df);
     CutOrientation o = last_bin_orientation(insertion.df);
     Length w = instance().bin(i).width(o);
-    Length min_waste = branching_scheme().min_waste();
+    Length h = instance().bin(i).height(o);
 
-    // Increase x1 if it intersects a defect.
+    // Update insertion.y2 and insertion.z2 with respect to one2cut()
+    if (branching_scheme().one2cut() && insertion.df == 1
+            && y2_prev(insertion.df) != 0 && insertion.y2 != h) {
+        if (insertion.z2 == 0) {
+            if (insertion.y2 + branching_scheme().min_waste() > h)
+                return false;
+            insertion.y2 = h;
+        } else if (insertion.z2 == 1) {
+            insertion.y2 = h;
+        } else { // insertion.z2 == 2
+            return false;
+        }
+    }
+
+    // Update insertion.x1 if 2-staged
+    if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine && insertion.x1 != w) {
+        if (insertion.z1 == 0) {
+            if (insertion.x1 + branching_scheme().min_waste() > w)
+                return false;
+            insertion.x1 = w;
+        } else { // insertion.z1 == 1
+            insertion.x1 = w;
+        }
+    }
+
+    // Update insertion.x1 and insertion.z1 with respect to x1_curr() and z1().
+    if (insertion.df >= 1) {
+        LOG(info, "i.x3 " << insertion.x3 << " x1_curr() " << x1_curr() << std::endl);
+        if (insertion.z1 == 0) {
+            if (insertion.x1 + min_waste <= x1_curr()) {
+                insertion.x1 = x1_curr();
+                insertion.z1 = z1();
+            } else if (insertion.x1 < x1_curr()) { // x - min_waste < insertion.xk < x
+                if (z1() == 0) {
+                    insertion.x1 = x1_curr() + min_waste;
+                    insertion.z1 = 1;
+                } else {
+                    insertion.x1 = insertion.x1 + min_waste;
+                    insertion.z1 = 1;
+                }
+            } else if (insertion.x1 == x1_curr()) {
+            } else { // x1_curr() < insertion.x1
+                if (z1() == 0 && insertion.x1 < x1_curr() + min_waste) {
+                    insertion.x1 = insertion.x1 + min_waste;
+                    insertion.z1 = 1;
+                }
+            }
+        } else { // insertion.z1 == 1
+            if (insertion.x1 <= x1_curr()) {
+                insertion.x1 = x1_curr();
+                insertion.z1 = z1();
+            } else { // x1_curr() <= insertion.x1
+                if (z1() == 0 && x1_curr() + min_waste > insertion.x1) {
+                    insertion.x1 = x1_curr() + min_waste;
+                }
+            }
+        }
+    }
+
+    // Update insertion.y2 and insertion.z2 with respect to y2_curr() and z1().
+    if (insertion.df == 2) {
+        LOG(info, "i.y2 " << insertion.y2 << " y2_curr() " << y2_curr() << std::endl);
+        if (insertion.z2 == 0) {
+            if (insertion.y2 + min_waste <= y2_curr()) {
+                insertion.y2 = y2_curr();
+                insertion.z2 = z2();
+            } else if (insertion.y2 < y2_curr()) { // y_curr() - min_waste < insertion.y4 < y_curr()
+                if (z2() == 2) {
+                    LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    return false;
+                } else if (z2() == 0) {
+                    insertion.y2 = y2_curr() + min_waste;
+                    insertion.z2 = 1;
+                } else { // z2() == 1
+                    insertion.y2 = insertion.y2 + min_waste;
+                    insertion.z2 = 1;
+                }
+            } else if (insertion.y2 == y2_curr()) {
+                if (z2() == 2)
+                    insertion.z2 = 2;
+            } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
+                if (z2() == 2) {
+                    LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    return false;
+                } else if (z2() == 0) {
+                    insertion.y2 = insertion.y2 + min_waste;
+                    insertion.z2 = 1;
+                } else { // z2() == 1
+                }
+            } else { // y2_curr() + min_waste <= insertion.y2
+                if (z2() == 2) {
+                    LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    return false;
+                }
+            }
+        } else if (insertion.z2 == 1) {
+            if (insertion.y2 <= y2_curr()) {
+                insertion.y2 = y2_curr();
+                insertion.z2 = z2();
+            } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
+                if (z2() == 2) {
+                    LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    return false;
+                } else if (z2() == 0) {
+                    insertion.y2 = y2_curr() + min_waste;
+                } else { // z2() == 1
+                }
+            } else {
+                if (z2() == 2) {
+                    LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    return false;
+                }
+            }
+        } else { // insertion.z2 == 2
+            if (insertion.y2 < y2_curr()) {
+                LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                return false;
+            } else if (insertion.y2 == y2_curr()) {
+            } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
+                if (z2() == 2) {
+                    LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    return false;
+                } else if (z2() == 0) {
+                    LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    return false;
+                } else { // z2() == 1
+                }
+            } else { // y2_curr() + min_waste <= insertion.y2
+                if (z2() == 2) {
+                    LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Update insertion.x1 and insertion.z1 with respect to defect intersections.
     for (;;) {
         DefectId k = instance().x_intersects_defect(insertion.x1, i, o);
         if (k == -1)
@@ -1711,17 +1666,9 @@ bool BranchingScheme::Node::compute_width(Insertion& insertion, Info& info) cons
         LOG_FOLD_END(info, "too long insertion.x1 > insertion.x1_max");
         return false;
     }
-
     LOG(info, "width OK" << std::endl);
-    return true;
-}
 
-bool BranchingScheme::Node::compute_height(Insertion& insertion, Info& info) const
-{
-    BinPos i = last_bin(insertion.df);
-    CutOrientation o = last_bin_orientation(insertion.df);
-    Length h = instance().bin(i).height(o);
-    Length min_waste = branching_scheme().min_waste();
+    // Update insertion.y2 and insertion.z2 with respect to defect intersections.
     bool y2_fixed = (insertion.z2 == 2 || (insertion.df == 2 && z2() == 2));
 
     for (;;) {
@@ -1839,13 +1786,14 @@ bool BranchingScheme::Node::compute_height(Insertion& insertion, Info& info) con
         }
     }
 
+    // Check max height
     if (insertion.y2 > insertion.y2_max) {
         LOG(info, insertion << std::endl);
         LOG_FOLD_END(info, "too high");
         return false;
     }
-
     LOG(info, "height OK" << std::endl);
+
     return true;
 }
 

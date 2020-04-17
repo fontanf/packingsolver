@@ -397,14 +397,8 @@ private:
     Front front(const Insertion& insertion) const;
     Area waste(const Insertion& insertion) const;
 
-    /** Update insertion (x1 and z1) with respect to x1_curr() and z1(). */
-    void update_x1curr(Insertion& insertion, Info& info) const;
-    /** Update insertion (y2 and z2) with respect to y2_curr() and z2(). */
-    bool update_y2curr(Insertion& insertion, Info& info) const;
-    /** Update insertion (x1 and z1) with respect to defect intersection. */
-    bool compute_width(Insertion& insertion, Info& info) const;
-    /** Update insertion (y2 and z2) with respect to defect intersection. */
-    bool compute_height(Insertion& insertion, Info& info) const;
+    /** Update insertion (x1, z1, y2, z2). */
+    bool update(Insertion& insertion, Info& info) const;
 
     bool check(const std::vector<Solution::Node>& nodes) const;
 
