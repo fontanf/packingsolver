@@ -361,34 +361,28 @@ private:
      * Private methods
      */
 
-    bool check_symmetries(Depth df, Info& info) const;
-
-    /**
-     * children
-     */
     void compute_ub_profit();
     void update_subplates_prev_and_curr(Depth df, ItemPos n);
 
     /**
-     * Insertion of one item.
+     * children
      */
+
+    /** Insertion of one item. */
     void insertion_1_item(std::vector<Insertion>& insertions,
             ItemTypeId j, bool rotate, Depth df, Info& info) const;
-    /**
-     * Insertion of one item above a defect.
-     */
+    /** Insertion of one item above a defect. */
     void insertion_1_item_4cut(std::vector<Insertion>& insertions,
             DefectId k, ItemTypeId j, bool rotate, Depth df, Info& info) const;
-    /**
-     * Insertion of two items.
-     */
+    /** Insertion of two items. */
     void insertion_2_items(std::vector<Insertion>& insertions,
             ItemTypeId j1, bool rotate1, ItemTypeId j2, bool rotate2, Depth df, Info& info) const;
-    /**
-     * Insertion of a defect.
-     */
+    /** Insertion of a defect. */
     void insertion_defect(std::vector<Insertion>& insertions,
             const Defect& k, Depth df, Info& info) const;
+
+    /** Return true iff an insertion at depth df would generate a symmetrical node. */
+    bool check_symmetries(Depth df, Info& info) const;
 
     /**
      * Coordinates of the bottom left side of a new insertion at depth df.
@@ -403,30 +397,14 @@ private:
     Front front(const Insertion& insertion) const;
     Area waste(const Insertion& insertion) const;
 
-    /**
-     * Compute i.x1 and i.z1 depending on x3 and x1_curr().
-     */
-    void insertion_item_update_x1_z1(Info& info, Insertion& insertion) const;
-    void insertion_defect_update_x1_z1(Info& info, Insertion& insertion) const;
-
-    /**
-     * Update i.x1 depending on defect intersections.
-     * Return false if infeasible.
-     */
-    bool compute_width(Info& info, Insertion& insertion) const;
-
-    /**
-     * Compute i.y2 and i.z2 depending on y4 and y2_curr().
-     */
-    bool insertion_item_update_y2_z2(Info& info, Insertion& insertion) const;
-    bool insertion_2_items_update_y2_z2(Info& info, Insertion& insertion) const;
-    bool insertion_defect_update_y2_z2(Info& info, Insertion& insertion) const;
-
-    /**
-     * Update i.y2 depending on defect intersections.
-     * Return false if infeasible.
-     */
-    bool compute_height(Info& info, Insertion& insertion) const;
+    /** Update insertion with respect to x1_curr() and z1(). */
+    void update_x1curr(Insertion& insertion, Info& info) const;
+    /** Update insertion with respect to y2_curr() and z2(). */
+    bool update_y2curr(Insertion& insertion, Info& info) const;
+    /** Update insertion width with respect to defect intersection. */
+    bool compute_width(Insertion& insertion, Info& info) const;
+    /** Update insertion height with respect to defect intersection. */
+    bool compute_height(Insertion& insertion, Info& info) const;
 
     bool check(const std::vector<Solution::Node>& nodes) const;
 

@@ -52,6 +52,7 @@ options:
 * `--first-stage-orientation`: `vertical`, `horizontal`, `any`
 * `--min1cut`, `--max1cut`, `--min2cut`, `--max2cut`: positive integer
 * `--min-waste`: positive integer
+* `--one2cut`
 * `--no-item-rotation`
 * `--cut-through-defects`
 * `--symmetry`, `-s`: 1, 2, 3 or 4
@@ -76,8 +77,8 @@ All experiments can be reproduced using the following scripts:
 ```shell
 python3 packingsolver/scripts/bench.py "roadef2018_A" "roadef2018_B" "roadef2018_X" # ~50h
 python3 packingsolver/scripts/bench.py "3NEGH-BPP-O" "3NEGH-BPP-R" "3GH-BPP-O" "3HGV-BPP-O" # ~30h
-python3 packingsolver/scripts/bench.py "2NEGH-BPP-O" "2NEGH-BPP-R" "2GH-BPP-O" # ~30h
 python3 packingsolver/scripts/bench.py "long2020" # ~5m
+python3 packingsolver/scripts/bench.py "2NEGH-BPP-O" "2NEGH-BPP-R" "2GH-BPP-O" # ~30h
 python3 packingsolver/scripts/bench.py "3NEG-KP-O" "3NEG-KP-R" "3NEGV-KP-O" "3HG-KP-O" # ~10h
 python3 packingsolver/scripts/bench.py "2NEG-KP-O" "2NEGH-KP-O" "2NEGV-KP-O" "2NEGH-KP-R" "2G-KP-O" "2GH-KP-O" "2GV-KP-O" # 1h
 python3 packingsolver/scripts/bench.py "3NEGH-SPP-O" "3NEGH-SPP-R" # ~10h
