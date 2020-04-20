@@ -1,7 +1,6 @@
 import os
 import os.path
 import csv
-import json
 
 def words(filename):
     f = open(os.path.join("data", "rectangle_raw", filename), "r")
@@ -234,7 +233,7 @@ def convert_long2020(filename):
         items["HEIGHT"].append(int(next(w)))
         items["WIDTH"].append(int(next(w)))
         if first:
-            x = int(next(w));
+            max1cut = int(next(w));
             bins["HEIGHT"].append(int(next(w)))
             bins["WIDTH"].append(int(next(w)))
         else:
@@ -245,9 +244,8 @@ def convert_long2020(filename):
     write_dict(bins, filename + "_bins.csv")
     write_dict(items, filename + "_items.csv")
     p = os.path.join("data", "rectangle", filename.replace(" ", "_"))
-    data = {"max1cut": x}
-    with open(p + "_parameters.json", "w") as params_file:
-        params_file.write(json.dumps(data, ensure_ascii=False))
+    with open(p + "_parameters.txt", "w") as params_file:
+        params_file.write("--max1cut " + str(max1cut) + "\n")
 
 ################################################################################
 

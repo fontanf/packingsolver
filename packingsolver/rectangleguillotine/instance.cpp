@@ -306,19 +306,19 @@ std::vector<std::string> split(std::string line)
 
 Instance::Instance(
         Objective objective,
-        std::string items_filename,
-        std::string bins_filename,
-        std::string defects_filename):
+        std::string items_filepath,
+        std::string bins_filepath,
+        std::string defects_filepath):
     objective_(objective)
 {
-    std::ifstream f_items(items_filename);
-    std::ifstream f_defects(defects_filename);
-    std::ifstream f_bins(bins_filename);
+    std::ifstream f_items(items_filepath);
+    std::ifstream f_defects(defects_filepath);
+    std::ifstream f_bins(bins_filepath);
     if (!f_items.good())
-        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << items_filename << "\"" << "\033[0m" << std::endl;
+        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << items_filepath << "\"" << "\033[0m" << std::endl;
     if (!f_bins.good())
-        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << bins_filename << "\"" << "\033[0m" << std::endl;
-    if (!f_items.good() || !f_bins.good() || (defects_filename != "" && !f_defects.good()))
+        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << bins_filepath << "\"" << "\033[0m" << std::endl;
+    if (!f_items.good() || !f_bins.good() || (defects_filepath != "" && !f_defects.good()))
         return;
 
     std::string tmp;
@@ -352,9 +352,9 @@ Instance::Instance(
             }
         }
         if (w == -1)
-            std::cerr << "\033[31m" << "ERROR, \"WIDTH\" not defined in \"" << items_filename << "\"" << "\033[0m" << std::endl;
+            std::cerr << "\033[31m" << "ERROR, \"WIDTH\" not defined in \"" << items_filepath << "\"" << "\033[0m" << std::endl;
         if (h == -1)
-            std::cerr << "\033[31m" << "ERROR, \"HEIGHT\" not defined in \"" << items_filename << "\"" << "\033[0m" << std::endl;
+            std::cerr << "\033[31m" << "ERROR, \"HEIGHT\" not defined in \"" << items_filepath << "\"" << "\033[0m" << std::endl;
         if (p == -1)
             p = w * h;
         add_item(w, h, p, c, oriented, new_stack);
@@ -378,14 +378,14 @@ Instance::Instance(
             }
         }
         if (w == -1)
-            std::cerr << "\033[31m" << "ERROR, \"WIDTH\" not defined in \"" << bins_filename << "\"" << "\033[0m" << std::endl;
+            std::cerr << "\033[31m" << "ERROR, \"WIDTH\" not defined in \"" << bins_filepath << "\"" << "\033[0m" << std::endl;
         if (h == -1)
-            std::cerr << "\033[31m" << "ERROR, \"HEIGHT\" not defined in \"" << bins_filename << "\"" << "\033[0m" << std::endl;
+            std::cerr << "\033[31m" << "ERROR, \"HEIGHT\" not defined in \"" << bins_filepath << "\"" << "\033[0m" << std::endl;
         add_bin(w, h, c);
     }
 
     // read defects file
-    if (defects_filename != "") {
+    if (defects_filepath != "") {
         getline(f_defects, tmp);
         labels = split(tmp);
         while (getline(f_defects, tmp)) {
@@ -409,15 +409,15 @@ Instance::Instance(
                 }
             }
             if (i == -1)
-                std::cerr << "\033[31m" << "ERROR, \"BIN\" not defined in \"" << defects_filename << "\"" << "\033[0m" << std::endl;
+                std::cerr << "\033[31m" << "ERROR, \"BIN\" not defined in \"" << defects_filepath << "\"" << "\033[0m" << std::endl;
             if (x == -1)
-                std::cerr << "\033[31m" << "ERROR, \"X\" not defined in \"" << defects_filename << "\"" << "\033[0m" << std::endl;
+                std::cerr << "\033[31m" << "ERROR, \"X\" not defined in \"" << defects_filepath << "\"" << "\033[0m" << std::endl;
             if (y == -1)
-                std::cerr << "\033[31m" << "ERROR, \"Y\" not defined in \"" << defects_filename << "\"" << "\033[0m" << std::endl;
+                std::cerr << "\033[31m" << "ERROR, \"Y\" not defined in \"" << defects_filepath << "\"" << "\033[0m" << std::endl;
             if (w == -1)
-                std::cerr << "\033[31m" << "ERROR, \"WIDTH\" not defined in \"" << defects_filename << "\"" << "\033[0m" << std::endl;
+                std::cerr << "\033[31m" << "ERROR, \"WIDTH\" not defined in \"" << defects_filepath << "\"" << "\033[0m" << std::endl;
             if (h == -1)
-                std::cerr << "\033[31m" << "ERROR, \"HEIGHT\" not defined in \"" << defects_filename << "\"" << "\033[0m" << std::endl;
+                std::cerr << "\033[31m" << "ERROR, \"HEIGHT\" not defined in \"" << defects_filepath << "\"" << "\033[0m" << std::endl;
             add_defect(i, x, y, w, h);
         }
     }
@@ -470,6 +470,47 @@ Counter Instance::state_number() const
         val *= (stack_size(s) + 1);
     }
     return val;
+}
+
+void Instance::write(std::string filepath) const
+{
+    // Export items
+    std::ofstream f_items(filepath + "_items.csv");
+    if (!f_items.good()) {
+        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << filepath + "_items.csv" << "\"" << "\033[0m" << std::endl;
+        return;
+    }
+    f_items << "ID,WIDTH,HEIGHT,PROFIT,COPIES,ORIENTED,NEWSTACK" << std::endl;
+    for (ItemTypeId j = 0; j < item_type_number(); ++j) {
+        const Item& it = item(j);
+        f_items << j << "," << it.rect.w << "," << it.rect.h << "," << it.profit << "," << it.copies << "," << it.oriented << "," << (j == 0 || it.stack != item(j - 1).stack) << std::endl;
+    }
+
+    // Export bins
+    std::ofstream f_bins(filepath + "_bins.csv");
+    if (!f_bins.good()) {
+        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << filepath + "_bins.csv" << "\"" << "\033[0m" << std::endl;
+        return;
+    }
+    f_bins << "ID,WIDTH,HEIGHT" << std::endl;
+    for (BinTypeId i = 0; i < bin_type_number(); ++i) {
+        const Bin& bi = bin(i);
+        f_bins << i << "," << bi.rect.w << "," << bi.rect.h << std::endl;
+    }
+
+    // Export Defects
+    if (defect_number() > 0) {
+        std::ofstream f_defects(filepath + "_defects.csv");
+        if (!f_defects.good()) {
+            std::cerr << "\033[31m" << "ERROR, unable to open file \"" << filepath + "_defects.csv" << "\"" << "\033[0m" << std::endl;
+            return;
+        }
+        f_defects << "ID,BIN,X,Y,WIDTH,HEIGHT" << std::endl;
+        for (DefectId k = 0; k < defect_number(); ++k) {
+            const Defect& de = defect(k);
+            f_defects << k << "," << de.bin_id << "," << de.pos.x << "," << de.pos.y << "," << de.rect.w << "," << de.rect.h << std::endl;
+        }
+    }
 }
 
 /******************************************************************************/

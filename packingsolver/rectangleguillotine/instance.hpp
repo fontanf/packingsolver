@@ -91,9 +91,9 @@ public:
      */
     Instance(
             Objective objective,
-            std::string items_filename,
-            std::string bins_filename,
-            std::string defects_filename);
+            std::string items_filepath,
+            std::string bins_filepath,
+            std::string defects_filepath);
 
     /**
      * Create instance manually
@@ -158,6 +158,8 @@ public:
             Length l, Length r, Length y, BinTypeId i, CutOrientation o) const;
 
     Counter state_number() const;
+
+    void write(std::string filepath) const;
 
 private:
 
