@@ -235,17 +235,17 @@ void Solution::write(Info& info) const
         return;
     }
 
-    f << "PLATE_ID;NODE_ID;X;Y;WIDTH;HEIGHT;TYPE;CUT;PARENT\n";
+    f << "PLATE_ID,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
     for (const Solution::Node& n: nodes_) {
         f
-            << n.i << ";"
-            << n.id << ";"
-            << n.l << ";"
-            << n.b << ";"
-            << n.r - n.l << ";"
-            << n.t - n.b << ";"
-            << n.j << ";"
-            << n.d << ";";
+            << n.i << ","
+            << n.id << ","
+            << n.l << ","
+            << n.b << ","
+            << n.r - n.l << ","
+            << n.t - n.b << ","
+            << n.j << ","
+            << n.d << ",";
         if (n.f != -1)
             f << n.f;
         f << std::endl;

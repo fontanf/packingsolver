@@ -2018,7 +2018,6 @@ bool BranchingScheme::Node::check(const std::vector<Solution::Node>& nodes) cons
                         || (node.r > l && node.r < r && node.b < t && node.t > b)
                         || (node.b > b && node.b < t && node.l < r && node.r > l)
                         || (node.t > b && node.t < t && node.l < r && node.r > l)) {
-                    std::cout << *this << std::endl;
                     std::cerr << "\033[31m" << "ERROR, "
                         "Node " << node << " cut intersects defect " << defect
                         << "\033[0m" << std::endl;
