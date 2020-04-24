@@ -387,11 +387,11 @@ private:
     /**
      * Coordinates of the bottom left side of a new insertion at depth df.
      */
-    Coord coord(Depth df) const;
     BinPos last_bin(Depth df) const;
     CutOrientation last_bin_orientation(Depth df) const;
     Length x1_prev(Depth df) const;
     Length y2_prev(Depth df) const;
+    Length x3_prev(Depth df) const;
     Length x1_max(Depth df) const;
     Length y2_max(Depth df, Length x3) const;
     Front front(const Insertion& insertion) const;

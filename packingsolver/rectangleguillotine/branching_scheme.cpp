@@ -550,7 +550,7 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     Length h = instance().bin(i).height(o);
     Length w = instance().bin(i).width(o);
 
-    Length w_j = insertion.x3 - coord(insertion.df).x;
+    Length w_j = insertion.x3 - x3_prev(insertion.df);
     Length h_j1 = (insertion.j1 == -1)? -1: ((instance().item(insertion.j1).rect.w == w_j)?
         instance().item(insertion.j1).rect.h:
         instance().item(insertion.j1).rect.w);
@@ -754,8 +754,8 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::Node::children(Info& in
             break;
 
         CutOrientation o = last_bin_orientation(df);
-        Coord c = coord(df);
-        LOG(info, "x " << c.x << " y " << c.y << std::endl);
+        Length x = x3_prev(df);
+        Length y = y2_prev(df);
 
         // Try adding an item
         for (StackId s = 0; s < instance().stack_number(); ++s) {
@@ -832,7 +832,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::Node::children(Info& in
 
         const std::vector<Defect>& defects = instance().bin(last_bin(df)).defects;
         for (const Defect& defect: defects)
-            if (instance().right(defect, o) > c.x && instance().top(defect, o) > c.y)
+            if (instance().right(defect, o) > x && instance().top(defect, o) > y)
                 insertion_defect(insertions, defect, df, info);
     }
 
@@ -1055,24 +1055,6 @@ bool BranchingScheme::Node::check_symmetries(Depth df, Info& info) const
     return false;
 }
 
-Coord BranchingScheme::Node::coord(Depth df) const
-{
-    switch (df) {
-    case -1: case -2: {
-        return {0, 0};
-    } case 0: {
-        return {x1_curr(), 0};
-    } case 1: {
-        return {x1_prev(), y2_curr()};
-    } case 2: {
-        return {x3_curr(), y2_prev()};
-    } default: {
-        assert(false);
-        return {-1, -1};
-    }
-    }
-}
-
 BinPos BranchingScheme::Node::last_bin(Depth df) const
 {
     if (df <= -1) {
@@ -1146,6 +1128,24 @@ Length BranchingScheme::Node::x1_prev(Depth df) const
     }
 }
 
+Length BranchingScheme::Node::x3_prev(Depth df) const
+{
+    switch (df) {
+    case -1: case -2: {
+        return 0;
+    } case 0: {
+        return x1_curr();
+    } case 1: {
+        return x1_prev();
+    } case 2: {
+        return x3_curr();
+    } default: {
+        assert(false);
+        return -1;
+    }
+    }
+}
+
 Length BranchingScheme::Node::x1_max(Depth df) const
 {
     switch (df) {
@@ -1154,16 +1154,16 @@ Length BranchingScheme::Node::x1_max(Depth df) const
         CutOrientation o = last_bin_orientation(df);
         Length x = instance().bin(i).width(o);
         if (branching_scheme().max1cut() != -1)
-            if (x > coord(df).x + branching_scheme().max1cut())
-                x = coord(df).x + branching_scheme().max1cut();
+            if (x > x1_prev(df) + branching_scheme().max1cut())
+                x = x1_prev(df) + branching_scheme().max1cut();
         return x;
     } case 0: {
         BinPos i = last_bin(df);
         CutOrientation o = last_bin_orientation(df);
         Length x = instance().bin(i).width(o);
         if (branching_scheme().max1cut() != -1)
-            if (x > coord(df).x + branching_scheme().max1cut())
-                x = coord(df).x + branching_scheme().max1cut();
+            if (x > x1_prev(df) + branching_scheme().max1cut())
+                x = x1_prev(df) + branching_scheme().max1cut();
         return x;
     } case 1: {
         BinPos i = last_bin(df);
@@ -1227,12 +1227,11 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
     BinPos i = last_bin(df);
     CutOrientation o = last_bin_orientation(df);
     const rectangleguillotine::Item& item = instance().item(j);
-    Coord  c = coord(df);
-    Length x = c.x + instance().width(item, rotate, o);
-    Length y = c.y + instance().height(item, rotate, o);
+    Length x = x3_prev(df) + instance().width(item, rotate, o);
+    Length y = y2_prev(df) + instance().height(item, rotate, o);
     Length w = instance().bin(i).width(o);
     Length h = instance().bin(i).height(o);
-    LOG(info, "c " << c
+    LOG(info, "x3_prev(df) " << x3_prev(df) << " y2_prev(df) " << y2_prev(df)
             << " w " << instance().width(item, rotate, o)
             << " h " << instance().height(item, rotate, o)
             << std::endl);
@@ -1245,7 +1244,7 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
         return;
     }
 
-    DefectId k = instance().rect_intersects_defect(c.x, x, c.y, y, i, o);
+    DefectId k = instance().rect_intersects_defect(x3_prev(df), x, y2_prev(df), y, i, o);
     if (k >= 0) {
         LOG_FOLD_END(info, "intersects defect");
         // Try adding the item above the defect
@@ -1312,11 +1311,10 @@ void BranchingScheme::Node::insertion_1_item_4cut(std::vector<Insertion>& insert
     Length min_waste = branching_scheme().min_waste();
     Length w = instance().bin(i).width(o);
     Length h = instance().bin(i).height(o);
-    Coord  c = coord(df);
-    Length x = c.x + instance().width(item, rotate, o);;
+    Length x = x3_prev(df) + instance().width(item, rotate, o);;
     Length y = std::max(
             instance().top(instance().defect(k), o),
-            c.y + min_waste) + instance().height(item, rotate, o);
+            y2_prev(df) + min_waste) + instance().height(item, rotate, o);
     LOG(info, "y " << y << std::endl);
     if (x > w || y > h) {
         LOG_FOLD_END(info, "too wide/high");
@@ -1379,15 +1377,14 @@ void BranchingScheme::Node::insertion_2_items(std::vector<Insertion>& insertions
     const Item& item2 = instance().item(j2);
     Length w = instance().bin(i).width(o);
     Length h = instance().bin(i).height(o);
-    Coord  c = coord(df);
-    Length x = c.x + instance().width(item1, rotate1, o);
-    Length y = c.y + instance().height(item1, rotate1, o)
-                   + instance().height(item2, rotate2, o);
+    Length x = x3_prev(df) + instance().width(item1, rotate1, o);
+    Length y = y2_prev(df) + instance().height(item1, rotate1, o)
+                           + instance().height(item2, rotate2, o);
     if (x > w || y > h) {
         LOG_FOLD_END(info, "too wide/high");
         return;
     }
-    if (instance().rect_intersects_defect(c.x, x, c.y, y, i, o) >= 0) {
+    if (instance().rect_intersects_defect(x3_prev(df), x, y2_prev(df), y, i, o) >= 0) {
         LOG_FOLD_END(info, "intersects defect");
         return;
     }
@@ -1445,9 +1442,8 @@ void BranchingScheme::Node::insertion_defect(std::vector<Insertion>& insertions,
     Length w = instance().bin(i).width(o);
     Length h = instance().bin(i).height(o);
     Length min_waste = branching_scheme().min_waste();
-    Coord  c = coord(df);
-    Length x = std::max(instance().right(k, o), c.x + min_waste);
-    Length y = std::max(instance().top(k, o),   c.y + min_waste);
+    Length x = std::max(instance().right(k, o), x3_prev(df) + min_waste);
+    Length y = std::max(instance().top(k, o),   y2_prev(df) + min_waste);
     if (x > w || y > h) {
         LOG_FOLD_END(info, "too wide/high");
         return;
@@ -1714,12 +1710,12 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             }
         }
         if (insertion.j1 == -1 && insertion.j2 != -1) {
-            Length w_j2 = insertion.x3 - coord(insertion.df).x;
+            Length w_j2 = insertion.x3 - x3_prev(insertion.df);
             Length h_j2 = (instance().item(insertion.j2).rect.w == w_j2)?
                     instance().item(insertion.j2).rect.h:
                     instance().item(insertion.j2).rect.w;
 
-            Length l = coord(insertion.df).x;
+            Length l = x3_prev(insertion.df);
             Length r = insertion.x3;
             Length t = insertion.y2;
             Length b = insertion.y2 - h_j2;
@@ -1763,12 +1759,12 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             }
 
             if (insertion.j1 == -1 && insertion.j2 != -1) {
-                Length w_j2 = insertion.x3 - coord(insertion.df).x;
+                Length w_j2 = insertion.x3 - x3_prev(insertion.df);
                 Length h_j2 = (instance().item(insertion.j2).rect.w == w_j2)?
                     instance().item(insertion.j2).rect.h:
                     instance().item(insertion.j2).rect.w;
 
-                Length l = coord(insertion.df).x;
+                Length l = x3_prev(insertion.df);
                 Length r = insertion.x3;
                 Length t = insertion.y2;
                 Length b = insertion.y2 - h_j2;
