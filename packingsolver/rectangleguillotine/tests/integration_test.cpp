@@ -29,7 +29,7 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(3000, 3210, -1, 1, false, true);
     instance.add_item(3000, 500, -1, 1, false, true);
     instance.add_bin(6000, 3210);
@@ -60,7 +60,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
     Info info = Info()
         //.set_log2stderr(true)
         ;
-    Instance instance(Objective::BinPackingLeftovers,
+    Instance instance(Objective::BinPackingWithLeftovers,
             "data/rectangle/tests/C1_items.csv",
             "data/rectangle/tests/C1_bins.csv",
             "data/rectangle/tests/C1_defects.csv");
@@ -76,7 +76,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
 TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
 {
     Info info;
-    Instance instance(Objective::BinPackingLeftovers,
+    Instance instance(Objective::BinPackingWithLeftovers,
             "data/rectangle/tests/C2_items.csv",
             "data/rectangle/tests/C2_bins.csv",
             "data/rectangle/tests/C2_defects.csv");
@@ -92,7 +92,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
 TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
 {
     Info info;
-    Instance instance(Objective::BinPackingLeftovers,
+    Instance instance(Objective::BinPackingWithLeftovers,
             "data/rectangle/tests/C3_items.csv",
             "data/rectangle/tests/C3_bins.csv",
             "data/rectangle/tests/C3_defects.csv");

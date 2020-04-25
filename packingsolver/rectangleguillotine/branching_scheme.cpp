@@ -455,13 +455,17 @@ bool BranchingScheme::Node::bound(const Solution& sol_best) const
         if (bin_number() >= sol_best.bin_number())
             return true;
         return waste() >= sol_best.waste();
-    } case Objective::BinPackingLeftovers: {
+    } case Objective::BinPackingWithLeftovers: {
         if (!sol_best.full())
             return false;
         return waste() >= sol_best.waste();
     } case Objective::Knapsack: {
         return ub_profit() <= sol_best.profit();
-    } case Objective::StripPacking: {
+    } case Objective::StripPackingWidth: {
+        if (!sol_best.full())
+            return false;
+        return waste() >= sol_best.waste();
+    } case Objective::StripPackingHeight: {
         if (!sol_best.full())
             return false;
         return waste() >= sol_best.waste();
@@ -594,21 +598,17 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     df_min_ = -2;
     if (branching_scheme().symmetry_2()) {
         if (insertion.j1 == -1 && insertion.j2 == -1) { // add defect
-            if (insertion.df >= 1 && insertion.x1 == x1_curr()) {
+            if (insertion.df >= 1 && insertion.x1 == x1_curr())
                 df_min_ = 1;
-            }
-            if (insertion.df == 2 && insertion.y2 == y2_curr()) {
+            if (insertion.df == 2 && insertion.y2 == y2_curr())
                 df_min_ = 2;
-            }
         } else if (insertion.j1 == -1 && insertion.j2 != -1) { // add item above defect
             // If df < 2 and y2 - hj doesn't intersect a defect, then we force to
             // add the next item in the same 2-cut.
-            if (insertion.df < 2) {
-                if (instance().y_intersects_defect(insertion.x3, w, insertion.y2 - h_j2, i, o) == -1)
-                    df_min_ = 2;
-            }
+            if (insertion.df < 2 && instance().y_intersects_defect(insertion.x3, w, insertion.y2 - h_j2, i, o) == -1)
+                df_min_ = 2;
         } else if (insertion.j1 != -1 && insertion.j2 != -1) { // add 2 items
-            // If df < 2 and both y2-hj1 and y2-hj2 intersect a defect, then we
+            // If df < 2 and both y2 - hj1 and y2 - hj2 intersect a defect, then we
             // force to add the next item in the same 2-cut.
             if (insertion.df < 2) {
                 if (instance().item(insertion.j1).stack == instance().item(insertion.j2).stack) {
@@ -681,12 +681,6 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
             + (x3_curr() - x1_prev()) * (y2_curr() - y2_prev());
     }
     waste_ = current_area_ - item_area_;
-    if (waste_ < 0) {
-        std::cout << *this << std::endl;
-        std::cout << "current_area " << current_area_ << std::endl;
-        std::cout << "item_area " << item_area_ << std::endl;
-        std::cout << "waste " << waste_ << std::endl;
-    }
     assert(waste_ >= 0);
     compute_ub_profit();
 
@@ -1528,7 +1522,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             if (insertion.x1 + min_waste <= x1_curr()) {
                 insertion.x1 = x1_curr();
                 insertion.z1 = z1();
-            } else if (insertion.x1 < x1_curr()) { // x - min_waste < insertion.xk < x
+            } else if (insertion.x1 < x1_curr()) { // x - min_waste < insertion.x1 < x
                 if (z1() == 0) {
                     insertion.x1 = x1_curr() + min_waste;
                     insertion.z1 = 1;
@@ -1549,7 +1543,9 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
                 insertion.z1 = z1();
             } else { // x1_curr() <= insertion.x1
                 if (z1() == 0 && x1_curr() + min_waste > insertion.x1) {
-                    insertion.x1 = x1_curr() + min_waste;
+                    // TODO the first one seems to be the correct one.
+                    //insertion.x1 = x1_curr() + min_waste;
+                    insertion.x1 = insertion.x1 + min_waste;
                 }
             }
         }

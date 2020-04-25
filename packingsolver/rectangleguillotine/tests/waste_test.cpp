@@ -21,7 +21,7 @@ TEST(RectangleGuillotineBranchingScheme, Waste1)
      */
 
     Info info;
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(50, 50, -1, 1, false, true);
     instance.add_item(30, 30, -1, 1, false, false);
     instance.add_item(40, 40, -1, 1, false, false);
@@ -78,7 +78,7 @@ TEST(RectangleGuillotineBranchingScheme, Waste2)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(500, 500, -1, 1, false, true);
     instance.add_item(300, 300, -1, 1, false, false);
     instance.add_item(100, 500, -1, 1, false, false);
@@ -148,7 +148,7 @@ TEST(RectangleGuillotineBranchingScheme, Waste3)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(200, 500, -1, 1, false, true);
     instance.add_item(200, 400, -1, 1, false, false);
     instance.add_item(200, 500, -1, 1, false, false);
@@ -219,7 +219,7 @@ TEST(RectangleGuillotineBranchingScheme, Waste4)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1578, 758, -1, 1, false, true);
     instance.add_item(738, 1550, -1, 1, false, false);
     instance.add_item(581, 276, -1, 1, false, false);
@@ -276,7 +276,7 @@ TEST(RectangleGuillotineBranchingScheme, Waste5)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1578, 758, -1, 1, false, true);
     instance.add_item(738, 1550, -1, 1, false, false);
     instance.add_item(581, 276, -1, 1, false, false);
@@ -369,7 +369,7 @@ TEST(RectangleGuillotineBranchingScheme, Waste6)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1500, 2000);
     instance.add_item(1710, 1995);
     instance.add_bin(6000, 3210);

@@ -240,7 +240,8 @@ public:
     inline Area    waste()                    const { return waste_; }
     inline double  waste_percentage()         const { return (double)waste() / area(); }
     inline double  waste_ratio()              const { return (double)waste() / item_area(); }
-    inline Length  last1cut()                 const { return (branching_scheme().cut_type_1() == CutType1::ThreeStagedGuillotine)?  x1_curr(): y2_curr(); }
+    inline Length  width()                    const { return (branching_scheme().cut_type_1() == CutType1::ThreeStagedGuillotine)? x1_curr(): y2_curr(); }
+    inline Length  height()                   const { return (branching_scheme().cut_type_1() == CutType1::ThreeStagedGuillotine)? x1_curr(): y2_curr(); }
 
     inline CutOrientation first_stage_orientation(BinPos i) const { return first_stage_orientation_[i]; }
     inline bool full() const { return item_number() == instance().item_number(); }

@@ -38,12 +38,14 @@ std::istream& packingsolver::operator>>(std::istream& in, Objective& objective)
         objective = Objective::Default;
     } else if (token == "bin-packing" || token == "BPP") {
         objective = Objective::BinPacking;
-    } else if (token == "strip-packing" || token == "SPP") {
-        objective = Objective::StripPacking;
+    } else if (token == "bin-packing-with-leftovers" || token == "BPPL") {
+        objective = Objective::BinPackingWithLeftovers;
+    } else if (token == "strip-packing-width" || token == "SPPW") {
+        objective = Objective::StripPackingWidth;
+    } else if (token == "strip-packing-height" || token == "SPPH") {
+        objective = Objective::StripPackingHeight;
     } else if (token == "knapsack" || token == "KP") {
         objective = Objective::Knapsack;
-    } else if (token == "bin-packing-with-leftovers" || token == "BPPL") {
-        objective = Objective::BinPackingLeftovers;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -59,14 +61,17 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Objective objective)
     } case Objective::BinPacking: {
         os << "BinPacking";
         break;
-    } case Objective::StripPacking: {
-        os << "StripPacking";
+    } case Objective::BinPackingWithLeftovers: {
+        os << "BinPackingWithLeftovers";
+        break;
+    } case Objective::StripPackingWidth: {
+        os << "StripPackingWidth";
+        break;
+    } case Objective::StripPackingHeight: {
+        os << "StripPackingHeight";
         break;
     } case Objective::Knapsack: {
         os << "Knapsack";
-        break;
-    } case Objective::BinPackingLeftovers: {
-        os << "BinPackingLeftovers";
         break;
     }
     }

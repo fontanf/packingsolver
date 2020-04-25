@@ -24,7 +24,14 @@ typedef int64_t Counter;
 using optimizationtools::Info;
 
 enum class ProblemType { RectangleGuillotine, Rectangle };
-enum class Objective { Default, BinPacking, StripPacking, Knapsack, BinPackingLeftovers };
+enum class Objective {
+    Default,
+    BinPacking,
+    BinPackingWithLeftovers,
+    StripPackingWidth,
+    StripPackingHeight,
+    Knapsack,
+};
 
 std::istream& operator>>(std::istream& in, ProblemType& problem_type);
 std::istream& operator>>(std::istream& in, Objective& objective);

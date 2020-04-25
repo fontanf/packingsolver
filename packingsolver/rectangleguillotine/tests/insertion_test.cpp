@@ -26,7 +26,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDFm1I)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(500, 1000, -1, 1, false, true);
     instance.add_bin(6000, 3210);
 
@@ -47,7 +47,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDfm1II)
 {
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(3000, 3210, -1, 1, false, true);
     instance.add_item(3000, 3210, -1, 1, false, false);
     instance.add_item(3000, 3210, -1, 1, false, false);
@@ -95,7 +95,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf0)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3210, -1, 1, false, true);
     instance.add_item(1000, 1500, -1, 1, false, false);
     instance.add_bin(6000, 3210);
@@ -144,7 +144,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1I)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3210, -1, 1, false, true);
     instance.add_item(1000, 3000, -1, 1, false, false);
     instance.add_item(1100, 2000, -1, 1, false, false);
@@ -195,7 +195,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1II)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3210, -1, 1, false, true);
     instance.add_item(1000, 3000, -1, 1, false, false);
     instance.add_item(1100, 2990, -1, 1, false, false);
@@ -246,7 +246,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1III)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3210, -1, 1, false, true);
     instance.add_item(1000, 3000, -1, 1, false, false);
     instance.add_item(1100, 3010, -1, 1, false, false);
@@ -297,7 +297,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1IV)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3210, -1, 1, false, true);
     instance.add_item(1000, 3000, -1, 1, false, false);
     instance.add_item(1100, 3020, -1, 1, false, false);
@@ -349,7 +349,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1V)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3210, -1, 1, false, true);
     instance.add_item(1000, 3000, -1, 1, false, false);
     instance.add_item(1100, 3010, -1, 1, false, false);
@@ -406,7 +406,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteI)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1500, 2000, -1, 1, false, true);
     instance.add_item(1000, 1500, -1, 1, false, false);
     instance.add_item(1010, 1500, -1, 1, false, false);
@@ -463,7 +463,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteII)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 2000, -1, 1, false, true);
     instance.add_item(1010, 2005, -1, 1, false, false);
     instance.add_item(1200, 2010, -1, 1, false, false);
@@ -514,7 +514,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2I)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3210, -1, 1, false, true);
     instance.add_item(1000, 2000, -1, 1, false, false);
     instance.add_item(500, 2210, -1, 1, false, false);
@@ -569,7 +569,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2II)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3210, -1, 1, false, true);
     instance.add_item(1000, 2000, -1, 1, false, false);
     instance.add_item(500, 1010, -1, 1, false, false);
@@ -624,7 +624,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2III)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3210, -1, 1, false, true);
     instance.add_item(1000, 2000, -1, 1, false, false);
     instance.add_item(500, 1000, -1, 1, false, false);
@@ -679,7 +679,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2IV)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3210, -1, 1, false, true);
     instance.add_item(1000, 2000, -1, 1, false, false);
     instance.add_item(1000, 1500, -1, 1, false, false);
@@ -734,7 +734,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2V)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 1500, -1, 1, false, true);
     instance.add_item(500, 1000, -1, 1, false, false);
     instance.add_item(500, 1500, -1, 1, false, false);
@@ -791,7 +791,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX1)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(500, 980, -1, 1, false, true);
     instance.add_item(500, 990, -1, 1, false, true);
     instance.add_item(500, 1000, -1, 1, false, true);
@@ -828,7 +828,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX2)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(431, 658, -1, 1, false, true);
     instance.add_item(431, 1170, -1, 1, false, true);
     instance.add_item(303, 1054, -1, 1, false, true);
@@ -893,7 +893,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX3)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(3000, 3210, -1, 1, false, true);
     instance.add_item(1000, 2960, -1, 1, false, true);
     instance.add_item(1000, 2970, -1, 1, false, true);
@@ -949,7 +949,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionY1)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(500, 980, -1, 1, false, true);
     instance.add_item(500, 990, -1, 1, false, true);
     instance.add_item(500, 1000, -1, 1, false, true);
@@ -999,7 +999,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionY2)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(1000, 3000, -1, 1, false, true);
     instance.add_item(1000, 3200, -1, 1, false, true);
     instance.add_bin(6000, 3210);
@@ -1047,7 +1047,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDfm1)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(400, 1000, -1, 1, false, true);
     instance.add_item(500, 1001, -1, 1, false, false);
     instance.add_item(700, 1002, -1, 1, false, false);
@@ -1102,7 +1102,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf0)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(400, 1000, -1, 1, false, true);
     instance.add_item(500, 1001, -1, 1, false, false);
     instance.add_item(700, 1002, -1, 1, false, false);
@@ -1162,7 +1162,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf1)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(3210, 1000, -1, 1, false, true);
     instance.add_item(1000, 2000, -1, 1, false, true);
     instance.add_item(400, 1000, -1, 1, false, true);
@@ -1232,7 +1232,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf2)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(3000, 3210, -1, 1, false, true);
     instance.add_item(2000, 3000, -1, 1, false, true);
     instance.add_item(500, 1000, -1, 1, false, true);
@@ -1297,7 +1297,7 @@ TEST(RectangleGuillotineBranchingScheme, PlateRotationI)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(500, 1000, -1, 1, false, true);
     instance.add_bin(6000, 3210);
 
@@ -1339,7 +1339,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionSymmetry)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(70, 100, -1, 1, false, true);
     instance.add_item(40, 80, -1, 1, false, false);
     instance.add_item(40, 80, -1, 1, false, false);
@@ -1392,7 +1392,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteI)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(500, 3200, -1, 1, false, true);
     instance.add_item(500, 3200, -1, 1, false, false);
     instance.add_bin(6000, 3210);
@@ -1437,7 +1437,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteII)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(250, 3200, -1, 1, false, true);
     instance.add_bin(6000, 3210);
     instance.add_defect(0, 240, 3190, 10, 10);

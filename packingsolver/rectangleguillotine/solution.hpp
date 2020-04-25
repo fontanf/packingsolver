@@ -61,7 +61,8 @@ public:
     inline ItemPos item_number() const { return item_number_; }
     inline bool full() const { return item_number() == instance().item_number(); }
     inline BinPos bin_number() const { return bin_number_; }
-    inline Length last1cut() const { return last_1_cut_; }
+    inline Length height() const { return height_; }
+    inline Length width() const { return width_; }
     inline Profit profit() const { return profit_; }
     inline Area item_area() const { return item_area_; }
     inline Area area() const { return area_; }
@@ -92,7 +93,8 @@ private:
     Area full_area_ = 0;
     Area item_area_ = 0;
     Profit profit_ = 0;
-    Length last_1_cut_ = 0;
+    Length width_ = 0;
+    Length height_ = 0;
 
 };
 
@@ -117,18 +119,24 @@ bool Solution::operator<(const S& solution) const
         if (!full())
             return true;
         return solution.bin_number() < bin_number();
-    } case Objective::StripPacking: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
-        return solution.last1cut() < last1cut();
-    } case Objective::BinPackingLeftovers: {
+    } case Objective::BinPackingWithLeftovers: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
         return solution.waste() < waste();
+    } case Objective::StripPackingWidth: {
+        if (!solution.full())
+            return false;
+        if (!full())
+            return true;
+        return solution.width() < width();
+    } case Objective::StripPackingHeight: {
+        if (!solution.full())
+            return false;
+        if (!full())
+            return true;
+        return solution.height() < height();
     } case Objective::Knapsack: {
         return solution.profit() > profit();
     } default: {

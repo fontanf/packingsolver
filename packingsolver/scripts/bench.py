@@ -630,7 +630,7 @@ for problem in sys.argv[1:]:
 
     elif problem == "3NEGH-SPP-O": # bortfeldt2012 wei2014
         pdp.append((problem, ["kroger1995", "hopper2000_n", "hopper2000_t", "hopper2001a"], [
-                "--objective", "strip-packing",
+                "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "30",
                 "-q", "\"RG -p 3NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
@@ -638,7 +638,7 @@ for problem in sys.argv[1:]:
                 "-q", "\"RG -p 3NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 0\"",
             ]))
         pdp.append((problem, ["burke2004"], [
-                "--objective", "strip-packing",
+                "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "30",
                 "-q", "\"RG -p 3NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 0\"",
@@ -646,7 +646,7 @@ for problem in sys.argv[1:]:
                 "-q", "\"RG -p 3NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "strip-packing",
+                "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "60",
                 "-q", "\"RG -p 3NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
@@ -655,7 +655,7 @@ for problem in sys.argv[1:]:
             ]))
     elif problem == "3NEGH-SPP-R": # kroger1993 schneke1996 mumford2003 zhang2006 bortfeldt2006 cui2008 bortfeldt2012 cui2013 wei2014
         pdp.append((problem, ["kroger1995", "hopper2000_n", "hopper2000_t", "hopper2001a", "burke2004"], [
-                "--objective", "strip-packing",
+                "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "30",
                 "-q", "\"RG -p 3NHR -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
@@ -663,7 +663,7 @@ for problem in sys.argv[1:]:
                 "-q", "\"RG -p 3NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 0\"",
             ]))
         pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "strip-packing",
+                "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "60",
                 "-q", "\"RG -p 3NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 0\"",
@@ -672,7 +672,7 @@ for problem in sys.argv[1:]:
             ]))
     elif problem == "2NEGH-SPP-O": # lodi2004 cintra2008 mrad2015 cui2017
         pdp.append((problem, ["cintra2008"], [
-                "--objective", "strip-packing",
+                "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "10",
                 "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
@@ -680,7 +680,7 @@ for problem in sys.argv[1:]:
                 "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
-                "--objective", "strip-packing",
+                "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "10",
                 "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
@@ -688,7 +688,7 @@ for problem in sys.argv[1:]:
                 "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "strip-packing",
+                "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "10",
                 "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
@@ -697,7 +697,7 @@ for problem in sys.argv[1:]:
             ]))
     elif problem == "2NEGH-SPP-R": #
         pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "strip-packing",
+                "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "10",
                 "-q", "\"RG -p 2NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",

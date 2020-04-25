@@ -33,7 +33,7 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion1)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(200, 300);
     instance.add_item(300, 400);
     instance.add_bin(6000, 3210);
@@ -153,7 +153,7 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion2)
 
     Info info;
 
-    Instance instance(Objective::BinPackingLeftovers);
+    Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(500, 600);
     instance.add_item(200, 300);
     instance.add_item(100, 400);

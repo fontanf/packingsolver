@@ -42,18 +42,21 @@ Solution::Solution(const Instance& instance, const std::vector<Solution::Node>& 
         if (node.d == 0) {
             assert(node.b == 0);
             assert(node.l == 0);
-            area_ += node.r * node.t;
+            area_      += node.r * node.t;
             full_area_ += node.r * node.t;
         }
         if (node.j >= 0) {
             item_number_++;
             item_area_ += instance.item(node.j).rect.area();
-            profit_ += instance.item(node.j).profit;
+            profit_    += instance.item(node.j).profit;
         }
-        if (node.j == -3) {
+        if (node.j == -3) // Subtract residual area
             area_ -= (node.t - node.b) * (node.r - node.l);
-            last_1_cut_ = (node.b != 0)? node.b: node.l;
-        }
+        // Update width_ and height_
+        if (node.r != instance.bin(node.i).rect.w && width_ < node.r)
+            width_ = node.r;
+        if (node.t != instance.bin(node.i).rect.h && height_ < node.t)
+            height_ = node.t;
     }
 }
 
@@ -66,7 +69,8 @@ Solution::Solution(const Solution& solution):
     full_area_(solution.full_area_),
     item_area_(solution.item_area_),
     profit_(solution.profit_),
-    last_1_cut_(solution.last_1_cut_)
+    width_(solution.width_),
+    height_(solution.height_)
 {
 }
 
@@ -81,7 +85,8 @@ Solution& Solution::operator=(const Solution& solution)
         full_area_   = solution.full_area_;
         item_area_   = solution.item_area_;
         profit_      = solution.profit_;
-        last_1_cut_  = solution.last_1_cut_;
+        width_       = solution.width_;
+        height_      = solution.height_;
     }
     return *this;
 }
@@ -114,15 +119,19 @@ void Solution::update(const Solution& solution, const std::stringstream& algorit
             VER(info, std::left << std::setw(8) << bin_number());
             VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
             break;
-        } case Objective::BinPackingLeftovers: {
+        } case Objective::BinPackingWithLeftovers: {
             PUT(info, sol_str, "Waste", waste());
             PUT(info, sol_str, "WastePercentage", 100 * waste_percentage());
             VER(info, std::left << std::setw(12) << waste());
             VER(info, std::left << std::setw(12) << 100 * waste_percentage());
             break;
-        } case Objective::StripPacking: {
-            PUT(info, sol_str, "Last1Cut", last1cut());
-            VER(info, std::left << std::setw(12) << last1cut());
+        } case Objective::StripPackingWidth: {
+            PUT(info, sol_str, "Width", width());
+            VER(info, std::left << std::setw(12) << width());
+            break;
+        } case Objective::StripPackingHeight: {
+            PUT(info, sol_str, "Height", height());
+            VER(info, std::left << std::setw(12) << height());
             break;
         } case Objective::Knapsack: {
             PUT(info, sol_str, "Profit", profit());
@@ -159,12 +168,15 @@ void Solution::algorithm_start(Info& info)
         VER(info, std::left << std::setw(8) << "Bins");
         VER(info, std::left << std::setw(16) << "Full waste (%)");
         break;
-    } case Objective::BinPackingLeftovers: {
+    } case Objective::BinPackingWithLeftovers: {
         VER(info, std::left << std::setw(12) << "Waste");
         VER(info, std::left << std::setw(12) << "Waste (%)");
         break;
-    } case Objective::StripPacking: {
-        VER(info, std::left << std::setw(12) << "Last 1-cut");
+    } case Objective::StripPackingWidth: {
+        VER(info, std::left << std::setw(12) << "Width");
+        break;
+    } case Objective::StripPackingHeight: {
+        VER(info, std::left << std::setw(12) << "Height");
         break;
     } case Objective::Knapsack: {
         VER(info, std::left << std::setw(12) << "Profit");
@@ -199,15 +211,19 @@ void Solution::algorithm_end(Info& info)
         VER(info, "Bin number: " << bin_number() << std::endl);
         VER(info, "Full waste (%): " << 100 * full_waste_percentage() << std::endl);
         break;
-    } case Objective::BinPackingLeftovers: {
+    } case Objective::BinPackingWithLeftovers: {
         PUT(info, sol_str, "Waste", waste());
         PUT(info, sol_str, "WastePercentage", 100 * waste_percentage());
         VER(info, "Waste: " << waste() << std::endl);
         VER(info, "Waste (%): " << 100 * waste_percentage() << std::endl);
         break;
-    } case Objective::StripPacking: {
-        PUT(info, sol_str, "Last1Cut", last1cut());
-        VER(info, "Last 1-cut: " << last1cut() << std::endl);
+    } case Objective::StripPackingWidth: {
+        PUT(info, sol_str, "Width", width());
+        VER(info, "Width: " << width() << std::endl);
+        break;
+    } case Objective::StripPackingHeight: {
+        PUT(info, sol_str, "Height", height());
+        VER(info, "Height: " << height() << std::endl);
         break;
     } case Objective::Knapsack: {
         PUT(info, sol_str, "Profit", profit());
