@@ -31,7 +31,7 @@ public:
         SolutionNodeId id;
         SolutionNodeId f;
         Depth d;
-        BinTypeId i;
+        BinPos i;
         Length l, r, b, t;
         std::vector<SolutionNodeId> children;
         ItemTypeId j;

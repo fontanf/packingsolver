@@ -254,32 +254,32 @@ public:
     /**
      * For unit tests
      */
-    const std::vector<SolutionNode>& nodes() const { return nodes_; }
-    const SolutionNode& node(SolutionNodeId id) const { return nodes_[id]; }
     SolutionNodeId node_number() const { return nodes_.size(); }
+    const SolutionNode& node(SolutionNodeId id) const { return nodes_[id]; }
+    const std::vector<SolutionNode>& nodes() const { return nodes_; }
     const NodeItem& item(ItemPos j) const { return items_[j]; }
     const std::vector<NodeItem>& items() const { return items_; }
+    ItemPos pos_stack(StackId s) const { return pos_stack_[s]; }
+    std::vector<ItemPos> pos_stack() const { return pos_stack_; }
 
-    const std::array<SubPlate, 4>& subplate_prev() const { return subplates_prev_; };
-    const std::array<SubPlate, 4>& subplate_curr() const { return subplates_curr_; };
+    /** Previous and current sub-plates. */
     inline const SubPlate& subplate_prev(Depth d) const { return subplates_prev_[d]; };
     inline const SubPlate& subplate_curr(Depth d) const { return subplates_curr_[d]; };
 
+    /** Previous and current cuts. */
     inline Length x1_curr() const { return (subplate_curr(1).node == -1)? 0: node(subplate_curr(1).node).p; }
     inline Length x1_prev() const { return (subplate_prev(1).node == -1)? 0: node(subplate_prev(1).node).p; }
     inline Length y2_curr() const { return (subplate_curr(2).node == -1)? 0: node(subplate_curr(2).node).p; }
     inline Length y2_prev() const { return (subplate_prev(2).node == -1)? 0: node(subplate_prev(2).node).p; }
     inline Length x3_curr() const { return (subplate_curr(3).node == -1)? x1_prev(): node(subplate_curr(3).node).p; }
     inline Length x3_prev() const { return (subplate_prev(3).node == -1)? x1_prev(): node(subplate_prev(3).node).p; }
-    inline Front front() const { return {.i = static_cast<BinPos>(bin_number()-1), .o = first_stage_orientation(bin_number() - 1), .x1_prev = x1_prev(), .x3_curr = x3_curr(), .x1_curr = x1_curr(), .y2_prev = y2_prev(), .y2_curr = y2_curr(), .z1 = z1(), .z2 = z2()}; }
 
     inline Length x1_max() const { return x1_max_; }
     inline Length y2_max() const { return y2_max_; }
     inline Counter z1() const { return z1_; }
     inline Counter z2() const { return z2_; }
 
-    std::vector<ItemPos> pos_stack() const { return pos_stack_; }
-    ItemPos pos_stack(StackId s) const { return pos_stack_[s]; }
+    inline Front front() const { return {.i = static_cast<BinPos>(bin_number() - 1), .o = first_stage_orientation(bin_number() - 1), .x1_prev = x1_prev(), .x3_curr = x3_curr(), .x1_curr = x1_curr(), .y2_prev = y2_prev(), .y2_curr = y2_curr(), .z1 = z1(), .z2 = z2()}; }
 
     static bool dominates(Front f1, Front f2, const BranchingScheme& branching_scheme);
 
@@ -293,10 +293,11 @@ private:
 
     const BranchingScheme& branching_scheme_;
 
+    /** Tree representation of the solutions */
     std::vector<SolutionNode> nodes_ = {};
 
     /**
-     * pos_stack_[s] == k iff the solution contains items 0 to k-1 in the
+     * pos_stack_[s] == k iff the solution contains items 0 to k - 1 in the
      * sequence of stack s.
      */
     std::vector<ItemPos> pos_stack_ = {};
@@ -307,6 +308,10 @@ private:
      */
     std::vector<NodeItem> items_ = {};
 
+    /**
+     * first_stage_orientation_[i_pos] is the orientation of the first stage
+     * of the i_pos th bin of the node.
+     */
     std::vector<CutOrientation> first_stage_orientation_;
 
     Area item_area_         = 0;
@@ -316,18 +321,21 @@ private:
     Profit profit_          = 0;
     Profit ub_profit_       = -1;
 
+    /** Prevous and current sub-plates. */
     std::array<SubPlate, 4> subplates_curr_ {{{.node = -1}, {.node = -1}, {.node = -1}, {.node = -1}}};
     std::array<SubPlate, 4> subplates_prev_ {{{.node = -1}, {.node = -1}, {.node = -1}, {.node = -1}}};
 
     /**
      * x1_max_ is the maximum position of the current 1-cut.
-     * Used when otherwise, one of its 2-cut would intersect a defect.
+     * It is used when otherwise, a 2-cut of the current 1-level sub-plate
+     * would intersect a defect.
      */
     Length x1_max_ = -1;
 
     /**
      * y2_max_ is the maximum position of the current 2-cut.
-     * Used when otherwise, one of its 3-cut would intersect a defect.
+     * It is used when otherwise, a 3-cut of the current 2-level sub-plate
+     * would intersect a defect.
      */
     Length y2_max_ = -1;
 
@@ -349,13 +357,14 @@ private:
      */
     Counter z2_ = 0;
 
+    /** Minimum value of df for the node children. */
     Counter df_min_ = -4;
 
     /**
-     * Contains the list of items (id, rotation, right cut position) inserted
-     * above a defect between the previous and the current 2-cut.
+     * Contains the list of items (id, height, right cut position) inserted
+     * above a defect in the current 2-level sub-plate.
      */
-    std::vector<WHX> whx_ = {};
+    std::vector<WHX> subplate2curr_items_above_defect_ = {};
 
 
     /**
@@ -373,7 +382,7 @@ private:
     void insertion_1_item(std::vector<Insertion>& insertions,
             ItemTypeId j, bool rotate, Depth df, Info& info) const;
     /** Insertion of one item above a defect. */
-    void insertion_1_item_4cut(std::vector<Insertion>& insertions,
+    void insertion_1_item_above_defect(std::vector<Insertion>& insertions,
             DefectId k, ItemTypeId j, bool rotate, Depth df, Info& info) const;
     /** Insertion of two items. */
     void insertion_2_items(std::vector<Insertion>& insertions,
@@ -385,9 +394,7 @@ private:
     /** Return true iff an insertion at depth df would generate a symmetrical node. */
     bool check_symmetries(Depth df, Info& info) const;
 
-    /**
-     * Coordinates of the bottom left side of a new insertion at depth df.
-     */
+    /** Attributes of the new node if an insertion is performed at depth df.  */
     BinPos last_bin(Depth df) const;
     CutOrientation last_bin_orientation(Depth df) const;
     Length x1_prev(Depth df) const;

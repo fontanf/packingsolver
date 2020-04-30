@@ -360,30 +360,30 @@ BranchingScheme::Node::Node(const BranchingScheme::Node& node):
     z1_(node.z1_),
     z2_(node.z2_),
     df_min_(node.df_min_),
-    whx_(node.whx_)
+    subplate2curr_items_above_defect_(node.subplate2curr_items_above_defect_)
 { }
 
 BranchingScheme::Node& BranchingScheme::Node::operator=(const BranchingScheme::Node& node)
 {
     if (this != &node) {
-        nodes_                   = node.nodes_;
-        items_                   = node.items_;
-        pos_stack_               = node.pos_stack_;
-        first_stage_orientation_ = node.first_stage_orientation_;
-        item_area_               = node.item_area_;
-        squared_item_area_       = node.squared_item_area_;
-        current_area_            = node.current_area_;
-        waste_                   = node.waste_;
-        profit_                  = node.profit_;
-        ub_profit_               = node.ub_profit_;
-        subplates_prev_          = node.subplates_prev_;
-        subplates_curr_          = node.subplates_curr_;
-        x1_max_                  = node.x1_max_;
-        y2_max_                  = node.y2_max_;
-        z1_                      = node.z1_;
-        z2_                      = node.z2_;
-        df_min_                  = node.df_min_;
-        whx_                     = node.whx_;
+        nodes_                            = node.nodes_;
+        items_                            = node.items_;
+        pos_stack_                        = node.pos_stack_;
+        first_stage_orientation_          = node.first_stage_orientation_;
+        item_area_                        = node.item_area_;
+        squared_item_area_                = node.squared_item_area_;
+        current_area_                     = node.current_area_;
+        waste_                            = node.waste_;
+        profit_                           = node.profit_;
+        ub_profit_                        = node.ub_profit_;
+        subplates_prev_                   = node.subplates_prev_;
+        subplates_curr_                   = node.subplates_curr_;
+        x1_max_                           = node.x1_max_;
+        y2_max_                           = node.y2_max_;
+        z1_                               = node.z1_;
+        z2_                               = node.z2_;
+        df_min_                           = node.df_min_;
+        subplate2curr_items_above_defect_ = node.subplate2curr_items_above_defect_;
     }
     return *this;
 }
@@ -582,15 +582,15 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
         profit_ += instance().item(insertion.j2).profit;
     }
 
-    // Update whx__
+    // Update subplate2curr_items_above_defect_
     if (insertion.df != 2)
-        whx_.clear();
+        subplate2curr_items_above_defect_.clear();
     if (insertion.j1 == -1 && insertion.j2 != -1) {
         WHX whx;
         whx.w = w_j;
         whx.h = h_j2;
         whx.x = insertion.x3;
-        whx_.push_back(whx);
+        subplate2curr_items_above_defect_.push_back(whx);
     }
 
     // Update df_min_
@@ -1244,7 +1244,7 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
         // Try adding the item above the defect
         if (branching_scheme().cut_type_2() == CutType2::Roadef2018
                 || branching_scheme().cut_type_2() == CutType2::NonExact)
-            insertion_1_item_4cut(insertions, k, j, rotate, df, info);
+            insertion_1_item_above_defect(insertions, k, j, rotate, df, info);
         return;
     }
 
@@ -1292,10 +1292,10 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
     LOG_FOLD_END(info, "");
 }
 
-void BranchingScheme::Node::insertion_1_item_4cut(std::vector<Insertion>& insertions,
+void BranchingScheme::Node::insertion_1_item_above_defect(std::vector<Insertion>& insertions,
             DefectId k, ItemTypeId j, bool rotate, Depth df, Info& info) const
 {
-    LOG_FOLD_START(info, "insertion_1_item_4cut"
+    LOG_FOLD_START(info, "insertion_1_item_above_defect"
             << " k " << k << " j " << j << " rotate " << rotate << " df " << df << std::endl);
     assert(-2 <= df); assert(df <= 3);
 
@@ -1683,7 +1683,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
 
         // Increase y2 if an item 'on top of its 3-cut' intersects a defect.
         if (insertion.df == 2) {
-            for (auto whx: whx_) {
+            for (auto whx: subplate2curr_items_above_defect_) {
                 Length r = whx.x;
                 Length l = whx.x - whx.w;
                 Length t = insertion.y2;
@@ -1741,7 +1741,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             insertion.z2 = 0;
 
             if (insertion.df == 2) {
-                for (auto whx: whx_) {
+                for (auto whx: subplate2curr_items_above_defect_) {
                     Length r = whx.x;
                     Length l = r - whx.w;
                     Length t = insertion.y2;

@@ -41,7 +41,7 @@ Options `--bin-infinite-copies`, `--bin-infinite-width`, `--bin-infinite-height`
 
 ### Problem type rectangleguillotine (RG)
 
-* Available objectives: `default`, `bin-packing` (`BPP`), `knapsack` (`KP`), `strip-packing` (`SPP`), `bin-packing-with-leftovers` (`BPPL`)
+* Available objectives: `default`, `bin-packing` (`BPP`), `knapsack` (`KP`), `strip-packing-width` (`SPPW`), `strip-packing-height` (`SPPH`), `bin-packing-with-leftovers` (`BPPL`)
 * Available branching schemes: `rectangle-guillotine` (`RG`)
 
 ### Branching scheme rectangle-guillotine (RG)
