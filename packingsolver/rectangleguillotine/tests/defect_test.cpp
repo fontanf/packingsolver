@@ -831,3 +831,69 @@ TEST(RectangleGuillotineBranchingScheme, InsertionYMaxDefect)
     EXPECT_EQ(node.children(info), is);
 }
 
+TEST(RectangleGuillotineBranchingScheme, InsertionDfMinDf0Defect)
+{
+    /**
+     * If the defect is inserted, then the next insertion needs to happen at
+     * depth >= 0.
+     *
+     * |--------------|---------------|---|
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |      0       |       1       | x |
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |              |               |   |
+     * |--------------|---------------|---|
+     *              2500            5000 6000
+     *                                 5500
+     *
+     */
+
+    Info info = Info()
+        //.set_log2stderr(true)
+        ;
+
+    Instance instance(Objective::BinPackingWithLeftovers);
+    instance.add_item(2500, 3210, -1, 1, false, true);
+    instance.add_item(2500, 3210, -1, 1, false, false);
+    instance.add_item(2500, 3210, -1, 1, false, false);
+    instance.add_bin(6000, 3210);
+    instance.add_bin(6000, 3210);
+    instance.add_defect(0, 5500, 1500, 10, 10);
+
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme::Node node(branching_scheme);
+
+    BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 2500, .y2 = 3210, .x3 = 2500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
+    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
+    node.apply_insertion(i0, info);
+
+    BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 5000, .y2 = 3210, .x3 = 5000, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0};
+    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
+    node.apply_insertion(i1, info);
+
+    BranchingScheme::Insertion i2 = {.j1 = -1, .j2 = -1, .df = 0, .x1 = 5510, .y2 = 1510, .x3 = 5510, .x1_max = 6000, .y2_max = 3210, .z1 = 1, .z2 = 1};
+    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
+    node.apply_insertion(i2, info);
+
+    std::vector<BranchingScheme::Insertion> is {
+    };
+    EXPECT_EQ(node.children(info), is);
+}
+

@@ -722,9 +722,18 @@ for problem, data, parameters in pdp:
     directory_out = os.path.join("output", "rectangle", problem)
     for dataset in data:
         for filename in datas[dataset]:
+            s = ""
+            if "--bin-infinite-copies" in parameters:
+                s += "_bin-infinite-copies"
+            if "--bin-infinite-width" in parameters:
+                s +=  "_bin-infinite-width"
+            if "--bin-infinite-height" in parameters:
+                s +=  "_bin-infinite-height"
+            if "--unweighted" in parameters:
+                s += "_unweighted"
             instance_file = os.path.join(directory_in, filename)
-            output_file   = os.path.join(directory_out, filename + ".json")
-            cert_file     = os.path.join(directory_out, filename + "_solution.csv")
+            output_file   = os.path.join(directory_out, filename + s + ".json")
+            cert_file     = os.path.join(directory_out, filename + s + "_solution.csv")
             if not os.path.exists(os.path.dirname(output_file)):
                 os.makedirs(os.path.dirname(output_file))
             command = main_exec + " -p rectangleguillotine" \

@@ -598,6 +598,8 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     df_min_ = -2;
     if (branching_scheme().symmetry_2()) {
         if (insertion.j1 == -1 && insertion.j2 == -1) { // add defect
+            if (insertion.df >= 0)
+                df_min_ = 0;
             if (insertion.df >= 1 && insertion.x1 == x1_curr())
                 df_min_ = 1;
             if (insertion.df == 2 && insertion.y2 == y2_curr())
