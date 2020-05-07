@@ -521,23 +521,26 @@ DefectId Instance::rect_intersects_defect(
     assert(l <= r);
     assert(b <= t);
     for (const Defect& defect: bin(i).defects) {
-        Length lk = left(defect, o);
-        Length rk = right(defect, o);
-        assert(lk <= rk);
-        if (lk >= r)
+        if (left(defect, o) >= r)
             continue;
-        if (l >= rk)
+        if (l >= right(defect, o))
             continue;
-        Length bk = bottom(defect, o);
-        Length tk = top(defect, o);
-        assert(b <= t);
-        if (bk >= t)
+        if (bottom(defect, o) >= t)
             continue;
-        if (b >= tk)
+        if (b >= top(defect, o))
             continue;
         return defect.id;
     }
     return -1;
+}
+
+DefectId Instance::item_intersects_defect(
+        Length l, Length b, const Item& item, bool rotate, BinTypeId i, CutOrientation o) const
+{
+    return rect_intersects_defect(
+            l, l + width(item, rotate, o),
+            b, b + height(item, rotate, o),
+            i, o);
 }
 
 DefectId Instance::y_intersects_defect(

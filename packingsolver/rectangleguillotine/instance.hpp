@@ -152,6 +152,8 @@ public:
 
     DefectId rect_intersects_defect(
             Length l, Length r, Length b, Length t, BinTypeId i, CutOrientation o) const;
+    DefectId item_intersects_defect(
+            Length l, Length b, const Item& item, bool rotate, BinTypeId i, CutOrientation o) const;
     DefectId x_intersects_defect(
             Length x, BinTypeId i, CutOrientation o) const;
     DefectId y_intersects_defect(

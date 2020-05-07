@@ -555,12 +555,10 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     Length w = instance().bin(i).width(o);
 
     Length w_j = insertion.x3 - x3_prev(insertion.df);
-    Length h_j1 = (insertion.j1 == -1)? -1: ((instance().item(insertion.j1).rect.w == w_j)?
-        instance().item(insertion.j1).rect.h:
-        instance().item(insertion.j1).rect.w);
-    Length h_j2 = (insertion.j2 == -1)? -1: ((instance().item(insertion.j2).rect.w == w_j)?
-        instance().item(insertion.j2).rect.h:
-        instance().item(insertion.j2).rect.w);
+    bool rotate_j1 = (insertion.j1 == -1)? false: (instance().width(instance().item(insertion.j1), true, o) == w_j);
+    bool rotate_j2 = (insertion.j2 == -1)? false: (instance().width(instance().item(insertion.j2), true, o) == w_j);
+    Length h_j1 = (insertion.j1 == -1)? -1: instance().height(instance().item(insertion.j1), rotate_j1, o);
+    Length h_j2 = (insertion.j1 == -1)? -1: instance().height(instance().item(insertion.j2), rotate_j2, o);
 
     // Update items_, items_area_ and pos_stack_
     ItemPos n = 0; // number of added items
@@ -586,11 +584,11 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     if (insertion.df != 2)
         subplate2curr_items_above_defect_.clear();
     if (insertion.j1 == -1 && insertion.j2 != -1) {
-        WHX whx;
-        whx.w = w_j;
-        whx.h = h_j2;
-        whx.x = insertion.x3;
-        subplate2curr_items_above_defect_.push_back(whx);
+        JRX jrx;
+        jrx.j = insertion.j2;
+        jrx.rotate = rotate_j2;
+        jrx.x = x3_prev(insertion.df);
+        subplate2curr_items_above_defect_.push_back(jrx);
     }
 
     // Update df_min_
@@ -628,7 +626,7 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     // Update subplates_prev_ and subplates_curr_
     update_subplates_prev_and_curr(insertion.df, n);
 
-    // Update nodes_
+    // Add new solution nodes
     SolutionNodeId f = (insertion.df <= -1)? -bin_number(): subplate_curr(insertion.df).node;
     Depth d = (insertion.df <= -1)? 0: insertion.df;
     SolutionNodeId c = nodes_.size() - 1;
@@ -639,13 +637,7 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
         d++;
     } while (d != 3);
 
-    // Update x1_max_, y2_max_, z1_ and z2_
-    x1_max_ = insertion.x1_max;
-    y2_max_ = insertion.y2_max;
-    z1_ = insertion.z1;
-    z2_ = insertion.z2;
-
-    // Update rights and lefts
+    // Update subplates and nodes coordinates
     subplates_curr_[0].r = insertion.x1;
     if (subplates_curr_[0].t < insertion.y2)
         subplates_curr_[0].t = insertion.y2;
@@ -654,11 +646,12 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     subplates_curr_[2].r = insertion.x3;
     subplates_curr_[2].t = insertion.y2;
     subplates_curr_[3].r = insertion.x3;
-    subplates_curr_[3].t = insertion.y2; // insertion.y4?
+    subplates_curr_[3].t = insertion.y2;
     nodes_[subplate_curr(1).node].p = insertion.x1;
     nodes_[subplate_curr(2).node].p = insertion.y2;
     nodes_[subplate_curr(3).node].p = insertion.x3;
 
+    // Check min_waste constraint
     assert(subplate_curr(0).node == -1 || subplate_curr(0).l < subplate_curr(0).r);
     assert(subplate_curr(0).node == -1 || subplate_curr(0).r - subplate_curr(0).l
             >= branching_scheme().min_waste());
@@ -671,6 +664,12 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     assert(subplate_curr(3).node == -1 || subplate_curr(3).l < subplate_curr(3).r);
     assert(subplate_curr(3).node == -1 || subplate_curr(3).r - subplate_curr(3).l
             >= branching_scheme().min_waste());
+
+    // Update x1_max_, y2_max_, z1_ and z2_
+    x1_max_ = insertion.x1_max;
+    y2_max_ = insertion.y2_max;
+    z1_ = insertion.z1;
+    z2_ = insertion.z2;
 
     // Update current_area_ and waste_
     current_area_ = instance().previous_bin_area(i);
@@ -1240,121 +1239,32 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
         return;
     }
 
-    DefectId k = instance().rect_intersects_defect(x3_prev(df), x, y2_prev(df), y, i, o);
-    if (k >= 0) {
-        LOG_FOLD_END(info, "intersects defect");
-        // Try adding the item above the defect
-        if (branching_scheme().cut_type_2() == CutType2::Roadef2018
-                || branching_scheme().cut_type_2() == CutType2::NonExact)
-            insertion_1_item_above_defect(insertions, k, j, rotate, df, info);
-        return;
-    }
-
     Insertion insertion {
         .j1 = j, .j2 = -1, .df = df,
         .x1 = x, .y2 = y, .x3 = x,
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 0};
     LOG(info, insertion << std::endl);
 
+    // Check defect intersection
+    DefectId k = instance().item_intersects_defect(x3_prev(df), y2_prev(df), item, rotate, i, o);
+    if (k >= 0) {
+        if (branching_scheme().cut_type_2() == CutType2::Roadef2018
+                || branching_scheme().cut_type_2() == CutType2::NonExact) {
+            // Place the item on top of its third-level sub-plate
+            insertion.j1 = -1;
+            insertion.j2 = j;
+        } else {
+            LOG_FOLD_END(info, "intersects defect");
+            return;
+        }
+    }
+
     // Update insertion.z2 with respect to cut_type_2()
     if (branching_scheme().cut_type_2() == CutType2::Exact
             || branching_scheme().cut_type_2() == CutType2::Homogenous)
         insertion.z2 = 2;
 
-    if (!update(insertion, info))
-        return;
-
-    // Check dominance
-    for (auto it = insertions.begin(); it != insertions.end();) {
-        if ((it->j1 == insertion.j1 && it->j2 == -1)
-                || (it->j1 == -1 && it->j2 == insertion.j1)) {
-            LOG(info, "f_i  " << front(insertion) << std::endl);
-            LOG(info, "f_it " << front(*it) << std::endl);
-            if (dominates(front(insertion), front(*it), branching_scheme())) {
-                LOG(info, "dominates " << *it << std::endl);
-                if (std::next(it) != insertions.end()) {
-                    *it = insertions.back();
-                    insertions.pop_back();
-                } else {
-                    insertions.pop_back();
-                    break;
-                }
-            } else if (dominates(front(*it), front(insertion), branching_scheme())) {
-                LOG_FOLD_END(info, "dominated by " << *it);
-                return;
-            } else {
-                ++it;
-            }
-        } else {
-            ++it;
-        }
-    }
-    insertions.push_back(insertion);
-
-    LOG_FOLD_END(info, "");
-}
-
-void BranchingScheme::Node::insertion_1_item_above_defect(std::vector<Insertion>& insertions,
-            DefectId k, ItemTypeId j, bool rotate, Depth df, Info& info) const
-{
-    LOG_FOLD_START(info, "insertion_1_item_above_defect"
-            << " k " << k << " j " << j << " rotate " << rotate << " df " << df << std::endl);
-    assert(-2 <= df); assert(df <= 3);
-
-    BinPos i = last_bin(df);
-    CutOrientation o = last_bin_orientation(df);
-    const Item& item = instance().item(j);
-    Length min_waste = branching_scheme().min_waste();
-    Length w = instance().bin(i).width(o);
-    Length h = instance().bin(i).height(o);
-    Length x = x3_prev(df) + instance().width(item, rotate, o);;
-    Length y = std::max(
-            instance().top(instance().defect(k), o),
-            y2_prev(df) + min_waste) + instance().height(item, rotate, o);
-    LOG(info, "y " << y << std::endl);
-    if (x > w || y > h) {
-        LOG_FOLD_END(info, "too wide/high");
-        return;
-    }
-
-    Insertion insertion {
-        .j1 = -1, .j2 = j, .df = df,
-        .x1 = x, .y2 = y, .x3 = x,
-        .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 1};
-    LOG(info, insertion << std::endl);
-
-    if (!update(insertion, info))
-        return;
-
-    // Check dominance
-    for (auto it = insertions.begin(); it != insertions.end();) {
-        if ((it->j1 == insertion.j2 && it->j2 == -1)
-                || (it->j1 == -1 && it->j2 == insertion.j2)) {
-            LOG(info, "f_i  " << front(insertion) << std::endl);
-            LOG(info, "f_it " << front(*it) << std::endl);
-            if (dominates(front(insertion), front(*it), branching_scheme())) {
-                LOG(info, "dominates " << *it << std::endl);
-                if (std::next(it) != insertions.end()) {
-                    *it = insertions.back();
-                    insertions.pop_back();
-                } else {
-                    insertions.pop_back();
-                    break;
-                }
-            } else if (dominates(front(*it), front(insertion), branching_scheme())) {
-                LOG_FOLD_END(info, "dominated by " << *it);
-                return;
-            } else {
-                ++it;
-            }
-        } else {
-            ++it;
-        }
-    }
-
-    insertions.push_back(insertion);
-
-    LOG_FOLD_END(info, "");
+    update(insertions, insertion, info);
 }
 
 void BranchingScheme::Node::insertion_2_items(std::vector<Insertion>& insertions,
@@ -1373,14 +1283,16 @@ void BranchingScheme::Node::insertion_2_items(std::vector<Insertion>& insertions
     const Item& item2 = instance().item(j2);
     Length w = instance().bin(i).width(o);
     Length h = instance().bin(i).height(o);
+    Length h_j1 = instance().height(item1, rotate1, o);
     Length x = x3_prev(df) + instance().width(item1, rotate1, o);
-    Length y = y2_prev(df) + instance().height(item1, rotate1, o)
+    Length y = y2_prev(df) + h_j1
                            + instance().height(item2, rotate2, o);
     if (x > w || y > h) {
         LOG_FOLD_END(info, "too wide/high");
         return;
     }
-    if (instance().rect_intersects_defect(x3_prev(df), x, y2_prev(df), y, i, o) >= 0) {
+    if (instance().item_intersects_defect(x3_prev(df), y2_prev(df), item1, rotate1, i, o) >= 0
+            || instance().item_intersects_defect(x3_prev(df), y2_prev(df) + h_j1, item2, rotate2, i, o) >= 0) {
         LOG_FOLD_END(info, "intersects defect");
         return;
     }
@@ -1391,37 +1303,7 @@ void BranchingScheme::Node::insertion_2_items(std::vector<Insertion>& insertions
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 0, .z2 = 2};
     LOG(info, insertion << std::endl);
 
-    if (!update(insertion, info))
-        return;
-
-    // Check dominance
-    for (auto it = insertions.begin(); it != insertions.end();) {
-        if (it->j1 == insertion.j1 && it->j2 == insertion.j2) {
-            LOG(info, "f_i  " << front(insertion) << std::endl);
-            LOG(info, "f_it " << front(*it) << std::endl);
-            if (dominates(front(insertion), front(*it), branching_scheme())) {
-                LOG(info, "dominates " << *it << std::endl);
-                if (std::next(it) != insertions.end()) {
-                    *it = insertions.back();
-                    insertions.pop_back();
-                } else {
-                    insertions.pop_back();
-                    break;
-                }
-            } else if (dominates(front(*it), front(insertion), branching_scheme())) {
-                LOG_FOLD_END(info, "dominated by " << *it);
-                return;
-            } else {
-                ++it;
-            }
-        } else {
-            ++it;
-        }
-    }
-
-    insertions.push_back(insertion);
-
-    LOG_FOLD_END(info, "");
+    update(insertions, insertion, info);
 }
 
 void BranchingScheme::Node::insertion_defect(std::vector<Insertion>& insertions,
@@ -1451,40 +1333,12 @@ void BranchingScheme::Node::insertion_defect(std::vector<Insertion>& insertions,
         .x1_max = x1_max(df), .y2_max = y2_max(df, x), .z1 = 1, .z2 = 1};
     LOG(info, insertion << std::endl);
 
-    if (!update(insertion, info))
-        return;
-
-    // Check dominance
-    for (auto it = insertions.begin(); it != insertions.end();) {
-        if (it->j1 == -1 && it->j2 == -1) {
-            LOG(info, "f_i  " << front(insertion) << std::endl);
-            LOG(info, "f_it " << front(*it) << std::endl);
-            if (dominates(front(insertion), front(*it), branching_scheme())) {
-                LOG(info, "dominates " << *it << std::endl);
-                if (std::next(it) != insertions.end()) {
-                    *it = insertions.back();
-                    insertions.pop_back();
-                } else {
-                    insertions.pop_back();
-                    break;
-                }
-            } else if (dominates(front(*it), front(insertion), branching_scheme())) {
-                LOG_FOLD_END(info, "dominated by " << *it);
-                return;
-            } else {
-                ++it;
-            }
-        } else {
-            ++it;
-        }
-    }
-
-    insertions.push_back(insertion);
-
-    LOG_FOLD_END(info, "");
+    update(insertions, insertion, info);
 }
 
-bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
+void BranchingScheme::Node::update(
+        std::vector<Insertion>& insertions,
+        Insertion& insertion, Info& info) const
 {
     Length min_waste = branching_scheme().min_waste();
     BinPos i = last_bin(insertion.df);
@@ -1497,12 +1351,12 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             && y2_prev(insertion.df) != 0 && insertion.y2 != h) {
         if (insertion.z2 == 0) {
             if (insertion.y2 + branching_scheme().min_waste() > h)
-                return false;
+                return;
             insertion.y2 = h;
         } else if (insertion.z2 == 1) {
             insertion.y2 = h;
         } else { // insertion.z2 == 2
-            return false;
+            return;
         }
     }
 
@@ -1510,7 +1364,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
     if (branching_scheme().cut_type_1() == CutType1::TwoStagedGuillotine && insertion.x1 != w) {
         if (insertion.z1 == 0) {
             if (insertion.x1 + branching_scheme().min_waste() > w)
-                return false;
+                return;
             insertion.x1 = w;
         } else { // insertion.z1 == 1
             insertion.x1 = w;
@@ -1563,7 +1417,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             } else if (insertion.y2 < y2_curr()) { // y_curr() - min_waste < insertion.y4 < y_curr()
                 if (z2() == 2) {
                     LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                    return false;
+                    return;
                 } else if (z2() == 0) {
                     insertion.y2 = y2_curr() + min_waste;
                     insertion.z2 = 1;
@@ -1577,7 +1431,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
                 if (z2() == 2) {
                     LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                    return false;
+                    return;
                 } else if (z2() == 0) {
                     insertion.y2 = insertion.y2 + min_waste;
                     insertion.z2 = 1;
@@ -1586,7 +1440,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             } else { // y2_curr() + min_waste <= insertion.y2
                 if (z2() == 2) {
                     LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                    return false;
+                    return;
                 }
             }
         } else if (insertion.z2 == 1) {
@@ -1596,7 +1450,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
                 if (z2() == 2) {
                     LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                    return false;
+                    return;
                 } else if (z2() == 0) {
                     insertion.y2 = y2_curr() + min_waste;
                 } else { // z2() == 1
@@ -1604,27 +1458,27 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             } else {
                 if (z2() == 2) {
                     LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                    return false;
+                    return;
                 }
             }
         } else { // insertion.z2 == 2
             if (insertion.y2 < y2_curr()) {
                 LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                return false;
+                return;
             } else if (insertion.y2 == y2_curr()) {
             } else if (y2_curr() < insertion.y2 && insertion.y2 < y2_curr() + min_waste) {
                 if (z2() == 2) {
                     LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                    return false;
+                    return;
                 } else if (z2() == 0) {
                     LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                    return false;
+                    return;
                 } else { // z2() == 1
                 }
             } else { // y2_curr() + min_waste <= insertion.y2
                 if (z2() == 2) {
                     LOG_FOLD_END(info, "too high, y2_curr() " << y2_curr() << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
-                    return false;
+                    return;
                 }
             }
         }
@@ -1650,7 +1504,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
         } else { // insertion.z1 == 0
             LOG(info, insertion << std::endl);
             LOG_FOLD_END(info, "too long w - min_waste < insertion.x1 < w and insertion.z1 == 0");
-            return false;
+            return;
         }
     }
 
@@ -1658,7 +1512,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
     if (insertion.x1 > insertion.x1_max) {
         LOG(info, insertion << std::endl);
         LOG_FOLD_END(info, "too long insertion.x1 > insertion.x1_max");
-        return false;
+        return;
     }
     LOG(info, "width OK" << std::endl);
 
@@ -1674,7 +1528,7 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             const Defect& defect = instance().defect(k);
             if (y2_fixed) {
                 LOG_FOLD_END(info, "y2_fixed");
-                return false;
+                return;
             }
             insertion.y2 = (insertion.z2 == 0)?
                 std::max(instance().top(defect, o), insertion.y2 + min_waste):
@@ -1685,44 +1539,42 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
 
         // Increase y2 if an item 'on top of its 3-cut' intersects a defect.
         if (insertion.df == 2) {
-            for (auto whx: subplate2curr_items_above_defect_) {
-                Length r = whx.x;
-                Length l = whx.x - whx.w;
-                Length t = insertion.y2;
-                Length b = insertion.y2 - whx.h;
+            for (auto jrx: subplate2curr_items_above_defect_) {
+                const Item& item = instance().item(jrx.j);
+                Length h = instance().height(item, jrx.rotate, o);
+                Length l = jrx.x;
+                Length b = insertion.y2 - h;
                 //LOG(info, "j " << j << " l " << l << " r " << r << " b " << b << " t " << t << std::endl);
-                DefectId k = instance().rect_intersects_defect(l, r, b, t, i, o);
+                DefectId k = instance().item_intersects_defect(l, b, item, jrx.rotate, i, o);
                 if (k >= 0) {
                     const Defect& defect = instance().defect(k);
                     if (y2_fixed) {
                         LOG_FOLD_END(info, "y2_fixed");
-                        return false;
+                        return;
                     }
                     insertion.y2 = (insertion.z2 == 0)?
-                        std::max(instance().top(defect, o) + whx.h,
+                        std::max(instance().top(defect, o) + h,
                                 insertion.y2 + min_waste):
-                        instance().top(defect, o) + whx.h;
+                        instance().top(defect, o) + h;
                     insertion.z2 = 1;
                     found = true;
                 }
             }
         }
         if (insertion.j1 == -1 && insertion.j2 != -1) {
-            Length w_j2 = insertion.x3 - x3_prev(insertion.df);
-            Length h_j2 = (instance().item(insertion.j2).rect.w == w_j2)?
-                    instance().item(insertion.j2).rect.h:
-                    instance().item(insertion.j2).rect.w;
+            const Item& item_j2 = instance().item(insertion.j2);
+            Length w_j = insertion.x3 - x3_prev(insertion.df);
+            bool rotate_j2 = (instance().width(item_j2, true, o) == w_j);
+            Length h_j2 = instance().height(item_j2, rotate_j2, o);
 
             Length l = x3_prev(insertion.df);
-            Length r = insertion.x3;
-            Length t = insertion.y2;
             Length b = insertion.y2 - h_j2;
-            DefectId k = instance().rect_intersects_defect(l, r, b, t, i, o);
+            DefectId k = instance().item_intersects_defect(l, b, item_j2, rotate_j2, i, o);
             if (k >= 0) {
                 const Defect& defect = instance().defect(k);
                 if (y2_fixed) {
                     LOG_FOLD_END(info, "y2_fixed");
-                    return false;
+                    return;
                 }
                 insertion.y2 = (insertion.z2 == 0)?
                     std::max(instance().top(defect, o) + h_j2, insertion.y2 + min_waste):
@@ -1743,40 +1595,37 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
             insertion.z2 = 0;
 
             if (insertion.df == 2) {
-                for (auto whx: subplate2curr_items_above_defect_) {
-                    Length r = whx.x;
-                    Length l = r - whx.w;
-                    Length t = insertion.y2;
-                    Length b = insertion.y2 - whx.h;
-                    DefectId k = instance().rect_intersects_defect(l, r, b, t, i, o);
+                for (auto jrx: subplate2curr_items_above_defect_) {
+                    const Item& item = instance().item(jrx.j);
+                    Length l = jrx.x;
+                    Length b = insertion.y2 - instance().height(item, jrx.rotate, o);
+                    DefectId k = instance().item_intersects_defect(l, b, item, jrx.rotate, i, o);
                     if (k >= 0) {
                         LOG_FOLD_END(info, "too high");
-                        return false;
+                        return;
                     }
                 }
             }
 
             if (insertion.j1 == -1 && insertion.j2 != -1) {
-                Length w_j2 = insertion.x3 - x3_prev(insertion.df);
-                Length h_j2 = (instance().item(insertion.j2).rect.w == w_j2)?
-                    instance().item(insertion.j2).rect.h:
-                    instance().item(insertion.j2).rect.w;
+                const Item& item_j2 = instance().item(insertion.j2);
+                Length w_j = insertion.x3 - x3_prev(insertion.df);
+                bool rotate_j2 = (instance().width(item_j2, true, o) == w_j);
+                Length h_j2 = instance().height(item_j2, rotate_j2, o);
 
                 Length l = x3_prev(insertion.df);
-                Length r = insertion.x3;
-                Length t = insertion.y2;
                 Length b = insertion.y2 - h_j2;
-                DefectId k = instance().rect_intersects_defect(l, r, b, t, i, o);
+                DefectId k = instance().item_intersects_defect(l, b, item_j2, rotate_j2, i, o);
                 if (k >= 0) {
                     LOG_FOLD_END(info, "too high");
-                    return false;
+                    return;
                 }
             }
 
         } else { // insertion.z2 == 0 or insertion.z2 == 2
             LOG(info, insertion << std::endl);
             LOG_FOLD_END(info, "too high");
-            return false;
+            return;
         }
     }
 
@@ -1784,11 +1633,37 @@ bool BranchingScheme::Node::update(Insertion& insertion, Info& info) const
     if (insertion.y2 > insertion.y2_max) {
         LOG(info, insertion << std::endl);
         LOG_FOLD_END(info, "too high");
-        return false;
+        return;
     }
     LOG(info, "height OK" << std::endl);
 
-    return true;
+    // Check dominance
+    for (auto it = insertions.begin(); it != insertions.end();) {
+        if ((it->j1 == insertion.j1 && it->j2 == insertion.j2)
+                || (it->j1 == insertion.j2 && it->j2 == insertion.j1)) {
+            LOG(info, "f_i  " << front(insertion) << std::endl);
+            LOG(info, "f_it " << front(*it) << std::endl);
+            if (dominates(front(insertion), front(*it), branching_scheme())) {
+                LOG(info, "dominates " << *it << std::endl);
+                if (std::next(it) != insertions.end()) {
+                    *it = insertions.back();
+                    insertions.pop_back();
+                } else {
+                    insertions.pop_back();
+                    break;
+                }
+            } else if (dominates(front(*it), front(insertion), branching_scheme())) {
+                LOG_FOLD_END(info, "dominated by " << *it);
+                return;
+            } else {
+                ++it;
+            }
+        } else {
+            ++it;
+        }
+    }
+    insertions.push_back(insertion);
+    LOG_FOLD_END(info, "ok");
 }
 
 /*********************************** export ***********************************/

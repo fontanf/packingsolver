@@ -190,10 +190,10 @@ std::ostream& operator<<(std::ostream &os, const BranchingScheme::Front& front);
 
 /************************************ Node ************************************/
 
-struct WHX
+struct JRX
 {
-    Length w;
-    Length h;
+    ItemTypeId j;
+    bool rotate;
     Length x;
 };
 
@@ -361,10 +361,10 @@ private:
     Counter df_min_ = -4;
 
     /**
-     * Contains the list of items (id, height, right cut position) inserted
+     * Contains the list of items (id, rotate, left cut position) inserted
      * above a defect in the current 2-level sub-plate.
      */
-    std::vector<WHX> subplate2curr_items_above_defect_ = {};
+    std::vector<JRX> subplate2curr_items_above_defect_ = {};
 
 
     /**
@@ -381,9 +381,6 @@ private:
     /** Insertion of one item. */
     void insertion_1_item(std::vector<Insertion>& insertions,
             ItemTypeId j, bool rotate, Depth df, Info& info) const;
-    /** Insertion of one item above a defect. */
-    void insertion_1_item_above_defect(std::vector<Insertion>& insertions,
-            DefectId k, ItemTypeId j, bool rotate, Depth df, Info& info) const;
     /** Insertion of two items. */
     void insertion_2_items(std::vector<Insertion>& insertions,
             ItemTypeId j1, bool rotate1, ItemTypeId j2, bool rotate2, Depth df, Info& info) const;
@@ -405,8 +402,8 @@ private:
     Front front(const Insertion& insertion) const;
     Area waste(const Insertion& insertion) const;
 
-    /** Update insertion (x1, z1, y2, z2). */
-    bool update(Insertion& insertion, Info& info) const;
+    /** Update insertion (x1, z1, y2, z2) and add insertion to insertions. */
+    void update(std::vector<Insertion>& insertions, Insertion& insertion, Info& info) const;
 
     bool check(const std::vector<Solution::Node>& nodes) const;
 
