@@ -558,7 +558,7 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     bool rotate_j1 = (insertion.j1 == -1)? false: (instance().width(instance().item(insertion.j1), true, o) == w_j);
     bool rotate_j2 = (insertion.j2 == -1)? false: (instance().width(instance().item(insertion.j2), true, o) == w_j);
     Length h_j1 = (insertion.j1 == -1)? -1: instance().height(instance().item(insertion.j1), rotate_j1, o);
-    Length h_j2 = (insertion.j1 == -1)? -1: instance().height(instance().item(insertion.j2), rotate_j2, o);
+    Length h_j2 = (insertion.j2 == -1)? -1: instance().height(instance().item(insertion.j2), rotate_j2, o);
 
     // Update items_, items_area_ and pos_stack_
     ItemPos n = 0; // number of added items
