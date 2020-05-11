@@ -99,7 +99,9 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect2)
      *
      */
 
-    Info info;
+    Info info = Info()
+        //.set_log2stderr(true)
+        ;
 
     Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(500, 1000, -1, 1, false, true);
@@ -117,6 +119,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect2)
         {.j1 = -1, .j2 = 0, .df = -1, .x1 = 1000, .y2 = 800, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
         {.j1 = 0, .j2 = -1, .df = -1, .x1 = 500, .y2 = 1000, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = -1, .j2 = -1, .df = -1, .x1 = 502, .y2 = 300, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+        {.j1 = -1, .j2 = -1, .df = -1, .x1 = 502, .y2 = 900, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
     };
     EXPECT_EQ(node.children(info), is);
     node.apply_insertion({.j1 = -1, .j2 = 0, .df = -1, .x1 = 1000, .y2 = 750, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1}, info);
@@ -178,6 +181,8 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect3)
         {.j1 = -1, .j2 = 0, .df = -1, .x1 = 1000, .y2 = 800, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
         {.j1 = 0, .j2 = -1, .df = -1, .x1 = 500, .y2 = 1000, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = -1, .j2 = -1, .df = -1, .x1 = 502, .y2 = 300, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+        {.j1 = -1, .j2 = -1, .df = -1, .x1 = 502, .y2 = 900, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+        {.j1 = -1, .j2 = -1, .df = -1, .x1 = 502, .y2 = 1300, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
     };
     EXPECT_EQ(node.children(info), is);
     node.apply_insertion({.j1 = -1, .j2 = 0, .df = -1, .x1 = 1000, .y2 = 750, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1}, info);

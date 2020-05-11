@@ -825,10 +825,12 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::Node::children(Info& in
             }
         }
 
-        const std::vector<Defect>& defects = instance().bin(last_bin(df)).defects;
-        for (const Defect& defect: defects)
-            if (instance().right(defect, o) > x && instance().top(defect, o) > y)
-                insertion_defect(insertions, defect, df, info);
+        if (items_.empty() || items_.back().node == (SolutionNodeId)nodes_.size() - 1) {
+            const std::vector<Defect>& defects = instance().bin(last_bin(df)).defects;
+            for (const Defect& defect: defects)
+                if (instance().right(defect, o) > x && instance().top(defect, o) > y)
+                    insertion_defect(insertions, defect, df, info);
+        }
     }
 
     DBG(
@@ -1639,7 +1641,14 @@ void BranchingScheme::Node::update(
 
     // Check dominance
     for (auto it = insertions.begin(); it != insertions.end();) {
-        if ((it->j1 == insertion.j1 && it->j2 == insertion.j2)
+        if (insertion.j1 == -1 && insertion.j2 == -1) {
+            if (insertion == *it) {
+                LOG_FOLD_END(info, "dominated by " << *it);
+                return;
+            } else {
+                ++it;
+            }
+        } else if ((it->j1 == insertion.j1 && it->j2 == insertion.j2)
                 || (it->j1 == insertion.j2 && it->j2 == insertion.j1)) {
             LOG(info, "f_i  " << front(insertion) << std::endl);
             LOG(info, "f_it " << front(*it) << std::endl);
