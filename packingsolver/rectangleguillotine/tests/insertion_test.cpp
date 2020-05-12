@@ -1456,3 +1456,55 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteII)
     EXPECT_EQ(node.children(info), is);
 }
 
+TEST(RectangleGuillotineBranchingScheme, InsertionUpdate)
+{
+    /**
+     * First we insert item 0 and then we try to insert the defect in a new
+     * second-level sub-plate (df == 1).
+     * We expect x3 = 3015, x1 = 3020, z1 = 1
+     * Note that the minimum waste constraint is not satisfied between x3 and
+     * x1. This is not an issue since either an item will be inserted next in
+     * the same second-level sub-plate or no item will be inserted in the same
+     * second-level sub-plate next but then the 3-cut would be removed when
+     * converting the Node to a Solution.
+     *
+     * |----------------------------------|
+     * |                                  |
+     * |                                  |
+     * |               x                  | 1600
+     * |--------------|                   | 1500
+     * |              |                   |
+     * |       0      |                   |
+     * |--------------|-------------------|
+     *              3000                 6000
+     *               3005
+     *
+     */
+
+    Info info;
+
+    Instance instance(Objective::BinPackingWithLeftovers);
+    instance.add_item(3000, 1500, -1, 1, false, true);
+    instance.add_item(3050, 1500, -1, 1, false, false);
+    instance.add_bin(6000, 3210);
+    instance.add_defect(0, 3005, 1590, 10, 10);
+
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme::Node node(branching_scheme);
+
+    BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 3000, .y2 = 1500, .x3 = 3000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
+    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
+    node.apply_insertion(i0, info);
+
+    std::vector<BranchingScheme::Insertion> is {
+        {.j1 = -1, .j2 = -1, .df = 2, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+        {.j1 = -1, .j2 = 1, .df = 1, .x1 = 3050, .y2 = 3100, .x3 = 3050, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
+        {.j1 = -1, .j2 = -1, .df = 1, .x1 = 3020, .y2 = 1600, .x3 = 3015, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+        {.j1 = -1, .j2 = -1, .df = 0, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 6000, .y2_max = 3210, .z1 = 1, .z2 = 1},
+    };
+    EXPECT_EQ(node.children(info), is);
+}
+

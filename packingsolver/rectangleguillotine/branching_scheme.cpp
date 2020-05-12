@@ -829,7 +829,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::Node::children(Info& in
         if (items_.empty() || items_.back().node == (SolutionNodeId)nodes_.size() - 1) {
             const std::vector<Defect>& defects = instance().bin(last_bin(df)).defects;
             for (const Defect& defect: defects)
-                if (instance().right(defect, o) > x && instance().top(defect, o) > y)
+                if (instance().left(defect, o) >= x && instance().bottom(defect, o) >= y)
                     insertion_defect(insertions, defect, df, info);
         }
     }
@@ -1428,12 +1428,9 @@ void BranchingScheme::Node::update(
             if (insertion.x1 <= x1_curr()) {
                 insertion.x1 = x1_curr();
                 insertion.z1 = z1();
-            } else { // x1_curr() <= insertion.x1
-                if (z1() == 0 && x1_curr() + min_waste > insertion.x1) {
-                    // TODO the first one seems to be the correct one.
-                    //insertion.x1 = x1_curr() + min_waste;
-                    insertion.x1 = insertion.x1 + min_waste;
-                }
+            } else { // x1_curr() < insertion.x1
+                if (z1() == 0 && x1_curr() + min_waste > insertion.x1)
+                    insertion.x1 = x1_curr() + min_waste;
             }
         }
     }
