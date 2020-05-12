@@ -240,9 +240,9 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion2)
     EXPECT_EQ(node.subplate_curr(2), c2_0);
     EXPECT_EQ(node.subplate_curr(3), c3_0);
     EXPECT_EQ(node.subplate_prev(2), c2_0_prev);
-    EXPECT_EQ(node.subplate_prev(0).node, -1);
-    EXPECT_EQ(node.subplate_prev(1).node, -1);
-    EXPECT_EQ(node.subplate_prev(3).node, -1);
+    EXPECT_EQ(node.subplate_prev(0).n, -1);
+    EXPECT_EQ(node.subplate_prev(1).n, -1);
+    EXPECT_EQ(node.subplate_prev(3).n, -1);
     EXPECT_EQ(node.z1(), 0);
     EXPECT_EQ(node.z2(), 0);
     EXPECT_EQ(node.x1_max(), 3500);

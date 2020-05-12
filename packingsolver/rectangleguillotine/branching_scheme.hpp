@@ -267,12 +267,12 @@ public:
     inline const SubPlate& subplate_curr(Depth d) const { return subplates_curr_[d]; };
 
     /** Previous and current cuts. */
-    inline Length x1_curr() const { return (subplate_curr(1).node == -1)? 0: node(subplate_curr(1).node).p; }
-    inline Length x1_prev() const { return (subplate_prev(1).node == -1)? 0: node(subplate_prev(1).node).p; }
-    inline Length y2_curr() const { return (subplate_curr(2).node == -1)? 0: node(subplate_curr(2).node).p; }
-    inline Length y2_prev() const { return (subplate_prev(2).node == -1)? 0: node(subplate_prev(2).node).p; }
-    inline Length x3_curr() const { return (subplate_curr(3).node == -1)? x1_prev(): node(subplate_curr(3).node).p; }
-    inline Length x3_prev() const { return (subplate_prev(3).node == -1)? x1_prev(): node(subplate_prev(3).node).p; }
+    inline Length x1_curr() const { return (subplate_curr(1).n == -1)? 0: node(subplate_curr(1).node).p; }
+    inline Length x1_prev() const { return (subplate_prev(1).n == -1)? 0: node(subplate_prev(1).node).p; }
+    inline Length y2_curr() const { return (subplate_curr(2).n == -1)? 0: node(subplate_curr(2).node).p; }
+    inline Length y2_prev() const { return (subplate_prev(2).n == -1)? 0: node(subplate_prev(2).node).p; }
+    inline Length x3_curr() const { return (subplate_curr(3).n == -1)? x1_prev(): node(subplate_curr(3).node).p; }
+    inline Length x3_prev() const { return (subplate_prev(3).n == -1)? x1_prev(): node(subplate_prev(3).node).p; }
 
     inline Length x1_max() const { return x1_max_; }
     inline Length y2_max() const { return y2_max_; }
@@ -322,8 +322,8 @@ private:
     Profit ub_profit_       = -1;
 
     /** Prevous and current sub-plates. */
-    std::array<SubPlate, 4> subplates_curr_ {{{.node = -1}, {.node = -1}, {.node = -1}, {.node = -1}}};
-    std::array<SubPlate, 4> subplates_prev_ {{{.node = -1}, {.node = -1}, {.node = -1}, {.node = -1}}};
+    std::array<SubPlate, 4> subplates_curr_ {{{.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}}};
+    std::array<SubPlate, 4> subplates_prev_ {{{.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}}};
 
     /**
      * x1_max_ is the maximum position of the current 1-cut.

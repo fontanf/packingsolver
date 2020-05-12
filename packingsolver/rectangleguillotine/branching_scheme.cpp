@@ -397,6 +397,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         << " current_area " << node.area() << std::endl;
     os
         << "waste " << node.waste()
+        << " waste_percentage " << node.waste_percentage()
         << " profit " << node.profit()
         << " ub_profit " << node.ub_profit()
         << std::endl;
@@ -407,19 +408,19 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         os << " " << node.pos_stack(s);
     os << std::endl;
     for (Depth d = 0; d <= 3; ++d) {
-        SolutionNodeId idc = node.subplate_curr(d).node;
-        os << "subplate_curr(" << d << ") node " << idc;
-        if (idc != -1)
+        os << "subplate_curr(" << d << ")";
+        if (node.subplate_curr(d).n != -1)
             os
+                << " node " << node.subplate_curr(d).node
                 << " n " << node.subplate_curr(d).n
-                << " p " << node.node(idc).p;
+                << " p " << node.node(node.subplate_curr(d).node).p;
         os << " - " << node.subplate_curr(d) << std::endl;
-        SolutionNodeId idp = node.subplate_prev(d).node;
-        os << "subplate_prev(" << d << ") node " << idp;
-        if (idp != -1)
+        os << "subplate_prev(" << d << ")";
+        if (node.subplate_prev(d).n != -1)
             os
+                << " node " << node.subplate_prev(d).node
                 << " n " << node.subplate_prev(d).n
-                << " p " << node.node(idp).p;
+                << " p " << node.node(node.subplate_prev(d).node).p;
         os << " - " << node.subplate_prev(d) << std::endl;
     }
     os << std::endl;
@@ -487,7 +488,7 @@ void BranchingScheme::Node::update_subplates_prev_and_curr(Depth df, ItemPos n)
         subplates_curr_[0] = {.node = static_cast<SolutionNodeId>(-bin_number()),
             .n = n, .l = 0, .b = 0};
         for (Depth d = 1; d <= 3; ++d) {
-            subplates_prev_[d].node = -1;
+            subplates_prev_[d].n = -1;
             subplates_curr_[d] = {
                 .node = static_cast<SolutionNodeId>(node_number() + d - 1),
                 .n = n, .l = 0, .b = 0};
@@ -497,10 +498,10 @@ void BranchingScheme::Node::update_subplates_prev_and_curr(Depth df, ItemPos n)
         subplates_curr_[0].n += n;
         subplates_prev_[1] = subplate_curr(1);
         subplates_curr_[1] = {.node = node_number(), .n = n, .l = x1_prev(), .b = 0};
-        subplates_prev_[2].node = -1;
+        subplates_prev_[2].n = -1;
         subplates_curr_[2] = {.node = static_cast<SolutionNodeId>(node_number() + 1),
             .n = n, .l = x1_prev(), .b = 0};
-        subplates_prev_[3].node = -1;
+        subplates_prev_[3].n = -1;
         subplates_curr_[3] = {.node = static_cast<SolutionNodeId>(node_number() + 2),
             .n = n, .l = x1_prev(), .b = 0};
         break;
@@ -509,7 +510,7 @@ void BranchingScheme::Node::update_subplates_prev_and_curr(Depth df, ItemPos n)
         subplates_curr_[1].n += n;
         subplates_prev_[2] = subplate_curr(2);
         subplates_curr_[2] = {.node = node_number(), .n = n, .l = x1_prev(), .b = y2_prev()};
-        subplates_prev_[3].node = -1;
+        subplates_prev_[3].n = -1;
         subplates_curr_[3] = {.node = static_cast<SolutionNodeId>(node_number() + 1),
             .n = n, .l = x1_prev(), .b = y2_prev()};
         break;
@@ -906,7 +907,7 @@ bool BranchingScheme::Node::check_symmetries(Depth df, Info& info) const
         LOG_FOLD_END(info, "no item");
         return true;
     }
-    if (subplates_prev_[df + 1].node == -1) {
+    if (subplates_prev_[df + 1].n == -1) {
         LOG_FOLD_END(info, "no previous " << df + 1 << "-cut");
         return true;
     }
