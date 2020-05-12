@@ -1349,6 +1349,34 @@ void BranchingScheme::Node::update(
     Length w = instance().bin(i).width(o);
     Length h = instance().bin(i).height(o);
 
+    // Update insertion.x1 and insertion.z1 with respect to min1cut()
+    if ((insertion.j1 != -1 || insertion.j2 != -1)
+            && insertion.x1 - x1_prev(insertion.df) < branching_scheme().min1cut()) {
+        if (insertion.z1 == 0) {
+            insertion.x1 = std::max(
+                    insertion.x1 + branching_scheme().min_waste(),
+                    x1_prev(insertion.df) + branching_scheme().min1cut());
+            insertion.z1 = 1;
+        } else { // insertion.z1 = 1
+            insertion.x1 = x1_prev(insertion.df) + branching_scheme().min1cut();
+        }
+    }
+
+    // Update insertion.y2 and insertion.z2 with respect to min2cut()
+    if ((insertion.j1 != -1 || insertion.j2 != -1)
+            && insertion.y2 - y2_prev(insertion.df) < branching_scheme().min2cut()) {
+        if (insertion.z2 == 0) {
+            insertion.y2 = std::max(
+                    insertion.y2 + branching_scheme().min_waste(),
+                    y2_prev(insertion.df) + branching_scheme().min2cut());
+            insertion.z2 = 1;
+        } else if (insertion.z2 == 1) {
+            insertion.y2 = y2_prev(insertion.df) + branching_scheme().min2cut();
+        } else { // insertion.z2 == 2
+            return;
+        }
+    }
+
     // Update insertion.y2 and insertion.z2 with respect to one2cut()
     if (branching_scheme().one2cut() && insertion.df == 1
             && y2_prev(insertion.df) != 0 && insertion.y2 != h) {

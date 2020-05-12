@@ -12,19 +12,20 @@ TEST(RectangleGuillotineBranchingScheme, Waste1)
      * |                                           |
      * |                                           |
      * |                                           |
-     * |-------|                                   |
-     * | 50x50 |                                   |
-     * |       |----|                              |
-     * |       | 30 |                              |
-     * |       |x30 |                              |
+     * |-------|                                   | 500
+     * |       |                                   |
+     * |       |----|                              | 300
+     * |   0   |    |                              |
+     * |       | 1  |                              |
      * +-------|----|------------------------------|
+     *        500  800
      */
 
     Info info;
     Instance instance(Objective::BinPackingWithLeftovers);
-    instance.add_item(50, 50, -1, 1, false, true);
-    instance.add_item(30, 30, -1, 1, false, false);
-    instance.add_item(40, 40, -1, 1, false, false);
+    instance.add_item(500, 500, -1, 1, false, true);
+    instance.add_item(300, 300, -1, 1, false, false);
+    instance.add_item(400, 400, -1, 1, false, false);
     instance.add_bin(6000, 3210);
 
     BranchingScheme::Parameters p;
@@ -34,7 +35,7 @@ TEST(RectangleGuillotineBranchingScheme, Waste1)
 
     BranchingScheme::Insertion i0 {
             .j1 = 0, .j2 = -1, .df = -1,
-            .x1 = 50, .y2 = 50, .x3 = 50,
+            .x1 = 500, .y2 = 500, .x3 = 500,
             .x1_max = 3500, .y2_max = 3210,
             .z1 = 0, .z2 = 0};
     std::vector<BranchingScheme::Insertion> is0 = node.children(info);
@@ -44,12 +45,12 @@ TEST(RectangleGuillotineBranchingScheme, Waste1)
 
     BranchingScheme::Insertion i1 {
             .j1 = 1, .j2 = -1, .df =  2,
-            .x1 = 80, .y2 = 50, .x3 = 80,
+            .x1 = 800, .y2 = 500, .x3 = 800,
             .x1_max = 3500, .y2_max = 3210,
             .z1 = 0, .z2 = 0};
     std::vector<BranchingScheme::Insertion> is1 = node.children(info);
     node.apply_insertion(i1, info);
-    EXPECT_EQ(node.waste(), 20 * 30);
+    EXPECT_EQ(node.waste(), 200 * 300);
 }
 
 TEST(RectangleGuillotineBranchingScheme, Waste2)
