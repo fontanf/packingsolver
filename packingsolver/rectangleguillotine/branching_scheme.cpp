@@ -1056,7 +1056,7 @@ bool BranchingScheme::Node::check_symmetries(Depth df, Info& info) const
 BinPos BranchingScheme::Node::last_bin(Depth df) const
 {
     if (df <= -1) {
-        return (item_number() == 0)? 0: bin_number();
+        return (node_number() == 0)? 0: bin_number();
     } else {
         return bin_number() - 1;
     }
@@ -1230,6 +1230,7 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
     Length w = instance().bin(i).width(o);
     Length h = instance().bin(i).height(o);
     LOG(info, "x3_prev(df) " << x3_prev(df) << " y2_prev(df) " << y2_prev(df)
+            << " i " << i
             << " w " << instance().width(item, rotate, o)
             << " h " << instance().height(item, rotate, o)
             << std::endl);

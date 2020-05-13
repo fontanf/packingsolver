@@ -105,3 +105,40 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
     EXPECT_EQ(solution.waste(), 0);
 }
 
+TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
+{
+    /*
+     *
+     * |--------------|---------------| |------------------------------| 3210
+     * |              |    x     x    | |                              |
+     * |              |---------------| |                              | 3000
+     * |              |               | |                              |
+     * |              |               | |                              |
+     * |              |               | |                              |
+     * |              |               | |---|                          | 1520
+     * |              |               | |   |                          |
+     * |     0        |               | | 2 |                          |
+     * |              |               | |   |                          |
+     * |              |       1       | |---|                          | 20
+     * |              |               | | x                            |
+     * |--------------|---------------| |------------------------------|
+     *              3000           6000 0  210
+     *                   4000   5000     10
+     *
+     */
+
+    Info info;
+    Instance instance(Objective::BinPackingWithLeftovers,
+            "data/rectangle/tests/C11_items.csv",
+            "data/rectangle/tests/C11_bins.csv",
+            "data/rectangle/tests/C11_defects.csv");
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    p.cut_type_2 = CutType2::Exact;
+    BranchingScheme branching_scheme(instance, p);
+    Solution solution(instance);
+    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
+    astar.run();
+    EXPECT_EQ(solution.waste(), 3210 * (6000 + 210) - instance.item_area());
+}
+
