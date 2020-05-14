@@ -144,9 +144,6 @@ datas["long2020"] = ["long2020/Instance_" + str(i) + ".txt" for i in range(1, 26
 problem = sys.argv[1]
 pdp = []
 for problem in sys.argv[1:]:
-    filename = os.path.join("output", problem + ".csv")
-    if os.path.exists(filename):
-        os.remove(filename)
 
     # BPPL
 
@@ -732,7 +729,7 @@ for problem, data, parameters in pdp:
             if "--unweighted" in parameters:
                 s += "_unweighted"
             instance_file = os.path.join(directory_in, filename)
-            output_file   = os.path.join(directory_out, filename + s + ".json")
+            output_file   = os.path.join(directory_out, filename + s + "_output.json")
             cert_file     = os.path.join(directory_out, filename + s + "_solution.csv")
             if not os.path.exists(os.path.dirname(output_file)):
                 os.makedirs(os.path.dirname(output_file))
@@ -754,15 +751,14 @@ for problem, data, parameters in pdp:
                 while "Solution" + str(k + 1) in data.keys():
                     k += 1
 
-                synth_file = problem + ".csv"
-                if not synth_file in files:
-                    files.add(synth_file)
-                    with open(os.path.join("output", "rectangle", synth_file), "w") as f:
+                if not directory_out in files:
+                    files.add(directory_out)
+                    with open(os.path.join(directory_out, "results.csv"), "w") as f:
                         f.write("Instance,Parameters")
                         for key in data["Solution" + str(k)].keys():
                             f.write(";" + key)
                         f.write("\n")
-                with open(os.path.join("output", "rectangle", synth_file), "a") as f:
+                with open(os.path.join(directory_out, "results.csv"), "a") as f:
                     f.write(filename + "," + " ".join(parameters))
                     for key, value in data["Solution" + str(k)].items():
                         f.write(";" + str(value))

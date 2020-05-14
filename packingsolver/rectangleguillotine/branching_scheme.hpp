@@ -143,15 +143,58 @@ std::ostream& operator<<(std::ostream &os, const BranchingScheme::NodeItem& node
 
 struct BranchingScheme::Insertion
 {
-    ItemTypeId j1; // item 1
-    ItemTypeId j2; // item 2
-    Depth  df; // father's depth
-    Length x1; // position of the next 1-cut
-    Length y2; // position of the next 2-cut
-    Length x3; // position of the next 3-cut
+    /** Id of the item at the bottom of the third-level sub-plate, -1 if none. */
+    ItemTypeId j1;
+    /** Id of the item at the top of the third-level sub-plate, -1 if none. */
+    ItemTypeId j2;
+
+    /**
+     * Depth of the father in the tree representation of the solution:
+     * * 2: same second-level sub-plate
+     * * 1: same first-level sub-plate, new second-level sub-plate
+     * * 0: same bin, new first-level sub-plate
+     * * -1: new bin, first stage veritical
+     * * -2: new bin, first stage horizontal
+     */
+    Depth  df;
+
+    /** Position of the current 1-cut. */
+    Length x1;
+    /** Position of the current 2-cut. */
+    Length y2;
+    /** Position of the current 3-cut. */
+    Length x3;
+
+    /**
+     * x1_max_ is the maximum position of the current 1-cut.
+     * It is used when otherwise, a 2-cut of the current 1-level sub-plate
+     * would intersect a defect.
+     */
     Length x1_max;
+
+    /**
+     * y2_max_ is the maximum position of the current 2-cut.
+     * It is used when otherwise, a 3-cut of the current 2-level sub-plate
+     * would intersect a defect.
+     */
     Length y2_max;
+
+    /**
+     * z1_
+     * * 0: to increase the width of the last 1-cut, it is necessary to add at
+     * least the minimum waste.
+     * * 1: the width of the last 1-cut can be increased by any value.
+     */
     Counter z1;
+
+    /**
+     * z2_
+     * * 0: to increase the height of the last 2-cut, it is necessary to add at
+     * least the minimum waste.
+     * * 1: the height of the last 2-cut can be increased by any value.
+     * * 2: the height of the last 2-cut cannot be increased (case where it
+     * contains of 4-cut with 2 items).
+     */
     Counter z2;
 
     bool operator==(const Insertion& insertion) const;
@@ -325,36 +368,9 @@ private:
     std::array<SubPlate, 4> subplates_curr_ {{{.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}}};
     std::array<SubPlate, 4> subplates_prev_ {{{.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}}};
 
-    /**
-     * x1_max_ is the maximum position of the current 1-cut.
-     * It is used when otherwise, a 2-cut of the current 1-level sub-plate
-     * would intersect a defect.
-     */
     Length x1_max_ = -1;
-
-    /**
-     * y2_max_ is the maximum position of the current 2-cut.
-     * It is used when otherwise, a 3-cut of the current 2-level sub-plate
-     * would intersect a defect.
-     */
     Length y2_max_ = -1;
-
-    /**
-     * z1_
-     * * 0: to increase the width of the last 1-cut, it is necessary to add at
-     * least the minimum waste.
-     * * 1: the width of the last 1-cut can be increased by any value.
-     */
     Counter z1_ = 0;
-
-    /**
-     * z2_
-     * * 0: to increase the height of the last 2-cut, it is necessary to add at
-     * least the minimum waste.
-     * * 1: the height of the last 2-cut can be increased by any value.
-     * * 2: the height of the last 2-cut cannot be increased (case where it
-     * contains of 4-cut with 2 items).
-     */
     Counter z2_ = 0;
 
     /** Minimum value of df for the node children. */
@@ -372,7 +388,6 @@ private:
      */
 
     void compute_ub_profit();
-    void update_subplates_prev_and_curr(Depth df, ItemPos n);
 
     /**
      * children
