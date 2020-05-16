@@ -808,8 +808,8 @@ TEST(RectangleGuillotineBranchingScheme, InsertionXMaxDefect)
     node.apply_insertion(i0, info);
 
     std::vector<BranchingScheme::Insertion> is {
-        {.j1 = -1, .j2 = 1, .df = 2, .x1 = 2500, .y2 = 1015, .x3 = 2500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
-        {.j1 = 1, .j2 = -1, .df = 2, .x1 = 1510, .y2 = 1500, .x3 = 1510, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        //{.j1 = -1, .j2 = 1, .df = 2, .x1 = 2500, .y2 = 1015, .x3 = 2500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
+        //{.j1 = 1, .j2 = -1, .df = 2, .x1 = 1510, .y2 = 1500, .x3 = 1510, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = -1, .j2 = -1, .df = 2, .x1 = 2010, .y2 = 520, .x3 = 2010, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
         {.j1 = 1, .j2 = -1, .df = 1, .x1 = 1500, .y2 = 1010, .x3 = 1500, .x1_max = 2000, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 2000, .x3 = 510, .x1_max = 2000, .y2_max = 3210, .z1 = 0, .z2 = 0},

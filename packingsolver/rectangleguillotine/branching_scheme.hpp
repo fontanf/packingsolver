@@ -226,7 +226,6 @@ struct BranchingScheme::Front
     CutOrientation o;
     Length x1_prev, x3_curr, x1_curr;
     Length y2_prev, y2_curr;
-    Counter z1, z2;
 };
 
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Front& front);
@@ -322,7 +321,7 @@ public:
     inline Counter z1() const { return z1_; }
     inline Counter z2() const { return z2_; }
 
-    inline Front front() const { return {.i = static_cast<BinPos>(bin_number() - 1), .o = first_stage_orientation(bin_number() - 1), .x1_prev = x1_prev(), .x3_curr = x3_curr(), .x1_curr = x1_curr(), .y2_prev = y2_prev(), .y2_curr = y2_curr(), .z1 = z1(), .z2 = z2()}; }
+    inline Front front() const { return {.i = static_cast<BinPos>(bin_number() - 1), .o = first_stage_orientation(bin_number() - 1), .x1_prev = x1_prev(), .x3_curr = x3_curr(), .x1_curr = x1_curr(), .y2_prev = y2_prev(), .y2_curr = y2_curr()}; }
 
     static bool dominates(Front f1, Front f2, const BranchingScheme& branching_scheme);
 

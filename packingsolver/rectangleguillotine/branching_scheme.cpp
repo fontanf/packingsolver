@@ -327,7 +327,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         << " x1_prev " << front.x1_prev << " x3_curr " << front.x3_curr
         << " x1_curr " << front.x1_curr
         << " y2_prev " << front.y2_prev << " y2_curr " << front.y2_curr
-        << " z1 " << front.z1 << " z2 " << front.z2;
+        ;
     return os;
 }
 
@@ -831,12 +831,6 @@ bool BranchingScheme::Node::dominates(Front f1, Front f2, const BranchingScheme&
     if (f1.i < f2.i) return true;
     if (f1.i > f2.i) return false;
     if (f1.o != f2.o) return false;
-    if (f1.z1 == 0 && f1.x1_curr != branching_scheme.instance().bin(f1.i).width(f1.o)
-            && !(f2.z1 == 0 && f1.x1_curr == f2.x1_curr))
-        f1.x1_curr += branching_scheme.min_waste();
-    if (f1.z2 == 0 && f2.y2_curr != branching_scheme.instance().bin(f1.i).height(f1.o)
-            && !(f2.z2 == 0 && f1.y2_curr == f2.y2_curr))
-        f1.y2_curr += branching_scheme.min_waste();
     if (f2.y2_curr != branching_scheme.instance().bin(f1.i).height(f1.o) && f1.x1_prev > f2.x1_prev) return false;
     if (f1.x1_curr > f2.x1_curr) return false;
     if        (f2.y2_prev <  f1.y2_prev) { if (f1.x1_curr > f2.x3_curr) return false;
@@ -1036,29 +1030,24 @@ BranchingScheme::Front BranchingScheme::Node::front(const Insertion& insertion) 
     case -1: case -2: {
         return {.i = last_bin(insertion.df), .o = last_bin_orientation(insertion.df),
             .x1_prev = 0, .x3_curr = insertion.x3, .x1_curr = insertion.x1,
-            .y2_prev = 0, .y2_curr = insertion.y2,
-            .z1 = insertion.z1, .z2 = insertion.z2};
+            .y2_prev = 0, .y2_curr = insertion.y2};
     } case 0: {
         return {.i = last_bin(insertion.df), .o = last_bin_orientation(insertion.df),
             .x1_prev = x1_curr(), .x3_curr = insertion.x3, .x1_curr = insertion.x1,
-            .y2_prev = 0, .y2_curr = insertion.y2,
-            .z1 = insertion.z1, .z2 = insertion.z2};
+            .y2_prev = 0, .y2_curr = insertion.y2};
     } case 1: {
         return {.i = last_bin(insertion.df), .o = last_bin_orientation(insertion.df),
             .x1_prev = x1_prev(), .x3_curr = insertion.x3, .x1_curr = insertion.x1,
-            .y2_prev = y2_curr(), .y2_curr = insertion.y2,
-            .z1 = insertion.z1, .z2 = insertion.z2};
+            .y2_prev = y2_curr(), .y2_curr = insertion.y2};
     } case 2: {
         return {.i = last_bin(insertion.df), .o = last_bin_orientation(insertion.df),
             .x1_prev = x1_prev(), .x3_curr = insertion.x3, .x1_curr = insertion.x1,
-            .y2_prev = y2_prev(), .y2_curr = insertion.y2,
-            .z1 = insertion.z1, .z2 = insertion.z2};
+            .y2_prev = y2_prev(), .y2_curr = insertion.y2};
     } default: {
         assert(false);
         return {.i = -1, .o = CutOrientation::Vertical,
             .x1_prev = -1, .x3_curr = -1, .x1_curr = -1,
-            .y2_prev = -1, .y2_curr = -1,
-            .z1 = -1, .z2 = -1};
+            .y2_prev = -1, .y2_curr = -1};
     }
     }
 }
