@@ -142,3 +142,120 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
     EXPECT_EQ(solution.waste(), 3210 * (6000 + 210) - instance.item_area());
 }
 
+TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
+{
+    /**
+     *
+     * |-------------------------|------------------------| 3210
+     * |-------------------------|                        |
+     * |                         |                        |
+     * |            1            |                        |
+     * |                         |                        |
+     * |-------------------------|                        | 1500
+     * |                 xxx                              |
+     * |----------|      xxx                              | 1000
+     * |          |      xxx                              |
+     * |     0    |                                       |
+     * |          |                                       |
+     * |----------|---------------------------------------|
+     *           500    1000   1500                     6000
+     */
+
+    Info info;
+
+    Instance instance(Objective::BinPackingWithLeftovers);
+    instance.add_item(500, 1000, -1, 1, false, true);
+    instance.add_item(1500, 1600, -1, 1, false, false);
+    instance.add_bin(6000, 3210);
+    instance.add_defect(0, 950, 950, 100, 100);
+
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme::Node node(branching_scheme);
+
+    Solution solution(instance);
+    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
+    astar.run();
+    EXPECT_EQ(solution.waste(), 3210 * 1500 - instance.item_area());
+}
+
+TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
+{
+    /**
+     *
+     * |-------------------------|------------------------| 3210
+     * |-------------------------|                        |
+     * |                         |                        |
+     * |            2            |                        |
+     * |                         |                        |
+     * |------------------|------|                        | 1500
+     * |                 x|      |                        | 1250
+     * |----------|       |      |                        | 1000
+     * |          |       |  1   |                        |
+     * |     0    |       |      |                        |
+     * |          |       |      |                        |
+     * |----------|-------|------|------------------------|
+     *           500    1000   1500                     6000
+     */
+
+    Info info;
+
+    Instance instance(Objective::BinPackingWithLeftovers);
+    instance.add_item(500, 1000, -1, 1, false, true);
+    instance.add_item(500, 1500, -1, 1, false, false);
+    instance.add_item(1500, 1600, -1, 1, false, false);
+    instance.add_bin(6000, 3210);
+    instance.add_defect(0, 950, 1250, 50, 50);
+
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme::Node node(branching_scheme);
+
+    Solution solution(instance);
+    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
+    astar.run();
+    EXPECT_EQ(solution.waste(), 3210 * 1500 - instance.item_area());
+}
+
+TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
+{
+    /**
+     *
+     * |----------------------------|---------------------| 3210
+     * |                            |                     |
+     * |                            |                     |
+     * |                            |                     |
+     * |                            |                     |
+     * |                            |                     |
+     * |                          x |         2           |
+     * |-----------------------|    |                     | 1000
+     * |           1           |    |                     |
+     * |-----------------------|-|  |                     | 500
+     * |            0            |  |                     |
+     * |-------------------------|--|---------------------|
+     *                         2900 3050                6000
+     *                       2800
+     */
+
+    Info info;
+
+    Instance instance(Objective::BinPackingWithLeftovers);
+    instance.add_item(500, 2900, -1, 1, false, true);
+    instance.add_item(500, 2800, -1, 1, false, false);
+    instance.add_item(2950, 3210, -1, 1, false, false);
+    instance.add_bin(6000, 3210);
+    instance.add_defect(0, 2950, 1500, 100, 100);
+
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme::Node node(branching_scheme);
+
+    Solution solution(instance);
+    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
+    astar.run();
+    EXPECT_EQ(solution.waste(), 3210 * 6000 - instance.item_area());
+}
+
