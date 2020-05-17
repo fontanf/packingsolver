@@ -1599,20 +1599,24 @@ void BranchingScheme::Node::update(
         bool b = true;
         LOG(info, "f_i  " << front(insertion) << std::endl);
         LOG(info, "f_it " << front(*it) << std::endl);
-        if (insertion == *it) {
-            LOG_FOLD_END(info, "dominated by " << *it);
-            return;
+        if (insertion.j1 == -1 && insertion.j2 == -1
+                && it->j1 == -1 && it->j2 == -1) {
+            if (insertion.df != -1 && insertion.x1 == it->x1 && insertion.y2 == it->y2 && insertion.x3 == it->x3) {
+                LOG_FOLD_END(info, "dominated by " << *it);
+                return;
+            }
         }
-        if ((insertion.j1 == -1 || insertion.j1 == it->j1 || insertion.j1 == it->j2)
-                && (insertion.j2 == -1 || insertion.j2 == it->j2 || insertion.j2 == it->j2)
-                && (it->j1 != -1 || it->j2 != -1)) {
+        if ((it->j1 != -1 || it->j2 != -1)
+                && (insertion.j1 == -1 || insertion.j1 == it->j1 || insertion.j1 == it->j2)
+                && (insertion.j2 == -1 || insertion.j2 == it->j2 || insertion.j2 == it->j2)) {
             if (dominates(front(*it), front(insertion), branching_scheme())) {
                 LOG_FOLD_END(info, "dominated by " << *it);
                 return;
             }
         }
-        if ((it->j1 == insertion.j1 && it->j2 == insertion.j2)
-                || (it->j1 == insertion.j2 && it->j2 == insertion.j1)) {
+        if ((insertion.j1 != -1 || insertion.j2 != -1)
+                && (it->j1 == insertion.j1 || it->j1 == insertion.j2)
+                && (it->j2 == insertion.j2 || it->j2 == insertion.j1)) {
             if (dominates(front(insertion), front(*it), branching_scheme())) {
                 LOG(info, "dominates " << *it << std::endl);
                 if (std::next(it) != insertions.end()) {
