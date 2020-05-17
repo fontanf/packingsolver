@@ -1612,36 +1612,39 @@ void BranchingScheme::Node::update(
 
     // Check dominance
     for (auto it = insertions.begin(); it != insertions.end();) {
-        if (insertion.j1 == -1 && insertion.j2 == -1) {
-            if (insertion == *it) {
+        bool b = true;
+        LOG(info, "f_i  " << front(insertion) << std::endl);
+        LOG(info, "f_it " << front(*it) << std::endl);
+        if (insertion == *it) {
+            LOG_FOLD_END(info, "dominated by " << *it);
+            return;
+        }
+        if ((insertion.j1 == -1 || insertion.j1 == it->j1 || insertion.j1 == it->j2)
+                && (insertion.j2 == -1 || insertion.j2 == it->j2 || insertion.j2 == it->j2)
+                && (it->j1 != -1 || it->j2 != -1)) {
+            if (dominates(front(*it), front(insertion), branching_scheme())) {
                 LOG_FOLD_END(info, "dominated by " << *it);
                 return;
-            } else {
-                ++it;
             }
-        } else if ((it->j1 == insertion.j1 && it->j2 == insertion.j2)
+        }
+        if ((it->j1 == insertion.j1 && it->j2 == insertion.j2)
                 || (it->j1 == insertion.j2 && it->j2 == insertion.j1)) {
-            LOG(info, "f_i  " << front(insertion) << std::endl);
-            LOG(info, "f_it " << front(*it) << std::endl);
             if (dominates(front(insertion), front(*it), branching_scheme())) {
                 LOG(info, "dominates " << *it << std::endl);
                 if (std::next(it) != insertions.end()) {
                     *it = insertions.back();
                     insertions.pop_back();
+                    b = false;
                 } else {
                     insertions.pop_back();
                     break;
                 }
-            } else if (dominates(front(*it), front(insertion), branching_scheme())) {
-                LOG_FOLD_END(info, "dominated by " << *it);
-                return;
-            } else {
-                ++it;
             }
-        } else {
-            ++it;
         }
+        if (b)
+            ++it;
     }
+
     insertions.push_back(insertion);
     LOG_FOLD_END(info, "ok");
 }
