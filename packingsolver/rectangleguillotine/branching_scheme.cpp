@@ -507,10 +507,10 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     Length w = instance().bin(i).width(o);
 
     Length w_j = insertion.x3 - x3_prev(insertion.df);
-    bool rotate_j1 = (insertion.j1 == -1)? false: (instance().width(instance().item(insertion.j1), true, o) == w_j);
+    //bool rotate_j1 = (insertion.j1 == -1)? false: (instance().width(instance().item(insertion.j1), true, o) == w_j);
     bool rotate_j2 = (insertion.j2 == -1)? false: (instance().width(instance().item(insertion.j2), true, o) == w_j);
-    Length h_j1 = (insertion.j1 == -1)? -1: instance().height(instance().item(insertion.j1), rotate_j1, o);
-    Length h_j2 = (insertion.j2 == -1)? -1: instance().height(instance().item(insertion.j2), rotate_j2, o);
+    //Length h_j1 = (insertion.j1 == -1)? -1: instance().height(instance().item(insertion.j1), rotate_j1, o);
+    //Length h_j2 = (insertion.j2 == -1)? -1: instance().height(instance().item(insertion.j2), rotate_j2, o);
 
     // Update items_, items_area_ and pos_stack_
     SolutionNodeId id = (insertion.df >= 0)? nodes().size() + 2 - insertion.df: nodes().size() + 2;
@@ -541,7 +541,6 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     }
 
     // Update df_min_
-    // TODO testing needed
     df_min_ = -2;
     if (branching_scheme().symmetry_2()) {
         if (insertion.j1 == -1 && insertion.j2 == -1) { // add defect
@@ -551,24 +550,9 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
                 df_min_ = 1;
             if (insertion.df == 2 && insertion.y2 == y2_curr())
                 df_min_ = 2;
-        } else if (insertion.j1 == -1 && insertion.j2 != -1) { // add item above defect
-            // If df < 2 and y2 - hj doesn't intersect a defect, then we force to
-            // add the next item in the same 2-cut.
-            if (insertion.df < 2 && instance().y_intersects_defect(insertion.x3, w, insertion.y2 - h_j2, i, o) == -1)
+        } else if (insertion.j2 != -1) { // add 1 item above a defect or 2 items
+            if (insertion.df < 2)
                 df_min_ = 2;
-        } else if (insertion.j1 != -1 && insertion.j2 != -1) { // add 2 items
-            // If df < 2 and both y2 - hj1 and y2 - hj2 intersect a defect, then we
-            // force to add the next item in the same 2-cut.
-            if (insertion.df < 2) {
-                if (instance().item(insertion.j1).stack == instance().item(insertion.j2).stack) {
-                    if (instance().y_intersects_defect(insertion.x3, w, y2_prev(insertion.df) + h_j1, i, o) == -1)
-                        df_min_ = 2;
-                } else {
-                    if (instance().y_intersects_defect(insertion.x3, w, insertion.y2 - h_j1, i, o) == -1
-                            || instance().y_intersects_defect(insertion.x3, w, insertion.y2 - h_j2, i, o) == -1)
-                        df_min_ = 2;
-                }
-            }
         }
     }
 
