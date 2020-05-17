@@ -259,3 +259,46 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
     EXPECT_EQ(solution.waste(), 3210 * 6000 - instance.item_area());
 }
 
+TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
+{
+    /**
+     * Three-staged exact patterns.
+     * |--------------|-------------|---------------------| 3210
+     * |      x       |             |                     |
+     * |--------------|             |                     | 3100
+     * |              |             |                     |
+     * |      1       |             |                     |
+     * |              |      2      |                     |
+     * |-----------|--|             |                     | 1600
+     * |           |  |             |                     |
+     * |           |  |             |                     |
+     * |     0     |  |-------------|                     |
+     * |           |  |      x      |                     |
+     * |-----------|--|-------------|---------------------|
+     *              1500           3000                 6000
+     */
+
+    Info info = Info()
+        //.set_log2stderr(true)
+        ;
+
+    Instance instance(Objective::BinPackingWithLeftovers);
+    instance.add_item(1400, 1600, -1, 1, false, true);
+    instance.add_item(1500, 1500, -1, 1, false, false);
+    instance.add_item(1500, 3000, -1, 1, false, false);
+    instance.add_bin(6000, 3210);
+    instance.add_defect(0, 1000, 3100, 10, 10);
+    instance.add_defect(0, 2000, 200, 10, 10);
+
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    p.cut_type_2 = CutType2::Exact;
+    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme::Node node(branching_scheme);
+
+    Solution solution(instance);
+    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
+    astar.run();
+    EXPECT_EQ(solution.waste(), 3210 * 3000 - instance.item_area());
+}
+

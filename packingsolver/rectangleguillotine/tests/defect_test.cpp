@@ -5,6 +5,46 @@
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 
+TEST(RectangleGuillotineBranchingScheme, InsertionNoDefect)
+{
+    /**
+     * The defect insertion is dominated by one of the item insertions.
+     *
+     * |--------------------------------------------------| 3210
+     * |                                                  |
+     * |                                                  |
+     * |                                                  |
+     * |                                                  |
+     * |                                                  |
+     * |                                                  |
+     * |                            x                     |
+     * |                                                  |
+     * |-------------------|                              | 500
+     * |         0         | 500                          |
+     * |-------------------|------------------------------|
+     *                   1000                           6000
+     */
+
+    Info info;
+
+    Instance instance(Objective::BinPackingWithLeftovers);
+    instance.add_item(500, 1000, -1, 1, false, true);
+    instance.add_bin(6000, 3210);
+    instance.add_defect(0, 2000, 1500, 2, 2);
+
+    BranchingScheme::Parameters p;
+    p.set_roadef2018();
+    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme::Node node(branching_scheme);
+
+    std::vector<BranchingScheme::Insertion> is {
+        {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 500, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 0, .j2 = -1, .df = -1, .x1 = 500, .y2 = 1000, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+    };
+
+    EXPECT_EQ(node.children(info), is);
+}
+
 TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect1)
 {
     /**
@@ -107,9 +147,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect2)
      *
      */
 
-    Info info = Info()
-        //.set_log2stderr(true)
-        ;
+    Info info;
 
     Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(500, 1000, -1, 1, false, true);
@@ -194,7 +232,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect3)
         {.j1 = 0, .j2 = -1, .df = -1, .x1 = 500, .y2 = 1000, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = -1, .j2 = -1, .df = -1, .x1 = 502, .y2 = 300, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
         {.j1 = -1, .j2 = -1, .df = -1, .x1 = 502, .y2 = 900, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
-        {.j1 = -1, .j2 = -1, .df = -1, .x1 = 502, .y2 = 1300, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+        //{.j1 = -1, .j2 = -1, .df = -1, .x1 = 502, .y2 = 1300, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
     };
     EXPECT_EQ(node.children(info), is);
 
@@ -559,6 +597,8 @@ TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect2)
      *
      */
 
+    /*
+
     Info info;
 
     Instance instance(Objective::BinPackingWithLeftovers);
@@ -579,7 +619,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect2)
             {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 400, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
             {.j1 = 0, .j2 = -1, .df = -1, .x1 = 400, .y2 = 1000, .x3 = 400, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
             {.j1 = 0, .j2 = 1, .df = -1, .x1 = 1000, .y2 = 1000, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 2},
-            {.j1 = -1, .j2 = -1, .df = -1, .x1 = 1502, .y2 = 401, .x3 = 1502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+            //{.j1 = -1, .j2 = -1, .df = -1, .x1 = 1502, .y2 = 401, .x3 = 1502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
         };
         EXPECT_EQ(node.children(info), is);
 
@@ -620,6 +660,8 @@ TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect2)
         EXPECT_EQ(node.children(info), is);
 
     }
+
+    */
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect3)
@@ -670,7 +712,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect3)
             {.j1 = 0, .j2 = 1, .df = -1, .x1 = 1000, .y2 = 1000, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 2},
             {.j1 = 1, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 600, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
             {.j1 = 1, .j2 = -1, .df = -1, .x1 = 600, .y2 = 1000, .x3 = 600, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-            {.j1 = -1, .j2 = -1, .df = -1, .x1 = 1502, .y2 = 401, .x3 = 1502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+            //{.j1 = -1, .j2 = -1, .df = -1, .x1 = 1502, .y2 = 401, .x3 = 1502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
         };
         EXPECT_EQ(node.children(info), is);
 

@@ -1481,7 +1481,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionUpdate)
      *
      */
 
-    Info info;
+    Info info = Info()
+        //.set_log2stderr(true)
+        ;
 
     Instance instance(Objective::BinPackingWithLeftovers);
     instance.add_item(3000, 1500, -1, 1, false, true);
@@ -1500,7 +1502,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionUpdate)
     node.apply_insertion(i0, info);
 
     std::vector<BranchingScheme::Insertion> is {
-        {.j1 = -1, .j2 = -1, .df = 2, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+        //{.j1 = -1, .j2 = -1, .df = 2, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
         {.j1 = -1, .j2 = 1, .df = 1, .x1 = 3050, .y2 = 3100, .x3 = 3050, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
         {.j1 = -1, .j2 = -1, .df = 1, .x1 = 3020, .y2 = 1600, .x3 = 3015, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
         {.j1 = -1, .j2 = -1, .df = 0, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 6000, .y2_max = 3210, .z1 = 1, .z2 = 1},
