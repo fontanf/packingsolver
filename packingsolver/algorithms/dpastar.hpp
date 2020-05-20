@@ -65,13 +65,12 @@ bool DpaStar<Solution, BranchingScheme>::call_history_1(
         std::vector<std::vector<typename BranchingScheme::Front>>& history,
         const typename BranchingScheme::Node& node)
 {
-    typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Front Front;
     std::vector<Front>& list = history[node.pos_stack(0)];
 
     // Check if front is dominated
     for (Front f: list) {
-        if (Node::dominates(f, node.front(), node.branching_scheme())) {
+        if (branching_scheme_.dominates(f, node.front())) {
             LOG(info_, "history " << node.pos_stack(0) << " " << node.pos_stack(1) << " " << node.front() << std::endl);
             LOG(info_, "dominated by " << f << std::endl);
             return false;
@@ -80,7 +79,7 @@ bool DpaStar<Solution, BranchingScheme>::call_history_1(
 
     // Remove dominated fronts in list
     for (auto it = list.begin(); it != list.end();) {
-        if (Node::dominates(node.front(), *it, node.branching_scheme())) {
+        if (branching_scheme_.dominates(node.front(), *it)) {
             *it = list.back();
             list.pop_back();
         } else {
@@ -181,13 +180,12 @@ bool DpaStar<Solution, BranchingScheme>::call_history_2(
         std::vector<std::vector<std::vector<typename BranchingScheme::Front>>>& history,
         const typename BranchingScheme::Node& node)
 {
-    typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Front Front;
     std::vector<Front>& list = history[node.pos_stack(0)][node.pos_stack(1)];
 
     // Check if front is dominated
     for (Front f: list) {
-        if (Node::dominates(f, node.front(), node.branching_scheme())) {
+        if (branching_scheme_.dominates(f, node.front())) {
             LOG(info_, "history " << node.pos_stack(0) << " " << node.pos_stack(1) << " " << node.front() << std::endl);
             LOG(info_, "dominated by " << f << std::endl);
             return false;
@@ -196,7 +194,7 @@ bool DpaStar<Solution, BranchingScheme>::call_history_2(
 
     // Remove dominated fronts in list
     for (auto it = list.begin(); it != list.end();) {
-        if (Node::dominates(node.front(), *it, node.branching_scheme())) {
+        if (branching_scheme_.dominates(node.front(), *it)) {
             *it = list.back();
             list.pop_back();
         } else {
@@ -299,13 +297,12 @@ bool DpaStar<Solution, BranchingScheme>::call_history_n(
         std::map<std::vector<ItemPos>, std::vector<typename BranchingScheme::Front>>& history,
         const typename BranchingScheme::Node& node)
 {
-    typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Front Front;
     auto list = history.insert({node.pos_stack(), {}}).first;
 
     // Check if front is dominated
     for (Front f: list->second) {
-        if (Node::dominates(f, node.front(), node.branching_scheme())) {
+        if (branching_scheme_.dominates(f, node.front())) {
             LOG(info_, "history " << node.pos_stack(0) << " " << node.pos_stack(1) << " " << node.front() << std::endl);
             LOG(info_, "dominated by " << f << std::endl);
             return false;
@@ -314,7 +311,7 @@ bool DpaStar<Solution, BranchingScheme>::call_history_n(
 
     // Remove dominated fronts in list
     for (auto it = list->second.begin(); it != list->second.end();) {
-        if (Node::dominates(node.front(), *it, node.branching_scheme())) {
+        if (branching_scheme_.dominates(node.front(), *it)) {
             *it = list->second.back();
             list->second.pop_back();
         } else {

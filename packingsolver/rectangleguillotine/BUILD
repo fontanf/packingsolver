@@ -32,7 +32,10 @@ cc_test(
                 "//packingsolver/algorithms:algorithms",
         ],
         copts = STDCPP,
-        data = ["//data/rectangle:rectangle"],
+        data = [
+                "//data/rectangle:rectangle",
+                "//data/rectangle_solutions:rectangle_solutions",
+        ],
         timeout = "short",
 )
 

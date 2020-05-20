@@ -39,7 +39,7 @@ private:
     Info info_ = Info();
 
     Counter node_number_ = 0;
-    Counter q_sizemax_ = 2;
+    Counter q_sizemax_ = 1;
 
 };
 
@@ -53,7 +53,7 @@ void MbaStar<Solution, BranchingScheme>::run()
 
     LOG_FOLD_START(info_, "MBA*" << std::endl);
 
-    for (q_sizemax_ = 2; q_sizemax_ < (Counter)100000000; q_sizemax_ = q_sizemax_ * growth_factor_) {
+    for (q_sizemax_ = 0; q_sizemax_ < (Counter)100000000; q_sizemax_ = q_sizemax_ * growth_factor_) {
         if (q_sizemax_ == (Counter)(q_sizemax_*growth_factor_))
             q_sizemax_++;
         LOG_FOLD_START(info_, "q_sizemax_ " << q_sizemax_ << std::endl);
@@ -105,8 +105,29 @@ void MbaStar<Solution, BranchingScheme>::run()
                 // Add child to the queue
                 LOG(info_, " add" << std::endl);
                 if (!node_tmp.full()) {
+                    // If the insertion would make the queue go above the
+                    // threshold, we only add the node if it is not worse than
+                    // the worse node of the queue.
                     if ((Counter)q.size() < q_sizemax_ || comp(node_tmp, *(std::prev(q.end())))) {
-                        q.insert(node_tmp);
+                        // Insertion
+                        auto it = q.insert(node_tmp);
+                        // Check if the node dominates some of its neighbors.
+                        while (std::next(it) != q.end() && branching_scheme_.dominates(*it, *std::next(it)))
+                            q.erase(std::next(it));
+                        while (it != q.begin() && branching_scheme_.dominates(*it, *std::prev(it)))
+                            q.erase(std::prev(it));
+                        // Check if the node is dominated by some of its
+                        // neighbors.
+                        if (std::next(it) != q.end() && branching_scheme_.dominates(*std::next(it), *it)) {
+                            q.erase(it);
+                            continue;
+                        }
+                        if (it != q.begin() && branching_scheme_.dominates(*std::prev(it), *it)) {
+                            q.erase(it);
+                            continue;
+                        }
+                        // If the size of the queue is above the threshold,
+                        // prune worst nodes.
                         if ((Counter)q.size() > q_sizemax_)
                             q.erase(std::prev(q.end()));
                     }

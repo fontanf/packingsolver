@@ -151,31 +151,31 @@ for problem in sys.argv[1:]:
         pdp.append((problem, ["roadef2018_A"], [
                 "--objective", "bin-packing-with-leftovers",
                 "--time-limit", "3600",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.33 -c 0\"",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.33 -c 1\"",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.5  -c 0\"",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.5  -c 1\"",
-                "-q", "\"RG -p roadef2018 -s 4 --no-symmetry-2\"", "-a", "\"DPA* -s -2 -c 5\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.33 -c 0\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.33 -c 1\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.5  -c 0\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.5  -c 1\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"DPA* -s -2 -c 0\"",
             ]))
     if problem == "roadef2018_B":
         pdp.append((problem, ["roadef2018_B"], [
                 "--objective", "bin-packing-with-leftovers",
                 "--time-limit", "3600",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.33 -c 0\"",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.33 -c 1\"",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.5  -c 0\"",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.5  -c 1\"",
-                "-q", "\"RG -p roadef2018 -s 4 --no-symmetry-2\"", "-a", "\"DPA* -s -2 -c 5\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.33 -c 0\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.33 -c 1\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.5  -c 0\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.5  -c 1\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"DPA* -s -2 -c 0\"",
             ]))
     if problem == "roadef2018_X":
         pdp.append((problem, ["roadef2018_X"], [
                 "--objective", "bin-packing-with-leftovers",
                 "--time-limit", "3600",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.33 -c 0\"",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.33 -c 1\"",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.5  -c 0\"",
-                "-q", "\"RG -p roadef2018 -s 2\"", "-a", "\"MBA* -f 1.5  -c 1\"",
-                "-q", "\"RG -p roadef2018 -s 4 --no-symmetry-2\"", "-a", "\"DPA* -s -2 -c 5\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.33 -c 0\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.33 -c 1\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.5  -c 0\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"MBA* -f 1.5  -c 1\"",
+                "-q", "\"RG -p roadef2018\"", "-a", "\"DPA* -s -2 -c 0\"",
             ]))
 
     # BPP
@@ -192,18 +192,18 @@ for problem in sys.argv[1:]:
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "60",
-                "-q", "\"RG -p 3NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "3NEGH-BPP-R": # [G-BPP-R] charalambous2011 fleszar2013 cui2015 cui2018
         pdp.append((problem, ["berkey1987", "martello1998"], [
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "60",
-                "-q", "\"RG -p 3NHR -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHR -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "long2020": # long2020
         pdp.append((problem, [
@@ -212,9 +212,9 @@ for problem in sys.argv[1:]:
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "10",
-                "-q", "\"RG -p 3NVO --one2cut -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NVO --one2cut -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NVO --one2cut -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 3NVO --one2cut\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NVO --one2cut\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3NVO --one2cut\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "3GH-BPP-O": # puchinger2007 alvelos2009
         pdp.append((problem, [
@@ -227,9 +227,9 @@ for problem in sys.argv[1:]:
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "60",
-                "-q", "\"RG -p 3EHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3EHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3EHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 3EHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3EHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3EHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "3HGV-BPP-O": # chen2016
         pdp.append((problem, [
@@ -245,9 +245,9 @@ for problem in sys.argv[1:]:
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "5",
-                "-q", "\"RG -p 3HVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3HVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3HVO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, [
                 "imahori2005",
@@ -255,9 +255,9 @@ for problem in sys.argv[1:]:
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "60",
-                "-q", "\"RG -p 3HVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3HVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3HVO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, [
                 "cintra2008",
@@ -265,9 +265,9 @@ for problem in sys.argv[1:]:
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "10",
-                "-q", "\"RG -p 3HVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3HVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3HVO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
 
     elif problem == "2NEGH-BPP-O": # cintra2008 alvelos2009 cui2013 alvelos2014
@@ -286,50 +286,50 @@ for problem in sys.argv[1:]:
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "10",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "10",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["cintra2008"], [
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "60",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["berkey1987", "martello1998"], [
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "60",
-                "-q", "\"RG -p 2NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "2NEGH-BPP-R": # cintra2008 cui2013 cui2016
         pdp.append((problem, ["cintra2008"], [
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "60",
-                "-q", "\"RG -p 2NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["berkey1987", "martello1998"], [
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "60",
-                "-q", "\"RG -p 2NHR -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHR -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "2GH-BPP-O": # alvelos2009 cui2013
         pdp.append((problem, [
@@ -342,9 +342,9 @@ for problem in sys.argv[1:]:
                 "--objective", "bin-packing",
                 "--bin-infinite-copies",
                 "--time-limit", "60",
-                "-q", "\"RG -p 2EHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2EHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2EHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2EHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2EHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2EHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
 
     # KP
@@ -368,20 +368,17 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "10",
-                "-q", "\"RG -p 3NAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["hopper2001a"], [
                 "--objective", "knapsack",
                 "--time-limit", "10",
-                "-q", "\"RG -p 3NAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "60",
-                "-q", "\"RG -p 3NAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, [
                 "leung2003",
@@ -389,26 +386,22 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "10",
-                "-q", "\"RG -p 3NAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         # pdp.append((problem, ["beasley2004_ngcutfs"], [
                 # "--objective", "knapsack",
                 # "--time-limit", "10",
-                # "-q", "\"RG -p 3NAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                # "-q", "\"RG -p 3NAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                # "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             # ]))
         pdp.append((problem, ["morabito2010"], [
                 "--objective", "knapsack",
                 "--time-limit", "10",
-                "-q", "\"RG -p 3NAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["velasco2019"], [
                 "--objective", "knapsack",
                 "--time-limit", "120",
-                "-q", "\"RG -p 3NAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
     elif problem == "3NEG-KP-R": # [G-KP-R] bortfeldt2009 wei2015 velasco2019
         pdp.append((problem, [
@@ -425,22 +418,18 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "30",
-                "-q", "\"RG -p 3NAR -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAR -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAR\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["velasco2019"], [
                 "--objective", "knapsack",
                 "--time-limit", "120",
-                "-q", "\"RG -p 3NAR -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAR -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAR\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
     elif problem == "3NEGV-KP-O": # cui2015
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "60",
-                "-q", "\"RG -p 3NVO -s 1\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
     elif problem == "3HG-KP-O": # cui2008
         pdp.append((problem, [
@@ -453,24 +442,18 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "2",
-                "-q", "\"RG -p 3HAO -s 1\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["cui2008"], [
                 "--objective", "knapsack",
                 "--time-limit", "60",
-                "-q", "\"RG -p 3HAO -s 1\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["cui2008"], [
                 "--objective", "knapsack",
                 "--time-limit", "60",
                 "--unweighted",
-                "-q", "\"RG -p 3HAO -s 1\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
 
     elif problem == "2NEG-KP-O": # hifi2001
@@ -485,14 +468,12 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "1",
-                "-q", "\"RG -p 2NAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
                 "--objective", "knapsack",
                 "--time-limit", "3",
-                "-q", "\"RG -p 2NAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
     elif problem == "2NEGH-KP-O": # hifi2001 lodi2003 belov2006 hifi2006 alvarez2007 hifi2008 hifi2012 (martin2020)
         pdp.append((problem, [
@@ -506,26 +487,22 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "1",
-                "-q", "\"RG -p 2NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
                 "--objective", "knapsack",
                 "--time-limit", "3",
-                "-q", "\"RG -p 2NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "5",
-                "-q", "\"RG -p 2NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["hifi2012_cu", "hifi2012_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "300",
-                "-q", "\"RG -p 2NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
     elif problem == "2NEGV-KP-O": # hifi2001 lodi2003 hifi2006 alvarez2007 hifi2008 hifi2012
         pdp.append((problem, [
@@ -539,26 +516,22 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "1",
-                "-q", "\"RG -p 2NVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NVO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
                 "--objective", "knapsack",
                 "--time-limit", "3",
-                "-q", "\"RG -p 2NVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NVO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "5",
-                "-q", "\"RG -p 2NVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NVO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["hifi2012_cu", "hifi2012_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "300",
-                "-q", "\"RG -p 2NVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NVO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
     elif problem == "2NEGH-KP-R": # lodi2003
         pdp.append((problem, [
@@ -570,14 +543,12 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "1",
-                "-q", "\"RG -p 2NHR -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
         pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
                 "--objective", "knapsack",
                 "--time-limit", "3",
-                "-q", "\"RG -p 2NHR -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
 
     elif problem == "2G-KP-O": # hifi2001
@@ -591,8 +562,7 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "1",
-                "-q", "\"RG -p 2EAO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2EAO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2EAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
     elif problem == "2GH-KP-O": # hifi2001
         pdp.append((problem, [
@@ -605,8 +575,7 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "1",
-                "-q", "\"RG -p 2EHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2EHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2EHO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
     elif problem == "2GV-KP-O": # hifi2001
         pdp.append((problem, [
@@ -619,8 +588,7 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "1",
-                "-q", "\"RG -p 2EVO -s 2\"", "-a", "\"MBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2EVO -s 3\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2EVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
             ]))
 
     # SPP
@@ -630,76 +598,76 @@ for problem in sys.argv[1:]:
                 "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "30",
-                "-q", "\"RG -p 3NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["burke2004"], [
                 "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "30",
-                "-q", "\"RG -p 3NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["berkey1987", "martello1998"], [
                 "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "60",
-                "-q", "\"RG -p 3NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHO -s 2\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "3NEGH-SPP-R": # kroger1993 schneke1996 mumford2003 zhang2006 bortfeldt2006 cui2008 bortfeldt2012 cui2013 wei2014
         pdp.append((problem, ["kroger1995", "hopper2000_n", "hopper2000_t", "hopper2001a", "burke2004"], [
                 "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "30",
-                "-q", "\"RG -p 3NHR -s 2\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["berkey1987", "martello1998"], [
                 "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "60",
-                "-q", "\"RG -p 3NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "2NEGH-SPP-O": # lodi2004 cintra2008 mrad2015 cui2017
         pdp.append((problem, ["cintra2008"], [
                 "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "10",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "10",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
         pdp.append((problem, ["berkey1987", "martello1998"], [
                 "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "10",
-                "-q", "\"RG -p 2NHO -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
     elif problem == "2NEGH-SPP-R": #
         pdp.append((problem, ["berkey1987", "martello1998"], [
                 "--objective", "strip-packing-height",
                 "--bin-infinite-height",
                 "--time-limit", "10",
-                "-q", "\"RG -p 2NHR -s 3\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHR -s 4\"", "-a", "\"MBA* -f 1.5 -c 3\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 0\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 2\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 3\"",
             ]))
 
     elif problem == "test":

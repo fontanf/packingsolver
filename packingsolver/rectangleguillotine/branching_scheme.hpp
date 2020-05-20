@@ -37,8 +37,6 @@ public:
         bool one2cut = false;
         bool no_item_rotation = false;
         bool cut_through_defects = false;
-        Depth symmetry_depth = 2;
-        bool symmetry_2 = true;
 
         void set_predefined(std::string str);
         void set_roadef2018()
@@ -52,8 +50,6 @@ public:
             min_waste = 20;
             no_item_rotation = false;
             cut_through_defects = false;
-            symmetry_depth = 2;
-            symmetry_2 = true;
         }
     };
 
@@ -79,14 +75,15 @@ public:
     bool one2cut() const { return parameters_.one2cut; }
     bool no_item_rotation() const { return parameters_.no_item_rotation; }
     bool cut_through_defects() const { return parameters_.cut_through_defects; }
-    Depth symmetry_depth() const { return parameters_.symmetry_depth; }
-    bool symmetry_2() const { return parameters_.symmetry_2; }
 
     bool oriented(ItemTypeId j) const;
     bool no_oriented_items() const { return no_oriented_items_; }
     StackId stack_pred(StackId s) const { return stack_pred_[s]; }
 
     std::function<bool(const BranchingScheme::Node&, const BranchingScheme::Node&)> compare(GuideId guide_id);
+
+    bool dominates(const Front& front_1, const Front& front_2) const;
+    bool dominates(const Node& node_1, const Node& node_2) const;
 
 private:
 
@@ -323,8 +320,6 @@ public:
 
     inline Front front() const { return {.i = static_cast<BinPos>(bin_number() - 1), .o = first_stage_orientation(bin_number() - 1), .x1_prev = x1_prev(), .x3_curr = x3_curr(), .x1_curr = x1_curr(), .y2_prev = y2_prev(), .y2_curr = y2_curr()}; }
 
-    static bool dominates(Front f1, Front f2, const BranchingScheme& branching_scheme);
-
     bool bound(const Solution& sol_best) const;
 
 private:
@@ -401,9 +396,6 @@ private:
     /** Insertion of a defect. */
     void insertion_defect(std::vector<Insertion>& insertions,
             const Defect& k, Depth df, Info& info) const;
-
-    /** Return true iff an insertion at depth df would generate a symmetrical node. */
-    bool check_symmetries(Depth df, Info& info) const;
 
     /** Attributes of the new node if an insertion is performed at depth df.  */
     BinPos last_bin(Depth df) const;

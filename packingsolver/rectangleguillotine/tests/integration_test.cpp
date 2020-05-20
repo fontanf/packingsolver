@@ -1,5 +1,6 @@
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
 #include "packingsolver/algorithms/astar.hpp"
+#include "packingsolver/algorithms/dpastar.hpp"
 
 #include <gtest/gtest.h>
 
@@ -300,5 +301,89 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
     AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
     astar.run();
     EXPECT_EQ(solution.waste(), 3210 * 3000 - instance.item_area());
+}
+
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+std::vector<std::string> split(std::string line)
+{
+    std::vector<std::string> v;
+    std::stringstream ss(line);
+    std::string tmp;
+    char c = ',';
+    if (line.find(';') != std::string::npos)
+        c = ';';
+    while (getline(ss, tmp, c)) {
+        rtrim(tmp);
+        v.push_back(tmp);
+    }
+    return v;
+}
+
+TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
+{
+
+    for (std::string name: {
+            "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19",
+            "B1", "B2"/*, "B3"*/, "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11", "B12", "B13", "B14"/*, "B15"*/,
+            "X1"/*, "X2"*//*, "X3"*//*, "X4"*/, "X5", "X6", "X7", "X8", "X9", "X10", "X11", "X12", "X13", "X14"/*, "X15"*/,
+            }) {
+
+        Info info;
+
+        Instance instance(Objective::BinPackingWithLeftovers,
+                "data/rectangle/roadef2018/" + name + "_items.csv",
+                "data/rectangle/roadef2018/" + name + "_bins.csv",
+                "data/rectangle/roadef2018/" + name + "_defects.csv");
+
+        std::string solution_filepath = "data/rectangle_solutions/roadef2018/" + name + "_solution.csv";
+        std::ifstream f(solution_filepath);
+        EXPECT_EQ(f.good(), true);
+        std::string tmp;
+        getline(f, tmp);
+        std::vector<std::string> line = split(tmp);
+        Area waste = 0;
+        std::vector<ItemTypeId> items;
+        while (getline(f, tmp)) {
+            line = split(tmp);
+            ItemTypeId j = std::stol(line[6]);
+            if (j == -1) {
+                waste += std::stol(line[4]) * std::stol(line[5]);
+            } else if (std::stol(line[6]) >= 0) {
+                items.push_back(j);
+            }
+        }
+
+        Instance instance_new(Objective::BinPackingWithLeftovers);
+        for (BinTypeId i = 0; i < instance.bin_type_number(); ++i) {
+            const Bin& bin = instance.bin_type(i);
+            instance_new.add_bin(bin.rect.w, bin.rect.h, bin.copies);
+        }
+        for (DefectId k = 0; k < instance.defect_number(); ++k) {
+            const Defect& defect = instance.defect(k);
+            instance_new.add_defect(defect.bin_id, defect.pos.x, defect.pos.y, defect.rect.w, defect.rect.h);
+        }
+        bool new_stack = true;
+        for (ItemTypeId j: items) {
+            const Item& item = instance.item(j);
+            instance_new.add_item(item.rect.w, item.rect.h, item.profit, item.copies, item.oriented, new_stack);
+            new_stack = false;
+        }
+
+        BranchingScheme::Parameters p;
+        p.set_roadef2018();
+        BranchingScheme branching_scheme(instance_new, p);
+        Solution solution(instance_new);
+        DpaStar<Solution, BranchingScheme> dpastar(solution, branching_scheme, 0, -1, 0, info);
+        dpastar.run();
+        std::cout << name << " " << waste << std::endl;
+        EXPECT_EQ(solution.waste(), waste);
+        info.set_certfile(name + "_solution.csv");
+
+    }
 }
 

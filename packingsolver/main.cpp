@@ -120,8 +120,6 @@ rectangleguillotine::BranchingScheme::Parameters read_rg_branching_scheme_parame
         ("one2cut,", "")
         ("no-item-rotation,", "")
         ("cut-through-defects", "")
-        ("symmetry,s", po::value<Depth>(&p0.symmetry_depth), "")
-        ("no-symmetry-2", "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line((Counter)argv.size(), argv.data(), desc), vm);
@@ -150,8 +148,6 @@ rectangleguillotine::BranchingScheme::Parameters read_rg_branching_scheme_parame
     if (vm.count("one2cut")) p.one2cut = true;
     if (vm.count("no-item-rotation")) p.no_item_rotation = true;
     if (vm.count("cut-through-defects")) p.cut_through_defects = true;
-    if (vm.count("symmetry")) p.symmetry_depth = p0.symmetry_depth;
-    if (vm.count("no-symmetry-2")) p.symmetry_2 = false;
     return p;
 }
 
@@ -230,11 +226,11 @@ int main(int argc, char *argv[])
     ProblemType problem_type = ProblemType::RectangleGuillotine;
     Objective objective = Objective::Default;
     std::vector<std::string> branching_schemes = {
-        "RG -p roadef2018 --symetry 2",
-        "RG -p roadef2018 --symetry 2",
-        "RG -p roadef2018 --symetry 2",
-        "RG -p roadef2018 --symetry 2",
-        "RG -p roadef2018 --symetry 4 --no-symmetry-2",
+        "RG -p roadef2018",
+        "RG -p roadef2018",
+        "RG -p roadef2018",
+        "RG -p roadef2018",
+        "RG -p roadef2018",
     };
     std::vector<std::string> algorithms = {
         "MBA* -f 1.33 -c 0",

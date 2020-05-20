@@ -1067,10 +1067,10 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDfm1)
 
     std::vector<BranchingScheme::Insertion> is2 {
         {.j1 = 1, .j2 = -1, .df = 2, .x1 = 2001, .y2 = 600, .x3 = 2001, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 2},
-        //{.j1 = 1, .j2 = -1, .df = 1, .x1 = 1021, .y2 = 1100, .x3 = 1001, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0},
-        //{.j1 = 1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1601, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-        //{.j1 = 4, .j2 = -1, .df = 1, .x1 = 1023, .y2 = 1190, .x3 = 1003, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0},
-        //{.j1 = 4, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1603, .x3 = 590, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 1, .j2 = -1, .df = 1, .x1 = 1021, .y2 = 1100, .x3 = 1001, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0},
+        {.j1 = 1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1601, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 4, .j2 = -1, .df = 1, .x1 = 1023, .y2 = 1190, .x3 = 1003, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0},
+        {.j1 = 4, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1603, .x3 = 590, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
     EXPECT_EQ(node.children(info), is2);
 }
@@ -1128,10 +1128,10 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf0)
 
     std::vector<BranchingScheme::Insertion> is2 {
         {.j1 = 1, .j2 = -1, .df = 2, .x1 = 3001, .y2 = 600, .x3 = 3001, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 2},
-        //{.j1 = 1, .j2 = -1, .df = 1, .x1 = 2021, .y2 = 1100, .x3 = 2001, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 0},
-        //{.j1 = 1, .j2 = -1, .df = 1, .x1 = 2000, .y2 = 1601, .x3 = 1500, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-        //{.j1 = 4, .j2 = -1, .df = 1, .x1 = 2023, .y2 = 1190, .x3 = 2003, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 0},
-        //{.j1 = 4, .j2 = -1, .df = 1, .x1 = 2000, .y2 = 1603, .x3 = 1590, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 1, .j2 = -1, .df = 1, .x1 = 2021, .y2 = 1100, .x3 = 2001, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 0},
+        {.j1 = 1, .j2 = -1, .df = 1, .x1 = 2000, .y2 = 1601, .x3 = 1500, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 4, .j2 = -1, .df = 1, .x1 = 2023, .y2 = 1190, .x3 = 2003, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 0},
+        {.j1 = 4, .j2 = -1, .df = 1, .x1 = 2000, .y2 = 1603, .x3 = 1590, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
     EXPECT_EQ(node.children(info), is2);
 }
@@ -1194,10 +1194,10 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf1)
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 3, .j2 = -1, .df = 2, .x1 = 3021, .y2 = 1600, .x3 = 3001, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 2},
-        //{.j1 = 3, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2100, .x3 = 2001, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-        //{.j1 = 3, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2601, .x3 = 1500, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-        //{.j1 = 6, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2190, .x3 = 2003, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-        //{.j1 = 6, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2603, .x3 = 1590, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 3, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2100, .x3 = 2001, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 3, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2601, .x3 = 1500, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 6, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2190, .x3 = 2003, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 6, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2603, .x3 = 1590, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
     EXPECT_EQ(node.children(info), is);
 }
@@ -1349,7 +1349,6 @@ TEST(RectangleGuillotineBranchingScheme, InsertionSymmetry)
     p.cut_type_1 = CutType1::ThreeStagedGuillotine;
     p.cut_type_2 = CutType2::NonExact;
     p.no_item_rotation = true;
-    p.symmetry_depth = 2;
     BranchingScheme branching_scheme(instance, p);
     BranchingScheme::Node node(branching_scheme);
 
@@ -1502,10 +1501,10 @@ TEST(RectangleGuillotineBranchingScheme, InsertionUpdate)
     node.apply_insertion(i0, info);
 
     std::vector<BranchingScheme::Insertion> is {
-        //{.j1 = -1, .j2 = -1, .df = 2, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+        {.j1 = -1, .j2 = -1, .df = 2, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
         {.j1 = -1, .j2 = 1, .df = 1, .x1 = 3050, .y2 = 3100, .x3 = 3050, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
         {.j1 = -1, .j2 = -1, .df = 1, .x1 = 3020, .y2 = 1600, .x3 = 3015, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
-        {.j1 = -1, .j2 = -1, .df = 0, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 6000, .y2_max = 3210, .z1 = 1, .z2 = 1},
+        //{.j1 = -1, .j2 = -1, .df = 0, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 6000, .y2_max = 3210, .z1 = 1, .z2 = 1},
     };
     EXPECT_EQ(node.children(info), is);
 }

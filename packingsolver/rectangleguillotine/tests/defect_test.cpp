@@ -102,8 +102,8 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect1)
     std::vector<BranchingScheme::Insertion> is_2 {
         {.j1 = 1, .j2 = -1, .df = 2, .x1 = 2000, .y2 = 750, .x3 = 2000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
         {.j1 = 1, .j2 = -1, .df = 2, .x1 = 1700, .y2 = 1000, .x3 = 1700, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-        //{.j1 = 1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1450, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0}, // TODO
-        //{.j1 = 1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1750, .x3 = 700, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0}, // TODO
+        {.j1 = 1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1450, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1750, .x3 = 700, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
     EXPECT_EQ(node.children(info), is_2);
 
@@ -177,8 +177,9 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect2)
     std::vector<BranchingScheme::Insertion> is_2 {
         {.j1 = 1, .j2 = -1, .df = 2, .x1 = 2000, .y2 = 800, .x3 = 2000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
         {.j1 = 1, .j2 = -1, .df = 2, .x1 = 1700, .y2 = 1400, .x3 = 1700, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
-        //{.j1 = -1, .j2 = 1, .df = 1, .x1 = 1000, .y2 = 1600, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1}, // TODO
-        //{.j1 = -1, .j2 = 1, .df = 1, .x1 = 1000, .y2 = 1900, .x3 = 700, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1}, // TODO
+        {.j1 = -1, .j2 = 1, .df = 1, .x1 = 1000, .y2 = 1600, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
+        {.j1 = -1, .j2 = 1, .df = 1, .x1 = 1000, .y2 = 1900, .x3 = 700, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
+        {.j1 = -1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 900, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
     };
     EXPECT_EQ(node.children(info), is_2);
 }
@@ -244,8 +245,10 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect3)
     std::vector<BranchingScheme::Insertion> is_2 {
         {.j1 = 1, .j2 = -1, .df = 2, .x1 = 2000, .y2 = 800, .x3 = 2000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
         {.j1 = 1, .j2 = -1, .df = 2, .x1 = 1700, .y2 = 1800, .x3 = 1700, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
-        //{.j1 = -1, .j2 = 1, .df = 1, .x1 = 1000, .y2 = 2000, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1}, // TODO
-        //{.j1 = -1, .j2 = 1, .df = 1, .x1 = 1000, .y2 = 2300, .x3 = 700, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1}, // TODO
+        {.j1 = -1, .j2 = 1, .df = 1, .x1 = 1000, .y2 = 2000, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
+        {.j1 = -1, .j2 = 1, .df = 1, .x1 = 1000, .y2 = 2300, .x3 = 700, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
+        {.j1 = -1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 900, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
+        {.j1 = -1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1300, .x3 = 502, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
     };
     EXPECT_EQ(node.children(info), is_2);
 }
@@ -405,8 +408,8 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect6)
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 2, .j2 = -1, .df = 2, .x1 = 2500, .y2 = 1000, .x3 = 2500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 2},
         {.j1 = -1, .j2 = -1, .df = 2, .x1 = 1252, .y2 = 1000, .x3 = 1252, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 2},
-        //{.j1 = 2, .j2 = -1, .df = 1, .x1 = 1500, .y2 = 1500, .x3 = 1500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-        //{.j1 = 2, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 2500, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 2, .j2 = -1, .df = 1, .x1 = 1500, .y2 = 1500, .x3 = 1500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
+        {.j1 = 2, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 2500, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
     EXPECT_EQ(node.children(info), is);
 }
@@ -664,96 +667,6 @@ TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect2)
     */
 }
 
-TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect3)
-{
-    /**
-     * Item 0 does not precede item 1. Therefore the solution can be obtained
-     * with 2 cuts.
-     *
-     * |---------------|------------------|
-     * |               |                  |
-     * |               |                  |
-     * |               |                  |
-     * |               |                  |
-     * |               |                  |
-     * |               |                  |
-     * |               |                  |
-     * |               |                  |
-     * |        2      |                  |
-     * |               |                  |
-     * |-------|-------|                  | 1000
-     * |   1   |                          |
-     * |       |                          |
-     * |-------|   x                      |
-     * |   0   |                          |
-     * |-------|--------------------------|
-     *       1000    2000
-     *
-     */
-
-    Info info;
-
-    Instance instance(Objective::BinPackingWithLeftovers);
-    instance.add_item(400, 1000, -1, 1, false, true);
-    instance.add_item(600, 1000, -1, 1, false, true);
-    instance.add_item(2000, 2210, -1, 1, false, false);
-    instance.add_bin(6000, 3210);
-    instance.add_defect(0, 1500, 399, 2, 2);
-
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
-
-    {
-        BranchingScheme::Node node(branching_scheme);
-        std::vector<BranchingScheme::Insertion> is {
-            {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 400, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-            {.j1 = 0, .j2 = -1, .df = -1, .x1 = 400, .y2 = 1000, .x3 = 400, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-            {.j1 = 0, .j2 = 1, .df = -1, .x1 = 1000, .y2 = 1000, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 2},
-            {.j1 = 1, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 600, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-            {.j1 = 1, .j2 = -1, .df = -1, .x1 = 600, .y2 = 1000, .x3 = 600, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-            //{.j1 = -1, .j2 = -1, .df = -1, .x1 = 1502, .y2 = 401, .x3 = 1502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
-        };
-        EXPECT_EQ(node.children(info), is);
-
-        BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = 1, .df = -1, .x1 = 1000, .y2 = 1000, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 2};
-        std::vector<BranchingScheme::Insertion> is0 = node.children(info);
-        EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-        node.apply_insertion(i0, info);
-
-        std::vector<BranchingScheme::Insertion> is_2 {
-            {.j1 = -1, .j2 = -1, .df = 2, .x1 = 1502, .y2 = 1000, .x3 = 1502, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 2},
-        };
-        EXPECT_EQ(node.children(info), is_2);
-    }
-
-    {
-        BranchingScheme::Node node(branching_scheme);
-
-        BranchingScheme::Insertion i0 = {.j1 = 1, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 600, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-        std::vector<BranchingScheme::Insertion> is0 = node.children(info);
-        EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-        node.apply_insertion(i0, info);
-
-        BranchingScheme::Insertion i1 = {.j1 = 0, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1000, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-        std::vector<BranchingScheme::Insertion> is1 = node.children(info);
-        EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-        node.apply_insertion(i1, info);
-
-        std::vector<BranchingScheme::Insertion> is {
-            {.j1 = 2, .j2 = -1, .df = 2, .x1 = 3210, .y2 = 2600, .x3 = 3210, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-            {.j1 = 2, .j2 = -1, .df = 2, .x1 = 3000, .y2 = 2810, .x3 = 3000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-            {.j1 = 2, .j2 = -1, .df = 1, .x1 = 2210, .y2 = 3000, .x3 = 2210, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-            {.j1 = 2, .j2 = -1, .df = 1, .x1 = 2000, .y2 = 3210, .x3 = 2000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
-            {.j1 = -1, .j2 = 2, .df = 0, .x1 = 3210, .y2 = 2401, .x3 = 3210, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 1},
-            {.j1 = -1, .j2 = 2, .df = 0, .x1 = 3000, .y2 = 2611, .x3 = 3000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 1},
-            {.j1 = -1, .j2 = -1, .df = 0, .x1 = 1502, .y2 = 401, .x3 = 1502, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 1},
-        };
-        EXPECT_EQ(node.children(info), is);
-
-    }
-}
-
 TEST(RectangleGuillotineBranchingScheme, Insertion4CutOnDefect4)
 {
     /**
@@ -910,33 +823,27 @@ TEST(RectangleGuillotineBranchingScheme, InsertionYMaxDefect)
     EXPECT_EQ(node.children(info), is);
 }
 
-TEST(RectangleGuillotineBranchingScheme, InsertionDfMinDf0Defect)
+TEST(RectangleGuillotineBranchingScheme, InsertionDefect)
 {
     /**
-     * If the defect is inserted, then the next insertion needs to happen at
-     * depth >= 0.
      *
-     * |--------------|---------------|---|
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |      0       |       1       | x |
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |              |               |   |
-     * |--------------|---------------|---|
-     *              2500            5000 6000
-     *                                 5500
-     *
+     * |------------------------|-------------------------| 3210
+     * |                        |                         |
+     * |           2            |                         |
+     * |                        |                         |
+     * |------------------------|                         | 2210
+     * |                        |                         |
+     * |           1            |           3             |
+     * |                        |                         |
+     * |------------------------|                         | 1210
+     * |                     x  |                         | 1200
+     * |-------------------|    |                         | 1000
+     * |                   |    |                         |
+     * |         0         |    |                         |
+     * |                   |    |                         |
+     * |-------------------|----|-------------------------|
+     *                   2000  3000                     6000
+     *                     2500
      */
 
     Info info = Info()
@@ -944,35 +851,29 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDfMinDf0Defect)
         ;
 
     Instance instance(Objective::BinPackingWithLeftovers);
-    instance.add_item(2500, 3210, -1, 1, false, true);
-    instance.add_item(2500, 3210, -1, 1, false, false);
-    instance.add_item(2500, 3210, -1, 1, false, false);
+    instance.add_item(2000, 1000, -1, 1, false, true);
+    instance.add_item(3000, 1000, -1, 1, false, false);
+    instance.add_item(3000, 1000, -1, 1, false, false);
+    instance.add_item(3000, 3210, -1, 1, false, false);
     instance.add_bin(6000, 3210);
-    instance.add_bin(6000, 3210);
-    instance.add_defect(0, 5500, 1500, 10, 10);
+    instance.add_defect(0, 2490, 1200, 10, 10);
 
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
     BranchingScheme::Node node(branching_scheme);
 
-    BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 2500, .y2 = 3210, .x3 = 2500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
+    BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 2000, .y2 = 1000, .x3 = 2000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
     std::vector<BranchingScheme::Insertion> is0 = node.children(info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     node.apply_insertion(i0, info);
 
-    BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 5000, .y2 = 3210, .x3 = 5000, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
-    EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
-
-    BranchingScheme::Insertion i2 = {.j1 = -1, .j2 = -1, .df = 0, .x1 = 5510, .y2 = 1510, .x3 = 5510, .x1_max = 6000, .y2_max = 3210, .z1 = 1, .z2 = 1};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
-    EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
-
     std::vector<BranchingScheme::Insertion> is {
+        {.j1 = -1, .j2 = -1, .df = 2, .x1 = 2500, .y2 = 1210, .x3 = 2500, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
+        {.j1 = -1, .j2 = 1, .df = 1, .x1 = 3000, .y2 = 2210, .x3 = 3000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
+        {.j1 = 1, .j2 = -1, .df = 0, .x1 = 5000, .y2 = 1000, .x3 = 5000, .x1_max = 5500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
+
     EXPECT_EQ(node.children(info), is);
 }
 
