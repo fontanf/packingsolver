@@ -230,14 +230,34 @@ std::function<bool(const BranchingScheme::Node&, const BranchingScheme::Node&)> 
     } case 5: {
         return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
         {
-            return node_1.waste() < node_2.waste();
+            if (node_1.profit() == 0)
+                return node_2.profit() != 0;
+            if (node_2.profit() == 0)
+                return true;
+            if (node_1.item_number() == 0)
+                return node_2.item_number() != 0;
+            if (node_2.item_number() == 0)
+                return true;
+            if ((double)node_1.area() / node_1.profit() / node_1.mean_item_area()
+                    != (double)node_2.area() / node_2.profit() / node_2.mean_item_area())
+                return (double)node_1.area() / node_1.profit() / node_1.mean_item_area()
+                    < (double)node_2.area() / node_2.profit() / node_2.mean_item_area();
+            for (StackId s = 0; s < node_1.instance().stack_number(); ++s)
+                if (node_1.pos_stack(s) != node_2.pos_stack(s))
+                    return node_1.pos_stack(s) < node_2.pos_stack(s);
+            return false;
         };
     } case 6: {
         return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
         {
-            return node_1.ub_profit() < node_2.ub_profit();
+            return node_1.waste() < node_2.waste();
         };
     } case 7: {
+        return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
+        {
+            return node_1.ub_profit() < node_2.ub_profit();
+        };
+    } case 8: {
         return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
         {
             if (node_1.ub_profit() != node_2.ub_profit())

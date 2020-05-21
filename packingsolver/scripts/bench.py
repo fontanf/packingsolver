@@ -369,16 +369,19 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "10",
                 "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["hopper2001a"], [
                 "--objective", "knapsack",
                 "--time-limit", "10",
                 "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "60",
                 "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, [
                 "leung2003",
@@ -387,21 +390,25 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "10",
                 "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         # pdp.append((problem, ["beasley2004_ngcutfs"], [
                 # "--objective", "knapsack",
                 # "--time-limit", "10",
                 # "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                # "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             # ]))
         pdp.append((problem, ["morabito2010"], [
                 "--objective", "knapsack",
                 "--time-limit", "10",
                 "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["velasco2019"], [
                 "--objective", "knapsack",
                 "--time-limit", "120",
                 "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
     elif problem == "3NEG-KP-R": # [G-KP-R] bortfeldt2009 wei2015 velasco2019
         pdp.append((problem, [
@@ -419,17 +426,20 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "30",
                 "-q", "\"RG -p 3NAR\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAR\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["velasco2019"], [
                 "--objective", "knapsack",
                 "--time-limit", "120",
                 "-q", "\"RG -p 3NAR\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NAR\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
     elif problem == "3NEGV-KP-O": # cui2015
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "60",
                 "-q", "\"RG -p 3NVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
     elif problem == "3HG-KP-O": # cui2008
         pdp.append((problem, [
@@ -443,17 +453,20 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "2",
                 "-q", "\"RG -p 3HAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["cui2008"], [
                 "--objective", "knapsack",
                 "--time-limit", "60",
                 "-q", "\"RG -p 3HAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["cui2008"], [
                 "--objective", "knapsack",
                 "--time-limit", "60",
                 "--unweighted",
                 "-q", "\"RG -p 3HAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
 
     elif problem == "2NEG-KP-O": # hifi2001
@@ -469,11 +482,13 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "1",
                 "-q", "\"RG -p 2NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
                 "--objective", "knapsack",
                 "--time-limit", "3",
                 "-q", "\"RG -p 2NAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
     elif problem == "2NEGH-KP-O": # hifi2001 lodi2003 belov2006 hifi2006 alvarez2007 hifi2008 hifi2012 (martin2020)
         pdp.append((problem, [
@@ -488,21 +503,25 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "1",
                 "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
                 "--objective", "knapsack",
                 "--time-limit", "3",
                 "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "5",
                 "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["hifi2012_cu", "hifi2012_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "300",
                 "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
     elif problem == "2NEGV-KP-O": # hifi2001 lodi2003 hifi2006 alvarez2007 hifi2008 hifi2012
         pdp.append((problem, [
@@ -517,21 +536,25 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "1",
                 "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
                 "--objective", "knapsack",
                 "--time-limit", "3",
                 "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "5",
                 "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["hifi2012_cu", "hifi2012_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "300",
                 "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NVO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
     elif problem == "2NEGH-KP-R": # lodi2003
         pdp.append((problem, [
@@ -544,11 +567,13 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "1",
                 "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
                 "--objective", "knapsack",
                 "--time-limit", "3",
                 "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2NHR\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
 
     elif problem == "2G-KP-O": # hifi2001
@@ -563,6 +588,7 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "1",
                 "-q", "\"RG -p 2EAO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2EAO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
     elif problem == "2GH-KP-O": # hifi2001
         pdp.append((problem, [
@@ -576,6 +602,7 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "1",
                 "-q", "\"RG -p 2EHO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2EHO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
     elif problem == "2GV-KP-O": # hifi2001
         pdp.append((problem, [
@@ -589,6 +616,7 @@ for problem in sys.argv[1:]:
                 "--objective", "knapsack",
                 "--time-limit", "1",
                 "-q", "\"RG -p 2EVO\"", "-a", "\"MBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 2EVO\"", "-a", "\"MBA* -f 1.5 -c 5\"",
             ]))
 
     # SPP
