@@ -63,7 +63,7 @@ options:
   * `3EAR`: `--cut-type-1 three-staged-guillotine --cut-type-2 exact --first-stage-orientation any`
   * `roadef2018`
 
-Compatible algorithms: `A*`, `DFS`, `MBA*`, `DPA*`
+Compatible algorithms: `A*`, `DFS`, `IMBA*`, `DPA*`
 
 ## Benchmarks
 

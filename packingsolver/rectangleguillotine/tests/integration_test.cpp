@@ -1,6 +1,6 @@
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
-#include "packingsolver/algorithms/astar.hpp"
-#include "packingsolver/algorithms/dpastar.hpp"
+#include "packingsolver/algorithms/a_star.hpp"
+#include "packingsolver/algorithms/dynamic_programming_a_star.hpp"
 
 #include <gtest/gtest.h>
 
@@ -378,7 +378,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
         p.set_roadef2018();
         BranchingScheme branching_scheme(instance_new, p);
         Solution solution(instance_new);
-        DpaStar<Solution, BranchingScheme> dpastar(solution, branching_scheme, 0, -1, 0, info);
+        DynamicProgrammingAStar<Solution, BranchingScheme> dpastar(solution, branching_scheme, 0, -1, 0, info);
         dpastar.run();
         std::cout << name << " " << waste << std::endl;
         EXPECT_EQ(solution.waste(), waste);

@@ -8,12 +8,12 @@ namespace packingsolver
 {
 
 template <typename Solution, typename BranchingScheme>
-class DpaStar
+class DynamicProgrammingAStar
 {
 
 public:
 
-    DpaStar(
+    DynamicProgrammingAStar(
             Solution& sol_best,
             BranchingScheme& branching_scheme,
             Counter thread_id,
@@ -61,7 +61,7 @@ private:
 /************************** Template implementation ***************************/
 
 template <typename Solution, typename BranchingScheme>
-bool DpaStar<Solution, BranchingScheme>::call_history_1(
+bool DynamicProgrammingAStar<Solution, BranchingScheme>::call_history_1(
         std::vector<std::vector<typename BranchingScheme::Front>>& history,
         const typename BranchingScheme::Node& node)
 {
@@ -95,7 +95,7 @@ bool DpaStar<Solution, BranchingScheme>::call_history_1(
 }
 
 template <typename Solution, typename BranchingScheme>
-void DpaStar<Solution, BranchingScheme>::run_1()
+void DynamicProgrammingAStar<Solution, BranchingScheme>::run_1()
 {
     typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Insertion Insertion;
@@ -176,7 +176,7 @@ void DpaStar<Solution, BranchingScheme>::run_1()
 /******************************************************************************/
 
 template <typename Solution, typename BranchingScheme>
-bool DpaStar<Solution, BranchingScheme>::call_history_2(
+bool DynamicProgrammingAStar<Solution, BranchingScheme>::call_history_2(
         std::vector<std::vector<std::vector<typename BranchingScheme::Front>>>& history,
         const typename BranchingScheme::Node& node)
 {
@@ -210,7 +210,7 @@ bool DpaStar<Solution, BranchingScheme>::call_history_2(
 }
 
 template <typename Solution, typename BranchingScheme>
-void DpaStar<Solution, BranchingScheme>::run_2()
+void DynamicProgrammingAStar<Solution, BranchingScheme>::run_2()
 {
     typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Insertion Insertion;
@@ -293,7 +293,7 @@ void DpaStar<Solution, BranchingScheme>::run_2()
 /******************************************************************************/
 
 template <typename Solution, typename BranchingScheme>
-bool DpaStar<Solution, BranchingScheme>::call_history_n(
+bool DynamicProgrammingAStar<Solution, BranchingScheme>::call_history_n(
         std::map<std::vector<ItemPos>, std::vector<typename BranchingScheme::Front>>& history,
         const typename BranchingScheme::Node& node)
 {
@@ -327,7 +327,7 @@ bool DpaStar<Solution, BranchingScheme>::call_history_n(
 }
 
 template <typename Solution, typename BranchingScheme>
-void DpaStar<Solution, BranchingScheme>::run_n()
+void DynamicProgrammingAStar<Solution, BranchingScheme>::run_n()
 {
     typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Insertion Insertion;
@@ -406,7 +406,7 @@ void DpaStar<Solution, BranchingScheme>::run_n()
 /******************************************************************************/
 
 template <typename Solution, typename BranchingScheme>
-void DpaStar<Solution, BranchingScheme>::run()
+void DynamicProgrammingAStar<Solution, BranchingScheme>::run()
 {
     switch (s_) {
     case -2: {

@@ -1,9 +1,9 @@
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
 
-#include "packingsolver/algorithms/dfs.hpp"
-#include "packingsolver/algorithms/astar.hpp"
-#include "packingsolver/algorithms/mbastar.hpp"
-#include "packingsolver/algorithms/dpastar.hpp"
+#include "packingsolver/algorithms/depth_first_search.hpp"
+#include "packingsolver/algorithms/a_star.hpp"
+#include "packingsolver/algorithms/iterative_memory_bounded_a_star.hpp"
+#include "packingsolver/algorithms/dynamic_programming_a_star.hpp"
 
 #include <boost/program_options.hpp>
 
@@ -13,7 +13,7 @@
 using namespace packingsolver;
 namespace po = boost::program_options;
 
-GuideId read_astar_args(std::vector<char*> argv)
+GuideId read_a_star_args(std::vector<char*> argv)
 {
     GuideId guide_id = 0;
 
@@ -33,7 +33,7 @@ GuideId read_astar_args(std::vector<char*> argv)
     return guide_id;
 }
 
-GuideId read_dfs_args(std::vector<char*> argv)
+GuideId read_depth_frist_search_args(std::vector<char*> argv)
 {
     GuideId guide_id = 0;
 
@@ -53,7 +53,7 @@ GuideId read_dfs_args(std::vector<char*> argv)
     return guide_id;
 }
 
-std::pair<double, GuideId> read_mbastar_args(std::vector<char*> argv)
+std::pair<double, GuideId> read_iterative_memory_bounded_a_star_args(std::vector<char*> argv)
 {
     double growth_factor = 1.5;
     GuideId guide_id = 0;
@@ -75,7 +75,7 @@ std::pair<double, GuideId> read_mbastar_args(std::vector<char*> argv)
     return {growth_factor, guide_id};
 }
 
-std::pair<Counter, GuideId> read_dpastar_args(std::vector<char*> argv)
+std::pair<Counter, GuideId> read_dynamic_programming_a_star_args(std::vector<char*> argv)
 {
     Counter s = -1;
     GuideId guide_id = 0;
@@ -165,23 +165,23 @@ int run_rectangleguillotine_2(
         algorithm_argv.push_back(const_cast<char*>(algorithm_args[i].c_str()));
 
     if (algorithm_args[0] == "A*") {
-        GuideId guide_id = read_astar_args(algorithm_argv);
+        GuideId guide_id = read_a_star_args(algorithm_argv);
         AStar<rectangleguillotine::Solution, BranchingScheme> solver(
                 solution, branching_scheme, thread_id, guide_id, info);
         solver.run();
     } else if (algorithm_args[0] == "DFS") {
-        GuideId guide_id = read_dfs_args(algorithm_argv);
-        Dfs<rectangleguillotine::Solution, BranchingScheme> solver(
+        GuideId guide_id = read_depth_frist_search_args(algorithm_argv);
+        DepthFirstSearch<rectangleguillotine::Solution, BranchingScheme> solver(
                 solution, branching_scheme, thread_id, guide_id, info);
         solver.run();
-    } else if (algorithm_args[0] == "MBA*") {
-        auto p = read_mbastar_args(algorithm_argv);
-        MbaStar<rectangleguillotine::Solution, BranchingScheme> solver(
+    } else if (algorithm_args[0] == "IMBA*") {
+        auto p = read_iterative_memory_bounded_a_star_args(algorithm_argv);
+        IterativeMemoryBoundedAStar<rectangleguillotine::Solution, BranchingScheme> solver(
                 solution, branching_scheme, thread_id, p.first, p.second, info);
         solver.run();
     } else if (algorithm_args[0] == "DPA*") {
-        auto p = read_dpastar_args(algorithm_argv);
-        DpaStar<rectangleguillotine::Solution, BranchingScheme> solver(
+        auto p = read_dynamic_programming_a_star_args(algorithm_argv);
+        DynamicProgrammingAStar<rectangleguillotine::Solution, BranchingScheme> solver(
                 solution, branching_scheme, thread_id, p.first, p.second, info);
         solver.run();
     } else {

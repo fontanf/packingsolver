@@ -6,12 +6,12 @@ namespace packingsolver
 {
 
 template <typename Solution, typename BranchingScheme>
-class Dfs
+class DepthFirstSearch
 {
 
 public:
 
-    Dfs(
+    DepthFirstSearch(
             Solution& sol_best,
             BranchingScheme& branching_scheme,
             Counter thread_id_,
@@ -40,7 +40,7 @@ private:
 /************************** Template implementation ***************************/
 
 template <typename Solution, typename BranchingScheme>
-void Dfs<Solution, BranchingScheme>::rec(const typename BranchingScheme::Node& node_cur)
+void DepthFirstSearch<Solution, BranchingScheme>::rec(const typename BranchingScheme::Node& node_cur)
 {
     typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Insertion Insertion;
@@ -95,7 +95,7 @@ void Dfs<Solution, BranchingScheme>::rec(const typename BranchingScheme::Node& n
 }
 
 template <typename Solution, typename BranchingScheme>
-void Dfs<Solution, BranchingScheme>::run()
+void DepthFirstSearch<Solution, BranchingScheme>::run()
 {
     typedef typename BranchingScheme::Node Node;
 

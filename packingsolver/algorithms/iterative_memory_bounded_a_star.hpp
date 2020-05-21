@@ -8,12 +8,12 @@ namespace packingsolver
 {
 
 template <typename Solution, typename BranchingScheme>
-class MbaStar
+class IterativeMemoryBoundedAStar
 {
 
 public:
 
-    MbaStar(
+    IterativeMemoryBoundedAStar(
             Solution& sol_best,
             BranchingScheme& branching_scheme,
             Counter thread_id_,
@@ -46,7 +46,7 @@ private:
 /************************** Template implementation ***************************/
 
 template <typename Solution, typename BranchingScheme>
-void MbaStar<Solution, BranchingScheme>::run()
+void IterativeMemoryBoundedAStar<Solution, BranchingScheme>::run()
 {
     typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Insertion Insertion;
