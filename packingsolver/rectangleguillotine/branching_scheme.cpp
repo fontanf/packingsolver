@@ -370,24 +370,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
-/********************************** SubPlate **********************************/
-
-bool BranchingScheme::SubPlate::operator==(const BranchingScheme::SubPlate& c) const
-{
-    return ((node == c.node) && (n == c.n)
-            && (l == c.l) && (r == c.r)
-            && (b == c.b) && (t == c.t));
-}
-
-std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BranchingScheme::SubPlate& c)
-{
-    os << "node " << c.node << " n " << c.n
-        << " l " << c.l << " b " << c.b
-        << " r " << c.r << " t " << c.t;
-    return os;
-}
-
 /*********************************** Front ************************************/
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
@@ -422,37 +404,41 @@ BranchingScheme::Node::Node(const BranchingScheme::Node& node):
     waste_(node.waste_),
     profit_(node.profit_),
     ub_profit_(node.ub_profit_),
-    subplates_curr_(node.subplates_curr_),
-    subplates_prev_(node.subplates_prev_),
+    x1_curr_(node.x1_curr_),
+    x1_prev_(node.x1_prev_),
+    y2_curr_(node.y2_curr_),
+    y2_prev_(node.y2_prev_),
+    x3_curr_(node.x3_curr_),
     x1_max_(node.x1_max_),
     y2_max_(node.y2_max_),
     z1_(node.z1_),
     z2_(node.z2_),
-    df_min_(node.df_min_),
     subplate2curr_items_above_defect_(node.subplate2curr_items_above_defect_)
 { }
 
 BranchingScheme::Node& BranchingScheme::Node::operator=(const BranchingScheme::Node& node)
 {
-    if (this != &node) {
-        nodes_                            = node.nodes_;
-        items_                            = node.items_;
-        pos_stack_                        = node.pos_stack_;
-        first_stage_orientation_          = node.first_stage_orientation_;
-        item_area_                        = node.item_area_;
-        squared_item_area_                = node.squared_item_area_;
-        current_area_                     = node.current_area_;
-        waste_                            = node.waste_;
-        profit_                           = node.profit_;
-        ub_profit_                        = node.ub_profit_;
-        subplates_prev_                   = node.subplates_prev_;
-        subplates_curr_                   = node.subplates_curr_;
-        x1_max_                           = node.x1_max_;
-        y2_max_                           = node.y2_max_;
-        z1_                               = node.z1_;
-        z2_                               = node.z2_;
-        df_min_                           = node.df_min_;
-        subplate2curr_items_above_defect_ = node.subplate2curr_items_above_defect_;
+    if (this                              != &node) {
+        nodes_                             = node.nodes_;
+        items_                             = node.items_;
+        pos_stack_                         = node.pos_stack_;
+        first_stage_orientation_           = node.first_stage_orientation_;
+        item_area_                         = node.item_area_;
+        squared_item_area_                 = node.squared_item_area_;
+        current_area_                      = node.current_area_;
+        waste_                             = node.waste_;
+        profit_                            = node.profit_;
+        ub_profit_                         = node.ub_profit_;
+        x1_curr_                           = node.x1_curr_;
+        x1_prev_                           = node.x1_prev_;
+        y2_curr_                           = node.y2_curr_;
+        y2_prev_                           = node.y2_prev_;
+        x3_curr_                           = node.x3_curr_;
+        x1_max_                            = node.x1_max_;
+        y2_max_                            = node.y2_max_;
+        z1_                                = node.z1_;
+        z2_                                = node.z2_;
+        subplate2curr_items_above_defect_  = node.subplate2curr_items_above_defect_;
     }
     return *this;
 }
@@ -460,38 +446,33 @@ BranchingScheme::Node& BranchingScheme::Node::operator=(const BranchingScheme::N
 std::ostream& packingsolver::rectangleguillotine::operator<<(
         std::ostream &os, const BranchingScheme::Node& node)
 {
-    os << "n " << node.item_number()
-        << " m " << node.bin_number() << std::endl;
+    os << "item_number " << node.item_number()
+        << " bin_number " << node.bin_number()
+        << std::endl;
     os << "item_area " << node.item_area()
-        << " current_area " << node.area() << std::endl;
+        << " current_area " << node.area()
+        << std::endl;
     os
         << "waste " << node.waste()
         << " waste_percentage " << node.waste_percentage()
         << " profit " << node.profit()
         << " ub_profit " << node.ub_profit()
         << std::endl;
-    os << "x1_max " << node.x1_max() << " y2_max " << node.y2_max()
-        << " z1 " << node.z1() << " z2 " << node.z2() << std::endl;
+    os << "x1_curr " << node.x1_curr()
+        << " x1_prev " << node.x1_prev()
+        << " y2_curr " << node.y2_curr()
+        << " y2_prev " << node.y2_prev()
+        << " x3_curr " << node.x3_curr()
+        << std::endl;
+    os << "x1_max " << node.x1_max()
+        << " y2_max " << node.y2_max()
+        << " z1 " << node.z1()
+        << " z2 " << node.z2()
+        << std::endl;
+
     os << "pos_stack" << std::flush;
     for (StackId s = 0; s < node.instance().stack_number(); ++s)
         os << " " << node.pos_stack(s);
-    os << std::endl;
-    for (Depth d = 0; d <= 3; ++d) {
-        os << "subplate_curr(" << d << ")";
-        if (node.subplate_curr(d).n != -1)
-            os
-                << " node " << node.subplate_curr(d).node
-                << " n " << node.subplate_curr(d).n
-                << " p " << node.node(node.subplate_curr(d).node).p;
-        os << " - " << node.subplate_curr(d) << std::endl;
-        os << "subplate_prev(" << d << ")";
-        if (node.subplate_prev(d).n != -1)
-            os
-                << " node " << node.subplate_prev(d).node
-                << " n " << node.subplate_prev(d).n
-                << " p " << node.node(node.subplate_prev(d).node).p;
-        os << " - " << node.subplate_prev(d) << std::endl;
-    }
     os << std::endl;
 
     for (SolutionNodeId id = 0; id < (SolutionNodeId)node.nodes().size(); ++id) {
@@ -582,23 +563,6 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     //Length h_j1 = (insertion.j1 == -1)? -1: instance().height(instance().item(insertion.j1), rotate_j1, o);
     //Length h_j2 = (insertion.j2 == -1)? -1: instance().height(instance().item(insertion.j2), rotate_j2, o);
 
-    // Update items_, items_area_ and pos_stack_
-    SolutionNodeId id = (insertion.df >= 0)? nodes().size() + 2 - insertion.df: nodes().size() + 2;
-    if (insertion.j1 != -1) {
-        items_.push_back({.j = insertion.j1, .node = id});
-        item_area_ += instance().item(insertion.j1).rect.area();
-        squared_item_area_ += instance().item(insertion.j1).rect.area() * instance().item(insertion.j1).rect.area();
-        pos_stack_[instance().item(insertion.j1).stack]++;
-        profit_ += instance().item(insertion.j1).profit;
-    }
-    if (insertion.j2 != -1) {
-        items_.push_back({.j = insertion.j2, .node = id});
-        item_area_ += instance().item(insertion.j2).rect.area();
-        squared_item_area_ += instance().item(insertion.j2).rect.area() * instance().item(insertion.j2).rect.area();
-        pos_stack_[instance().item(insertion.j2).stack]++;
-        profit_ += instance().item(insertion.j2).profit;
-    }
-
     // Update subplate2curr_items_above_defect_
     if (insertion.df != 2)
         subplate2curr_items_above_defect_.clear();
@@ -610,86 +574,81 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
         subplate2curr_items_above_defect_.push_back(jrx);
     }
 
-    // Update subplates_prev_ and subplates_curr_
-    ItemPos n = 0;
-    if (insertion.j1 != -1)
-        n++;
-    if (insertion.j2 != -1)
-        n++;
+    // Update previous and current cuts
     switch (insertion.df) {
     case -1: case -2: {
-        subplates_prev_[0] = subplate_curr(0);
-        subplates_curr_[0] = {.node = static_cast<SolutionNodeId>(-bin_number()),
-            .n = n, .l = 0, .b = 0};
-        for (Depth d = 1; d <= 3; ++d) {
-            subplates_prev_[d].n = -1;
-            subplates_curr_[d] = {
-                .node = static_cast<SolutionNodeId>(node_number() + d - 1),
-                .n = n, .l = 0, .b = 0};
-        }
+        x1_prev_ = 0;
+        y2_prev_ = 0;
         break;
     } case 0: {
-        subplates_curr_[0].n += n;
-        subplates_prev_[1] = subplate_curr(1);
-        subplates_curr_[1] = {.node = node_number(), .n = n, .l = x1_prev(), .b = 0};
-        subplates_prev_[2].n = -1;
-        subplates_curr_[2] = {.node = static_cast<SolutionNodeId>(node_number() + 1),
-            .n = n, .l = x1_prev(), .b = 0};
-        subplates_prev_[3].n = -1;
-        subplates_curr_[3] = {.node = static_cast<SolutionNodeId>(node_number() + 2),
-            .n = n, .l = x1_prev(), .b = 0};
+        x1_prev_ = x1_curr_;
+        y2_prev_ = 0;
         break;
     } case 1: {
-        subplates_curr_[0].n += n;
-        subplates_curr_[1].n += n;
-        subplates_prev_[2] = subplate_curr(2);
-        subplates_curr_[2] = {.node = node_number(), .n = n, .l = x1_prev(), .b = y2_prev()};
-        subplates_prev_[3].n = -1;
-        subplates_curr_[3] = {.node = static_cast<SolutionNodeId>(node_number() + 1),
-            .n = n, .l = x1_prev(), .b = y2_prev()};
+        y2_prev_ = y2_curr_;
         break;
     } case 2: {
-        subplates_curr_[0].n += n;
-        subplates_curr_[1].n += n;
-        subplates_curr_[2].n += n;
-        subplates_prev_[3] = subplate_curr(3);
-        subplates_curr_[3] = {.node = node_number(), .n = n, .l = x3_curr(), .b = y2_prev()};
         break;
     } default: {
         assert(false);
         break;
     }
     }
-    // Update subplates coordinates
-    subplates_curr_[0].r = insertion.x1;
-    if (subplates_curr_[0].t < insertion.y2)
-        subplates_curr_[0].t = insertion.y2;
-    subplates_curr_[1].r = insertion.x1;
-    subplates_curr_[1].t = insertion.y2;
-    subplates_curr_[2].r = insertion.x3;
-    subplates_curr_[2].t = insertion.y2;
-    subplates_curr_[3].r = insertion.x3;
-    subplates_curr_[3].t = insertion.y2;
-
-    // Add new solution nodes
-    SolutionNodeId f = (insertion.df <= -1)? -bin_number(): subplate_curr(insertion.df).node;
-    Depth d = (insertion.df <= -1)? 0: insertion.df;
-    SolutionNodeId c = nodes_.size() - 1;
-    do {
-        c++;
-        nodes_.push_back({.f = f});
-        f = c;
-        d++;
-    } while (d != 3);
-    nodes_[subplate_curr(1).node].p = insertion.x1;
-    nodes_[subplate_curr(2).node].p = insertion.y2;
-    nodes_[subplate_curr(3).node].p = insertion.x3;
+    x1_curr_ = insertion.x1;
+    y2_curr_ = insertion.y2;
+    x3_curr_ = insertion.x3;
 
     // Update x1_max_, y2_max_, z1_ and z2_
     x1_max_ = insertion.x1_max;
     y2_max_ = insertion.y2_max;
     z1_     = insertion.z1;
     z2_     = insertion.z2;
+
+    // Update nodes_
+    switch (insertion.df) {
+    case -1: case -2: {
+        nodes_.push_back({.f = static_cast<SolutionNodeId>(- bin_number()), .p = insertion.x1}) ;
+        nodes_.push_back({.f = static_cast<SolutionNodeId>(nodes_.size() - 1), .p = insertion.y2}) ;
+        nodes_.push_back({.f = static_cast<SolutionNodeId>(nodes_.size() - 1), .p = insertion.x3}) ;
+        break;
+    } case 0: {
+        nodes_.push_back({.f = static_cast<SolutionNodeId>(- bin_number()), .p = insertion.x1}) ;
+        nodes_.push_back({.f = static_cast<SolutionNodeId>(nodes_.size() - 1), .p = insertion.y2}) ;
+        nodes_.push_back({.f = static_cast<SolutionNodeId>(nodes_.size() - 1), .p = insertion.x3}) ;
+        break;
+    } case 1: {
+        nodes_[nodes_[nodes_.back().f].f].p = insertion.x1;
+        nodes_.push_back({.f = nodes_[nodes_.back().f].f, .p = insertion.y2}) ;
+        nodes_.push_back({.f = static_cast<SolutionNodeId>(nodes_.size() - 1), .p = insertion.x3}) ;
+        break;
+    } case 2: {
+        nodes_[nodes_[nodes_.back().f].f].p = insertion.x1;
+        nodes_[nodes_.back().f].p = insertion.y2;
+        nodes_.push_back({.f = nodes_.back().f, .p = insertion.x3}) ;
+        break;
+    } default: {
+        assert(false);
+        break;
+    }
+    }
+
+    // Update items_, pos_stack_, items_area_, squared_item_area_ and profit_
+    if (insertion.j1 != -1) {
+        const Item& item = instance().item(insertion.j1);
+        items_.push_back({.j = insertion.j1, .node = static_cast<SolutionNodeId>(nodes_.size() - 1)});
+        pos_stack_[item.stack]++;
+        item_area_         += item.rect.area();
+        squared_item_area_ += item.rect.area() * item.rect.area();
+        profit_            += item.profit;
+    }
+    if (insertion.j2 != -1) {
+        const Item& item = instance().item(insertion.j2);
+        items_.push_back({.j = insertion.j2, .node = static_cast<SolutionNodeId>(nodes_.size() - 1)});
+        pos_stack_[item.stack]++;
+        item_area_         += item.rect.area();
+        squared_item_area_ += item.rect.area() * item.rect.area();
+        profit_            += item.profit;
+    }
 
     // Update current_area_ and waste_
     current_area_ = instance().previous_bin_area(i);
@@ -731,8 +690,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::Node::children(Info& in
             && branching_scheme().no_oriented_items()) {                                  // and item can be rotated
         df_min = -1;
     }
-    if (df_min < df_min_)
-        df_min = df_min_;
 
     // Compute df_max
     Depth df_max = 2;

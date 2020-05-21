@@ -21,7 +21,6 @@ public:
     struct Insertion;
     struct SolutionNode;
     struct NodeItem;
-    struct SubPlate;
     struct Front;
 
     struct Parameters
@@ -201,20 +200,6 @@ struct BranchingScheme::Insertion
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Insertion& insertion);
 std::ostream& operator<<(std::ostream &os, const std::vector<BranchingScheme::Insertion>& insertions);
 
-/********************************** SubPlate **********************************/
-
-struct BranchingScheme::SubPlate
-{
-    SolutionNodeId node;
-    ItemPos n;
-    Length l, b, r, t;
-
-    bool operator==(const BranchingScheme::SubPlate& c) const;
-    bool operator!=(const BranchingScheme::SubPlate& c) const { return !(*this == c); }
-};
-
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::SubPlate& ins);
-
 /*********************************** Front ************************************/
 
 struct BranchingScheme::Front
@@ -285,33 +270,12 @@ public:
     inline CutOrientation first_stage_orientation(BinPos i) const { return first_stage_orientation_[i]; }
     inline bool full() const { return item_number() == instance().item_number(); }
 
-    /**
-     * Export
-     */
-    Solution convert(const Solution&) const;
-
-    /**
-     * For unit tests
-     */
-    SolutionNodeId node_number() const { return nodes_.size(); }
-    const SolutionNode& node(SolutionNodeId id) const { return nodes_[id]; }
-    const std::vector<SolutionNode>& nodes() const { return nodes_; }
-    const NodeItem& item(ItemPos j) const { return items_[j]; }
-    const std::vector<NodeItem>& items() const { return items_; }
-    ItemPos pos_stack(StackId s) const { return pos_stack_[s]; }
-    std::vector<ItemPos> pos_stack() const { return pos_stack_; }
-
-    /** Previous and current sub-plates. */
-    inline const SubPlate& subplate_prev(Depth d) const { return subplates_prev_[d]; };
-    inline const SubPlate& subplate_curr(Depth d) const { return subplates_curr_[d]; };
-
     /** Previous and current cuts. */
-    inline Length x1_curr() const { return (subplate_curr(1).n == -1)? 0: node(subplate_curr(1).node).p; }
-    inline Length x1_prev() const { return (subplate_prev(1).n == -1)? 0: node(subplate_prev(1).node).p; }
-    inline Length y2_curr() const { return (subplate_curr(2).n == -1)? 0: node(subplate_curr(2).node).p; }
-    inline Length y2_prev() const { return (subplate_prev(2).n == -1)? 0: node(subplate_prev(2).node).p; }
-    inline Length x3_curr() const { return (subplate_curr(3).n == -1)? x1_prev(): node(subplate_curr(3).node).p; }
-    inline Length x3_prev() const { return (subplate_prev(3).n == -1)? x1_prev(): node(subplate_prev(3).node).p; }
+    inline Length x1_curr() const { return x1_curr_; }
+    inline Length x1_prev() const { return x1_prev_; }
+    inline Length y2_curr() const { return y2_curr_; }
+    inline Length y2_prev() const { return y2_prev_; }
+    inline Length x3_curr() const { return x3_curr_; }
 
     inline Length x1_max() const { return x1_max_; }
     inline Length y2_max() const { return y2_max_; }
@@ -320,7 +284,21 @@ public:
 
     inline Front front() const { return {.i = static_cast<BinPos>(bin_number() - 1), .o = first_stage_orientation(bin_number() - 1), .x1_prev = x1_prev(), .x3_curr = x3_curr(), .x1_curr = x1_curr(), .y2_prev = y2_prev(), .y2_curr = y2_curr()}; }
 
+    /** Getters for unit tests. */
+    SolutionNodeId node_number() const { return nodes_.size(); }
+    const SolutionNode& node(SolutionNodeId id) const { return nodes_[id]; }
+    const std::vector<SolutionNode>& nodes() const { return nodes_; }
+    const NodeItem& item(ItemPos j) const { return items_[j]; }
+    const std::vector<NodeItem>& items() const { return items_; }
+    ItemPos pos_stack(StackId s) const { return pos_stack_[s]; }
+    std::vector<ItemPos> pos_stack() const { return pos_stack_; }
+
     bool bound(const Solution& sol_best) const;
+
+    /**
+     * Export
+     */
+    Solution convert(const Solution&) const;
 
 private:
 
@@ -358,17 +336,16 @@ private:
     Profit profit_          = 0;
     Profit ub_profit_       = -1;
 
-    /** Prevous and current sub-plates. */
-    std::array<SubPlate, 4> subplates_curr_ {{{.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}}};
-    std::array<SubPlate, 4> subplates_prev_ {{{.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}, {.node = -1, .n = -1}}};
+    Length x1_curr_ = 0;
+    Length x1_prev_ = 0;
+    Length y2_curr_ = 0;
+    Length y2_prev_ = 0;
+    Length x3_curr_ = 0;
 
     Length x1_max_ = -1;
     Length y2_max_ = -1;
     Counter z1_ = 0;
     Counter z2_ = 0;
-
-    /** Minimum value of df for the node children. */
-    Counter df_min_ = -4;
 
     /**
      * Contains the list of items (id, rotate, left cut position) inserted

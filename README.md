@@ -50,13 +50,11 @@ options:
 * `--cut-type-1`: `three-staged-guillotine`, `two-staged-guillotine`
 * `--cut-type-2`: `roadef2018`, `non-exact`, `exact`, `homogenous`
 * `--first-stage-orientation`: `vertical`, `horizontal`, `any`
-* `--min1cut`, `--max1cut`, `--min2cut`, `--max2cut`: positive integer
+* `--min1cut`, `--max1cut`, `--min2cut`: positive integer
 * `--min-waste`: positive integer
 * `--one2cut`
 * `--no-item-rotation`
 * `--cut-through-defects`
-* `--symmetry`, `-s`: 1, 2, 3 or 4
-* `--no-symmetry-2`
 * `-p`: predefined configurations. Examples:
   * `3RVR`: `--cut-type-1 three-staged-guillotine --cut-type-2 roadef2018 --first-stage-orientation vertical`
   * `2NHO`: `--cut-type-1 two-staged-guillotine --cut-type-2 non-exact --first-stage-orientation horizontal --no-item-rotation`

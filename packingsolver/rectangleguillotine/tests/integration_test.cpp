@@ -69,8 +69,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
     Solution solution(instance);
-    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
-    astar.run();
+    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
+    a_star.run();
     EXPECT_EQ(solution.waste(), 0);
 }
 
@@ -85,8 +85,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
     Solution solution(instance);
-    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
-    astar.run();
+    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
+    a_star.run();
     EXPECT_EQ(solution.waste(), 210 * 5700);
 }
 
@@ -101,8 +101,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
     Solution solution(instance);
-    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
-    astar.run();
+    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
+    a_star.run();
     EXPECT_EQ(solution.waste(), 0);
 }
 
@@ -138,8 +138,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
     p.cut_type_2 = CutType2::Exact;
     BranchingScheme branching_scheme(instance, p);
     Solution solution(instance);
-    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
-    astar.run();
+    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
+    a_star.run();
     EXPECT_EQ(solution.waste(), 3210 * (6000 + 210) - instance.item_area());
 }
 
@@ -176,8 +176,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
     BranchingScheme::Node node(branching_scheme);
 
     Solution solution(instance);
-    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
-    astar.run();
+    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
+    a_star.run();
     EXPECT_EQ(solution.waste(), 3210 * 1500 - instance.item_area());
 }
 
@@ -215,8 +215,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
     BranchingScheme::Node node(branching_scheme);
 
     Solution solution(instance);
-    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
-    astar.run();
+    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
+    a_star.run();
     EXPECT_EQ(solution.waste(), 3210 * 1500 - instance.item_area());
 }
 
@@ -255,8 +255,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
     BranchingScheme::Node node(branching_scheme);
 
     Solution solution(instance);
-    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
-    astar.run();
+    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
+    a_star.run();
     EXPECT_EQ(solution.waste(), 3210 * 6000 - instance.item_area());
 }
 
@@ -298,8 +298,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
     BranchingScheme::Node node(branching_scheme);
 
     Solution solution(instance);
-    AStar<Solution, BranchingScheme> astar(solution, branching_scheme, 0, 5, info);
-    astar.run();
+    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
+    a_star.run();
     EXPECT_EQ(solution.waste(), 3210 * 3000 - instance.item_area());
 }
 
@@ -378,8 +378,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
         p.set_roadef2018();
         BranchingScheme branching_scheme(instance_new, p);
         Solution solution(instance_new);
-        DynamicProgrammingAStar<Solution, BranchingScheme> dpastar(solution, branching_scheme, 0, -1, 0, info);
-        dpastar.run();
+        DynamicProgrammingAStar<Solution, BranchingScheme> dynamic_programming_a_star(solution, branching_scheme, 0, -1, 0, info);
+        dynamic_programming_a_star.run();
         std::cout << name << " " << waste << std::endl;
         EXPECT_EQ(solution.waste(), waste);
         info.set_certfile(name + "_solution.csv");
