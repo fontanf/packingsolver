@@ -260,12 +260,12 @@ public:
     inline Area    item_area()                const { return item_area_; }
     inline Area    squared_item_area()        const { return squared_item_area_; }
     inline Profit  profit()                   const { return profit_; }
-    inline Profit  ub_profit()                const { return ub_profit_; }
     inline Area    waste()                    const { return waste_; }
     inline double  waste_percentage()         const { return (double)waste() / area(); }
     inline double  waste_ratio()              const { return (double)waste() / item_area(); }
     inline Length  width()                    const { return (branching_scheme().cut_type_1() == CutType1::ThreeStagedGuillotine)? x1_curr(): y2_curr(); }
     inline Length  height()                   const { return (branching_scheme().cut_type_1() == CutType1::ThreeStagedGuillotine)? x1_curr(): y2_curr(); }
+    Profit ubkp() const;
 
     inline CutOrientation first_stage_orientation(BinPos i) const { return first_stage_orientation_[i]; }
     inline bool full() const { return item_number() == instance().item_number(); }
@@ -334,7 +334,6 @@ private:
     Area current_area_      = 0;
     Area waste_             = 0;
     Profit profit_          = 0;
-    Profit ub_profit_       = -1;
 
     Length x1_curr_ = 0;
     Length x1_prev_ = 0;
@@ -357,8 +356,6 @@ private:
     /**
      * Private methods
      */
-
-    void compute_ub_profit();
 
     /**
      * children

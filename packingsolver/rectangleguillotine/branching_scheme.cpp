@@ -255,13 +255,13 @@ std::function<bool(const BranchingScheme::Node&, const BranchingScheme::Node&)> 
     } case 7: {
         return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
         {
-            return node_1.ub_profit() < node_2.ub_profit();
+            return node_1.ubkp() < node_2.ubkp();
         };
     } case 8: {
         return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
         {
-            if (node_1.ub_profit() != node_2.ub_profit())
-                return node_1.ub_profit() < node_2.ub_profit();
+            if (node_1.ubkp() != node_2.ubkp())
+                return node_1.ubkp() < node_2.ubkp();
             return node_1.waste() < node_2.waste();
         };
     }
@@ -345,21 +345,32 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 
 bool BranchingScheme::Insertion::operator==(const Insertion& insertion) const
 {
-    return (
-               (j1 == insertion.j1) && (j2 == insertion.j2) && (df == insertion.df)
-            && (x1 == insertion.x1) && (y2 == insertion.y2) && (x3 == insertion.x3)
-            && (x1_max == insertion.x1_max) && (y2_max == insertion.y2_max)
-            && (z1 == insertion.z1) && (z2 == insertion.z2));
+    return ((j1 == insertion.j1)
+            && (j2 == insertion.j2)
+            && (df == insertion.df)
+            && (x1 == insertion.x1)
+            && (y2 == insertion.y2)
+            && (x3 == insertion.x3)
+            && (x1_max == insertion.x1_max)
+            && (y2_max == insertion.y2_max)
+            && (z1 == insertion.z1)
+            && (z2 == insertion.z2));
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
         std::ostream &os, const BranchingScheme::Insertion& insertion)
 {
-    os
-        << "j1 " << insertion.j1 << " j2 " << insertion.j2 << " df " << insertion.df
-        << " x1 " << insertion.x1 << " y2 " << insertion.y2 << " x3 " << insertion.x3
-        << " x1_max " << insertion.x1_max << " y2_max " << insertion.y2_max
-        << " z1 " << insertion.z1 << " z2 " << insertion.z2;
+    os << "j1 " << insertion.j1
+        << " j2 " << insertion.j2
+        << " df " << insertion.df
+        << " x1 " << insertion.x1
+        << " y2 " << insertion.y2
+        << " x3 " << insertion.x3
+        << " x1_max " << insertion.x1_max
+        << " y2_max " << insertion.y2_max
+        << " z1 " << insertion.z1
+        << " z2 " << insertion.z2
+        ;
     return os;
 }
 
@@ -376,9 +387,12 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         std::ostream &os, const BranchingScheme::Front& front)
 {
     os << "i " << front.i
-        << " x1_prev " << front.x1_prev << " x3_curr " << front.x3_curr
+        << " o " << front.o
+        << " x1_prev " << front.x1_prev
+        << " x3_curr " << front.x3_curr
         << " x1_curr " << front.x1_curr
-        << " y2_prev " << front.y2_prev << " y2_curr " << front.y2_curr
+        << " y2_prev " << front.y2_prev
+        << " y2_curr " << front.y2_curr
         ;
     return os;
 }
@@ -388,9 +402,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 BranchingScheme::Node::Node(const BranchingScheme& branching_scheme):
     branching_scheme_(branching_scheme),
     pos_stack_(instance().stack_number(), 0)
-{
-    compute_ub_profit();
-}
+{ }
 
 BranchingScheme::Node::Node(const BranchingScheme::Node& node):
     branching_scheme_(node.branching_scheme_),
@@ -403,7 +415,6 @@ BranchingScheme::Node::Node(const BranchingScheme::Node& node):
     current_area_(node.current_area_),
     waste_(node.waste_),
     profit_(node.profit_),
-    ub_profit_(node.ub_profit_),
     x1_curr_(node.x1_curr_),
     x1_prev_(node.x1_prev_),
     y2_curr_(node.y2_curr_),
@@ -418,7 +429,7 @@ BranchingScheme::Node::Node(const BranchingScheme::Node& node):
 
 BranchingScheme::Node& BranchingScheme::Node::operator=(const BranchingScheme::Node& node)
 {
-    if (this                              != &node) {
+    if (this != &node) {
         nodes_                             = node.nodes_;
         items_                             = node.items_;
         pos_stack_                         = node.pos_stack_;
@@ -428,7 +439,6 @@ BranchingScheme::Node& BranchingScheme::Node::operator=(const BranchingScheme::N
         current_area_                      = node.current_area_;
         waste_                             = node.waste_;
         profit_                            = node.profit_;
-        ub_profit_                         = node.ub_profit_;
         x1_curr_                           = node.x1_curr_;
         x1_prev_                           = node.x1_prev_;
         y2_curr_                           = node.y2_curr_;
@@ -452,11 +462,9 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     os << "item_area " << node.item_area()
         << " current_area " << node.area()
         << std::endl;
-    os
-        << "waste " << node.waste()
+    os << "waste " << node.waste()
         << " waste_percentage " << node.waste_percentage()
         << " profit " << node.profit()
-        << " ub_profit " << node.ub_profit()
         << std::endl;
     os << "x1_curr " << node.x1_curr()
         << " x1_prev " << node.x1_prev()
@@ -494,24 +502,28 @@ bool BranchingScheme::Node::bound(const Solution& sol_best) const
     switch (sol_best.instance().objective()) {
     case Objective::Default: {
         if (!sol_best.full()) {
-            return (ub_profit() <= sol_best.profit());
+            return (ubkp() <= sol_best.profit());
         } else {
-            if (ub_profit() != sol_best.profit())
-                return (ub_profit() <= sol_best.profit());
+            if (ubkp() != sol_best.profit())
+                return (ubkp() <= sol_best.profit());
             return waste() >= sol_best.waste();
         }
     } case Objective::BinPacking: {
         if (!sol_best.full())
             return false;
-        if (bin_number() >= sol_best.bin_number())
-            return true;
-        return waste() >= sol_best.waste();
+        BinPos i_pos = -1;
+        Area a = instance().item_area() + waste();
+        while (a > 0) {
+            i_pos++;
+            a -= instance().bin(i_pos).rect.area();
+        }
+        return (i_pos + 1 >= sol_best.bin_number());
     } case Objective::BinPackingWithLeftovers: {
         if (!sol_best.full())
             return false;
         return waste() >= sol_best.waste();
     } case Objective::Knapsack: {
-        return ub_profit() <= sol_best.profit();
+        return ubkp() <= sol_best.profit();
     } case Objective::StripPackingWidth: {
         if (!sol_best.full())
             return false;
@@ -528,20 +540,20 @@ bool BranchingScheme::Node::bound(const Solution& sol_best) const
     }
 }
 
-/****************************** apply_insertion *******************************/
-
-void BranchingScheme::Node::compute_ub_profit()
+Profit BranchingScheme::Node::ubkp() const
 {
-    Area remaining_item_area = instance().item_area() - item_area();
+    Area remaining_item_area     = instance().item_area() - item_area();
     Area remaining_packabla_area = instance().packable_area() - area();
     if (remaining_packabla_area >= remaining_item_area) {
-        ub_profit_ = instance().item_profit();
+        return instance().item_profit();
     } else {
         ItemTypeId j = instance().max_efficiency_item();
-        ub_profit_ = profit_ + remaining_packabla_area
+        return profit_ + remaining_packabla_area
             * instance().item(j).profit / instance().item(j).rect.area();
     }
 }
+
+/****************************** apply_insertion *******************************/
 
 void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& insertion, Info& info)
 {
@@ -662,7 +674,6 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     }
     waste_ = current_area_ - item_area_;
     assert(waste_ >= 0);
-    compute_ub_profit();
 
     LOG_FOLD_END(info, "apply_insertion");
 }
@@ -687,7 +698,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::Node::children(Info& in
     } else if (branching_scheme().first_stage_orientation() == CutOrientation::Any
             && instance().bin(bin_number()).defects.size() == 0                           // Next bin has no defects,
             && instance().bin(bin_number()).rect.w == instance().bin(bin_number()).rect.h // is a square,
-            && branching_scheme().no_oriented_items()) {                                  // and item can be rotated
+            && branching_scheme().no_oriented_items()) {                                  // and items can be rotated
         df_min = -1;
     }
 
