@@ -71,6 +71,7 @@ public:
     inline double waste_percentage() const { return (double)waste() / area(); }
     inline Area full_waste() const { return full_area() - item_area(); }
     inline double full_waste_percentage() const { return (double)full_waste() / full_area(); }
+    inline const std::vector<Solution::Node>& nodes() const { return nodes_; }
 
     template <typename S>
     bool operator<(const S& solution) const;

@@ -23,7 +23,7 @@ bazel build -- //...
 
 Execute:
 ```shell
-./bazel-bin/packingsolver/main  --verbose  --problem-type rectangleguillotine  --objective knapsack  --items data/rectangle/alvarez2002/ATP35_items.csv  --bins data/rectangle/alvarez2002/ATP35_bins.csv  --certificate ATP35_solution.csv  --output ATP35_output.json  --time-limit 1  -q "RG -p 3NHO -s 2" -a "MBA* -f 1.5 -c 4"  -q "RG -p 3NHO -s 3" -a "MBA* -f 1.5 -c 4"
+./bazel-bin/packingsolver/main  --verbose  --problem-type rectangleguillotine  --objective knapsack  --items data/rectangle/alvarez2002/ATP35_items.csv  --bins data/rectangle/alvarez2002/ATP35_bins.csv  --certificate ATP35_solution.csv  --output ATP35_output.json  --time-limit 1  -q "RG -p 3NHO" -a "IMBA* -f 1.5 -c 4"  -q "RG -p 3NHO" -a "IMBA* -f 1.5 -c 5"
 ```
 
 A solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
@@ -66,7 +66,7 @@ Compatible algorithms: `A*`, `DFS`, `IMBA*`, `DPA*`
 ## Benchmarks
 
 The performances of PackingSolver have been compared to all published results from the scientific literature on corresponding Packing Problems.
-Detailed results are available in `results.ods`.
+Detailed results are available in `results_*.ods`.
 `output.7z` contains all output files and solutions.
 
 Do not hesitate to contact us if you are aware of any variant or article that we missed.

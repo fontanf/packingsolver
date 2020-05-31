@@ -368,20 +368,26 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "10",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["hopper2001a"], [
                 "--objective", "knapsack",
                 "--time-limit", "10",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
                 "--objective", "knapsack",
                 "--time-limit", "60",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, [
                 "leung2003",
@@ -389,26 +395,34 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "10",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
         # pdp.append((problem, ["beasley2004_ngcutfs"], [
                 # "--objective", "knapsack",
                 # "--time-limit", "10",
-                # "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                # "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                # "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                # "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                # "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                # "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             # ]))
         pdp.append((problem, ["morabito2010"], [
                 "--objective", "knapsack",
                 "--time-limit", "10",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["velasco2019"], [
                 "--objective", "knapsack",
                 "--time-limit", "120",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
     elif problem == "3NEG-KP-R": # [G-KP-R] bortfeldt2009 wei2015 velasco2019
         pdp.append((problem, [
@@ -425,14 +439,18 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "30",
-                "-q", "\"RG -p 3NAR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NVR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NVR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["velasco2019"], [
                 "--objective", "knapsack",
                 "--time-limit", "120",
-                "-q", "\"RG -p 3NAR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NAR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NVR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3NVR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
     elif problem == "3NEGV-KP-O": # cui2015
         pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
@@ -452,21 +470,27 @@ for problem in sys.argv[1:]:
             ], [
                 "--objective", "knapsack",
                 "--time-limit", "2",
-                "-q", "\"RG -p 3HAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["cui2008"], [
                 "--objective", "knapsack",
-                "--time-limit", "60",
-                "-q", "\"RG -p 3HAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "--time-limit", "180",
+                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
         pdp.append((problem, ["cui2008"], [
                 "--objective", "knapsack",
-                "--time-limit", "60",
+                "--time-limit", "180",
                 "--unweighted",
-                "-q", "\"RG -p 3HAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
+                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
             ]))
 
     elif problem == "2NEG-KP-O": # hifi2001

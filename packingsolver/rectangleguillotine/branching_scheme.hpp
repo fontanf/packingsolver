@@ -267,6 +267,7 @@ public:
     inline Length  height()                   const { return (branching_scheme().cut_type_1() == CutType1::ThreeStagedGuillotine)? x1_curr(): y2_curr(); }
     Profit ubkp() const;
 
+    inline CutOrientation last_bin_orientation() const { return first_stage_orientation_.back(); }
     inline CutOrientation first_stage_orientation(BinPos i) const { return first_stage_orientation_[i]; }
     inline bool full() const { return item_number() == instance().item_number(); }
 

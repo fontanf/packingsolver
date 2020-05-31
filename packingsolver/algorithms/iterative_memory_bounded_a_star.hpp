@@ -51,7 +51,7 @@ void IterativeMemoryBoundedAStar<Solution, BranchingScheme>::run()
     typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Insertion Insertion;
 
-    LOG_FOLD_START(info_, "MBA*" << std::endl);
+    LOG_FOLD_START(info_, "IMBA*" << std::endl);
 
     for (q_sizemax_ = 0; q_sizemax_ < (Counter)100000000; q_sizemax_ = q_sizemax_ * growth_factor_) {
         if (q_sizemax_ == (Counter)(q_sizemax_*growth_factor_))
@@ -98,7 +98,7 @@ void IterativeMemoryBoundedAStar<Solution, BranchingScheme>::run()
                 // Update best solution
                 if (sol_best_ < node_tmp) {
                     std::stringstream ss;
-                    ss << "MBA* (thread " << thread_id_ << ") q " << q_sizemax_;
+                    ss << "IMBA* (thread " << thread_id_ << ") q " << q_sizemax_;
                     sol_best_.update(node_tmp.convert(sol_best_), ss, info_);
                 }
 
@@ -139,13 +139,13 @@ void IterativeMemoryBoundedAStar<Solution, BranchingScheme>::run()
 
         LOG_FOLD_END(info_, "");
         std::stringstream ss;
-        ss << "MBA* (thread " << thread_id_ << ")";
+        ss << "IMBA* (thread " << thread_id_ << ")";
         PUT(info_, ss.str(), "QueueMaxSize", q_sizemax_);
     }
 mbastarend:
 
     std::stringstream ss;
-    ss << "MBA* (thread " << thread_id_ << ")";
+    ss << "IMBA* (thread " << thread_id_ << ")";
     PUT(info_, ss.str(), "NodeNumber", node_number_);
     LOG_FOLD_END(info_, "");
 }

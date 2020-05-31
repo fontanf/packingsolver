@@ -329,8 +329,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
 
     for (std::string name: {
             "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19",
-            "B1", "B2"/*, "B3"*/, "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11", "B12", "B13", "B14"/*, "B15"*/,
-            "X1"/*, "X2"*//*, "X3"*//*, "X4"*/, "X5", "X6", "X7", "X8", "X9", "X10", "X11", "X12", "X13", "X14"/*, "X15"*/,
+            "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11", "B12", "B13", "B14", /*"B15", */
+            /*"X1, "*//*"X2, "*/"X3", "X4", "X5", "X6", "X7", "X8", "X9", "X10", "X11", "X12", "X13", "X14", /*"X15",*/
             }) {
 
         Info info;
@@ -381,6 +381,25 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
         DynamicProgrammingAStar<Solution, BranchingScheme> dynamic_programming_a_star(solution, branching_scheme, 0, -1, 0, info);
         dynamic_programming_a_star.run();
         std::cout << name << " " << waste << std::endl;
+
+        if (solution.waste() != waste) {
+            std::cout << "PLATE_ID,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
+            for (const Solution::Node& n: solution.nodes()) {
+                std::cout
+                    << n.i << ","
+                    << n.id << ","
+                    << n.l << ","
+                    << n.b << ","
+                    << n.r - n.l << ","
+                    << n.t - n.b << ","
+                    << ((n.j < 0)? n.j: items[n.j]) << ","
+                    << n.d << ",";
+                if (n.f != -1)
+                    std::cout << n.f;
+                std::cout << std::endl;
+            }
+
+        }
         EXPECT_EQ(solution.waste(), waste);
         info.set_certfile(name + "_solution.csv");
 
