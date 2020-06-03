@@ -5,782 +5,637 @@ import json
 
 ################################################################################
 
-datas = {}
+datas_rectangle = {}
 
-datas["roadef2018_A"] = ["roadef2018/A" + str(i) for i in range(1, 21)]
-datas["roadef2018_B"] = ["roadef2018/B" + str(i) for i in range(1, 16)]
-datas["roadef2018_X"] = ["roadef2018/X" + str(i) for i in range(1, 16)]
+datas_rectangle["roadef2018_A"] = ["roadef2018/A" + str(i) for i in range(1, 21)]
+datas_rectangle["roadef2018_B"] = ["roadef2018/B" + str(i) for i in range(1, 16)]
+datas_rectangle["roadef2018_X"] = ["roadef2018/X" + str(i) for i in range(1, 16)]
 
-datas["christofides1977"] = ["christofides1977/cgcut" + str(i) + ".txt" for i in range(1, 4)]
+datas_rectangle["christofides1977"] = ["christofides1977/cgcut" + str(i) + ".txt" for i in range(1, 4)]
 
-datas["beng1982"] = ["beng1982/BENG" + str(i) for i in range(1, 11)]
+datas_rectangle["beng1982"] = ["beng1982/BENG" + str(i) for i in range(1, 11)]
 
-datas["wang1983"] = ["wang1983/" + i for i in ["WANG1", "WANG2", "WANG3", "W"]]
+datas_rectangle["wang1983"] = ["wang1983/" + i for i in ["WANG1", "WANG2", "WANG3", "W"]]
 
-datas["beasley1985"] = ["beasley1985/gcut" + str(i) + ".txt" for i in range(1, 14)]
+datas_rectangle["beasley1985"] = ["beasley1985/gcut" + str(i) + ".txt" for i in range(1, 14)]
 
-datas["berkey1987"] = ["berkey1987/Class_" + "{:02d}".format(c) + ".2bp_" + str(n) + "_" + str(i) \
+datas_rectangle["berkey1987"] = ["berkey1987/Class_" + "{:02d}".format(c) + ".2bp_" + str(n) + "_" + str(i) \
         for c in range(1, 7) \
         for n in [20, 40, 60, 80, 100] \
         for i in range(1, 11)]
 
-datas["oliveira1990"] = ["oliveira1990/" + i for i in ["OF1", "OF2"]]
+datas_rectangle["oliveira1990"] = ["oliveira1990/" + i for i in ["OF1", "OF2"]]
 
-datas["tschoke1995_cw"] = ["tschoke1995/" + i for i in ["STS2", "STS4"]]
-datas["tschoke1995_cu"] = ["tschoke1995/" + i for i in ["STS2s", "STS4s"]]
+datas_rectangle["tschoke1995_cw"] = ["tschoke1995/" + i for i in ["STS2", "STS4"]]
+datas_rectangle["tschoke1995_cu"] = ["tschoke1995/" + i for i in ["STS2s", "STS4s"]]
 
-datas["hadjiconstantinou1995"] = ["hadjiconstantinou1995/" + i for i in ["HADCHR3", "HADCHR11"]]
+datas_rectangle["hadjiconstantinou1995"] = ["hadjiconstantinou1995/" + i for i in ["HADCHR3", "HADCHR11"]]
 
-datas["kroger1995"] = ["kroger1995/KR-" + "{:02d}".format(i) + ".txt" for i in range(1, 13)]
+datas_rectangle["kroger1995"] = ["kroger1995/KR-" + "{:02d}".format(i) + ".txt" for i in range(1, 13)]
 
-datas["jakobs1996"] = ["jakobs1996/" + i for i in ["j1", "j2", "JAKOBS1", "JAKOBS2", "JAKOBS3", "JAKOBS4", "JAKOBS5"]]
+datas_rectangle["jakobs1996"] = ["jakobs1996/" + i for i in ["j1", "j2", "JAKOBS1", "JAKOBS2", "JAKOBS3", "JAKOBS4", "JAKOBS5"]]
 
-datas["fekete1997"] =  ["fekete1997/okp" + str(i) for i in range(1, 6)]
+datas_rectangle["fekete1997"] =  ["fekete1997/okp" + str(i) for i in range(1, 6)]
 
-datas["lai1997"] = ["lai1997/" + i for i in ["1", "2", "3"]]
+datas_rectangle["lai1997"] = ["lai1997/" + i for i in ["1", "2", "3"]]
 
-datas["hifi1997a_cw"] = ["hifi1997a/" + i for i in ["2", "3", "A1", "A2"]]
-datas["hifi1997a_cu"] = ["hifi1997a/" + i for i in ["2s", "3s", "A1s", "A2s", "A3", "A4", "A5", "HH"]]
+datas_rectangle["hifi1997a_cw"] = ["hifi1997a/" + i for i in ["2", "3", "A1", "A2"]]
+datas_rectangle["hifi1997a_cu"] = ["hifi1997a/" + i for i in ["2s", "3s", "A1s", "A2s", "A3", "A4", "A5", "HH"]]
 
-datas["hifi1998"] = ["hifi1998/SCP" + str(i) for i in range(1, 26)]
+datas_rectangle["hifi1998"] = ["hifi1998/SCP" + str(i) for i in range(1, 26)]
 
-datas["fayard1998_cw"] = ["fayard1998/CW" + str(i) for i in range(1, 12)]
-datas["fayard1998_cu"] = ["fayard1998/CU" + str(i) for i in range(1, 12)]
+datas_rectangle["fayard1998_cw"] = ["fayard1998/CW" + str(i) for i in range(1, 12)]
+datas_rectangle["fayard1998_cu"] = ["fayard1998/CU" + str(i) for i in range(1, 12)]
 
-datas["martello1998"] = ["martello1998/Class_" + "{:02d}".format(c) + ".2bp_" + str(n) + "_" + str(i) \
+datas_rectangle["martello1998"] = ["martello1998/Class_" + "{:02d}".format(c) + ".2bp_" + str(n) + "_" + str(i) \
         for c in range(7, 11) \
         for n in [20, 40, 60, 80, 100] \
         for i in range(1, 11)]
 
-datas["hopper2000_n"] = ["hopper2000/n" + str(b) + c \
+datas_rectangle["hopper2000_n"] = ["hopper2000/n" + str(b) + c \
             for b in range(1, 8) \
             for c in ["a", "b", "c", "d", "e"]]
-datas["hopper2000_t"] = ["hopper2000/t" + str(b) + c \
+datas_rectangle["hopper2000_t"] = ["hopper2000/t" + str(b) + c \
             for b in range(1, 8) \
             for c in ["a", "b", "c", "d", "e"]]
 
-datas["cung2000_cw"] = ["cung2000/" + i for i in ["CHL1", "CHL2", "CHL3", "CHL4",
+datas_rectangle["cung2000_cw"] = ["cung2000/" + i for i in ["CHL1", "CHL2", "CHL3", "CHL4",
     "Hchl1", "Hchl2", "Hchl9"]]
-datas["cung2000_cu"] = ["cung2000/" + i for i in ["CHL1s", "CHL2s", "CHL3s", "CHL4s",
+datas_rectangle["cung2000_cu"] = ["cung2000/" + i for i in ["CHL1s", "CHL2s", "CHL3s", "CHL4s",
     "CHL5", "CHL6", "CHL7", "Hchl3s", "Hchl4s", "Hchl5s", "Hchl6s", "Hchl7s", "Hchl8s"]]
 
-datas["hifi2001_cu"] = ["hifi2001/" + i for i in ["U4", "LU1", "LU2", "LU3", "LU4"]]
-datas["hifi2001_cw"] = ["hifi2001/" + i for i in ["W4", "MW1", "MW2", "MW3", "MW4", "MW5", "LW1", "LW2", "LW3", "LW4"]]
+datas_rectangle["hifi2001_cu"] = ["hifi2001/" + i for i in ["U4", "LU1", "LU2", "LU3", "LU4"]]
+datas_rectangle["hifi2001_cw"] = ["hifi2001/" + i for i in ["W4", "MW1", "MW2", "MW3", "MW4", "MW5", "LW1", "LW2", "LW3", "LW4"]]
 
-datas["hopper2001a"] = ["hopper2001a/C" + str(i) + "_" + str(j) \
+datas_rectangle["hopper2001a"] = ["hopper2001a/C" + str(i) + "_" + str(j) \
         for i in range(1, 8) \
         for j in range(1, 4)]
 
-datas["alvarez2002_cu"] = ["alvarez2002/ATP3" + str(i) for i in range(0, 10)]
-datas["alvarez2002_cw"] = ["alvarez2002/ATP4" + str(i) for i in range(0, 10)]
+datas_rectangle["alvarez2002_cu"] = ["alvarez2002/ATP3" + str(i) for i in range(0, 10)]
+datas_rectangle["alvarez2002_cw"] = ["alvarez2002/ATP4" + str(i) for i in range(0, 10)]
 
-datas["leung2003"] = ["leung2003/" + i for i in ["P9", "P10"]]
+datas_rectangle["leung2003"] = ["leung2003/" + i for i in ["P9", "P10"]]
 
-datas["beasley2004_ngcutap"] = ["beasley2004/ngcutap.txt_" + str(i) for i in range(1, 22)]
-# datas["beasley2004_ngcutcon"] = ["beasley2004/ngcutcon.txt_" + str(i) for i in range(1, 22)]
-datas["beasley2004_ngcutfs"] = ["beasley2004/ngcutfs" + str(i) + ".txt_" + str(j) \
+datas_rectangle["beasley2004_ngcutap"] = ["beasley2004/ngcutap.txt_" + str(i) for i in range(1, 22)]
+# datas_rectangle["beasley2004_ngcutcon"] = ["beasley2004/ngcutcon.txt_" + str(i) for i in range(1, 22)]
+datas_rectangle["beasley2004_ngcutfs"] = ["beasley2004/ngcutfs" + str(i) + ".txt_" + str(j) \
         for i in range(1, 4) \
         for j in range(1, 211)]
 
-datas["burke2004"] = ["burke2004/BKW" + str(i) for i in range(1, 14)]
+datas_rectangle["burke2004"] = ["burke2004/BKW" + str(i) for i in range(1, 14)]
 
-datas["imahori2005"] = ["imahori2005/" + a + b + c \
+datas_rectangle["imahori2005"] = ["imahori2005/" + a + b + c \
         for a in ["A", "B", "C", "D"] \
         for b in ["L", "S", "V"] \
         for c in ["X", "Y", "Z", "ZZ", "ZZZ"]]
 
-datas["pinto2005"] = ["pinto2005/" + str(i) for i in [50, 100, 500, 1000, 5000, 10000, 15000]]
+datas_rectangle["pinto2005"] = ["pinto2005/" + str(i) for i in [50, 100, 500, 1000, 5000, 10000, 15000]]
 
-datas["hifi2008_cu"] = ["hifi2008/" + t + "T_" + i +  "H.txt" \
+datas_rectangle["hifi2008_cu"] = ["hifi2008/" + t + "T_" + i +  "H.txt" \
         for t in ["nice", "path"] \
         for i in ["25", "50", "100", "200", "500", "1000"]]
-datas["hifi2008_cw"] = ["hifi2008/" + t + "T_" + i + "PH.txt" \
+datas_rectangle["hifi2008_cw"] = ["hifi2008/" + t + "T_" + i + "PH.txt" \
         for t in ["nice", "path"] \
         for i in ["25", "50", "100", "200", "500"]]
 
-datas["cui2008"] = ["cui2008/" + str(i) for i in range(1, 21)]
+datas_rectangle["cui2008"] = ["cui2008/" + str(i) for i in range(1, 21)]
 
-datas["cintra2008"] = ["cintra2008/gcut" + str(i) + "d.txt" for i in range(1, 13)]
+datas_rectangle["cintra2008"] = ["cintra2008/gcut" + str(i) + "d.txt" for i in range(1, 13)]
 
-datas["morabito2010"] = ["morabito2010/random_class_" + str(c) + "/R_" + str(n) + "_" + t1 + "/" + str(i) + "_" + str(n) + "_100_" + t2 + ".dat" \
+datas_rectangle["morabito2010"] = ["morabito2010/random_class_" + str(c) + "/R_" + str(n) + "_" + t1 + "/" + str(i) + "_" + str(n) + "_100_" + t2 + ".dat" \
         for c in [1, 2, 3] \
         for t1, t2 in [("S", "10_50"), ("L", "25_75")] \
         for n in [10, 20, 30, 40, 50] \
         for i in range(1, 16)]
 
-datas["hifi2012_cu"] = ["hifi2012/UL" + i + "H.txt" for i in ["1", "2", "3"]]
-datas["hifi2012_cw"] = ["hifi2012/WL" + i + "H.txt" for i in ["1", "2", "3"]]
+datas_rectangle["hifi2012_cu"] = ["hifi2012/UL" + i + "H.txt" for i in ["1", "2", "3"]]
+datas_rectangle["hifi2012_cw"] = ["hifi2012/WL" + i + "H.txt" for i in ["1", "2", "3"]]
 
-datas["clautiaux2018_cu"] = []
-datas["clautiaux2018_cw"] = []
+datas_rectangle["clautiaux2018_cu"] = []
+datas_rectangle["clautiaux2018_cw"] = []
 for wh in ["W500H1000", "W1000H2000"]:
     for n in [50, 100, 150]:
-        datas["clautiaux2018_cu"] += ["clautiaux2018/a/" + f.strip() for f in open("data/rectangle_raw/clautiaux2018/A_" + wh + "I" + str(n))]
-        datas["clautiaux2018_cw"] += ["clautiaux2018/p/" + f.strip() for f in open("data/rectangle_raw/clautiaux2018/P_" + wh + "I" + str(n))]
+        datas_rectangle["clautiaux2018_cu"] += ["clautiaux2018/a/" + f.strip() for f in open("data/rectangle_raw/clautiaux2018/A_" + wh + "I" + str(n))]
+        datas_rectangle["clautiaux2018_cw"] += ["clautiaux2018/p/" + f.strip() for f in open("data/rectangle_raw/clautiaux2018/P_" + wh + "I" + str(n))]
 
 # TODO clautiaux2019
 
-# datas["martin2019a"] = ["martin2019a/os" + o + "_is" + i + "_m" + m +  "_" + j \
+# datas_rectangle["martin2019a"] = ["martin2019a/os" + o + "_is" + i + "_m" + m +  "_" + j \
         # for o in ["02", "06"] \
         # for i in ["01", "02", "03", "04", "06", "07", "08", "11", "12", "16"] \
         # for m in ["10", "20", "40"] \
         # for j in ["01", "02", "03", "04", "05"]]
-# datas["martin2019b"] = ["martin2019b/inst_" + LW + "_" + str(m) + "_"  + str(rho) + "_" + str(i) + "_" + str(d)
+# datas_rectangle["martin2019b"] = ["martin2019b/inst_" + LW + "_" + str(m) + "_"  + str(rho) + "_" + str(i) + "_" + str(d)
         # for LW in ["75_75", "125_50", "150_150", "225_100", "300_300", "450_200"] \
         # for m in [5, 10, 15, 20, 25] \
         # for rho in [6, 8, 10] for i in range(1, 16) \
         # for d in [1, 2, 3, 4]]
 
-datas["velasco2019"] = ["velasco2019/P" + str(cl) + "_" + str(l) + "_"  + str(h) + "_" + str(m) + "_" + str(i) + ".txt"
+datas_rectangle["velasco2019"] = ["velasco2019/P" + str(cl) + "_" + str(l) + "_"  + str(h) + "_" + str(m) + "_" + str(i) + ".txt"
         for cl, l, h in [(1, 100, 200), (1, 100, 400), (2, 200, 100), (2, 400, 100), \
                          (3, 150, 150), (3, 250, 250), (4, 150, 150), (4, 250, 250)] \
         for m in [25, 50] \
         for i in range(1, 6)]
 
-datas["long2020"] = ["long2020/Instance_" + str(i) + ".txt" for i in range(1, 26)]
+datas_rectangle["long2020"] = ["long2020/Instance_" + str(i) + ".txt" for i in range(1, 26)]
 
 ################################################################################
 
-problem = sys.argv[1]
-pdp = []
-for problem in sys.argv[1:]:
+def get_tests(problem):
 
     # BPPL
 
     if problem == "roadef2018_A":
-        pdp.append((problem, ["roadef2018_A"], [
-                "--objective", "bin-packing-with-leftovers",
-                "--time-limit", "3600",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.33 -c 0\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.33 -c 1\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.5  -c 0\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.5  -c 1\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"DPA* -s -2 -c 0\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective bin-packing-with-leftovers"
+                " --time-limit 3600"
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.33 -c 0\""
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.33 -c 1\""
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.5  -c 0\""
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.5  -c 1\""
+                " -q \"RG -p roadef2018\" -a \"DPA* -s -2 -c 0\""
+            ) for f in datas_rectangle["roadef2018_A"]]
     if problem == "roadef2018_B":
-        pdp.append((problem, ["roadef2018_B"], [
-                "--objective", "bin-packing-with-leftovers",
-                "--time-limit", "3600",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.33 -c 0\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.33 -c 1\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.5  -c 0\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.5  -c 1\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"DPA* -s -2 -c 0\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective bin-packing-with-leftovers"
+                " --time-limit 3600"
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.33 -c 0\""
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.33 -c 1\""
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.5  -c 0\""
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.5  -c 1\""
+                " -q \"RG -p roadef2018\" -a \"DPA* -s -2 -c 0\""
+            ) for f in datas_rectangle["roadef2018_B"]]
     if problem == "roadef2018_X":
-        pdp.append((problem, ["roadef2018_X"], [
-                "--objective", "bin-packing-with-leftovers",
-                "--time-limit", "3600",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.33 -c 0\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.33 -c 1\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.5  -c 0\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"IMBA* -f 1.5  -c 1\"",
-                "-q", "\"RG -p roadef2018\"", "-a", "\"DPA* -s -2 -c 0\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective bin-packing-with-leftovers"
+                " --time-limit 3600"
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.33 -c 0\""
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.33 -c 1\""
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.5  -c 0\""
+                " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.5  -c 1\""
+                " -q \"RG -p roadef2018\" -a \"DPA* -s -2 -c 0\""
+            ) for f in datas_rectangle["roadef2018_X"]]
 
     # BPP
 
     elif problem == "3NEGH-BPP-O": # alvelos2009
                                    # [G-BPP-O] charalambous2011 fleszar2013 hong2014 lodi2017 cui2018
-        pdp.append((problem, [
-                "christofides1977",
-                "beasley1985",
-                "beasley2004_ngcutap",
-                "berkey1987",
-                "martello1998"
-            ], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "60",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-copies"
+                " --objective bin-packing"
+                " --time-limit 60"
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f in [] \
+                    + datas_rectangle["christofides1977"] \
+                    + datas_rectangle["beasley1985"] \
+                    + datas_rectangle["beasley2004_ngcutap"] \
+                    + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
+        ]
     elif problem == "3NEGH-BPP-R": # [G-BPP-R] charalambous2011 fleszar2013 cui2015 cui2018
-        pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "60",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-copies"
+                " --objective bin-packing"
+                " --time-limit 60"
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f in [] \
+                    + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
+        ]
     elif problem == "long2020": # long2020
-        pdp.append((problem, [
-                "long2020",
-            ], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "10",
-                "-q", "\"RG -p 3NVO --one2cut\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NVO --one2cut\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NVO --one2cut\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-copies"
+                " --objective bin-packing"
+                " --time-limit 60"
+                " -q \"RG -p 3NVO --one2cut\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 3NVO --one2cut\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 3NVO --one2cut\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f in [] \
+                    + datas_rectangle["long2020"]
+        ]
     elif problem == "3GH-BPP-O": # puchinger2007 alvelos2009
-        pdp.append((problem, [
-                "christofides1977",
-                "beasley1985",
-                "beasley2004_ngcutap",
-                "berkey1987",
-                "martello1998"
-            ], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "60",
-                "-q", "\"RG -p 3EHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3EHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3EHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-copies"
+                " --objective bin-packing"
+                " --time-limit 60"
+                " -q \"RG -p 3EHO\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 3EHO\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 3EHO\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f in [] \
+                    + datas_rectangle["christofides1977"] \
+                    + datas_rectangle["beasley1985"] \
+                    + datas_rectangle["beasley2004_ngcutap"] \
+                    + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
+        ]
     elif problem == "3HGV-BPP-O": # chen2016
-        pdp.append((problem, [
-                "wang1983",
-                "oliveira1990",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "fekete1997",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "fayard1998_cw", "fayard1998_cu",
-                "cung2000_cw", "cung2000_cu",
-                "alvarez2002_cu", "alvarez2002_cw",
-            ], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "5",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, [
-                "imahori2005",
-            ], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "60",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, [
-                "cintra2008",
-            ], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "10",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-copies"
+                " --objective bin-packing"
+                " --time-limit " + str(t) +
+                " -q \"RG -p 3HVO\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 3HVO\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 3HVO\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f, t in [(ff, 5) for ff in [] \
+                        + datas_rectangle["wang1983"] \
+                        + datas_rectangle["oliveira1990"] \
+                        + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                        + datas_rectangle["fekete1997"] \
+                        + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                        + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+                        + datas_rectangle["alvarez2002_cu"] + datas_rectangle["alvarez2002_cw"] \
+                    ] + [(ff, 60) for ff in [] \
+                        + datas_rectangle["imahori2005"] \
+                    ] + [(ff, 10) for ff in [] \
+                        + datas_rectangle["cintra2008"] \
+                    ]]
 
     elif problem == "2NEGH-BPP-O": # cintra2008 alvelos2009 cui2013 alvelos2014
-        pdp.append((problem, [
-                "christofides1977",
-                "beasley1985",
-                "wang1983",
-                "oliveira1990",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "fekete1997",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "fayard1998_cw", "fayard1998_cu",
-                "cung2000_cw", "cung2000_cu",
-                "beasley2004_ngcutap",
-            ], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "10",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "10",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, ["cintra2008"], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "60",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "60",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-copies"
+                " --objective bin-packing"
+                " --time-limit " + str(t) +
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f, t in [(ff, 10) for ff in [] \
+                        + datas_rectangle["christofides1977"] \
+                        + datas_rectangle["wang1983"] \
+                        + datas_rectangle["oliveira1990"] \
+                        + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                        + datas_rectangle["fekete1997"] \
+                        + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                        + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                        + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+                        + datas_rectangle["beasley2004_ngcutap"] \
+                        + datas_rectangle["alvarez2002_cu"] + datas_rectangle["alvarez2002_cw"] \
+                    ] + [(ff, 60) for ff in [] \
+                        + datas_rectangle["cintra2008"] \
+                        + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
+                    ]]
     elif problem == "2NEGH-BPP-R": # cintra2008 cui2013 cui2016
-        pdp.append((problem, ["cintra2008"], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "60",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "60",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-copies"
+                " --objective bin-packing"
+                " --time-limit 60"
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f in [] \
+                    + datas_rectangle["cintra2008"] \
+                    + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
+        ]
     elif problem == "2GH-BPP-O": # alvelos2009 cui2013
-        pdp.append((problem, [
-                "christofides1977",
-                "beasley1985",
-                "beasley2004_ngcutap",
-                "berkey1987",
-                "martello1998",
-            ], [
-                "--objective", "bin-packing",
-                "--bin-infinite-copies",
-                "--time-limit", "60",
-                "-q", "\"RG -p 2EHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2EHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2EHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-copies"
+                " --objective bin-packing"
+                " --time-limit 60"
+                " -q \"RG -p 2EHO\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 2EHO\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 2EHO\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f in [] \
+                    + datas_rectangle["christofides1977"] \
+                    + datas_rectangle["beasley1985"] \
+                    + datas_rectangle["beasley2004_ngcutap"] \
+                    + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
+        ]
 
     # KP
 
     elif problem == "3NEG-KP-O": # [G-KP-O] fayard1998 alvarez2002 chen2007
                                  #          bortfeldt2009 morabito2010 dolatabadi2012
                                  #          wei2015 (furini2016) velasco2019 (martin2019) (martin2020)
-        pdp.append((problem, [
-                "christofides1977",
-                "wang1983",
-                "beasley1985",
-                "oliveira1990",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "hadjiconstantinou1995",
-                "jakobs1996",
-                "fekete1997",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "lai1997",
-                "fayard1998_cw", "fayard1998_cu",
-                "cung2000_cw", "cung2000_cu",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "10",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["hopper2001a"], [
-                "--objective", "knapsack",
-                "--time-limit", "10",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
-                "--objective", "knapsack",
-                "--time-limit", "60",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, [
-                "leung2003",
-                "beasley2004_ngcutap",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "10",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        # pdp.append((problem, ["beasley2004_ngcutfs"], [
-                # "--objective", "knapsack",
-                # "--time-limit", "10",
-                # "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                # "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                # "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                # "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            # ]))
-        pdp.append((problem, ["morabito2010"], [
-                "--objective", "knapsack",
-                "--time-limit", "10",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["velasco2019"], [
-                "--objective", "knapsack",
-                "--time-limit", "120",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                " --time-limit " + str(t) +
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 3NVO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 5\""
+                " -q \"RG -p 3NVO\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f, t in [(ff, 10) for ff in [] \
+                        + datas_rectangle["christofides1977"] \
+                        + datas_rectangle["wang1983"] \
+                        + datas_rectangle["beasley1985"] \
+                        + datas_rectangle["oliveira1990"] \
+                        + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                        + datas_rectangle["hadjiconstantinou1995"] \
+                        + datas_rectangle["jakobs1996"] \
+                        + datas_rectangle["fekete1997"] \
+                        + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                        + datas_rectangle["lai1997"] \
+                        + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                        + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+                        + datas_rectangle["hopper2001a"] \
+                    ] + [(ff, 60) for ff in [] \
+                        + datas_rectangle["alvarez2002_cu"] + datas_rectangle["alvarez2002_cw"] \
+                    ] + [(ff, 10) for ff in [] \
+                        + datas_rectangle["leung2003"] \
+                        + datas_rectangle["beasley2004_ngcutap"] \
+                        + datas_rectangle["beasley2004_ngcutfs"] \
+                        + datas_rectangle["morabito2010"] \
+                    ] + [(ff, 120) for ff in [] \
+                        + datas_rectangle["velasco2019"] \
+                    ]]
     elif problem == "3NEG-KP-R": # [G-KP-R] bortfeldt2009 wei2015 velasco2019
-        pdp.append((problem, [
-                "christofides1977",
-                "wang1983",
-                "hadjiconstantinou1995",
-                "jakobs1996",
-                "fekete1997",
-                "lai1997",
-                "fayard1998_cu", "fayard1998_cw",
-                "hopper2001a",
-                "leung2003",
-                "beasley2004_ngcutap",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "30",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3NVR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["velasco2019"], [
-                "--objective", "knapsack",
-                "--time-limit", "120",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3NVR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                " --time-limit " + str(t) +
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 3NVR\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 5\""
+                " -q \"RG -p 3NVR\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f, t in [(ff, 30) for ff in [] \
+                        + datas_rectangle["christofides1977"] \
+                        + datas_rectangle["wang1983"] \
+                        + datas_rectangle["hadjiconstantinou1995"] \
+                        + datas_rectangle["jakobs1996"] \
+                        + datas_rectangle["fekete1997"] \
+                        + datas_rectangle["lai1997"] \
+                        + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                        + datas_rectangle["hopper2001a"] \
+                        + datas_rectangle["leung2003"] \
+                        + datas_rectangle["beasley2004_ngcutap"] \
+                    ] + [(ff, 120) for ff in [] \
+                        + datas_rectangle["velasco2019"] \
+                    ]]
     elif problem == "3NEGV-KP-O": # cui2015
-        pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
-                "--objective", "knapsack",
-                "--time-limit", "60",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                " --time-limit 60"
+                " -q \"RG -p 3NVO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 3NVO\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f in [] \
+                    + datas_rectangle["alvarez2002_cu"] + datas_rectangle["alvarez2002_cw"] \
+        ]
     elif problem == "3HG-KP-O": # cui2008
-        pdp.append((problem, [
-                "wang1983",
-                "oliveira1990",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "fayard1998_cw", "fayard1998_cu",
-                "cung2000_cw", "cung2000_cu",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "2",
-                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["cui2008"], [
-                "--objective", "knapsack",
-                "--time-limit", "180",
-                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["cui2008"], [
-                "--objective", "knapsack",
-                "--time-limit", "180",
-                "--unweighted",
-                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 3HVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f + ("_unweighted" if unweighted else ""),
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                + (" --unweighted" if unweighted else "") +
+                " --time-limit " + str(t) +
+                " -q \"RG -p 3HHO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 3HVO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 3HHO\" -a \"IMBA* -f 1.5 -c 5\""
+                " -q \"RG -p 3HVO\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f, t, unweighted in [(ff, 2, False) for ff in [] \
+                        + datas_rectangle["wang1983"] \
+                        + datas_rectangle["oliveira1990"] \
+                        + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                        + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                        + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                        + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+                    ] + [(ff, 180)       for ff in [] \
+                        + datas_rectangle["cui2008"] \
+                    ] + [(ff, 180, True) for ff in [] \
+                        + datas_rectangle["cui2008"] \
+                    ]]
 
     elif problem == "2NEG-KP-O": # hifi2001
-        pdp.append((problem, [
-                "christofides1977",
-                "wang1983",
-                "oliveira1990",
-                "beasley1985",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "fayard1998_cw", "fayard1998_cu",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "1",
-                "-q", "\"RG -p 2NAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
-                "--objective", "knapsack",
-                "--time-limit", "3",
-                "-q", "\"RG -p 2NAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                " --time-limit " + str(t) +
+                " -q \"RG -p 2NAO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 2NAO\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f, t in [(ff, 1) for ff in [] \
+                        + datas_rectangle["christofides1977"] \
+                        + datas_rectangle["wang1983"] \
+                        + datas_rectangle["oliveira1990"] \
+                        + datas_rectangle["beasley1985"] \
+                        + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                        + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                        + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                    ] + [(ff, 3) for ff in [] \
+                        + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+                    ]]
     elif problem == "2NEGH-KP-O": # hifi2001 lodi2003 belov2006 hifi2006 alvarez2007 hifi2008 hifi2012 (martin2020)
-        pdp.append((problem, [
-                "christofides1977",
-                "wang1983",
-                "oliveira1990",
-                "beasley1985",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "fayard1998_cw", "fayard1998_cu",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "1",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
-                "--objective", "knapsack",
-                "--time-limit", "3",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
-                "--objective", "knapsack",
-                "--time-limit", "5",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["hifi2012_cu", "hifi2012_cw"], [
-                "--objective", "knapsack",
-                "--time-limit", "300",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                " --time-limit " + str(t) +
+                " -q \"RG -p 2NHO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 2NHO\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f, t in [(ff, 1) for ff in [] \
+                        + datas_rectangle["christofides1977"] \
+                        + datas_rectangle["wang1983"] \
+                        + datas_rectangle["oliveira1990"] \
+                        + datas_rectangle["beasley1985"] \
+                        + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                        + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                        + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                    ] + [(ff, 3) for ff in [] \
+                        + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+                    ] + [(ff, 5) for ff in [] \
+                        + datas_rectangle["alvarez2002_cu"] + datas_rectangle["alvarez2002_cw"] \
+                    ] + [(ff, 300) for ff in [] \
+                        + datas_rectangle["hifi2012_cu"] + datas_rectangle["hifi2012_cw"] \
+                    ]]
     elif problem == "2NEGV-KP-O": # hifi2001 lodi2003 hifi2006 alvarez2007 hifi2008 hifi2012
-        pdp.append((problem, [
-                "christofides1977",
-                "wang1983",
-                "oliveira1990",
-                "beasley1985",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "fayard1998_cw", "fayard1998_cu",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "1",
-                "-q", "\"RG -p 2NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
-                "--objective", "knapsack",
-                "--time-limit", "3",
-                "-q", "\"RG -p 2NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
-                "--objective", "knapsack",
-                "--time-limit", "5",
-                "-q", "\"RG -p 2NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["hifi2012_cu", "hifi2012_cw"], [
-                "--objective", "knapsack",
-                "--time-limit", "300",
-                "-q", "\"RG -p 2NVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                " --time-limit " + str(t) +
+                " -q \"RG -p 2NVO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 2NVO\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f, t in [(ff, 1) for ff in [] \
+                        + datas_rectangle["christofides1977"] \
+                        + datas_rectangle["wang1983"] \
+                        + datas_rectangle["oliveira1990"] \
+                        + datas_rectangle["beasley1985"] \
+                        + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                        + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                        + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                    ] + [(ff, 3) for ff in [] \
+                        + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+                    ] + [(ff, 5) for ff in [] \
+                        + datas_rectangle["alvarez2002_cu"] + datas_rectangle["alvarez2002_cw"] \
+                    ] + [(ff, 300) for ff in [] \
+                        + datas_rectangle["hifi2012_cu"] + datas_rectangle["hifi2012_cw"] \
+                    ]]
     elif problem == "2NEGH-KP-R": # lodi2003
-        pdp.append((problem, [
-                "wang1983",
-                "oliveira1990",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "fayard1998_cw", "fayard1998_cu",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "1",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
-        pdp.append((problem, ["cung2000_cw", "cung2000_cu"], [
-                "--objective", "knapsack",
-                "--time-limit", "3",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                " --time-limit " + str(t) +
+                " -q \"RG -p 2NHR\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 2NHR\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f, t in [(ff, 1) for ff in [] \
+                        + datas_rectangle["wang1983"] \
+                        + datas_rectangle["oliveira1990"] \
+                        + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                        + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                        + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                    ] + [(ff, 3) for ff in [] \
+                        + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+                    ]]
 
     elif problem == "2G-KP-O": # hifi2001
-        pdp.append((problem, [
-                "wang1983",
-                "oliveira1990",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "fayard1998_cw", "fayard1998_cu",
-                "cung2000_cw", "cung2000_cu",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "1",
-                "-q", "\"RG -p 2EAO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2EAO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                " --time-limit 1"
+                " -q \"RG -p 2EAO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 2EAO\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f in [] \
+                    + datas_rectangle["wang1983"] \
+                    + datas_rectangle["oliveira1990"] \
+                    + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                    + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                    + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                    + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+        ]
     elif problem == "2GH-KP-O": # hifi2001
-        pdp.append((problem, [
-                "wang1983",
-                "oliveira1990",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "fayard1998_cw", "fayard1998_cu",
-                "cung2000_cw", "cung2000_cu",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "1",
-                "-q", "\"RG -p 2EHO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2EHO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                " --time-limit 1"
+                " -q \"RG -p 2EHO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 2EHO\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f in [] \
+                    + datas_rectangle["wang1983"] \
+                    + datas_rectangle["oliveira1990"] \
+                    + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                    + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                    + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                    + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+        ]
     elif problem == "2GV-KP-O": # hifi2001
-        pdp.append((problem, [
-                "wang1983",
-                "oliveira1990",
-                "tschoke1995_cw", "tschoke1995_cu",
-                "hifi1997a_cw", "hifi1997a_cu",
-                "fayard1998_cw", "fayard1998_cu",
-                "cung2000_cw", "cung2000_cu",
-            ], [
-                "--objective", "knapsack",
-                "--time-limit", "1",
-                "-q", "\"RG -p 2EVO\"", "-a", "\"IMBA* -f 1.5 -c 4\"",
-                "-q", "\"RG -p 2EVO\"", "-a", "\"IMBA* -f 1.5 -c 5\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --objective knapsack"
+                " --time-limit 1"
+                " -q \"RG -p 2EVO\" -a \"IMBA* -f 1.5 -c 4\""
+                " -q \"RG -p 2EVO\" -a \"IMBA* -f 1.5 -c 5\""
+            ) for f in [] \
+                    + datas_rectangle["wang1983"] \
+                    + datas_rectangle["oliveira1990"] \
+                    + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
+                    + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                    + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
+                    + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
+        ]
 
-    # SPP
+    # # SPP
 
     elif problem == "3NEGH-SPP-O": # bortfeldt2012 wei2014
-        pdp.append((problem, ["kroger1995", "hopper2000_n", "hopper2000_t", "hopper2001a"], [
-                "--objective", "strip-packing-height",
-                "--bin-infinite-height",
-                "--time-limit", "30",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, ["burke2004"], [
-                "--objective", "strip-packing-height",
-                "--bin-infinite-height",
-                "--time-limit", "30",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "strip-packing-height",
-                "--bin-infinite-height",
-                "--time-limit", "60",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-height"
+                " --objective strip-packing-height"
+                " --time-limit 60"
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f in [] \
+                    + datas_rectangle["kroger1995"] \
+                    + datas_rectangle["hopper2000_n"] + datas_rectangle["hopper2000_t"] \
+                    + datas_rectangle["hopper2001a"] \
+                    + datas_rectangle["burke2004"] \
+                    + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
+        ]
     elif problem == "3NEGH-SPP-R": # kroger1993 schneke1996 mumford2003 zhang2006 bortfeldt2006 cui2008 bortfeldt2012 cui2013 wei2014
-        pdp.append((problem, ["kroger1995", "hopper2000_n", "hopper2000_t", "hopper2001a", "burke2004"], [
-                "--objective", "strip-packing-height",
-                "--bin-infinite-height",
-                "--time-limit", "30",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "strip-packing-height",
-                "--bin-infinite-height",
-                "--time-limit", "60",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 3NHR\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-height"
+                " --objective strip-packing-height"
+                " --time-limit 60"
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f in [] \
+                    + datas_rectangle["kroger1995"] \
+                    + datas_rectangle["hopper2000_n"] + datas_rectangle["hopper2000_t"] \
+                    + datas_rectangle["hopper2001a"] \
+                    + datas_rectangle["burke2004"] \
+                    + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
+        ]
     elif problem == "2NEGH-SPP-O": # lodi2004 cintra2008 mrad2015 cui2017
-        pdp.append((problem, ["cintra2008"], [
-                "--objective", "strip-packing-height",
-                "--bin-infinite-height",
-                "--time-limit", "10",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, ["alvarez2002_cu", "alvarez2002_cw"], [
-                "--objective", "strip-packing-height",
-                "--bin-infinite-height",
-                "--time-limit", "10",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-        pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "strip-packing-height",
-                "--bin-infinite-height",
-                "--time-limit", "10",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHO\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-height"
+                " --objective strip-packing-height"
+                " --time-limit 10"
+                " -q \"RG -p 2NHO\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 2NHO\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 2NHO\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f in [] \
+                    + datas_rectangle["cintra2008"] \
+                    + datas_rectangle["alvarez2002_cu"] + datas_rectangle["alvarez2002_cw"] \
+                    + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
+        ]
     elif problem == "2NEGH-SPP-R": #
-        pdp.append((problem, ["berkey1987", "martello1998"], [
-                "--objective", "strip-packing-height",
-                "--bin-infinite-height",
-                "--time-limit", "10",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 0\"",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 2\"",
-                "-q", "\"RG -p 2NHR\"", "-a", "\"IMBA* -f 1.5 -c 3\"",
-            ]))
-
-    elif problem == "test":
-        pass
+        return [(f,
+                " --items data/rectangle/" + f +
+                " --bin-infinite-height"
+                " --objective strip-packing-height"
+                " --time-limit 10"
+                " -q \"RG -p 2NHR\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 2NHR\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 2NHR\" -a \"IMBA* -f 1.5 -c 3\""
+            ) for f in [] \
+                    + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
+        ]
 
 ################################################################################
 
-files = set()
-main_exec = os.path.join(".", "bazel-bin", "packingsolver", "main")
-for problem, data, parameters in pdp:
-    print("Problem:", problem)
-    print("Data:", data)
-    print("Param:", parameters)
-    print()
+if __name__ == "__main__":
 
-    directory_in  = os.path.join("data",   "rectangle")
-    directory_out = os.path.join("output", "rectangle", problem)
-    for dataset in data:
-        for filename in datas[dataset]:
-            s = ""
-            if "--bin-infinite-copies" in parameters:
-                s += "_bin-infinite-copies"
-            if "--bin-infinite-width" in parameters:
-                s +=  "_bin-infinite-width"
-            if "--bin-infinite-height" in parameters:
-                s +=  "_bin-infinite-height"
-            if "--unweighted" in parameters:
-                s += "_unweighted"
-            instance_file = os.path.join(directory_in, filename)
-            output_file   = os.path.join(directory_out, filename + s + "_output.json")
-            cert_file     = os.path.join(directory_out, filename + s + "_solution.csv")
-            if not os.path.exists(os.path.dirname(output_file)):
-                os.makedirs(os.path.dirname(output_file))
-            command = main_exec + " -p rectangleguillotine" \
-                    + " -v" \
-                    + " -e" \
-                    + " -i \"" + instance_file + "\"" \
-                    + " -c \"" + cert_file + "\"" \
-                    + " -o \"" + output_file + "\"" \
-                    + " " + " ".join(parameters)
+    for problem in sys.argv[1:]:
+        print("Problem:", problem)
+        print()
+
+        directory_out = os.path.join("output", "rectangle", problem)
+        if not os.path.exists(directory_out):
+            os.makedirs(directory_out)
+        results_file = open(os.path.join(directory_out, "results.csv"), "w")
+        first_loop = True
+
+        for f, args in get_tests(problem):
+            output_filepath = os.path.join(directory_out, f + "_output.json")
+            cert_filepath   = os.path.join(directory_out, f + "_solution.csv")
+            if not os.path.exists(os.path.dirname(output_filepath)):
+                os.makedirs(os.path.dirname(output_filepath))
+            command = "./bazel-bin/packingsolver/main -p rectangleguillotine -v -e" + args \
+                    + " -c \"" + cert_filepath + "\"" \
+                    + " -o \"" + output_filepath + "\""
             print(command)
             os.system(command)
             print()
 
-            with open(output_file, "r") as read_file:
-                data = json.load(read_file)
+            output_file = open(output_filepath, "r")
+            data = json.load(output_file)
 
-                k = 1
-                while "Solution" + str(k + 1) in data.keys():
-                    k += 1
+            # Find last solution
+            k = 1
+            while "Solution" + str(k + 1) in data.keys():
+                k += 1
 
-                if not directory_out in files:
-                    files.add(directory_out)
-                    with open(os.path.join(directory_out, "results.csv"), "w") as f:
-                        f.write("Instance,Parameters")
-                        for key in data["Solution" + str(k)].keys():
-                            f.write(";" + key)
-                        f.write("\n")
-                with open(os.path.join(directory_out, "results.csv"), "a") as f:
-                    f.write(filename + "," + " ".join(parameters))
-                    for key, value in data["Solution" + str(k)].items():
-                        f.write(";" + str(value))
-                    f.write("\n")
+            # Write header (only in the first loop)
+            if first_loop:
+                first_loop = False
+                results_file.write("Name,Arguments")
+                for key in data["Solution" + str(k)].keys():
+                    results_file.write(";" + key)
+                results_file.write("\n")
+
+            # Write test informations
+            results_file.write(f + "," + args)
+            for key, value in data["Solution" + str(k)].items():
+                results_file.write(";" + str(value))
+            results_file.write("\n")
 
