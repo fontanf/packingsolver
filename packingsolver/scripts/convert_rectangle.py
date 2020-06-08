@@ -148,6 +148,28 @@ def convert_cintra2008(filename):
     write_dict(bins, filename + "_bins.csv")
     write_dict(items, filename + "_items.csv")
 
+def convert_silveira2013(filename):
+    w = words(filename)
+
+    bins = {"WIDTH": [], "HEIGHT": []}
+    items = {"WIDTH": [], "HEIGHT": [], "NEW_STACK": []}
+
+    next(w)
+    next(w)
+
+    itemtype_number = int(next(w))
+    bins["HEIGHT"].append(int(next(w)))
+    bins["WIDTH"].append(int(next(w)))
+    while next(w, None):
+        stack_size = int(next(w))
+        for i in range(stack_size):
+            items["HEIGHT"].append(int(next(w)))
+            items["WIDTH"].append(int(next(w)))
+            items["NEW_STACK"].append((1 if i == 0 else 0))
+
+    write_dict(bins, filename + "_bins.csv")
+    write_dict(items, filename + "_items.csv")
+
 def convert_roadef2018(filename):
     bins = {"WIDTH": [], "HEIGHT": []}
     for _ in range(100):
@@ -397,6 +419,42 @@ if __name__ == "__main__":
         convert_generic(f, "whnxx", "whc")
     for f in ["hifi2012/WL" + i + "H.txt" for i in ["1", "2", "3"]]:
         convert_generic(f, "whnxx", "whpc")
+
+    for f in ["silveira2013/2lcvrp/mod_2l_cvrp" + "{:02d}".format(i) + "{:02d}".format(j) + ".txt" \
+            for i in range(1, 37) \
+            for j in range(1, 6)]:
+        convert_silveira2013(f)
+    for f in ["silveira2013/bea/T" + str(k) + "/GCUT" + "{:02d}".format(i) +  ".TXT" \
+            for k in [20, 40, 60, 80, 100] \
+            for i in range(1, 14)]:
+        convert_silveira2013(f)
+    for f in ["silveira2013/bea/T" + str(k) + "/NGCUT" + "{:02d}".format(i) +  ".TXT" \
+            for k in [20, 40, 60, 80, 100] \
+            for i in range(1, 13)]:
+        convert_silveira2013(f)
+    for f in ["silveira2013/ben/T" + str(k) + "/BENG" + "{:02d}".format(i) +  ".TXT" \
+            for k in [20, 40, 60, 80, 100] \
+            for i in range(1, 11)]:
+        convert_silveira2013(f)
+    for f in ["silveira2013/bke/T" + str(k) + "/N" + str(i) + "Burke.txt" \
+            for k in [20, 40, 60, 80, 100] \
+            for i in range(1, 13)]:
+        convert_silveira2013(f)
+    for f in ["silveira2013/chr/T" + str(k) + "/CGCUT" + "{:02d}".format(i) +  ".TXT" \
+            for k in [20, 40, 60, 80, 100] \
+            for i in range(1, 4)]:
+        convert_silveira2013(f)
+    for f in ["silveira2013/hop/T" + str(k) + "/Hopper" + a + str(b) + c + ".txt" \
+            for k in [20, 40, 60, 80, 100] \
+            for a in ["N", "T"] \
+            for b in range(1, 8) \
+            for c in ["a", "b", "c", "d", "e"]]:
+        convert_silveira2013(f)
+    for f in ["silveira2013/htu/T" + str(k) + "/c" + str(i) + "-p" + str(j) + "(Hopper).txt" \
+            for k in [20, 40, 60, 80, 100] \
+            for i in range(1, 8) \
+            for j in range(1, 4)]:
+        convert_silveira2013(f)
 
     for wh in ["W500H1000", "W1000H2000"]:
         for n in [50, 100, 150]:

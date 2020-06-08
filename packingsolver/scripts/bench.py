@@ -119,6 +119,35 @@ datas_rectangle["leung2011"] = ["leung2011/zdf" + str(i) for i in range(1, 17)]
 datas_rectangle["hifi2012_cu"] = ["hifi2012/UL" + i + "H.txt" for i in ["1", "2", "3"]]
 datas_rectangle["hifi2012_cw"] = ["hifi2012/WL" + i + "H.txt" for i in ["1", "2", "3"]]
 
+datas_rectangle["silveira2013"] = \
+        ["silveira2013/2lcvrp/mod_2l_cvrp" + "{:02d}".format(i) + "{:02d}".format(j) + ".txt" \
+        for i in range(1, 37) \
+        for j in range(1, 6)] \
+        + ["silveira2013/bea/T" + str(k) + "/GCUT" + "{:02d}".format(i) +  ".TXT" \
+        for k in [20, 40, 60, 80, 100] \
+        for i in range(1, 14)] \
+        + ["silveira2013/bea/T" + str(k) + "/NGCUT" + "{:02d}".format(i) +  ".TXT" \
+        for k in [20, 40, 60, 80, 100] \
+        for i in range(1, 13)] \
+        + ["silveira2013/ben/T" + str(k) + "/BENG" + "{:02d}".format(i) +  ".TXT" \
+        for k in [20, 40, 60, 80, 100] \
+        for i in range(1, 11)] \
+        + ["silveira2013/bke/T" + str(k) + "/N" + str(i) + "Burke.txt" \
+        for k in [20, 40, 60, 80, 100] \
+        for i in range(1, 13)] \
+        + ["silveira2013/chr/T" + str(k) + "/CGCUT" + "{:02d}".format(i) +  ".TXT" \
+        for k in [20, 40, 60, 80, 100] \
+        for i in range(1, 4)] \
+        + ["silveira2013/hop/T" + str(k) + "/Hopper" + a + str(b) + c + ".txt" \
+        for k in [20, 40, 60, 80, 100] \
+        for a in ["N", "T"] \
+        for b in range(1, 8) \
+        for c in ["a", "b", "c", "d", "e"]] \
+        + ["silveira2013/htu/T" + str(k) + "/c" + str(i) + "-p" + str(j) + "(Hopper).txt" \
+        for k in [20, 40, 60, 80, 100] \
+        for i in range(1, 8) \
+        for j in range(1, 4)]
+
 datas_rectangle["clautiaux2018_cu"] = []
 datas_rectangle["clautiaux2018_cw"] = []
 for wh in ["W500H1000", "W1000H2000"]:
