@@ -32,7 +32,12 @@ def write_dict(dic, filename):
 def convert_generic(filename, s1 = "nwh", s2 = "whpc"):
     w = words(filename)
 
-    bins = {"WIDTH": [], "HEIGHT": []}
+    bins = {}
+    for c in s1:
+        if c == 'w':
+            bins["WIDTH"] = []
+        elif c == 'h':
+            bins["HEIGHT"] = []
     for c in s1:
         if c == 'n':
             itemtype_number = int(next(w))
@@ -272,6 +277,9 @@ if __name__ == "__main__":
     for f in ["oliveira1990/" + i for i in ["OF1", "OF2"]]:
         convert_generic(f, "whn", "whc")
 
+    for f in ["morabito1992/M" + str(i) for i in range(1, 6)]:
+        convert_generic(f, "whn", "wh")
+
     for f in ["tschoke1995/" + i for i in ["STS2", "STS4"]]:
         convert_generic(f, "whn", "whpc")
     for f in ["tschoke1995/" + i for i in ["STS2s", "STS4s"]]:
@@ -285,6 +293,8 @@ if __name__ == "__main__":
 
     for f in ["jakobs1996/" + i for i in ["j1", "j2", "JAKOBS1", "JAKOBS2", "JAKOBS3", "JAKOBS4", "JAKOBS5"]]:
         convert_generic(f, "nwh", "wh")
+
+    convert_generic("fayard1996/HZ1", "whn", "wh")
 
     for f in ["fekete1997/okp" + str(i) for i in range(1, 6)]:
         convert_generic(f, "whn", "whpc")
@@ -366,6 +376,9 @@ if __name__ == "__main__":
     for f in ["pinto2005/" + str(i) for i in [50, 100, 500, 1000, 5000, 10000, 15000]]:
         convert_generic(f, "whn", "wh")
 
+    for f in ["bortfeldt2006/AH" + str(i) for i in range(1, 361)]:
+        convert_generic(f, "whn", "wh")
+
     for f in ["cui2008/" + str(i) for i in range(1, 21)]:
         convert_generic(f, "nwh", "whcxp")
 
@@ -376,6 +389,9 @@ if __name__ == "__main__":
             for c in [1, 2, 3] for t1, t2 in [("S", "10_50"), ("L", "25_75")] \
             for n in [10, 20, 30, 40, 50] for i in range(1, 16)]:
         convert_generic(f, "nwh", "pwhc")
+
+    for f in ["leung2011/zdf" + str(i) for i in range(1, 17)]:
+        convert_generic(f, "nw", "xwh")
 
     for f in ["hifi2012/UL" + i + "H.txt" for i in ["1", "2", "3"]]:
         convert_generic(f, "whnxx", "whc")

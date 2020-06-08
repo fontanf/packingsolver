@@ -26,6 +26,8 @@ datas_rectangle["berkey1987"] = ["berkey1987/Class_" + "{:02d}".format(c) + ".2b
 
 datas_rectangle["oliveira1990"] = ["oliveira1990/" + i for i in ["OF1", "OF2"]]
 
+datas_rectangle["morabito1992"] = ["morabito1992/M" + str(i) for i in range(1, 6)]
+
 datas_rectangle["tschoke1995_cw"] = ["tschoke1995/" + i for i in ["STS2", "STS4"]]
 datas_rectangle["tschoke1995_cu"] = ["tschoke1995/" + i for i in ["STS2s", "STS4s"]]
 
@@ -34,6 +36,8 @@ datas_rectangle["hadjiconstantinou1995"] = ["hadjiconstantinou1995/" + i for i i
 datas_rectangle["kroger1995"] = ["kroger1995/KR-" + "{:02d}".format(i) + ".txt" for i in range(1, 13)]
 
 datas_rectangle["jakobs1996"] = ["jakobs1996/" + i for i in ["j1", "j2", "JAKOBS1", "JAKOBS2", "JAKOBS3", "JAKOBS4", "JAKOBS5"]]
+
+datas_rectangle["fayard1996"] = ["fayard1996/HZ1"]
 
 datas_rectangle["fekete1997"] =  ["fekete1997/okp" + str(i) for i in range(1, 6)]
 
@@ -91,6 +95,8 @@ datas_rectangle["imahori2005"] = ["imahori2005/" + a + b + c \
 
 datas_rectangle["pinto2005"] = ["pinto2005/" + str(i) for i in [50, 100, 500, 1000, 5000, 10000, 15000]]
 
+datas_rectangle["bortfeldt2006"] = ["bortfeldt2006/AH" + str(i) for i in range(1, 361)]
+
 datas_rectangle["hifi2008_cu"] = ["hifi2008/" + t + "T_" + i +  "H.txt" \
         for t in ["nice", "path"] \
         for i in ["25", "50", "100", "200", "500", "1000"]]
@@ -107,6 +113,8 @@ datas_rectangle["morabito2010"] = ["morabito2010/random_class_" + str(c) + "/R_"
         for t1, t2 in [("S", "10_50"), ("L", "25_75")] \
         for n in [10, 20, 30, 40, 50] \
         for i in range(1, 16)]
+
+datas_rectangle["leung2011"] = ["leung2011/zdf" + str(i) for i in range(1, 17)]
 
 datas_rectangle["hifi2012_cu"] = ["hifi2012/UL" + i + "H.txt" for i in ["1", "2", "3"]]
 datas_rectangle["hifi2012_cw"] = ["hifi2012/WL" + i + "H.txt" for i in ["1", "2", "3"]]
