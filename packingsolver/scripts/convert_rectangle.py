@@ -407,6 +407,11 @@ if __name__ == "__main__":
     for f in ["cintra2008/gcut" + str(i) + "d.txt" for i in range(1, 13)]:
         convert_cintra2008(f)
 
+    for f in ["imahori2010/i" + str(i) + "-" + str(j) \
+            for i in range(4, 21) \
+            for j in range(1, 11)]:
+        convert_generic(f, "nw", "xwh")
+
     for f in ["morabito2010/random class " + str(c) + "/R_" + str(n) + "_" + t1 + "/" + str(i) + "_" + str(n) + "_100_" + t2 + ".dat" \
             for c in [1, 2, 3] for t1, t2 in [("S", "10_50"), ("L", "25_75")] \
             for n in [10, 20, 30, 40, 50] for i in range(1, 16)]:
