@@ -108,6 +108,10 @@ datas_rectangle["cui2008"] = ["cui2008/" + str(i) for i in range(1, 21)]
 
 datas_rectangle["cintra2008"] = ["cintra2008/gcut" + str(i) + "d.txt" for i in range(1, 13)]
 
+datas_rectangle["imahori2010"] = ["imahori2010/i" + str(i) + "-" + str(j) \
+        for i in range(4, 21) \
+        for j in range(1, 11)]
+
 datas_rectangle["morabito2010"] = ["morabito2010/random_class_" + str(c) + "/R_" + str(n) + "_" + t1 + "/" + str(i) + "_" + str(n) + "_100_" + t2 + ".dat" \
         for c in [1, 2, 3] \
         for t1, t2 in [("S", "10_50"), ("L", "25_75")] \
