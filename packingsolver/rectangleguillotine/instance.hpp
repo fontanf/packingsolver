@@ -106,6 +106,7 @@ public:
     void set_bin_infinite_width();
     void set_bin_infinite_height();
     void set_bin_infinite_copies();
+    void set_item_infinite_copies();
     void set_unweighted();
 
     /**
