@@ -280,6 +280,30 @@ void Instance::set_bin_infinite_copies()
     all_bin_type_one_copy_ = false;
 }
 
+void Instance::set_item_infinite_copies()
+{
+    for (StackId s = 0; s < stack_number(); ++s) {
+        for (Item& item: stacks_[s]) {
+            item_number_    -= item.copies;
+            item_area_      -= item.copies * item.rect.area();
+            item_profit_    -= item.copies * item.profit;
+            length_sum_     -= item.copies * std::max(item.rect.w, item.rect.h);
+            stack_sizes_[s] -= item.copies;
+
+            ItemPos c = (bins_[0].rect.area() - 1) / item.rect.area() + 1;
+            item.copies = c;
+            items_[item.id].copies = c;
+
+            item_number_    += item.copies;
+            length_sum_     += item.copies * std::max(item.rect.w, item.rect.h);
+            item_area_      += item.copies * item.rect.area();
+            item_profit_    += item.copies * item.profit;
+            stack_sizes_[s] += item.copies;
+        }
+    }
+    all_item_type_one_copy_ = false;
+}
+
 void Instance::set_unweighted()
 {
     for (ItemTypeId j = 0; j < item_type_number(); ++j)

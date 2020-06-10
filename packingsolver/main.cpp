@@ -251,6 +251,7 @@ int main(int argc, char *argv[])
         ("bin-infinite-width", "")
         ("bin-infinite-height", "")
         ("bin-infinite-copies", "")
+        ("item-infinite-copies", "")
         ("unweighted", "")
 
         ("output,o",      po::value<std::string>(&output_path),      "Output path")
@@ -327,6 +328,8 @@ int main(int argc, char *argv[])
             instance.set_bin_infinite_height();
         if (vm.count("bin-infinite-copies"))
             instance.set_bin_infinite_copies();
+        if (vm.count("item-infinite-copies"))
+            instance.set_item_infinite_copies();
         if (vm.count("unweighted"))
             instance.set_unweighted();
 
