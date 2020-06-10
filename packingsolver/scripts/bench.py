@@ -152,6 +152,13 @@ datas_rectangle["silveira2013"] = \
         for i in range(1, 8) \
         for j in range(1, 4)]
 
+datas_rectangle["afsharian2014"] = ["afsharian2014/" + i + "M" + str(m) + "R" + str(r) + "N" + str(n) + "_D" + str(d) \
+        for i in ["75-75.txt/C12", "112-50.txt/C13", "150-150.txt/C11", "225-100.txt/C12", "300-300.txt/C21", "450-200.txt/C22"] \
+        for m in [5, 10, 15, 20, 25] \
+        for r in [6, 8, 10] \
+        for n in range(1, 16) \
+        for d in range(5)]
+
 datas_rectangle["clautiaux2018_cu"] = []
 datas_rectangle["clautiaux2018_cw"] = []
 for wh in ["W500H1000", "W1000H2000"]:
@@ -177,6 +184,11 @@ datas_rectangle["velasco2019"] = ["velasco2019/P" + str(cl) + "_" + str(l) + "_"
                          (3, 150, 150), (3, 250, 250), (4, 150, 150), (4, 250, 250)] \
         for m in [25, 50] \
         for i in range(1, 6)]
+
+datas_rectangle["goncalves2020"] = ["afsharian2014/" + i + "M" + str(m) + "R" + str(r) + "N15_D4" \
+        for i in ["75-75.txt/C12", "112-50.txt/C13", "150-150.txt/C11", "225-100.txt/C12", "300-300.txt/C21", "450-200.txt/C22"] \
+        for r in [6, 8, 10] \
+        for m in [5, 10, 15, 20, 25]]
 
 datas_rectangle["long2020"] = ["long2020/Instance_" + str(i) + ".txt" for i in range(1, 26)]
 

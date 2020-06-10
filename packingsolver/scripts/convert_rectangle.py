@@ -1,6 +1,7 @@
 import os
 import os.path
 import csv
+import re
 
 def words(filename):
     f = open(os.path.join("data", "rectangle_raw", filename), "r")
@@ -170,6 +171,54 @@ def convert_silveira2013(filename):
     write_dict(bins, filename + "_bins.csv")
     write_dict(items, filename + "_items.csv")
 
+def convert_afsharian2014(filename):
+    f = open(os.path.join("data", "rectangle_raw", filename), "r")
+    instances = {}
+    instance = None
+    while True:
+        line = f.readline()
+        if not line:
+            break
+        line_split = line.split()
+        if "static SmallObject[]" in line:
+            instance = line.split()[2].split('_')[0]
+            for d in range(5):
+                instances[instance + "_D" + str(d)] = {
+                        "bins": {"WIDTH": [], "HEIGHT": []},
+                        "items": {"WIDTH": [], "HEIGHT": [], "PROFIT": []},
+                        "defects": {"BIN": [], "X": [], "Y": [], "WIDTH": [], "HEIGHT": []},
+                }
+            continue
+        if "new Data(" in line :
+            instance = line.split('"')[1]
+            continue
+        if "new SmallObject(" in line:
+            numbers = re.findall(r'\d+', line)
+            for d in range(5):
+                instances[instance + "_D" + str(d)]["items"]["WIDTH"].append(numbers[0])
+                instances[instance + "_D" + str(d)]["items"]["HEIGHT"].append(numbers[1])
+                instances[instance + "_D" + str(d)]["items"]["PROFIT"].append(numbers[2])
+            continue
+        if "new Defect(" in line:
+            numbers = re.findall(r'\d+', line)
+            instances[instance]["defects"]["BIN"].append(0)
+            instances[instance]["defects"]["X"].append(numbers[0])
+            instances[instance]["defects"]["Y"].append(numbers[1])
+            instances[instance]["defects"]["WIDTH"].append(numbers[2])
+            instances[instance]["defects"]["HEIGHT"].append(numbers[3])
+            continue
+        if "}, " in line and "_D1" in instance:
+            numbers = re.findall(r'\d+', line)
+            instance = instance.split('_')[0]
+            for d in range(5):
+                instances[instance + "_D" + str(d)]["bins"]["WIDTH"].append(numbers[0])
+                instances[instance + "_D" + str(d)]["bins"]["HEIGHT"].append(numbers[1])
+            continue
+
+    for k, v in instances.items():
+        for k2, v2 in v.items():
+            write_dict(v2, filename + "/" + k + "_" + k2 + ".csv")
+
 def convert_roadef2018(filename):
     bins = {"WIDTH": [], "HEIGHT": []}
     for _ in range(100):
@@ -229,7 +278,7 @@ def convert_martin2019b(filename):
         items["HEIGHT"].append(int(next(w)))
         items["PROFIT"].append(int(next(w)))
         int(next(w))
-        write_dict(items, filename + "_items.csv")
+    write_dict(items, filename + "_items.csv")
 
     defect_number = int(next(w))
     defects = {"BIN": [], "X": [], "Y": [], "WIDTH": [], "HEIGHT": []}
@@ -407,10 +456,10 @@ if __name__ == "__main__":
     for f in ["cintra2008/gcut" + str(i) + "d.txt" for i in range(1, 13)]:
         convert_cintra2008(f)
 
-    for f in ["imahori2010/i" + str(i) + "-" + str(j) \
-            for i in range(4, 21) \
-            for j in range(1, 11)]:
-        convert_generic(f, "nw", "xwh")
+    # for f in ["imahori2010/i" + str(i) + "-" + str(j) \
+            # for i in range(4, 21) \
+            # for j in range(1, 11)]:
+        # convert_generic(f, "nw", "xwh")
 
     for f in ["morabito2010/random class " + str(c) + "/R_" + str(n) + "_" + t1 + "/" + str(i) + "_" + str(n) + "_100_" + t2 + ".dat" \
             for c in [1, 2, 3] for t1, t2 in [("S", "10_50"), ("L", "25_75")] \
@@ -460,6 +509,9 @@ if __name__ == "__main__":
             for i in range(1, 8) \
             for j in range(1, 4)]:
         convert_silveira2013(f)
+
+    for f in ["afsharian2014/" + i for i in ["75-75.txt", "112-50.txt", "150-150.txt", "225-100.txt", "300-300.txt", "450-200.txt"]]:
+        convert_afsharian2014(f)
 
     for wh in ["W500H1000", "W1000H2000"]:
         for n in [50, 100, 150]:
