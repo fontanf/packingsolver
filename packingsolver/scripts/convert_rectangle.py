@@ -394,6 +394,10 @@ if __name__ == "__main__":
         convert_generic(f, "whn", "whpc")
     for f in ["fayard1998/CU" + str(i) for i in range(1, 12)]:
         convert_generic(f, "whn", "whc")
+    for f in ["fayard1998/UW" + str(i) for i in range(1, 12)]:
+        convert_generic(f, "whn", "whp")
+    for f in ["fayard1998/UU" + str(i) for i in range(1, 12)]:
+        convert_generic(f, "whn", "wh")
 
     for f in ["martello1998/Class_" + "{:02d}".format(c) + ".2bp" for c in range(7, 11)]:
         convert_berkey1987(f)
@@ -423,6 +427,10 @@ if __name__ == "__main__":
     for f in ["hopper2001a/C" + str(i) + "_" + str(j) for i in range(1, 8) for j in range(1, 4)]:
         convert_generic(f, "nwh", "wh")
 
+    for f in ["alvarez2002/ATP1" + str(i) for i in range(0, 10)]:
+        convert_generic(f, "whn", "wh")
+    for f in ["alvarez2002/ATP2" + str(i) for i in range(0, 10)]:
+        convert_generic(f, "whn", "whp")
     for f in ["alvarez2002/ATP3" + str(i) for i in range(0, 10)]:
         convert_generic(f, "whn", "whc")
     for f in ["alvarez2002/ATP4" + str(i) for i in range(0, 10)]:
