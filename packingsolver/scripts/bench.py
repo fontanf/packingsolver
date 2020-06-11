@@ -50,6 +50,8 @@ datas_rectangle["hifi1998"] = ["hifi1998/SCP" + str(i) for i in range(1, 26)]
 
 datas_rectangle["fayard1998_cw"] = ["fayard1998/CW" + str(i) for i in range(1, 12)]
 datas_rectangle["fayard1998_cu"] = ["fayard1998/CU" + str(i) for i in range(1, 12)]
+datas_rectangle["fayard1998_uw"] = ["fayard1998/UW" + str(i) for i in range(1, 12)]
+datas_rectangle["fayard1998_uu"] = ["fayard1998/UU" + str(i) for i in range(1, 12)]
 
 datas_rectangle["martello1998"] = ["martello1998/Class_" + "{:02d}".format(c) + ".2bp_" + str(n) + "_" + str(i) \
         for c in range(7, 11) \
@@ -75,6 +77,8 @@ datas_rectangle["hopper2001a"] = ["hopper2001a/C" + str(i) + "_" + str(j) \
         for i in range(1, 8) \
         for j in range(1, 4)]
 
+datas_rectangle["alvarez2002_uu"] = ["alvarez2002/ATP1" + str(i) for i in range(0, 10)]
+datas_rectangle["alvarez2002_uw"] = ["alvarez2002/ATP2" + str(i) for i in range(0, 10)]
 datas_rectangle["alvarez2002_cu"] = ["alvarez2002/ATP3" + str(i) for i in range(0, 10)]
 datas_rectangle["alvarez2002_cw"] = ["alvarez2002/ATP4" + str(i) for i in range(0, 10)]
 
