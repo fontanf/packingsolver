@@ -149,6 +149,27 @@ def convert_cintra2008(filename):
     write_dict(bins, filename + "_bins.csv")
     write_dict(items, filename + "_items.csv")
 
+def convert_egeblad2009(filename):
+    bins = {"WIDTH": [], "HEIGHT": []}
+    items = {"WIDTH": [], "HEIGHT": [], "PROFIT": [], "COPIES": []}
+
+    f = open("data/rectangle_raw/" + filename, "r")
+    line = f.readline().split(",")
+    bins["WIDTH"].append(int(line[1]))
+    bins["HEIGHT"].append(int(line[2]))
+    while True:
+        l = f.readline()
+        if not l:
+            break
+        line = l.split(",")
+        items["WIDTH"].append(int(line[2]))
+        items["HEIGHT"].append(int(line[3]))
+        items["PROFIT"].append(int(line[4]))
+        items["COPIES"].append(int(line[5]))
+
+    write_dict(bins, filename + "_bins.csv")
+    write_dict(items, filename + "_items.csv")
+
 def convert_silveira2013(filename):
     w = words(filename)
 
@@ -463,6 +484,13 @@ if __name__ == "__main__":
 
     for f in ["cintra2008/gcut" + str(i) + "d.txt" for i in range(1, 13)]:
         convert_cintra2008(f)
+
+    for f in ["egeblad2009/ep-" + i + "-" + a + "-" + b + "-" + j + ".2kp" \
+            for i in ["30", "50", "100", "200"] \
+            for a in ["D", "S", "T", "U", "W"] \
+            for b in ["C", "R"] \
+            for j in ["25", "75"]]:
+        convert_egeblad2009(f)
 
     # for f in ["imahori2010/i" + str(i) + "-" + str(j) \
             # for i in range(4, 21) \

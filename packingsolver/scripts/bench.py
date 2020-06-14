@@ -112,6 +112,12 @@ datas_rectangle["cui2008"] = ["cui2008/" + str(i) for i in range(1, 21)]
 
 datas_rectangle["cintra2008"] = ["cintra2008/gcut" + str(i) + "d.txt" for i in range(1, 13)]
 
+datas_rectangle["egeblad2009"] = ["egeblad2009/ep-" + i + "-" + a + "-" + b + "-" + j + ".2kp" \
+        for i in ["30", "50", "100", "200"] \
+        for a in ["D", "S", "T", "U", "W"] \
+        for b in ["C", "R"] \
+        for j in ["25", "75"]]
+
 datas_rectangle["imahori2010"] = ["imahori2010/i" + str(i) + "-" + str(j) \
         for i in range(4, 21) \
         for j in range(1, 11)]
