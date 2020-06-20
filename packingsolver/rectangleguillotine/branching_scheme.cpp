@@ -8,6 +8,8 @@
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 
+/****************************** BranchingScheme *******************************/
+
 BranchingScheme::BranchingScheme(const Instance& instance, const Parameters& parameters):
     instance_(instance), parameters_(parameters)
 {
@@ -354,7 +356,8 @@ bool BranchingScheme::Insertion::operator==(const Insertion& insertion) const
             && (x1_max == insertion.x1_max)
             && (y2_max == insertion.y2_max)
             && (z1 == insertion.z1)
-            && (z2 == insertion.z2));
+            && (z2 == insertion.z2)
+            );
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
@@ -527,11 +530,11 @@ bool BranchingScheme::Node::bound(const Solution& sol_best) const
     } case Objective::StripPackingWidth: {
         if (!sol_best.full())
             return false;
-        return waste() >= sol_best.waste();
+        return (std::max(width(), waste() + instance().item_area() - 1) / (instance().bin(0).width(CutOrientation::Vertical) + 1)) >= sol_best.width();
     } case Objective::StripPackingHeight: {
         if (!sol_best.full())
             return false;
-        return waste() >= sol_best.waste();
+        return (std::max(height(), waste() + instance().item_area() - 1) / (instance().bin(0).width(CutOrientation::Horinzontal) + 1)) >= sol_best.height();
     } default: {
         assert(false);
         std::cerr << "\033[31m" << "ERROR, branching scheme rectangle::BranchingScheme does not implement objective \"" << sol_best.instance().objective() << "\"" << "\033[0m" << std::endl;
