@@ -212,7 +212,7 @@ struct BranchingScheme::Front
 
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Front& front);
 
-/************************************ Node ************************************/
+/************************************ JRX *************************************/
 
 struct JRX
 {
@@ -220,6 +220,8 @@ struct JRX
     bool rotate;
     Length x;
 };
+
+/************************************ Node ************************************/
 
 class BranchingScheme::Node
 {
