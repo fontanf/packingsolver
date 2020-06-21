@@ -33,14 +33,14 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDFm1I)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 500, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 0, .j2 = -1, .df = -1, .x1 = 500, .y2 = 1000, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
 
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(root, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDfm1II)
@@ -57,22 +57,22 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDfm1II)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 3000, .y2 = 3210, .x3 = 3000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 6000, .y2 = 3210, .x3 = 6000, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     BranchingScheme::Insertion i2 = {.j1 = 2, .j2 = -1, .df = -1, .x1 = 3000, .y2 = 3210, .x3 = 3000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is2 = branching_scheme.children(node_2, info);
     EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
+    auto node_3 = branching_scheme.child(node_2, i2);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf0)
@@ -103,12 +103,12 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf0)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     std::vector<BranchingScheme::Insertion> is {
         //{.j1 = 1, .j2 = -1, .df = 2, .x1 = 2500, .y2 = 3210, .x3 = 2500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
@@ -116,7 +116,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf0)
         {.j1 = 1, .j2 = -1, .df = 0, .x1 = 2500, .y2 = 1000, .x3 = 2500, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 1, .j2 = -1, .df = 0, .x1 = 2000, .y2 = 1500, .x3 = 2000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_1, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf1I)
@@ -153,24 +153,24 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1I)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 4000, .y2 = 1000, .x3 = 4000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 2, .j2 = -1, .df = 1, .x1 = 4000, .y2 = 2100, .x3 = 3000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 2, .j2 = -1, .df = 1, .x1 = 4000, .y2 = 3000, .x3 = 2100, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
 
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf1II)
@@ -204,23 +204,23 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1II)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 4000, .y2 = 1000, .x3 = 4000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 2, .j2 = -1, .df = 1, .x1 = 4020, .y2 = 2100, .x3 = 3990, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 0},
         //{.j1 = 2, .j2 = -1, .df = 0, .x1 = 5100, .y2 = 2990, .x3 = 5100, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf1III)
@@ -255,23 +255,23 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1III)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 4000, .y2 = 1000, .x3 = 4000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 2, .j2 = -1, .df = 1, .x1 = 4030, .y2 = 2100, .x3 = 4010, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 0},
         //{.j1 = 2, .j2 = -1, .df = 0, .x1 = 5100, .y2 = 3010, .x3 = 5100, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf1IV)
@@ -306,23 +306,23 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1IV)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 4000, .y2 = 1000, .x3 = 4000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 2, .j2 = -1, .df = 1, .x1 = 4020, .y2 = 2100, .x3 = 4020, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         //{.j1 = 2, .j2 = -1, .df = 0, .x1 = 5100, .y2 = 3020, .x3 = 5100, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf1V)
@@ -359,28 +359,28 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1V)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 4000, .y2 = 1000, .x3 = 4000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     BranchingScheme::Insertion i2 = {.j1 = 2, .j2 = -1, .df = 1, .x1 = 4030, .y2 = 2100, .x3 = 4010, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is2 = branching_scheme.children(node_2, info);
     EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
+    auto node_3 = branching_scheme.child(node_2, i2);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 3, .j2 = -1, .df = 1, .x1 = 4050, .y2 = 3210, .x3 = 4050, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 3, .j2 = -1, .df = 0, .x1 = 5140, .y2 = 3050, .x3 = 5140, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_3, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteI)
@@ -416,29 +416,29 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteI)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 2000, .y2 = 1500, .x3 = 2000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 1, .x1 = 2000, .y2 = 3000, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     BranchingScheme::Insertion i2 = {.j1 = 2, .j2 = -1, .df = 2, .x1 = 2030, .y2 = 3000, .x3 = 2010, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is2 = branching_scheme.children(node_2, info);
     EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
+    auto node_3 = branching_scheme.child(node_2, i2);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 3, .j2 = -1, .df = 2, .x1 = 3010, .y2 = 3000, .x3 = 3010, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 3, .j2 = -1, .df = 0, .x1 = 3530, .y2 = 1000, .x3 = 3530, .x1_max = 5530, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 3, .j2 = -1, .df = 0, .x1 = 3030, .y2 = 1500, .x3 = 3030, .x1_max = 5530, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_3, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteII)
@@ -472,17 +472,17 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteII)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 2000, .y2 = 1000, .x3 = 2000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 1, .x1 = 2025, .y2 = 2010, .x3 = 2005, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 2, .j2 = -1, .df = 2, .x1 = 3205, .y2 = 3010, .x3 = 3205, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
@@ -490,7 +490,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteII)
         {.j1 = 2, .j2 = -1, .df = 0, .x1 = 4035, .y2 = 1200, .x3 = 4035, .x1_max = 5525, .y2_max = 3210, .z1 = 0, .z2 = 0},
         //{.j1 = 2, .j2 = -1, .df = 0, .x1 = 3225, .y2 = 2010, .x3 = 3225, .x1_max = 5525, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf2I)
@@ -524,28 +524,28 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2I)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 3000, .y2 = 1000, .x3 = 3000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     BranchingScheme::Insertion i2 = {.j1 = 2, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 3210, .x3 = 1500, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is2 = branching_scheme.children(node_2, info);
     EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
+    auto node_3 = branching_scheme.child(node_2, i2);
 
     std::vector<BranchingScheme::Insertion> is {
         //{.j1 = 3, .j2 = -1, .df = 2, .x1 = 3000, .y2 = 3210, .x3 = 2510, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 3, .j2 = -1, .df = 2, .x1 = 3000, .y2 = 3210, .x3 = 2200, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_3, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf2II)
@@ -579,28 +579,28 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2II)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 3000, .y2 = 1000, .x3 = 3000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     BranchingScheme::Insertion i2 = {.j1 = 2, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2010, .x3 = 1500, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is2 = branching_scheme.children(node_2, info);
     EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
+    auto node_3 = branching_scheme.child(node_2, i2);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 3, .j2 = -1, .df = 2, .x1 = 3000, .y2 = 2010, .x3 = 2500, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 3, .j2 = -1, .df = 2, .x1 = 3000, .y2 = 2030, .x3 = 2200, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 1},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_3, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf2III)
@@ -634,28 +634,28 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2III)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 3000, .y2 = 1000, .x3 = 3000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     BranchingScheme::Insertion i2 = {.j1 = 2, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2000, .x3 = 1500, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is2 = branching_scheme.children(node_2, info);
     EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
+    auto node_3 = branching_scheme.child(node_2, i2);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 3, .j2 = -1, .df = 2, .x1 = 3000, .y2 = 2000, .x3 = 2510, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 3, .j2 = -1, .df = 2, .x1 = 3000, .y2 = 2030, .x3 = 2200, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 1},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_3, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf2IV)
@@ -689,28 +689,28 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2IV)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 3000, .y2 = 1000, .x3 = 3000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     BranchingScheme::Insertion i2 = {.j1 = 2, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2500, .x3 = 2000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is2 = branching_scheme.children(node_2, info);
     EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
+    auto node_3 = branching_scheme.child(node_2, i2);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 3, .j2 = -1, .df = 2, .x1 = 4000, .y2 = 2500, .x3 = 4000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 3, .j2 = -1, .df = 2, .x1 = 3000, .y2 = 3000, .x3 = 3000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_3, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionDf2V)
@@ -743,23 +743,23 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2V)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 1500, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 2500, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 2, .j2 = -1, .df = 2, .x1 = 2000, .y2 = 2500, .x3 = 2000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 2, .j2 = -1, .df = 2, .x1 = 1000, .y2 = 3000, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionX1)
@@ -800,24 +800,24 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX1)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 980, .y2 = 500, .x3 = 980, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 1, .x1 = 1010, .y2 = 1000, .x3 = 990, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 2, .j2 = -1, .df = 2, .x1 = 1990, .y2 = 1000, .x3 = 1990, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 2, .j2 = -1, .df = 1, .x1 = 1020, .y2 = 1500, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0},
         {.j1 = 2, .j2 = -1, .df = 1, .x1 = 1010, .y2 = 2000, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionX2)
@@ -839,32 +839,32 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX2)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 431, .y2 = 658, .x3 = 431, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 2, .x1 = 862, .y2 = 1170, .x3 = 862, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     BranchingScheme::Insertion i2 = {.j1 = 2, .j2 = -1, .df = 1, .x1 = 862, .y2 = 2224, .x3 = 303, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is2 = branching_scheme.children(node_2, info);
     EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
+    auto node_3 = branching_scheme.child(node_2, i2);
 
     BranchingScheme::Insertion i3 = {.j1 = 3, .j2 = -1, .df = 2, .x1 = 891, .y2 = 2569, .x3 = 871, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is3 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is3 = branching_scheme.children(node_3, info);
     EXPECT_NE(std::find(is3.begin(), is3.end(), i3), is3.end());
-    node.apply_insertion(i3, info);
+    auto node_4 = branching_scheme.child(node_3, i3);
 
     BranchingScheme::Insertion i4 = {.j1 = 4, .j2 = -1, .df = 1, .x1 = 892, .y2 = 3114, .x3 = 872, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is4 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is4 = branching_scheme.children(node_4, info);
     EXPECT_NE(std::find(is4.begin(), is4.end(), i4), is4.end());
-    node.apply_insertion(i4, info);
+    auto node_5 = branching_scheme.child(node_4, i4);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionX3)
@@ -902,24 +902,24 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX3)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 3000, .y2 = 3210, .x3 = 3000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
-    EXPECT_EQ(node.x1_curr(), 3000);
+    auto node_1 = branching_scheme.child(root, i0);
+    EXPECT_EQ(node_1->x1_curr(), 3000);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 5960, .y2 = 1000, .x3 = 5960, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
-    EXPECT_EQ(node.x1_prev(), 3000);
+    auto node_2 = branching_scheme.child(node_1, i1);
+    EXPECT_EQ(node_2->x1_prev(), 3000);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 2, .j2 = -1, .df = 1, .x1 = 6000, .y2 = 2000, .x3 = 5970, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionY1)
@@ -958,17 +958,17 @@ TEST(RectangleGuillotineBranchingScheme, InsertionY1)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 500, .y2 = 980, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 2, .x1 = 1000, .y2 = 1010, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 2, .j2 = -1, .df = 2, .x1 = 2000, .y2 = 1010, .x3 = 2000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 1},
@@ -976,7 +976,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionY1)
         {.j1 = 2, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1510, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 2, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 2010, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionY2)
@@ -1007,17 +1007,17 @@ TEST(RectangleGuillotineBranchingScheme, InsertionY2)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3000, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 1, .j2 = -1, .df = 0, .x1 = 4200, .y2 = 1000, .x3 = 4200, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_1, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, Insertion4CutDfm1)
@@ -1058,21 +1058,21 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDfm1)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = 3, .df = -1, .x1 = 1000, .y2 = 600, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 2};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
-    std::vector<BranchingScheme::Insertion> is2 {
+    std::vector<BranchingScheme::Insertion> is1 {
         {.j1 = 1, .j2 = -1, .df = 2, .x1 = 2001, .y2 = 600, .x3 = 2001, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 2},
         {.j1 = 1, .j2 = -1, .df = 1, .x1 = 1021, .y2 = 1100, .x3 = 1001, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0},
         {.j1 = 1, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1601, .x3 = 500, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 4, .j2 = -1, .df = 1, .x1 = 1023, .y2 = 1190, .x3 = 1003, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 0},
         {.j1 = 4, .j2 = -1, .df = 1, .x1 = 1000, .y2 = 1603, .x3 = 590, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is2);
+    EXPECT_EQ(branching_scheme.children(node_1, info), is1);
 }
 
 TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf0)
@@ -1114,17 +1114,17 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf0)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 5, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 0, .j2 = 3, .df = 0, .x1 = 2000, .y2 = 600, .x3 = 2000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 2};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is2 {
         {.j1 = 1, .j2 = -1, .df = 2, .x1 = 3001, .y2 = 600, .x3 = 3001, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 2},
@@ -1133,7 +1133,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf0)
         {.j1 = 4, .j2 = -1, .df = 1, .x1 = 2023, .y2 = 1190, .x3 = 2003, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 0},
         {.j1 = 4, .j2 = -1, .df = 1, .x1 = 2000, .y2 = 1603, .x3 = 1590, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is2);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is2);
 }
 
 TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf1)
@@ -1175,22 +1175,22 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf1)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 3210, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 3000, .y2 = 1000, .x3 = 3000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     BranchingScheme::Insertion i2 = {.j1 = 2, .j2 = 5, .df = 1, .x1 = 3000, .y2 = 1600, .x3 = 2000, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 2};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is2 = branching_scheme.children(node_2, info);
     EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
+    auto node_3 = branching_scheme.child(node_2, i2);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 3, .j2 = -1, .df = 2, .x1 = 3021, .y2 = 1600, .x3 = 3001, .x1_max = 4500, .y2_max = 3210, .z1 = 1, .z2 = 2},
@@ -1199,7 +1199,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf1)
         {.j1 = 6, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2190, .x3 = 2003, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
         {.j1 = 6, .j2 = -1, .df = 1, .x1 = 3000, .y2 = 2603, .x3 = 1590, .x1_max = 4500, .y2_max = 3210, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_3, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf2)
@@ -1246,32 +1246,32 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf2)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 3000, .y2 = 3210, .x3 = 3000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 0, .x1 = 6000, .y2 = 2000, .x3 = 6000, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     BranchingScheme::Insertion i2 = {.j1 = 2, .j2 = -1, .df = 1, .x1 = 6000, .y2 = 2500, .x3 = 4000, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is2 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is2 = branching_scheme.children(node_2, info);
     EXPECT_NE(std::find(is2.begin(), is2.end(), i2), is2.end());
-    node.apply_insertion(i2, info);
+    auto node_3 = branching_scheme.child(node_2, i2);
 
     BranchingScheme::Insertion i3 = {.j1 = 3, .j2 = 6, .df = 2, .x1 = 6000, .y2 = 2600, .x3 = 5000, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 2};
-    std::vector<BranchingScheme::Insertion> is3 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is3 = branching_scheme.children(node_3, info);
     EXPECT_NE(std::find(is3.begin(), is3.end(), i3), is3.end());
-    node.apply_insertion(i3, info);
+    auto node_4 = branching_scheme.child(node_3, i3);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 4, .j2 = -1, .df = 2, .x1 = 6000, .y2 = 2600, .x3 = 6000, .x1_max = 6000, .y2_max = 3210, .z1 = 0, .z2 = 2},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_4, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, PlateRotationI)
@@ -1305,7 +1305,7 @@ TEST(RectangleGuillotineBranchingScheme, PlateRotationI)
     p.set_roadef2018();
     p.first_stage_orientation = CutOrientation::Any;
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 0, .j2 = -1, .df = -1, .x1 = 1000, .y2 = 500, .x3 = 1000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0},
@@ -1314,7 +1314,7 @@ TEST(RectangleGuillotineBranchingScheme, PlateRotationI)
         {.j1 = 0, .j2 = -1, .df = -2, .x1 = 1000, .y2 = 500, .x3 = 1000, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0},
     };
 
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(root, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionSymmetry)
@@ -1350,22 +1350,22 @@ TEST(RectangleGuillotineBranchingScheme, InsertionSymmetry)
     p.cut_type_2 = CutType2::NonExact;
     p.no_item_rotation = true;
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 70, .y2 = 100, .x3 = 70, .x1_max = 100, .y2_max = 200, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 1, .x1 = 70, .y2 = 180, .x3 = 40, .x1_max = 100, .y2_max = 200, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is2 {
         {.j1 = 2, .j2 = -1, .df = 2, .x1 = 80, .y2 = 180, .x3 = 80, .x1_max = 100, .y2_max = 200, .z1 = 0, .z2 = 0},
     };
-    EXPECT_EQ(node.children(info), is2);
+    EXPECT_EQ(branching_scheme.children(node_2, info), is2);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteI)
@@ -1400,13 +1400,13 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteI)
     p.set_roadef2018();
     p.cut_type_1 = CutType1::TwoStagedGuillotine;
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 0, .j2 = -1, .df = -2, .x1 = 3210, .y2 = 3200, .x3 = 500, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0},
     };
 
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(root, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteII)
@@ -1445,14 +1445,14 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteII)
     p.set_roadef2018();
     p.cut_type_1 = CutType1::TwoStagedGuillotine;
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = 0, .j2 = -1, .df = -2, .x1 = 3210, .y2 = 3200, .x3 = 250, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0},
         {.j1 = -1, .j2 = -1, .df = -2, .x1 = 3210, .y2 = 250, .x3 = 3200, .x1_max = 3210, .y2_max = 6000, .z1 = 1, .z2 = 1},
     };
 
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(root, info), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, InsertionUpdate)
@@ -1493,12 +1493,12 @@ TEST(RectangleGuillotineBranchingScheme, InsertionUpdate)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -1, .x1 = 3000, .y2 = 1500, .x3 = 3000, .x1_max = 3500, .y2_max = 3210, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     std::vector<BranchingScheme::Insertion> is {
         {.j1 = -1, .j2 = -1, .df = 2, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
@@ -1506,6 +1506,6 @@ TEST(RectangleGuillotineBranchingScheme, InsertionUpdate)
         {.j1 = -1, .j2 = -1, .df = 1, .x1 = 3020, .y2 = 1600, .x3 = 3015, .x1_max = 3500, .y2_max = 3210, .z1 = 1, .z2 = 1},
         //{.j1 = -1, .j2 = -1, .df = 0, .x1 = 3020, .y2 = 1600, .x3 = 3020, .x1_max = 6000, .y2_max = 3210, .z1 = 1, .z2 = 1},
     };
-    EXPECT_EQ(node.children(info), is);
+    EXPECT_EQ(branching_scheme.children(node_1, info), is);
 }
 

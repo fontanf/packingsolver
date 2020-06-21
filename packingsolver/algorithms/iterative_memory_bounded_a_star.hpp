@@ -60,8 +60,8 @@ void IterativeMemoryBoundedAStar<Solution, BranchingScheme>::run()
 
         // Initialize queue
         auto comp = branching_scheme_.compare(guide_id_);
-        std::multiset<Node, decltype(comp)> q(comp);
-        q.insert(Node(branching_scheme_));
+        std::multiset<std::shared_ptr<const Node>, decltype(comp)> q(comp);
+        q.insert(branching_scheme_.root());
 
         while (!q.empty()) {
             node_number_++;
@@ -74,43 +74,42 @@ void IterativeMemoryBoundedAStar<Solution, BranchingScheme>::run()
             }
 
             // Get node from the queue
-            Node node_cur(*q.begin());
+            auto node_cur = *q.begin();
             q.erase(q.begin());
-            LOG_FOLD(info_, "node_cur" << std::endl << node_cur);
+            LOG_FOLD(info_, "node_cur" << std::endl << *node_cur);
 
             // Bound
-            if (node_cur.bound(sol_best_)) {
+            if (node_cur->bound(sol_best_)) {
                 LOG_FOLD_END(info_, "bound ×");
                 continue;
             }
 
-            for (const Insertion& insertion: node_cur.children(info_)) {
+            for (const Insertion& insertion: node_cur->children(info_)) {
                 LOG(info_, insertion << std::endl);
-                Node node_tmp(node_cur);
-                node_tmp.apply_insertion(insertion, info_);
+                auto child = branching_scheme_.child(node_cur, insertion);
 
                 // Bound
-                if (node_tmp.bound(sol_best_)) {
+                if (child->bound(sol_best_)) {
                     LOG(info_, " bound ×" << std::endl);
                     continue;
                 }
 
                 // Update best solution
-                if (sol_best_ < node_tmp) {
+                if (sol_best_ < *child) {
                     std::stringstream ss;
                     ss << "IMBA* (thread " << thread_id_ << ") q " << q_sizemax_;
-                    sol_best_.update(node_tmp.convert(sol_best_), ss, info_);
+                    sol_best_.update(child->convert(sol_best_), ss, info_);
                 }
 
                 // Add child to the queue
                 LOG(info_, " add" << std::endl);
-                if (!node_tmp.full()) {
+                if (!child->full()) {
                     // If the insertion would make the queue go above the
                     // threshold, we only add the node if it is not worse than
                     // the worse node of the queue.
-                    if ((Counter)q.size() < q_sizemax_ || comp(node_tmp, *(std::prev(q.end())))) {
+                    if ((Counter)q.size() < q_sizemax_ || comp(child, *(std::prev(q.end())))) {
                         // Insertion
-                        auto it = q.insert(node_tmp);
+                        auto it = q.insert(child);
                         // Check if the node dominates some of its neighbors.
                         while (std::next(it) != q.end() && branching_scheme_.dominates(*it, *std::next(it)))
                             q.erase(std::next(it));

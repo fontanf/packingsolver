@@ -51,8 +51,8 @@ void AStar<Solution, BranchingScheme>::run()
 
     // Initialize queue
     auto comp = branching_scheme_.compare(guide_id_);
-    std::multiset<Node, decltype(comp)> q(comp);
-    q.insert(Node(branching_scheme_));
+    std::multiset<std::shared_ptr<const Node>, decltype(comp)> q(comp);
+    q.insert(branching_scheme_.root());
 
     while (!q.empty()) {
         node_number_++;
@@ -65,38 +65,37 @@ void AStar<Solution, BranchingScheme>::run()
         }
 
         // Get node from the queue
-        Node node_cur(*q.begin());
+        auto node_cur = *q.begin();
         q.erase(q.begin());
-        LOG_FOLD(info_, "node_cur" << std::endl << node_cur);
+        LOG_FOLD(info_, "node_cur" << std::endl << *node_cur);
 
         // Bound
-        if (node_cur.bound(sol_best_)) {
+        if (node_cur->bound(sol_best_)) {
             LOG(info_, " bound ×" << std::endl);
             continue;
         }
 
-        for (const Insertion& insertion: node_cur.children(info_)) {
+        for (const Insertion& insertion: branching_scheme_.children(node_cur, info_)) {
             LOG(info_, insertion << std::endl);
-            Node node_tmp(node_cur);
-            node_tmp.apply_insertion(insertion, info_);
+            auto child = branching_scheme_.child(node_cur, insertion);
             //LOG_FOLD(info_, "node_tmp" << std::endl << node_tmp);
 
             // Bound
-            if (node_tmp.bound(sol_best_)) {
+            if (child->bound(sol_best_)) {
                 LOG(info_, " bound ×" << std::endl);
                 continue;
             }
 
             // Update best solution
-            if (sol_best_ < node_tmp) {
+            if (sol_best_ < *child) {
                 std::stringstream ss;
                 ss << "A* (thread " << thread_id_ << ")";
-                sol_best_.update(node_tmp.convert(sol_best_), ss, info_);
+                sol_best_.update(child->convert(sol_best_), ss, info_);
             }
 
             // Add child to the queue
-            if (!node_tmp.full())
-                q.insert(node_tmp);
+            if (!child->full())
+                q.insert(child);
         }
 
         LOG_FOLD_END(info_, "");
