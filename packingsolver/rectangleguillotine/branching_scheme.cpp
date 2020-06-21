@@ -138,137 +138,144 @@ void BranchingScheme::Parameters::set_predefined(std::string str)
     }
 }
 
-std::function<bool(const BranchingScheme::Node&, const BranchingScheme::Node&)> BranchingScheme::compare(GuideId guide_id)
+std::function<bool(const std::shared_ptr<const BranchingScheme::Node>&, const std::shared_ptr<const BranchingScheme::Node>&)> BranchingScheme::compare(GuideId guide_id)
 {
     switch(guide_id) {
     case 0: {
-        return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
+        return [](const std::shared_ptr<const BranchingScheme::Node>& node_1, const std::shared_ptr<const BranchingScheme::Node>& node_2)
         {
-            if (node_1.area() == 0)
-                return node_2.area() != 0;
-            if (node_2.area() == 0)
+            if (node_1->area() == 0)
+                return node_2->area() != 0;
+            if (node_2->area() == 0)
                 return false;
-            if (node_1.waste_percentage() != node_2.waste_percentage())
-                return node_1.waste_percentage() < node_2.waste_percentage();
-            for (StackId s = 0; s < node_1.instance().stack_number(); ++s)
-                if (node_1.pos_stack(s) != node_2.pos_stack(s))
-                    return node_1.pos_stack(s) < node_2.pos_stack(s);
+            if (node_1->waste_percentage() != node_2->waste_percentage())
+                return node_1->waste_percentage() < node_2->waste_percentage();
+            for (StackId s = 0; s < node_1->instance().stack_number(); ++s)
+                if (node_1->pos_stack(s) != node_2->pos_stack(s))
+                    return node_1->pos_stack(s) < node_2->pos_stack(s);
             return false;
         };
     } case 1: {
-        return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
+        return [](const std::shared_ptr<const BranchingScheme::Node>& node_1, const std::shared_ptr<const BranchingScheme::Node>& node_2)
         {
-            if (node_1.area() == 0)
-                return node_2.area() != 0;
-            if (node_2.area() == 0)
+            if (node_1->area() == 0)
+                return node_2->area() != 0;
+            if (node_2->area() == 0)
                 return false;
-            if (node_1.item_number() == 0)
-                return node_2.item_number() != 0;
-            if (node_2.item_number() == 0)
+            if (node_1->item_number() == 0)
+                return node_2->item_number() != 0;
+            if (node_2->item_number() == 0)
                 return true;
-            if (node_1.waste_percentage() / node_1.mean_item_area()
-                    != node_2.waste_percentage() / node_2.mean_item_area())
-                return node_1.waste_percentage() / node_1.mean_item_area()
-                    < node_2.waste_percentage() / node_2.mean_item_area();
-            for (StackId s = 0; s < node_1.instance().stack_number(); ++s)
-                if (node_1.pos_stack(s) != node_2.pos_stack(s))
-                    return node_1.pos_stack(s) < node_2.pos_stack(s);
+            if (node_1->waste_percentage() / node_1->mean_item_area()
+                    != node_2->waste_percentage() / node_2->mean_item_area())
+                return node_1->waste_percentage() / node_1->mean_item_area()
+                    < node_2->waste_percentage() / node_2->mean_item_area();
+            for (StackId s = 0; s < node_1->instance().stack_number(); ++s)
+                if (node_1->pos_stack(s) != node_2->pos_stack(s))
+                    return node_1->pos_stack(s) < node_2->pos_stack(s);
             return false;
         };
     } case 2: {
-        return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
+        return [](const std::shared_ptr<const BranchingScheme::Node>& node_1, const std::shared_ptr<const BranchingScheme::Node>& node_2)
         {
-            if (node_1.area() == 0)
-                return node_2.area() != 0;
-            if (node_2.area() == 0)
+            if (node_1->area() == 0)
+                return node_2->area() != 0;
+            if (node_2->area() == 0)
                 return false;
-            if (node_1.item_number() == 0)
-                return node_2.item_number() != 0;
-            if (node_2.item_number() == 0)
+            if (node_1->item_number() == 0)
+                return node_2->item_number() != 0;
+            if (node_2->item_number() == 0)
                 return true;
-            if ((0.1 + node_1.waste_percentage()) / node_1.mean_item_area()
-                    != (0.1 + node_2.waste_percentage()) / node_2.mean_item_area())
-                return (0.1 + node_1.waste_percentage()) / node_1.mean_item_area()
-                    < (0.1 + node_2.waste_percentage()) / node_2.mean_item_area();
-            for (StackId s = 0; s < node_1.instance().stack_number(); ++s)
-                if (node_1.pos_stack(s) != node_2.pos_stack(s))
-                    return node_1.pos_stack(s) < node_2.pos_stack(s);
+            if ((0.1 + node_1->waste_percentage()) / node_1->mean_item_area()
+                    != (0.1 + node_2->waste_percentage()) / node_2->mean_item_area())
+                return (0.1 + node_1->waste_percentage()) / node_1->mean_item_area()
+                    < (0.1 + node_2->waste_percentage()) / node_2->mean_item_area();
+            for (StackId s = 0; s < node_1->instance().stack_number(); ++s)
+                if (node_1->pos_stack(s) != node_2->pos_stack(s))
+                    return node_1->pos_stack(s) < node_2->pos_stack(s);
             return false;
         };
     } case 3: {
-        return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
+        return [](const std::shared_ptr<const BranchingScheme::Node>& node_1, const std::shared_ptr<const BranchingScheme::Node>& node_2)
         {
-            if (node_1.area() == 0)
-                return node_2.area() != 0;
-            if (node_2.area() == 0)
+            if (node_1->area() == 0)
+                return node_2->area() != 0;
+            if (node_2->area() == 0)
                 return false;
-            if (node_1.item_number() == 0)
-                return node_2.item_number() != 0;
-            if (node_2.item_number() == 0)
+            if (node_1->item_number() == 0)
+                return node_2->item_number() != 0;
+            if (node_2->item_number() == 0)
                 return true;
-            if ((0.1 + node_1.waste_percentage()) / node_1.mean_squared_item_area()
-                    != (0.1 + node_2.waste_percentage()) / node_2.mean_squared_item_area())
-                return (0.1 + node_1.waste_percentage()) / node_1.mean_squared_item_area()
-                    < (0.1 + node_2.waste_percentage()) / node_2.mean_squared_item_area();
-            for (StackId s = 0; s < node_1.instance().stack_number(); ++s)
-                if (node_1.pos_stack(s) != node_2.pos_stack(s))
-                    return node_1.pos_stack(s) < node_2.pos_stack(s);
+            if ((0.1 + node_1->waste_percentage()) / node_1->mean_squared_item_area()
+                    != (0.1 + node_2->waste_percentage()) / node_2->mean_squared_item_area())
+                return (0.1 + node_1->waste_percentage()) / node_1->mean_squared_item_area()
+                    < (0.1 + node_2->waste_percentage()) / node_2->mean_squared_item_area();
+            for (StackId s = 0; s < node_1->instance().stack_number(); ++s)
+                if (node_1->pos_stack(s) != node_2->pos_stack(s))
+                    return node_1->pos_stack(s) < node_2->pos_stack(s);
             return false;
         };
     } case 4: {
-        return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
+        return [](const std::shared_ptr<const BranchingScheme::Node>& node_1, const std::shared_ptr<const BranchingScheme::Node>& node_2)
         {
-            if (node_1.profit() == 0)
-                return node_2.profit() != 0;
-            if (node_2.profit() == 0)
+            if (node_1->profit() == 0)
+                return node_2->profit() != 0;
+            if (node_2->profit() == 0)
                 return true;
-            if ((double)node_1.area() / node_1.profit() != (double)node_2.area() / node_2.profit())
-                return (double)node_1.area() / node_1.profit() < (double)node_2.area() / node_2.profit();
-            for (StackId s = 0; s < node_1.instance().stack_number(); ++s)
-                if (node_1.pos_stack(s) != node_2.pos_stack(s))
-                    return node_1.pos_stack(s) < node_2.pos_stack(s);
+            if ((double)node_1->area() / node_1->profit() != (double)node_2->area() / node_2->profit())
+                return (double)node_1->area() / node_1->profit() < (double)node_2->area() / node_2->profit();
+            for (StackId s = 0; s < node_1->instance().stack_number(); ++s)
+                if (node_1->pos_stack(s) != node_2->pos_stack(s))
+                    return node_1->pos_stack(s) < node_2->pos_stack(s);
             return false;
         };
     } case 5: {
-        return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
+        return [](const std::shared_ptr<const BranchingScheme::Node>& node_1, const std::shared_ptr<const BranchingScheme::Node>& node_2)
         {
-            if (node_1.profit() == 0)
-                return node_2.profit() != 0;
-            if (node_2.profit() == 0)
+            if (node_1->profit() == 0)
+                return node_2->profit() != 0;
+            if (node_2->profit() == 0)
                 return true;
-            if (node_1.item_number() == 0)
-                return node_2.item_number() != 0;
-            if (node_2.item_number() == 0)
+            if (node_1->item_number() == 0)
+                return node_2->item_number() != 0;
+            if (node_2->item_number() == 0)
                 return true;
-            if ((double)node_1.area() / node_1.profit() / node_1.mean_item_area()
-                    != (double)node_2.area() / node_2.profit() / node_2.mean_item_area())
-                return (double)node_1.area() / node_1.profit() / node_1.mean_item_area()
-                    < (double)node_2.area() / node_2.profit() / node_2.mean_item_area();
-            for (StackId s = 0; s < node_1.instance().stack_number(); ++s)
-                if (node_1.pos_stack(s) != node_2.pos_stack(s))
-                    return node_1.pos_stack(s) < node_2.pos_stack(s);
+            if ((double)node_1->area() / node_1->profit() / node_1->mean_item_area()
+                    != (double)node_2->area() / node_2->profit() / node_2->mean_item_area())
+                return (double)node_1->area() / node_1->profit() / node_1->mean_item_area()
+                    < (double)node_2->area() / node_2->profit() / node_2->mean_item_area();
+            for (StackId s = 0; s < node_1->instance().stack_number(); ++s)
+                if (node_1->pos_stack(s) != node_2->pos_stack(s))
+                    return node_1->pos_stack(s) < node_2->pos_stack(s);
             return false;
         };
     } case 6: {
-        return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
+        return [](const std::shared_ptr<const BranchingScheme::Node>& node_1, const std::shared_ptr<const BranchingScheme::Node>& node_2)
         {
-            return node_1.waste() < node_2.waste();
+            return node_1->waste() < node_2->waste();
         };
     } case 7: {
-        return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
+        return [](const std::shared_ptr<const BranchingScheme::Node>& node_1, const std::shared_ptr<const BranchingScheme::Node>& node_2)
         {
-            return node_1.ubkp() < node_2.ubkp();
+            return node_1->ubkp() < node_2->ubkp();
         };
     } case 8: {
-        return [](const BranchingScheme::Node& node_1, const BranchingScheme::Node& node_2)
+        return [](const std::shared_ptr<const BranchingScheme::Node>& node_1, const std::shared_ptr<const BranchingScheme::Node>& node_2)
         {
-            if (node_1.ubkp() != node_2.ubkp())
-                return node_1.ubkp() < node_2.ubkp();
-            return node_1.waste() < node_2.waste();
+            if (node_1->ubkp() != node_2->ubkp())
+                return node_1->ubkp() < node_2->ubkp();
+            return node_1->waste() < node_2->waste();
         };
     }
     }
     return 0;
+}
+
+std::vector<BranchingScheme::Insertion> BranchingScheme::children(
+        const std::shared_ptr<const BranchingScheme::Node>& father,
+        Info& info) const
+{
+    return father->children(info);
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
@@ -306,13 +313,13 @@ bool BranchingScheme::dominates(const Front& f1, const Front& f2) const
     return true;
 }
 
-bool BranchingScheme::dominates(const Node& node_1, const Node& node_2) const
+bool BranchingScheme::dominates(const std::shared_ptr<const Node>& node_1, const std::shared_ptr<const Node>& node_2) const
 {
-    if (node_2.items().empty() || node_2.items().back().node != (SolutionNodeId)node_2.nodes().size() - 1)
+    if (node_2->last_insertion_defect())
         return false;
-    if (node_1.pos_stack() != node_2.pos_stack())
+    if (node_1->pos_stack() != node_2->pos_stack())
         return false;
-    return dominates(node_1.front(), node_2.front());
+    return dominates(node_1->front(), node_2->front());
 }
 
 /******************************** SolutionNode ********************************/
@@ -409,48 +416,38 @@ BranchingScheme::Node::Node(const BranchingScheme& branching_scheme):
 
 BranchingScheme::Node::Node(const BranchingScheme::Node& node):
     branching_scheme_(node.branching_scheme_),
-    nodes_(node.nodes_),
+    father_(node.father_),
+    insertion_(node.insertion_),
     pos_stack_(node.pos_stack_),
-    items_(node.items_),
+    bin_number_(node.bin_number_),
     first_stage_orientation_(node.first_stage_orientation_),
+    item_number_(node.item_number_),
     item_area_(node.item_area_),
     squared_item_area_(node.squared_item_area_),
     current_area_(node.current_area_),
     waste_(node.waste_),
     profit_(node.profit_),
-    x1_curr_(node.x1_curr_),
     x1_prev_(node.x1_prev_),
-    y2_curr_(node.y2_curr_),
     y2_prev_(node.y2_prev_),
-    x3_curr_(node.x3_curr_),
-    x1_max_(node.x1_max_),
-    y2_max_(node.y2_max_),
-    z1_(node.z1_),
-    z2_(node.z2_),
     subplate2curr_items_above_defect_(node.subplate2curr_items_above_defect_)
 { }
 
 BranchingScheme::Node& BranchingScheme::Node::operator=(const BranchingScheme::Node& node)
 {
     if (this != &node) {
-        nodes_                             = node.nodes_;
-        items_                             = node.items_;
+        father_                            = node.father_;
+        insertion_                         = node.insertion_;
         pos_stack_                         = node.pos_stack_;
+        bin_number_                        = node.bin_number_;
         first_stage_orientation_           = node.first_stage_orientation_;
+        item_number_                       = node.item_number_;
         item_area_                         = node.item_area_;
         squared_item_area_                 = node.squared_item_area_;
         current_area_                      = node.current_area_;
         waste_                             = node.waste_;
         profit_                            = node.profit_;
-        x1_curr_                           = node.x1_curr_;
         x1_prev_                           = node.x1_prev_;
-        y2_curr_                           = node.y2_curr_;
         y2_prev_                           = node.y2_prev_;
-        x3_curr_                           = node.x3_curr_;
-        x1_max_                            = node.x1_max_;
-        y2_max_                            = node.y2_max_;
-        z1_                                = node.z1_;
-        z2_                                = node.z2_;
         subplate2curr_items_above_defect_  = node.subplate2curr_items_above_defect_;
     }
     return *this;
@@ -485,17 +482,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     for (StackId s = 0; s < node.instance().stack_number(); ++s)
         os << " " << node.pos_stack(s);
     os << std::endl;
-
-    for (SolutionNodeId id = 0; id < (SolutionNodeId)node.nodes().size(); ++id) {
-        const BranchingScheme::SolutionNode& solution_node = node.node(id);
-        os << "id " << id
-            << "\tf " << solution_node.f
-            << "\tp " << solution_node.p << std::endl;
-    }
-    os << std::endl;
-
-    for (const BranchingScheme::NodeItem& node_item: node.items())
-        os << "j " << node_item.j << "\tnode " << node_item.node << std::endl;
 
     return os;
 }
@@ -556,19 +542,21 @@ Profit BranchingScheme::Node::ubkp() const
     }
 }
 
-/****************************** apply_insertion *******************************/
-
-void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& insertion, Info& info)
+BranchingScheme::Node::Node(const std::shared_ptr<const BranchingScheme::Node>& father, Insertion insertion):
+    Node(*father)
 {
-    LOG_FOLD_START(info, "apply_insertion " << insertion << std::endl);
     assert(insertion.df <= -1 || insertion.x1 >= x1_curr());
 
+    father_ = father;
+
     // Update bin_number_
-    if (insertion.df < 0)
-        first_stage_orientation_.push_back(last_bin_orientation(insertion.df));
+    if (insertion.df < 0) {
+        bin_number_++;
+        first_stage_orientation_ = last_bin_orientation(insertion.df);
+    }
 
     BinPos i = bin_number() - 1;
-    CutOrientation o = first_stage_orientation_.back();
+    CutOrientation o = first_stage_orientation_;
     Length h = instance().bin(i).height(o);
     Length w = instance().bin(i).width(o);
 
@@ -596,11 +584,11 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
         y2_prev_ = 0;
         break;
     } case 0: {
-        x1_prev_ = x1_curr_;
+        x1_prev_ = insertion_.x1;
         y2_prev_ = 0;
         break;
     } case 1: {
-        y2_prev_ = y2_curr_;
+        y2_prev_ = insertion_.y2;
         break;
     } case 2: {
         break;
@@ -609,57 +597,21 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
         break;
     }
     }
-    x1_curr_ = insertion.x1;
-    y2_curr_ = insertion.y2;
-    x3_curr_ = insertion.x3;
-
-    // Update x1_max_, y2_max_, z1_ and z2_
-    x1_max_ = insertion.x1_max;
-    y2_max_ = insertion.y2_max;
-    z1_     = insertion.z1;
-    z2_     = insertion.z2;
-
-    // Update nodes_
-    switch (insertion.df) {
-    case -1: case -2: {
-        nodes_.push_back({.f = static_cast<SolutionNodeId>(- bin_number()), .p = insertion.x1}) ;
-        nodes_.push_back({.f = static_cast<SolutionNodeId>(nodes_.size() - 1), .p = insertion.y2}) ;
-        nodes_.push_back({.f = static_cast<SolutionNodeId>(nodes_.size() - 1), .p = insertion.x3}) ;
-        break;
-    } case 0: {
-        nodes_.push_back({.f = static_cast<SolutionNodeId>(- bin_number()), .p = insertion.x1}) ;
-        nodes_.push_back({.f = static_cast<SolutionNodeId>(nodes_.size() - 1), .p = insertion.y2}) ;
-        nodes_.push_back({.f = static_cast<SolutionNodeId>(nodes_.size() - 1), .p = insertion.x3}) ;
-        break;
-    } case 1: {
-        nodes_[nodes_[nodes_.back().f].f].p = insertion.x1;
-        nodes_.push_back({.f = nodes_[nodes_.back().f].f, .p = insertion.y2}) ;
-        nodes_.push_back({.f = static_cast<SolutionNodeId>(nodes_.size() - 1), .p = insertion.x3}) ;
-        break;
-    } case 2: {
-        nodes_[nodes_[nodes_.back().f].f].p = insertion.x1;
-        nodes_[nodes_.back().f].p = insertion.y2;
-        nodes_.push_back({.f = nodes_.back().f, .p = insertion.x3}) ;
-        break;
-    } default: {
-        assert(false);
-        break;
-    }
-    }
+    insertion_ = insertion;
 
     // Update items_, pos_stack_, items_area_, squared_item_area_ and profit_
     if (insertion.j1 != -1) {
         const Item& item = instance().item(insertion.j1);
-        items_.push_back({.j = insertion.j1, .node = static_cast<SolutionNodeId>(nodes_.size() - 1)});
         pos_stack_[item.stack]++;
+        item_number_       += 1;
         item_area_         += item.rect.area();
         squared_item_area_ += item.rect.area() * item.rect.area();
         profit_            += item.profit;
     }
     if (insertion.j2 != -1) {
         const Item& item = instance().item(insertion.j2);
-        items_.push_back({.j = insertion.j2, .node = static_cast<SolutionNodeId>(nodes_.size() - 1)});
         pos_stack_[item.stack]++;
+        item_number_       += 1;
         item_area_         += item.rect.area();
         squared_item_area_ += item.rect.area() * item.rect.area();
         profit_            += item.profit;
@@ -677,8 +629,6 @@ void BranchingScheme::Node::apply_insertion(const BranchingScheme::Insertion& in
     }
     waste_ = current_area_ - item_area_;
     assert(waste_ >= 0);
-
-    LOG_FOLD_END(info, "apply_insertion");
 }
 
 /********************************** children **********************************/
@@ -707,7 +657,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::Node::children(Info& in
 
     // Compute df_max
     Depth df_max = 2;
-    if (node_number() == 0)
+    if (father_ == nullptr)
         df_max = -1;
 
     LOG(info, "df_max " << df_max << " df_min " << df_min << std::endl);
@@ -748,10 +698,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::Node::children(Info& in
                 continue;
 
             ItemTypeId j = instance().item(s, pos_stack_[s]).id;
-
-            if (df == 2 && branching_scheme().cut_type_2() == CutType2::Homogenous)
-                if (j != items_.back().j)
-                    continue;
 
             if (!branching_scheme().oriented(j)) {
                 bool b = instance().item(j).rect.w > instance().item(j).rect.h;
@@ -812,7 +758,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::Node::children(Info& in
             }
         }
 
-        if (items_.empty() || items_.back().node == (SolutionNodeId)nodes_.size() - 1) {
+        if (father_ == nullptr || insertion_.j1 != -1 || insertion_.j2 != -1) {
             const std::vector<Defect>& defects = instance().bin(last_bin(df)).defects;
             for (const Defect& defect: defects)
                 if (instance().left(defect, o) >= x && instance().bottom(defect, o) >= y)
@@ -860,7 +806,7 @@ Area BranchingScheme::Node::waste(const Insertion& insertion) const
 BinPos BranchingScheme::Node::last_bin(Depth df) const
 {
     if (df <= -1) {
-        return (node_number() == 0)? 0: bin_number();
+        return (bin_number() == 0)? 0: bin_number();
     } else {
         return bin_number() - 1;
     }
@@ -874,7 +820,7 @@ CutOrientation BranchingScheme::Node::last_bin_orientation(Depth df) const
     } case -2: {
         return CutOrientation::Horinzontal;
     } default: {
-        return first_stage_orientation_.back();
+        return first_stage_orientation_;
     }
     }
 }
@@ -965,7 +911,7 @@ Length BranchingScheme::Node::x1_max(Depth df) const
     } case 1: {
         BinPos i = last_bin(df);
         CutOrientation po = last_bin_orientation(df);
-        Length x = x1_max_;
+        Length x = x1_max();
         if (!branching_scheme().cut_through_defects())
             for (const Defect& k: instance().bin(i).defects)
                 if (instance().bottom(k, po) < y2_curr() && instance().top(k, po) > y2_curr())
@@ -974,7 +920,7 @@ Length BranchingScheme::Node::x1_max(Depth df) const
                             x = instance().left(k, po);
         return x;
     } case 2: {
-        return x1_max_;
+        return x1_max();
     } default: {
         return -1;
     }
@@ -1003,7 +949,7 @@ Length BranchingScheme::Node::y2_max(Depth df, Length x3) const
 {
     BinPos i = last_bin(df);
     CutOrientation o = last_bin_orientation(df);
-    Length y = (df == 2)? y2_max_: instance().bin(i).height(o);
+    Length y = (df == 2)? y2_max(): instance().bin(i).height(o);
     if (!branching_scheme().cut_through_defects())
         for (const Defect& k: instance().bin(i).defects)
             if (instance().left(k, o) < x3 && instance().right(k, o) > x3)
@@ -1537,10 +1483,50 @@ SolutionNodeId sort(std::vector<Solution::Node>& res,
 
 Solution BranchingScheme::Node::convert(const Solution&) const
 {
+    // Get nodes, items and bins
+    std::vector<SolutionNode> nodes;
+    std::vector<NodeItem> items;
+    std::vector<CutOrientation> first_stage_orientations;
+    std::vector<const BranchingScheme::Node*> descendents {this};
+    while (descendents.back()->father() != nullptr)
+        descendents.push_back(descendents.back()->father().get());
+    descendents.pop_back();
+
+    std::vector<SolutionNodeId> nodes_curr(4, -1);
+    for (auto it = descendents.rbegin(); it != descendents.rend(); ++it) {
+        const Node* n = *it;
+        auto insertion = n->insertion();
+
+        if (insertion.df < 0)
+            first_stage_orientations.push_back(last_bin_orientation(insertion.df));
+
+        SolutionNodeId id = (insertion.df >= 0)? nodes.size() + 2 - insertion.df: nodes.size() + 2;
+        if (insertion.j1 != -1)
+            items.push_back({.j = insertion.j1, .node = id});
+        if (insertion.j2 != -1)
+            items.push_back({.j = insertion.j2, .node = id});
+
+        // Add new solution nodes
+        SolutionNodeId f = (insertion.df <= 0)? -first_stage_orientations.size(): nodes_curr[insertion.df];
+        Depth          d = (insertion.df < 0)? 0: insertion.df;
+        SolutionNodeId c = nodes.size() - 1;
+        do {
+            c++;
+            nodes.push_back({.f = f});
+            f = c;
+            d++;
+            nodes_curr[d] = nodes.size() - 1;
+        } while (d != 3);
+
+        nodes[nodes_curr[1]].p = insertion.x1;
+        nodes[nodes_curr[2]].p = insertion.y2;
+        nodes[nodes_curr[3]].p = insertion.x3;
+    }
+
     std::vector<SolutionNodeId> bins;
-    std::vector<Solution::Node> res(nodes().size());
+    std::vector<Solution::Node> res(nodes.size());
     for (BinPos i = 0; i < bin_number(); ++i) {
-        CutOrientation o = first_stage_orientation(i);
+        CutOrientation o = first_stage_orientations[i];
         Length w = instance().bin(i).width(o);
         Length h = instance().bin(i).height(o);
         SolutionNodeId id = res.size();
@@ -1548,22 +1534,22 @@ Solution BranchingScheme::Node::convert(const Solution&) const
         res.push_back({.id = id, .f = -1, .d = 0, .i = i,
                 .l = 0, .r = w, .b = 0, .t = h, .children = {}, .j = -1});
     }
-    for (SolutionNodeId id = 0; id < (SolutionNodeId)nodes().size(); ++id) {
-        SolutionNodeId f = (node(id).f >= 0)? node(id).f: bins[(-node(id).f)-1];
+    for (SolutionNodeId id = 0; id < (SolutionNodeId)nodes.size(); ++id) {
+        SolutionNodeId f = (nodes[id].f >= 0)? nodes[id].f: bins[(-nodes[id].f)-1];
         Depth d = res[f].d + 1;
         res[id].id = id;
         res[id].f  = f;
         res[id].d  = d;
         res[id].i  = res[f].i;
         if (d == 1 || d == 3) {
-            res[id].r  = node(id).p;
+            res[id].r  = nodes[id].p;
             res[id].l  = (res[f].children.size() == 0)?
                 res[f].l:
                 res[res[f].children.back()].r;
             res[id].b  = res[f].b;
             res[id].t  = res[f].t;
         } else { // d == 2
-            res[id].t  = node(id).p;
+            res[id].t  = nodes[id].p;
             res[id].b  = (res[f].children.size() == 0)?
                 res[f].b:
                 res[res[f].children.back()].t;
@@ -1573,7 +1559,7 @@ Solution BranchingScheme::Node::convert(const Solution&) const
         res[f].children.push_back(id);
     }
 
-    for (SolutionNodeId f = 0; f < (SolutionNodeId)(nodes().size()+bins.size()); ++f) {
+    for (SolutionNodeId f = 0; f < (SolutionNodeId)(nodes.size()+bins.size()); ++f) {
         SolutionNodeId nb = res[f].children.size();
         if (nb == 0)
             continue;
@@ -1609,8 +1595,8 @@ Solution BranchingScheme::Node::convert(const Solution&) const
         res[id].j  = -1;
 
     for (Counter j_pos = 0; j_pos < item_number(); ++j_pos) {
-        ItemTypeId     j  = items_[j_pos].j;
-        SolutionNodeId id = items_[j_pos].node;
+        ItemTypeId     j  = items[j_pos].j;
+        SolutionNodeId id = items[j_pos].node;
         Length         wj = instance().item(j).rect.w;
         Length         hj = instance().item(j).rect.h;
         if (res[id].children.size() > 0) { // Second item of the third-level sub-plate
@@ -1622,7 +1608,7 @@ Solution BranchingScheme::Node::convert(const Solution&) const
         } else {
             Length t = (res[id].r - res[id].l == wj)? hj: wj;
             BinPos i = res[id].i;
-            CutOrientation o = first_stage_orientation(i);
+            CutOrientation o = first_stage_orientations[i];
             DefectId k = instance().rect_intersects_defect(
                     res[id].l, res[id].r, res[id].b, res[id].b + t, i, o);
             if (k == -1) { // First item of the third-level sub-plate
@@ -1686,7 +1672,7 @@ Solution BranchingScheme::Node::convert(const Solution&) const
         res2.rbegin()->j = -3;
 
     for (Solution::Node& n: res2) {
-        CutOrientation o = first_stage_orientation(n.i);
+        CutOrientation o = first_stage_orientations[n.i];
         if (o == CutOrientation::Horinzontal) {
             Length tmp_1 = n.l;
             Length tmp_2 = n.r;

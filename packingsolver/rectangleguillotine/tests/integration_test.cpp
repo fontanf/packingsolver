@@ -40,20 +40,20 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     p.set_roadef2018();
     p.cut_type_1 = CutType1::TwoStagedGuillotine;
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
+    auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -2, .x1 = 3210, .y2 = 3000, .x3 = 3210, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
-    node.apply_insertion(i0, info);
+    auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 1, .x1 = 3210, .y2 = 6000, .x3 = 500, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = node.children(info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
-    node.apply_insertion(i1, info);
+    auto node_2 = branching_scheme.child(node_1, i1);
 
     Solution solution(instance);
-    solution = node.convert(solution);
+    solution = node_2->convert(solution);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC1)

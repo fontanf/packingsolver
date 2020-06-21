@@ -17,8 +17,8 @@ class BranchingScheme
 public:
 
     /** Subclasses */
-    class Node;
     struct Insertion;
+    class Node;
     struct SolutionNode;
     struct NodeItem;
     struct Front;
@@ -58,6 +58,10 @@ public:
     /** Destructor */
     virtual ~BranchingScheme() { }
 
+    std::shared_ptr<const Node> root() const { return std::make_shared<Node>(*this); }
+    std::vector<Insertion> children(const std::shared_ptr<const Node>& father, Info& info) const;
+    std::shared_ptr<const Node> child(const std::shared_ptr<const Node>& father, const Insertion& insertion) const { return std::make_shared<Node>(father, insertion); }
+
     /**
      * Getters
      */
@@ -79,10 +83,10 @@ public:
     bool no_oriented_items() const { return no_oriented_items_; }
     StackId stack_pred(StackId s) const { return stack_pred_[s]; }
 
-    std::function<bool(const BranchingScheme::Node&, const BranchingScheme::Node&)> compare(GuideId guide_id);
+    std::function<bool(const std::shared_ptr<const BranchingScheme::Node>&, const std::shared_ptr<const BranchingScheme::Node>&)> compare(GuideId guide_id);
 
     bool dominates(const Front& front_1, const Front& front_2) const;
-    bool dominates(const Node& node_1, const Node& node_2) const;
+    bool dominates(const std::shared_ptr<const Node>& node_1, const std::shared_ptr<const Node>& node_2) const;
 
 private:
 
@@ -181,7 +185,7 @@ struct BranchingScheme::Insertion
      * least the minimum waste.
      * * 1: the width of the last 1-cut can be increased by any value.
      */
-    Counter z1;
+    Counter z1 = 0;
 
     /**
      * z2_
@@ -191,7 +195,7 @@ struct BranchingScheme::Insertion
      * * 2: the height of the last 2-cut cannot be increased (case where it
      * contains of 4-cut with 2 items).
      */
-    Counter z2;
+    Counter z2 = 0;
 
     bool operator==(const Insertion& insertion) const;
     bool operator!=(const Insertion& insertion) const { return !(*this == insertion); }
@@ -236,9 +240,10 @@ public:
     /** Assignment operator. */
     Node& operator=(const Node& solution);
 
+    Node(const std::shared_ptr<const BranchingScheme::Node>& father, Insertion insertion);
+
     /** Modifiers. */
     std::vector<Insertion> children(Info& info) const;
-    void apply_insertion(const Insertion& insertion, Info& info);
 
     /** Desctructor. */
     ~Node() { };
@@ -249,10 +254,12 @@ public:
 
     inline const BranchingScheme& branching_scheme() const { return branching_scheme_; }
     inline const Instance& instance() const { return branching_scheme_.instance(); }
+    inline const std::shared_ptr<const Node>& father() const { return father_; }
+    inline const Insertion& insertion() const { return insertion_; }
 
-    inline ItemPos item_number()              const { return items_.size(); }
+    inline ItemPos item_number()              const { return item_number_; }
     inline double  item_percentage()          const { return (double)item_number() / instance().item_number(); }
-    inline BinPos  bin_number()               const { return first_stage_orientation_.size(); }
+    inline BinPos  bin_number()               const { return bin_number_; }
     inline Area    area()                     const { return current_area_; }
     inline double  mean_area()                const { return (double)area() / item_number(); }
     inline double  mean_item_area()           const { return (double)item_area() / item_number(); }
@@ -269,30 +276,25 @@ public:
     inline Length  height()                   const { return (branching_scheme().cut_type_1() == CutType1::ThreeStagedGuillotine)? x1_curr(): y2_curr(); }
     Profit ubkp() const;
 
-    inline CutOrientation last_bin_orientation() const { return first_stage_orientation_.back(); }
-    inline CutOrientation first_stage_orientation(BinPos i) const { return first_stage_orientation_[i]; }
+    inline CutOrientation last_bin_orientation() const { return first_stage_orientation_; }
+    inline bool last_insertion_defect() const { return bin_number_ > 0 && insertion_.j1 == -1 && insertion_.j2 == -1; }
     inline bool full() const { return item_number() == instance().item_number(); }
 
     /** Previous and current cuts. */
-    inline Length x1_curr() const { return x1_curr_; }
+    inline Length x1_curr() const { return insertion_.x1; }
+    inline Length y2_curr() const { return insertion_.y2; }
+    inline Length x3_curr() const { return insertion_.x3; }
     inline Length x1_prev() const { return x1_prev_; }
-    inline Length y2_curr() const { return y2_curr_; }
     inline Length y2_prev() const { return y2_prev_; }
-    inline Length x3_curr() const { return x3_curr_; }
 
-    inline Length x1_max() const { return x1_max_; }
-    inline Length y2_max() const { return y2_max_; }
-    inline Counter z1() const { return z1_; }
-    inline Counter z2() const { return z2_; }
+    inline Length x1_max() const { return insertion_.x1_max; }
+    inline Length y2_max() const { return insertion_.y2_max; }
+    inline Counter z1() const { return insertion_.z1; }
+    inline Counter z2() const { return insertion_.z2; }
 
-    inline Front front() const { return {.i = static_cast<BinPos>(bin_number() - 1), .o = first_stage_orientation(bin_number() - 1), .x1_prev = x1_prev(), .x3_curr = x3_curr(), .x1_curr = x1_curr(), .y2_prev = y2_prev(), .y2_curr = y2_curr()}; }
+    inline Front front() const { return {.i = static_cast<BinPos>(bin_number() - 1), .o = first_stage_orientation_, .x1_prev = x1_prev(), .x3_curr = x3_curr(), .x1_curr = x1_curr(), .y2_prev = y2_prev(), .y2_curr = y2_curr()}; }
 
     /** Getters for unit tests. */
-    SolutionNodeId node_number() const { return nodes_.size(); }
-    const SolutionNode& node(SolutionNodeId id) const { return nodes_[id]; }
-    const std::vector<SolutionNode>& nodes() const { return nodes_; }
-    const NodeItem& item(ItemPos j) const { return items_[j]; }
-    const std::vector<NodeItem>& items() const { return items_; }
     ItemPos pos_stack(StackId s) const { return pos_stack_[s]; }
     std::vector<ItemPos> pos_stack() const { return pos_stack_; }
 
@@ -310,9 +312,8 @@ private:
      */
 
     const BranchingScheme& branching_scheme_;
-
-    /** Tree representation of the solutions */
-    std::vector<SolutionNode> nodes_ = {};
+    std::shared_ptr<const BranchingScheme::Node> father_ = nullptr;
+    Insertion insertion_;
 
     /**
      * pos_stack_[s] == k iff the solution contains items 0 to k - 1 in the
@@ -320,34 +321,18 @@ private:
      */
     std::vector<ItemPos> pos_stack_ = {};
 
-    /**
-     * items_[j].j is the jth item of the the solution.
-     * items_[j].node is the index of its associated node of nodes_.
-     */
-    std::vector<NodeItem> items_ = {};
+    BinPos bin_number_ = 0;
+    CutOrientation first_stage_orientation_;
 
-    /**
-     * first_stage_orientation_[i_pos] is the orientation of the first stage
-     * of the i_pos th bin of the node.
-     */
-    std::vector<CutOrientation> first_stage_orientation_;
-
+    ItemPos item_number_    = 0;
     Area item_area_         = 0;
     Area squared_item_area_ = 0;
     Area current_area_      = 0;
     Area waste_             = 0;
     Profit profit_          = 0;
 
-    Length x1_curr_ = 0;
     Length x1_prev_ = 0;
-    Length y2_curr_ = 0;
     Length y2_prev_ = 0;
-    Length x3_curr_ = 0;
-
-    Length x1_max_ = -1;
-    Length y2_max_ = -1;
-    Counter z1_ = 0;
-    Counter z2_ = 0;
 
     /**
      * Contains the list of items (id, rotate, left cut position) inserted
