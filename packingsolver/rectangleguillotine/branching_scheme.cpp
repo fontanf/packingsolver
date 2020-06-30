@@ -472,11 +472,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         << " y2_prev " << node.y2_prev()
         << " x3_curr " << node.x3_curr()
         << std::endl;
-    os << "x1_max " << node.x1_max()
-        << " y2_max " << node.y2_max()
-        << " z1 " << node.z1()
-        << " z2 " << node.z2()
-        << std::endl;
+    os << "insertion " << node.insertion() << std::endl;
 
     os << "pos_stack" << std::flush;
     for (StackId s = 0; s < node.instance().stack_number(); ++s)
@@ -516,11 +512,11 @@ bool BranchingScheme::Node::bound(const Solution& sol_best) const
     } case Objective::StripPackingWidth: {
         if (!sol_best.full())
             return false;
-        return (std::max(width(), waste() + instance().item_area() - 1) / (instance().bin(0).width(CutOrientation::Vertical) + 1)) >= sol_best.width();
+        return std::max(width(), (waste() + instance().item_area() - 1) / instance().bin(0).height(CutOrientation::Vertical) + 1) >= sol_best.width();
     } case Objective::StripPackingHeight: {
         if (!sol_best.full())
             return false;
-        return (std::max(height(), waste() + instance().item_area() - 1) / (instance().bin(0).width(CutOrientation::Horinzontal) + 1)) >= sol_best.height();
+        return std::max(height(), (waste() + instance().item_area() - 1) / instance().bin(0).height(CutOrientation::Horinzontal) + 1) >= sol_best.height();
     } default: {
         assert(false);
         std::cerr << "\033[31m" << "ERROR, branching scheme rectangle::BranchingScheme does not implement objective \"" << sol_best.instance().objective() << "\"" << "\033[0m" << std::endl;
@@ -985,6 +981,13 @@ void BranchingScheme::Node::insertion_1_item(std::vector<Insertion>& insertions,
     }
     if (y > h) {
         LOG_FOLD_END(info, "too high y " << y << " > h " << h);
+        return;
+    }
+
+    // Homogenous
+    if (df == 2 && branching_scheme().cut_type_2() == CutType2::Homogenous
+            && insertion_.j1 != j) {
+        LOG_FOLD_END(info, "homogenous father_->insertion_.j1 " << father_->insertion_.j1 << " j " << j);
         return;
     }
 

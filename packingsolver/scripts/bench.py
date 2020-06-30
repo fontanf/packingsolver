@@ -208,7 +208,7 @@ def get_tests(problem):
 
     # BPPL
 
-    if problem == "roadef2018_A":
+    if problem == "roadef2018_A": # parreno2020
         return [(f,
                 " --items data/rectangle/" + f +
                 " --objective bin-packing-with-leftovers"
@@ -219,7 +219,7 @@ def get_tests(problem):
                 " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.5  -c 1\""
                 " -q \"RG -p roadef2018\" -a \"DPA* -s -2 -c 0\""
             ) for f in datas_rectangle["roadef2018_A"]]
-    if problem == "roadef2018_B":
+    if problem == "roadef2018_B": # parreno2020
         return [(f,
                 " --items data/rectangle/" + f +
                 " --objective bin-packing-with-leftovers"
@@ -230,7 +230,7 @@ def get_tests(problem):
                 " -q \"RG -p roadef2018\" -a \"IMBA* -f 1.5  -c 1\""
                 " -q \"RG -p roadef2018\" -a \"DPA* -s -2 -c 0\""
             ) for f in datas_rectangle["roadef2018_B"]]
-    if problem == "roadef2018_X":
+    if problem == "roadef2018_X": # parreno2020
         return [(f,
                 " --items data/rectangle/" + f +
                 " --objective bin-packing-with-leftovers"
@@ -277,7 +277,7 @@ def get_tests(problem):
                 " --items data/rectangle/" + f +
                 " --bin-infinite-copies"
                 " --objective bin-packing"
-                " --time-limit 60"
+                " --time-limit 10"
                 " -q \"RG -p 3NVO --one2cut\" -a \"IMBA* -f 1.5 -c 0\""
                 " -q \"RG -p 3NVO --one2cut\" -a \"IMBA* -f 1.5 -c 2\""
                 " -q \"RG -p 3NVO --one2cut\" -a \"IMBA* -f 1.5 -c 3\""
@@ -328,12 +328,13 @@ def get_tests(problem):
                 " --bin-infinite-copies"
                 " --objective bin-packing"
                 " --time-limit " + str(t) +
-                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 0\""
-                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 2\""
-                " -q \"RG -p 3NHO\" -a \"IMBA* -f 1.5 -c 3\""
+                " -q \"RG -p 2NHO\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 2NHO\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 2NHO\" -a \"IMBA* -f 1.5 -c 3\""
             ) for f, t in [(ff, 10) for ff in [] \
                         + datas_rectangle["christofides1977"] \
                         + datas_rectangle["wang1983"] \
+                        + datas_rectangle["beasley1985"] \
                         + datas_rectangle["oliveira1990"] \
                         + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
                         + datas_rectangle["fekete1997"] \
@@ -352,9 +353,9 @@ def get_tests(problem):
                 " --bin-infinite-copies"
                 " --objective bin-packing"
                 " --time-limit 60"
-                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 0\""
-                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 2\""
-                " -q \"RG -p 3NHR\" -a \"IMBA* -f 1.5 -c 3\""
+                " -q \"RG -p 2NHR\" -a \"IMBA* -f 1.5 -c 0\""
+                " -q \"RG -p 2NHR\" -a \"IMBA* -f 1.5 -c 2\""
+                " -q \"RG -p 2NHR\" -a \"IMBA* -f 1.5 -c 3\""
             ) for f in [] \
                     + datas_rectangle["cintra2008"] \
                     + datas_rectangle["berkey1987"] + datas_rectangle["martello1998"] \
@@ -407,7 +408,6 @@ def get_tests(problem):
                     ] + [(ff, 10) for ff in [] \
                         + datas_rectangle["leung2003"] \
                         + datas_rectangle["beasley2004_ngcutap"] \
-                        + datas_rectangle["beasley2004_ngcutfs"] \
                         + datas_rectangle["morabito2010"] \
                     ] + [(ff, 120) for ff in [] \
                         + datas_rectangle["velasco2019"] \
@@ -462,7 +462,7 @@ def get_tests(problem):
                         + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
                         + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
                         + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
-                    ] + [(ff, 180)       for ff in [] \
+                    ] + [(ff, 180, False) for ff in [] \
                         + datas_rectangle["cui2008"] \
                     ] + [(ff, 180, True) for ff in [] \
                         + datas_rectangle["cui2008"] \
@@ -593,7 +593,7 @@ def get_tests(problem):
                     + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
         ]
 
-    # # SPP
+    # SPP
 
     elif problem == "3NEGH-SPP-O": # bortfeldt2012 wei2014
         return [(f,
