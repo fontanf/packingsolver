@@ -505,6 +505,12 @@ if __name__ == "__main__":
     for f in ["leung2011/zdf" + str(i) for i in range(1, 17)]:
         convert_generic(f, "nw", "xwh")
 
+    for f in ["cui2012/" + str(i) + c + "-" + str(j) \
+            for c in ["A", "B"] \
+            for i in range(1, 4) \
+            for j in range(1, 11)]:
+        convert_generic(f, "whn", "whcxp")
+
     for f in ["hifi2012/UL" + i + "H.txt" for i in ["1", "2", "3"]]:
         convert_generic(f, "whnxx", "whc")
     for f in ["hifi2012/WL" + i + "H.txt" for i in ["1", "2", "3"]]:
