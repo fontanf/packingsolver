@@ -130,6 +130,11 @@ datas_rectangle["morabito2010"] = ["morabito2010/random_class_" + str(c) + "/R_"
 
 datas_rectangle["leung2011"] = ["leung2011/zdf" + str(i) for i in range(1, 17)]
 
+datas_rectangle["cui2012"] = ["cui2012/" + str(i) + c + "-" + str(j) \
+            for c in ["A", "B"] \
+            for i in range(1, 4) \
+            for j in range(1, 11)]
+
 datas_rectangle["hifi2012_cu"] = ["hifi2012/UL" + i + "H.txt" for i in ["1", "2", "3"]]
 datas_rectangle["hifi2012_cw"] = ["hifi2012/WL" + i + "H.txt" for i in ["1", "2", "3"]]
 
@@ -314,6 +319,7 @@ def get_tests(problem):
                         + datas_rectangle["tschoke1995_cw"] + datas_rectangle["tschoke1995_cu"] \
                         + datas_rectangle["fekete1997"] \
                         + datas_rectangle["hifi1997a_cw"] + datas_rectangle["hifi1997a_cu"] \
+                        + datas_rectangle["fayard1998_cw"] + datas_rectangle["fayard1998_cu"] \
                         + datas_rectangle["cung2000_cw"] + datas_rectangle["cung2000_cu"] \
                         + datas_rectangle["alvarez2002_cu"] + datas_rectangle["alvarez2002_cw"] \
                     ] + [(ff, 60) for ff in [] \
@@ -444,6 +450,7 @@ def get_tests(problem):
                 " -q \"RG -p 3NVO\" -a \"IMBA* -f 1.5 -c 5\""
             ) for f in [] \
                     + datas_rectangle["alvarez2002_cu"] + datas_rectangle["alvarez2002_cw"] \
+                    + datas_rectangle["cui2012"] \
         ]
     elif problem == "3HG-KP-O": # cui2008
         return [(f + ("_unweighted" if unweighted else ""),
