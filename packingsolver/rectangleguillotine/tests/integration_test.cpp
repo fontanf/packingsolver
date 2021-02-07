@@ -31,9 +31,9 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     Info info;
 
     Instance instance(Objective::BinPackingWithLeftovers);
-    instance.add_item(3000, 3210, -1, 1, false, true);
-    instance.add_item(3000, 500, -1, 1, false, true);
-    instance.add_bin(6000, 3210);
+    instance.add_item_type(3000, 3210, -1, 1, false, true);
+    instance.add_item_type(3000, 500, -1, 1, false, true);
+    instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 3100, 600, 2, 2);
 
     BranchingScheme::Parameters p;
@@ -42,18 +42,17 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     BranchingScheme branching_scheme(instance, p);
     auto root = branching_scheme.root();
 
-    BranchingScheme::Insertion i0 = {.j1 = 0, .j2 = -1, .df = -2, .x1 = 3210, .y2 = 3000, .x3 = 3210, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.children(root, info);
+    BranchingScheme::Insertion i0 = {0, -1, -2, 3210, 3000, 3210, 3210, 6000, 0, 0};
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
-    BranchingScheme::Insertion i1 = {.j1 = 1, .j2 = -1, .df = 1, .x1 = 3210, .y2 = 6000, .x3 = 500, .x1_max = 3210, .y2_max = 6000, .z1 = 0, .z2 = 0};
-    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.children(node_1, info);
+    BranchingScheme::Insertion i1 = {1, -1, 1, 3210, 6000, 500, 3210, 6000, 0, 0};
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.insertions(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
     auto node_2 = branching_scheme.child(node_1, i1);
 
-    Solution solution(instance);
-    solution = node_2->convert(solution);
+    auto solution = branching_scheme.to_solution(*node_2, Solution(instance));
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
@@ -67,11 +66,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
             "data/rectangle/tests/C1_defects.csv");
     BranchingScheme::Parameters p;
     p.set_roadef2018();
+    p.guide_id = 6;
     BranchingScheme branching_scheme(instance, p);
-    Solution solution(instance);
-    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
-    a_star.run();
-    EXPECT_EQ(solution.waste(), 0);
+    SolutionPool<Instance, Solution> solution_pool(instance, 1);
+    a_star(branching_scheme, solution_pool);
+    EXPECT_EQ(solution_pool.best().waste(), 0);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
@@ -83,11 +82,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
             "data/rectangle/tests/C2_defects.csv");
     BranchingScheme::Parameters p;
     p.set_roadef2018();
+    p.guide_id = 6;
     BranchingScheme branching_scheme(instance, p);
-    Solution solution(instance);
-    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
-    a_star.run();
-    EXPECT_EQ(solution.waste(), 210 * 5700);
+    SolutionPool<Instance, Solution> solution_pool(instance, 1);
+    a_star(branching_scheme, solution_pool);
+    EXPECT_EQ(solution_pool.best().waste(), 210 * 5700);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
@@ -99,11 +98,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
             "data/rectangle/tests/C3_defects.csv");
     BranchingScheme::Parameters p;
     p.set_roadef2018();
+    p.guide_id = 6;
     BranchingScheme branching_scheme(instance, p);
-    Solution solution(instance);
-    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
-    a_star.run();
-    EXPECT_EQ(solution.waste(), 0);
+    SolutionPool<Instance, Solution> solution_pool(instance, 1);
+    a_star(branching_scheme, solution_pool);
+    EXPECT_EQ(solution_pool.best().waste(), 0);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
@@ -136,11 +135,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     p.cut_type_2 = CutType2::Exact;
+    p.guide_id = 6;
     BranchingScheme branching_scheme(instance, p);
-    Solution solution(instance);
-    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
-    a_star.run();
-    EXPECT_EQ(solution.waste(), 3210 * (6000 + 210) - instance.item_area());
+    SolutionPool<Instance, Solution> solution_pool(instance, 1);
+    a_star(branching_scheme, solution_pool);
+    EXPECT_EQ(solution_pool.best().waste(), 3210 * (6000 + 210) - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
@@ -165,20 +164,19 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
     Info info;
 
     Instance instance(Objective::BinPackingWithLeftovers);
-    instance.add_item(500, 1000, -1, 1, false, true);
-    instance.add_item(1500, 1600, -1, 1, false, false);
-    instance.add_bin(6000, 3210);
+    instance.add_item_type(500, 1000, -1, 1, false, true);
+    instance.add_item_type(1500, 1600, -1, 1, false, false);
+    instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 950, 950, 100, 100);
 
     BranchingScheme::Parameters p;
     p.set_roadef2018();
+    p.guide_id = 6;
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
 
-    Solution solution(instance);
-    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
-    a_star.run();
-    EXPECT_EQ(solution.waste(), 3210 * 1500 - instance.item_area());
+    SolutionPool<Instance, Solution> solution_pool(instance, 1);
+    a_star(branching_scheme, solution_pool);
+    EXPECT_EQ(solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
@@ -203,21 +201,20 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
     Info info;
 
     Instance instance(Objective::BinPackingWithLeftovers);
-    instance.add_item(500, 1000, -1, 1, false, true);
-    instance.add_item(500, 1500, -1, 1, false, false);
-    instance.add_item(1500, 1600, -1, 1, false, false);
-    instance.add_bin(6000, 3210);
+    instance.add_item_type(500, 1000, -1, 1, false, true);
+    instance.add_item_type(500, 1500, -1, 1, false, false);
+    instance.add_item_type(1500, 1600, -1, 1, false, false);
+    instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 950, 1250, 50, 50);
 
     BranchingScheme::Parameters p;
     p.set_roadef2018();
+    p.guide_id = 6;
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
 
-    Solution solution(instance);
-    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
-    a_star.run();
-    EXPECT_EQ(solution.waste(), 3210 * 1500 - instance.item_area());
+    SolutionPool<Instance, Solution> solution_pool(instance, 1);
+    a_star(branching_scheme, solution_pool);
+    EXPECT_EQ(solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
@@ -243,21 +240,20 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
     Info info;
 
     Instance instance(Objective::BinPackingWithLeftovers);
-    instance.add_item(500, 2900, -1, 1, false, true);
-    instance.add_item(500, 2800, -1, 1, false, false);
-    instance.add_item(2950, 3210, -1, 1, false, false);
-    instance.add_bin(6000, 3210);
+    instance.add_item_type(500, 2900, -1, 1, false, true);
+    instance.add_item_type(500, 2800, -1, 1, false, false);
+    instance.add_item_type(2950, 3210, -1, 1, false, false);
+    instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 2950, 1500, 100, 100);
 
     BranchingScheme::Parameters p;
     p.set_roadef2018();
+    p.guide_id = 6;
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
 
-    Solution solution(instance);
-    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
-    a_star.run();
-    EXPECT_EQ(solution.waste(), 3210 * 6000 - instance.item_area());
+    SolutionPool<Instance, Solution> solution_pool(instance, 1);
+    a_star(branching_scheme, solution_pool);
+    EXPECT_EQ(solution_pool.best().waste(), 3210 * 6000 - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
@@ -284,23 +280,22 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
         ;
 
     Instance instance(Objective::BinPackingWithLeftovers);
-    instance.add_item(1400, 1600, -1, 1, false, true);
-    instance.add_item(1500, 1500, -1, 1, false, false);
-    instance.add_item(1500, 3000, -1, 1, false, false);
-    instance.add_bin(6000, 3210);
+    instance.add_item_type(1400, 1600, -1, 1, false, true);
+    instance.add_item_type(1500, 1500, -1, 1, false, false);
+    instance.add_item_type(1500, 3000, -1, 1, false, false);
+    instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 1000, 3100, 10, 10);
     instance.add_defect(0, 2000, 200, 10, 10);
 
     BranchingScheme::Parameters p;
     p.set_roadef2018();
     p.cut_type_2 = CutType2::Exact;
+    p.guide_id = 6;
     BranchingScheme branching_scheme(instance, p);
-    BranchingScheme::Node node(branching_scheme);
 
-    Solution solution(instance);
-    AStar<Solution, BranchingScheme> a_star(solution, branching_scheme, 0, 6, info);
-    a_star.run();
-    EXPECT_EQ(solution.waste(), 3210 * 3000 - instance.item_area());
+    SolutionPool<Instance, Solution> solution_pool(instance, 1);
+    a_star(branching_scheme, solution_pool);
+    EXPECT_EQ(solution_pool.best().waste(), 3210 * 3000 - instance.item_area());
 }
 
 static inline void rtrim(std::string &s) {
@@ -360,8 +355,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
 
         Instance instance_new(Objective::BinPackingWithLeftovers);
         for (BinTypeId i = 0; i < instance.bin_type_number(); ++i) {
-            const Bin& bin = instance.bin_type(i);
-            instance_new.add_bin(bin.rect.w, bin.rect.h, bin.copies);
+            const BinType& bin = instance.bin_type(i);
+            instance_new.add_bin_type(bin.rect.w, bin.rect.h, bin.copies);
         }
         for (DefectId k = 0; k < instance.defect_number(); ++k) {
             const Defect& defect = instance.defect(k);
@@ -369,17 +364,17 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
         }
         bool new_stack = true;
         for (ItemTypeId j: items) {
-            const Item& item = instance.item(j);
-            instance_new.add_item(item.rect.w, item.rect.h, item.profit, item.copies, item.oriented, new_stack);
+            const ItemType& item = instance.item_type(j);
+            instance_new.add_item_type(item.rect.w, item.rect.h, item.profit, item.copies, item.oriented, new_stack);
             new_stack = false;
         }
 
         BranchingScheme::Parameters p;
         p.set_roadef2018();
         BranchingScheme branching_scheme(instance_new, p);
-        Solution solution(instance_new);
-        DynamicProgrammingAStar<Solution, BranchingScheme> dynamic_programming_a_star(solution, branching_scheme, 0, -1, 0, info);
-        dynamic_programming_a_star.run();
+        SolutionPool<Instance, Solution> solution_pool(instance_new, 1);
+        dynamic_programming_a_star(branching_scheme, solution_pool);
+        const Solution& solution = solution_pool.best();
         std::cout << name << " " << waste << std::endl;
 
         if (solution.waste() != waste) {

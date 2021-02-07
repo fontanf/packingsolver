@@ -1,4 +1,4 @@
-def Settings( **kwargs ):
+def Settings(**kwargs):
     return {
             'flags': [
                 '-x', 'c++',
@@ -6,7 +6,9 @@ def Settings( **kwargs ):
                 '-I', '.',
                 '-I', './bazel-packingsolver/external/json/single_include/',
                 '-I', './bazel-packingsolver/external/googletest/googletest/include/',
+                '-I', './bazel-packingsolver/external/boost/',
                 '-I', './bazel-packingsolver/external/optimizationtools/',
+                '-I', './bazel-packingsolver/external/columngenerationsolver/',
+                # '-I', './../columngenerationsolver/',
                 ],
             }
-

@@ -19,6 +19,8 @@ Note: PackingSolver favours efficiency and flexibility over ease of use. Therefo
 Compile:
 ```shell
 bazel build -- //...
+# Or, to enable the column generation heuristic for VBPP:
+bazel build --define cplex=true -- //...
 ```
 
 Execute:
@@ -42,11 +44,11 @@ Each branching scheme has a list a compatible algorithms.
 
 Each pair `-q`/`-a` respectively defines the branching scheme and the algorithm for a thread.
 
-Options `--bin-infinite-copies`, `--bin-infinite-width`, `--bin-infinite-height`, `--item-infinite-copies` and `--unweighted` are available to modify the instance properties.
+Options `--bin-infinite-copies`, `--bin-infinite-width`, `--bin-infinite-height`, `--bin-unweighted`, `--item-infinite-copies` and `--unweighted` are available to modify the instance properties.
 
 ### Problem type rectangleguillotine (RG)
 
-* Available objectives: `default`, `bin-packing` (`BPP`), `knapsack` (`KP`), `strip-packing-width` (`SPPW`), `strip-packing-height` (`SPPH`), `bin-packing-with-leftovers` (`BPPL`)
+* Available objectives: `default`, `bin-packing` (`BPP`), `knapsack` (`KP`), `strip-packing-width` (`SPPW`), `strip-packing-height` (`SPPH`), `bin-packing-with-leftovers` (`BPPL`), `variable-sized-bin-packing` (`VBPP`)
 * Available branching schemes: `rectangle-guillotine` (`RG`)
 
 ### Branching scheme rectangle-guillotine (RG)
@@ -79,11 +81,17 @@ Do not hesitate to contact us if you are aware of any variant or article that we
 All experiments can be reproduced using the following scripts:
 ```shell
 python3 packingsolver/scripts/bench.py "roadef2018_A" "roadef2018_B" "roadef2018_X" # ~50h
-python3 packingsolver/scripts/bench.py "3NEGH-BPP-O" "3NEGH-BPP-R" "3GH-BPP-O" "3HGV-BPP-O" "long2020" # ~30h
+python3 packingsolver/scripts/bench.py "3NEGH-BPP-O" "3NEGH-BPP-R" "long2020_BPP" # ~10h
+python3 packingsolver/scripts/bench.py "3GH-BPP-O" "3HG-BPP-O" "3HGV-BPP-O" # ~7h
 python3 packingsolver/scripts/bench.py "2NEGH-BPP-O" "2NEGH-BPP-R" "2GH-BPP-O" # ~30h
 python3 packingsolver/scripts/bench.py "3NEG-KP-O" "3NEG-KP-R" "3NEGV-KP-O" "3HG-KP-O" # ~10h
-python3 packingsolver/scripts/bench.py "2NEG-KP-O" "2NEGH-KP-O" "2NEGV-KP-O" "2NEGH-KP-R" "2G-KP-O" "2GH-KP-O" "2GV-KP-O" # 1h
+python3 packingsolver/scripts/bench.py "2NEG-KP-O" "2NEGH-KP-O" "2NEGV-KP-O" "2NEGH-KP-R"  # 1h
+python3 packingsolver/scripts/bench.py "2G-KP-O" "2GH-KP-O" "2GV-KP-O" # 1m
 python3 packingsolver/scripts/bench.py "3NEGH-SPP-O" "3NEGH-SPP-R" # ~20h
 python3 packingsolver/scripts/bench.py "2NEGH-SPP-O" "2NEGH-SPP-R" # ~4h
+python3 packingsolver/scripts/bench.py "3NEGH-CSP-O" "3NEGH-CSP-R" "long2020_CSP" # ~20h
+python3 packingsolver/scripts/bench.py "3GH-CSP-O" "3HG-CSP-O" "3HGV-CSP-O" # ~15h
+python3 packingsolver/scripts/bench.py "2NEGH-CSP-O" "2NEGH-CSP-R" "2GH-CSP-O" # ~30h
+python3 packingsolver/scripts/bench.py "3NEG-VBPP-O" "3NEG-VBPP-R" "2GH-VBPP-O" "2GH-VBPP-R" # ~20h
 ```
 

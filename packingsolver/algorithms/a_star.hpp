@@ -7,104 +7,83 @@
 namespace packingsolver
 {
 
-template <typename Solution, typename BranchingScheme>
-class AStar
+struct AStarOptionalParameters
 {
-
-public:
-
-    AStar(
-            Solution& sol_best,
-            BranchingScheme& branching_scheme,
-            Counter thread_id_,
-            GuideId guide_id,
-            Info info):
-        thread_id_(thread_id_),
-        sol_best_(sol_best),
-        branching_scheme_(branching_scheme),
-        guide_id_(guide_id),
-        info_(info) { }
-
-    void run();
-
-private:
-
-    Counter thread_id_;
-    Solution& sol_best_;
-    BranchingScheme& branching_scheme_;
-    GuideId guide_id_ = 0;
-    Info info_ = Info();
-
-    Counter node_number_ = 0;
-
+    Counter thread_id = 0;
+    Info info = Info();
 };
 
-/************************** Template implementation ***************************/
+struct AStarOutput
+{
+    Counter node_number = 0;
+};
 
-template <typename Solution, typename BranchingScheme>
-void AStar<Solution, BranchingScheme>::run()
+template <typename Instance, typename Solution, typename BranchingScheme>
+inline AStarOutput a_star(
+        const BranchingScheme& branching_scheme,
+        SolutionPool<Instance, Solution>& solution_pool,
+        AStarOptionalParameters parameters = {})
 {
     typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Insertion Insertion;
 
-    LOG_FOLD_START(info_, "astar" << std::endl);
+    LOG_FOLD_START(parameters.info, "astar" << std::endl);
+    AStarOutput output;
 
-    // Initialize queue
-    auto comp = branching_scheme_.compare(guide_id_);
-    std::multiset<std::shared_ptr<const Node>, decltype(comp)> q(comp);
-    q.insert(branching_scheme_.root());
+    // Initialize queue.
+    std::multiset<std::shared_ptr<const Node>, decltype(branching_scheme)> q(branching_scheme);
+    q.insert(branching_scheme.root());
 
     while (!q.empty()) {
-        node_number_++;
-        LOG_FOLD_START(info_, "node_number " << node_number_ << std::endl);
+        output.node_number++;
+        LOG_FOLD_START(parameters.info, "node_number " << output.node_number << std::endl);
 
-        // Check time
-        if (!info_.check_time()) {
-            LOG_FOLD_END(info_, "");
-            return;
+        // Check time.
+        if (!parameters.info.check_time()) {
+            LOG_FOLD_END(parameters.info, "");
+            break;
         }
 
-        // Get node from the queue
+        // Get node from the queue.
         auto node_cur = *q.begin();
         q.erase(q.begin());
-        LOG_FOLD(info_, "node_cur" << std::endl << *node_cur);
 
-        // Bound
-        if (node_cur->bound(sol_best_)) {
-            LOG(info_, " bound ×" << std::endl);
+        // Bound.
+        if (branching_scheme.bound(*node_cur, solution_pool.worst())) {
+            LOG(parameters.info, " bound ×" << std::endl);
             continue;
         }
 
-        for (const Insertion& insertion: branching_scheme_.children(node_cur, info_)) {
-            LOG(info_, insertion << std::endl);
-            auto child = branching_scheme_.child(node_cur, insertion);
-            //LOG_FOLD(info_, "node_tmp" << std::endl << node_tmp);
+        for (const Insertion& insertion: branching_scheme.insertions(node_cur, parameters.info)) {
+            auto child = branching_scheme.child(node_cur, insertion);
 
-            // Bound
-            if (child->bound(sol_best_)) {
-                LOG(info_, " bound ×" << std::endl);
+            // Bound.
+            if (branching_scheme.bound(*child, solution_pool.worst())) {
+                LOG(parameters.info, " bound ×" << std::endl);
                 continue;
             }
 
-            // Update best solution
-            if (sol_best_ < *child) {
+            // Update best solution.
+            if (branching_scheme.better(*child, solution_pool.worst())) {
                 std::stringstream ss;
-                ss << "A* (thread " << thread_id_ << ")";
-                sol_best_.update(child->convert(sol_best_), ss, info_);
+                ss << "A* (thread " << parameters.thread_id << ")";
+                solution_pool.add(branching_scheme.to_solution(*child, solution_pool.worst()), ss, parameters.info);
             }
 
-            // Add child to the queue
-            if (!child->full())
+            // Add child to the queue.
+            if (!branching_scheme.leaf(*child))
                 q.insert(child);
         }
 
-        LOG_FOLD_END(info_, "");
+        LOG_FOLD_END(parameters.info, "");
     }
 
     std::stringstream ss;
-    ss << "A* (thread " << thread_id_ << ")";
-    PUT(info_, ss.str(), "NodeNumber", node_number_);
-    LOG_FOLD_END(info_, "");
+    ss << "A* (thread " << parameters.thread_id << ")";
+    PUT(parameters.info, ss.str(), "NodeNumber", output.node_number);
+    LOG_FOLD_END(parameters.info, "");
+    return output;
 }
+
 }
 

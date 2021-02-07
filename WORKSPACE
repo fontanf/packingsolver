@@ -34,7 +34,107 @@ cc_library(
 git_repository(
     name = "optimizationtools",
     remote = "https://github.com/fontanf/optimizationtools.git",
-    commit = "aa1f5edb039109ac2eb7133e47e17d483299cf13",
-    shallow_since = "1585857862 +0200",
+    commit = "b51d64c7428acfde1ad8798404b1be9b413a1248",
+    shallow_since = "1609062649 +0100",
+)
+
+git_repository(
+    name = "columngenerationsolver",
+    remote = "https://github.com/fontanf/columngenerationsolver.git",
+    commit = "f6fb6cb6f88de1146b33ed54e2e1c59ff58f3848",
+    shallow_since = "1612113523 +0100",
+)
+
+local_repository(
+    name = "columngenerationsolver_",
+    path = "../columngenerationsolver/",
+)
+
+new_local_repository(
+    name = "coinor",
+    path = "/home/florian/Programmes/coinbrew/",
+    build_file_content = """
+cc_library(
+    name = "coinor",
+    hdrs = glob(["dist/include/**/*.h*"], exclude_directories = 0),
+    strip_include_prefix = "dist/include/",
+    srcs = glob(["dist/lib/**/*.so"], exclude_directories = 0),
+    visibility = ["//visibility:public"],
+)
+""",
+)
+
+new_local_repository(
+    name = "cplex",
+    path = "/opt/ibm/ILOG/CPLEX_Studio129/",
+    build_file_content = """
+cc_library(
+    name = "concert",
+    hdrs = glob(["concert/include/ilconcert/**/*.h"], exclude_directories = 0),
+    strip_include_prefix = "concert/include/",
+    srcs = ["concert/lib/x86-64_linux/static_pic/libconcert.a"],
+    linkopts = [
+            "-lm",
+            "-lpthread",
+            "-ldl",
+    ],
+    visibility = ["//visibility:public"],
+)
+cc_library(
+    name = "cplex",
+    hdrs = glob(["cplex/include/ilcplex/*.h"]),
+    strip_include_prefix = "cplex/include/",
+    srcs = [
+            "cplex/lib/x86-64_linux/static_pic/libilocplex.a",
+            "cplex/lib/x86-64_linux/static_pic/libcplex.a",
+    ],
+    deps = [":concert"],
+    visibility = ["//visibility:public"],
+)
+cc_library(
+    name = "cpoptimizer",
+    hdrs = glob(["cpoptimizer/include/ilcp/*.h"]),
+    strip_include_prefix = "cpoptimizer/include/",
+    srcs = ["cpoptimizer/lib/x86-64_linux/static_pic/libcp.a"],
+    deps = [":cplex"],
+    visibility = ["//visibility:public"],
+)
+""",
+)
+
+new_local_repository(
+    name = "gurobi",
+    path = "/home/florian/Programmes/gurobi811/linux64/",
+    build_file_content = """
+cc_library(
+    name = "gurobi",
+    hdrs = [
+            "include/gurobi_c.h",
+            "include/gurobi_c++.h",
+    ],
+    strip_include_prefix = "include/",
+    srcs = [
+            "lib/libgurobi_c++.a",
+            "lib/libgurobi81.so",
+    ],
+    visibility = ["//visibility:public"],
+)
+""",
+)
+
+new_local_repository(
+    name = "xpress",
+    path = "/home/florian/Programmes/",
+    build_file_content = """
+cc_library(
+    name = "xpress",
+    hdrs = [
+    ],
+    strip_include_prefix = "include/",
+    srcs = [
+    ],
+    visibility = ["//visibility:public"],
+)
+""",
 )
 

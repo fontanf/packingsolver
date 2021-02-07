@@ -46,6 +46,8 @@ std::istream& packingsolver::operator>>(std::istream& in, Objective& objective)
         objective = Objective::StripPackingHeight;
     } else if (token == "knapsack" || token == "KP") {
         objective = Objective::Knapsack;
+    } else if (token == "variable-sized-bin-packing" || token == "VBPP") {
+        objective = Objective::VariableSizedBinPacking;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -72,6 +74,9 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Objective objective)
         break;
     } case Objective::Knapsack: {
         os << "Knapsack";
+        break;
+    } case Objective::VariableSizedBinPacking: {
+        os << "VariableSizedBinPacking";
         break;
     }
     }

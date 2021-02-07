@@ -36,14 +36,17 @@ public:
         std::vector<SolutionNodeId> children;
         ItemTypeId j;
         bool rotate;
+        BinTypeId bin_type_id;
     };
 
     /** Standard constructor. */
-    Solution(const Instance& instance): instance_(instance) { }
+    Solution(const Instance& instance):
+        instance_(instance),
+        bin_copies_(instance.bin_type_number(), 0),
+        item_copies_(instance.item_type_number(), 0)
+    { }
     /** Constructor from a list of nodes. */
     Solution(const Instance& instance, const std::vector<Solution::Node>& nodes);
-
-    void update(const Solution& solution, const std::stringstream& algorithm, Info& info);
 
     /** Copy constructor. */
     Solution(const Solution& solution);
@@ -52,6 +55,12 @@ public:
 
     /** Destructor. */
     virtual ~Solution() { }
+
+    void append(
+            const Solution& solution,
+            BinTypeId bin_type_id,
+            const std::vector<ItemTypeId>& item_type_ids,
+            BinPos copies);
 
     /**
      * Getters
@@ -64,6 +73,7 @@ public:
     inline Length height() const { return height_; }
     inline Length width() const { return width_; }
     inline Profit profit() const { return profit_; }
+    inline Profit cost() const { return cost_; }
     inline Area item_area() const { return item_area_; }
     inline Area area() const { return area_; }
     inline Area full_area() const { return full_area_; }
@@ -72,17 +82,23 @@ public:
     inline Area full_waste() const { return full_area() - item_area(); }
     inline double full_waste_percentage() const { return (double)full_waste() / full_area(); }
     inline const std::vector<Solution::Node>& nodes() const { return nodes_; }
+    inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
 
-    template <typename S>
-    bool operator<(const S& solution) const;
+    bool operator<(const Solution& solution) const;
 
     /** CSV export */
     void write(Info& info) const;
 
-    void algorithm_start(Info& info);
-    void algorithm_end(Info& info);
+    void algorithm_start(Info& info) const;
+    void algorithm_end(Info& info) const;
+
+    void display(
+            const std::stringstream& algorithm,
+            Info& info) const;
 
 private:
+
+    void add_node(const Node& node);
 
     const Instance& instance_;
 
@@ -94,59 +110,16 @@ private:
     Area full_area_ = 0;
     Area item_area_ = 0;
     Profit profit_ = 0;
+    Profit cost_ = 0;
     Length width_ = 0;
     Length height_ = 0;
+    std::vector<BinPos> bin_copies_;
+    std::vector<ItemPos> item_copies_;
 
 };
 
 std::ostream& operator<<(std::ostream &os, const Solution::Node& node);
 std::ostream& operator<<(std::ostream &os, const Solution& solution);
-
-/************************** Template implementation ***************************/
-
-template <typename S>
-bool Solution::operator<(const S& solution) const
-{
-    switch (instance().objective()) {
-    case Objective::Default: {
-        if (solution.profit() < profit())
-            return false;
-        if (solution.profit() > profit())
-            return true;
-        return solution.waste() < waste();
-    } case Objective::BinPacking: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
-        return solution.bin_number() < bin_number();
-    } case Objective::BinPackingWithLeftovers: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
-        return solution.waste() < waste();
-    } case Objective::StripPackingWidth: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
-        return solution.width() < width();
-    } case Objective::StripPackingHeight: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
-        return solution.height() < height();
-    } case Objective::Knapsack: {
-        return solution.profit() > profit();
-    } default: {
-        assert(false);
-        std::cerr << "\033[31m" << "ERROR, branching scheme rectangle::BranchingScheme does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
-        return false;
-    }
-    }
-}
 
 }
 }

@@ -33,33 +33,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(std::ostream &os, c
 
 /********************************** Solution **********************************/
 
-Solution::Solution(const Instance& instance, const std::vector<Solution::Node>& nodes):
-    instance_(instance), nodes_(nodes)
-{
-    for (const Solution::Node& node: nodes_) {
-        if (bin_number_ < node.i + 1)
-            bin_number_ = node.i + 1;
-        if (node.d == 0) {
-            assert(node.b == 0);
-            assert(node.l == 0);
-            area_      += node.r * node.t;
-            full_area_ += node.r * node.t;
-        }
-        if (node.j >= 0) {
-            item_number_++;
-            item_area_ += instance.item(node.j).rect.area();
-            profit_    += instance.item(node.j).profit;
-        }
-        if (node.j == -3) // Subtract residual area
-            area_ -= (node.t - node.b) * (node.r - node.l);
-        // Update width_ and height_
-        if (node.r != instance.bin(node.i).rect.w && width_ < node.r)
-            width_ = node.r;
-        if (node.t != instance.bin(node.i).rect.h && height_ < node.t)
-            height_ = node.t;
-    }
-}
-
 Solution::Solution(const Solution& solution):
     instance_(solution.instance_),
     nodes_(solution.nodes_),
@@ -69,8 +42,11 @@ Solution::Solution(const Solution& solution):
     full_area_(solution.full_area_),
     item_area_(solution.item_area_),
     profit_(solution.profit_),
+    cost_(solution.cost_),
     width_(solution.width_),
-    height_(solution.height_)
+    height_(solution.height_),
+    bin_copies_(solution.bin_copies_),
+    item_copies_(solution.item_copies_)
 {
 }
 
@@ -85,79 +61,200 @@ Solution& Solution::operator=(const Solution& solution)
         full_area_   = solution.full_area_;
         item_area_   = solution.item_area_;
         profit_      = solution.profit_;
+        cost_        = solution.cost_;
         width_       = solution.width_;
         height_      = solution.height_;
+        bin_copies_  = solution.bin_copies_;
+        item_copies_ = solution.item_copies_;
+        assert(item_number_ >= 0);
     }
+    assert(&instance_ == &solution.instance_);
     return *this;
 }
 
-void Solution::update(const Solution& solution, const std::stringstream& algorithm, Info& info)
+void Solution::add_node(const Node& node)
 {
-    info.output->mutex_sol.lock();
-
-    if (operator<(solution)) {
-        info.output->sol_number++;
-        *this = solution;
-        double t = info.elapsed_time();
-
-        std::string sol_str = "Solution" + std::to_string(info.output->sol_number);
-        VER(info, std::left << std::setw(6) << info.output->sol_number);
-        PUT(info, sol_str, "Algorithm", algorithm.str());
-        VER(info, std::left << std::setw(32) << algorithm.str());
-        switch (instance().objective()) {
-        case Objective::Default: {
-            PUT(info, sol_str, "Profit", profit());
-            PUT(info, sol_str, "Full", (full())? 1: 0);
-            PUT(info, sol_str, "Waste", waste());
-            VER(info, std::left << std::setw(12) << profit());
-            VER(info, std::left << std::setw(6) << full());
-            VER(info, std::left << std::setw(12) << waste());
-            break;
-        } case Objective::BinPacking: {
-            PUT(info, sol_str, "BinNumber", bin_number());
-            PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-            VER(info, std::left << std::setw(8) << bin_number());
-            VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
-            break;
-        } case Objective::BinPackingWithLeftovers: {
-            PUT(info, sol_str, "Waste", waste());
-            PUT(info, sol_str, "WastePercentage", 100 * waste_percentage());
-            VER(info, std::left << std::setw(12) << waste());
-            VER(info, std::left << std::setw(12) << 100 * waste_percentage());
-            break;
-        } case Objective::StripPackingWidth: {
-            PUT(info, sol_str, "Width", width());
-            VER(info, std::left << std::setw(12) << width());
-            break;
-        } case Objective::StripPackingHeight: {
-            PUT(info, sol_str, "Height", height());
-            VER(info, std::left << std::setw(12) << height());
-            break;
-        } case Objective::Knapsack: {
-            PUT(info, sol_str, "Profit", profit());
-            VER(info, std::left << std::setw(12) << profit());
-            break;
-        } default: {
-            assert(false);
-            std::cerr << "\033[31m" << "ERROR, branching scheme rectangle::BranchingScheme does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
-        }
-        }
-        PUT(info, sol_str, "Time", t);
-        VER(info, t << std::endl);
-
-        if (!info.output->onlywriteattheend) {
-            info.write_ini();
-            write(info);
-        }
+    nodes_.push_back(node);
+    if (bin_number_ < node.i + 1) {
+        bin_number_ = node.i + 1;
+        bin_copies_[node.bin_type_id]++;
+        cost_ += instance_.bin_type(node.bin_type_id).cost;
     }
-
-    info.output->mutex_sol.unlock();
+    if (node.d == 0) {
+        assert(node.b == 0);
+        assert(node.l == 0);
+        area_      += node.r * node.t;
+        full_area_ += node.r * node.t;
+    }
+    if (node.j >= 0) {
+        item_number_++;
+        item_area_ += instance().item_type(node.j).rect.area();
+        profit_    += instance().item_type(node.j).profit;
+        item_copies_[node.j]++;
+    }
+    if (node.j == -3) // Subtract residual area
+        area_ -= (node.t - node.b) * (node.r - node.l);
+    // Update width_ and height_
+    if (node.r != instance().bin(node.i).rect.w && width_ < node.r)
+        width_ = node.r;
+    if (node.t != instance().bin(node.i).rect.h && height_ < node.t)
+        height_ = node.t;
 }
 
-void Solution::algorithm_start(Info& info)
+Solution::Solution(const Instance& instance, const std::vector<Solution::Node>& nodes):
+    instance_(instance),
+    bin_copies_(instance.bin_type_number(), 0),
+    item_copies_(instance.item_type_number(), 0)
+{
+    for (const Solution::Node& node: nodes)
+        add_node(node);
+}
+
+void Solution::append(
+        const Solution& solution,
+        BinTypeId bin_type_id,
+        const std::vector<ItemTypeId>& item_type_ids,
+        BinPos copies)
+{
+    SolutionNodeId offset_node = nodes_.size();
+    BinPos offset_bin = bin_number_;
+    for (BinPos i = 0; i < copies; ++i) {
+        for (Solution::Node node: solution.nodes()) {
+            node.bin_type_id = bin_type_id;
+            node.id += offset_node;
+            if (node.f != -1)
+                node.f += offset_node;
+            if (node.j >= 0)
+                node.j = item_type_ids[node.j];
+            if (node.j == -3)
+                node.j = -1;
+            for (SolutionNodeId& child: node.children)
+                child += offset_node;
+            node.i += i + offset_bin;
+            add_node(node);
+        }
+    }
+}
+
+bool Solution::operator<(const Solution& solution) const
+{
+    switch (instance().objective()) {
+    case Objective::Default: {
+        if (solution.profit() < profit())
+            return false;
+        if (solution.profit() > profit())
+            return true;
+        return solution.waste() < waste();
+    } case Objective::BinPacking: {
+        if (!solution.full())
+            return false;
+        if (!full())
+            return true;
+        return solution.bin_number() < bin_number();
+    } case Objective::BinPackingWithLeftovers: {
+        if (!solution.full())
+            return false;
+        if (!full())
+            return true;
+        return solution.waste() < waste();
+    } case Objective::StripPackingWidth: {
+        if (!solution.full())
+            return false;
+        if (!full())
+            return true;
+        return solution.width() < width();
+    } case Objective::StripPackingHeight: {
+        if (!solution.full())
+            return false;
+        if (!full())
+            return true;
+        return solution.height() < height();
+    } case Objective::Knapsack: {
+        return solution.profit() > profit();
+    } case Objective::VariableSizedBinPacking: {
+        if (!solution.full())
+            return false;
+        if (!full())
+            return true;
+        return solution.cost() < cost();
+    } default: {
+        assert(false);
+        std::cerr << "\033[31m" << "ERROR, rectangleguillotine::Solution does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
+        return false;
+    }
+    }
+}
+
+void Solution::display(
+        const std::stringstream& algorithm,
+        Info& info) const
+{
+    info.output->sol_number++;
+    double t = info.elapsed_time();
+
+    std::string sol_str = "Solution" + std::to_string(info.output->sol_number);
+    VER(info, std::left << std::setw(6) << info.output->sol_number);
+    PUT(info, sol_str, "Algorithm", algorithm.str());
+    VER(info, std::left << std::setw(32) << algorithm.str());
+    switch (instance().objective()) {
+    case Objective::Default: {
+        PUT(info, sol_str, "Profit", profit());
+        PUT(info, sol_str, "Full", (full())? 1: 0);
+        PUT(info, sol_str, "Waste", waste());
+        VER(info, std::left << std::setw(12) << profit());
+        VER(info, std::left << std::setw(6) << full());
+        VER(info, std::left << std::setw(12) << waste());
+        break;
+    } case Objective::BinPacking: {
+        PUT(info, sol_str, "BinNumber", bin_number());
+        PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
+        VER(info, std::left << std::setw(8) << bin_number());
+        VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
+        break;
+    } case Objective::BinPackingWithLeftovers: {
+        PUT(info, sol_str, "Waste", waste());
+        PUT(info, sol_str, "WastePercentage", 100 * waste_percentage());
+        VER(info, std::left << std::setw(12) << waste());
+        VER(info, std::left << std::setw(12) << 100 * waste_percentage());
+        break;
+    } case Objective::StripPackingWidth: {
+        PUT(info, sol_str, "Width", width());
+        VER(info, std::left << std::setw(12) << width());
+        break;
+    } case Objective::StripPackingHeight: {
+        PUT(info, sol_str, "Height", height());
+        VER(info, std::left << std::setw(12) << height());
+        break;
+    } case Objective::Knapsack: {
+        PUT(info, sol_str, "Profit", profit());
+        VER(info, std::left << std::setw(14) << profit());
+        break;
+    } case Objective::VariableSizedBinPacking: {
+        PUT(info, sol_str, "Cost", cost());
+        PUT(info, sol_str, "BinNumber", bin_number());
+        PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
+        VER(info, std::left << std::setw(14) << cost());
+        VER(info, std::left << std::setw(8) << bin_number());
+        VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
+        break;
+    } default: {
+        assert(false);
+        std::cerr << "\033[31m" << "ERROR, rectangleguillotine::Solution does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
+    }
+    }
+    PUT(info, sol_str, "Time", t);
+    VER(info, t << std::endl);
+
+    if (!info.output->onlywriteattheend) {
+        info.write_ini();
+        write(info);
+    }
+}
+
+void Solution::algorithm_start(Info& info) const
 {
     VER(info, std::left << std::setw(6) << "Sol");
-    VER(info, std::left << std::setw(32) << "Branching scheme");
+    VER(info, std::left << std::setw(32) << "Comment");
     switch (instance().objective()) {
     case Objective::Default: {
         VER(info, std::left << std::setw(12) << "Profit");
@@ -179,17 +276,22 @@ void Solution::algorithm_start(Info& info)
         VER(info, std::left << std::setw(12) << "Height");
         break;
     } case Objective::Knapsack: {
-        VER(info, std::left << std::setw(12) << "Profit");
+        VER(info, std::left << std::setw(14) << "Profit");
+        break;
+    } case Objective::VariableSizedBinPacking: {
+        VER(info, std::left << std::setw(14) << "Cost");
+        VER(info, std::left << std::setw(8) << "Bins");
+        VER(info, std::left << std::setw(16) << "Full waste (%)");
         break;
     } default: {
         assert(false);
-        std::cerr << "\033[31m" << "ERROR, branching scheme rectangle::BranchingScheme does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
+        std::cerr << "\033[31m" << "ERROR, rectangleguillotine::Solution does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
     }
     }
     VER(info, "Time" << std::endl);
 }
 
-void Solution::algorithm_end(Info& info)
+void Solution::algorithm_end(Info& info) const
 {
     double t = info.elapsed_time();
     VER(info, "---" << std::endl);
@@ -229,9 +331,17 @@ void Solution::algorithm_end(Info& info)
         PUT(info, sol_str, "Profit", profit());
         VER(info, "Profit: " << profit() << std::endl);
         break;
+    } case Objective::VariableSizedBinPacking: {
+        PUT(info, sol_str, "Cost", cost());
+        PUT(info, sol_str, "BinNumber", bin_number());
+        PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
+        VER(info, "Cost: " << cost() << std::endl);
+        VER(info, "Bin number: " << bin_number() << std::endl);
+        VER(info, "Full waste (%): " << 100 * full_waste_percentage() << std::endl);
+        break;
     } default: {
         assert(false);
-        std::cerr << "\033[31m" << "ERROR, branching scheme rectangle::BranchingScheme does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
+        std::cerr << "\033[31m" << "ERROR, rectangleguillotine::Solution does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
     }
     }
     PUT(info, sol_str, "Time", t);
@@ -268,4 +378,3 @@ void Solution::write(Info& info) const
     }
     f.close();
 }
-
