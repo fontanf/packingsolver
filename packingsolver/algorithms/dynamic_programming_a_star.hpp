@@ -7,79 +7,46 @@
 namespace packingsolver
 {
 
-template <typename Solution, typename BranchingScheme>
-class DynamicProgrammingAStar
+struct DynamicProgrammingAStarOptionalParameters
 {
-
-public:
-
-    DynamicProgrammingAStar(
-            Solution& sol_best,
-            BranchingScheme& branching_scheme,
-            Counter thread_id,
-            Counter s,
-            GuideId guide_id,
-            Info info):
-        thread_id_(thread_id),
-        sol_best_(sol_best),
-        branching_scheme_(branching_scheme),
-        s_(s),
-        guide_id_(guide_id),
-        info_(info) { }
-
-    void run();
-
-private:
-
-    Counter thread_id_;
-    Solution& sol_best_;
-    BranchingScheme& branching_scheme_;
-    Counter s_ = -2;
-    GuideId guide_id_;
-    Info info_ = Info();
-
-    Counter node_number_ = 0;
-    Counter q_sizemax_ = 0;
-
-    bool call_history_1(
-            std::vector<std::vector<typename BranchingScheme::Front>>& history,
-            const std::shared_ptr<const typename BranchingScheme::Node>& node);
-    void run_1();
-
-    bool call_history_2(
-            std::vector<std::vector<std::vector<typename BranchingScheme::Front>>>& history,
-            const std::shared_ptr<const typename BranchingScheme::Node>& node);
-    void run_2();
-
-    bool call_history_n(
-            std::map<std::vector<ItemPos>, std::vector<typename BranchingScheme::Front>>& history,
-            const std::shared_ptr<const typename BranchingScheme::Node>& node);
-    void run_n();
-
+    Counter thread_id = 0;
+    Counter bucket_size_max = 2;
+    Info info = Info();
 };
 
-/************************** Template implementation ***************************/
+struct DynamicProgrammingAStarOutput
+{
+    Counter node_number = 0;
+    Counter queue_size_max = 1;
+};
 
-template <typename Solution, typename BranchingScheme>
-bool DynamicProgrammingAStar<Solution, BranchingScheme>::call_history_1(
-        std::vector<std::vector<typename BranchingScheme::Front>>& history,
+template <typename BranchingScheme>
+bool call_history(
+        const BranchingScheme& branching_scheme,
+        std::map<std::vector<ItemPos>, std::vector<std::shared_ptr<const typename BranchingScheme::Node>>>& history,
         const std::shared_ptr<const typename BranchingScheme::Node>& node)
 {
-    typedef typename BranchingScheme::Front Front;
-    std::vector<Front>& list = history[node->pos_stack(0)];
+    typedef typename BranchingScheme::Node Node;
 
-    // Check if front is dominated
-    for (Front f: list) {
-        if (branching_scheme_.dominates(f, node->front())) {
-            LOG(info_, "history " << node->pos_stack(0) << " " << node->pos_stack(1) << " " << node->front() << std::endl);
-            LOG(info_, "dominated by " << f << std::endl);
+    const auto& bucket = branching_scheme.bucket(*node);
+
+    // If is not comparable. For example, last insertion was a defect insertion.
+    if (bucket.empty())
+        return true;
+
+    auto& list = history[bucket];
+
+    // Check if node is dominated.
+    for (const std::shared_ptr<const Node>& n: list) {
+        if (branching_scheme.dominates(*n, *node)) {
+            //LOG(info_, "dominated by " << f << std::endl);
             return false;
         }
     }
 
-    // Remove dominated fronts in list
+    // Remove dominated nodes from history.
     for (auto it = list.begin(); it != list.end();) {
-        if (branching_scheme_.dominates(node->front(), *it)) {
+        if (branching_scheme.dominates(*node, **it)) {
             *it = list.back();
             list.pop_back();
         } else {
@@ -87,349 +54,91 @@ bool DynamicProgrammingAStar<Solution, BranchingScheme>::call_history_1(
         }
     }
 
-    // Add front
-    LOG(info_, "history " << node->pos_stack(0) << " " << node->pos_stack(1) << " " << node->front() << std::endl);
-    list.push_back(node->front());
-
+    // Add node to history.
+    //LOG(info_, "history " << node->pos_stack(0) << " " << node->pos_stack(1) << " " << node->front() << std::endl);
+    list.push_back(node);
     return true;
 }
 
-template <typename Solution, typename BranchingScheme>
-void DynamicProgrammingAStar<Solution, BranchingScheme>::run_1()
+template <typename Instance, typename Solution, typename BranchingScheme>
+inline DynamicProgrammingAStarOutput dynamic_programming_a_star(
+        const BranchingScheme& branching_scheme,
+        SolutionPool<Instance, Solution>& solution_pool,
+        DynamicProgrammingAStarOptionalParameters parameters = {})
 {
     typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Insertion Insertion;
-    typedef typename BranchingScheme::Front Front;
 
-    LOG_FOLD_START(info_, "DPA* 1" << std::endl);
-    assert(sol_best_.instance().stack_number() == 1);
+    LOG_FOLD_START(parameters.info, "DPA* 1" << std::endl);
+    DynamicProgrammingAStarOutput output;
 
     // Initialize queue
-    auto comp = branching_scheme_.compare(guide_id_);
-    std::multiset<std::shared_ptr<const Node>, decltype(comp)> q(comp);
-    q.insert(branching_scheme_.root());
+    std::multiset<std::shared_ptr<const Node>, decltype(branching_scheme)> q(branching_scheme);
+    auto root = branching_scheme.root();
+    if ((Counter)branching_scheme.bucket(*root).size() > parameters.bucket_size_max)
+        return output;
+    q.insert(root);
 
-    // Create history
-    std::vector<std::vector<Front>> history(sol_best_.instance().stack(0).size()+1);
+    // Create history.
+    std::map<std::vector<ItemPos>, std::vector<std::shared_ptr<const Node>>> history;
 
     while (!q.empty()) {
-        node_number_++;
-        if (q_sizemax_ < (Counter)q.size())
-            q_sizemax_ = q.size();
-        LOG_FOLD_START(info_, "node_number " << node_number_ << std::endl);
+        output.node_number++;
+        if (output.queue_size_max < (Counter)q.size())
+            output.queue_size_max = q.size();
+        LOG_FOLD_START(parameters.info, "node_number " << output.node_number << std::endl);
 
-        // Check time
-        if (!info_.check_time()) {
-            LOG_FOLD_END(info_, "");
-            return;
+        // Check time.
+        if (!parameters.info.check_time()) {
+            LOG_FOLD_END(parameters.info, "");
+            break;;
         }
 
         // Get node
         auto node_cur = *q.begin();
         q.erase(q.begin());
-        LOG_FOLD(info_, "node_cur" << std::endl << node_cur);
 
-        // Bound
-        if (node_cur->bound(sol_best_)) {
-            LOG(info_, " bound ×" << std::endl);
-            return;
+        // Bound.
+        if (branching_scheme.bound(*node_cur, solution_pool.worst())) {
+            LOG(parameters.info, " bound ×" << std::endl);
+            continue;
         }
 
-        for (const Insertion& insertion: branching_scheme_.children(node_cur, info_)) {
-            LOG(info_, insertion << std::endl);
-            auto child = branching_scheme_.child(node_cur, insertion);
-            LOG_FOLD(info_, "node_tmp" << std::endl << *child);
+        for (const Insertion& insertion: branching_scheme.insertions(node_cur, parameters.info)) {
+            auto child = branching_scheme.child(node_cur, insertion);
 
-            // Bound
-            if (child->bound(sol_best_)) {
-                LOG(info_, " bound ×" << std::endl);
+            // Bound.
+            if (branching_scheme.bound(*child, solution_pool.worst())) {
+                LOG(parameters.info, " bound ×" << std::endl);
                 continue;
             }
 
-            // Update best solution
-            if (sol_best_ < *child) {
+            // Update best solution.
+            if (branching_scheme.better(*child, solution_pool.worst())) {
                 std::stringstream ss;
-                ss << "DPA* 1 (thread " << thread_id_ << ")";
-                sol_best_.update(child->convert(sol_best_), ss, info_);
+                ss << "DPA* (thread " << parameters.thread_id << ")";
+                solution_pool.add(branching_scheme.to_solution(*child, solution_pool.worst()), ss, parameters.info);
             }
 
             // Add to history
-            if (insertion.j1 != -1 || insertion.j2 != -1) {
-                if (!call_history_1(history, child)) {
-                    LOG(info_, " history cut x" << std::endl);
-                    continue;
-                }
-            }
-
-            // Add child to the queue
-            if (!child->full())
-                q.insert(child);
-        }
-
-        LOG_FOLD_END(info_, "");
-    }
-
-    LOG_FOLD_END(info_, "");
-}
-
-/******************************************************************************/
-
-template <typename Solution, typename BranchingScheme>
-bool DynamicProgrammingAStar<Solution, BranchingScheme>::call_history_2(
-        std::vector<std::vector<std::vector<typename BranchingScheme::Front>>>& history,
-        const std::shared_ptr<const typename BranchingScheme::Node>& node)
-{
-    typedef typename BranchingScheme::Front Front;
-    std::vector<Front>& list = history[node->pos_stack(0)][node->pos_stack(1)];
-
-    // Check if front is dominated
-    for (Front f: list) {
-        if (branching_scheme_.dominates(f, node->front())) {
-            LOG(info_, "history " << node->pos_stack(0) << " " << node->pos_stack(1) << " " << node->front() << std::endl);
-            LOG(info_, "dominated by " << f << std::endl);
-            return false;
-        }
-    }
-
-    // Remove dominated fronts in list
-    for (auto it = list.begin(); it != list.end();) {
-        if (branching_scheme_.dominates(node->front(), *it)) {
-            *it = list.back();
-            list.pop_back();
-        } else {
-            ++it;
-        }
-    }
-
-    // Add front
-    LOG(info_, "history " << node->pos_stack(0) << " " << node->pos_stack(1) << " " << node->front() << std::endl);
-    list.push_back(node->front());
-
-    return true;
-}
-
-template <typename Solution, typename BranchingScheme>
-void DynamicProgrammingAStar<Solution, BranchingScheme>::run_2()
-{
-    typedef typename BranchingScheme::Node Node;
-    typedef typename BranchingScheme::Insertion Insertion;
-    typedef typename BranchingScheme::Front Front;
-
-    LOG_FOLD_START(info_, "DPA* 2" << std::endl);
-    assert(sol_best_.instance().stack_number() == 2);
-
-    // Initialize queue
-    auto comp = branching_scheme_.compare(guide_id_);
-    std::multiset<std::shared_ptr<const Node>, decltype(comp)> q(comp);
-    q.insert(branching_scheme_.root());
-
-    // Create history
-    std::vector<std::vector<std::vector<Front>>> history;
-    for (StackId i = 0; i <= (StackId)sol_best_.instance().stack(0).size(); ++i)
-        history.push_back(std::vector<std::vector<Front>>(sol_best_.instance().stack(1).size()+1));
-
-    while (!q.empty()) {
-        node_number_++;
-        if (q_sizemax_ < (Counter)q.size())
-            q_sizemax_ = q.size();
-        LOG_FOLD_START(info_, "node_number " << node_number_ << std::endl);
-
-        // Check time
-        if (!info_.check_time()) {
-            LOG_FOLD_END(info_, "");
-            return;
-        }
-
-        // Get node
-        auto node_cur = *q.begin();
-        q.erase(q.begin());
-        LOG_FOLD(info_, "node_cur" << std::endl << node_cur);
-
-        // Bound
-        if (node_cur->bound(sol_best_)) {
-            LOG(info_, " bound ×" << std::endl);
-            return;
-        }
-
-        for (const Insertion& insertion: branching_scheme_.children(node_cur, info_)) {
-            LOG(info_, insertion << std::endl);
-            auto child = branching_scheme_.child(node_cur, insertion);
-            LOG_FOLD(info_, "node_tmp" << std::endl << *child);
-
-            // Bound
-            if (child->bound(sol_best_)) {
-                LOG(info_, " bound ×" << std::endl);
+            if (!call_history(branching_scheme, history, child)) {
+                LOG(parameters.info, " history cut x" << std::endl);
                 continue;
             }
 
-            // Update best solution
-            if (sol_best_ < *child) {
-                std::stringstream ss;
-                ss << "DPA* 2 (thread " << thread_id_ << ")";
-                sol_best_.update(child->convert(sol_best_), ss, info_);
-            }
-
-            // Add to history
-            if (insertion.j1 != -1 || insertion.j2 != -1) {
-                if (!call_history_2(history, child)) {
-                    LOG(info_, " history cut x" << std::endl);
-                    continue;
-                }
-            }
-
             // Add child to the queue
-            if (!child->full())
+            if (!branching_scheme.leaf(*child))
                 q.insert(child);
         }
 
-        LOG_FOLD_END(info_, "");
+        LOG_FOLD_END(parameters.info, "");
     }
 
-    LOG_FOLD_END(info_, "");
-}
-
-/******************************************************************************/
-
-template <typename Solution, typename BranchingScheme>
-bool DynamicProgrammingAStar<Solution, BranchingScheme>::call_history_n(
-        std::map<std::vector<ItemPos>, std::vector<typename BranchingScheme::Front>>& history,
-        const std::shared_ptr<const typename BranchingScheme::Node>& node)
-{
-    typedef typename BranchingScheme::Front Front;
-    auto list = history.insert({node->pos_stack(), {}}).first;
-
-    // Check if front is dominated
-    for (Front f: list->second) {
-        if (branching_scheme_.dominates(f, node->front())) {
-            LOG(info_, "history " << node->pos_stack(0) << " " << node->pos_stack(1) << " " << node->front() << std::endl);
-            LOG(info_, "dominated by " << f << std::endl);
-            return false;
-        }
-    }
-
-    // Remove dominated fronts in list
-    for (auto it = list->second.begin(); it != list->second.end();) {
-        if (branching_scheme_.dominates(node->front(), *it)) {
-            *it = list->second.back();
-            list->second.pop_back();
-        } else {
-            ++it;
-        }
-    }
-
-    // Add front
-    LOG(info_, "history " << node->pos_stack(0) << " " << node->pos_stack(1) << " " << node->front() << std::endl);
-    list->second.push_back(node->front());
-
-    return true;
-}
-
-template <typename Solution, typename BranchingScheme>
-void DynamicProgrammingAStar<Solution, BranchingScheme>::run_n()
-{
-    typedef typename BranchingScheme::Node Node;
-    typedef typename BranchingScheme::Insertion Insertion;
-    typedef typename BranchingScheme::Front Front;
-
-    LOG_FOLD_START(info_, "DPA* n" << std::endl);
-
-    auto comp = branching_scheme_.compare(guide_id_);
-    std::multiset<std::shared_ptr<const Node>, decltype(comp)> q(comp);
-    q.insert(branching_scheme_.root());
-
-    // Create history cut object
-    std::map<std::vector<ItemPos>, std::vector<Front>> history;
-
-    while (!q.empty()) {
-        node_number_++;
-        if (q_sizemax_ < (Counter)q.size())
-            q_sizemax_ = q.size();
-        LOG_FOLD_START(info_, "node " << node_number_ << std::endl);
-
-        // Check time
-        if (!info_.check_time()) {
-            LOG_FOLD_END(info_, "");
-            return;
-        }
-
-        // Get node
-        auto node_cur = *q.begin();
-        q.erase(q.begin());
-        LOG_FOLD(info_, "node_cur" << std::endl << *node_cur);
-
-        // Bound
-        if (node_cur->bound(sol_best_)) {
-            LOG(info_, " bound ×" << std::endl);
-            return;
-        }
-
-        for (const Insertion& insertion: branching_scheme_.children(node_cur, info_)) {
-            LOG(info_, insertion << std::endl);
-            auto child = branching_scheme_.child(node_cur, insertion);
-            LOG_FOLD(info_, "node_tmp" << std::endl << *child);
-
-            // Bound
-            if (child->bound(sol_best_)) {
-                LOG(info_, " bound ×" << std::endl);
-                continue;
-            }
-
-            // Update best solution
-            if (sol_best_ < *child) {
-                std::stringstream ss;
-                ss << "DPA* n (thread " << thread_id_ << ")";
-                sol_best_.update(child->convert(sol_best_), ss, info_);
-            }
-
-            // Add to history
-            if (insertion.j1 != -1 || insertion.j2 != -1) {
-                if (!call_history_n(history, child)) {
-                    LOG(info_, " history cut x" << std::endl);
-                    continue;
-                }
-            }
-
-            // Add child to the queue
-            if (!child->full())
-                q.insert(child);
-        }
-
-        LOG_FOLD_END(info_, "");
-    }
-
-    LOG_FOLD_END(info_, "");
-}
-
-/******************************************************************************/
-
-template <typename Solution, typename BranchingScheme>
-void DynamicProgrammingAStar<Solution, BranchingScheme>::run()
-{
-    switch (s_) {
-    case -2: {
-        switch (sol_best_.instance().stack_number()) {
-        case 1: {
-            run_1();
-            break;
-        } case 2: {
-            run_2();
-            break;
-        } default: {
-        }
-        }
-        break;
-    } case -1: {
-        if (sol_best_.instance().stack_number() == 1)
-            run_1();
-        break;
-    } default: {
-        if (sol_best_.instance().state_number() <= s_)
-            run_n();
-    }
-    }
-
-    PUT(info_, "DPA*", "Nodes", node_number_);
-    PUT(info_, "DPA*", "QueueMaxSize", q_sizemax_);
+    std::stringstream ss;
+    ss << "DPA* (thread " << parameters.thread_id << ")";
+    PUT(parameters.info, ss.str(), "NodeNumber", output.node_number);
+    LOG_FOLD_END(parameters.info, "");
+    return output;
 }
 
 }

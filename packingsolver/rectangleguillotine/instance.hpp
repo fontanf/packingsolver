@@ -41,17 +41,17 @@ std::ostream& operator<<(std::ostream &os, Rectangle r);
 
 /******************************************************************************/
 
-struct Item
+struct ItemType
 {
     ItemTypeId id;
-    Rectangle rect;
     Profit profit;
     ItemPos copies;
+    Rectangle rect;
     StackId stack;
     bool oriented;
 };
 
-std::ostream& operator<<(std::ostream &os, const Item& item);
+std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
 
 struct Defect
 {
@@ -63,11 +63,13 @@ struct Defect
 
 std::ostream& operator<<(std::ostream &os, const Defect& defect);
 
-struct Bin
+struct BinType
 {
     BinTypeId id;
-    Rectangle rect;
+    Profit cost;
     BinPos copies;
+
+    Rectangle rect;
     std::vector<Defect> defects;
 
     Area previous_bin_area = 0;
@@ -77,11 +79,11 @@ struct Bin
     Length height(CutOrientation o) const { return (o == CutOrientation::Vertical)? rect.h: rect.w; }
 };
 
-std::ostream& operator<<(std::ostream &os, const Bin& bin);
+std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
 
 /********************************** Instance **********************************/
 
-class Instance 
+class Instance
 {
 
 public:
@@ -99,13 +101,24 @@ public:
      * Create instance manually
      */
     Instance(Objective objective): objective_(objective) { }
-    void add_item(Length w, Length h, Profit p = -1, ItemPos copies = 1, bool oriented = false, bool new_stack = true);
-    void add_bin(Length w, Length h, BinPos copies = 1);
+    void add_item_type(Length w, Length h, Profit p = -1, ItemPos copies = 1, bool oriented = false, bool new_stack = true);
+    void add_bin_type(Length w, Length h, Profit cost = -1, BinPos copies = 1);
     void add_defect(BinTypeId i, Length x, Length y, Length w, Length h);
+
+    inline void add_bin_type(const BinType& bin_type, BinPos copies)
+    {
+        add_bin_type(bin_type.rect.w, bin_type.rect.h, bin_type.cost, copies);
+    }
+
+    inline void add_item_type(const ItemType& item_type, Profit profit, ItemPos copies)
+    {
+        add_item_type(item_type.rect.w, item_type.rect.h, profit, copies, item_type.oriented);
+    }
 
     void set_bin_infinite_width();
     void set_bin_infinite_height();
     void set_bin_infinite_copies();
+    void set_bin_unweighted();
     void set_item_infinite_copies();
     void set_unweighted();
 
@@ -113,14 +126,15 @@ public:
      * Getters
      */
 
+    inline ProblemType type() const { return ProblemType::RectangleGuillotine; };
     inline Objective objective() const { return objective_; }
 
-    inline ItemTypeId item_type_number()    const { return items_.size(); }
+    inline ItemTypeId item_type_number()    const { return item_types_.size(); }
     inline ItemTypeId item_number()         const { return item_number_; }
     inline StackId    stack_number()        const { return stacks_.size(); }
     inline ItemPos    stack_size(StackId s) const { return stack_sizes_[s]; }
     inline DefectId   defect_number()       const { return defects_.size(); }
-    inline BinTypeId  bin_type_number()     const { return bins_.size(); }
+    inline BinTypeId  bin_type_number()     const { return bin_types_.size(); }
     inline BinPos     bin_number()          const { return bin_number_; }
 
     inline Area       item_area()           const { return item_area_; }
@@ -129,22 +143,23 @@ public:
     inline Area       packable_area()       const { return packable_area_; }
     inline Profit     item_profit()         const { return item_profit_; }
     inline ItemTypeId max_efficiency_item() const { return max_efficiency_item_; }
+    inline bool       unbounded_knapsck()   const { return all_item_type_infinite_copies; }
 
-    inline const Item&   item(ItemTypeId j)    const { return items_[j]; }
-    inline const Defect& defect(DefectId k)    const { return defects_[k]; }
-    inline const Bin&    bin_type(BinTypeId i) const { return bins_[i]; }
+    inline const ItemType&  item_type(ItemTypeId j) const { return item_types_[j]; }
+    inline const Defect&         defect(DefectId k) const { return defects_[k]; }
+    inline const BinType&     bin_type(BinTypeId i) const { return bin_types_[i]; }
 
-    inline const Item& item(StackId s, ItemPos j_pos) const;
-    inline const Bin& bin(BinPos i_pos) const;
+    inline const ItemType& item(StackId s, ItemPos j_pos) const;
+    inline const BinType& bin(BinPos i_pos) const;
     Area previous_bin_area(BinPos i_pos) const;
 
-    inline const std::vector<Item>&              items()          const { return items_; }
-    inline const std::vector<Item>&              stack(StackId s) const { return stacks_[s]; }
-    inline const std::vector<std::vector<Item>>& stacks()         const { return stacks_; }
-    inline const std::vector<Defect>&            defects()        const { return defects_; }
+    inline const std::vector<ItemType>&              item_types()     const { return item_types_; }
+    inline const std::vector<ItemType>&              stack(StackId s) const { return stacks_[s]; }
+    inline const std::vector<std::vector<ItemType>>& stacks()         const { return stacks_; }
+    inline const std::vector<Defect>&                defects()        const { return defects_; }
 
-    inline Length  width(const Item& item, bool rotate, CutOrientation o) const;
-    inline Length height(const Item& item, bool rotate, CutOrientation o) const;
+    inline Length  width(const ItemType& item, bool rotate, CutOrientation o) const;
+    inline Length height(const ItemType& item, bool rotate, CutOrientation o) const;
 
     inline Length   left(const Defect& defect, CutOrientation o) const;
     inline Length  right(const Defect& defect, CutOrientation o) const;
@@ -154,7 +169,7 @@ public:
     DefectId rect_intersects_defect(
             Length l, Length r, Length b, Length t, BinTypeId i, CutOrientation o) const;
     DefectId item_intersects_defect(
-            Length l, Length b, const Item& item, bool rotate, BinTypeId i, CutOrientation o) const;
+            Length l, Length b, const ItemType& item, bool rotate, BinTypeId i, CutOrientation o) const;
     DefectId x_intersects_defect(
             Length x, BinTypeId i, CutOrientation o) const;
     DefectId y_intersects_defect(
@@ -166,12 +181,12 @@ public:
 
 private:
 
-    std::vector<Item> items_;
+    std::vector<ItemType> item_types_;
     std::vector<Defect> defects_;
-    std::vector<Bin> bins_;
+    std::vector<BinType> bin_types_;
     Objective objective_;
 
-    std::vector<std::vector<Item>> stacks_;
+    std::vector<std::vector<ItemType>> stacks_;
 
     ItemPos item_number_ = 0;
     BinPos bin_number_ = 0;
@@ -185,6 +200,7 @@ private:
 
     bool all_bin_type_one_copy_ = true;
     bool all_item_type_one_copy_ = true;
+    bool all_item_type_infinite_copies = false;
 
 };
 
@@ -192,7 +208,7 @@ std::ostream& operator<<(std::ostream &os, const Instance& ins);
 
 /****************************** inlined methods *******************************/
 
-const Item& Instance::item(StackId s, ItemPos j_pos) const
+const ItemType& Instance::item(StackId s, ItemPos j_pos) const
 {
     assert(j_pos < stack_sizes_[s]);
 
@@ -211,20 +227,20 @@ const Item& Instance::item(StackId s, ItemPos j_pos) const
     }
 }
 
-const Bin& Instance::bin(BinPos i_pos) const
+const BinType& Instance::bin(BinPos i_pos) const
 {
     assert(i_pos < bin_number_);
 
     if (all_bin_type_one_copy_)
-        return bins_[i_pos];
+        return bin_types_[i_pos];
 
     BinPos i_tmp = 0;
     BinTypeId i = 0;
     for (;;) {
-        if (i_tmp <= i_pos && i_pos < i_tmp + bins_[i].copies) {
-            return bins_[i];
+        if (i_tmp <= i_pos && i_pos < i_tmp + bin_types_[i].copies) {
+            return bin_types_[i];
         } else {
-            i_tmp += bins_[i].copies;
+            i_tmp += bin_types_[i].copies;
             i++;
         }
     }
@@ -254,7 +270,7 @@ Length Instance::bottom(const Defect& defect, CutOrientation o) const
     return (o == CutOrientation::Vertical)? defect.pos.y: defect.pos.x;
 }
 
-Length Instance::width(const Item& item, bool rotate, CutOrientation o) const
+Length Instance::width(const ItemType& item, bool rotate, CutOrientation o) const
 {
     if (o == CutOrientation::Vertical) {
         return (!rotate)? item.rect.w: item.rect.h;
@@ -263,7 +279,7 @@ Length Instance::width(const Item& item, bool rotate, CutOrientation o) const
     }
 }
 
-Length Instance::height(const Item& item, bool rotate, CutOrientation o) const
+Length Instance::height(const ItemType& item, bool rotate, CutOrientation o) const
 {
     if (o == CutOrientation::Vertical) {
         return (!rotate)? item.rect.h: item.rect.w;

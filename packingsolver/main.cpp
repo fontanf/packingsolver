@@ -4,6 +4,7 @@
 #include "packingsolver/algorithms/a_star.hpp"
 #include "packingsolver/algorithms/iterative_memory_bounded_a_star.hpp"
 #include "packingsolver/algorithms/dynamic_programming_a_star.hpp"
+#include "packingsolver/algorithms/column_generation.hpp"
 
 #include <boost/program_options.hpp>
 
@@ -13,88 +14,77 @@
 using namespace packingsolver;
 namespace po = boost::program_options;
 
-GuideId read_a_star_args(std::vector<char*> argv)
+AStarOptionalParameters read_a_star_args(std::vector<char*> argv)
 {
-    GuideId guide_id = 0;
-
+    AStarOptionalParameters parameters;
     po::options_description desc("Allowed options");
     desc.add_options()
-        ("guide,c", po::value<GuideId>(&guide_id), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line((Counter)argv.size(), argv.data(), desc), vm);
     try {
         po::notify(vm);
-    } catch (po::required_option e) {
+    } catch (const po::required_option& e) {
         std::cout << desc << std::endl;;
         throw "";
     }
-
-    return guide_id;
+    return parameters;
 }
 
-GuideId read_depth_frist_search_args(std::vector<char*> argv)
+DepthFirstSearchOptionalParameters read_depth_frist_search_args(std::vector<char*> argv)
 {
-    GuideId guide_id = 0;
-
+    DepthFirstSearchOptionalParameters parameters;
     po::options_description desc("Allowed options");
     desc.add_options()
-        ("guide,c", po::value<GuideId>(&guide_id), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line((Counter)argv.size(), argv.data(), desc), vm);
     try {
         po::notify(vm);
-    } catch (po::required_option e) {
+    } catch (const po::required_option& e) {
         std::cout << desc << std::endl;;
         throw "";
     }
-
-    return guide_id;
+    return parameters;
 }
 
-std::pair<double, GuideId> read_iterative_memory_bounded_a_star_args(std::vector<char*> argv)
+IterativeMemoryBoundedAStarOptionalParameters read_iterative_memory_bounded_a_star_args(std::vector<char*> argv)
 {
-    double growth_factor = 1.5;
-    GuideId guide_id = 0;
-
+    IterativeMemoryBoundedAStarOptionalParameters parameters;
     po::options_description desc("Allowed options");
     desc.add_options()
-        ("growth-factor,f", po::value<double>(&growth_factor), "")
-        ("guide,c",         po::value<GuideId>(&guide_id),     "")
+        ("growth-factor,f", po::value<double>(&parameters.growth_factor), "")
+        ("queue-size-min,m", po::value<Counter>(&parameters.queue_size_min), "")
+        ("queue-size-max,M", po::value<Counter>(&parameters.queue_size_max), "")
+        ("node-number-max,n", po::value<Counter>(&parameters.node_number_max), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line((Counter)argv.size(), argv.data(), desc), vm);
     try {
         po::notify(vm);
-    } catch (po::required_option e) {
+    } catch (const po::required_option& e) {
         std::cout << desc << std::endl;;
         throw "";
     }
-
-    return {growth_factor, guide_id};
+    return parameters;
 }
 
-std::pair<Counter, GuideId> read_dynamic_programming_a_star_args(std::vector<char*> argv)
+DynamicProgrammingAStarOptionalParameters read_dynamic_programming_a_star_args(std::vector<char*> argv)
 {
-    Counter s = -1;
-    GuideId guide_id = 0;
-
+    DynamicProgrammingAStarOptionalParameters parameters;
     po::options_description desc("Allowed options");
     desc.add_options()
-        (",s", po::value<Counter>(&s), "")
-        ("guide,c", po::value<GuideId>(&guide_id), "")
+        (",s", po::value<Counter>(&parameters.bucket_size_max), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line((Counter)argv.size(), argv.data(), desc), vm);
     try {
         po::notify(vm);
-    } catch (po::required_option e) {
+    } catch (const po::required_option& e) {
         std::cout << desc << std::endl;;
         throw "";
     }
-
-    return {s, guide_id};
+    return parameters;
 }
 
 rectangleguillotine::BranchingScheme::Parameters read_rg_branching_scheme_parameters(
@@ -120,12 +110,13 @@ rectangleguillotine::BranchingScheme::Parameters read_rg_branching_scheme_parame
         ("one2cut,", "")
         ("no-item-rotation,", "")
         ("cut-through-defects", "")
+        ("guide,c", po::value<GuideId>(&p0.guide_id), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line((Counter)argv.size(), argv.data(), desc), vm);
     try {
         po::notify(vm);
-    } catch (po::required_option e) {
+    } catch (const po::required_option& e) {
         std::cout << desc << std::endl;;
         throw "";
     }
@@ -148,15 +139,16 @@ rectangleguillotine::BranchingScheme::Parameters read_rg_branching_scheme_parame
     if (vm.count("one2cut")) p.one2cut = true;
     if (vm.count("no-item-rotation")) p.no_item_rotation = true;
     if (vm.count("cut-through-defects")) p.cut_through_defects = true;
+    if (vm.count("guide")) p.guide_id = p0.guide_id;
     return p;
 }
 
-template <typename BranchingScheme>
-int run_rectangleguillotine_2(
-        Counter thread_id,
-        rectangleguillotine::Solution& solution,
-        BranchingScheme branching_scheme,
+template <typename Instance, typename Solution, typename BranchingScheme>
+int run(
         std::string algorithm,
+        BranchingScheme& branching_scheme,
+        SolutionPool<Instance, Solution>& solution_pool,
+        Counter thread_id,
         Info info)
 {
     std::vector<std::string> algorithm_args = po::split_unix(algorithm);
@@ -165,25 +157,25 @@ int run_rectangleguillotine_2(
         algorithm_argv.push_back(const_cast<char*>(algorithm_args[i].c_str()));
 
     if (algorithm_args[0] == "A*") {
-        GuideId guide_id = read_a_star_args(algorithm_argv);
-        AStar<rectangleguillotine::Solution, BranchingScheme> solver(
-                solution, branching_scheme, thread_id, guide_id, info);
-        solver.run();
+        AStarOptionalParameters parameters;
+        parameters.thread_id = thread_id;
+        parameters.info = info;
+        a_star(branching_scheme, solution_pool, parameters);
     } else if (algorithm_args[0] == "DFS") {
-        GuideId guide_id = read_depth_frist_search_args(algorithm_argv);
-        DepthFirstSearch<rectangleguillotine::Solution, BranchingScheme> solver(
-                solution, branching_scheme, thread_id, guide_id, info);
-        solver.run();
+        DepthFirstSearchOptionalParameters parameters;
+        parameters.thread_id = thread_id;
+        parameters.info = info;
+        depth_first_search(branching_scheme, solution_pool, parameters);
     } else if (algorithm_args[0] == "IMBA*") {
-        auto p = read_iterative_memory_bounded_a_star_args(algorithm_argv);
-        IterativeMemoryBoundedAStar<rectangleguillotine::Solution, BranchingScheme> solver(
-                solution, branching_scheme, thread_id, p.first, p.second, info);
-        solver.run();
+        auto parameters = read_iterative_memory_bounded_a_star_args(algorithm_argv);
+        parameters.thread_id = thread_id;
+        parameters.info = info;
+        iterative_memory_bounded_a_star(branching_scheme, solution_pool, parameters);
     } else if (algorithm_args[0] == "DPA*") {
-        auto p = read_dynamic_programming_a_star_args(algorithm_argv);
-        DynamicProgrammingAStar<rectangleguillotine::Solution, BranchingScheme> solver(
-                solution, branching_scheme, thread_id, p.first, p.second, info);
-        solver.run();
+        auto parameters = read_dynamic_programming_a_star_args(algorithm_argv);
+        parameters.thread_id = thread_id;
+        parameters.info = info;
+        dynamic_programming_a_star(branching_scheme, solution_pool, parameters);
     } else {
         VER(info, "WARNING: unknown algorithm \"" << algorithm_args[0] << "\"" << std::endl);
     }
@@ -192,7 +184,7 @@ int run_rectangleguillotine_2(
 
 int run_rectangleguillotine(
         Counter thread_id,
-        rectangleguillotine::Solution& solution,
+        SolutionPool<rectangleguillotine::Instance, rectangleguillotine::Solution>& solution_pool,
         const rectangleguillotine::Instance& instance,
         const std::vector<std::string> branching_scheme_args,
         std::string algorithm_str,
@@ -201,7 +193,7 @@ int run_rectangleguillotine(
     if (branching_scheme_args[0] == "RG") {
         rectangleguillotine::BranchingScheme::Parameters parameters = read_rg_branching_scheme_parameters(branching_scheme_args);
         rectangleguillotine::BranchingScheme branching_scheme(instance, parameters);
-        run_rectangleguillotine_2(thread_id, solution, branching_scheme, algorithm_str, info);
+        run(algorithm_str, branching_scheme, solution_pool, thread_id, info);
     } else {
         VER(info, "WARNING: unknown branching scheme \"" << branching_scheme_args[0] << "\"" << std::endl);
     }
@@ -226,18 +218,18 @@ int main(int argc, char *argv[])
     ProblemType problem_type = ProblemType::RectangleGuillotine;
     Objective objective = Objective::Default;
     std::vector<std::string> branching_schemes = {
-        "RG -p roadef2018",
-        "RG -p roadef2018",
-        "RG -p roadef2018",
-        "RG -p roadef2018",
-        "RG -p roadef2018",
+        "RG -p roadef2018 -c 0",
+        "RG -p roadef2018 -c 1",
+        "RG -p roadef2018 -c 0",
+        "RG -p roadef2018 -c 1",
+        "RG -p roadef2018 -c 0",
     };
     std::vector<std::string> algorithms = {
-        "MBA* -f 1.33 -c 0",
-        "MBA* -f 1.33 -c 1",
-        "MBA* -f 1.5 -c 0",
-        "MBA* -f 1.5 -c 1",
-        "DPA* -s -1",
+        "IMBA* -f 1.33",
+        "IMBA* -f 1.33",
+        "IMBA* -f 1.5",
+        "IMBA* -f 1.5",
+        "DPA* -s 2",
     };
 
     po::options_description desc("Allowed options");
@@ -251,6 +243,7 @@ int main(int argc, char *argv[])
         ("bin-infinite-width", "")
         ("bin-infinite-height", "")
         ("bin-infinite-copies", "")
+        ("bin-unweighted", "")
         ("item-infinite-copies", "")
         ("unweighted", "")
 
@@ -278,7 +271,7 @@ int main(int argc, char *argv[])
     }
     try {
         po::notify(vm);
-    } catch (po::required_option e) {
+    } catch (const po::required_option& e) {
         std::cout << desc << std::endl;;
         return 1;
     }
@@ -318,9 +311,9 @@ int main(int argc, char *argv[])
         .set_loglevelmax(log_levelmax)
         ;
 
-    std::vector<std::thread> threads;
     switch (problem_type) {
     case ProblemType::RectangleGuillotine: {
+        // Build instance.
         rectangleguillotine::Instance instance(objective, items_path, bins_path, defects_path);
         if (vm.count("bin-infinite-width"))
             instance.set_bin_infinite_width();
@@ -332,26 +325,64 @@ int main(int argc, char *argv[])
             instance.set_item_infinite_copies();
         if (vm.count("unweighted"))
             instance.set_unweighted();
+        if (vm.count("bin-unweighted"))
+            instance.set_bin_unweighted();
 
-        rectangleguillotine::Solution solution(instance);
-        solution.algorithm_start(info);
-        for (Counter i = 0; i < (Counter)algorithms.size(); ++i) {
-            // Parse branching scheme
-            std::vector<std::string> branching_scheme_args = po::split_unix(branching_schemes[i]);
-            // Insert parameters at the beginning of branching_scheme_args
-            branching_scheme_args.insert(branching_scheme_args.begin() + 1,
-                    parameters.begin(), parameters.end());
-            threads.push_back(std::thread(run_rectangleguillotine,
-                        i + 1,
-                        std::ref(solution),
-                        std::ref(instance),
-                        branching_scheme_args,
-                        algorithms[i],
-                        Info(info, true, "thread" + std::to_string(i))));
+        if (objective == Objective::VariableSizedBinPacking) {
+            SolutionPool<rectangleguillotine::Instance, rectangleguillotine::Solution> solution_pool(instance, 1);
+            solution_pool.best().algorithm_start(info);
+            PricingFunction<rectangleguillotine::Instance, rectangleguillotine::Solution> pricing_function = [&algorithms, &branching_schemes, &parameters](const rectangleguillotine::Instance& instance_kp)
+            {
+                Info info_tmp = Info()
+                    //.set_verbose(true)
+                    ;
+                SolutionPool<rectangleguillotine::Instance, rectangleguillotine::Solution> solution_pool_kp(instance_kp, 10);
+                solution_pool_kp.best().algorithm_start(info_tmp);
+                std::vector<std::thread> threads;
+                for (Counter i = 0; i < (Counter)algorithms.size(); ++i) {
+                    // Parse branching scheme
+                    std::vector<std::string> branching_scheme_args = po::split_unix(branching_schemes[i]);
+                    // Insert parameters at the beginning of branching_scheme_args
+                    branching_scheme_args.insert(branching_scheme_args.begin() + 1,
+                            parameters.begin(), parameters.end());
+                    threads.push_back(std::thread(run_rectangleguillotine,
+                                i + 1,
+                                std::ref(solution_pool_kp),
+                                std::ref(static_cast<const rectangleguillotine::Instance&>(instance_kp)),
+                                branching_scheme_args,
+                                algorithms[i],
+                                Info(info_tmp, true, "thread" + std::to_string(i))));
+                }
+                for (Counter i = 0; i < (Counter)algorithms.size(); ++i)
+                    threads[i].join();
+                static_cast<const rectangleguillotine::Solution&>(solution_pool_kp.best()).algorithm_end(info_tmp);
+                return solution_pool_kp;
+            };
+            column_generation_heuristic_variable_sized_bin_packing<rectangleguillotine::Instance, rectangleguillotine::Solution>(
+                    instance, solution_pool, pricing_function, info);
+            solution_pool.best().algorithm_end(info);
+        } else {
+            std::vector<std::thread> threads;
+            SolutionPool<rectangleguillotine::Instance, rectangleguillotine::Solution> solution_pool(instance, 1);
+            static_cast<const rectangleguillotine::Solution&>(solution_pool.best()).algorithm_start(info);
+            for (Counter i = 0; i < (Counter)algorithms.size(); ++i) {
+                // Parse branching scheme
+                std::vector<std::string> branching_scheme_args = po::split_unix(branching_schemes[i]);
+                // Insert parameters at the beginning of branching_scheme_args
+                branching_scheme_args.insert(branching_scheme_args.begin() + 1,
+                        parameters.begin(), parameters.end());
+                threads.push_back(std::thread(run_rectangleguillotine,
+                            i + 1,
+                            std::ref(solution_pool),
+                            std::ref(instance),
+                            branching_scheme_args,
+                            algorithms[i],
+                            Info(info, true, "thread" + std::to_string(i))));
+            }
+            for (Counter i = 0; i < (Counter)algorithms.size(); ++i)
+                threads[i].join();
+            static_cast<const rectangleguillotine::Solution&>(solution_pool.best()).algorithm_end(info);
         }
-        for (Counter i = 0; i < (Counter)algorithms.size(); ++i)
-            threads[i].join();
-        solution.algorithm_end(info);
         break;
     } case ProblemType::Rectangle: {
         break;
