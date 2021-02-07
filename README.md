@@ -25,12 +25,12 @@ bazel build --define cplex=true -- //...
 
 Execute:
 ```shell
-./bazel-bin/packingsolver/main  --verbose  --problem-type rectangleguillotine  --objective knapsack  --items data/rectangle/alvarez2002/ATP35_items.csv  --bins data/rectangle/alvarez2002/ATP35_bins.csv  --certificate ATP35_solution.csv  --output ATP35_output.json  --time-limit 1  -q "RG -p 3NHO" -a "IMBA* -c 4"  -q "RG -p 3NHO" -a "IMBA* -c 5"
+./bazel-bin/packingsolver/main  --verbose  --problem-type rectangleguillotine  --objective knapsack  --items data/rectangle/alvarez2002/ATP35_items.csv  --bins data/rectangle/alvarez2002/ATP35_bins.csv  --certificate ATP35_solution.csv  --output ATP35_output.json  --time-limit 1  -q "RG -p 3NHO -c 4" -a "IMBA*"  -q "RG -p 3NHO -c 5" -a "IMBA*"
 ```
 
 Or in short:
 ```shell
-./bazel-bin/packingsolver/main -v -p RG -f KP -i data/rectangle/alvarez2002/ATP35 -c ATP35_solution.csv -o ATP35_output.json -t 1  -q "RG -p 3NHO" -a "IMBA* -c 4"  -q "RG -p 3NHO" -a "IMBA* -c 5"
+./bazel-bin/packingsolver/main -v -p RG -f KP -i data/rectangle/alvarez2002/ATP35 -c ATP35_solution.csv -o ATP35_output.json -t 1  -q "RG -p 3NHO -c 4" -a "IMBA*"  -q "RG -p 3NHO -c 5" -a "IMBA*"
 ```
 
 A solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
