@@ -1,6 +1,6 @@
 STDCPP = select({
             "@bazel_tools//src/conditions:windows": ['/std:c++latest'],
-            "//conditions:default":                 ["-std=c++14"]})
+            "//conditions:default":                 ["-std=c++11"]})
 
 COINOR_COPTS = select({
             "//packingsolver:coinor_build": ["-DCOINOR_FOUND"],

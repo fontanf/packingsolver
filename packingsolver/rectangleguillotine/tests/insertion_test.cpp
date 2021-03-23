@@ -218,7 +218,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1II)
 
     std::vector<BranchingScheme::Insertion> is {
         {2, -1, 1, 4020, 2100, 3990, 4500, 3210, 1, 0},
-        //{2, -1, 0, 5100, 2990, 5100, 6000, 3210, 0, 0},
+        {2, -1, 0, 5100, 2990, 5100, 6000, 3210, 0, 0},
     };
     EXPECT_EQ(branching_scheme.insertions(node_2, info), is);
 }
@@ -269,7 +269,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1III)
 
     std::vector<BranchingScheme::Insertion> is {
         {2, -1, 1, 4030, 2100, 4010, 4500, 3210, 1, 0},
-        //{2, -1, 0, 5100, 3010, 5100, 6000, 3210, 0, 0},
+        {2, -1, 0, 5100, 3010, 5100, 6000, 3210, 0, 0},
     };
     EXPECT_EQ(branching_scheme.insertions(node_2, info), is);
 }
@@ -320,7 +320,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1IV)
 
     std::vector<BranchingScheme::Insertion> is {
         {2, -1, 1, 4020, 2100, 4020, 4500, 3210, 0, 0},
-        //{2, -1, 0, 5100, 3020, 5100, 6000, 3210, 0, 0},
+        {2, -1, 0, 5100, 3020, 5100, 6000, 3210, 0, 0},
     };
     EXPECT_EQ(branching_scheme.insertions(node_2, info), is);
 }
@@ -488,7 +488,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteII)
         {2, -1, 2, 3205, 3010, 3205, 3500, 3210, 0, 0},
         {2, -1, 1, 2030, 3210, 2010, 3500, 3210, 1, 0},
         {2, -1, 0, 4035, 1200, 4035, 5525, 3210, 0, 0},
-        //{2, -1, 0, 3225, 2010, 3225, 5525, 3210, 0, 0},
+        {2, -1, 0, 3225, 2010, 3225, 5525, 3210, 0, 0},
     };
     EXPECT_EQ(branching_scheme.insertions(node_2, info), is);
 }
@@ -814,6 +814,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX1)
 
     std::vector<BranchingScheme::Insertion> is {
         {2, -1, 2, 1990, 1000, 1990, 3500, 3210, 0, 0},
+        {2, -1, 2, 1490, 1500, 1490, 3500, 3210, 0, 0}, // ?
         {2, -1, 1, 1020, 1500, 1000, 3500, 3210, 1, 0},
         {2, -1, 1, 1010, 2000, 500, 3500, 3210, 1, 0},
     };

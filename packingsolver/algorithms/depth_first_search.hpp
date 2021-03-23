@@ -21,7 +21,7 @@ inline void rec(
         const BranchingScheme& branching_scheme,
         SolutionPool<Instance, Solution>& solution_pool,
         DepthFirstSearchOptionalParameters parameters,
-        const std::shared_ptr<const typename BranchingScheme::Node>& node_cur,
+        const std::shared_ptr<typename BranchingScheme::Node>& node_cur,
         DepthFirstSearchOutput& output)
 {
     typedef typename BranchingScheme::Node Node;
@@ -42,7 +42,7 @@ inline void rec(
         return;
     }
 
-    std::vector<std::shared_ptr<const Node>> children;
+    std::vector<std::shared_ptr<Node>> children;
     for (const Insertion& insertion: branching_scheme.insertions(node_cur, parameters.info)) {
         auto child = branching_scheme.child(node_cur, insertion);
 
