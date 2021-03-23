@@ -215,32 +215,32 @@ BranchingScheme::Front BranchingScheme::front(
 {
     switch (insertion.df) {
     case -1: case -2: {
-        return {.i = last_bin(node, insertion.df), .o = last_bin_orientation(node, insertion.df),
-            .x1_prev = 0, .x3_curr = insertion.x3, .x1_curr = insertion.x1,
-            .y2_prev = 0, .y2_curr = insertion.y2};
+        return {last_bin(node, insertion.df), last_bin_orientation(node, insertion.df),
+            0, insertion.x3, insertion.x1,
+            0, insertion.y2};
     } case 0: {
-        return {.i = last_bin(node, insertion.df), .o = last_bin_orientation(node, insertion.df),
-            .x1_prev = node.x1_curr, .x3_curr = insertion.x3, .x1_curr = insertion.x1,
-            .y2_prev = 0, .y2_curr = insertion.y2};
+        return {last_bin(node, insertion.df), last_bin_orientation(node, insertion.df),
+            node.x1_curr, insertion.x3, insertion.x1,
+            0, insertion.y2};
     } case 1: {
-        return {.i = last_bin(node, insertion.df), .o = last_bin_orientation(node, insertion.df),
-            .x1_prev = node.x1_prev, .x3_curr = insertion.x3, .x1_curr = insertion.x1,
-            .y2_prev = node.y2_curr, .y2_curr = insertion.y2};
+        return {last_bin(node, insertion.df), last_bin_orientation(node, insertion.df),
+            node.x1_prev, insertion.x3, insertion.x1,
+            node.y2_curr, insertion.y2};
     } case 2: {
-        return {.i = last_bin(node, insertion.df), .o = last_bin_orientation(node, insertion.df),
-            .x1_prev = node.x1_prev, .x3_curr = insertion.x3, .x1_curr = insertion.x1,
-            .y2_prev = node.y2_prev, .y2_curr = insertion.y2};
+        return {last_bin(node, insertion.df), last_bin_orientation(node, insertion.df),
+            node.x1_prev, insertion.x3, insertion.x1,
+            node.y2_prev, insertion.y2};
     } default: {
         assert(false);
-        return {.i = -1, .o = CutOrientation::Vertical,
-            .x1_prev = -1, .x3_curr = -1, .x1_curr = -1,
-            .y2_prev = -1, .y2_curr = -1};
+        return {-1, CutOrientation::Vertical,
+            -1, -1, -1,
+            -1, -1};
     }
     }
 }
 
-std::shared_ptr<const BranchingScheme::Node> BranchingScheme::child(
-        const std::shared_ptr<const Node>& pfather,
+std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
+        const std::shared_ptr<Node>& pfather,
         const Insertion& insertion) const
 {
     const Node& father = *pfather;
@@ -248,6 +248,8 @@ std::shared_ptr<const BranchingScheme::Node> BranchingScheme::child(
     auto pnode = std::shared_ptr<Node>(new BranchingScheme::Node());
     Node& node = *pnode;
 
+    node.id = node_id_;
+    node_id_++;
     node.father = pfather;
     node.j1 = insertion.j1;
     node.j2 = insertion.j2;
@@ -355,7 +357,7 @@ std::shared_ptr<const BranchingScheme::Node> BranchingScheme::child(
 }
 
 std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
-        const std::shared_ptr<const Node>& pfather,
+        const std::shared_ptr<Node>& pfather,
         Info& info) const
 {
     const Node& father = *pfather;
@@ -631,9 +633,9 @@ void BranchingScheme::insertion_1_item(
     }
 
     Insertion insertion {
-        .j1 = j, .j2 = -1, .df = df,
-        .x1 = x, .y2 = y, .x3 = x,
-        .x1_max = x1_max(father, df), .y2_max = y2_max(father, df, x), .z1 = 0, .z2 = 0};
+        j, -1, df,
+        x, y, x,
+        x1_max(father, df), y2_max(father, df, x), 0, 0};
     LOG(info, insertion << std::endl);
 
     // Check defect intersection
@@ -693,9 +695,9 @@ void BranchingScheme::insertion_2_items(
     }
 
     Insertion insertion {
-        .j1 = j1, .j2 = j2, .df = df,
-        .x1 = x, .y2 = y, .x3 = x,
-        .x1_max = x1_max(father, df), .y2_max = y2_max(father, df, x), .z1 = 0, .z2 = 2};
+        j1, j2, df,
+        x, y, x,
+        x1_max(father, df), y2_max(father, df, x), 0, 2};
     LOG(info, insertion << std::endl);
 
     update(father, insertions, insertion, info);
@@ -724,9 +726,9 @@ void BranchingScheme::insertion_defect(
     }
 
     Insertion insertion {
-        .j1 = -1, .j2 = -1, .df = df,
-        .x1 = x, .y2 = y, .x3 = x,
-        .x1_max = x1_max(father, df), .y2_max = y2_max(father, df, x), .z1 = 1, .z2 = 1};
+        -1, -1, df,
+        x, y, x,
+        x1_max(father, df), y2_max(father, df, x), 1, 1};
     LOG(info, insertion << std::endl);
 
     update(father, insertions, insertion, info);
@@ -1105,9 +1107,11 @@ void BranchingScheme::update(
 
 /******************************************************************************/
 
-const std::shared_ptr<const BranchingScheme::Node> BranchingScheme::root() const
+const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
 {
     BranchingScheme::Node node;
+    node.id = node_id_;
+    node_id_++;
     node.pos_stack = std::vector<ItemPos>(instance_.stack_number(), 0);
     return std::shared_ptr<Node>(new BranchingScheme::Node(node));
 }
@@ -1206,39 +1210,39 @@ bool BranchingScheme::dominates(
         const Front& f1,
         const Front& f2) const
 {
-    if (f1.i < f2.i) return true;
-    if (f1.i > f2.i) return false;
-    if (f1.o != f2.o) return false;
-    if (f2.y2_curr != instance_.bin(f1.i).height(f1.o) && f1.x1_prev > f2.x1_prev) return false;
-    if (f1.x1_curr > f2.x1_curr) return false;
-    if        (f2.y2_prev <  f1.y2_prev) { if (f1.x1_curr > f2.x3_curr) return false;
-    } else if (f2.y2_prev <  f1.y2_curr) { if (f1.x3_curr > f2.x3_curr) return false;
-    } else  /* f2.y2_prev <= h */        { if (f1.x1_prev > f2.x3_curr) return false; }
-    if        (f2.y2_curr <  f1.y2_prev) { if (f1.x1_curr > f2.x1_prev) return false;
-    } else if (f2.y2_curr <  f1.y2_curr) { if (f1.x3_curr > f2.x1_prev) return false;
-    } else  /* f2.y2_curr <= h */        { /* if (f1.x1_prev > f2.x1_prev) return false */; }
-    return true;
-}
-
-std::vector<ItemPos> BranchingScheme::bucket(
-        const Node& node) const
-{
-    if (last_insertion_defect(node))
-        return {};
-    if (instance_.unbounded_knapsck())
-        return {0};
-    return node.pos_stack;
-}
-
-bool BranchingScheme::dominates(
-        const Node& node_1,
-        const Node& node_2) const
-{
-    if (last_insertion_defect(node_2))
-        return false;
-    if (node_1.pos_stack != node_2.pos_stack)
-        return false;
-    return dominates(front(node_1), front(node_2));
+    if (f1.i < f2.i)
+        return true;
+    if (f1.i == f2.i && f1.o == f2.o) {
+        if (f1.x1_curr <= f2.x1_prev)
+            return true;
+        if (f1.x1_prev <= f2.x1_prev
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_curr <= f2.y2_prev)
+            return true;
+        Length h = instance_.bin(f1.i).height(f1.o);
+        if (f1.y2_curr != h
+                && f1.x1_prev <= f2.x1_prev
+                && f1.x3_curr <= f2.x3_curr
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_prev <= f2.y2_prev
+                && f1.y2_curr <= f2.y2_curr)
+            return true;
+        if (f2.y2_curr == h
+                && f1.x1_prev >= f2.x1_prev
+                && f1.x3_curr <= f2.x3_curr
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_prev <= f2.y2_prev
+                && f1.y2_curr <= f2.y2_curr)
+            return true;
+        if (f1.y2_curr != h
+                && f2.y2_curr == h
+                && f1.x3_curr <= f2.x3_curr
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_prev <= f2.y2_prev
+                && f1.y2_curr <= f2.y2_curr)
+            return true;
+    }
+    return false;
 }
 
 /*********************************** export ***********************************/
@@ -1388,11 +1392,8 @@ bool BranchingScheme::BranchingScheme::check(const std::vector<Solution::Node>& 
 
 Solution BranchingScheme::to_solution(
         const Node& node,
-        const Solution& solution_dummy) const
+        const Solution&) const
 {
-    (void)solution_dummy;
-    //std::cout << node << std::endl;
-
     // Get nodes, items and bins
     std::vector<SolutionNode> nodes;
     std::vector<NodeItem> items;
@@ -1412,9 +1413,9 @@ Solution BranchingScheme::to_solution(
 
         SolutionNodeId id = (n->df >= 0)? nodes.size() + 2 - n->df: nodes.size() + 2;
         if (n->j1 != -1)
-            items.push_back({.j = n->j1, .node = id});
+            items.push_back({n->j1, id});
         if (n->j2 != -1)
-            items.push_back({.j = n->j2, .node = id});
+            items.push_back({n->j2, id});
 
         // Add new solution nodes
         SolutionNodeId f = (n->df <= 0)? -first_stage_orientations.size(): nodes_curr[n->df];
@@ -1422,7 +1423,7 @@ Solution BranchingScheme::to_solution(
         SolutionNodeId c = nodes.size() - 1;
         do {
             c++;
-            nodes.push_back({.f = f});
+            nodes.push_back({f, -1});
             f = c;
             d++;
             nodes_curr[d] = nodes.size() - 1;
@@ -1441,8 +1442,7 @@ Solution BranchingScheme::to_solution(
         Length h = instance_.bin(i).height(o);
         SolutionNodeId id = res.size();
         bins.push_back(id);
-        res.push_back({.id = id, .f = -1, .d = 0, .i = i,
-                .l = 0, .r = w, .b = 0, .t = h, .children = {}, .j = -1});
+        res.push_back({id, -1, 0, i, 0, w, 0, h, {}, -1, false, -1});
     }
     for (SolutionNodeId id = 0; id < (SolutionNodeId)nodes.size(); ++id) {
         SolutionNodeId f = (nodes[id].f >= 0)? nodes[id].f: bins[(-nodes[id].f)-1];
@@ -1479,11 +1479,11 @@ Solution BranchingScheme::to_solution(
                 res[c_last].r = res[f].r;
             } else {
                 SolutionNodeId id = res.size();
-                res.push_back({.id = id, .f = f,
-                        .d = static_cast<Depth>(res[f].d+1), .i = res[f].i,
-                        .l = res[c_last].r, .r = res[f].r,
-                        .b = res[f].b,      .t = res[f].t,
-                        .children = {}, .j = -1});
+                res.push_back({id, f,
+                        static_cast<Depth>(res[f].d+1), res[f].i,
+                        res[c_last].r, res[f].r,
+                        res[f].b,      res[f].t,
+                        {}, -1, false, -1});
                 res[f].children.push_back(id);
             }
         } else if ((res[f].d == 1 || res[f].d == 3) && res[f].t != res[c_last].t) {
@@ -1491,11 +1491,11 @@ Solution BranchingScheme::to_solution(
                 res[c_last].t = res[f].t;
             } else {
                 SolutionNodeId id = res.size();
-                res.push_back({.id = id, .f = f,
-                        .d = static_cast<Depth>(res[f].d+1), .i = res[f].i,
-                        .l = res[f].l,      .r = res[f].r,
-                        .b = res[c_last].t, .t = res[f].t,
-                        .children = {}, .j = -1});
+                res.push_back({id, f,
+                        static_cast<Depth>(res[f].d+1), res[f].i,
+                        res[f].l,      res[f].r,
+                        res[c_last].t, res[f].t,
+                        {}, -1, false, -1});
                 res[f].children.push_back(id);
             }
         }
@@ -1523,33 +1523,33 @@ Solution BranchingScheme::to_solution(
                     res[id].l, res[id].r, res[id].b, res[id].b + t, i, o);
             if (k == -1) { // First item of the third-level sub-plate
                 SolutionNodeId c1 = res.size();
-                res.push_back({.id = c1, .f = id,
-                        .d = static_cast<Depth>(res[id].d + 1), .i = res[id].i,
-                        .l = res[id].l, .r = res[id].r,
-                        .b = res[id].b, .t = res[id].b + t,
-                        .children = {}, .j = j});
+                res.push_back({c1, id,
+                        static_cast<Depth>(res[id].d + 1), res[id].i,
+                        res[id].l, res[id].r,
+                        res[id].b, res[id].b + t,
+                        {}, j, false, -1});
                 res[id].children.push_back(c1);
                 SolutionNodeId c2 = res.size();
-                res.push_back({.id = c2, .f = id,
-                        .d = static_cast<Depth>(res[id].d+1), .i = res[id].i,
-                        .l = res[id].l, .r = res[id].r,
-                        .b = res[id].b + t, .t = res[id].t,
-                        .children = {}, .j = -1});
+                res.push_back({c2, id,
+                        static_cast<Depth>(res[id].d+1), res[id].i,
+                        res[id].l, res[id].r,
+                        res[id].b + t, res[id].t,
+                        {}, -1, false, -1});
                 res[id].children.push_back(c2);
             } else {
                 SolutionNodeId c1 = res.size();
-                res.push_back({.id = c1, .f = id,
-                        .d = static_cast<Depth>(res[id].d+1), .i = res[id].i,
-                        .l = res[id].l, .r = res[id].r,
-                        .b = res[id].b, .t = res[id].t - t,
-                        .children = {}, .j = -1});
+                res.push_back({c1, id,
+                        static_cast<Depth>(res[id].d+1), res[id].i,
+                        res[id].l, res[id].r,
+                        res[id].b, res[id].t - t,
+                        {}, -1, false, -1});
                 res[id].children.push_back(c1);
                 SolutionNodeId c2 = res.size();
-                res.push_back({.id = c2, .f = id,
-                        .d = static_cast<Depth>(res[id].d+1), .i = res[id].i,
-                        .l = res[id].l, .r = res[id].r,
-                        .b = res[id].t - t, .t = res[id].t,
-                        .children = {}, .j = j});
+                res.push_back({c2, id,
+                        static_cast<Depth>(res[id].d+1), res[id].i,
+                        res[id].l, res[id].r,
+                        res[id].t - t, res[id].t,
+                        {}, j, false, -1});
                 res[id].children.push_back(c2);
             }
         }
@@ -1684,6 +1684,18 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 {
     std::copy(insertions.begin(), insertions.end(), std::ostream_iterator<BranchingScheme::Insertion>(os, "\n"));
     return os;
+}
+
+bool BranchingScheme::Front::operator==(const Front& front) const
+{
+    return ((i == front.i)
+            && (o == front.o)
+            && (x1_prev == front.x1_prev)
+            && (x3_curr == front.x3_curr)
+            && (x1_curr == front.x1_curr)
+            && (y2_prev == front.y2_prev)
+            && (y2_curr == front.y2_curr)
+            );
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(

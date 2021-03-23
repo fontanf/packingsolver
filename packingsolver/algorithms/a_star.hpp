@@ -24,14 +24,13 @@ inline AStarOutput a_star(
         SolutionPool<Instance, Solution>& solution_pool,
         AStarOptionalParameters parameters = {})
 {
-    typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Insertion Insertion;
 
     LOG_FOLD_START(parameters.info, "astar" << std::endl);
     AStarOutput output;
 
     // Initialize queue.
-    std::multiset<std::shared_ptr<const Node>, decltype(branching_scheme)> q(branching_scheme);
+    NodeSet<BranchingScheme> q(branching_scheme);
     q.insert(branching_scheme.root());
 
     while (!q.empty()) {

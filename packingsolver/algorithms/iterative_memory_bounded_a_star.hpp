@@ -29,11 +29,11 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
         SolutionPool<Instance, Solution>& solution_pool,
         IterativeMemoryBoundedAStarOptionalParameters parameters = {})
 {
-    typedef typename BranchingScheme::Node Node;
     typedef typename BranchingScheme::Insertion Insertion;
 
     LOG_FOLD_START(parameters.info, "IMBA*" << std::endl);
     IterativeMemoryBoundedAStarOutput output;
+    auto node_hasher = branching_scheme.node_hasher();
 
     for (output.queue_size_max = parameters.queue_size_min;
             output.queue_size_max <= (Counter)parameters.queue_size_max;
@@ -43,8 +43,10 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
         LOG_FOLD_START(parameters.info, "queue_size_max " << output.queue_size_max << std::endl);
 
         // Initialize queue
-        std::multiset<std::shared_ptr<const Node>, decltype(branching_scheme)> q(branching_scheme);
-        q.insert(branching_scheme.root());
+        NodeMap<BranchingScheme> history{0, node_hasher, node_hasher};
+        NodeSet<BranchingScheme> q(branching_scheme);
+        auto root = branching_scheme.root();
+        add_to_history_and_queue(branching_scheme, history, q, root);
 
         while (!q.empty()) {
             output.node_number++;
@@ -64,7 +66,8 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
 
             // Get node from the queue.
             auto node_cur = *q.begin();
-            q.erase(q.begin());
+            //q.erase(q.begin());
+            remove_from_history_and_queue(branching_scheme, history, q, q.begin());
 
             // Bound.
             if (branching_scheme.bound(*node_cur, solution_pool.worst())) {
@@ -91,32 +94,13 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
                 // Add child to the queue.
                 LOG(parameters.info, " add" << std::endl);
                 if (!branching_scheme.leaf(*child)) {
-                    // If the insertion would make the queue go above the
-                    // threshold, we only add the node if it is not worse than
-                    // the worse node of the queue.
                     if ((Counter)q.size() < output.queue_size_max
                             || branching_scheme(child, *(std::prev(q.end())))) {
-                        // Insertion
-                        auto it = q.insert(child);
-                        // Check if the node dominates some of its neighbors.
-                        while (std::next(it) != q.end() && branching_scheme.dominates(**it, **std::next(it)))
-                            q.erase(std::next(it));
-                        while (it != q.begin() && branching_scheme.dominates(**it, **std::prev(it)))
-                            q.erase(std::prev(it));
-                        // Check if the node is dominated by some of its
-                        // neighbors.
-                        if (std::next(it) != q.end() && branching_scheme.dominates(**std::next(it), **it)) {
-                            q.erase(it);
-                            continue;
+                        add_to_history_and_queue(branching_scheme, history, q, child);
+                        if ((Counter)q.size() > output.queue_size_max) {
+                            remove_from_history_and_queue(branching_scheme, history, q, std::prev(q.end()));
+                            //q.erase(std::prev(q.end()));
                         }
-                        if (it != q.begin() && branching_scheme.dominates(**std::prev(it), **it)) {
-                            q.erase(it);
-                            continue;
-                        }
-                        // If the size of the queue is above the threshold,
-                        // prune worst nodes.
-                        if ((Counter)q.size() > output.queue_size_max)
-                            q.erase(std::prev(q.end()));
                     }
                 }
             }

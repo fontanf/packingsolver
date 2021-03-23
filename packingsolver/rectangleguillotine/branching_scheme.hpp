@@ -72,9 +72,9 @@ public:
     struct Insertion
     {
         /** Id of the item at the bottom of the third-level sub-plate, -1 if none. */
-        ItemTypeId j1 = -1;
+        ItemTypeId j1;
         /** Id of the item at the top of the third-level sub-plate, -1 if none. */
-        ItemTypeId j2 = -1;
+        ItemTypeId j2;
 
         /**
          * Depth of the father in the tree representation of the solution:
@@ -84,28 +84,28 @@ public:
          * * -1: new bin, first stage veritical
          * * -2: new bin, first stage horizontal
          */
-        Depth df = -1;
+        Depth df;
 
         /** Position of the current 1-cut. */
-        Length x1 = 0;
+        Length x1;
         /** Position of the current 2-cut. */
-        Length y2 = 0;
+        Length y2;
         /** Position of the current 3-cut. */
-        Length x3 = 0;
+        Length x3;
 
         /**
          * x1_max_ is the maximum position of the current 1-cut.
          * It is used when otherwise, a 2-cut of the current 1-level sub-plate
          * would intersect a defect.
          */
-        Length x1_max = -1;
+        Length x1_max;
 
         /**
          * y2_max_ is the maximum position of the current 2-cut.
          * It is used when otherwise, a 3-cut of the current 2-level sub-plate
          * would intersect a defect.
          */
-        Length y2_max = -1;
+        Length y2_max;
 
         /**
          * z1_
@@ -113,7 +113,7 @@ public:
          * least the minimum waste.
          * * 1: the width of the last 1-cut can be increased by any value.
          */
-        Counter z1 = 0;
+        Counter z1;
 
         /**
          * z2_
@@ -123,7 +123,7 @@ public:
          * * 2: the height of the last 2-cut cannot be increased (case where it
          * contains of 4-cut with 2 items).
          */
-        Counter z2 = 0;
+        Counter z2;
 
         bool operator==(const Insertion& insertion) const;
         bool operator!=(const Insertion& insertion) const { return !(*this == insertion); }
@@ -135,6 +135,9 @@ public:
         CutOrientation o;
         Length x1_prev, x3_curr, x1_curr;
         Length y2_prev, y2_curr;
+
+        bool operator==(const Front& front) const;
+        bool operator!=(const Front& front) const { return !(*this == front); }
     };
 
     struct JRX
@@ -146,7 +149,8 @@ public:
 
     struct Node
     {
-        std::shared_ptr<const Node> father = nullptr;
+        NodeId id = -1;
+        std::shared_ptr<Node> father = nullptr;
         ItemTypeId j1 = -1;
         ItemTypeId j2 = -1;
         Depth df = -1;
@@ -194,20 +198,20 @@ public:
      */
 
     std::vector<Insertion> insertions(
-            const std::shared_ptr<const Node>& father,
+            const std::shared_ptr<Node>& father,
             Info& info) const;
 
-    std::shared_ptr<const Node> child(
-            const std::shared_ptr<const Node>& father,
+    std::shared_ptr<Node> child(
+            const std::shared_ptr<Node>& father,
             const Insertion& insertion) const;
 
     const Instance& instance() const { return instance_; }
 
-    const std::shared_ptr<const Node> root() const;
+    const std::shared_ptr<Node> root() const;
 
     inline bool operator()(
-            const std::shared_ptr<const Node>& node_1,
-            const std::shared_ptr<const Node>& node_2) const;
+            const std::shared_ptr<Node>& node_1,
+            const std::shared_ptr<Node>& node_2) const;
 
     inline bool leaf(
             const Node& node) const
@@ -223,9 +227,45 @@ public:
             const Node& node,
             const Solution& solution_best) const;
 
-    std::vector<ItemPos> bucket(const Node& node) const;
+    /**
+     * Dominances.
+     */
 
-    bool dominates(const Node&, const Node&) const;
+    inline bool comparable(
+            const std::shared_ptr<Node>& node) const
+    {
+        return (!last_insertion_defect(*node));
+    }
+
+    struct NodeHasher
+    {
+        std::hash<ItemPos> hasher;
+
+        inline bool operator()(
+                const std::shared_ptr<Node>& node_1,
+                const std::shared_ptr<Node>& node_2) const
+        {
+            return node_1->pos_stack == node_2->pos_stack;
+        }
+
+        inline std::size_t operator()(
+                const std::shared_ptr<Node>& node) const
+        {
+            size_t hash = 0;
+            for (ItemPos s: node->pos_stack)
+                optimizationtools::hash_combine(hash, hasher(s));
+            return hash;
+        }
+    };
+
+    inline NodeHasher node_hasher() const { return NodeHasher(); }
+
+    bool dominates(
+            const std::shared_ptr<Node>& node_1,
+            const std::shared_ptr<Node>& node_2) const
+    {
+        return dominates(front(*node_1), front(*node_2));
+    }
 
     Solution to_solution(
             const Node& node,
@@ -244,6 +284,8 @@ private:
      */
     std::vector<StackId> stack_pred_;
 
+    mutable NodeId node_id_ = 0;
+
     /**
      * Private methods
      */
@@ -255,8 +297,8 @@ private:
      */
     bool equals(StackId s1, StackId s2);
 
-    inline Front front(const Node&) const;
-    inline bool dominates(const Front& f1, const Front& f2) const;
+    Front front(const Node&) const;
+    bool dominates(const Front& f1, const Front& f2) const;
 
     inline bool                        full(const Node& node) const { return node.item_number == instance_.item_number(); }
     inline double           item_percentage(const Node& node) const { return (double)node.item_number / instance_.item_number(); }
@@ -332,112 +374,153 @@ inline Profit BranchingScheme::ubkp(const Node& node) const
     }
 }
 
-inline bool BranchingScheme::operator()(
-        const std::shared_ptr<const Node>& node_1,
-        const std::shared_ptr<const Node>& node_2) const
+bool BranchingScheme::operator()(
+        const std::shared_ptr<Node>& node_1,
+        const std::shared_ptr<Node>& node_2) const
 {
     switch(parameters_.guide_id) {
     case 0: {
-        if (node_1->current_area == 0)
-            return node_2->current_area != 0;
+        if (node_1->current_area == 0) {
+            if (node_2->current_area != 0) {
+                return false;
+            } else {
+                return node_1->id < node_2->id;
+            }
+        }
         if (node_2->current_area == 0)
-            return false;
+            return true;
+
         if (waste_percentage(*node_1) != waste_percentage(*node_2))
             return waste_percentage(*node_1) < waste_percentage(*node_2);
-        for (StackId s = 0; s < instance_.stack_number(); ++s)
-            if (node_1->pos_stack[s] != node_2->pos_stack[s])
-                return node_1->pos_stack[s] < node_2->pos_stack[s];
-        return false;
     } case 1: {
-        if (node_1->current_area == 0)
-            return node_2->current_area != 0;
+        if (node_1->current_area == 0) {
+            if (node_2->current_area != 0) {
+                return false;
+            } else {
+                return node_1->id < node_2->id;
+            }
+        }
         if (node_2->current_area == 0)
-            return false;
-        if (node_1->item_number == 0)
-            return node_2->item_number != 0;
+            return true;
+
+        if (node_1->item_number == 0) {
+            if (node_2->item_number != 0) {
+                return false;
+            } else {
+                return node_1->id < node_2->id;
+            }
+        }
         if (node_2->item_number == 0)
             return true;
+
         if (waste_percentage(*node_1) / mean_item_area(*node_1)
                 != waste_percentage(*node_2) / mean_item_area(*node_2))
             return waste_percentage(*node_1) / mean_item_area(*node_1)
                 < waste_percentage(*node_2) / mean_item_area(*node_2);
-        for (StackId s = 0; s < instance_.stack_number(); ++s)
-            if (node_1->pos_stack[s] != node_2->pos_stack[s])
-                return node_1->pos_stack[s] < node_2->pos_stack[s];
-        return false;
     } case 2: {
-        if (node_1->current_area == 0)
-            return node_2->current_area != 0;
+        if (node_1->current_area == 0) {
+            if (node_2->current_area != 0) {
+                return false;
+            } else {
+                return node_1->id < node_2->id;
+            }
+        }
         if (node_2->current_area == 0)
-            return false;
-        if (node_1->item_number == 0)
-            return node_2->item_number != 0;
+            return true;
+
+        if (node_1->item_number == 0) {
+            if (node_2->item_number != 0) {
+                return false;
+            } else {
+                return node_1->id < node_2->id;
+            }
+        }
         if (node_2->item_number == 0)
             return true;
+
         if ((0.1 + waste_percentage(*node_1)) / mean_item_area(*node_1)
                 != (0.1 + waste_percentage(*node_2)) / mean_item_area(*node_2))
             return (0.1 + waste_percentage(*node_1)) / mean_item_area(*node_1)
                 < (0.1 + waste_percentage(*node_2)) / mean_item_area(*node_2);
-        for (StackId s = 0; s < instance_.stack_number(); ++s)
-            if (node_1->pos_stack[s] != node_2->pos_stack[s])
-                return node_1->pos_stack[s] < node_2->pos_stack[s];
-        return false;
     } case 3: {
-        if (node_1->current_area == 0)
-            return node_2->current_area != 0;
+        if (node_1->current_area == 0) {
+            if (node_2->current_area != 0) {
+                return false;
+            } else {
+                return node_1->id < node_2->id;
+            }
+        }
         if (node_2->current_area == 0)
-            return false;
-        if (node_1->item_number == 0)
-            return node_2->item_number != 0;
+            return true;
+
+        if (node_1->item_number == 0) {
+            if (node_2->item_number != 0) {
+                return false;
+            } else {
+                return node_1->id < node_2->id;
+            }
+        }
         if (node_2->item_number == 0)
             return true;
+
         if ((0.1 + waste_percentage(*node_1)) / mean_squared_item_area(*node_1)
                 != (0.1 + waste_percentage(*node_2)) / mean_squared_item_area(*node_2))
             return (0.1 + waste_percentage(*node_1)) / mean_squared_item_area(*node_1)
                 < (0.1 + waste_percentage(*node_2)) / mean_squared_item_area(*node_2);
-        for (StackId s = 0; s < instance_.stack_number(); ++s)
-            if (node_1->pos_stack[s] != node_2->pos_stack[s])
-                return node_1->pos_stack[s] < node_2->pos_stack[s];
-        return false;
     } case 4: {
-        if (node_1->profit == 0)
-            return node_2->profit != 0;
+        if (node_1->profit == 0) {
+            if (node_2->profit != 0) {
+                return false;
+            } else {
+                return node_1->id < node_2->id;
+            }
+        }
         if (node_2->profit == 0)
             return true;
-        if ((double)node_1->current_area / node_1->profit != (double)node_2->current_area / node_2->profit)
-            return (double)node_1->current_area / node_1->profit < (double)node_2->current_area / node_2->profit;
-        for (StackId s = 0; s < instance_.stack_number(); ++s)
-            if (node_1->pos_stack[s] != node_2->pos_stack[s])
-                return node_1->pos_stack[s] < node_2->pos_stack[s];
-        return false;
+
+        if ((double)node_1->current_area / node_1->profit
+                != (double)node_2->current_area / node_2->profit)
+            return (double)node_1->current_area / node_1->profit
+                < (double)node_2->current_area / node_2->profit;
     } case 5: {
-        if (node_1->profit == 0)
-            return node_2->profit != 0;
+        if (node_1->profit == 0) {
+            if (node_2->profit != 0) {
+                return false;
+            } else {
+                return node_1->id < node_2->id;
+            }
+        }
         if (node_2->profit == 0)
             return true;
-        if (node_1->item_number == 0)
-            return node_2->item_number != 0;
+
+        if (node_1->item_number == 0) {
+            if (node_2->item_number != 0) {
+                return false;
+            } else {
+                return node_1->id < node_2->id;
+            }
+        }
         if (node_2->item_number == 0)
             return true;
+
         if ((double)node_1->current_area / node_1->profit / mean_item_area(*node_1)
                 != (double)node_2->current_area / node_2->profit / mean_item_area(*node_2))
             return (double)node_1->current_area / node_1->profit / mean_item_area(*node_1)
                 < (double)node_2->current_area / node_2->profit / mean_item_area(*node_2);
-        for (StackId s = 0; s < instance_.stack_number(); ++s)
-            if (node_1->pos_stack[s] != node_2->pos_stack[s])
-                return node_1->pos_stack[s] < node_2->pos_stack[s];
-        return false;
     } case 6: {
-        return node_1->waste < node_2->waste;
+        if (node_1->waste != node_2->waste)
+            return node_1->waste < node_2->waste;
     } case 7: {
-        return ubkp(*node_1) < ubkp(*node_2);
+        if (ubkp(*node_1) != ubkp(*node_2))
+            return ubkp(*node_1) < ubkp(*node_2);
     } case 8: {
         if (ubkp(*node_1) != ubkp(*node_2))
             return ubkp(*node_1) < ubkp(*node_2);
-        return node_1->waste < node_2->waste;
+        if (node_1->waste != node_2->waste)
+            return node_1->waste < node_2->waste;
     }
     }
-    return 0;
+    return node_1->id < node_2->id;
 }
 
 }

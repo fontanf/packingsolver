@@ -22,6 +22,7 @@ typedef int16_t Depth;
 typedef int64_t Seed;
 typedef int16_t GuideId;
 typedef int64_t Counter;
+typedef int64_t NodeId;
 
 using optimizationtools::Info;
 
@@ -130,6 +131,94 @@ private:
     Solution worst_;
 
 };
+
+template <typename BranchingScheme>
+using NodeMap = std::unordered_map<
+        std::shared_ptr<typename BranchingScheme::Node>,
+        std::vector<std::shared_ptr<typename BranchingScheme::Node>>,
+        const typename BranchingScheme::NodeHasher&,
+        const typename BranchingScheme::NodeHasher&>;
+
+template <typename BranchingScheme>
+using NodeSet = std::set<
+        std::shared_ptr<typename BranchingScheme::Node>,
+        const BranchingScheme&>;
+
+template <typename BranchingScheme>
+inline bool add_to_history_and_queue(
+        const BranchingScheme& branching_scheme,
+        NodeMap<BranchingScheme>& history,
+        NodeSet<BranchingScheme>& q,
+        const std::shared_ptr<typename BranchingScheme::Node>& node)
+{
+    typedef typename BranchingScheme::Node Node;
+    assert(node != nullptr);
+
+    // If node is not comparable, stop.
+    if (branching_scheme.comparable(node)) {
+        auto& list = history[node];
+
+        // Check if node is dominated.
+        for (const std::shared_ptr<Node>& n: list)
+            if (branching_scheme.dominates(n, node))
+                return false;
+
+        // Remove dominated nodes from history.
+        for (auto it = list.begin(); it != list.end();) {
+            if (branching_scheme.dominates(node, *it)) {
+                q.erase(*it);
+                *it = list.back();
+                list.pop_back();
+            } else {
+                ++it;
+            }
+        }
+
+        // Add node to history.
+        list.push_back(node);
+    }
+
+    // Add to queue.
+    q.insert(node);
+    return true;
+}
+
+template <typename BranchingScheme>
+inline void remove_from_history(
+        const BranchingScheme& branching_scheme,
+        NodeMap<BranchingScheme>& history,
+        const std::shared_ptr<typename BranchingScheme::Node>& node)
+{
+    // Remove from history.
+    if (branching_scheme.comparable(node)) {
+        auto& list = history[node];
+        for (auto it = list.begin(); it != list.end();) {
+            if (*it == node) {
+                *it = list.back();
+                list.pop_back();
+                if (list.empty())
+                    history.erase(node);
+                return;
+            } else {
+                ++it;
+            }
+        }
+        assert(false);
+    }
+}
+
+template <typename BranchingScheme>
+inline void remove_from_history_and_queue(
+        const BranchingScheme& branching_scheme,
+        NodeMap<BranchingScheme>& history,
+        std::set<std::shared_ptr<typename BranchingScheme::Node>, const BranchingScheme&>& q,
+        typename NodeSet<BranchingScheme>::const_iterator node)
+{
+    // Remove from history.
+    remove_from_history(branching_scheme, history, *node);
+    // Remove from queue.
+    q.erase(node);
+}
 
 }
 

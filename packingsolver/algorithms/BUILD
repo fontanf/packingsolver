@@ -21,6 +21,7 @@ cc_library(
                 "a_star.hpp",
                 "depth_first_search.hpp",
                 "iterative_memory_bounded_a_star.hpp",
+                "iterative_beam_search.hpp",
                 "dynamic_programming_a_star.hpp",
                 "column_generation.hpp",
         ],

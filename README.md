@@ -25,12 +25,12 @@ bazel build --define cplex=true -- //...
 
 Execute:
 ```shell
-./bazel-bin/packingsolver/main  --verbose  --problem-type rectangleguillotine  --objective knapsack  --items data/rectangle/alvarez2002/ATP35_items.csv  --bins data/rectangle/alvarez2002/ATP35_bins.csv  --certificate ATP35_solution.csv  --output ATP35_output.json  --time-limit 1  -q "RG -p 3NHO -c 4" -a "IMBA*"  -q "RG -p 3NHO -c 5" -a "IMBA*"
+./bazel-bin/packingsolver/main  --verbose  --problem-type rectangleguillotine  --objective knapsack  --items data/rectangle/alvarez2002/ATP35_items.csv  --bins data/rectangle/alvarez2002/ATP35_bins.csv  --certificate ATP35_solution.csv  --output ATP35_output.json  --time-limit 1  -q "RG -p 3NHO -c 4" -a "IBS"  -q "RG -p 3NHO -c 5" -a "IBS"
 ```
 
 Or in short:
 ```shell
-./bazel-bin/packingsolver/main -v -p RG -f KP -i data/rectangle/alvarez2002/ATP35 -c ATP35_solution.csv -o ATP35_output.json -t 1  -q "RG -p 3NHO -c 4" -a "IMBA*"  -q "RG -p 3NHO -c 5" -a "IMBA*"
+./bazel-bin/packingsolver/main -v -p RG -f KP -i data/rectangle/alvarez2002/ATP35 -c ATP35_solution.csv -o ATP35_output.json -t 1  -q "RG -p 3NHO -c 4" -a "IBS"  -q "RG -p 3NHO -c 5" -a "IBS"
 ```
 
 A solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
@@ -68,7 +68,7 @@ options:
   * `3EAR`: `--cut-type-1 three-staged-guillotine --cut-type-2 exact --first-stage-orientation any`
   * `roadef2018`
 
-Compatible algorithms: `A*`, `DFS`, `IMBA*`, `DPA*`
+Compatible algorithms: `A*`, `DFS`, `IMBA*`, `DPA*`, `IBS`
 
 ## Benchmarks
 
@@ -92,6 +92,6 @@ python3 packingsolver/scripts/bench.py "2NEGH-SPP-O" "2NEGH-SPP-R" # ~4h
 python3 packingsolver/scripts/bench.py "3NEGH-CSP-O" "3NEGH-CSP-R" "long2020_CSP" # ~20h
 python3 packingsolver/scripts/bench.py "3GH-CSP-O" "3HG-CSP-O" "3HGV-CSP-O" # ~15h
 python3 packingsolver/scripts/bench.py "2NEGH-CSP-O" "2NEGH-CSP-R" "2GH-CSP-O" # ~30h
-python3 packingsolver/scripts/bench.py "3NEG-VBPP-O" "3NEG-VBPP-R" "2GH-VBPP-O" "2GH-VBPP-R" # ~20h
+python3 packingsolver/scripts/bench.py "3NEG-VBPP-O" "3NEG-VBPP-R" "2GH-VBPP-O" "2GH-VBPP-R" # ~16h
 ```
 
