@@ -8,7 +8,7 @@
  * Variable-sized Bin Packing Problem.
  *
  * Input:
- * - m bin types with costs cᵢ and dᵢ copies (i = 0..m)
+ * - m bin types with lower bounds lᵢ, upper bounds uᵢ and costs cᵢ (i = 0..m)
  * - n item types with qᵢ copies
  * Problem:
  * - pack all items in a subset of the bins.
@@ -27,7 +27,7 @@
  *
  * min ∑ᵢ cᵢ ∑ₖ yᵢᵏ
  *
- * 0 <= ∑ₖ yᵢᵏ <= dᵢ          for all bin types i
+ * lᵢ <= ∑ₖ yᵢᵏ <= uᵢ         for all bin types i
  *                           (bounds on the number of bins for each bin type)
  *                                                         Dual variables: uⱼ
  *
@@ -53,17 +53,17 @@ typedef columngenerationsolver::Value Value;
 typedef columngenerationsolver::Column Column;
 
 template <typename Instance, typename Solution>
-using PricingFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
+using VariableSizeBinPackingPricingFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
 template <typename Instance, typename Solution>
-class PricingSolver: public columngenerationsolver::PricingSolver
+class VariableSizeBinPackingPricingSolver: public columngenerationsolver::PricingSolver
 {
 
 public:
 
-    PricingSolver(
+    VariableSizeBinPackingPricingSolver(
             const Instance& instance,
-            const PricingFunction<Instance, Solution>& pricing_function):
+            const VariableSizeBinPackingPricingFunction<Instance, Solution>& pricing_function):
         instance_(instance),
         pricing_function_(pricing_function),
         fixed_bin_types_(instance.bin_type_number()),
@@ -80,7 +80,7 @@ public:
 private:
 
     const Instance& instance_;
-    PricingFunction<Instance, Solution> pricing_function_;
+    VariableSizeBinPackingPricingFunction<Instance, Solution> pricing_function_;
 
     std::vector<BinPos> fixed_bin_types_;
     std::vector<ItemPos> filled_demands_;
@@ -90,7 +90,7 @@ private:
 template <typename Instance, typename Solution>
 columngenerationsolver::Parameters get_parameters(
         const Instance& instance,
-        const PricingFunction<Instance, Solution>& pricing_function)
+        const VariableSizeBinPackingPricingFunction<Instance, Solution>& pricing_function)
 {
     BinTypeId m = instance.bin_type_number();
     ItemTypeId n = instance.item_type_number();
@@ -111,7 +111,7 @@ columngenerationsolver::Parameters get_parameters(
     p.column_upper_bound = maximum_item_type_demand;
     // Row bounds.
     for (BinTypeId i = 0; i < m; ++i) {
-        p.row_lower_bounds[i] = 0;
+        p.row_lower_bounds[i] = instance.bin_type(i).copies_min;
         p.row_upper_bounds[i] = instance.bin_type(i).copies;
         p.row_coefficient_lower_bounds[i] = 0;
         p.row_coefficient_upper_bounds[i] = 1;
@@ -126,12 +126,12 @@ columngenerationsolver::Parameters get_parameters(
     p.dummy_column_objective_coefficient = 10 * maximum_bin_type_cost * maximum_item_type_demand;
     // Pricing solver.
     p.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
-            new PricingSolver<Instance, Solution>(instance, pricing_function));
+            new VariableSizeBinPackingPricingSolver<Instance, Solution>(instance, pricing_function));
     return p;
 }
 
 template <typename Instance, typename Solution>
-std::vector<ColIdx> PricingSolver<Instance, Solution>::initialize_pricing(
+std::vector<ColIdx> VariableSizeBinPackingPricingSolver<Instance, Solution>::initialize_pricing(
             const std::vector<Column>& columns,
             const std::vector<std::pair<ColIdx, Value>>& fixed_columns)
 {
@@ -157,7 +157,7 @@ std::vector<ColIdx> PricingSolver<Instance, Solution>::initialize_pricing(
 }
 
 template <typename Solution>
-struct ColumnExtra
+struct VariableSizeBinPackingColumnExtra
 {
     Solution solution;
     BinTypeId bin_type_id;
@@ -165,7 +165,7 @@ struct ColumnExtra
 };
 
 template <typename Instance, typename Solution>
-std::vector<Column> PricingSolver<Instance, Solution>::solve_pricing(
+std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::solve_pricing(
             const std::vector<Value>& duals)
 {
     ItemTypeId m = instance_.bin_type_number();
@@ -194,7 +194,7 @@ std::vector<Column> PricingSolver<Instance, Solution>::solve_pricing(
 
         // Retrieve column.
         for (const Solution& solution: solution_pool.solutions()) {
-            ColumnExtra<Solution> extra {solution, i, kp2vbpp};
+            VariableSizeBinPackingColumnExtra<Solution> extra {solution, i, kp2vbpp};
             Column column;
             column.objective_coefficient = instance_.bin_type(i).cost;
             column.row_indices.push_back(i);
@@ -207,7 +207,7 @@ std::vector<Column> PricingSolver<Instance, Solution>::solve_pricing(
                     //std::cout << duals[m + extra->kp2vbpp[j_kp]] << std::endl;
                 }
             }
-            column.extra = std::shared_ptr<void>(new ColumnExtra<Solution>(extra));
+            column.extra = std::shared_ptr<void>(new VariableSizeBinPackingColumnExtra<Solution>(extra));
             //std::cout << column << std::endl;
             columns.push_back(column);
         }
@@ -219,7 +219,7 @@ template <typename Instance, typename Solution>
 void column_generation_heuristic_variable_sized_bin_packing(
         const Instance& instance,
         SolutionPool<Instance, Solution>& solution_pool,
-        const PricingFunction<Instance, Solution>& pricing_function,
+        const VariableSizeBinPackingPricingFunction<Instance, Solution>& pricing_function,
         Info info = {})
 {
     columngenerationsolver::Parameters p = get_parameters(instance, pricing_function);
@@ -235,7 +235,8 @@ void column_generation_heuristic_variable_sized_bin_packing(
                     if (value < 0.5)
                         continue;
                     //std::cout << "append val " << value << " col " << column << std::endl;
-                    std::shared_ptr<ColumnExtra<Solution>> extra = std::static_pointer_cast<ColumnExtra<Solution>>(column.extra);
+                    std::shared_ptr<VariableSizeBinPackingColumnExtra<Solution>> extra
+                        = std::static_pointer_cast<VariableSizeBinPackingColumnExtra<Solution>>(column.extra);
                     solution.append(extra->solution, extra->bin_type_id, extra->kp2vbpp, value);
                 }
                 std::stringstream ss;

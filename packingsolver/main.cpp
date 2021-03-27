@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
         if (objective == Objective::VariableSizedBinPacking) {
             SolutionPool<rectangleguillotine::Instance, rectangleguillotine::Solution> solution_pool(instance, 1);
             solution_pool.best().algorithm_start(info);
-            PricingFunction<rectangleguillotine::Instance, rectangleguillotine::Solution> pricing_function = [&algorithms, &branching_schemes, &parameters](const rectangleguillotine::Instance& instance_kp)
+            VariableSizeBinPackingPricingFunction<rectangleguillotine::Instance, rectangleguillotine::Solution> pricing_function = [&algorithms, &branching_schemes, &parameters](const rectangleguillotine::Instance& instance_kp)
             {
                 Info info_tmp = Info()
                     //.set_verbose(true)

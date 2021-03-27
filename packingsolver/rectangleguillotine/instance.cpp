@@ -225,14 +225,16 @@ void Instance::add_item_type(Length w, Length h, Profit p, ItemPos copies, bool 
         max_efficiency_item_ = item_type.id;
 }
 
-void Instance::add_bin_type(Length w, Length h, Profit cost, BinPos copies)
+void Instance::add_bin_type(Length w, Length h, Profit cost, BinPos copies, BinPos copies_min)
 {
+    assert(copies_min <= copies);
     BinType bin_type;
     bin_type.id = bin_types_.size();
     bin_type.rect.w = w;
     bin_type.rect.h = h;
     bin_type.cost = (cost == -1)? w * h: cost;
     bin_type.copies = copies;
+    bin_type.copies_min = copies_min;
     bin_type.previous_bin_area = (bin_number() == 0)? 0:
         bin_types_.back().previous_bin_area + bin_types_.back().rect.area() * bin_types_.back().copies;
     bin_type.previous_bin_copies = (bin_number() == 0)? 0:
@@ -385,6 +387,7 @@ Instance::Instance(
         Length h = -1;
         Profit cost = -1;
         BinPos c = 1;
+        BinPos c_min = 0;
         for (Counter i = 0; i < (Counter)line.size(); ++i) {
             if (labels[i] == "WIDTH") {
                 w = (Length)std::stol(line[i]);
@@ -394,13 +397,15 @@ Instance::Instance(
                 cost = (Profit)std::stol(line[i]);
             } else if (labels[i] == "COPIES") {
                 c = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "COPIES_MIN") {
+                c = (BinPos)std::stol(line[i]);
             }
         }
         if (w == -1)
             std::cerr << "\033[31m" << "ERROR, \"WIDTH\" not defined in \"" << bins_filepath << "\"" << "\033[0m" << std::endl;
         if (h == -1)
             std::cerr << "\033[31m" << "ERROR, \"HEIGHT\" not defined in \"" << bins_filepath << "\"" << "\033[0m" << std::endl;
-        add_bin_type(w, h, cost, c);
+        add_bin_type(w, h, cost, c, c_min);
     }
 
     // read defects file

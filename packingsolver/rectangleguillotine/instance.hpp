@@ -68,6 +68,7 @@ struct BinType
     BinTypeId id;
     Profit cost;
     BinPos copies;
+    BinPos copies_min;
 
     Rectangle rect;
     std::vector<Defect> defects;
@@ -102,12 +103,12 @@ public:
      */
     Instance(Objective objective): objective_(objective) { }
     void add_item_type(Length w, Length h, Profit p = -1, ItemPos copies = 1, bool oriented = false, bool new_stack = true);
-    void add_bin_type(Length w, Length h, Profit cost = -1, BinPos copies = 1);
+    void add_bin_type(Length w, Length h, Profit cost = -1, BinPos copies = 1, BinPos copies_min = 0);
     void add_defect(BinTypeId i, Length x, Length y, Length w, Length h);
 
-    inline void add_bin_type(const BinType& bin_type, BinPos copies)
+    inline void add_bin_type(const BinType& bin_type, BinPos copies, BinPos copies_min = 0)
     {
-        add_bin_type(bin_type.rect.w, bin_type.rect.h, bin_type.cost, copies);
+        add_bin_type(bin_type.rect.w, bin_type.rect.h, bin_type.cost, copies, copies_min);
     }
 
     inline void add_item_type(const ItemType& item_type, Profit profit, ItemPos copies)
