@@ -180,6 +180,7 @@ inline bool add_to_history_and_queue(
 
     // Add to queue.
     q.insert(node);
+    assert(history.find(node) != history.end());
     return true;
 }
 
@@ -191,6 +192,7 @@ inline void remove_from_history(
 {
     // Remove from history.
     if (branching_scheme.comparable(node)) {
+        assert(history.find(node) != history.end());
         auto& list = history[node];
         for (auto it = list.begin(); it != list.end();) {
             if (*it == node) {

@@ -50,9 +50,6 @@ inline IterativeBeamSearchOutput iterative_beam_search(
 
         // Initialize queue.
         bool stop = true;
-        q1.clear();
-        q2.clear();
-        q3.clear();
         NodeSet<BranchingScheme>* q = &q1;
         NodeSet<BranchingScheme>* q_next = &q2;
         NodeSet<BranchingScheme>* q_next_2 = &q3;
@@ -145,11 +142,11 @@ inline IterativeBeamSearchOutput iterative_beam_search(
             q = q_next;
             q_next = q_next_2;
             q_next_2 = q_tmp;
+            q_next_2->clear();
             history_tmp = history_next;
             history_next = history_next_2;
             history_next_2 = history_tmp;
-            history_2.clear();
-            q_next_2->clear();
+            history_next_2->clear();
         }
 
         if (stop)
