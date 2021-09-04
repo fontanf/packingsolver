@@ -392,6 +392,7 @@ bool BranchingScheme::operator()(
 
         if (waste_percentage(*node_1) != waste_percentage(*node_2))
             return waste_percentage(*node_1) < waste_percentage(*node_2);
+        break;
     } case 1: {
         if (node_1->current_area == 0) {
             if (node_2->current_area != 0) {
@@ -417,6 +418,7 @@ bool BranchingScheme::operator()(
                 != waste_percentage(*node_2) / mean_item_area(*node_2))
             return waste_percentage(*node_1) / mean_item_area(*node_1)
                 < waste_percentage(*node_2) / mean_item_area(*node_2);
+        break;
     } case 2: {
         if (node_1->current_area == 0) {
             if (node_2->current_area != 0) {
@@ -442,6 +444,7 @@ bool BranchingScheme::operator()(
                 != (0.1 + waste_percentage(*node_2)) / mean_item_area(*node_2))
             return (0.1 + waste_percentage(*node_1)) / mean_item_area(*node_1)
                 < (0.1 + waste_percentage(*node_2)) / mean_item_area(*node_2);
+        break;
     } case 3: {
         if (node_1->current_area == 0) {
             if (node_2->current_area != 0) {
@@ -467,6 +470,7 @@ bool BranchingScheme::operator()(
                 != (0.1 + waste_percentage(*node_2)) / mean_squared_item_area(*node_2))
             return (0.1 + waste_percentage(*node_1)) / mean_squared_item_area(*node_1)
                 < (0.1 + waste_percentage(*node_2)) / mean_squared_item_area(*node_2);
+        break;
     } case 4: {
         if (node_1->profit == 0) {
             if (node_2->profit != 0) {
@@ -482,6 +486,7 @@ bool BranchingScheme::operator()(
                 != (double)node_2->current_area / node_2->profit)
             return (double)node_1->current_area / node_1->profit
                 < (double)node_2->current_area / node_2->profit;
+        break;
     } case 5: {
         if (node_1->profit == 0) {
             if (node_2->profit != 0) {
@@ -507,17 +512,21 @@ bool BranchingScheme::operator()(
                 != (double)node_2->current_area / node_2->profit / mean_item_area(*node_2))
             return (double)node_1->current_area / node_1->profit / mean_item_area(*node_1)
                 < (double)node_2->current_area / node_2->profit / mean_item_area(*node_2);
+        break;
     } case 6: {
         if (node_1->waste != node_2->waste)
             return node_1->waste < node_2->waste;
+        break;
     } case 7: {
         if (ubkp(*node_1) != ubkp(*node_2))
             return ubkp(*node_1) < ubkp(*node_2);
+        break;
     } case 8: {
         if (ubkp(*node_1) != ubkp(*node_2))
             return ubkp(*node_1) < ubkp(*node_2);
         if (node_1->waste != node_2->waste)
             return node_1->waste < node_2->waste;
+        break;
     }
     }
     return node_1->id < node_2->id;

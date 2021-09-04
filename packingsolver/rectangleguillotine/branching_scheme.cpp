@@ -740,6 +740,7 @@ void BranchingScheme::update(
         Insertion& insertion,
         Info& info) const
 {
+    (void)info;
     Length min_waste = parameters_.min_waste;
     BinPos i = last_bin(father, insertion.df);
     CutOrientation o = last_bin_orientation(father, insertion.df);
