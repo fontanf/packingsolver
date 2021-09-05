@@ -71,8 +71,8 @@ inline IterativeBeamSearchOutput iterative_beam_search(
                 output.node_number++;
                 LOG_FOLD_START(parameters.info, "node_number " << output.node_number << std::endl);
 
-                // Check time.
-                if (!parameters.info.check_time()) {
+                // Check end.
+                if (parameters.info.needs_to_end()) {
                     LOG_FOLD_END(parameters.info, "");
                     goto ibsend;
                 }

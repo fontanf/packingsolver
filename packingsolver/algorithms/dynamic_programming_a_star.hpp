@@ -44,8 +44,8 @@ inline DynamicProgrammingAStarOutput dynamic_programming_a_star(
             output.queue_size_max = q.size();
         LOG_FOLD_START(parameters.info, "node_number " << output.node_number << std::endl);
 
-        // Check time.
-        if (!parameters.info.check_time()) {
+        // Check end.
+        if (parameters.info.needs_to_end()) {
             LOG_FOLD_END(parameters.info, "");
             break;;
         }

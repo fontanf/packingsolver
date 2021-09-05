@@ -244,7 +244,7 @@ void column_generation_heuristic_variable_sized_bin_packing(
                 solution_pool.add(solution, ss, info);
             }
         };
-    op.info.set_timelimit(info.remaining_time());
+    op.info.set_time_limit(info.remaining_time());
     //op.info.set_verbose(true);
     op.columngeneration_parameters.linear_programming_solver
         = columngenerationsolver::LinearProgrammingSolver::CPLEX;

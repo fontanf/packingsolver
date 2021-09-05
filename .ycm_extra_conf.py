@@ -8,6 +8,7 @@ def Settings(**kwargs):
                 '-I', './bazel-packingsolver/external/googletest/googletest/include/',
                 '-I', './bazel-packingsolver/external/boost/',
                 '-I', './bazel-packingsolver/external/optimizationtools/',
+                # '-I', './../optimizationtools/',
                 '-I', './bazel-packingsolver/external/columngenerationsolver/',
                 # '-I', './../columngenerationsolver/',
                 ],

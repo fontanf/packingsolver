@@ -396,7 +396,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
 
         }
         EXPECT_EQ(solution.waste(), waste);
-        info.set_certfile(name + "_solution.csv");
+        info.set_certificate_path(name + "_solution.csv");
 
     }
 }

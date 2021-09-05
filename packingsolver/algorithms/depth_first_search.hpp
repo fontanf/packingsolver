@@ -30,8 +30,8 @@ inline void rec(
     LOG_FOLD_START(parameters.info, "rec" << std::endl);
     output.node_number++;
 
-    // Check time
-    if (!parameters.info.check_time()) {
+    // Check end
+    if (parameters.info.needs_to_end()) {
         LOG_FOLD_END(parameters.info, "");
         return;
     }
