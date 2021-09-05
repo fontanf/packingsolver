@@ -189,11 +189,11 @@ void Solution::display(
         const std::stringstream& algorithm,
         Info& info) const
 {
-    info.output->sol_number++;
+    info.output->number_of_solutions++;
     double t = info.elapsed_time();
 
-    std::string sol_str = "Solution" + std::to_string(info.output->sol_number);
-    VER(info, std::left << std::setw(6) << info.output->sol_number);
+    std::string sol_str = "Solution" + std::to_string(info.output->number_of_solutions);
+    VER(info, std::left << std::setw(6) << info.output->number_of_solutions);
     PUT(info, sol_str, "Algorithm", algorithm.str());
     VER(info, std::left << std::setw(32) << algorithm.str());
     switch (instance().objective()) {
@@ -245,8 +245,8 @@ void Solution::display(
     PUT(info, sol_str, "Time", t);
     VER(info, t << std::endl);
 
-    if (!info.output->onlywriteattheend) {
-        info.write_ini();
+    if (!info.output->only_write_at_the_end) {
+        info.write_json_output();
         write(info);
     }
 }
@@ -347,17 +347,17 @@ void Solution::algorithm_end(Info& info) const
     PUT(info, sol_str, "Time", t);
     VER(info, "Time: " << t << std::endl);
 
-    info.write_ini();
+    info.write_json_output();
     write(info);
 }
 
 void Solution::write(Info& info) const
 {
-    if (info.output->certfile.empty())
+    if (info.output->certificate_path.empty())
         return;
-    std::ofstream f{info.output->certfile};
+    std::ofstream f{info.output->certificate_path};
     if (!f.good()) {
-        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << info.output->certfile << "\"" << "\033[0m" << std::endl;
+        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << info.output->certificate_path << "\"" << "\033[0m" << std::endl;
         return;
     }
 

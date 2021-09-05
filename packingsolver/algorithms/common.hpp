@@ -97,11 +97,11 @@ public:
             if (!(worst_ < solution))
                 return false;
         // Lock mutex.
-        info.output->mutex_sol.lock();
+        info.output->mutex_solutions.lock();
         // Check again after mutex lock.
         if ((Counter)solutions_.size() >= size_max_) {
             if (!(worst_ < solution)) {
-                info.output->mutex_sol.unlock();
+                info.output->mutex_solutions.unlock();
                 return false;
             }
         }
@@ -118,7 +118,7 @@ public:
         best_ = *solutions_.begin();
         worst_ = *std::prev(solutions_.end());
         // Unlock mutex.
-        info.output->mutex_sol.unlock();
+        info.output->mutex_solutions.unlock();
         return res.second;
     }
 

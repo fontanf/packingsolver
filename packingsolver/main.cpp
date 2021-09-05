@@ -324,15 +324,16 @@ int main(int argc, char *argv[])
         parameters = po::split_unix(parameters_line);
     }
 
-    Info info = Info()
+    Info info = optimizationtools::Info()
         .set_verbose(vm.count("verbose"))
-        .set_timelimit(time_limit)
-        .set_certfile(certificate_path)
-        .set_outputfile(output_path)
-        .set_onlywriteattheend(vm.count("only-write-at-the-end"))
-        .set_logfile(log_path)
+        .set_time_limit(time_limit)
+        .set_certificate_path(certificate_path)
+        .set_json_output_path(output_path)
+        .set_only_write_at_the_end(vm.count("only-write-at-the-end"))
+        .set_log_path(log_path)
         .set_log2stderr(vm.count("log2stderr"))
-        .set_loglevelmax(log_levelmax)
+        .set_maximum_log_level(log_levelmax)
+        .set_sigint_handler()
         ;
 
     switch (problem_type) {
