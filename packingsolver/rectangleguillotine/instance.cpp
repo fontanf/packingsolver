@@ -324,20 +324,26 @@ void Instance::set_unweighted()
 
 Instance::Instance(
         Objective objective,
-        std::string items_filepath,
-        std::string bins_filepath,
-        std::string defects_filepath):
+        std::string items_path,
+        std::string bins_path,
+        std::string defects_path):
     objective_(objective)
 {
-    std::ifstream f_items(items_filepath);
-    std::ifstream f_defects(defects_filepath);
-    std::ifstream f_bins(bins_filepath);
-    if (!f_items.good())
-        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << items_filepath << "\"" << "\033[0m" << std::endl;
-    if (!f_bins.good())
-        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << bins_filepath << "\"" << "\033[0m" << std::endl;
-    if (!f_items.good() || !f_bins.good() || (defects_filepath != "" && !f_defects.good()))
-        return;
+    std::ifstream f_items(items_path);
+    std::ifstream f_defects(defects_path);
+    std::ifstream f_bins(bins_path);
+    if (!f_items.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + items_path + "\".");
+    }
+    if (!f_bins.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + bins_path + "\".");
+    }
+    if (defects_path != "" && !f_defects.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + defects_path + "\".");
+    }
 
     std::string tmp;
     std::vector<std::string> line;
@@ -369,10 +375,14 @@ Instance::Instance(
                 new_stack = (bool)std::stol(line[i]);
             }
         }
-        if (w == -1)
-            std::cerr << "\033[31m" << "ERROR, \"WIDTH\" not defined in \"" << items_filepath << "\"" << "\033[0m" << std::endl;
-        if (h == -1)
-            std::cerr << "\033[31m" << "ERROR, \"HEIGHT\" not defined in \"" << items_filepath << "\"" << "\033[0m" << std::endl;
+        if (w == -1) {
+            throw std::runtime_error(
+                    "Missing \"WIDTH\" column in \"" + items_path + "\".");
+        }
+        if (h == -1) {
+            throw std::runtime_error(
+                    "Missing \"HEIGHT\" column in \"" + items_path + "\".");
+        }
         if (p == -1)
             p = w * h;
         add_item_type(w, h, p, c, oriented, new_stack);
@@ -401,15 +411,19 @@ Instance::Instance(
                 c = (BinPos)std::stol(line[i]);
             }
         }
-        if (w == -1)
-            std::cerr << "\033[31m" << "ERROR, \"WIDTH\" not defined in \"" << bins_filepath << "\"" << "\033[0m" << std::endl;
-        if (h == -1)
-            std::cerr << "\033[31m" << "ERROR, \"HEIGHT\" not defined in \"" << bins_filepath << "\"" << "\033[0m" << std::endl;
+        if (w == -1) {
+            throw std::runtime_error(
+                    "Missing \"WIDTH\" column in \"" + bins_path + "\".");
+        }
+        if (h == -1) {
+            throw std::runtime_error(
+                    "Missing \"HEIGHT\" column in \"" + bins_path + "\".");
+        }
         add_bin_type(w, h, cost, c, c_min);
     }
 
     // read defects file
-    if (defects_filepath != "") {
+    if (defects_path != "") {
         getline(f_defects, tmp);
         labels = optimizationtools::split(tmp, ',');
         while (getline(f_defects, tmp)) {
@@ -432,16 +446,26 @@ Instance::Instance(
                     h = (Length)std::stol(line[c]);
                 }
             }
-            if (i == -1)
-                std::cerr << "\033[31m" << "ERROR, \"BIN\" not defined in \"" << defects_filepath << "\"" << "\033[0m" << std::endl;
-            if (x == -1)
-                std::cerr << "\033[31m" << "ERROR, \"X\" not defined in \"" << defects_filepath << "\"" << "\033[0m" << std::endl;
-            if (y == -1)
-                std::cerr << "\033[31m" << "ERROR, \"Y\" not defined in \"" << defects_filepath << "\"" << "\033[0m" << std::endl;
-            if (w == -1)
-                std::cerr << "\033[31m" << "ERROR, \"WIDTH\" not defined in \"" << defects_filepath << "\"" << "\033[0m" << std::endl;
-            if (h == -1)
-                std::cerr << "\033[31m" << "ERROR, \"HEIGHT\" not defined in \"" << defects_filepath << "\"" << "\033[0m" << std::endl;
+            if (i == -1) {
+                throw std::runtime_error(
+                        "Missing \"BIN\" column in \"" + defects_path + "\".");
+            }
+            if (x == -1) {
+                throw std::runtime_error(
+                        "Missing \"X\" column in \"" + defects_path + "\".");
+            }
+            if (y == -1) {
+                throw std::runtime_error(
+                        "Missing \"Y\" column in \"" + defects_path + "\".");
+            }
+            if (w == -1) {
+                throw std::runtime_error(
+                        "Missing \"WIDTH\" column in \"" + defects_path + "\".");
+            }
+            if (h == -1) {
+                throw std::runtime_error(
+                        "Missing \"HEIGHT\" column in \"" + defects_path + "\".");
+            }
             add_defect(i, x, y, w, h);
         }
     }
@@ -496,39 +520,43 @@ Counter Instance::state_number() const
     return val;
 }
 
-void Instance::write(std::string filepath) const
+void Instance::write(std::string instance_path) const
 {
-    // Export items
-    std::ofstream f_items(filepath + "_items.csv");
+    std::string items_path = instance_path + "_items.csv";
+    std::string bins_path = instance_path + "_bins.csv";
+    std::string defects_path = instance_path + "_defects.csv";
+    std::ofstream f_items(items_path);
+    std::ofstream f_bins(bins_path);
+    std::ofstream f_defects(defects_path);
     if (!f_items.good()) {
-        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << filepath + "_items.csv" << "\"" << "\033[0m" << std::endl;
-        return;
+        throw std::runtime_error(
+                "Unable to open file \"" + items_path + "\".");
     }
+    if (!f_bins.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + bins_path + "\".");
+    }
+    if (defect_number() > 0 && !f_defects.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + defects_path + "\".");
+    }
+
+    // Export items.
     f_items << "ID,WIDTH,HEIGHT,PROFIT,COPIES,ORIENTED,NEWSTACK" << std::endl;
     for (ItemTypeId j = 0; j < item_type_number(); ++j) {
         const ItemType& it = item_type(j);
         f_items << j << "," << it.rect.w << "," << it.rect.h << "," << it.profit << "," << it.copies << "," << it.oriented << "," << (j == 0 || it.stack != item_type(j - 1).stack) << std::endl;
     }
 
-    // Export bins
-    std::ofstream f_bins(filepath + "_bins.csv");
-    if (!f_bins.good()) {
-        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << filepath + "_bins.csv" << "\"" << "\033[0m" << std::endl;
-        return;
-    }
+    // Export bins.
     f_bins << "ID,WIDTH,HEIGHT" << std::endl;
     for (BinTypeId i = 0; i < bin_type_number(); ++i) {
         const BinType& bi = bin(i);
         f_bins << i << "," << bi.rect.w << "," << bi.rect.h << std::endl;
     }
 
-    // Export Defects
+    // Export defects.
     if (defect_number() > 0) {
-        std::ofstream f_defects(filepath + "_defects.csv");
-        if (!f_defects.good()) {
-            std::cerr << "\033[31m" << "ERROR, unable to open file \"" << filepath + "_defects.csv" << "\"" << "\033[0m" << std::endl;
-            return;
-        }
         f_defects << "ID,BIN,X,Y,WIDTH,HEIGHT" << std::endl;
         for (DefectId k = 0; k < defect_number(); ++k) {
             const Defect& de = defect(k);
