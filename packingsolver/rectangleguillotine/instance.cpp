@@ -509,17 +509,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
-Counter Instance::state_number() const
-{
-    Counter val = 1;
-    for (StackId s=0; s<stack_number(); ++s) {
-        if (val > LLONG_MAX / (stack_size(s) + 1))
-            return LLONG_MAX;
-        val *= (stack_size(s) + 1);
-    }
-    return val;
-}
-
 void Instance::write(std::string instance_path) const
 {
     std::string items_path = instance_path + "_items.csv";

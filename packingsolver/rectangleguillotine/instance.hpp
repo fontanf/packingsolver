@@ -89,96 +89,291 @@ class Instance
 
 public:
 
-    /**
-     * Create instances from files
+    /*
+     * Constructors and destructor.
      */
+
+    /** Create an instance from a file. */
     Instance(
             Objective objective,
-            std::string items_filepath,
-            std::string bins_filepath,
-            std::string defects_filepath);
+            std::string items_path,
+            std::string bins_path,
+            std::string defects_path);
 
-    /**
-     * Create instance manually
-     */
+    /** Create an instance manually. */
     Instance(Objective objective): objective_(objective) { }
-    void add_item_type(Length w, Length h, Profit p = -1, ItemPos copies = 1, bool oriented = false, bool new_stack = true);
-    void add_bin_type(Length w, Length h, Profit cost = -1, BinPos copies = 1, BinPos copies_min = 0);
+
+    /** Add an item type. */
+    void add_item_type(
+            Length w,
+            Length h,
+            Profit p = -1,
+            ItemPos copies = 1,
+            bool oriented = false,
+            bool new_stack = true);
+
+    /** Add a bin type. */
+    void add_bin_type(
+            Length w,
+            Length h,
+            Profit cost = -1,
+            BinPos copies = 1,
+            BinPos copies_min = 0);
+
+    /** Add a defect. */
     void add_defect(BinTypeId i, Length x, Length y, Length w, Length h);
 
-    inline void add_bin_type(const BinType& bin_type, BinPos copies, BinPos copies_min = 0)
+    /**
+     * Add a bin type from another bin type.
+     *
+     * This method is used in the column generation procedure.
+     **/
+    inline void add_bin_type(
+            const BinType& bin_type,
+            BinPos copies,
+            BinPos copies_min = 0)
     {
-        add_bin_type(bin_type.rect.w, bin_type.rect.h, bin_type.cost, copies, copies_min);
+        add_bin_type(
+                bin_type.rect.w,
+                bin_type.rect.h,
+                bin_type.cost,
+                copies,
+                copies_min);
     }
-
-    inline void add_item_type(const ItemType& item_type, Profit profit, ItemPos copies)
-    {
-        add_item_type(item_type.rect.w, item_type.rect.h, profit, copies, item_type.oriented);
-    }
-
-    void set_bin_infinite_width();
-    void set_bin_infinite_height();
-    void set_bin_infinite_copies();
-    void set_bin_unweighted();
-    void set_item_infinite_copies();
-    void set_unweighted();
 
     /**
+     * Add an item type from another item type.
+     *
+     * This method is used in the column generation procedure.
+     */
+    inline void add_item_type(
+            const ItemType& item_type,
+            Profit profit,
+            ItemPos copies)
+    {
+        add_item_type(
+                item_type.rect.w,
+                item_type.rect.h,
+                profit,
+                copies,
+                item_type.oriented);
+    }
+
+    /**
+     * For each bin type, set an infinite width.
+     *
+     * This method is used to transform a problem into a Strip Packing problem.
+     */
+    void set_bin_infinite_width();
+
+    /**
+     * For each bin type, set an infinite height.
+     *
+     * This method is used to transform a problem into a Strip Packing problem.
+     */
+    void set_bin_infinite_height();
+
+    /**
+     * Foe each bin type, set an infinite number of copies.
+     *
+     * This method should be used after reading bin files of Bin Packing
+     * Problems where the number of bin types is not given. By default, the
+     * number of bins would be set to 1.
+     */
+    void set_bin_infinite_copies();
+
+    /**
+     * For each bin type, set its cost to its area.
+     *
+     * This method is used to transform a Variable-sized Bin Packing Problem
+     * into an Unweighted Variable-sized Bin Packing Problem.
+     */
+    void set_bin_unweighted();
+
+    /**
+     * For each item type, set an infinite number of copies.
+     *
+     * This method is used to transform a Knapsack Problem into an Unbounded
+     * Knapsack Problem.
+     */
+    void set_item_infinite_copies();
+
+    /**
+     * For each item type, set its profit to its area.
+     *
+     * This method is used to transform a Knapsack Problem into an Unweighted
+     * Knapsack Problem.
+     */
+    void set_unweighted();
+
+    /*
      * Getters
      */
 
+    /** Get the problem type. */
     inline ProblemType type() const { return ProblemType::RectangleGuillotine; };
+    /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
 
-    inline ItemTypeId item_type_number()    const { return item_types_.size(); }
-    inline ItemTypeId item_number()         const { return item_number_; }
-    inline StackId    stack_number()        const { return stacks_.size(); }
-    inline ItemPos    stack_size(StackId s) const { return stack_sizes_[s]; }
-    inline DefectId   defect_number()       const { return defects_.size(); }
-    inline BinTypeId  bin_type_number()     const { return bin_types_.size(); }
-    inline BinPos     bin_number()          const { return bin_number_; }
-
-    inline Area       item_area()           const { return item_area_; }
-    inline Area       mean_area()           const { return item_area_ / item_number(); }
-    inline Area       defect_area()         const { return defect_area_; }
-    inline Area       packable_area()       const { return packable_area_; }
-    inline Profit     item_profit()         const { return item_profit_; }
+    /* Get the number of item types. */
+    inline ItemTypeId item_type_number() const { return item_types_.size(); }
+    /** Get the number of items. */
+    inline ItemTypeId item_number() const { return item_number_; }
+    /** Get the number of stacks. */
+    inline StackId stack_number() const { return stacks_.size(); }
+    /** Get the size of stack s. */
+    inline ItemPos stack_size(StackId s) const { return stack_sizes_[s]; }
+    /** Get the number of defects. */
+    inline DefectId defect_number() const { return defects_.size(); }
+    /** Get the number of bin types. */
+    inline BinTypeId bin_type_number() const { return bin_types_.size(); }
+    /** Get the number of bins. */
+    inline BinPos bin_number() const { return bin_number_; }
+    /** Get the total area of the items. */
+    inline Area item_area() const { return item_area_; }
+    /** Get the mean area of the items. */
+    inline Area mean_area() const { return item_area_ / item_number(); }
+    /** Get the total area of the defects. */
+    inline Area defect_area() const { return defect_area_; }
+    /** Get the total packable area. */
+    inline Area packable_area() const { return packable_area_; }
+    /** Get the total profit of the items. */
+    inline Profit item_profit() const { return item_profit_; }
+    /** Get the id of the item type with maximum efficiency. */
     inline ItemTypeId max_efficiency_item() const { return max_efficiency_item_; }
-    inline bool       unbounded_knapsck()   const { return all_item_type_infinite_copies; }
+    /** Return true iff all items have infinite copies. */
+    inline bool unbounded_knapsck() const { return all_item_type_infinite_copies; }
 
-    inline const ItemType&  item_type(ItemTypeId j) const { return item_types_[j]; }
-    inline const Defect&         defect(DefectId k) const { return defects_[k]; }
-    inline const BinType&     bin_type(BinTypeId i) const { return bin_types_[i]; }
+    /** Get item type j. */
+    inline const ItemType& item_type(ItemTypeId j) const { return item_types_[j]; }
+    /** Get defect k. */
+    inline const Defect& defect(DefectId k) const { return defects_[k]; }
+    /** Get bin type i. */
+    inline const BinType& bin_type(BinTypeId i) const { return bin_types_[i]; }
 
+    /** Get the j_pos's item of stack s. */
     inline const ItemType& item(StackId s, ItemPos j_pos) const;
+    /** Get the i_pos's bin. */
     inline const BinType& bin(BinPos i_pos) const;
+    /** Get the total area of the bins before bin i_pos. */
     Area previous_bin_area(BinPos i_pos) const;
 
-    inline const std::vector<ItemType>&              item_types()     const { return item_types_; }
-    inline const std::vector<ItemType>&              stack(StackId s) const { return stacks_[s]; }
-    inline const std::vector<std::vector<ItemType>>& stacks()         const { return stacks_; }
-    inline const std::vector<Defect>&                defects()        const { return defects_; }
+    /** Get the item types. */
+    inline const std::vector<ItemType>& item_types() const { return item_types_; }
+    /** Get stack s. */
+    inline const std::vector<ItemType>& stack(StackId s) const { return stacks_[s]; }
+    /** Get the stacks. */
+    inline const std::vector<std::vector<ItemType>>& stacks() const { return stacks_; }
+    /** Get the defects. */
+    inline const std::vector<Defect>& defects() const { return defects_; }
 
-    inline Length  width(const ItemType& item, bool rotate, CutOrientation o) const;
+    /*
+     * Item type dimensions.
+     */
+
+    /**
+     * Get the width of an item depending on whether it has been rotated and
+     * the orientation of the bin.
+     */
+    inline Length width(const ItemType& item, bool rotate, CutOrientation o) const;
+
+    /**
+     * Get the height of an item depending on whether it has been rotated and
+     * the orientation of the bin.
+     */
     inline Length height(const ItemType& item, bool rotate, CutOrientation o) const;
 
-    inline Length   left(const Defect& defect, CutOrientation o) const;
-    inline Length  right(const Defect& defect, CutOrientation o) const;
-    inline Length    top(const Defect& defect, CutOrientation o) const;
+    /*
+     * Defect coordinates.
+     */
+
+    /**
+     * Get the left coordinate of a defect depending on the orientatino of the
+     * bin.
+     */
+    inline Length left(const Defect& defect, CutOrientation o) const;
+
+    /**
+     * Get the right coordinate of a defect depending on the orientatino of the
+     * bin.
+     */
+    inline Length right(const Defect& defect, CutOrientation o) const;
+
+    /**
+     * Get the top coordinate of a defect depending on the orientatino of the
+     * bin.
+     */
+    inline Length top(const Defect& defect, CutOrientation o) const;
+
+    /**
+     * Get the bottom coordinate of a defect depending on the orientatino of
+     * the bin.
+     */
     inline Length bottom(const Defect& defect, CutOrientation o) const;
 
+    /*
+     * Intersections.
+     */
+
+    /**
+     * Return the id of a defect intersecting rectangle (l,r,b,t) in bin type i
+     * with orientation o.
+     *
+     * Return -1 if there is none.
+     */
     DefectId rect_intersects_defect(
-            Length l, Length r, Length b, Length t, BinTypeId i, CutOrientation o) const;
+            Length l,
+            Length r,
+            Length b,
+            Length t,
+            BinTypeId i,
+            CutOrientation o) const;
+
+    /**
+     * Return the id of a defect intersecting an item type located at
+     * coordinates (l,b) depending on its orientation in bin type i with
+     * orientation o.
+     *
+     * Return -1 if there is none.
+     */
     DefectId item_intersects_defect(
-            Length l, Length b, const ItemType& item, bool rotate, BinTypeId i, CutOrientation o) const;
+            Length l,
+            Length b,
+            const ItemType& item,
+            bool rotate,
+            BinTypeId i,
+            CutOrientation o) const;
+
+    /**
+     * Return the id of a defect intersecting an x-coordinate in bin type i
+     * with orientation o.
+     *
+     * Return -1 if there is none.
+     */
     DefectId x_intersects_defect(
-            Length x, BinTypeId i, CutOrientation o) const;
+            Length x,
+            BinTypeId i,
+            CutOrientation o) const;
+
+    /**
+     * Return the id of a defect intersecting an y-coordinate in bin type i
+     * with orientation o.
+     *
+     * Return -1 if there is none.
+     */
     DefectId y_intersects_defect(
-            Length l, Length r, Length y, BinTypeId i, CutOrientation o) const;
+            Length l,
+            Length r,
+            Length y,
+            BinTypeId i,
+            CutOrientation o) const;
 
-    Counter state_number() const;
+    /*
+     * Export.
+     */
 
-    void write(std::string filepath) const;
+    /** Write the instance to a file. */
+    void write(std::string instance_path) const;
 
 private:
 
