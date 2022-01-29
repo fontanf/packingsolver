@@ -127,7 +127,7 @@ public:
      * Add a bin type from another bin type.
      *
      * This method is used in the column generation procedure.
-     **/
+     */
     inline void add_bin_type(
             const BinType& bin_type,
             BinPos copies,
@@ -229,6 +229,7 @@ public:
     inline BinTypeId bin_type_number() const { return bin_types_.size(); }
     /** Get the number of bins. */
     inline BinPos bin_number() const { return bin_number_; }
+
     /** Get the total area of the items. */
     inline Area item_area() const { return item_area_; }
     /** Get the mean area of the items. */
@@ -242,7 +243,7 @@ public:
     /** Get the id of the item type with maximum efficiency. */
     inline ItemTypeId max_efficiency_item() const { return max_efficiency_item_; }
     /** Return true iff all items have infinite copies. */
-    inline bool unbounded_knapsck() const { return all_item_type_infinite_copies; }
+    inline bool unbounded_knapsck() const { return all_item_type_infinite_copies_; }
 
     /** Get item type j. */
     inline const ItemType& item_type(ItemTypeId j) const { return item_types_[j]; }
@@ -377,29 +378,52 @@ public:
 
 private:
 
-    std::vector<ItemType> item_types_;
-    std::vector<Defect> defects_;
-    std::vector<BinType> bin_types_;
+    /*
+     * Private attributes.
+     */
+
+    /** Objective. */
     Objective objective_;
 
+    /** Item types. */
+    std::vector<ItemType> item_types_;
+    /** Defects. */
+    std::vector<Defect> defects_;
+    /** Bin types. */
+    std::vector<BinType> bin_types_;
+
+    /** Stacks. */
     std::vector<std::vector<ItemType>> stacks_;
 
+    /** Number of items. */
     ItemPos item_number_ = 0;
+    /** Number of bins. */
     BinPos bin_number_ = 0;
+    /** Number of items in each stack. */
     std::vector<ItemPos> stack_sizes_;
+    /** Total length (max of width and height) of the items. */
     Length length_sum_ = 0;
+    /** Total item area. */
     Area item_area_ = 0;
+    /** Total defect area. */
     Area defect_area_ = 0;
+    /** Total packable area. */
     Area packable_area_ = 0;
+    /** Total item profit. */
     Profit item_profit_ = 0;
+    /** Id of the item with maximum efficiency. */
     ItemTypeId max_efficiency_item_ = -1;
 
+    /** True iff all bin types have a single copy. */
     bool all_bin_type_one_copy_ = true;
+    /** True iff all item types have a single copy. */
     bool all_item_type_one_copy_ = true;
-    bool all_item_type_infinite_copies = false;
+    /** True iff all item types have an infinite number of copies. */
+    bool all_item_type_infinite_copies_ = false;
 
 };
 
+/** Stream insertion operator. */
 std::ostream& operator<<(std::ostream &os, const Instance& ins);
 
 /****************************** inlined methods *******************************/

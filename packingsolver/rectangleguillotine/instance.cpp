@@ -307,7 +307,7 @@ void Instance::set_item_infinite_copies()
         }
     }
     all_item_type_one_copy_ = false;
-    all_item_type_infinite_copies = true;
+    all_item_type_infinite_copies_ = true;
 }
 
 void Instance::set_bin_unweighted()
