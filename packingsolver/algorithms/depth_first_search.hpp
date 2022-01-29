@@ -13,7 +13,7 @@ struct DepthFirstSearchOptionalParameters
 
 struct DepthFirstSearchOutput
 {
-    Counter node_number = 0;
+    Counter number_of_nodes = 0;
 };
 
 template <typename Instance, typename Solution, typename BranchingScheme>
@@ -28,7 +28,7 @@ inline void rec(
     typedef typename BranchingScheme::Insertion Insertion;
 
     LOG_FOLD_START(parameters.info, "rec" << std::endl);
-    output.node_number++;
+    output.number_of_nodes++;
 
     // Check end
     if (parameters.info.needs_to_end()) {

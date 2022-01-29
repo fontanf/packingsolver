@@ -59,7 +59,7 @@ struct SolutionPoolComparator
             return false;
         if (solution_2 < solution_1)
             return true;
-        for (ItemTypeId j = 0; j < solution_1.instance().item_type_number(); ++j)
+        for (ItemTypeId j = 0; j < solution_1.instance().number_of_item_types(); ++j)
             if (solution_1.item_copies(j) != solution_2.item_copies(j))
                 return solution_1.item_copies(j) < solution_2.item_copies(j);
         return false;

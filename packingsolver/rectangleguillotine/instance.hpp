@@ -216,24 +216,24 @@ public:
     inline Objective objective() const { return objective_; }
 
     /* Get the number of item types. */
-    inline ItemTypeId item_type_number() const { return item_types_.size(); }
+    inline ItemTypeId number_of_item_types() const { return item_types_.size(); }
     /** Get the number of items. */
-    inline ItemTypeId item_number() const { return item_number_; }
+    inline ItemTypeId number_of_items() const { return number_of_items_; }
     /** Get the number of stacks. */
-    inline StackId stack_number() const { return stacks_.size(); }
+    inline StackId number_of_stacks() const { return stacks_.size(); }
     /** Get the size of stack s. */
     inline ItemPos stack_size(StackId s) const { return stack_sizes_[s]; }
     /** Get the number of defects. */
-    inline DefectId defect_number() const { return defects_.size(); }
+    inline DefectId number_of_defects() const { return defects_.size(); }
     /** Get the number of bin types. */
-    inline BinTypeId bin_type_number() const { return bin_types_.size(); }
+    inline BinTypeId number_of_bin_types() const { return bin_types_.size(); }
     /** Get the number of bins. */
-    inline BinPos bin_number() const { return bin_number_; }
+    inline BinPos number_of_bins() const { return number_of_bins_; }
 
     /** Get the total area of the items. */
     inline Area item_area() const { return item_area_; }
     /** Get the mean area of the items. */
-    inline Area mean_area() const { return item_area_ / item_number(); }
+    inline Area mean_area() const { return item_area_ / number_of_items(); }
     /** Get the total area of the defects. */
     inline Area defect_area() const { return defect_area_; }
     /** Get the total packable area. */
@@ -396,9 +396,9 @@ private:
     std::vector<std::vector<ItemType>> stacks_;
 
     /** Number of items. */
-    ItemPos item_number_ = 0;
+    ItemPos number_of_items_ = 0;
     /** Number of bins. */
-    BinPos bin_number_ = 0;
+    BinPos number_of_bins_ = 0;
     /** Number of items in each stack. */
     std::vector<ItemPos> stack_sizes_;
     /** Total length (max of width and height) of the items. */
@@ -449,7 +449,7 @@ const ItemType& Instance::item(StackId s, ItemPos j_pos) const
 
 const BinType& Instance::bin(BinPos i_pos) const
 {
-    assert(i_pos < bin_number_);
+    assert(i_pos < number_of_bins_);
 
     if (all_bin_type_one_copy_)
         return bin_types_[i_pos];

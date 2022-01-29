@@ -185,7 +185,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 
 Area Instance::previous_bin_area(BinPos i_pos) const
 {
-    assert(i_pos < bin_number_);
+    assert(i_pos < number_of_bins_);
     const BinType& b = bin(i_pos);
     return b.previous_bin_area + b.rect.area() * (i_pos - b.previous_bin_copies);
 }
@@ -198,13 +198,13 @@ void Instance::add_item_type(Length w, Length h, Profit p, ItemPos copies, bool 
     item_type.rect.h   = h;
     item_type.profit   = (p == -1)? w * h: p;
     item_type.copies   = copies;
-    item_type.stack    = (new_stack)? stack_number(): stack_number() - 1;
+    item_type.stack    = (new_stack)? number_of_stacks(): number_of_stacks() - 1;
     item_type.oriented = oriented;
     item_types_.push_back(item_type);
 
     if (item_type.copies != 1)
         all_item_type_one_copy_ = false;
-    item_number_ += copies; // Update item_number_
+    number_of_items_ += copies; // Update number_of_items_
     length_sum_ += item_type.copies * std::max(item_type.rect.w, item_type.rect.h); // Update length_sum_
 
     // Update stacks_
@@ -235,15 +235,15 @@ void Instance::add_bin_type(Length w, Length h, Profit cost, BinPos copies, BinP
     bin_type.cost = (cost == -1)? w * h: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
-    bin_type.previous_bin_area = (bin_number() == 0)? 0:
+    bin_type.previous_bin_area = (number_of_bins() == 0)? 0:
         bin_types_.back().previous_bin_area + bin_types_.back().rect.area() * bin_types_.back().copies;
-    bin_type.previous_bin_copies = (bin_number() == 0)? 0:
+    bin_type.previous_bin_copies = (number_of_bins() == 0)? 0:
         bin_types_.back().previous_bin_copies + bin_types_.back().copies;
     bin_types_.push_back(bin_type);
 
     if (bin_type.copies != 1)
         all_bin_type_one_copy_ = false;
-    bin_number_ += copies; // Update bin_number_
+    number_of_bins_ += copies; // Update number_of_bins_
     packable_area_ += bin_types_.back().copies * bin_types_.back().rect.area(); // Update packable_area_;
 }
 
@@ -266,30 +266,30 @@ void Instance::add_defect(BinTypeId i, Length x, Length y, Length w, Length h)
 
 void Instance::set_bin_infinite_width()
 {
-    for (BinTypeId i = 0; i < bin_type_number(); ++i)
+    for (BinTypeId i = 0; i < number_of_bin_types(); ++i)
         bin_types_[i].rect.w = length_sum_;
 }
 
 void Instance::set_bin_infinite_height()
 {
-    for (BinTypeId i = 0; i < bin_type_number(); ++i)
+    for (BinTypeId i = 0; i < number_of_bin_types(); ++i)
         bin_types_[i].rect.h = length_sum_;
 }
 
 void Instance::set_bin_infinite_copies()
 {
-    for (BinTypeId i = 0; i < bin_type_number(); ++i) {
-        bin_number_ += item_number_ - bin_types_[i].copies;
-        bin_types_[i].copies = item_number_;
+    for (BinTypeId i = 0; i < number_of_bin_types(); ++i) {
+        number_of_bins_ += number_of_items_ - bin_types_[i].copies;
+        bin_types_[i].copies = number_of_items_;
     }
     all_bin_type_one_copy_ = false;
 }
 
 void Instance::set_item_infinite_copies()
 {
-    for (StackId s = 0; s < stack_number(); ++s) {
+    for (StackId s = 0; s < number_of_stacks(); ++s) {
         for (ItemType& item: stacks_[s]) {
-            item_number_    -= item.copies;
+            number_of_items_    -= item.copies;
             item_area_      -= item.copies * item.rect.area();
             item_profit_    -= item.copies * item.profit;
             length_sum_     -= item.copies * std::max(item.rect.w, item.rect.h);
@@ -299,7 +299,7 @@ void Instance::set_item_infinite_copies()
             item.copies = c;
             item_types_[item.id].copies = c;
 
-            item_number_    += item.copies;
+            number_of_items_    += item.copies;
             length_sum_     += item.copies * std::max(item.rect.w, item.rect.h);
             item_area_      += item.copies * item.rect.area();
             item_profit_    += item.copies * item.profit;
@@ -312,13 +312,13 @@ void Instance::set_item_infinite_copies()
 
 void Instance::set_bin_unweighted()
 {
-    for (BinTypeId i = 0; i < bin_type_number(); ++i)
+    for (BinTypeId i = 0; i < number_of_bin_types(); ++i)
         bin_types_[i].cost = bin_types_[i].rect.area();
 }
 
 void Instance::set_unweighted()
 {
-    for (ItemTypeId j = 0; j < item_type_number(); ++j)
+    for (ItemTypeId j = 0; j < number_of_item_types(); ++j)
         item_types_[j].profit = item_types_[j].rect.area();
 }
 
@@ -476,31 +476,31 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 {
     os
         << "objective " << instance.objective() << std::endl
-        << "item type number " << instance.item_type_number() << " - item number " << instance.item_number() << std::endl
-        << "bin type number " << instance.bin_type_number() << " - bin number " << instance.bin_number() << std::endl
-        << "defect number " << instance.defect_number() << std::endl;
+        << "item type number " << instance.number_of_item_types() << " - item number " << instance.number_of_items() << std::endl
+        << "bin type number " << instance.number_of_bin_types() << " - bin number " << instance.number_of_bins() << std::endl
+        << "defect number " << instance.number_of_defects() << std::endl;
 
     os << "Items" << std::endl;
-    for (ItemTypeId j = 0; j < instance.item_type_number(); ++j)
+    for (ItemTypeId j = 0; j < instance.number_of_item_types(); ++j)
         os << instance.item_type(j) << std::endl;
 
     //os << "Stacks" << std::endl;
-    //for (StackId s = 0; s < instance.stack_number(); ++s) {
+    //for (StackId s = 0; s < instance.number_of_stacks(); ++s) {
     //    os << "Stack " << s << std::endl;
     //    for (ItemPos pos = 0; pos < instance.stack_size(s); ++pos)
     //        os << instance.item(s, pos) << std::endl;
     //}
 
     os << "Bins" << std::endl;
-    for (BinTypeId i = 0; i < instance.bin_type_number(); ++i)
+    for (BinTypeId i = 0; i < instance.number_of_bin_types(); ++i)
         os << instance.bin_type(i) << std::endl;
 
     os << "Defects" << std::endl;
-    for (DefectId k = 0; k < instance.defect_number(); ++k)
+    for (DefectId k = 0; k < instance.number_of_defects(); ++k)
         os << instance.defect(k) << std::endl;
 
     os << "Defects by bins" << std::endl;
-    for (BinTypeId i = 0; i < instance.bin_type_number(); ++i) {
+    for (BinTypeId i = 0; i < instance.number_of_bin_types(); ++i) {
         os << "Bin " << i << std::endl;
         for (const Defect& defect: instance.bin_type(i).defects)
             os << defect << std::endl;
@@ -525,29 +525,29 @@ void Instance::write(std::string instance_path) const
         throw std::runtime_error(
                 "Unable to open file \"" + bins_path + "\".");
     }
-    if (defect_number() > 0 && !f_defects.good()) {
+    if (number_of_defects() > 0 && !f_defects.good()) {
         throw std::runtime_error(
                 "Unable to open file \"" + defects_path + "\".");
     }
 
     // Export items.
     f_items << "ID,WIDTH,HEIGHT,PROFIT,COPIES,ORIENTED,NEWSTACK" << std::endl;
-    for (ItemTypeId j = 0; j < item_type_number(); ++j) {
+    for (ItemTypeId j = 0; j < number_of_item_types(); ++j) {
         const ItemType& it = item_type(j);
         f_items << j << "," << it.rect.w << "," << it.rect.h << "," << it.profit << "," << it.copies << "," << it.oriented << "," << (j == 0 || it.stack != item_type(j - 1).stack) << std::endl;
     }
 
     // Export bins.
     f_bins << "ID,WIDTH,HEIGHT" << std::endl;
-    for (BinTypeId i = 0; i < bin_type_number(); ++i) {
+    for (BinTypeId i = 0; i < number_of_bin_types(); ++i) {
         const BinType& bi = bin(i);
         f_bins << i << "," << bi.rect.w << "," << bi.rect.h << std::endl;
     }
 
     // Export defects.
-    if (defect_number() > 0) {
+    if (number_of_defects() > 0) {
         f_defects << "ID,BIN,X,Y,WIDTH,HEIGHT" << std::endl;
-        for (DefectId k = 0; k < defect_number(); ++k) {
+        for (DefectId k = 0; k < number_of_defects(); ++k) {
             const Defect& de = defect(k);
             f_defects << k << "," << de.bin_id << "," << de.pos.x << "," << de.pos.y << "," << de.rect.w << "," << de.rect.h << std::endl;
         }

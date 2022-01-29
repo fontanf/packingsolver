@@ -57,7 +57,7 @@ IterativeMemoryBoundedAStarOptionalParameters read_iterative_memory_bounded_a_st
         ("growth-factor,f", po::value<double>(&parameters.growth_factor), "")
         ("queue-size-min,m", po::value<Counter>(&parameters.queue_size_min), "")
         ("queue-size-max,M", po::value<Counter>(&parameters.queue_size_max), "")
-        ("node-number-max,n", po::value<Counter>(&parameters.node_number_max), "")
+        ("maximum-number-of-nodes,n", po::value<Counter>(&parameters.maximum_number_of_nodes), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line((Counter)argv.size(), argv.data(), desc), vm);
@@ -78,7 +78,7 @@ IterativeBeamSearchOptionalParameters read_iterative_beam_search_args(std::vecto
         ("growth-factor,f", po::value<double>(&parameters.growth_factor), "")
         ("queue-size-min,m", po::value<Counter>(&parameters.queue_size_min), "")
         ("queue-size-max,M", po::value<Counter>(&parameters.queue_size_max), "")
-        ("node-number-max,n", po::value<Counter>(&parameters.node_number_max), "")
+        ("maximum-number-of-nodes,n", po::value<Counter>(&parameters.maximum_number_of_nodes), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line((Counter)argv.size(), argv.data(), desc), vm);

@@ -170,10 +170,10 @@ public:
          */
         std::vector<ItemPos> pos_stack = {};
 
-        BinPos bin_number = 0;
+        BinPos number_of_bins = 0;
         CutOrientation first_stage_orientation;
 
-        ItemPos item_number    = 0;
+        ItemPos number_of_items    = 0;
         Area item_area         = 0;
         Area squared_item_area = 0;
         Area current_area      = 0;
@@ -216,7 +216,7 @@ public:
     inline bool leaf(
             const Node& node) const
     {
-        return node.item_number == instance_.item_number();
+        return node.number_of_items == instance_.number_of_items();
     }
 
     bool bound(
@@ -300,19 +300,19 @@ private:
     Front front(const Node&) const;
     bool dominates(const Front& f1, const Front& f2) const;
 
-    inline bool                        full(const Node& node) const { return node.item_number == instance_.item_number(); }
-    inline double           item_percentage(const Node& node) const { return (double)node.item_number / instance_.item_number(); }
-    inline double                 mean_area(const Node& node) const { return (double)node.current_area / node.item_number; }
-    inline double            mean_item_area(const Node& node) const { return (double)node.item_area / node.item_number; }
-    inline double    mean_squared_item_area(const Node& node) const { return (double)node.squared_item_area / node.item_number; }
-    inline double  mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance_.item_number() - node.item_number); }
+    inline bool                        full(const Node& node) const { return node.number_of_items == instance_.number_of_items(); }
+    inline double           item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
+    inline double                 mean_area(const Node& node) const { return (double)node.current_area / node.number_of_items; }
+    inline double            mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
+    inline double    mean_squared_item_area(const Node& node) const { return (double)node.squared_item_area / node.number_of_items; }
+    inline double  mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance_.number_of_items() - node.number_of_items); }
     inline double       remaining_item_area(const Node& node) const { return instance_.item_area() - node.item_area; }
     inline double          waste_percentage(const Node& node) const { return (double)node.waste / node.current_area; }
     inline double               waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
     inline Length                     width(const Node& node) const { return (parameters_.cut_type_1 == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
     inline Length                    height(const Node& node) const { return (parameters_.cut_type_1 == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
     inline Profit                      ubkp(const Node& node) const;
-    inline bool       last_insertion_defect(const Node& node) const { return node.bin_number > 0 && node.j1 == -1 && node.j2 == -1; }
+    inline bool       last_insertion_defect(const Node& node) const { return node.number_of_bins > 0 && node.j1 == -1 && node.j2 == -1; }
 
     inline Front front(const Node& node, const Insertion& insertion) const;
     inline Area  waste(const Node& node, const Insertion& insertion) const;
@@ -404,14 +404,14 @@ bool BranchingScheme::operator()(
         if (node_2->current_area == 0)
             return true;
 
-        if (node_1->item_number == 0) {
-            if (node_2->item_number != 0) {
+        if (node_1->number_of_items == 0) {
+            if (node_2->number_of_items != 0) {
                 return false;
             } else {
                 return node_1->id < node_2->id;
             }
         }
-        if (node_2->item_number == 0)
+        if (node_2->number_of_items == 0)
             return true;
 
         if (waste_percentage(*node_1) / mean_item_area(*node_1)
@@ -430,14 +430,14 @@ bool BranchingScheme::operator()(
         if (node_2->current_area == 0)
             return true;
 
-        if (node_1->item_number == 0) {
-            if (node_2->item_number != 0) {
+        if (node_1->number_of_items == 0) {
+            if (node_2->number_of_items != 0) {
                 return false;
             } else {
                 return node_1->id < node_2->id;
             }
         }
-        if (node_2->item_number == 0)
+        if (node_2->number_of_items == 0)
             return true;
 
         if ((0.1 + waste_percentage(*node_1)) / mean_item_area(*node_1)
@@ -456,14 +456,14 @@ bool BranchingScheme::operator()(
         if (node_2->current_area == 0)
             return true;
 
-        if (node_1->item_number == 0) {
-            if (node_2->item_number != 0) {
+        if (node_1->number_of_items == 0) {
+            if (node_2->number_of_items != 0) {
                 return false;
             } else {
                 return node_1->id < node_2->id;
             }
         }
-        if (node_2->item_number == 0)
+        if (node_2->number_of_items == 0)
             return true;
 
         if ((0.1 + waste_percentage(*node_1)) / mean_squared_item_area(*node_1)
@@ -498,14 +498,14 @@ bool BranchingScheme::operator()(
         if (node_2->profit == 0)
             return true;
 
-        if (node_1->item_number == 0) {
-            if (node_2->item_number != 0) {
+        if (node_1->number_of_items == 0) {
+            if (node_2->number_of_items != 0) {
                 return false;
             } else {
                 return node_1->id < node_2->id;
             }
         }
-        if (node_2->item_number == 0)
+        if (node_2->number_of_items == 0)
             return true;
 
         if ((double)node_1->current_area / node_1->profit / mean_item_area(*node_1)

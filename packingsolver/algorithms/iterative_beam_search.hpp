@@ -13,14 +13,14 @@ struct IterativeBeamSearchOptionalParameters
     double growth_factor = 1.5;
     Counter queue_size_min = 0;
     Counter queue_size_max = 100000000;
-    Counter node_number_max = -1;
+    Counter maximum_number_of_nodes = -1;
 
     optimizationtools::Info info = optimizationtools::Info();
 };
 
 struct IterativeBeamSearchOutput
 {
-    Counter node_number = 0;
+    Counter number_of_nodes = 0;
     Counter queue_size_max = 1;
 };
 
@@ -68,8 +68,8 @@ inline IterativeBeamSearchOutput iterative_beam_search(
         for (Counter depth = 0; !q->empty() || !q_next->empty(); ++depth) {
 
             while (!q->empty()) {
-                output.node_number++;
-                LOG_FOLD_START(parameters.info, "node_number " << output.node_number << std::endl);
+                output.number_of_nodes++;
+                LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
 
                 // Check end.
                 if (parameters.info.needs_to_end()) {
@@ -78,8 +78,8 @@ inline IterativeBeamSearchOutput iterative_beam_search(
                 }
 
                 // Check node limit.
-                if (parameters.node_number_max != -1
-                        && output.node_number > parameters.node_number_max) {
+                if (parameters.maximum_number_of_nodes != -1
+                        && output.number_of_nodes > parameters.maximum_number_of_nodes) {
                     LOG_FOLD_END(parameters.info, "");
                     goto ibsend;
                 }
@@ -112,7 +112,7 @@ inline IterativeBeamSearchOutput iterative_beam_search(
 
                     // Add child to the queue.
                     if (!branching_scheme.leaf(*child)) {
-                        if (child->item_number == node_cur->item_number + 1) {
+                        if (child->number_of_items == node_cur->number_of_items + 1) {
                             if ((Counter)q_next->size() >= output.queue_size_max)
                                 stop = false;
                             if ((Counter)q_next->size() < output.queue_size_max
@@ -121,7 +121,7 @@ inline IterativeBeamSearchOutput iterative_beam_search(
                                 if ((Counter)q_next->size() > output.queue_size_max)
                                     remove_from_history_and_queue(branching_scheme, *history_next, *q_next, std::prev(q_next->end()));
                             }
-                        } else if (child->item_number == node_cur->item_number + 2) {
+                        } else if (child->number_of_items == node_cur->number_of_items + 2) {
                             if ((Counter)q_next_2->size() >= output.queue_size_max)
                                 stop = false;
                             if ((Counter)q_next_2->size() < output.queue_size_max
@@ -130,7 +130,7 @@ inline IterativeBeamSearchOutput iterative_beam_search(
                                 if ((Counter)q_next_2->size() > output.queue_size_max)
                                     remove_from_history_and_queue(branching_scheme, *history_next_2, *q_next_2, std::prev(q_next_2->end()));
                             }
-                        } else if (child->item_number == node_cur->item_number) {
+                        } else if (child->number_of_items == node_cur->number_of_items) {
                             q->insert(child);
                         } else {
                         }
@@ -156,7 +156,7 @@ ibsend:
 
     std::stringstream ss;
     ss << "IBS (thread " << parameters.thread_id << ")";
-    PUT(parameters.info, ss.str(), "NodeNumber", output.node_number);
+    PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
     LOG_FOLD_END(parameters.info, "");
     return output;
 }
