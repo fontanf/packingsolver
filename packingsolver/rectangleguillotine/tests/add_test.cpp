@@ -37,8 +37,8 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion1)
     BranchingScheme branching_scheme(instance, p);
     auto root = branching_scheme.root();
 
-    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*root).bin_number, 0);
-    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*root).item_number, 0);
+    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*root).number_of_bins, 0);
+    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*root).number_of_items, 0);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*root).waste, 0);
 
     // Add item 0
@@ -47,8 +47,8 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion1)
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_1).z2, 0);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_1).x1_max, 3500);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_1).y2_max, 3210);
-    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_1).bin_number, 1);
-    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_1).item_number, 1);
+    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_1).number_of_bins, 1);
+    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_1).number_of_items, 1);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_1).waste, 0);
 
     // Add item 1;
@@ -57,8 +57,8 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion1)
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).z2, 0);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).x1_max, 3800);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).y2_max, 3210);
-    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).bin_number, 1);
-    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).item_number, 2);
+    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).number_of_bins, 1);
+    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).number_of_items, 2);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).waste, 3210 * 700 - 200 * 300 - 300 * 400);
 }
 
@@ -113,8 +113,8 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion2)
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).z2, 0);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).x1_max, 3500);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).y2_max, 3210);
-    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).bin_number, 1);
-    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).item_number, 2);
+    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).number_of_bins, 1);
+    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).number_of_items, 2);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_2).waste, 100 * 400);
 
     // Add item 0
@@ -123,8 +123,8 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion2)
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_3).z2, 0);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_3).x1_max, 3500);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_3).y2_max, 3210);
-    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_3).bin_number, 1);
-    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_3).item_number, 3);
+    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_3).number_of_bins, 1);
+    EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_3).number_of_items, 3);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_3).x1_curr, 700);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_3).current_area, 700 * 3210);
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*node_3).item_area, 300 * 200 + 100 * 400 + 500 * 600);

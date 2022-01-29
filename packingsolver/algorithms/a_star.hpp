@@ -15,7 +15,7 @@ struct AStarOptionalParameters
 
 struct AStarOutput
 {
-    Counter node_number = 0;
+    Counter number_of_nodes = 0;
 };
 
 template <typename Instance, typename Solution, typename BranchingScheme>
@@ -34,8 +34,8 @@ inline AStarOutput a_star(
     q.insert(branching_scheme.root());
 
     while (!q.empty()) {
-        output.node_number++;
-        LOG_FOLD_START(parameters.info, "node_number " << output.node_number << std::endl);
+        output.number_of_nodes++;
+        LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
 
         // Check end.
         if (parameters.info.needs_to_end()) {
@@ -79,7 +79,7 @@ inline AStarOutput a_star(
 
     std::stringstream ss;
     ss << "A* (thread " << parameters.thread_id << ")";
-    PUT(parameters.info, ss.str(), "NodeNumber", output.node_number);
+    PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
     LOG_FOLD_END(parameters.info, "");
     return output;
 }

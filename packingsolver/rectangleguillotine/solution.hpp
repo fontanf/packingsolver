@@ -42,8 +42,8 @@ public:
     /** Standard constructor. */
     Solution(const Instance& instance):
         instance_(instance),
-        bin_copies_(instance.bin_type_number(), 0),
-        item_copies_(instance.item_type_number(), 0)
+        bin_copies_(instance.number_of_bin_types(), 0),
+        item_copies_(instance.number_of_item_types(), 0)
     { }
     /** Constructor from a list of nodes. */
     Solution(const Instance& instance, const std::vector<Solution::Node>& nodes);
@@ -67,9 +67,9 @@ public:
      */
 
     inline const Instance& instance() const { return instance_; }
-    inline ItemPos item_number() const { return item_number_; }
-    inline bool full() const { return item_number() == instance().item_number(); }
-    inline BinPos bin_number() const { return bin_number_; }
+    inline ItemPos number_of_items() const { return number_of_items_; }
+    inline bool full() const { return number_of_items() == instance().number_of_items(); }
+    inline BinPos number_of_bins() const { return number_of_bins_; }
     inline Length height() const { return height_; }
     inline Length width() const { return width_; }
     inline Profit profit() const { return profit_; }
@@ -104,8 +104,8 @@ private:
 
     std::vector<Solution::Node> nodes_;
 
-    ItemPos item_number_ = 0;
-    BinPos bin_number_ = 0;
+    ItemPos number_of_items_ = 0;
+    BinPos number_of_bins_ = 0;
     Area area_ = 0;
     Area full_area_ = 0;
     Area item_area_ = 0;

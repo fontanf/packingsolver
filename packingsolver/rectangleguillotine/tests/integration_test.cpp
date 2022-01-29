@@ -354,11 +354,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
         }
 
         Instance instance_new(Objective::BinPackingWithLeftovers);
-        for (BinTypeId i = 0; i < instance.bin_type_number(); ++i) {
+        for (BinTypeId i = 0; i < instance.number_of_bin_types(); ++i) {
             const BinType& bin = instance.bin_type(i);
             instance_new.add_bin_type(bin.rect.w, bin.rect.h, bin.copies);
         }
-        for (DefectId k = 0; k < instance.defect_number(); ++k) {
+        for (DefectId k = 0; k < instance.number_of_defects(); ++k) {
             const Defect& defect = instance.defect(k);
             instance_new.add_defect(defect.bin_id, defect.pos.x, defect.pos.y, defect.rect.w, defect.rect.h);
         }

@@ -13,13 +13,13 @@ struct IterativeMemoryBoundedAStarOptionalParameters
     double growth_factor = 1.5;
     Counter queue_size_min = 0;
     Counter queue_size_max = 100000000;
-    Counter node_number_max = -1;
+    Counter maximum_number_of_nodes = -1;
     Info info = Info();
 };
 
 struct IterativeMemoryBoundedAStarOutput
 {
-    Counter node_number = 0;
+    Counter number_of_nodes = 0;
     Counter queue_size_max = 1;
 };
 
@@ -49,8 +49,8 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
         add_to_history_and_queue(branching_scheme, history, q, root);
 
         while (!q.empty()) {
-            output.node_number++;
-            LOG_FOLD_START(parameters.info, "node_number " << output.node_number << std::endl);
+            output.number_of_nodes++;
+            LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
 
             // Check end.
             if (parameters.info.needs_to_end()) {
@@ -58,8 +58,8 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
                 goto mbastarend;
             }
 
-            if (parameters.node_number_max != -1
-                    && output.node_number > parameters.node_number_max) {
+            if (parameters.maximum_number_of_nodes != -1
+                    && output.number_of_nodes > parameters.maximum_number_of_nodes) {
                 LOG_FOLD_END(parameters.info, "");
                 goto mbastarend;
             }
@@ -117,7 +117,7 @@ mbastarend:
 
     std::stringstream ss;
     ss << "IMBA* (thread " << parameters.thread_id << ")";
-    PUT(parameters.info, ss.str(), "NodeNumber", output.node_number);
+    PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
     LOG_FOLD_END(parameters.info, "");
     return output;
 }

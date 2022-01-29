@@ -26,7 +26,7 @@ BranchingScheme::BranchingScheme(const Instance& instance, const Parameters& par
         no_oriented_items_ = false;
     } else {
         no_oriented_items_ = true;
-        for (ItemTypeId j = 0; j < instance.item_type_number(); ++j) {
+        for (ItemTypeId j = 0; j < instance.number_of_item_types(); ++j) {
             if (instance.item_type(j).oriented) {
                 no_oriented_items_ = false;
                 break;
@@ -35,8 +35,8 @@ BranchingScheme::BranchingScheme(const Instance& instance, const Parameters& par
     }
 
     // Update stack_pred_
-    stack_pred_ = std::vector<StackId>(instance.stack_number(), -1);
-    for (StackId s = 0; s < instance.stack_number(); ++s) {
+    stack_pred_ = std::vector<StackId>(instance.number_of_stacks(), -1);
+    for (StackId s = 0; s < instance.number_of_stacks(); ++s) {
         for (StackId s0 = s - 1; s0 >= 0; --s0) {
             if (equals(s, s0)) {
                 stack_pred_[s] = s0;
@@ -190,9 +190,9 @@ Length BranchingScheme::y2_prev(const Node& node, Depth df) const
 BinPos BranchingScheme::last_bin(const Node& node, Depth df) const
 {
     if (df <= -1) {
-        return (node.bin_number == 0)? 0: node.bin_number;
+        return (node.number_of_bins == 0)? 0: node.number_of_bins;
     } else {
-        return node.bin_number - 1;
+        return node.number_of_bins - 1;
     }
 }
 
@@ -262,16 +262,16 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     node.z1 = insertion.z1;
     node.z2 = insertion.z2;
 
-    // Compute bin_number and first_stage_orientation.
+    // Compute number_of_bins and first_stage_orientation.
     if (insertion.df < 0) {
-        node.bin_number = father.bin_number + 1;
+        node.number_of_bins = father.number_of_bins + 1;
         node.first_stage_orientation = last_bin_orientation(node, insertion.df);
     } else {
-        node.bin_number = father.bin_number;
+        node.number_of_bins = father.number_of_bins;
         node.first_stage_orientation = father.first_stage_orientation;
     }
 
-    BinPos i = node.bin_number - 1;
+    BinPos i = node.number_of_bins - 1;
     CutOrientation o = node.first_stage_orientation;
     Length h = instance_.bin(i).height(o);
     Length w = instance_.bin(i).width(o);
@@ -319,14 +319,14 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
 
     // Update pos_stack, items_area, squared_item_area and profit.
     node.pos_stack         = father.pos_stack;
-    node.item_number       = father.item_number;
+    node.number_of_items       = father.number_of_items;
     node.item_area         = father.item_area;
     node.squared_item_area = father.squared_item_area;
     node.profit            = father.profit;
     if (insertion.j1 != -1) {
         const ItemType& item = instance_.item_type(insertion.j1);
         node.pos_stack[item.stack]++;
-        node.item_number       += 1;
+        node.number_of_items       += 1;
         node.item_area         += item.rect.area();
         node.squared_item_area += item.rect.area() * item.rect.area();
         node.profit            += item.profit;
@@ -334,7 +334,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     if (insertion.j2 != -1) {
         const ItemType& item = instance_.item_type(insertion.j2);
         node.pos_stack[item.stack]++;
-        node.item_number       += 1;
+        node.number_of_items       += 1;
         node.item_area         += item.rect.area();
         node.squared_item_area += item.rect.area() * item.rect.area();
         node.profit            += item.profit;
@@ -370,13 +370,13 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
 
     // Compute df_min
     Depth df_min = -2;
-    if (father.bin_number == instance_.bin_number()) {
+    if (father.number_of_bins == instance_.number_of_bins()) {
         df_min = 0;
     } else if (parameters_.first_stage_orientation == CutOrientation::Vertical) {
         df_min = -1;
     } else if (parameters_.first_stage_orientation == CutOrientation::Any
-            && instance_.bin(father.bin_number).defects.size() == 0                           // Next bin has no defects,
-            && instance_.bin(father.bin_number).rect.w == instance_.bin(father.bin_number).rect.h // is a square,
+            && instance_.bin(father.number_of_bins).defects.size() == 0                           // Next bin has no defects,
+            && instance_.bin(father.number_of_bins).rect.w == instance_.bin(father.number_of_bins).rect.h // is a square,
             && no_oriented_items_) {                                  // and items can be rotated
         df_min = -1;
     }
@@ -416,7 +416,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         Length y = y2_prev(father, df);
 
         // Try adding an item
-        for (StackId s = 0; s < instance_.stack_number(); ++s) {
+        for (StackId s = 0; s < instance_.number_of_stacks(); ++s) {
             if (father.pos_stack[s] == instance_.stack_size(s))
                 continue;
             StackId sp = stack_pred_[s];
@@ -438,7 +438,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             // Try adding it with a second item
             if (parameters_.cut_type_2 == CutType2::Roadef2018) {
                 LOG(info, "try adding with a second item" << std::endl);
-                for (StackId s2 = s; s2 < instance_.stack_number(); ++s2) {
+                for (StackId s2 = s; s2 < instance_.number_of_stacks(); ++s2) {
                     ItemTypeId j2 = -1;
                     if (s2 == s) {
                         if (father.pos_stack[s2] + 1 == instance_.stack_size(s2))
@@ -509,7 +509,7 @@ Area BranchingScheme::waste(const Node& node, const Insertion& insertion) const
     CutOrientation o = last_bin_orientation(node, insertion.df);
     Length h = instance_.bin(i).height(o);
     Front f = front(node, insertion);
-    ItemPos n = node.item_number;
+    ItemPos n = node.number_of_items;
     Area item_area = node.item_area;
     if (insertion.j1 != -1) {
         n++;
@@ -519,7 +519,7 @@ Area BranchingScheme::waste(const Node& node, const Insertion& insertion) const
         n++;
         item_area += instance_.item_type(insertion.j2).rect.area();
     }
-    Area current_area = (n == instance_.item_number())?
+    Area current_area = (n == instance_.number_of_items())?
         instance_.previous_bin_area(i)
         + (f.x1_curr * h):
         instance_.previous_bin_area(i)
@@ -585,7 +585,7 @@ BranchingScheme::Front BranchingScheme::front(
         const BranchingScheme::Node& node) const
 {
     Front f;
-    f.i = static_cast<BinPos>(node.bin_number - 1);
+    f.i = static_cast<BinPos>(node.number_of_bins - 1);
     f.o = node.first_stage_orientation;
     f.x1_prev = node.x1_prev;
     f.x3_curr = node.x3_curr;
@@ -1113,7 +1113,7 @@ const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
     BranchingScheme::Node node;
     node.id = node_id_;
     node_id_++;
-    node.pos_stack = std::vector<ItemPos>(instance_.stack_number(), 0);
+    node.pos_stack = std::vector<ItemPos>(instance_.number_of_stacks(), 0);
     return std::shared_ptr<Node>(new BranchingScheme::Node(node));
 }
 
@@ -1139,7 +1139,7 @@ bool BranchingScheme::bound(
             i_pos++;
             a -= instance_.bin(i_pos).rect.area();
         }
-        return (i_pos + 1 >= solution_best.bin_number());
+        return (i_pos + 1 >= solution_best.number_of_bins());
     } case Objective::BinPackingWithLeftovers: {
         if (!solution_best.full())
             return false;
@@ -1178,7 +1178,7 @@ bool BranchingScheme::better(
             return false;
         if (!solution_best.full())
             return true;
-        return solution_best.bin_number() > node.bin_number;
+        return solution_best.number_of_bins() > node.number_of_bins;
     } case Objective::BinPackingWithLeftovers: {
         if (!leaf(node))
             return false;
@@ -1280,7 +1280,7 @@ SolutionNodeId sort(std::vector<Solution::Node>& res,
 
 bool BranchingScheme::BranchingScheme::check(const std::vector<Solution::Node>& nodes) const
 {
-    std::vector<ItemPos> items(instance_.item_number(), 0);
+    std::vector<ItemPos> items(instance_.number_of_items(), 0);
 
     for (const Solution::Node& node: nodes) {
         Length w = instance_.bin(node.i).rect.w;
@@ -1437,7 +1437,7 @@ Solution BranchingScheme::to_solution(
 
     std::vector<SolutionNodeId> bins;
     std::vector<Solution::Node> res(nodes.size());
-    for (BinPos i = 0; i < node.bin_number; ++i) {
+    for (BinPos i = 0; i < node.number_of_bins; ++i) {
         CutOrientation o = first_stage_orientations[i];
         Length w = instance_.bin(i).width(o);
         Length h = instance_.bin(i).height(o);
@@ -1505,7 +1505,7 @@ Solution BranchingScheme::to_solution(
     for (SolutionNodeId id = 0; id < (SolutionNodeId)res.size(); ++id)
         res[id].j  = -1;
 
-    for (Counter j_pos = 0; j_pos < node.item_number; ++j_pos) {
+    for (Counter j_pos = 0; j_pos < node.number_of_items; ++j_pos) {
         ItemTypeId     j  = items[j_pos].j;
         SolutionNodeId id = items[j_pos].node;
         Length         wj = instance_.item_type(j).rect.w;
@@ -1716,8 +1716,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 std::ostream& packingsolver::rectangleguillotine::operator<<(
         std::ostream &os, const BranchingScheme::Node& node)
 {
-    os << "item_number " << node.item_number
-        << " bin_number " << node.bin_number
+    os << "number_of_items " << node.number_of_items
+        << " number_of_bins " << node.number_of_bins
         << std::endl;
     os << "item_area " << node.item_area
         << " current_area " << node.current_area

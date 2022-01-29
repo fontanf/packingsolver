@@ -66,8 +66,8 @@ public:
             const VariableSizeBinPackingPricingFunction<Instance, Solution>& pricing_function):
         instance_(instance),
         pricing_function_(pricing_function),
-        fixed_bin_types_(instance.bin_type_number()),
-        filled_demands_(instance.item_type_number())
+        fixed_bin_types_(instance.number_of_bin_types()),
+        filled_demands_(instance.number_of_item_types())
     { }
 
     virtual std::vector<ColIdx> initialize_pricing(
@@ -92,8 +92,8 @@ columngenerationsolver::Parameters get_parameters(
         const Instance& instance,
         const VariableSizeBinPackingPricingFunction<Instance, Solution>& pricing_function)
 {
-    BinTypeId m = instance.bin_type_number();
-    ItemTypeId n = instance.item_type_number();
+    BinTypeId m = instance.number_of_bin_types();
+    ItemTypeId n = instance.number_of_item_types();
     columngenerationsolver::Parameters p(m + n);
 
     Profit maximum_bin_type_cost = 0;
@@ -135,7 +135,7 @@ std::vector<ColIdx> VariableSizeBinPackingPricingSolver<Instance, Solution>::ini
             const std::vector<Column>& columns,
             const std::vector<std::pair<ColIdx, Value>>& fixed_columns)
 {
-    ItemTypeId m = instance_.bin_type_number();
+    ItemTypeId m = instance_.number_of_bin_types();
     std::fill(fixed_bin_types_.begin(), fixed_bin_types_.end(), 0);
     std::fill(filled_demands_.begin(), filled_demands_.end(), 0);
     for (auto p: fixed_columns) {
@@ -168,8 +168,8 @@ template <typename Instance, typename Solution>
 std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::solve_pricing(
             const std::vector<Value>& duals)
 {
-    ItemTypeId m = instance_.bin_type_number();
-    ItemTypeId n = instance_.item_type_number();
+    ItemTypeId m = instance_.number_of_bin_types();
+    ItemTypeId n = instance_.number_of_item_types();
     Profit mult = 10000;
     std::vector<Column> columns;
 
@@ -200,7 +200,7 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
             column.row_indices.push_back(i);
             column.row_coefficients.push_back(1);
             //std::cout << duals[i] << std::endl;
-            for (ItemTypeId j_kp = 0; j_kp < instance_kp.item_type_number(); ++j_kp) {
+            for (ItemTypeId j_kp = 0; j_kp < instance_kp.number_of_item_types(); ++j_kp) {
                 if (extra.solution.item_copies(j_kp) > 0) {
                     column.row_indices.push_back(m + extra.kp2vbpp[j_kp]);
                     column.row_coefficients.push_back(extra.solution.item_copies(j_kp));

@@ -15,7 +15,7 @@ struct DynamicProgrammingAStarOptionalParameters
 
 struct DynamicProgrammingAStarOutput
 {
-    Counter node_number = 0;
+    Counter number_of_nodes = 0;
     Counter queue_size_max = 1;
 };
 
@@ -39,10 +39,10 @@ inline DynamicProgrammingAStarOutput dynamic_programming_a_star(
     add_to_history_and_queue(branching_scheme, history, q, root);
 
     while (!q.empty()) {
-        output.node_number++;
+        output.number_of_nodes++;
         if (output.queue_size_max < (Counter)q.size())
             output.queue_size_max = q.size();
-        LOG_FOLD_START(parameters.info, "node_number " << output.node_number << std::endl);
+        LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
 
         // Check end.
         if (parameters.info.needs_to_end()) {
@@ -86,7 +86,7 @@ inline DynamicProgrammingAStarOutput dynamic_programming_a_star(
 
     std::stringstream ss;
     ss << "DPA* (thread " << parameters.thread_id << ")";
-    PUT(parameters.info, ss.str(), "NodeNumber", output.node_number);
+    PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
     LOG_FOLD_END(parameters.info, "");
     return output;
 }

@@ -36,8 +36,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(std::ostream &os, c
 Solution::Solution(const Solution& solution):
     instance_(solution.instance_),
     nodes_(solution.nodes_),
-    item_number_(solution.item_number_),
-    bin_number_(solution.bin_number_),
+    number_of_items_(solution.number_of_items_),
+    number_of_bins_(solution.number_of_bins_),
     area_(solution.area_),
     full_area_(solution.full_area_),
     item_area_(solution.item_area_),
@@ -55,8 +55,8 @@ Solution& Solution::operator=(const Solution& solution)
     if (this != &solution) {
         assert(&instance_ == &solution.instance_);
         nodes_       = solution.nodes_;
-        item_number_ = solution.item_number_;
-        bin_number_  = solution.bin_number_;
+        number_of_items_ = solution.number_of_items_;
+        number_of_bins_  = solution.number_of_bins_;
         area_        = solution.area_;
         full_area_   = solution.full_area_;
         item_area_   = solution.item_area_;
@@ -66,7 +66,7 @@ Solution& Solution::operator=(const Solution& solution)
         height_      = solution.height_;
         bin_copies_  = solution.bin_copies_;
         item_copies_ = solution.item_copies_;
-        assert(item_number_ >= 0);
+        assert(number_of_items_ >= 0);
     }
     assert(&instance_ == &solution.instance_);
     return *this;
@@ -75,8 +75,8 @@ Solution& Solution::operator=(const Solution& solution)
 void Solution::add_node(const Node& node)
 {
     nodes_.push_back(node);
-    if (bin_number_ < node.i + 1) {
-        bin_number_ = node.i + 1;
+    if (number_of_bins_ < node.i + 1) {
+        number_of_bins_ = node.i + 1;
         bin_copies_[node.bin_type_id]++;
         cost_ += instance_.bin_type(node.bin_type_id).cost;
     }
@@ -87,7 +87,7 @@ void Solution::add_node(const Node& node)
         full_area_ += node.r * node.t;
     }
     if (node.j >= 0) {
-        item_number_++;
+        number_of_items_++;
         item_area_ += instance().item_type(node.j).rect.area();
         profit_    += instance().item_type(node.j).profit;
         item_copies_[node.j]++;
@@ -103,8 +103,8 @@ void Solution::add_node(const Node& node)
 
 Solution::Solution(const Instance& instance, const std::vector<Solution::Node>& nodes):
     instance_(instance),
-    bin_copies_(instance.bin_type_number(), 0),
-    item_copies_(instance.item_type_number(), 0)
+    bin_copies_(instance.number_of_bin_types(), 0),
+    item_copies_(instance.number_of_item_types(), 0)
 {
     for (const Solution::Node& node: nodes)
         add_node(node);
@@ -117,7 +117,7 @@ void Solution::append(
         BinPos copies)
 {
     SolutionNodeId offset_node = nodes_.size();
-    BinPos offset_bin = bin_number_;
+    BinPos offset_bin = number_of_bins_;
     for (BinPos i = 0; i < copies; ++i) {
         for (Solution::Node node: solution.nodes()) {
             node.bin_type_id = bin_type_id;
@@ -150,7 +150,7 @@ bool Solution::operator<(const Solution& solution) const
             return false;
         if (!full())
             return true;
-        return solution.bin_number() < bin_number();
+        return solution.number_of_bins() < number_of_bins();
     } case Objective::BinPackingWithLeftovers: {
         if (!solution.full())
             return false;
@@ -206,9 +206,9 @@ void Solution::display(
         VER(info, std::left << std::setw(12) << waste());
         break;
     } case Objective::BinPacking: {
-        PUT(info, sol_str, "BinNumber", bin_number());
+        PUT(info, sol_str, "NumberOfBins", number_of_bins());
         PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        VER(info, std::left << std::setw(8) << bin_number());
+        VER(info, std::left << std::setw(8) << number_of_bins());
         VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
         break;
     } case Objective::BinPackingWithLeftovers: {
@@ -231,10 +231,10 @@ void Solution::display(
         break;
     } case Objective::VariableSizedBinPacking: {
         PUT(info, sol_str, "Cost", cost());
-        PUT(info, sol_str, "BinNumber", bin_number());
+        PUT(info, sol_str, "NumberOfBins", number_of_bins());
         PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
         VER(info, std::left << std::setw(14) << cost());
-        VER(info, std::left << std::setw(8) << bin_number());
+        VER(info, std::left << std::setw(8) << number_of_bins());
         VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
         break;
     } default: {
@@ -307,10 +307,10 @@ void Solution::algorithm_end(Info& info) const
         VER(info, "Waste: " << waste() << std::endl);
         break;
     } case Objective::BinPacking: {
-        PUT(info, sol_str, "BinNumber", bin_number());
+        PUT(info, sol_str, "NumberOfBins", number_of_bins());
         PUT(info, sol_str, "FullWaste", full_waste());
         PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        VER(info, "Bin number: " << bin_number() << std::endl);
+        VER(info, "Number of bins: " << number_of_bins() << std::endl);
         VER(info, "Full waste (%): " << 100 * full_waste_percentage() << std::endl);
         break;
     } case Objective::BinPackingWithLeftovers: {
@@ -333,10 +333,10 @@ void Solution::algorithm_end(Info& info) const
         break;
     } case Objective::VariableSizedBinPacking: {
         PUT(info, sol_str, "Cost", cost());
-        PUT(info, sol_str, "BinNumber", bin_number());
+        PUT(info, sol_str, "NumberOfBins", number_of_bins());
         PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
         VER(info, "Cost: " << cost() << std::endl);
-        VER(info, "Bin number: " << bin_number() << std::endl);
+        VER(info, "Number of bins: " << number_of_bins() << std::endl);
         VER(info, "Full waste (%): " << 100 * full_waste_percentage() << std::endl);
         break;
     } default: {

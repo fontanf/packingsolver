@@ -45,7 +45,7 @@ def convert_generic(filename, s1="nwh", s2="whpc"):
             bins["HEIGHT"] = []
     for c in s1:
         if c == 'n':
-            itemtype_number = int(next(w))
+            number_of_item_types = int(next(w))
         elif c == 'w':
             bins["WIDTH"].append(int(next(w)))
         elif c == 'h':
@@ -64,7 +64,7 @@ def convert_generic(filename, s1="nwh", s2="whpc"):
             items["PROFIT"] = []
         elif c == 'c':
             items["COPIES"] = []
-    for i in range(0, itemtype_number):
+    for i in range(0, number_of_item_types):
         for c in s2:
             if c == 'w':
                 items["WIDTH"].append(int(next(w)))
@@ -84,9 +84,9 @@ def convert_vbpp(filename, s1="mn", s2="whpc", s3="", s4="whpc"):
 
     for c in s1:
         if c == 'n':
-            itemtype_number = int(next(w))
+            number_of_item_types = int(next(w))
         elif c == 'm':
-            bintype_number = int(next(w))
+            number_of_bin_types = int(next(w))
         elif c == 'x':
             next(w)
 
@@ -100,7 +100,7 @@ def convert_vbpp(filename, s1="mn", s2="whpc", s3="", s4="whpc"):
             bins["COST"] = []
         elif c == 'c':
             bins["COPIES"] = []
-    for i in range(0, bintype_number):
+    for i in range(0, number_of_bin_types):
         for c in s2:
             if c == 'w':
                 bins["WIDTH"].append(int(next(w)))
@@ -116,9 +116,9 @@ def convert_vbpp(filename, s1="mn", s2="whpc", s3="", s4="whpc"):
 
     for c in s3:
         if c == 'n':
-            itemtype_number = int(next(w))
+            number_of_item_types = int(next(w))
         elif c == 'm':
-            bintype_number = int(next(w))
+            number_of_bin_types = int(next(w))
         elif c == 'x':
             next(w)
 
@@ -132,7 +132,7 @@ def convert_vbpp(filename, s1="mn", s2="whpc", s3="", s4="whpc"):
             items["PROFIT"] = []
         elif c == 'c':
             items["COPIES"] = []
-    for i in range(0, itemtype_number):
+    for i in range(0, number_of_item_types):
         for c in s4:
             if c == 'w':
                 items["WIDTH"].append(int(next(w)))
@@ -154,7 +154,7 @@ def convert_berkey1987(filename):
         items = {"WIDTH": [], "HEIGHT": []}
         for _ in range(3):
             next(w)
-        itemtype_number = int(next(w))
+        number_of_item_types = int(next(w))
         for _ in range(3):
             next(w)
         instance_relative_number = int(next(w))
@@ -163,13 +163,13 @@ def convert_berkey1987(filename):
         bins["HEIGHT"].append(int(next(w)))
         bins["WIDTH"].append(int(next(w)))
         next(w)
-        for i in range(0, itemtype_number):
+        for i in range(0, number_of_item_types):
             items["HEIGHT"].append(int(next(w)))
             items["WIDTH"].append(int(next(w)))
             if i == 0:
                 next(w)
         suffix = (
-                "_" + str(itemtype_number)
+                "_" + str(number_of_item_types)
                 + "_" + str(instance_relative_number))
         write_dict(bins, filename + suffix + "_bins.csv")
         write_dict(items, filename + suffix + "_items.csv")
@@ -181,10 +181,10 @@ def convert_beasley2004(filename):
     for instance in range(0, instance_number):
         bins = {"WIDTH": [], "HEIGHT": []}
         items = {"WIDTH": [], "HEIGHT": [], "PROFIT": [], "COPIES": []}
-        itemtype_number = int(next(w))
+        number_of_item_types = int(next(w))
         bins["WIDTH"].append(int(next(w)))
         bins["HEIGHT"].append(int(next(w)))
-        for i in range(0, itemtype_number):
+        for i in range(0, number_of_item_types):
             items["WIDTH"].append(int(next(w)))
             items["HEIGHT"].append(int(next(w)))
             next(w)
@@ -203,7 +203,7 @@ def convert_cintra2008(filename):
 
     next(w)
     platetype_number = int(next(w))
-    itemtype_number = int(next(w))
+    number_of_item_types = int(next(w))
 
     for _ in range(3):
         next(w)
@@ -216,7 +216,7 @@ def convert_cintra2008(filename):
         for _ in range(3):
             next(w)
 
-    for i in range(0, itemtype_number):
+    for i in range(0, number_of_item_types):
         items["WIDTH"].append(int(next(w)))
         items["HEIGHT"].append(int(next(w)))
         items["COPIES"].append(int(next(w)))
@@ -257,7 +257,7 @@ def convert_silveira2013(filename):
     next(w)
     next(w)
 
-    itemtype_number = int(next(w))
+    number_of_item_types = int(next(w))
     bins["HEIGHT"].append(int(next(w)))
     bins["WIDTH"].append(int(next(w)))
     while next(w, None):
@@ -372,19 +372,19 @@ def convert_martin2019b(filename):
     bins["WIDTH"].append(int(next(w)))
     bins["HEIGHT"].append(int(next(w)))
     write_dict(bins, filename + "_bins.csv")
-    itemtype_number = int(next(w))
+    number_of_item_types = int(next(w))
 
     items = {"WIDTH": [], "HEIGHT": [], "COPIES": []}
-    for i in range(0, itemtype_number):
+    for i in range(0, number_of_item_types):
         items["WIDTH"].append(int(next(w)))
         items["HEIGHT"].append(int(next(w)))
         items["PROFIT"].append(int(next(w)))
         int(next(w))
     write_dict(items, filename + "_items.csv")
 
-    defect_number = int(next(w))
+    number_of_defects = int(next(w))
     defects = {"BIN": [], "X": [], "Y": [], "WIDTH": [], "HEIGHT": []}
-    for i in range(0, defect_number):
+    for i in range(0, number_of_defects):
         x1 = int(next(w))
         y1 = int(next(w))
         x2 = int(next(w))
