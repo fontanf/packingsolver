@@ -39,41 +39,73 @@ bool rect_intersection(Coord c1, Rectangle r1, Coord c2, Rectangle r2);
 
 std::ostream& operator<<(std::ostream &os, Rectangle r);
 
-/******************************************************************************/
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////// Item type, Bin type, Defect //////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Item type structure for a problem of type 'rectangleguillotine'.
+ */
 struct ItemType
 {
+    /** Id of the item type. */
     ItemTypeId id;
+    /** Profit of the item type. */
     Profit profit;
+    /** Number of copies of the item type. */
     ItemPos copies;
+    /** Dimensions of the item type. */
     Rectangle rect;
+    /** Stack id to which the item type belongs. */
     StackId stack;
+    /** Indicates if the item is oriented (i.e. cannot be rotated). */
     bool oriented;
 };
 
 std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
 
+/**
+ * Defect structure for a problem of type 'rectangleguillotine'.
+ */
 struct Defect
 {
+    /** Id of the defect. */
     DefectId id;
+    /** Bin type of the defect. */
     BinTypeId bin_id;
+    /** Position of the defect. */
     Coord pos;
+    /** Dimensions of the defect. */
     Rectangle rect;
 };
 
 std::ostream& operator<<(std::ostream &os, const Defect& defect);
 
+/**
+ * Bin type structure for a problem of type 'rectangleguillotine'.
+ */
 struct BinType
 {
+    /** Id of the bin type. */
     BinTypeId id;
+    /** Cost of the bin type. */
     Profit cost;
+    /** Maximum number of copies of the bin type. */
     BinPos copies;
+    /** Minimum number of copies to use of the bin type. */
     BinPos copies_min;
-
+    /** Dimensions of the bin type. */
     Rectangle rect;
+    /** Defects of the bin type. */
     std::vector<Defect> defects;
 
+    /*
+     * Computed attributes.
+     */
+
+    /** Total area of the previous bins. */
     Area previous_bin_area = 0;
+    /** Number of previous bins. */
     BinPos previous_bin_copies = 0;
 
     Length  width(CutOrientation o) const { return (o == CutOrientation::Vertical)? rect.w: rect.h; }
@@ -82,8 +114,13 @@ struct BinType
 
 std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
 
-/********************************** Instance **********************************/
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////// Instance ///////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Instance class for a problem of type "irregular".
+ */
 class Instance
 {
 

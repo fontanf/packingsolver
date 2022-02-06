@@ -30,7 +30,7 @@ inline IterativeBeamSearchOutput iterative_beam_search(
         SolutionPool<Instance, Solution>& solution_pool,
         IterativeBeamSearchOptionalParameters parameters = {})
 {
-    typedef typename BranchingScheme::Insertion Insertion;
+    using Insertion = typename BranchingScheme::Insertion;
 
     LOG_FOLD_START(parameters.info, "IBS" << std::endl);
     IterativeBeamSearchOutput output;
