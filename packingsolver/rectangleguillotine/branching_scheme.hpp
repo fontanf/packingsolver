@@ -9,15 +9,35 @@ namespace packingsolver
 namespace rectangleguillotine
 {
 
+/**
+ * Branching scheme class for problem of type "rectangleguillotine" generating
+ * 2-stage and 3-stage patterns.
+ *
+ * At each level of the tree, a new third-level sub-plate is filled:
+ * - either in the current second-level sub-plate
+ * - or in the current first level sub-plate, in a new second-level sub-plate
+ * - or in a the current bin, in a new first-level sub-plate
+ * - or in a new bin
+ *
+ * This third-level sub-plate can contain:
+ * - A single item at the bottom with possible some waste above
+ * - A single item at the top with waste below (in case it would intersect a
+ *   defect if placed at the bottom)
+ * - Two items (with the same width)
+ * - No item, when packing a defect
+ */
 class BranchingScheme
 {
 
 public:
 
-    /**
+    /*
      * Sub-structures.
      */
 
+    /**
+     * Parameter structure of the branching scheme.
+     */
     struct Parameters
     {
         CutType1 cut_type_1 = CutType1::ThreeStagedGuillotine;
@@ -94,33 +114,33 @@ public:
         Length x3;
 
         /**
-         * x1_max_ is the maximum position of the current 1-cut.
+         * Maximum position of the current 1-cut can be shifted.
          * It is used when otherwise, a 2-cut of the current 1-level sub-plate
          * would intersect a defect.
          */
         Length x1_max;
 
         /**
-         * y2_max_ is the maximum position of the current 2-cut.
+         * Maximum position at which of the current 2-cut can be shifted.
          * It is used when otherwise, a 3-cut of the current 2-level sub-plate
          * would intersect a defect.
          */
         Length y2_max;
 
         /**
-         * z1_
-         * * 0: to increase the width of the last 1-cut, it is necessary to add at
+         * z1:
+         * - 0: to increase the width of the last 1-cut, it is necessary to add at
          * least the minimum waste.
-         * * 1: the width of the last 1-cut can be increased by any value.
+         * - 1: the width of the last 1-cut can be increased by any value.
          */
         Counter z1;
 
         /**
-         * z2_
-         * * 0: to increase the height of the last 2-cut, it is necessary to add at
+         * z2:
+         * - 0: to increase the height of the last 2-cut, it is necessary to add at
          * least the minimum waste.
-         * * 1: the height of the last 2-cut can be increased by any value.
-         * * 2: the height of the last 2-cut cannot be increased (case where it
+         * - 1: the height of the last 2-cut can be increased by any value.
+         * - 2: the height of the last 2-cut cannot be increased (case where it
          * contains of 4-cut with 2 items).
          */
         Counter z2;
@@ -147,21 +167,49 @@ public:
         Length x;
     };
 
+    /**
+     * Node structure of the branching scheme.
+     */
     struct Node
     {
+        /** Id of the node. */
         NodeId id = -1;
+        /**
+         * Pointer to the father of the node,
+         * 'nullptr' if the node is the root.
+         */
         std::shared_ptr<Node> father = nullptr;
+        /**
+         * Type of the last item added to the partial solution at the bottom of
+         * the third level sub-plate.
+         * -1 if no such item have been added or if the node is the root.
+         */
         ItemTypeId j1 = -1;
+        /**
+         * Type of the last item added to the partial solution at the top of
+         * the third level sub-plate.
+         * -1 if no such item have been added or if the node is the root.
+         */
         ItemTypeId j2 = -1;
+        /** Depth of the last insertion, see Insertion. */
         Depth df = -1;
+        /** Position of the current 1-cut. */
         Length x1_curr = 0;
+        /** Position of the previous 1-cut. */
         Length x1_prev = 0;
+        /** Position of the current 2-cut. */
         Length y2_curr = 0;
+        /** Position of the previous 2-cut. */
         Length y2_prev = 0;
+        /** Position of the current 3-cut. */
         Length x3_curr = 0;
+        /** Maximum position at which the current 1-cut can be shifted. */
         Length x1_max = -1;
+        /** Maximum position at which the current 2-cut can be shifted. */
         Length y2_max = -1;
+        /** 'z1' value of the last insertion, see Insertion. */
         Counter z1 = 0;
+        /** 'z2' value of the last insertion, see Insertion. */
         Counter z2 = 0;
 
         /**
@@ -170,15 +218,26 @@ public:
          */
         std::vector<ItemPos> pos_stack = {};
 
+        /** Number of bins used in the partial solution. */
         BinPos number_of_bins = 0;
+        /**
+         * Orientation of the first stage of the last bin of the partial
+         * solution.
+         * */
         CutOrientation first_stage_orientation;
 
-        ItemPos number_of_items    = 0;
-        Area item_area         = 0;
+        /** Number of items in the partial solution. */
+        ItemPos number_of_items = 0;
+        /** Total area of the items of the partial solution. */
+        Area item_area = 0;
+        /** Total squared area of the items of the partial solution. */
         Area squared_item_area = 0;
-        Area current_area      = 0;
-        Area waste             = 0;
-        Profit profit          = 0;
+        /** Area of the partial solution. */
+        Area current_area = 0;
+        /** Waste of the partial solution. */
+        Area waste = 0;
+        /** Profit of the partial solution. */
+        Profit profit = 0;
 
         /**
          * Contains the list of items (id, rotate, left cut position) inserted
@@ -193,7 +252,7 @@ public:
     /** Destructor */
     virtual ~BranchingScheme() { }
 
-    /**
+    /*
      * Branching scheme methods
      */
 
@@ -227,7 +286,7 @@ public:
             const Node& node,
             const Solution& solution_best) const;
 
-    /**
+    /*
      * Dominances.
      */
 
@@ -273,7 +332,13 @@ public:
 
 private:
 
+    /*
+     * Private attributes.
+     */
+
+    /** Instance. */
     const Instance& instance_;
+    /** Parameters. */
     Parameters parameters_;
 
     bool no_oriented_items_;
@@ -286,7 +351,7 @@ private:
 
     mutable NodeId node_id_ = 0;
 
-    /**
+    /*
      * Private methods
      */
 

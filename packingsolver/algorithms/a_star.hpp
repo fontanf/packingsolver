@@ -24,7 +24,7 @@ inline AStarOutput a_star(
         SolutionPool<Instance, Solution>& solution_pool,
         AStarOptionalParameters parameters = {})
 {
-    typedef typename BranchingScheme::Insertion Insertion;
+    using Insertion = typename BranchingScheme::Insertion;
 
     LOG_FOLD_START(parameters.info, "astar" << std::endl);
     AStarOutput output;

@@ -47,10 +47,10 @@
 namespace packingsolver
 {
 
-typedef columngenerationsolver::RowIdx RowIdx;
-typedef columngenerationsolver::ColIdx ColIdx;
-typedef columngenerationsolver::Value Value;
-typedef columngenerationsolver::Column Column;
+using RowIdx = columngenerationsolver::RowIdx;
+using ColIdx = columngenerationsolver::ColIdx;
+using Value = columngenerationsolver::Value;
+using Column = columngenerationsolver::Column;
 
 template <typename Instance, typename Solution>
 using VariableSizeBinPackingPricingFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;

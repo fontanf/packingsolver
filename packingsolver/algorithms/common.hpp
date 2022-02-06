@@ -9,20 +9,21 @@
 namespace packingsolver
 {
 
-typedef int16_t ItemTypeId;
-typedef int16_t ItemPos;
-typedef int64_t Length;
-typedef int64_t Area;
-typedef int16_t StackId;
-typedef int64_t Profit;
-typedef int16_t DefectId;
-typedef int16_t BinTypeId;
-typedef int16_t BinPos;
-typedef int16_t Depth;
-typedef int64_t Seed;
-typedef int16_t GuideId;
-typedef int64_t Counter;
-typedef int64_t NodeId;
+using ItemTypeId = int16_t;
+using ItemPos = int16_t;
+using Length = int64_t;
+using Area = int64_t;
+using StackId = int16_t;
+using Profit = int64_t;
+using DefectId = int16_t;
+using DefectCategory = int16_t;
+using BinTypeId = int16_t;
+using BinPos = int16_t;
+using Depth = int16_t;
+using Seed = int64_t;
+using GuideId = int16_t;
+using Counter = int64_t;
+using NodeId = int64_t;
 
 using optimizationtools::Info;
 
@@ -151,7 +152,7 @@ inline bool add_to_history_and_queue(
         NodeSet<BranchingScheme>& q,
         const std::shared_ptr<typename BranchingScheme::Node>& node)
 {
-    typedef typename BranchingScheme::Node Node;
+    using Node = typename BranchingScheme::Node;
     assert(node != nullptr);
 
     // If node is not comparable, stop.

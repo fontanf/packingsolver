@@ -54,18 +54,18 @@ Solution& Solution::operator=(const Solution& solution)
 {
     if (this != &solution) {
         assert(&instance_ == &solution.instance_);
-        nodes_       = solution.nodes_;
+        nodes_           = solution.nodes_;
         number_of_items_ = solution.number_of_items_;
         number_of_bins_  = solution.number_of_bins_;
-        area_        = solution.area_;
-        full_area_   = solution.full_area_;
-        item_area_   = solution.item_area_;
-        profit_      = solution.profit_;
-        cost_        = solution.cost_;
-        width_       = solution.width_;
-        height_      = solution.height_;
-        bin_copies_  = solution.bin_copies_;
-        item_copies_ = solution.item_copies_;
+        area_            = solution.area_;
+        full_area_       = solution.full_area_;
+        item_area_       = solution.item_area_;
+        profit_          = solution.profit_;
+        cost_            = solution.cost_;
+        width_           = solution.width_;
+        height_          = solution.height_;
+        bin_copies_      = solution.bin_copies_;
+        item_copies_     = solution.item_copies_;
         assert(number_of_items_ >= 0);
     }
     assert(&instance_ == &solution.instance_);

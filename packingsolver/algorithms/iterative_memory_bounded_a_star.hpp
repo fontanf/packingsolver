@@ -29,7 +29,7 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
         SolutionPool<Instance, Solution>& solution_pool,
         IterativeMemoryBoundedAStarOptionalParameters parameters = {})
 {
-    typedef typename BranchingScheme::Insertion Insertion;
+    using Insertion = typename BranchingScheme::Insertion;
 
     LOG_FOLD_START(parameters.info, "IMBA*" << std::endl);
     IterativeMemoryBoundedAStarOutput output;

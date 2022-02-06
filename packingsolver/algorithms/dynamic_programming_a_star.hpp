@@ -25,7 +25,7 @@ inline DynamicProgrammingAStarOutput dynamic_programming_a_star(
         SolutionPool<Instance, Solution>& solution_pool,
         DynamicProgrammingAStarOptionalParameters parameters = {})
 {
-    typedef typename BranchingScheme::Insertion Insertion;
+    using Insertion = typename BranchingScheme::Insertion;
 
     LOG_FOLD_START(parameters.info, "DPA* 1" << std::endl);
     DynamicProgrammingAStarOutput output;

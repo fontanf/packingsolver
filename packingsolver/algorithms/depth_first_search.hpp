@@ -24,8 +24,8 @@ inline void rec(
         const std::shared_ptr<typename BranchingScheme::Node>& node_cur,
         DepthFirstSearchOutput& output)
 {
-    typedef typename BranchingScheme::Node Node;
-    typedef typename BranchingScheme::Insertion Insertion;
+    using Node = typename BranchingScheme::Node;
+    using Insertion = typename BranchingScheme::Insertion;
 
     LOG_FOLD_START(parameters.info, "rec" << std::endl);
     output.number_of_nodes++;
