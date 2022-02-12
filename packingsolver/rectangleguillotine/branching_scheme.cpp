@@ -1200,8 +1200,10 @@ bool BranchingScheme::better(
     } case Objective::Knapsack: {
         return solution_best.profit() < node.profit;
     } default: {
-        assert(false);
-        std::cerr << "\033[31m" << "ERROR, branching scheme rectangle::BranchingScheme does not implement objective \"" << instance_.objective() << "\"" << "\033[0m" << std::endl;
+        std::stringstream ss;
+        ss << "Branching scheme 'rectangleguillotine::BranchingScheme'"
+            << "does not support objective '" << instance_.objective() << "'.";
+        throw std::logic_error(ss.str());
         return false;
     }
     }
