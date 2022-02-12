@@ -119,7 +119,7 @@ std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Instance class for a problem of type "irregular".
+ * Instance class for a problem of type "rectangleguillotine".
  */
 class Instance
 {
@@ -259,13 +259,13 @@ public:
     /** Get the number of stacks. */
     inline StackId number_of_stacks() const { return stacks_.size(); }
     /** Get the size of stack s. */
-    inline ItemPos stack_size(StackId s) const { return stack_sizes_[s]; }
+    inline ItemPos stack_size(StackId s) const { return items_pos2type_[s].size(); }
     /** Get the number of defects. */
     inline DefectId number_of_defects() const { return defects_.size(); }
     /** Get the number of bin types. */
     inline BinTypeId number_of_bin_types() const { return bin_types_.size(); }
     /** Get the number of bins. */
-    inline BinPos number_of_bins() const { return number_of_bins_; }
+    inline BinPos number_of_bins() const { return bins_pos2type_.size(); }
 
     /** Get the total area of the items. */
     inline Area item_area() const { return item_area_; }
@@ -290,9 +290,9 @@ public:
     inline const BinType& bin_type(BinTypeId i) const { return bin_types_[i]; }
 
     /** Get the j_pos's item of stack s. */
-    inline const ItemType& item(StackId s, ItemPos j_pos) const;
+    inline const ItemType& item(StackId s, ItemPos j_pos) const { return item_types_[items_pos2type_[s][j_pos]]; }
     /** Get the i_pos's bin. */
-    inline const BinType& bin(BinPos i_pos) const;
+    inline const BinType& bin(BinPos i_pos) const { return bin_types_[bins_pos2type_[i_pos]]; }
     /** Get the total area of the bins before bin i_pos. */
     Area previous_bin_area(BinPos i_pos) const;
 
@@ -434,10 +434,10 @@ private:
 
     /** Number of items. */
     ItemPos number_of_items_ = 0;
-    /** Number of bins. */
-    BinPos number_of_bins_ = 0;
-    /** Number of items in each stack. */
-    std::vector<ItemPos> stack_sizes_;
+    /** Convert item position to item type. */
+    std::vector<std::vector<BinTypeId>> items_pos2type_;
+    /** Convert bin position to bin type. */
+    std::vector<BinTypeId> bins_pos2type_;
     /** Total length (max of width and height) of the items. */
     Length length_sum_ = 0;
     /** Total item area. */
@@ -451,10 +451,6 @@ private:
     /** Id of the item with maximum efficiency. */
     ItemTypeId max_efficiency_item_ = -1;
 
-    /** True iff all bin types have a single copy. */
-    bool all_bin_type_one_copy_ = true;
-    /** True iff all item types have a single copy. */
-    bool all_item_type_one_copy_ = true;
     /** True iff all item types have an infinite number of copies. */
     bool all_item_type_infinite_copies_ = false;
 
@@ -464,44 +460,6 @@ private:
 std::ostream& operator<<(std::ostream &os, const Instance& ins);
 
 /****************************** inlined methods *******************************/
-
-const ItemType& Instance::item(StackId s, ItemPos j_pos) const
-{
-    assert(j_pos < stack_sizes_[s]);
-
-    if (all_item_type_one_copy_)
-        return stacks_[s][j_pos];
-
-    ItemPos j_tmp = 0;
-    ItemTypeId j = 0;
-    for (;;) {
-        if (j_tmp <= j_pos && j_pos < j_tmp + stacks_[s][j].copies) {
-            return stacks_[s][j];
-        } else {
-            j_tmp += stacks_[s][j].copies;
-            j++;
-        }
-    }
-}
-
-const BinType& Instance::bin(BinPos i_pos) const
-{
-    assert(i_pos < number_of_bins_);
-
-    if (all_bin_type_one_copy_)
-        return bin_types_[i_pos];
-
-    BinPos i_tmp = 0;
-    BinTypeId i = 0;
-    for (;;) {
-        if (i_tmp <= i_pos && i_pos < i_tmp + bin_types_[i].copies) {
-            return bin_types_[i];
-        } else {
-            i_tmp += bin_types_[i].copies;
-            i++;
-        }
-    }
-}
 
 Length Instance::left(const Defect& defect, CutOrientation o) const
 {

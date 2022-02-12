@@ -9,8 +9,6 @@
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 
-/******************************************************************************/
-
 std::istream& packingsolver::rectangleguillotine::operator>>(
         std::istream& in, CutType1& cut_type_1)
 {
@@ -138,7 +136,9 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
-/******************************************************************************/
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////// Item type, Bin type, Defect //////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
         std::ostream &os, const ItemType& item_type)
@@ -181,11 +181,13 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
-/********************************** Instance **********************************/
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////// Instance ///////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 Area Instance::previous_bin_area(BinPos i_pos) const
 {
-    assert(i_pos < number_of_bins_);
+    assert(i_pos < number_of_bins());
     const BinType& b = bin(i_pos);
     return b.previous_bin_area + b.rect.area() * (i_pos - b.previous_bin_copies);
 }
@@ -202,19 +204,17 @@ void Instance::add_item_type(Length w, Length h, Profit p, ItemPos copies, bool 
     item_type.oriented = oriented;
     item_types_.push_back(item_type);
 
-    if (item_type.copies != 1)
-        all_item_type_one_copy_ = false;
     number_of_items_ += copies; // Update number_of_items_
     length_sum_ += item_type.copies * std::max(item_type.rect.w, item_type.rect.h); // Update length_sum_
 
     // Update stacks_
     if (new_stack) {
-        stacks_.push_back({item_type});
-        stack_sizes_.push_back({copies});
-    } else {
-        stacks_.back().push_back(item_type);
-        stack_sizes_.back() += copies;
+        stacks_.push_back({});
+        items_pos2type_.push_back({});
     }
+    stacks_.back().push_back(item_type);
+    for (ItemPos pos = 0; pos < copies; ++pos)
+        items_pos2type_.back().push_back(item_type.id);
 
     // Compute item area and profit
     item_area_   += item_type.copies * item_type.rect.area();
@@ -241,9 +241,8 @@ void Instance::add_bin_type(Length w, Length h, Profit cost, BinPos copies, BinP
         bin_types_.back().previous_bin_copies + bin_types_.back().copies;
     bin_types_.push_back(bin_type);
 
-    if (bin_type.copies != 1)
-        all_bin_type_one_copy_ = false;
-    number_of_bins_ += copies; // Update number_of_bins_
+    for (ItemPos pos = 0; pos < copies; ++pos)
+        bins_pos2type_.push_back(bin_type.id);
     packable_area_ += bin_types_.back().copies * bin_types_.back().rect.area(); // Update packable_area_;
 }
 
@@ -278,22 +277,23 @@ void Instance::set_bin_infinite_height()
 
 void Instance::set_bin_infinite_copies()
 {
+    bins_pos2type_.clear();
     for (BinTypeId i = 0; i < number_of_bin_types(); ++i) {
-        number_of_bins_ += number_of_items_ - bin_types_[i].copies;
-        bin_types_[i].copies = number_of_items_;
+        bin_types_[i].copies = number_of_items();
+        for (ItemPos pos = 0; pos < bin_types_[i].copies; ++pos)
+            bins_pos2type_.push_back(i);
     }
-    all_bin_type_one_copy_ = false;
 }
 
 void Instance::set_item_infinite_copies()
 {
     for (StackId s = 0; s < number_of_stacks(); ++s) {
+        items_pos2type_[s].clear();
         for (ItemType& item: stacks_[s]) {
             number_of_items_    -= item.copies;
             item_area_      -= item.copies * item.rect.area();
             item_profit_    -= item.copies * item.profit;
             length_sum_     -= item.copies * std::max(item.rect.w, item.rect.h);
-            stack_sizes_[s] -= item.copies;
 
             ItemPos c = (bin_types_[0].rect.area() - 1) / item.rect.area() + 1;
             item.copies = c;
@@ -303,10 +303,11 @@ void Instance::set_item_infinite_copies()
             length_sum_     += item.copies * std::max(item.rect.w, item.rect.h);
             item_area_      += item.copies * item.rect.area();
             item_profit_    += item.copies * item.profit;
-            stack_sizes_[s] += item.copies;
+
+            for (ItemPos pos = 0; pos < item.copies; ++pos)
+                items_pos2type_[s].push_back(item.id);
         }
     }
-    all_item_type_one_copy_ = false;
     all_item_type_infinite_copies_ = true;
 }
 
@@ -553,8 +554,6 @@ void Instance::write(std::string instance_path) const
         }
     }
 }
-
-/******************************************************************************/
 
 DefectId Instance::rect_intersects_defect(
         Length l, Length r, Length b, Length t, BinTypeId i, CutOrientation o) const
