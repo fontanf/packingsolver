@@ -68,27 +68,6 @@ public:
         }
     };
 
-    struct SolutionNode
-    {
-        SolutionNodeId f; // father for 2-cuts and 3-cuts, -bin-1 for 1-cuts
-        Length p;         // x      for 1-cuts and 3-cuts, y        for 2-cuts
-
-        bool operator==(const BranchingScheme::SolutionNode& node) const;
-        bool operator!=(const BranchingScheme::SolutionNode& node) const { return !(*this == node); }
-    };
-
-    struct NodeItem
-    {
-        ItemTypeId j;
-        SolutionNodeId node;
-        // Note that two items may belong to the same node if cut_type_2() is set to
-        // "roadef2018". On the contrary, a node may not contain any item if bins
-        // contain defects.
-
-        bool operator==(const BranchingScheme::NodeItem& node_item) const;
-        bool operator!=(const BranchingScheme::NodeItem& node_item) const { return !(*this == node_item); }
-    };
-
     struct Insertion
     {
         /** Id of the item at the bottom of the third-level sub-plate, -1 if none. */
@@ -408,14 +387,14 @@ private:
 };
 
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Parameters& parameters);
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::SolutionNode& node);
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::NodeItem& node);
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Insertion& insertion);
 std::ostream& operator<<(std::ostream &os, const std::vector<BranchingScheme::Insertion>& insertions);
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Front& front);
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Node& node);
 
-/****************************** Inlined methods *******************************/
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// Inlined methods ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 inline Profit BranchingScheme::ubkp(const Node& node) const
 {
