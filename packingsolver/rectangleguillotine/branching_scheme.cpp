@@ -8,9 +8,9 @@
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 
-/****************************** BranchingScheme *******************************/
-
-BranchingScheme::BranchingScheme(const Instance& instance, const Parameters& parameters):
+BranchingScheme::BranchingScheme(
+        const Instance& instance,
+        const Parameters& parameters):
     instance_(instance), parameters_(parameters)
 {
     if (parameters_.cut_type_1 == CutType1::TwoStagedGuillotine) {
@@ -131,7 +131,151 @@ void BranchingScheme::Parameters::set_predefined(std::string str)
     }
 }
 
-/********************************** children **********************************/
+const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
+{
+    BranchingScheme::Node node;
+    node.id = node_id_;
+    node_id_++;
+    node.pos_stack = std::vector<ItemPos>(instance_.number_of_stacks(), 0);
+    return std::shared_ptr<Node>(new BranchingScheme::Node(node));
+}
+
+bool BranchingScheme::bound(
+        const Node& node,
+        const Solution& solution_best) const
+{
+    switch (solution_best.instance().objective()) {
+    case Objective::Default: {
+        if (!solution_best.full()) {
+            return (ubkp(node) <= solution_best.profit());
+        } else {
+            if (ubkp(node) != solution_best.profit())
+                return (ubkp(node) <= solution_best.profit());
+            return node.waste >= solution_best.waste();
+        }
+    } case Objective::BinPacking: {
+        if (!solution_best.full())
+            return false;
+        BinPos i_pos = -1;
+        Area a = instance_.item_area() + node.waste;
+        while (a > 0) {
+            i_pos++;
+            a -= instance_.bin(i_pos).rect.area();
+        }
+        return (i_pos + 1 >= solution_best.number_of_bins());
+    } case Objective::BinPackingWithLeftovers: {
+        if (!solution_best.full())
+            return false;
+        return node.waste >= solution_best.waste();
+    } case Objective::Knapsack: {
+        return ubkp(node) <= solution_best.profit();
+    } case Objective::StripPackingWidth: {
+        if (!solution_best.full())
+            return false;
+        return std::max(width(node), (node.waste + instance_.item_area() - 1) / instance_.bin(0).height(CutOrientation::Vertical) + 1) >= solution_best.width();
+    } case Objective::StripPackingHeight: {
+        if (!solution_best.full())
+            return false;
+        return std::max(height(node), (node.waste + instance_.item_area() - 1) / instance_.bin(0).height(CutOrientation::Horinzontal) + 1) >= solution_best.height();
+    } default: {
+        std::stringstream ss;
+        ss << "Branching scheme 'rectangleguillotine::BranchingSchemeSkyline'"
+            << "does not support objective '" << instance_.objective() << "'.";
+        throw std::logic_error(ss.str());
+        return false;
+    }
+    }
+}
+
+bool BranchingScheme::better(
+        const Node& node,
+        const Solution& solution_best) const
+{
+    switch (instance_.objective()) {
+    case Objective::Default: {
+        if (solution_best.profit() > node.profit)
+            return false;
+        if (solution_best.profit() < node.profit)
+            return true;
+        return solution_best.waste() > node.waste;
+    } case Objective::BinPacking: {
+        if (!leaf(node))
+            return false;
+        if (!solution_best.full())
+            return true;
+        return solution_best.number_of_bins() > node.number_of_bins;
+    } case Objective::BinPackingWithLeftovers: {
+        if (!leaf(node))
+            return false;
+        if (!solution_best.full())
+            return true;
+        return solution_best.waste() > node.waste;
+    } case Objective::StripPackingWidth: {
+        if (!leaf(node))
+            return false;
+        if (!solution_best.full())
+            return true;
+        return solution_best.width() > width(node);
+    } case Objective::StripPackingHeight: {
+        if (!leaf(node))
+            return false;
+        if (!solution_best.full())
+            return true;
+        return solution_best.height() > height(node);
+    } case Objective::Knapsack: {
+        return solution_best.profit() < node.profit;
+    } default: {
+        std::stringstream ss;
+        ss << "Branching scheme 'rectangleguillotine::BranchingScheme'"
+            << "does not support objective \"" << instance_.objective() << "\".";
+        throw std::logic_error(ss.str());
+        return false;
+    }
+    }
+}
+
+bool BranchingScheme::dominates(
+        const Front& f1,
+        const Front& f2) const
+{
+    if (f1.i < f2.i)
+        return true;
+    if (f1.i == f2.i && f1.o == f2.o) {
+        if (f1.x1_curr <= f2.x1_prev)
+            return true;
+        if (f1.x1_prev <= f2.x1_prev
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_curr <= f2.y2_prev)
+            return true;
+        Length h = instance_.bin(f1.i).height(f1.o);
+        if (f1.y2_curr != h
+                && f1.x1_prev <= f2.x1_prev
+                && f1.x3_curr <= f2.x3_curr
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_prev <= f2.y2_prev
+                && f1.y2_curr <= f2.y2_curr)
+            return true;
+        if (f2.y2_curr == h
+                && f1.x1_prev >= f2.x1_prev
+                && f1.x3_curr <= f2.x3_curr
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_prev <= f2.y2_prev
+                && f1.y2_curr <= f2.y2_curr)
+            return true;
+        if (f1.y2_curr != h
+                && f2.y2_curr == h
+                && f1.x3_curr <= f2.x3_curr
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_prev <= f2.y2_prev
+                && f1.y2_curr <= f2.y2_curr)
+            return true;
+    }
+    return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////// Children ///////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 Length BranchingScheme::x1_prev(const Node& node, Depth df) const
 {
@@ -1106,181 +1250,12 @@ void BranchingScheme::update(
     LOG_FOLD_END(info, "ok");
 }
 
-/******************************************************************************/
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// Export ////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
-{
-    BranchingScheme::Node node;
-    node.id = node_id_;
-    node_id_++;
-    node.pos_stack = std::vector<ItemPos>(instance_.number_of_stacks(), 0);
-    return std::shared_ptr<Node>(new BranchingScheme::Node(node));
-}
-
-bool BranchingScheme::bound(
-        const Node& node,
-        const Solution& solution_best) const
-{
-    switch (solution_best.instance().objective()) {
-    case Objective::Default: {
-        if (!solution_best.full()) {
-            return (ubkp(node) <= solution_best.profit());
-        } else {
-            if (ubkp(node) != solution_best.profit())
-                return (ubkp(node) <= solution_best.profit());
-            return node.waste >= solution_best.waste();
-        }
-    } case Objective::BinPacking: {
-        if (!solution_best.full())
-            return false;
-        BinPos i_pos = -1;
-        Area a = instance_.item_area() + node.waste;
-        while (a > 0) {
-            i_pos++;
-            a -= instance_.bin(i_pos).rect.area();
-        }
-        return (i_pos + 1 >= solution_best.number_of_bins());
-    } case Objective::BinPackingWithLeftovers: {
-        if (!solution_best.full())
-            return false;
-        return node.waste >= solution_best.waste();
-    } case Objective::Knapsack: {
-        return ubkp(node) <= solution_best.profit();
-    } case Objective::StripPackingWidth: {
-        if (!solution_best.full())
-            return false;
-        return std::max(width(node), (node.waste + instance_.item_area() - 1) / instance_.bin(0).height(CutOrientation::Vertical) + 1) >= solution_best.width();
-    } case Objective::StripPackingHeight: {
-        if (!solution_best.full())
-            return false;
-        return std::max(height(node), (node.waste + instance_.item_area() - 1) / instance_.bin(0).height(CutOrientation::Horinzontal) + 1) >= solution_best.height();
-    } default: {
-        assert(false);
-        std::cerr << "\033[31m" << "ERROR, branching scheme rectangle::BranchingScheme does not implement objective \"" << solution_best.instance().objective() << "\"" << "\033[0m" << std::endl;
-        return false;
-    }
-    }
-}
-
-bool BranchingScheme::better(
-        const Node& node,
-        const Solution& solution_best) const
-{
-    switch (instance_.objective()) {
-    case Objective::Default: {
-        if (solution_best.profit() > node.profit)
-            return false;
-        if (solution_best.profit() < node.profit)
-            return true;
-        return solution_best.waste() > node.waste;
-    } case Objective::BinPacking: {
-        if (!leaf(node))
-            return false;
-        if (!solution_best.full())
-            return true;
-        return solution_best.number_of_bins() > node.number_of_bins;
-    } case Objective::BinPackingWithLeftovers: {
-        if (!leaf(node))
-            return false;
-        if (!solution_best.full())
-            return true;
-        return solution_best.waste() > node.waste;
-    } case Objective::StripPackingWidth: {
-        if (!leaf(node))
-            return false;
-        if (!solution_best.full())
-            return true;
-        return solution_best.width() > width(node);
-    } case Objective::StripPackingHeight: {
-        if (!leaf(node))
-            return false;
-        if (!solution_best.full())
-            return true;
-        return solution_best.height() > height(node);
-    } case Objective::Knapsack: {
-        return solution_best.profit() < node.profit;
-    } default: {
-        std::stringstream ss;
-        ss << "Branching scheme 'rectangleguillotine::BranchingScheme'"
-            << "does not support objective '" << instance_.objective() << "'.";
-        throw std::logic_error(ss.str());
-        return false;
-    }
-    }
-}
-
-bool BranchingScheme::dominates(
-        const Front& f1,
-        const Front& f2) const
-{
-    if (f1.i < f2.i)
-        return true;
-    if (f1.i == f2.i && f1.o == f2.o) {
-        if (f1.x1_curr <= f2.x1_prev)
-            return true;
-        if (f1.x1_prev <= f2.x1_prev
-                && f1.x1_curr <= f2.x1_curr
-                && f1.y2_curr <= f2.y2_prev)
-            return true;
-        Length h = instance_.bin(f1.i).height(f1.o);
-        if (f1.y2_curr != h
-                && f1.x1_prev <= f2.x1_prev
-                && f1.x3_curr <= f2.x3_curr
-                && f1.x1_curr <= f2.x1_curr
-                && f1.y2_prev <= f2.y2_prev
-                && f1.y2_curr <= f2.y2_curr)
-            return true;
-        if (f2.y2_curr == h
-                && f1.x1_prev >= f2.x1_prev
-                && f1.x3_curr <= f2.x3_curr
-                && f1.x1_curr <= f2.x1_curr
-                && f1.y2_prev <= f2.y2_prev
-                && f1.y2_curr <= f2.y2_curr)
-            return true;
-        if (f1.y2_curr != h
-                && f2.y2_curr == h
-                && f1.x3_curr <= f2.x3_curr
-                && f1.x1_curr <= f2.x1_curr
-                && f1.y2_prev <= f2.y2_prev
-                && f1.y2_curr <= f2.y2_curr)
-            return true;
-    }
-    return false;
-}
-
-/*********************************** export ***********************************/
-
-bool empty(const std::vector<Solution::Node>& v, SolutionNodeId f_v)
-{
-    if (v[f_v].children.size() == 0)
-        return (v[f_v].j < 0);
-    for (SolutionNodeId c: v[f_v].children)
-        if (!empty(v, c))
-            return false;
-    return true;
-}
-
-SolutionNodeId sort(std::vector<Solution::Node>& res,
-        const std::vector<Solution::Node>& v,
-        SolutionNodeId gf_res, SolutionNodeId f_v)
-{
-    SolutionNodeId id_res = res.size();
-    res.push_back(v[f_v]);
-    res[id_res].id = id_res;
-    res[id_res].f  = gf_res;
-    res[id_res].children = {};
-    if (empty(v, f_v)) {
-        res[id_res].j = -1;
-    } else {
-        for (SolutionNodeId c_v: v[f_v].children) {
-            SolutionNodeId c_id_res = sort(res, v, id_res, c_v);
-            res[id_res].children.push_back(c_id_res);
-        }
-    }
-    return id_res;
-}
-
-bool BranchingScheme::BranchingScheme::check(const std::vector<Solution::Node>& nodes) const
+bool BranchingScheme::BranchingScheme::check(
+        const std::vector<Solution::Node>& nodes) const
 {
     std::vector<ItemPos> items(instance_.number_of_items(), 0);
 
@@ -1397,212 +1372,415 @@ Solution BranchingScheme::to_solution(
         const Node& node,
         const Solution&) const
 {
-    // Get nodes, items and bins
-    std::vector<SolutionNode> nodes;
-    std::vector<NodeItem> items;
-    std::vector<CutOrientation> first_stage_orientations;
-    std::vector<const BranchingScheme::Node*> descendents {&node};
-    while (descendents.back()->father != nullptr)
-        descendents.push_back(static_cast<const BranchingScheme::Node*>(
-                    descendents.back()->father.get()));
-    descendents.pop_back();
-
-    std::vector<SolutionNodeId> nodes_curr(4, -1);
-    for (auto it = descendents.rbegin(); it != descendents.rend(); ++it) {
-        const Node* n = *it;
-
-        if (n->df < 0)
-            first_stage_orientations.push_back(last_bin_orientation(*n, n->df));
-
-        SolutionNodeId id = (n->df >= 0)? nodes.size() + 2 - n->df: nodes.size() + 2;
-        if (n->j1 != -1)
-            items.push_back({n->j1, id});
-        if (n->j2 != -1)
-            items.push_back({n->j2, id});
-
-        // Add new solution nodes
-        SolutionNodeId f = (n->df <= 0)? -first_stage_orientations.size(): nodes_curr[n->df];
-        Depth          d = (n->df < 0)? 0: n->df;
-        SolutionNodeId c = nodes.size() - 1;
-        do {
-            c++;
-            nodes.push_back({f, -1});
-            f = c;
-            d++;
-            nodes_curr[d] = nodes.size() - 1;
-        } while (d != 3);
-
-        nodes[nodes_curr[1]].p = n->x1_curr;
-        nodes[nodes_curr[2]].p = n->y2_curr;
-        nodes[nodes_curr[3]].p = n->x3_curr;
+    std::vector<const BranchingScheme::Node*> descendents;
+    for (const Node* current_node = &node;
+            current_node->father != nullptr;
+            current_node = current_node->father.get()) {
+        descendents.push_back(current_node);
     }
+    std::reverse(descendents.begin(), descendents.end());
 
-    std::vector<SolutionNodeId> bins;
-    std::vector<Solution::Node> res(nodes.size());
-    for (BinPos i = 0; i < node.number_of_bins; ++i) {
-        CutOrientation o = first_stage_orientations[i];
-        Length w = instance_.bin(i).width(o);
-        Length h = instance_.bin(i).height(o);
-        SolutionNodeId id = res.size();
-        bins.push_back(id);
-        res.push_back({id, -1, 0, i, 0, w, 0, h, {}, -1, false, -1});
-    }
-    for (SolutionNodeId id = 0; id < (SolutionNodeId)nodes.size(); ++id) {
-        SolutionNodeId f = (nodes[id].f >= 0)? nodes[id].f: bins[(-nodes[id].f)-1];
-        Depth d = res[f].d + 1;
-        res[id].id = id;
-        res[id].f  = f;
-        res[id].d  = d;
-        res[id].i  = res[f].i;
-        if (d == 1 || d == 3) {
-            res[id].r  = nodes[id].p;
-            res[id].l  = (res[f].children.size() == 0)?
-                res[f].l:
-                res[res[f].children.back()].r;
-            res[id].b  = res[f].b;
-            res[id].t  = res[f].t;
-        } else { // d == 2
-            res[id].t  = nodes[id].p;
-            res[id].b  = (res[f].children.size() == 0)?
-                res[f].b:
-                res[res[f].children.back()].t;
-            res[id].l  = res[f].l;
-            res[id].r  = res[f].r;
+    std::vector<Solution::Node> nodes;
+
+    SolutionNodeId subplate0_curr = -1;
+    SolutionNodeId subplate1_curr = -1;
+    SolutionNodeId subplate2_curr = -1;
+    SolutionNodeId subplate3_curr = -1;
+    Length subplate1_curr_x1 = -1;
+    Length subplate2_curr_y2 = -1;
+    for (SolutionNodeId node_pos = 0;
+            node_pos < (SolutionNodeId)descendents.size();
+            ++node_pos) {
+
+        const Node* current_node = descendents[node_pos];
+        BinPos i = current_node->number_of_bins - 1;
+        CutOrientation o = current_node->first_stage_orientation;
+        bool has_item = (current_node->j1 != -1 || current_node->j2 != -1);
+        Depth df_next = (node_pos < (SolutionNodeId)descendents.size() - 1)?
+            descendents[node_pos + 1]->df: -1;
+        //std::cout << ">>> node"
+        //    << " o " << o
+        //    << " df " << current_node->df
+        //    << " x1_prev " << current_node->x1_prev
+        //    << " x1_curr " << current_node->x1_curr
+        //    << " y2_prev " << current_node->y2_prev
+        //    << " y2_curr " << current_node->y2_curr
+        //    << " x3_curr " << current_node->x3_curr
+        //    << " z1 " << current_node->z1
+        //    << " z2 " << current_node->z2
+        //    << " j1 " << current_node->j1
+        //    << " j2 " << current_node->j2
+        //    << std::endl;
+
+        // We don't want sub-plates with children containing only waste.
+        bool b1 = (current_node->df <= -1) && (df_next <= -1) && (!has_item);
+        bool b2 = (current_node->df <= 0) && (df_next <= 0) && (!has_item);
+        bool b3 = (current_node->df <= 1) && (df_next <= 1) && (!has_item);
+
+        // Create a new bin.
+        if (current_node->df <= -1) {
+            //std::cout << "Create a new bin..." << std::endl;
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.d = 0;
+            n.f = -1;
+            n.i = i;
+            n.l = 0;
+            n.r = instance_.bin(i).rect.w;
+            n.b = 0;
+            n.t = instance_.bin(i).rect.h;
+            n.j = (b1)? -1: -2;
+            subplate0_curr = id;
+            //std::cout << n << std::endl;
         }
-        res[f].children.push_back(id);
-    }
 
-    for (SolutionNodeId f = 0; f < (SolutionNodeId)(nodes.size()+bins.size()); ++f) {
-        SolutionNodeId nb = res[f].children.size();
-        if (nb == 0)
-            continue;
-        SolutionNodeId c_last = res[f].children.back();
-        if ((res[f].d == 0 || res[f].d == 2) && res[f].r != res[c_last].r) {
-            if (res[f].r - res[c_last].r < parameters_.min_waste) {
-                res[c_last].r = res[f].r;
-            } else {
-                SolutionNodeId id = res.size();
-                res.push_back({id, f,
-                        static_cast<Depth>(res[f].d+1), res[f].i,
-                        res[c_last].r, res[f].r,
-                        res[f].b,      res[f].t,
-                        {}, -1, false, -1});
-                res[f].children.push_back(id);
-            }
-        } else if ((res[f].d == 1 || res[f].d == 3) && res[f].t != res[c_last].t) {
-            if (res[f].t - res[c_last].t < parameters_.min_waste) {
-                res[c_last].t = res[f].t;
-            } else {
-                SolutionNodeId id = res.size();
-                res.push_back({id, f,
-                        static_cast<Depth>(res[f].d+1), res[f].i,
-                        res[f].l,      res[f].r,
-                        res[c_last].t, res[f].t,
-                        {}, -1, false, -1});
-                res[f].children.push_back(id);
-            }
-        }
-    }
-
-    for (SolutionNodeId id = 0; id < (SolutionNodeId)res.size(); ++id)
-        res[id].j  = -1;
-
-    for (Counter j_pos = 0; j_pos < node.number_of_items; ++j_pos) {
-        ItemTypeId     j  = items[j_pos].j;
-        SolutionNodeId id = items[j_pos].node;
-        Length         wj = instance_.item_type(j).rect.w;
-        Length         hj = instance_.item_type(j).rect.h;
-        if (res[id].children.size() > 0) { // Second item of the third-level sub-plate
-            res[res[id].children[1]].j = j; // Alone in its third-level sub-plate
-        } else if ((res[id].t - res[id].b == hj && res[id].r - res[id].l == wj)
-                || (res[id].t - res[id].b == wj && res[id].r - res[id].l == hj)) {
-            res[id].j = j;
-            continue;
+        // Create a new first-level sub-plate.
+        if (parameters_.cut_type_1 == CutType1::TwoStagedGuillotine
+                || current_node->df >= 1) {
+        } else if (b1) {
+            subplate1_curr = -1;
         } else {
-            Length t = (res[id].r - res[id].l == wj)? hj: wj;
-            BinPos i = res[id].i;
-            CutOrientation o = first_stage_orientations[i];
-            DefectId k = instance_.rect_intersects_defect(
-                    res[id].l, res[id].r, res[id].b, res[id].b + t, i, o);
-            if (k == -1) { // First item of the third-level sub-plate
-                SolutionNodeId c1 = res.size();
-                res.push_back({c1, id,
-                        static_cast<Depth>(res[id].d + 1), res[id].i,
-                        res[id].l, res[id].r,
-                        res[id].b, res[id].b + t,
-                        {}, j, false, -1});
-                res[id].children.push_back(c1);
-                SolutionNodeId c2 = res.size();
-                res.push_back({c2, id,
-                        static_cast<Depth>(res[id].d+1), res[id].i,
-                        res[id].l, res[id].r,
-                        res[id].b + t, res[id].t,
-                        {}, -1, false, -1});
-                res[id].children.push_back(c2);
+            //std::cout << "Create a new first-level sub-plate..." << std::endl;
+            // Find subplate1_curr_x1.
+            subplate1_curr_x1 = current_node->x1_curr;
+            for (SolutionNodeId node_pos_2 = node_pos + 1;
+                    node_pos_2 < (SolutionNodeId)descendents.size()
+                    && descendents[node_pos_2]->df >= 1;
+                    node_pos_2++) {
+                subplate1_curr_x1 = descendents[node_pos_2]->x1_curr;
+            }
+            //std::cout << "subplate1_curr_x1 " << subplate1_curr_x1 << std::endl;
+
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.d = 1;
+            n.f = subplate0_curr;
+            n.i = i;
+            if (o == CutOrientation::Vertical) {
+                n.l = current_node->x1_prev;
+                n.r = subplate1_curr_x1;
+                n.b = nodes[subplate0_curr].b;
+                n.t = nodes[subplate0_curr].t;
             } else {
-                SolutionNodeId c1 = res.size();
-                res.push_back({c1, id,
-                        static_cast<Depth>(res[id].d+1), res[id].i,
-                        res[id].l, res[id].r,
-                        res[id].b, res[id].t - t,
-                        {}, -1, false, -1});
-                res[id].children.push_back(c1);
-                SolutionNodeId c2 = res.size();
-                res.push_back({c2, id,
-                        static_cast<Depth>(res[id].d+1), res[id].i,
-                        res[id].l, res[id].r,
-                        res[id].t - t, res[id].t,
-                        {}, j, false, -1});
-                res[id].children.push_back(c2);
+                n.l = nodes[subplate0_curr].l;
+                n.r = nodes[subplate0_curr].r;
+                n.b = current_node->x1_prev;
+                n.t = subplate1_curr_x1;
+            }
+            n.j = (b2)? -1: -2;
+            nodes[subplate0_curr].children.push_back(id);
+            subplate1_curr = id;
+            //std::cout << n << std::endl;
+        }
+
+        // Create a new second-level sub-plate.
+        if (current_node->df >= 2) {
+        } else if (b2) {
+            subplate2_curr = -1;
+        } else {
+            //std::cout << "Create a new second-level sub-plate..." << std::endl;
+            // Find subplate1_curr_y2.
+            subplate2_curr_y2 = current_node->y2_curr;
+            for (SolutionNodeId node_pos_2 = node_pos + 1;
+                    node_pos_2 < (SolutionNodeId)descendents.size()
+                    && descendents[node_pos_2]->df >= 2;
+                    node_pos_2++) {
+                subplate2_curr_y2 = descendents[node_pos_2]->y2_curr;
+            }
+            //std::cout << "subplate2_curr_y2 " << subplate2_curr_y2 << std::endl;
+
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.i = i;
+            SolutionNodeId s = (parameters_.cut_type_1 == CutType1::ThreeStagedGuillotine)? subplate1_curr: subplate0_curr;
+            n.d = (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine)? 2: 1;
+            n.f = s;
+            nodes[s].children.push_back(id);
+            if (o == CutOrientation::Vertical) {
+                n.l = nodes[s].l;
+                n.r = nodes[s].r;
+                n.b = current_node->y2_prev;
+                n.t = subplate2_curr_y2;
+            } else {
+                n.l = current_node->y2_prev;
+                n.r = subplate2_curr_y2;
+                n.b = nodes[s].b;
+                n.t = nodes[s].t;
+            }
+            n.j = (b3)? -1: -2;
+            subplate2_curr = id;
+            //std::cout << n << std::endl;
+        }
+
+        // Create a new third-level sub-plate.
+        if (b3) {
+            subplate3_curr = -1;
+        } else {
+            //std::cout << "Create a new third-level sub-plate..." << std::endl;
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.d = (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine)? 3: 2;
+            n.f = subplate2_curr;
+            nodes[subplate2_curr].children.push_back(id);
+            n.i = i;
+            if (o == CutOrientation::Vertical) {
+                n.l = (current_node->df < 2)?
+                    nodes[subplate2_curr].l:
+                    nodes[subplate3_curr].r;
+                n.r = current_node->x3_curr;
+                n.b = nodes[subplate2_curr].b;
+                n.t = nodes[subplate2_curr].t;
+            } else {
+                n.l = nodes[subplate2_curr].l;
+                n.r = nodes[subplate2_curr].r;
+                n.b = (current_node->df < 2)?
+                    nodes[subplate2_curr].b:
+                    nodes[subplate3_curr].t;
+                n.t = current_node->x3_curr;
+            }
+            n.j = (has_item)? -2: -1;
+            subplate3_curr = id;
+            //std::cout << n << std::endl;
+        }
+
+        // Create a new fourth-level sub-plate.
+        if (has_item) {
+            //std::cout << "Create a new fourth-level sub-plate..." << std::endl;
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.d = (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine)? 4: 3;
+            n.f = subplate3_curr;
+            nodes[subplate3_curr].children.push_back(id);
+            n.i = i;
+            if (o == CutOrientation::Vertical) {
+                Length w_tmp = nodes[subplate3_curr].r - nodes[subplate3_curr].l;
+
+                n.l = nodes[subplate3_curr].l;
+                n.r = nodes[subplate3_curr].r;
+                n.b = nodes[subplate3_curr].b;
+                if (current_node->j1 != -1) {
+                    //std::cout << instance_.item_type(current_node->j1) << std::endl;
+                    Length hj = (w_tmp == instance_.item_type(current_node->j1).rect.w)?
+                        instance_.item_type(current_node->j1).rect.h:
+                        instance_.item_type(current_node->j1).rect.w;
+                    n.t = nodes[subplate3_curr].b + hj;
+                } else if (current_node->j2 != -1) {
+                    Length hj = (w_tmp == instance_.item_type(current_node->j2).rect.w)?
+                        instance_.item_type(current_node->j2).rect.h:
+                        instance_.item_type(current_node->j2).rect.w;
+                    n.t = nodes[subplate3_curr].t - hj;
+                } else {
+                    n.t = nodes[subplate3_curr].t;
+                }
+            } else {
+                Length h_tmp = nodes[subplate3_curr].t - nodes[subplate3_curr].b;
+
+                n.l = nodes[subplate3_curr].l;
+                if (current_node->j1 != -1) {
+                    //std::cout << instance_.item_type(current_node->j1) << std::endl;
+                    Length wj = (h_tmp == instance_.item_type(current_node->j1).rect.h)?
+                        instance_.item_type(current_node->j1).rect.w:
+                        instance_.item_type(current_node->j1).rect.h;
+                    n.r = nodes[subplate3_curr].l + wj;
+                } else if (current_node->j2 != -1) {
+                    Length wj = (h_tmp == instance_.item_type(current_node->j2).rect.h)?
+                        instance_.item_type(current_node->j2).rect.w:
+                        instance_.item_type(current_node->j2).rect.h;
+                    n.r = nodes[subplate3_curr].r - wj;
+                } else {
+                    n.r = nodes[subplate3_curr].r;
+                }
+                n.b = nodes[subplate3_curr].b;
+                n.t = nodes[subplate3_curr].t;
+            }
+            n.j = (current_node->j1 != -1)? current_node->j1: -1;
+            //std::cout << n << std::endl;
+
+            // Add an additional fourth-level sub-plate if necessary.
+            Length t = nodes.back().t;
+            Length r = nodes.back().r;
+            if (t != nodes[subplate3_curr].t) {
+                //std::cout << "Create an additional fourth-level sub-plate..." << std::endl;
+                nodes.push_back(Solution::Node());
+                Solution::Node& n = nodes.back();
+                SolutionNodeId id = nodes.size() - 1;
+                n.id = id;
+                n.d = (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine)? 4: 3;
+                n.f = subplate3_curr;
+                nodes[subplate3_curr].children.push_back(id);
+                n.i = i;
+                n.l = nodes[subplate3_curr].l;
+                n.r = nodes[subplate3_curr].r;
+                n.b = t;
+                n.t = nodes[subplate3_curr].t;
+                n.j = (current_node->j2 != -1)? current_node->j2: -1;
+                //std::cout << n << std::endl;
+            }
+            if (r != nodes[subplate3_curr].r) {
+                //std::cout << "Create an additional fourth-level sub-plate..." << std::endl;
+                nodes.push_back(Solution::Node());
+                Solution::Node& n = nodes.back();
+                SolutionNodeId id = nodes.size() - 1;
+                n.id = id;
+                n.d = (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine)? 4: 3;
+                n.f = subplate3_curr;
+                nodes[subplate3_curr].children.push_back(id);
+                n.i = i;
+                n.l = r;
+                n.r = nodes[subplate3_curr].r;
+                n.b = nodes[subplate3_curr].b;
+                n.t = nodes[subplate3_curr].t;
+                n.j = (current_node->j2 != -1)? current_node->j2: -1;
+                //std::cout << n << std::endl;
             }
         }
-    }
 
-    // Set j to -2 for intermediate nodes and to -3 for residual
-    for (Solution::Node& n: res)
-        if (n.j == -1 && n.children.size() != 0)
-            n.j = -2;
-
-    if (parameters_.cut_type_1 == CutType1::TwoStagedGuillotine) {
-        for (Solution::Node& n: res) {
-            if (n.d == 0) {
-                assert(n.children.size() == 1);
-                n.children = res[n.children[0]].children;
-            }
-            if (n.d == 2)
-                n.f = res[n.f].f;
-            if (n.d >= 2)
-                n.d--;
+        // Add waste to the right of the 2-level sub-plate.
+        if (df_next <= 1
+                && subplate3_curr != -1
+                && nodes[subplate3_curr].r != nodes[subplate2_curr].r) {
+            //std::cout << "Add waste to the right of the second-level sub-plate..." << std::endl;
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.d = (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine)? 3: 2;
+            n.f = subplate2_curr;
+            nodes[subplate2_curr].children.push_back(id);
+            n.i = i;
+            n.l = nodes[subplate3_curr].r;
+            n.r = nodes[subplate2_curr].r;
+            n.b = nodes[subplate2_curr].b;
+            n.t = nodes[subplate2_curr].t;
+            n.j = -1;
+            //std::cout << n << std::endl;
         }
-    }
-
-    // Sort nodes
-    std::vector<Solution::Node> res2;
-    for (SolutionNodeId c: bins)
-        sort(res2, res, -1, c);
-
-    if (res2.rbegin()->j == -1 && res2.rbegin()->d == 1)
-        res2.rbegin()->j = -3;
-
-    for (Solution::Node& n: res2) {
-        n.bin_type_id = instance_.bin(n.i).id;
-        CutOrientation o = first_stage_orientations[n.i];
-        if (o == CutOrientation::Horinzontal) {
-            Length tmp_1 = n.l;
-            Length tmp_2 = n.r;
-            n.l = n.b;
-            n.r = n.t;
-            n.b = tmp_1;
-            n.t = tmp_2;
+        if (df_next <= 1
+                && subplate3_curr != -1
+                && nodes[subplate3_curr].t != nodes[subplate2_curr].t) {
+            //std::cout << "Add waste to the right of the second-level sub-plate..." << std::endl;
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.d = (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine)? 3: 2;
+            n.f = subplate2_curr;
+            nodes[subplate2_curr].children.push_back(id);
+            n.i = i;
+            n.l = nodes[subplate2_curr].l;
+            n.r = nodes[subplate2_curr].r;
+            n.b = nodes[subplate3_curr].t;
+            n.t = nodes[subplate2_curr].t;
+            n.j = -1;
+            //std::cout << n << std::endl;
         }
+
+        // Add waste at the top of the 1-level sub-plate.
+        SolutionNodeId s = (parameters_.cut_type_1 == CutType1::ThreeStagedGuillotine)? subplate1_curr: subplate0_curr;
+        if (df_next <= 0
+                && subplate2_curr != -1
+                && nodes[subplate2_curr].t != nodes[s].t) {
+            //std::cout << "Add waste at the top of the first-level sub-plate..." << std::endl;
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.d = (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine)? 2: 1;
+            n.f = s;
+            nodes[s].children.push_back(id);
+            n.i = i;
+            n.l = nodes[s].l;
+            n.r = nodes[s].r;
+            n.b = nodes[subplate2_curr].t;
+            n.t = nodes[s].t;
+            // Might be the residual if two-staged.
+            n.j = (parameters_.cut_type_1 == CutType1::TwoStagedGuillotine && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
+            //std::cout << n << std::endl;
+        }
+        if (df_next <= 0
+                && subplate2_curr != -1
+                && nodes[subplate2_curr].r != nodes[s].r) {
+            //std::cout << "Add waste at the top of the first-level sub-plate..." << std::endl;
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.d = (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine)? 2: 1;
+            n.f = s;
+            nodes[s].children.push_back(id);
+            n.i = i;
+            n.l = nodes[subplate2_curr].r;
+            n.r = nodes[s].r;
+            n.b = nodes[s].b;
+            n.t = nodes[s].t;
+            // Might be the residual if two-staged.
+            n.j = (parameters_.cut_type_1 == CutType1::TwoStagedGuillotine && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
+            //std::cout << n << std::endl;
+        }
+
+        // Add waste to the right of the plate.
+        if (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine
+                && df_next <= -1
+                && subplate1_curr != -1
+                && nodes[subplate1_curr].r != nodes[subplate0_curr].r) {
+            //std::cout << "Add waste to the right of the plate..." << std::endl;
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.d = 1;
+            n.f = subplate0_curr;
+            nodes[subplate0_curr].children.push_back(id);
+            n.i = i;
+            n.l = nodes[subplate1_curr].r;
+            n.r = nodes[subplate0_curr].r;
+            n.b = nodes[subplate0_curr].b;
+            n.t = nodes[subplate0_curr].t;
+            // Might be the residual.
+            n.j = (node_pos < (SolutionNodeId)descendents.size() - 1)? -1: -3;
+            //std::cout << n << std::endl;
+        }
+        if (parameters_.cut_type_1 != CutType1::TwoStagedGuillotine
+                && df_next <= -1
+                && subplate1_curr != -1
+                && nodes[subplate1_curr].t != nodes[subplate0_curr].t) {
+            //std::cout << "Add waste to the right of the plate..." << std::endl;
+            nodes.push_back(Solution::Node());
+            Solution::Node& n = nodes.back();
+            SolutionNodeId id = nodes.size() - 1;
+            n.id = id;
+            n.d = 1;
+            n.f = subplate0_curr;
+            nodes[subplate0_curr].children.push_back(id);
+            n.i = i;
+            n.l = nodes[subplate0_curr].l;
+            n.r = nodes[subplate0_curr].r;
+            n.b = nodes[subplate1_curr].t;
+            n.t = nodes[subplate0_curr].t;
+            // Might be the residual.
+            n.j = (node_pos < (SolutionNodeId)descendents.size() - 1)? -1: -3;
+            //std::cout << n << std::endl;
+        }
+
     }
 
-    if (!check(res2))
-        return Solution(instance_, {});
-    return Solution(instance_, res2);
+    if (!check(nodes)) {
+        throw std::runtime_error("");
+    }
+    return Solution(instance_, nodes);
 }
 
-/******************************************************************************/
+////////////////////////////////////////////////////////////////////////////////
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
         std::ostream &os, const BranchingScheme::Parameters& parameters)
@@ -1620,32 +1798,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         << " no_item_rotation " << parameters.no_item_rotation
         << " cut_through_defects " << parameters.cut_through_defects
         ;
-    return os;
-}
-
-bool BranchingScheme::SolutionNode::operator==(
-        const BranchingScheme::SolutionNode& node) const
-{
-    return ((f == node.f) && (p == node.p));
-}
-
-std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BranchingScheme::SolutionNode& node)
-{
-    os << "f " << node.f << " p " << node.p;
-    return os;
-}
-
-bool BranchingScheme::NodeItem::operator==(
-        const BranchingScheme::NodeItem& node_item) const
-{
-    return ((j == node_item.j) && (node == node_item.node));
-}
-
-std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BranchingScheme::NodeItem& node_item)
-{
-    os << "j " << node_item.j << " node " << node_item.node;
     return os;
 }
 

@@ -38,7 +38,6 @@ public:
         Length l, r, b, t;
         std::vector<SolutionNodeId> children;
         ItemTypeId j;
-        bool rotate;
         BinTypeId bin_type_id;
     };
 

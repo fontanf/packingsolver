@@ -26,8 +26,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(std::ostream &os, c
         << " r " << node.r
         << " b " << node.b
         << " t " << node.t
-        << " j " << node.j
-        << " rotate " << node.rotate;
+        << " j " << node.j;
     return os;
 }
 
@@ -178,9 +177,10 @@ bool Solution::operator<(const Solution& solution) const
             return true;
         return solution.cost() < cost();
     } default: {
-        assert(false);
-        std::cerr << "\033[31m" << "ERROR, rectangleguillotine::Solution does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
-        return false;
+        std::stringstream ss;
+        ss << "Solution rectangleguillotine::Solution does not support objective \""
+            << instance().objective() << "\"";
+        throw std::logic_error(ss.str());
     }
     }
 }
@@ -238,8 +238,10 @@ void Solution::display(
         VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
         break;
     } default: {
-        assert(false);
-        std::cerr << "\033[31m" << "ERROR, rectangleguillotine::Solution does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
+        std::stringstream ss;
+        ss << "Solution rectangleguillotine::Solution does not support objective \""
+            << instance().objective() << "\"";
+        throw std::logic_error(ss.str());
     }
     }
     PUT(info, sol_str, "Time", t);
@@ -284,8 +286,10 @@ void Solution::algorithm_start(Info& info) const
         VER(info, std::left << std::setw(16) << "Full waste (%)");
         break;
     } default: {
-        assert(false);
-        std::cerr << "\033[31m" << "ERROR, rectangleguillotine::Solution does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
+        std::stringstream ss;
+        ss << "Solution rectangleguillotine::Solution does not support objective \""
+            << instance().objective() << "\"";
+        throw std::logic_error(ss.str());
     }
     }
     VER(info, "Time" << std::endl);
@@ -340,8 +344,10 @@ void Solution::algorithm_end(Info& info) const
         VER(info, "Full waste (%): " << 100 * full_waste_percentage() << std::endl);
         break;
     } default: {
-        assert(false);
-        std::cerr << "\033[31m" << "ERROR, rectangleguillotine::Solution does not implement objective \"" << instance().objective() << "\"" << "\033[0m" << std::endl;
+        std::stringstream ss;
+        ss << "Solution rectangleguillotine::Solution does not support objective \""
+            << instance().objective() << "\"";
+        throw std::logic_error(ss.str());
     }
     }
     PUT(info, sol_str, "Time", t);
@@ -357,8 +363,8 @@ void Solution::write(Info& info) const
         return;
     std::ofstream f{info.output->certificate_path};
     if (!f.good()) {
-        std::cerr << "\033[31m" << "ERROR, unable to open file \"" << info.output->certificate_path << "\"" << "\033[0m" << std::endl;
-        return;
+        throw std::runtime_error(
+                "Unable to open file \"" + info.output->certificate_path + "\".");
     }
 
     f << "PLATE_ID,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
