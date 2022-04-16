@@ -9,21 +9,26 @@
 namespace packingsolver
 {
 
+using Seed = int64_t;
+using Counter = int64_t;
+
 using ItemTypeId = int16_t;
 using ItemPos = int16_t;
+using StackId = int16_t;
 using Length = int64_t;
 using Area = int64_t;
-using StackId = int16_t;
+using Angle = double;
+using AnglePos = int64_t;
 using Profit = int64_t;
-using DefectId = int16_t;
-using DefectCategory = int16_t;
 using BinTypeId = int16_t;
 using BinPos = int16_t;
-using Depth = int16_t;
-using Seed = int64_t;
-using GuideId = int16_t;
-using Counter = int64_t;
+using DefectId = int16_t;
+using DefectTypeId = int64_t;
+using QualityRule = int64_t;
+
 using NodeId = int64_t;
+using Depth = int16_t;
+using GuideId = int16_t;
 
 using optimizationtools::Info;
 

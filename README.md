@@ -6,12 +6,6 @@ Only rectangle two- and three staged guillotine variants have been implemented y
 
 ![Example](example.png?raw=true "Example")
 
-* Code author: Florian Fontan
-* Algorithm design: [Luc Libralesso](https://github.com/librallu), Florian Fontan
-
-For commercial support, custom developments or industrial collaboration, please do not hesitate to contact me (Florian Fontan).
-For academic collaboration, please do not hesitate to contact Luc Libralesso.
-
 ## Usage
 
 Note: PackingSolver favours efficiency and flexibility over ease of use. Therefore, some knowledge about tree search algorithms and packing problems is required in order to use it.

@@ -108,7 +108,7 @@ struct BinType
     /** Number of previous bins. */
     BinPos previous_bin_copies = 0;
 
-    Length  width(CutOrientation o) const { return (o == CutOrientation::Vertical)? rect.w: rect.h; }
+    Length width(CutOrientation o) const { return (o == CutOrientation::Vertical)? rect.w: rect.h; }
     Length height(CutOrientation o) const { return (o == CutOrientation::Vertical)? rect.h: rect.w; }
 };
 
@@ -141,7 +141,7 @@ public:
     Instance(Objective objective): objective_(objective) { }
 
     /** Add an item type. */
-    void add_item_type(
+    ItemTypeId add_item_type(
             Length w,
             Length h,
             Profit p = -1,
@@ -150,7 +150,7 @@ public:
             bool new_stack = true);
 
     /** Add a bin type. */
-    void add_bin_type(
+    BinTypeId add_bin_type(
             Length w,
             Length h,
             Profit cost = -1,
@@ -158,7 +158,12 @@ public:
             BinPos copies_min = 0);
 
     /** Add a defect. */
-    void add_defect(BinTypeId i, Length x, Length y, Length w, Length h);
+    void add_defect(
+            BinTypeId i,
+            Length x,
+            Length y,
+            Length w,
+            Length h);
 
     /**
      * Add a bin type from another bin type.
@@ -313,13 +318,19 @@ public:
      * Get the width of an item depending on whether it has been rotated and
      * the orientation of the bin.
      */
-    inline Length width(const ItemType& item, bool rotate, CutOrientation o) const;
+    inline Length width(
+            const ItemType& item,
+            bool rotate,
+            CutOrientation o) const;
 
     /**
      * Get the height of an item depending on whether it has been rotated and
      * the orientation of the bin.
      */
-    inline Length height(const ItemType& item, bool rotate, CutOrientation o) const;
+    inline Length height(
+            const ItemType& item,
+            bool rotate,
+            CutOrientation o) const;
 
     /*
      * Defect coordinates.
@@ -329,25 +340,33 @@ public:
      * Get the left coordinate of a defect depending on the orientatino of the
      * bin.
      */
-    inline Length left(const Defect& defect, CutOrientation o) const;
+    inline Length left(
+            const Defect& defect,
+            CutOrientation o) const;
 
     /**
      * Get the right coordinate of a defect depending on the orientatino of the
      * bin.
      */
-    inline Length right(const Defect& defect, CutOrientation o) const;
+    inline Length right(
+            const Defect& defect,
+            CutOrientation o) const;
 
     /**
      * Get the top coordinate of a defect depending on the orientatino of the
      * bin.
      */
-    inline Length top(const Defect& defect, CutOrientation o) const;
+    inline Length top(
+            const Defect& defect,
+            CutOrientation o) const;
 
     /**
      * Get the bottom coordinate of a defect depending on the orientatino of
      * the bin.
      */
-    inline Length bottom(const Defect& defect, CutOrientation o) const;
+    inline Length bottom(
+            const Defect& defect,
+            CutOrientation o) const;
 
     /*
      * Intersections.
@@ -359,7 +378,7 @@ public:
      *
      * Return -1 if there is none.
      */
-    DefectId rect_intersects_defect(
+    inline DefectId rect_intersects_defect(
             Length l,
             Length r,
             Length b,
@@ -374,7 +393,7 @@ public:
      *
      * Return -1 if there is none.
      */
-    DefectId item_intersects_defect(
+    inline DefectId item_intersects_defect(
             Length l,
             Length b,
             const ItemType& item,
@@ -388,7 +407,7 @@ public:
      *
      * Return -1 if there is none.
      */
-    DefectId x_intersects_defect(
+    inline DefectId x_intersects_defect(
             Length x,
             BinTypeId i,
             CutOrientation o) const;
@@ -399,7 +418,7 @@ public:
      *
      * Return -1 if there is none.
      */
-    DefectId y_intersects_defect(
+    inline DefectId y_intersects_defect(
             Length l,
             Length r,
             Length y,
@@ -459,33 +478,46 @@ private:
 /** Stream insertion operator. */
 std::ostream& operator<<(std::ostream &os, const Instance& ins);
 
-/****************************** inlined methods *******************************/
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// Inlined methods ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-Length Instance::left(const Defect& defect, CutOrientation o) const
+Length Instance::left(
+        const Defect& defect,
+        CutOrientation o) const
 {
     return (o == CutOrientation::Vertical)?  defect.pos.x: defect.pos.y;
 }
 
-Length Instance::right(const Defect& defect, CutOrientation o) const
+Length Instance::right(
+        const Defect& defect,
+        CutOrientation o) const
 {
     return (o == CutOrientation::Vertical)?
         defect.pos.x + defect.rect.w:
         defect.pos.y + defect.rect.h;
 }
 
-Length Instance::top(const Defect& defect, CutOrientation o) const
+Length Instance::top(
+        const Defect& defect,
+        CutOrientation o) const
 {
     return (o == CutOrientation::Vertical)?
         defect.pos.y + defect.rect.h:
         defect.pos.x + defect.rect.w;
 }
 
-Length Instance::bottom(const Defect& defect, CutOrientation o) const
+Length Instance::bottom(
+        const Defect& defect,
+        CutOrientation o) const
 {
     return (o == CutOrientation::Vertical)? defect.pos.y: defect.pos.x;
 }
 
-Length Instance::width(const ItemType& item, bool rotate, CutOrientation o) const
+Length Instance::width(
+        const ItemType& item,
+        bool rotate,
+        CutOrientation o) const
 {
     if (o == CutOrientation::Vertical) {
         return (!rotate)? item.rect.w: item.rect.h;
@@ -494,13 +526,84 @@ Length Instance::width(const ItemType& item, bool rotate, CutOrientation o) cons
     }
 }
 
-Length Instance::height(const ItemType& item, bool rotate, CutOrientation o) const
+Length Instance::height(
+        const ItemType& item,
+        bool rotate,
+        CutOrientation o) const
 {
     if (o == CutOrientation::Vertical) {
         return (!rotate)? item.rect.h: item.rect.w;
     } else {
         return (!rotate)? item.rect.w: item.rect.h;
     }
+}
+
+DefectId Instance::rect_intersects_defect(
+        Length l,
+        Length r,
+        Length b,
+        Length t,
+        BinTypeId i,
+        CutOrientation o) const
+{
+    assert(l <= r);
+    assert(b <= t);
+    for (const Defect& defect: bin(i).defects) {
+        if (left(defect, o) >= r)
+            continue;
+        if (l >= right(defect, o))
+            continue;
+        if (bottom(defect, o) >= t)
+            continue;
+        if (b >= top(defect, o))
+            continue;
+        return defect.id;
+    }
+    return -1;
+}
+
+DefectId Instance::item_intersects_defect(
+        Length l,
+        Length b,
+        const ItemType& item_type,
+        bool rotate,
+        BinTypeId i,
+        CutOrientation o) const
+{
+    return rect_intersects_defect(
+            l, l + width(item_type, rotate, o),
+            b, b + height(item_type, rotate, o),
+            i, o);
+}
+
+DefectId Instance::y_intersects_defect(
+        Length l,
+        Length r,
+        Length y,
+        BinTypeId i,
+        CutOrientation o) const
+{
+    DefectId k_min = -1;
+    for (const Defect& k: bin(i).defects) {
+        if (right(k, o) <= l || left(k, o) >= r)
+            continue;
+        if (bottom(k, o) >= y || top(k, o) <= y)
+            continue;
+        if (k_min == -1 || left(k, o) < left(defect(k_min), o))
+            k_min = k.id;
+    }
+    return k_min;
+}
+
+DefectId Instance::x_intersects_defect(
+        Length x,
+        BinTypeId i,
+        CutOrientation o) const
+{
+    for (const Defect& k: bin(i).defects)
+        if (left(k, o) < x && right(k, o) > x)
+            return k.id;
+    return -1;
 }
 
 }

@@ -10,7 +10,8 @@ using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 
 std::istream& packingsolver::rectangleguillotine::operator>>(
-        std::istream& in, CutType1& cut_type_1)
+        std::istream& in,
+        CutType1& cut_type_1)
 {
     std::string token;
     in >> token;
@@ -25,7 +26,8 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 }
 
 std::istream& packingsolver::rectangleguillotine::operator>>(
-        std::istream& in, CutType2& cut_type_2)
+        std::istream& in,
+        CutType2& cut_type_2)
 {
     std::string token;
     in >> token;
@@ -44,7 +46,8 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 }
 
 std::istream& packingsolver::rectangleguillotine::operator>>(
-        std::istream& in, CutOrientation& o)
+        std::istream& in,
+        CutOrientation& o)
 {
     std::string token;
     in >> token;
@@ -61,7 +64,8 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, CutType1 cut_type_1)
+        std::ostream &os,
+        CutType1 cut_type_1)
 {
     switch (cut_type_1) {
     case CutType1::ThreeStagedGuillotine: {
@@ -76,7 +80,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, CutType2 cut_type_2)
+        std::ostream &os,
+        CutType2 cut_type_2)
 {
     switch (cut_type_2) {
     case CutType2::Roadef2018: {
@@ -97,7 +102,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, CutOrientation o)
+        std::ostream &os,
+        CutOrientation o)
 {
     switch (o) {
     case CutOrientation::Vertical: {
@@ -114,7 +120,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
-bool rectangleguillotine::rect_intersection(Coord c1, Rectangle r1, Coord c2, Rectangle r2)
+bool rectangleguillotine::rect_intersection(
+        Coord c1, Rectangle r1, Coord c2, Rectangle r2)
 {
     return c1.x + r1.w > c2.x
         && c2.x + r2.w > c1.x
@@ -123,14 +130,16 @@ bool rectangleguillotine::rect_intersection(Coord c1, Rectangle r1, Coord c2, Re
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, Coord xy)
+        std::ostream &os,
+        Coord xy)
 {
     os << xy.x << " " << xy.y;
     return os;
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, Rectangle r)
+        std::ostream &os,
+        Rectangle r)
 {
     os << r.w << " " << r.h;
     return os;
@@ -141,7 +150,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 ////////////////////////////////////////////////////////////////////////////////
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const ItemType& item_type)
+        std::ostream &os,
+        const ItemType& item_type)
 {
     os
         << "j " << item_type.id
@@ -156,7 +166,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BinType& bin_type)
+        std::ostream &os,
+        const BinType& bin_type)
 {
     os
         << "i " << bin_type.id
@@ -168,7 +179,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const Defect& defect)
+        std::ostream &os,
+        const Defect& defect)
 {
     os
         << "k " << defect.id
@@ -192,22 +204,30 @@ Area Instance::previous_bin_area(BinPos i_pos) const
     return b.previous_bin_area + b.rect.area() * (i_pos - b.previous_bin_copies);
 }
 
-void Instance::add_item_type(Length w, Length h, Profit p, ItemPos copies, bool oriented, bool new_stack)
+ItemTypeId Instance::add_item_type(
+        Length w,
+        Length h,
+        Profit p,
+        ItemPos copies,
+        bool oriented,
+        bool new_stack)
 {
     ItemType item_type;
-    item_type.id       = item_types_.size();
-    item_type.rect.w   = w;
-    item_type.rect.h   = h;
-    item_type.profit   = (p == -1)? w * h: p;
-    item_type.copies   = copies;
-    item_type.stack    = (new_stack)? number_of_stacks(): number_of_stacks() - 1;
+    item_type.id = item_types_.size();
+    item_type.rect.w = w;
+    item_type.rect.h = h;
+    item_type.profit = (p == -1)? w * h: p;
+    item_type.copies = copies;
+    item_type.stack = (new_stack)? number_of_stacks(): number_of_stacks() - 1;
     item_type.oriented = oriented;
     item_types_.push_back(item_type);
 
-    number_of_items_ += copies; // Update number_of_items_
-    length_sum_ += item_type.copies * std::max(item_type.rect.w, item_type.rect.h); // Update length_sum_
+    // Update number_of_items_.
+    number_of_items_ += copies;
+    // Update length_sum_.
+    length_sum_ += item_type.copies * std::max(item_type.rect.w, item_type.rect.h);
 
-    // Update stacks_
+    // Update stacks_.
     if (new_stack) {
         stacks_.push_back({});
         items_pos2type_.push_back({});
@@ -216,18 +236,55 @@ void Instance::add_item_type(Length w, Length h, Profit p, ItemPos copies, bool 
     for (ItemPos pos = 0; pos < copies; ++pos)
         items_pos2type_.back().push_back(item_type.id);
 
-    // Compute item area and profit
-    item_area_   += item_type.copies * item_type.rect.area();
+    // Update item_area_ and item_profit_.
+    item_area_ += item_type.copies * item_type.rect.area();
     item_profit_ += item_type.copies * item_type.profit;
     if (max_efficiency_item_ == -1
             || (item_types_[max_efficiency_item_].profit * item_type.rect.area()
                 < item_type.profit * item_types_[max_efficiency_item_].rect.area()))
         max_efficiency_item_ = item_type.id;
+
+    return item_type.id;
 }
 
-void Instance::add_bin_type(Length w, Length h, Profit cost, BinPos copies, BinPos copies_min)
+BinTypeId Instance::add_bin_type(
+        Length w,
+        Length h,
+        Profit cost,
+        BinPos copies,
+        BinPos copies_min)
 {
-    assert(copies_min <= copies);
+    if (w <= 0) {
+        throw std::runtime_error(
+                "'rectangleguillotine::Instance::add_bin_type'"
+                " requires 'w > 0'.");
+    }
+    if (h <= 0) {
+        throw std::runtime_error(
+                "'rectangleguillotine::Instance::add_bin_type'"
+                " requires 'h > 0'.");
+    }
+    if (cost < 0 && cost != -1) {
+        throw std::runtime_error(
+                "'rectangleguillotine::Instance::add_bin_type'"
+                " requires 'cost >= 0' or 'cost == -1'.");
+    }
+    if (copies <= 0) {
+        throw std::runtime_error(
+                "'rectangleguillotine::Instance::add_bin_type'"
+                " requires 'copies > 0'.");
+    }
+    if (copies_min < 0) {
+        throw std::runtime_error(
+                "'rectangleguillotine::Instance::add_bin_type'"
+                " requires 'copies_min >= 0'.");
+    }
+    if (copies_min > copies) {
+        throw std::runtime_error(
+                "'rectangleguillotine::Instance::add_bin_type'"
+                " requires 'copies_min <= copies'.");
+    }
+
     BinType bin_type;
     bin_type.id = bin_types_.size();
     bin_type.rect.w = w;
@@ -236,14 +293,18 @@ void Instance::add_bin_type(Length w, Length h, Profit cost, BinPos copies, BinP
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
     bin_type.previous_bin_area = (number_of_bins() == 0)? 0:
-        bin_types_.back().previous_bin_area + bin_types_.back().rect.area() * bin_types_.back().copies;
+        bin_types_.back().previous_bin_area
+        + bin_types_.back().rect.area() * bin_types_.back().copies;
     bin_type.previous_bin_copies = (number_of_bins() == 0)? 0:
         bin_types_.back().previous_bin_copies + bin_types_.back().copies;
     bin_types_.push_back(bin_type);
 
     for (ItemPos pos = 0; pos < copies; ++pos)
         bins_pos2type_.push_back(bin_type.id);
-    packable_area_ += bin_types_.back().copies * bin_types_.back().rect.area(); // Update packable_area_;
+    // Update packable_area_.
+    packable_area_ += bin_types_.back().copies * bin_types_.back().rect.area();
+
+    return bin_type.id;
 }
 
 void Instance::add_defect(BinTypeId i, Length x, Length y, Length w, Length h)
@@ -280,8 +341,16 @@ void Instance::set_bin_infinite_copies()
     bins_pos2type_.clear();
     for (BinTypeId i = 0; i < number_of_bin_types(); ++i) {
         bin_types_[i].copies = number_of_items();
+        bin_types_[i].previous_bin_area = (i == 0)?
+            0:
+            bin_types_[i - 1].previous_bin_area
+            + bin_types_[i - 1].rect.area() * bin_types_[i - 1].copies;
+        bin_types_[i].previous_bin_copies = (i == 0)?
+            0:
+            bin_types_[i - 1].previous_bin_copies + bin_types_[i - 1].copies;
         for (ItemPos pos = 0; pos < bin_types_[i].copies; ++pos)
             bins_pos2type_.push_back(i);
+        packable_area_ += bin_types_[i].copies * bin_types_[i].rect.area();
     }
 }
 
@@ -290,19 +359,19 @@ void Instance::set_item_infinite_copies()
     for (StackId s = 0; s < number_of_stacks(); ++s) {
         items_pos2type_[s].clear();
         for (ItemType& item: stacks_[s]) {
-            number_of_items_    -= item.copies;
-            item_area_      -= item.copies * item.rect.area();
-            item_profit_    -= item.copies * item.profit;
-            length_sum_     -= item.copies * std::max(item.rect.w, item.rect.h);
+            number_of_items_ -= item.copies;
+            item_area_ -= item.copies * item.rect.area();
+            item_profit_ -= item.copies * item.profit;
+            length_sum_ -= item.copies * std::max(item.rect.w, item.rect.h);
 
             ItemPos c = (bin_types_[0].rect.area() - 1) / item.rect.area() + 1;
             item.copies = c;
             item_types_[item.id].copies = c;
 
-            number_of_items_    += item.copies;
-            length_sum_     += item.copies * std::max(item.rect.w, item.rect.h);
-            item_area_      += item.copies * item.rect.area();
-            item_profit_    += item.copies * item.profit;
+            number_of_items_ += item.copies;
+            length_sum_ += item.copies * std::max(item.rect.w, item.rect.h);
+            item_area_ += item.copies * item.rect.area();
+            item_profit_ += item.copies * item.profit;
 
             for (ItemPos pos = 0; pos < item.copies; ++pos)
                 items_pos2type_[s].push_back(item.id);
@@ -430,10 +499,10 @@ Instance::Instance(
         while (getline(f_defects, tmp)) {
             line = optimizationtools::split(tmp, ',');
             BinTypeId i = -1;
-            Length    x = -1;
-            Length    y = -1;
-            Length    w = -1;
-            Length    h = -1;
+            Length x = -1;
+            Length y = -1;
+            Length w = -1;
+            Length h = -1;
             for (Counter c = 0; c < (Counter)line.size(); ++c) {
                 if (labels[c] == "BIN") {
                     i = (BinTypeId)std::stol(line[c]);
@@ -473,36 +542,36 @@ Instance::Instance(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const Instance& instance)
+        std::ostream &os,
+        const Instance& instance)
 {
     os
-        << "objective " << instance.objective() << std::endl
-        << "item type number " << instance.number_of_item_types() << " - item number " << instance.number_of_items() << std::endl
-        << "bin type number " << instance.number_of_bin_types() << " - bin number " << instance.number_of_bins() << std::endl
-        << "defect number " << instance.number_of_defects() << std::endl;
+        << "objective " << instance.objective()
+        << std::endl
+        << "number of item types " << instance.number_of_item_types()
+        << " number of items " << instance.number_of_items()
+        << std::endl
+        << "number of bin types " << instance.number_of_bin_types()
+        << " number of bins " << instance.number_of_bins()
+        << std::endl
+        << "number of defects " << instance.number_of_defects()
+        << std::endl;
 
-    os << "Items" << std::endl;
+    os << "items" << std::endl;
     for (ItemTypeId j = 0; j < instance.number_of_item_types(); ++j)
         os << instance.item_type(j) << std::endl;
 
-    //os << "Stacks" << std::endl;
-    //for (StackId s = 0; s < instance.number_of_stacks(); ++s) {
-    //    os << "Stack " << s << std::endl;
-    //    for (ItemPos pos = 0; pos < instance.stack_size(s); ++pos)
-    //        os << instance.item(s, pos) << std::endl;
-    //}
-
-    os << "Bins" << std::endl;
+    os << "bins" << std::endl;
     for (BinTypeId i = 0; i < instance.number_of_bin_types(); ++i)
         os << instance.bin_type(i) << std::endl;
 
-    os << "Defects" << std::endl;
+    os << "defects" << std::endl;
     for (DefectId k = 0; k < instance.number_of_defects(); ++k)
         os << instance.defect(k) << std::endl;
 
-    os << "Defects by bins" << std::endl;
+    os << "defects by bins" << std::endl;
     for (BinTypeId i = 0; i < instance.number_of_bin_types(); ++i) {
-        os << "Bin " << i << std::endl;
+        os << "bin " << i << std::endl;
         for (const Defect& defect: instance.bin_type(i).defects)
             os << defect << std::endl;
     }
@@ -553,56 +622,5 @@ void Instance::write(std::string instance_path) const
             f_defects << k << "," << de.bin_id << "," << de.pos.x << "," << de.pos.y << "," << de.rect.w << "," << de.rect.h << std::endl;
         }
     }
-}
-
-DefectId Instance::rect_intersects_defect(
-        Length l, Length r, Length b, Length t, BinTypeId i, CutOrientation o) const
-{
-    assert(l <= r);
-    assert(b <= t);
-    for (const Defect& defect: bin(i).defects) {
-        if (left(defect, o) >= r)
-            continue;
-        if (l >= right(defect, o))
-            continue;
-        if (bottom(defect, o) >= t)
-            continue;
-        if (b >= top(defect, o))
-            continue;
-        return defect.id;
-    }
-    return -1;
-}
-
-DefectId Instance::item_intersects_defect(
-        Length l, Length b, const ItemType& item_type, bool rotate, BinTypeId i, CutOrientation o) const
-{
-    return rect_intersects_defect(
-            l, l + width(item_type, rotate, o),
-            b, b + height(item_type, rotate, o),
-            i, o);
-}
-
-DefectId Instance::y_intersects_defect(
-        Length l, Length r, Length y, BinTypeId i, CutOrientation o) const
-{
-    DefectId k_min = -1;
-    for (const Defect& k: bin(i).defects) {
-        if (right(k, o) <= l || left(k, o) >= r)
-            continue;
-        if (bottom(k, o) >= y || top(k, o) <= y)
-            continue;
-        if (k_min == -1 || left(k, o) < left(defect(k_min), o))
-            k_min = k.id;
-    }
-    return k_min;
-}
-
-DefectId Instance::x_intersects_defect(Length x, BinTypeId i, CutOrientation o) const
-{
-    for (const Defect& k: bin(i).defects)
-        if (left(k, o) < x && right(k, o) > x)
-            return k.id;
-    return -1;
 }
 
