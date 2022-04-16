@@ -203,7 +203,7 @@ int run(
         parameters.info = info;
         dynamic_programming_a_star(branching_scheme, solution_pool, parameters);
     } else {
-        VER(info, "WARNING: unknown algorithm \"" << algorithm_args[0] << "\"" << std::endl);
+        FFOT_VER(info, "WARNING: unknown algorithm \"" << algorithm_args[0] << "\"" << std::endl);
     }
     return 0;
 }
@@ -221,7 +221,7 @@ int run_rectangleguillotine(
         rectangleguillotine::BranchingScheme branching_scheme(instance, parameters);
         run(algorithm_str, branching_scheme, solution_pool, thread_id, info);
     } else {
-        VER(info, "WARNING: unknown branching scheme \"" << branching_scheme_args[0] << "\"" << std::endl);
+        FFOT_VER(info, "WARNING: unknown branching scheme \"" << branching_scheme_args[0] << "\"" << std::endl);
     }
     return 0;
 }

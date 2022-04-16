@@ -196,49 +196,49 @@ void Solution::display(
     double t = info.elapsed_time();
 
     std::string sol_str = "Solution" + std::to_string(info.output->number_of_solutions);
-    VER(info, std::left << std::setw(6) << info.output->number_of_solutions);
-    PUT(info, sol_str, "Algorithm", algorithm.str());
-    VER(info, std::left << std::setw(32) << algorithm.str());
+    FFOT_VER(info, std::left << std::setw(6) << info.output->number_of_solutions);
+    FFOT_PUT(info, sol_str, "Algorithm", algorithm.str());
+    FFOT_VER(info, std::left << std::setw(32) << algorithm.str());
     switch (instance().objective()) {
     case Objective::Default: {
-        PUT(info, sol_str, "Profit", profit());
-        PUT(info, sol_str, "Full", (full())? 1: 0);
-        PUT(info, sol_str, "Waste", waste());
-        VER(info, std::left << std::setw(12) << profit());
-        VER(info, std::left << std::setw(6) << full());
-        VER(info, std::left << std::setw(12) << waste());
+        FFOT_PUT(info, sol_str, "Profit", profit());
+        FFOT_PUT(info, sol_str, "Full", (full())? 1: 0);
+        FFOT_PUT(info, sol_str, "Waste", waste());
+        FFOT_VER(info, std::left << std::setw(12) << profit());
+        FFOT_VER(info, std::left << std::setw(6) << full());
+        FFOT_VER(info, std::left << std::setw(12) << waste());
         break;
     } case Objective::BinPacking: {
-        PUT(info, sol_str, "NumberOfBins", number_of_bins());
-        PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        VER(info, std::left << std::setw(8) << number_of_bins());
-        VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
+        FFOT_PUT(info, sol_str, "NumberOfBins", number_of_bins());
+        FFOT_PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
+        FFOT_VER(info, std::left << std::setw(8) << number_of_bins());
+        FFOT_VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
         break;
     } case Objective::BinPackingWithLeftovers: {
-        PUT(info, sol_str, "Waste", waste());
-        PUT(info, sol_str, "WastePercentage", 100 * waste_percentage());
-        VER(info, std::left << std::setw(12) << waste());
-        VER(info, std::left << std::setw(12) << 100 * waste_percentage());
+        FFOT_PUT(info, sol_str, "Waste", waste());
+        FFOT_PUT(info, sol_str, "WastePercentage", 100 * waste_percentage());
+        FFOT_VER(info, std::left << std::setw(12) << waste());
+        FFOT_VER(info, std::left << std::setw(12) << 100 * waste_percentage());
         break;
     } case Objective::StripPackingWidth: {
-        PUT(info, sol_str, "Width", width());
-        VER(info, std::left << std::setw(12) << width());
+        FFOT_PUT(info, sol_str, "Width", width());
+        FFOT_VER(info, std::left << std::setw(12) << width());
         break;
     } case Objective::StripPackingHeight: {
-        PUT(info, sol_str, "Height", height());
-        VER(info, std::left << std::setw(12) << height());
+        FFOT_PUT(info, sol_str, "Height", height());
+        FFOT_VER(info, std::left << std::setw(12) << height());
         break;
     } case Objective::Knapsack: {
-        PUT(info, sol_str, "Profit", profit());
-        VER(info, std::left << std::setw(14) << profit());
+        FFOT_PUT(info, sol_str, "Profit", profit());
+        FFOT_VER(info, std::left << std::setw(14) << profit());
         break;
     } case Objective::VariableSizedBinPacking: {
-        PUT(info, sol_str, "Cost", cost());
-        PUT(info, sol_str, "NumberOfBins", number_of_bins());
-        PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        VER(info, std::left << std::setw(14) << cost());
-        VER(info, std::left << std::setw(8) << number_of_bins());
-        VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
+        FFOT_PUT(info, sol_str, "Cost", cost());
+        FFOT_PUT(info, sol_str, "NumberOfBins", number_of_bins());
+        FFOT_PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
+        FFOT_VER(info, std::left << std::setw(14) << cost());
+        FFOT_VER(info, std::left << std::setw(8) << number_of_bins());
+        FFOT_VER(info, std::left << std::setw(16) << 100 * full_waste_percentage());
         break;
     } default: {
         std::stringstream ss;
@@ -247,8 +247,8 @@ void Solution::display(
         throw std::logic_error(ss.str());
     }
     }
-    PUT(info, sol_str, "Time", t);
-    VER(info, t << std::endl);
+    FFOT_PUT(info, sol_str, "Time", t);
+    FFOT_VER(info, t << std::endl);
 
     if (!info.output->only_write_at_the_end) {
         info.write_json_output();
@@ -258,35 +258,35 @@ void Solution::display(
 
 void Solution::algorithm_start(Info& info) const
 {
-    VER(info, std::left << std::setw(6) << "Sol");
-    VER(info, std::left << std::setw(32) << "Comment");
+    FFOT_VER(info, std::left << std::setw(6) << "Sol");
+    FFOT_VER(info, std::left << std::setw(32) << "Comment");
     switch (instance().objective()) {
     case Objective::Default: {
-        VER(info, std::left << std::setw(12) << "Profit");
-        VER(info, std::left << std::setw(6) << "Full");
-        VER(info, std::left << std::setw(12) << "Waste");
+        FFOT_VER(info, std::left << std::setw(12) << "Profit");
+        FFOT_VER(info, std::left << std::setw(6) << "Full");
+        FFOT_VER(info, std::left << std::setw(12) << "Waste");
         break;
     } case Objective::BinPacking: {
-        VER(info, std::left << std::setw(8) << "Bins");
-        VER(info, std::left << std::setw(16) << "Full waste (%)");
+        FFOT_VER(info, std::left << std::setw(8) << "Bins");
+        FFOT_VER(info, std::left << std::setw(16) << "Full waste (%)");
         break;
     } case Objective::BinPackingWithLeftovers: {
-        VER(info, std::left << std::setw(12) << "Waste");
-        VER(info, std::left << std::setw(12) << "Waste (%)");
+        FFOT_VER(info, std::left << std::setw(12) << "Waste");
+        FFOT_VER(info, std::left << std::setw(12) << "Waste (%)");
         break;
     } case Objective::StripPackingWidth: {
-        VER(info, std::left << std::setw(12) << "Width");
+        FFOT_VER(info, std::left << std::setw(12) << "Width");
         break;
     } case Objective::StripPackingHeight: {
-        VER(info, std::left << std::setw(12) << "Height");
+        FFOT_VER(info, std::left << std::setw(12) << "Height");
         break;
     } case Objective::Knapsack: {
-        VER(info, std::left << std::setw(14) << "Profit");
+        FFOT_VER(info, std::left << std::setw(14) << "Profit");
         break;
     } case Objective::VariableSizedBinPacking: {
-        VER(info, std::left << std::setw(14) << "Cost");
-        VER(info, std::left << std::setw(8) << "Bins");
-        VER(info, std::left << std::setw(16) << "Full waste (%)");
+        FFOT_VER(info, std::left << std::setw(14) << "Cost");
+        FFOT_VER(info, std::left << std::setw(8) << "Bins");
+        FFOT_VER(info, std::left << std::setw(16) << "Full waste (%)");
         break;
     } default: {
         std::stringstream ss;
@@ -295,56 +295,56 @@ void Solution::algorithm_start(Info& info) const
         throw std::logic_error(ss.str());
     }
     }
-    VER(info, "Time" << std::endl);
+    FFOT_VER(info, "Time" << std::endl);
 }
 
 void Solution::algorithm_end(Info& info) const
 {
     double t = info.elapsed_time();
-    VER(info, "---" << std::endl);
+    FFOT_VER(info, "---" << std::endl);
 
     std::string sol_str = "Solution";
     switch (instance().objective()) {
     case Objective::Default: {
-        PUT(info, sol_str, "Profit", profit());
-        PUT(info, sol_str, "Full", (full())? 1: 0);
-        PUT(info, sol_str, "Waste", waste());
-        VER(info, "Profit: " << profit() << std::endl);
-        VER(info, "Full: " << full() << std::endl);
-        VER(info, "Waste: " << waste() << std::endl);
+        FFOT_PUT(info, sol_str, "Profit", profit());
+        FFOT_PUT(info, sol_str, "Full", (full())? 1: 0);
+        FFOT_PUT(info, sol_str, "Waste", waste());
+        FFOT_VER(info, "Profit: " << profit() << std::endl);
+        FFOT_VER(info, "Full: " << full() << std::endl);
+        FFOT_VER(info, "Waste: " << waste() << std::endl);
         break;
     } case Objective::BinPacking: {
-        PUT(info, sol_str, "NumberOfBins", number_of_bins());
-        PUT(info, sol_str, "FullWaste", full_waste());
-        PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        VER(info, "Number of bins: " << number_of_bins() << std::endl);
-        VER(info, "Full waste (%): " << 100 * full_waste_percentage() << std::endl);
+        FFOT_PUT(info, sol_str, "NumberOfBins", number_of_bins());
+        FFOT_PUT(info, sol_str, "FullWaste", full_waste());
+        FFOT_PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
+        FFOT_VER(info, "Number of bins: " << number_of_bins() << std::endl);
+        FFOT_VER(info, "Full waste (%): " << 100 * full_waste_percentage() << std::endl);
         break;
     } case Objective::BinPackingWithLeftovers: {
-        PUT(info, sol_str, "Waste", waste());
-        PUT(info, sol_str, "WastePercentage", 100 * waste_percentage());
-        VER(info, "Waste: " << waste() << std::endl);
-        VER(info, "Waste (%): " << 100 * waste_percentage() << std::endl);
+        FFOT_PUT(info, sol_str, "Waste", waste());
+        FFOT_PUT(info, sol_str, "WastePercentage", 100 * waste_percentage());
+        FFOT_VER(info, "Waste: " << waste() << std::endl);
+        FFOT_VER(info, "Waste (%): " << 100 * waste_percentage() << std::endl);
         break;
     } case Objective::StripPackingWidth: {
-        PUT(info, sol_str, "Width", width());
-        VER(info, "Width: " << width() << std::endl);
+        FFOT_PUT(info, sol_str, "Width", width());
+        FFOT_VER(info, "Width: " << width() << std::endl);
         break;
     } case Objective::StripPackingHeight: {
-        PUT(info, sol_str, "Height", height());
-        VER(info, "Height: " << height() << std::endl);
+        FFOT_PUT(info, sol_str, "Height", height());
+        FFOT_VER(info, "Height: " << height() << std::endl);
         break;
     } case Objective::Knapsack: {
-        PUT(info, sol_str, "Profit", profit());
-        VER(info, "Profit: " << profit() << std::endl);
+        FFOT_PUT(info, sol_str, "Profit", profit());
+        FFOT_VER(info, "Profit: " << profit() << std::endl);
         break;
     } case Objective::VariableSizedBinPacking: {
-        PUT(info, sol_str, "Cost", cost());
-        PUT(info, sol_str, "NumberOfBins", number_of_bins());
-        PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        VER(info, "Cost: " << cost() << std::endl);
-        VER(info, "Number of bins: " << number_of_bins() << std::endl);
-        VER(info, "Full waste (%): " << 100 * full_waste_percentage() << std::endl);
+        FFOT_PUT(info, sol_str, "Cost", cost());
+        FFOT_PUT(info, sol_str, "NumberOfBins", number_of_bins());
+        FFOT_PUT(info, sol_str, "FullWastePercentage", 100 * full_waste_percentage());
+        FFOT_VER(info, "Cost: " << cost() << std::endl);
+        FFOT_VER(info, "Number of bins: " << number_of_bins() << std::endl);
+        FFOT_VER(info, "Full waste (%): " << 100 * full_waste_percentage() << std::endl);
         break;
     } default: {
         std::stringstream ss;
@@ -353,8 +353,8 @@ void Solution::algorithm_end(Info& info) const
         throw std::logic_error(ss.str());
     }
     }
-    PUT(info, sol_str, "Time", t);
-    VER(info, "Time: " << t << std::endl);
+    FFOT_PUT(info, sol_str, "Time", t);
+    FFOT_VER(info, "Time: " << t << std::endl);
 
     info.write_json_output();
     write(info);

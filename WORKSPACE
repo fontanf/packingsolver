@@ -34,8 +34,8 @@ cc_library(
 git_repository(
     name = "optimizationtools",
     remote = "https://github.com/fontanf/optimizationtools.git",
-    commit = "c2df60575bed9af3cfb8652bc3c859f98b52b58c",
-    shallow_since = "1630764843 +0200",
+    commit = "1c91ba9fd7e90888ae048584cf02264783cc97a9",
+    shallow_since = "1650093371 +0200",
 )
 
 local_repository(
@@ -46,8 +46,8 @@ local_repository(
 git_repository(
     name = "columngenerationsolver",
     remote = "https://github.com/fontanf/columngenerationsolver.git",
-    commit = "f0261d0f621e2c342aeca86f404d5f92fff3fc7a",
-    shallow_since = "1630823896 +0200",
+    commit = "e1f129fb7f912996d98bcefe1ba42d84ad5a62c9",
+    shallow_since = "1649493214 +0200",
 )
 
 local_repository(
