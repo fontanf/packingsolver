@@ -317,8 +317,10 @@ int main(int argc, char *argv[])
     std::vector<std::string> parameters;
     if (parameters_path != "") {
         std::ifstream parameters_file(parameters_path);
-        if (!parameters_file.good())
-            std::cerr << "\033[31m" << "ERROR, unable to open file \"" << parameters_path << "\"" << "\033[0m" << std::endl;
+        if (!parameters_file.good()) {
+            throw std::runtime_error(
+                    "Unable to open file \"" + parameters_path + "\".");
+        }
         std::string parameters_line;
         std::getline(parameters_file, parameters_line);
         parameters = po::split_unix(parameters_line);

@@ -52,7 +52,11 @@ Solution::Solution(const Solution& solution):
 Solution& Solution::operator=(const Solution& solution)
 {
     if (this != &solution) {
-        assert(&instance_ == &solution.instance_);
+        if (&instance_ != &solution.instance_) {
+            throw std::runtime_error(
+                    "Assign a solution to a solution from a different instance.");
+        }
+
         nodes_           = solution.nodes_;
         number_of_items_ = solution.number_of_items_;
         number_of_bins_  = solution.number_of_bins_;
@@ -67,7 +71,6 @@ Solution& Solution::operator=(const Solution& solution)
         item_copies_     = solution.item_copies_;
         assert(number_of_items_ >= 0);
     }
-    assert(&instance_ == &solution.instance_);
     return *this;
 }
 
