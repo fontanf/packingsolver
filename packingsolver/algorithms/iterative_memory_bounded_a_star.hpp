@@ -31,7 +31,7 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
 {
     using Insertion = typename BranchingScheme::Insertion;
 
-    LOG_FOLD_START(parameters.info, "IMBA*" << std::endl);
+    FFOT_LOG_FOLD_START(parameters.info, "IMBA*" << std::endl);
     IterativeMemoryBoundedAStarOutput output;
     auto node_hasher = branching_scheme.node_hasher();
 
@@ -40,7 +40,7 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
             output.queue_size_max = output.queue_size_max * parameters.growth_factor) {
         if (output.queue_size_max == (Counter)(output.queue_size_max * parameters.growth_factor))
             output.queue_size_max++;
-        LOG_FOLD_START(parameters.info, "queue_size_max " << output.queue_size_max << std::endl);
+        FFOT_LOG_FOLD_START(parameters.info, "queue_size_max " << output.queue_size_max << std::endl);
 
         // Initialize queue
         NodeMap<BranchingScheme> history{0, node_hasher, node_hasher};
@@ -50,17 +50,17 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
 
         while (!q.empty()) {
             output.number_of_nodes++;
-            LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
+            FFOT_LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
 
             // Check end.
             if (parameters.info.needs_to_end()) {
-                LOG_FOLD_END(parameters.info, "");
+                FFOT_LOG_FOLD_END(parameters.info, "");
                 goto mbastarend;
             }
 
             if (parameters.maximum_number_of_nodes != -1
                     && output.number_of_nodes > parameters.maximum_number_of_nodes) {
-                LOG_FOLD_END(parameters.info, "");
+                FFOT_LOG_FOLD_END(parameters.info, "");
                 goto mbastarend;
             }
 
@@ -71,7 +71,7 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
 
             // Bound.
             if (branching_scheme.bound(*node_cur, solution_pool.worst())) {
-                LOG_FOLD_END(parameters.info, "bound ×");
+                FFOT_LOG_FOLD_END(parameters.info, "bound ×");
                 continue;
             }
 
@@ -80,7 +80,7 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
 
                 // Bound.
                 if (branching_scheme.bound(*child, solution_pool.worst())) {
-                    LOG(parameters.info, " bound ×" << std::endl);
+                    FFOT_LOG(parameters.info, " bound ×" << std::endl);
                     continue;
                 }
 
@@ -92,7 +92,7 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
                 }
 
                 // Add child to the queue.
-                LOG(parameters.info, " add" << std::endl);
+                FFOT_LOG(parameters.info, " add" << std::endl);
                 if (!branching_scheme.leaf(*child)) {
                     if ((Counter)q.size() < output.queue_size_max
                             || branching_scheme(child, *(std::prev(q.end())))) {
@@ -105,20 +105,20 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
                 }
             }
 
-            LOG_FOLD_END(parameters.info, "");
+            FFOT_LOG_FOLD_END(parameters.info, "");
         }
 
-        LOG_FOLD_END(parameters.info, "");
+        FFOT_LOG_FOLD_END(parameters.info, "");
         std::stringstream ss;
         ss << "IMBA* (thread " << parameters.thread_id << ")";
-        PUT(parameters.info, ss.str(), "QueueMaxSize", output.queue_size_max);
+        FFOT_PUT(parameters.info, ss.str(), "QueueMaxSize", output.queue_size_max);
     }
 mbastarend:
 
     std::stringstream ss;
     ss << "IMBA* (thread " << parameters.thread_id << ")";
-    PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
-    LOG_FOLD_END(parameters.info, "");
+    FFOT_PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
+    FFOT_LOG_FOLD_END(parameters.info, "");
     return output;
 }
 

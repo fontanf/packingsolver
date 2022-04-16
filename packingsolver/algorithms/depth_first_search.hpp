@@ -27,18 +27,18 @@ inline void rec(
     using Node = typename BranchingScheme::Node;
     using Insertion = typename BranchingScheme::Insertion;
 
-    LOG_FOLD_START(parameters.info, "rec" << std::endl);
+    FFOT_LOG_FOLD_START(parameters.info, "rec" << std::endl);
     output.number_of_nodes++;
 
     // Check end
     if (parameters.info.needs_to_end()) {
-        LOG_FOLD_END(parameters.info, "");
+        FFOT_LOG_FOLD_END(parameters.info, "");
         return;
     }
 
     // Bound
     if (branching_scheme.bound(*node_cur, solution_pool.worst())) {
-        LOG(parameters.info, " bound ×" << std::endl);
+        FFOT_LOG(parameters.info, " bound ×" << std::endl);
         return;
     }
 
@@ -48,7 +48,7 @@ inline void rec(
 
         // Bound
         if (branching_scheme.bound(*child, solution_pool.worst())) {
-            LOG(parameters.info, " bound ×" << std::endl);
+            FFOT_LOG(parameters.info, " bound ×" << std::endl);
             continue;
         }
 
@@ -69,7 +69,7 @@ inline void rec(
     for (const auto& child: children)
         rec(branching_scheme, solution_pool, parameters, child, output);
 
-    LOG_FOLD_END(parameters.info, "");
+    FFOT_LOG_FOLD_END(parameters.info, "");
 }
 
 template <typename Instance, typename Solution, typename BranchingScheme>

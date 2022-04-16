@@ -246,13 +246,13 @@ void column_generation_heuristic_variable_sized_bin_packing(
         };
     op.info.set_time_limit(info.remaining_time());
     //op.info.set_verbose(true);
-    op.columngeneration_parameters.linear_programming_solver
+    op.column_generation_parameters.linear_programming_solver
         = columngenerationsolver::LinearProgrammingSolver::CPLEX;
     //op.columngeneration_parameters.self_adjusting_wentges_smoothing = true;
     //op.columngeneration_parameters.automatic_directional_smoothing = true;
     //op.columngeneration_parameters.info.set_verbose(true);
 
-    auto output_limiteddiscrepancysearch = columngenerationsolver::heuristictreesearch( p, op);
+    auto output_limiteddiscrepancysearch = columngenerationsolver::heuristic_tree_search(p, op);
 }
 
 }

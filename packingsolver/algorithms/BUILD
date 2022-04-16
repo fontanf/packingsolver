@@ -9,8 +9,8 @@ cc_library(
         hdrs = ["common.hpp"],
         srcs = ["common.cpp"],
         deps = [
-                "@optimizationtools//optimizationtools:info",
-                "@optimizationtools//optimizationtools:utils",
+                "@optimizationtools//optimizationtools/utils:info",
+                "@optimizationtools//optimizationtools/utils:utils",
         ],
         visibility = ["//visibility:public"],
 )

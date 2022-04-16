@@ -505,7 +505,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         Info& info) const
 {
     const Node& father = *pfather;
-    LOG_FOLD_START(info, "insertions" << std::endl);
+    FFOT_LOG_FOLD_START(info, "insertions" << std::endl);
 
     if (full(father))
         return {};
@@ -530,9 +530,9 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
     if (father.father == nullptr)
         df_max = -1;
 
-    LOG(info, "df_max " << df_max << " df_min " << df_min << std::endl);
+    FFOT_LOG(info, "df_max " << df_max << " df_min " << df_min << std::endl);
     for (Depth df = df_max; df >= df_min; --df) {
-        LOG(info, "df " << df << std::endl);
+        FFOT_LOG(info, "df " << df << std::endl);
         if (df == -1 && parameters_.first_stage_orientation == CutOrientation::Horinzontal)
             continue;
 
@@ -581,7 +581,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
 
             // Try adding it with a second item
             if (parameters_.cut_type_2 == CutType2::Roadef2018) {
-                LOG(info, "try adding with a second item" << std::endl);
+                FFOT_LOG(info, "try adding with a second item" << std::endl);
                 for (StackId s2 = s; s2 < instance_.number_of_stacks(); ++s2) {
                     ItemTypeId j2 = -1;
                     if (s2 == s) {
@@ -636,14 +636,14 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         }
     }
 
-    DBG(
-        LOG_FOLD_START(info, "insertions" << std::endl);
+    FFOT_DBG(
+        FFOT_LOG_FOLD_START(info, "insertions" << std::endl);
         for (const Insertion& insertion: insertions)
-            LOG(info, insertion << std::endl);
-        LOG_FOLD_END(info, "");
+            FFOT_LOG(info, insertion << std::endl);
+        FFOT_LOG_FOLD_END(info, "");
     );
 
-    LOG_FOLD_END(info, "insertions");
+    FFOT_LOG_FOLD_END(info, "insertions");
     return insertions;
 }
 
@@ -743,7 +743,7 @@ void BranchingScheme::insertion_1_item(
         const Node& father, std::vector<Insertion>& insertions,
         ItemTypeId j, bool rotate, Depth df, Info& info) const
 {
-    LOG_FOLD_START(info, "insertion_1_item"
+    FFOT_LOG_FOLD_START(info, "insertion_1_item"
             << " j " << j << " rotate " << rotate << " df " << df << std::endl);
     assert(-2 <= df); assert(df <= 3);
 
@@ -755,24 +755,24 @@ void BranchingScheme::insertion_1_item(
     Length y = y2_prev(father, df) + instance_.height(item, rotate, o);
     Length w = instance_.bin(i).width(o);
     Length h = instance_.bin(i).height(o);
-    LOG(info, "x3_prev(df) " << x3_prev(father, df) << " y2_prev(df) " << y2_prev(father, df)
+    FFOT_LOG(info, "x3_prev(df) " << x3_prev(father, df) << " y2_prev(df) " << y2_prev(father, df)
             << " i " << i
             << " w " << instance_.width(item, rotate, o)
             << " h " << instance_.height(item, rotate, o)
             << std::endl);
     if (x > w) {
-        LOG_FOLD_END(info, "too wide x " << x << " > w " << w);
+        FFOT_LOG_FOLD_END(info, "too wide x " << x << " > w " << w);
         return;
     }
     if (y > h) {
-        LOG_FOLD_END(info, "too high y " << y << " > h " << h);
+        FFOT_LOG_FOLD_END(info, "too high y " << y << " > h " << h);
         return;
     }
 
     // Homogenous
     if (df == 2 && parameters_.cut_type_2 == CutType2::Homogenous
             && father.j1 != j) {
-        LOG_FOLD_END(info, "homogenous father.j1 " << father.j1 << " j " << j);
+        FFOT_LOG_FOLD_END(info, "homogenous father.j1 " << father.j1 << " j " << j);
         return;
     }
 
@@ -780,7 +780,7 @@ void BranchingScheme::insertion_1_item(
         j, -1, df,
         x, y, x,
         x1_max(father, df), y2_max(father, df, x), 0, 0};
-    LOG(info, insertion << std::endl);
+    FFOT_LOG(info, insertion << std::endl);
 
     // Check defect intersection
     DefectId k = instance_.item_intersects_defect(
@@ -792,7 +792,7 @@ void BranchingScheme::insertion_1_item(
             insertion.j1 = -1;
             insertion.j2 = j;
         } else {
-            LOG_FOLD_END(info, "intersects defect");
+            FFOT_LOG_FOLD_END(info, "intersects defect");
             return;
         }
     }
@@ -809,7 +809,7 @@ void BranchingScheme::insertion_2_items(
         const Node& father, std::vector<Insertion>& insertions,
         ItemTypeId j1, bool rotate1, ItemTypeId j2, bool rotate2, Depth df, Info& info) const
 {
-    LOG_FOLD_START(info, "insertion_2_items"
+    FFOT_LOG_FOLD_START(info, "insertion_2_items"
             << " j1 " << j1 << " rotate1 " << rotate1
             << " j2 " << j2 << " rotate2 " << rotate2
             << " df " << df << std::endl);
@@ -827,14 +827,14 @@ void BranchingScheme::insertion_2_items(
     Length y = y2_prev(father, df) + h_j1
         + instance_.height(item2, rotate2, o);
     if (x > w || y > h) {
-        LOG_FOLD_END(info, "too wide/high");
+        FFOT_LOG_FOLD_END(info, "too wide/high");
         return;
     }
     if (instance_.item_intersects_defect(
                 x3_prev(father, df), y2_prev(father, df), item1, rotate1, i, o) >= 0
             || instance_.item_intersects_defect(
                 x3_prev(father, df), y2_prev(father, df) + h_j1, item2, rotate2, i, o) >= 0) {
-        LOG_FOLD_END(info, "intersects defect");
+        FFOT_LOG_FOLD_END(info, "intersects defect");
         return;
     }
 
@@ -842,7 +842,7 @@ void BranchingScheme::insertion_2_items(
         j1, j2, df,
         x, y, x,
         x1_max(father, df), y2_max(father, df, x), 0, 2};
-    LOG(info, insertion << std::endl);
+    FFOT_LOG(info, insertion << std::endl);
 
     update(father, insertions, insertion, info);
 }
@@ -851,7 +851,7 @@ void BranchingScheme::insertion_defect(
         const Node& father, std::vector<Insertion>& insertions,
         const Defect& k, Depth df, Info& info) const
 {
-    LOG_FOLD_START(info, "insertion_defect"
+    FFOT_LOG_FOLD_START(info, "insertion_defect"
             << " k " << k.id << " df " << df << std::endl);
     assert(-2 <= df);
     assert(df <= 3);
@@ -865,7 +865,7 @@ void BranchingScheme::insertion_defect(
     Length x = std::max(instance_.right(k, o), x3_prev(father, df) + min_waste);
     Length y = std::max(instance_.top(k, o),   y2_prev(father, df) + min_waste);
     if (x > w || y > h) {
-        LOG_FOLD_END(info, "too wide/high");
+        FFOT_LOG_FOLD_END(info, "too wide/high");
         return;
     }
 
@@ -873,7 +873,7 @@ void BranchingScheme::insertion_defect(
         -1, -1, df,
         x, y, x,
         x1_max(father, df), y2_max(father, df, x), 1, 1};
-    LOG(info, insertion << std::endl);
+    FFOT_LOG(info, insertion << std::endl);
 
     update(father, insertions, insertion, info);
 }
@@ -946,7 +946,7 @@ void BranchingScheme::update(
 
     // Update insertion.x1 and insertion.z1 with respect to x1_curr() and z1().
     if (insertion.df >= 1) {
-        LOG(info, "i.x3 " << insertion.x3 << " x1_curr() " << father.x1_curr << std::endl);
+        FFOT_LOG(info, "i.x3 " << insertion.x3 << " x1_curr() " << father.x1_curr << std::endl);
         if (insertion.z1 == 0) {
             if (insertion.x1 + min_waste <= father.x1_curr) {
                 insertion.x1 = father.x1_curr;
@@ -979,14 +979,14 @@ void BranchingScheme::update(
 
     // Update insertion.y2 and insertion.z2 with respect to y2_curr() and z1().
     if (insertion.df == 2) {
-        LOG(info, "i.y2 " << insertion.y2 << " y2_curr() " << father.y2_curr << std::endl);
+        FFOT_LOG(info, "i.y2 " << insertion.y2 << " y2_curr() " << father.y2_curr << std::endl);
         if (insertion.z2 == 0) {
             if (insertion.y2 + min_waste <= father.y2_curr) {
                 insertion.y2 = father.y2_curr;
                 insertion.z2 = father.z2;
             } else if (insertion.y2 < father.y2_curr) { // y_curr() - min_waste < insertion.y4 < y_curr()
                 if (father.z2 == 2) {
-                    LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
                     insertion.y2 = father.y2_curr + min_waste;
@@ -1000,7 +1000,7 @@ void BranchingScheme::update(
                     insertion.z2 = 2;
             } else if (father.y2_curr < insertion.y2 && insertion.y2 < father.y2_curr + min_waste) {
                 if (father.z2 == 2) {
-                    LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
                     insertion.y2 = insertion.y2 + min_waste;
@@ -1009,7 +1009,7 @@ void BranchingScheme::update(
                 }
             } else { // y2_curr() + min_waste <= insertion.y2
                 if (father.z2 == 2) {
-                    LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 }
             }
@@ -1019,7 +1019,7 @@ void BranchingScheme::update(
                 insertion.z2 = father.z2;
             } else if (father.y2_curr < insertion.y2 && insertion.y2 < father.y2_curr + min_waste) {
                 if (father.z2 == 2) {
-                    LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
                     insertion.y2 = father.y2_curr + min_waste;
@@ -1027,27 +1027,27 @@ void BranchingScheme::update(
                 }
             } else {
                 if (father.z2 == 2) {
-                    LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 }
             }
         } else { // insertion.z2 == 2
             if (insertion.y2 < father.y2_curr) {
-                LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                 return;
             } else if (insertion.y2 == father.y2_curr) {
             } else if (father.y2_curr < insertion.y2 && insertion.y2 < father.y2_curr + min_waste) {
                 if (father.z2 == 2) {
-                    LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
-                    LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else { // z2() == 1
                 }
             } else { // y2_curr() + min_waste <= insertion.y2
                 if (father.z2 == 2) {
-                    LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
+                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 }
             }
@@ -1072,19 +1072,19 @@ void BranchingScheme::update(
             insertion.x1 = w;
             insertion.z1 = 0;
         } else { // insertion.z1 == 0
-            LOG(info, insertion << std::endl);
-            LOG_FOLD_END(info, "too long w - min_waste < insertion.x1 < w and insertion.z1 == 0");
+            FFOT_LOG(info, insertion << std::endl);
+            FFOT_LOG_FOLD_END(info, "too long w - min_waste < insertion.x1 < w and insertion.z1 == 0");
             return;
         }
     }
 
     // Check max width
     if (insertion.x1 > insertion.x1_max) {
-        LOG(info, insertion << std::endl);
-        LOG_FOLD_END(info, "too long insertion.x1 > insertion.x1_max");
+        FFOT_LOG(info, insertion << std::endl);
+        FFOT_LOG_FOLD_END(info, "too long insertion.x1 > insertion.x1_max");
         return;
     }
-    LOG(info, "width OK" << std::endl);
+    FFOT_LOG(info, "width OK" << std::endl);
 
     // Update insertion.y2 and insertion.z2 with respect to defect intersections.
     bool y2_fixed = (insertion.z2 == 2 || (insertion.df == 2 && father.z2 == 2));
@@ -1098,7 +1098,7 @@ void BranchingScheme::update(
         if (k != -1) {
             const Defect& defect = instance_.defect(k);
             if (y2_fixed) {
-                LOG_FOLD_END(info, "y2_fixed");
+                FFOT_LOG_FOLD_END(info, "y2_fixed");
                 return;
             }
             insertion.y2 = (insertion.z2 == 0)?
@@ -1120,7 +1120,7 @@ void BranchingScheme::update(
                 if (k >= 0) {
                     const Defect& defect = instance_.defect(k);
                     if (y2_fixed) {
-                        LOG_FOLD_END(info, "y2_fixed");
+                        FFOT_LOG_FOLD_END(info, "y2_fixed");
                         return;
                     }
                     insertion.y2 = (insertion.z2 == 0)?
@@ -1143,7 +1143,7 @@ void BranchingScheme::update(
             if (k >= 0) {
                 const Defect& defect = instance_.defect(k);
                 if (y2_fixed) {
-                    LOG_FOLD_END(info, "y2_fixed");
+                    FFOT_LOG_FOLD_END(info, "y2_fixed");
                     return;
                 }
                 insertion.y2 = (insertion.z2 == 0)?
@@ -1153,7 +1153,7 @@ void BranchingScheme::update(
                 found = true;
             }
         }
-        LOG(info, "found " << found << std::endl);
+        FFOT_LOG(info, "found " << found << std::endl);
         if (!found)
             break;
     }
@@ -1172,7 +1172,7 @@ void BranchingScheme::update(
                     DefectId k = instance_.item_intersects_defect(
                             l, insertion.y2 - h_j2, item, jrx.rotate, i, o);
                     if (k >= 0) {
-                        LOG_FOLD_END(info, "too high");
+                        FFOT_LOG_FOLD_END(info, "too high");
                         return;
                     }
                 }
@@ -1187,35 +1187,35 @@ void BranchingScheme::update(
                 DefectId k = instance_.item_intersects_defect(
                         l, insertion.y2 - h_j2, item, rotate_j2, i, o);
                 if (k >= 0) {
-                    LOG_FOLD_END(info, "too high");
+                    FFOT_LOG_FOLD_END(info, "too high");
                     return;
                 }
             }
 
         } else { // insertion.z2 == 0 or insertion.z2 == 2
-            LOG(info, insertion << std::endl);
-            LOG_FOLD_END(info, "too high");
+            FFOT_LOG(info, insertion << std::endl);
+            FFOT_LOG_FOLD_END(info, "too high");
             return;
         }
     }
 
     // Check max height
     if (insertion.y2 > insertion.y2_max) {
-        LOG(info, insertion << std::endl);
-        LOG_FOLD_END(info, "too high");
+        FFOT_LOG(info, insertion << std::endl);
+        FFOT_LOG_FOLD_END(info, "too high");
         return;
     }
-    LOG(info, "height OK" << std::endl);
+    FFOT_LOG(info, "height OK" << std::endl);
 
     // Check dominance
     for (auto it = insertions.begin(); it != insertions.end();) {
         bool b = true;
-        LOG(info, "f_i  " << front(father, insertion) << std::endl);
-        LOG(info, "f_it " << front(father, *it) << std::endl);
+        FFOT_LOG(info, "f_i  " << front(father, insertion) << std::endl);
+        FFOT_LOG(info, "f_it " << front(father, *it) << std::endl);
         if (insertion.j1 == -1 && insertion.j2 == -1
                 && it->j1 == -1 && it->j2 == -1) {
             if (insertion.df != -1 && insertion.x1 == it->x1 && insertion.y2 == it->y2 && insertion.x3 == it->x3) {
-                LOG_FOLD_END(info, "dominated by " << *it);
+                FFOT_LOG_FOLD_END(info, "dominated by " << *it);
                 return;
             }
         }
@@ -1223,7 +1223,7 @@ void BranchingScheme::update(
                 && (insertion.j1 == -1 || insertion.j1 == it->j1 || insertion.j1 == it->j2)
                 && (insertion.j2 == -1 || insertion.j2 == it->j2 || insertion.j2 == it->j2)) {
             if (dominates(front(father, *it), front(father, insertion))) {
-                LOG_FOLD_END(info, "dominated by " << *it);
+                FFOT_LOG_FOLD_END(info, "dominated by " << *it);
                 return;
             }
         }
@@ -1231,7 +1231,7 @@ void BranchingScheme::update(
                 && (it->j1 == insertion.j1 || it->j1 == insertion.j2)
                 && (it->j2 == insertion.j2 || it->j2 == insertion.j1)) {
             if (dominates(front(father, insertion), front(father, *it))) {
-                LOG(info, "dominates " << *it << std::endl);
+                FFOT_LOG(info, "dominates " << *it << std::endl);
                 if (std::next(it) != insertions.end()) {
                     *it = insertions.back();
                     insertions.pop_back();
@@ -1247,7 +1247,7 @@ void BranchingScheme::update(
     }
 
     insertions.push_back(insertion);
-    LOG_FOLD_END(info, "ok");
+    FFOT_LOG_FOLD_END(info, "ok");
 }
 
 ////////////////////////////////////////////////////////////////////////////////

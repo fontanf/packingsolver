@@ -26,7 +26,7 @@ inline AStarOutput a_star(
 {
     using Insertion = typename BranchingScheme::Insertion;
 
-    LOG_FOLD_START(parameters.info, "astar" << std::endl);
+    FFOT_LOG_FOLD_START(parameters.info, "astar" << std::endl);
     AStarOutput output;
 
     // Initialize queue.
@@ -35,11 +35,11 @@ inline AStarOutput a_star(
 
     while (!q.empty()) {
         output.number_of_nodes++;
-        LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
+        FFOT_LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
 
         // Check end.
         if (parameters.info.needs_to_end()) {
-            LOG_FOLD_END(parameters.info, "");
+            FFOT_LOG_FOLD_END(parameters.info, "");
             break;
         }
 
@@ -49,7 +49,7 @@ inline AStarOutput a_star(
 
         // Bound.
         if (branching_scheme.bound(*node_cur, solution_pool.worst())) {
-            LOG(parameters.info, " bound ×" << std::endl);
+            FFOT_LOG(parameters.info, " bound ×" << std::endl);
             continue;
         }
 
@@ -58,7 +58,7 @@ inline AStarOutput a_star(
 
             // Bound.
             if (branching_scheme.bound(*child, solution_pool.worst())) {
-                LOG(parameters.info, " bound ×" << std::endl);
+                FFOT_LOG(parameters.info, " bound ×" << std::endl);
                 continue;
             }
 
@@ -74,13 +74,13 @@ inline AStarOutput a_star(
                 q.insert(child);
         }
 
-        LOG_FOLD_END(parameters.info, "");
+        FFOT_LOG_FOLD_END(parameters.info, "");
     }
 
     std::stringstream ss;
     ss << "A* (thread " << parameters.thread_id << ")";
-    PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
-    LOG_FOLD_END(parameters.info, "");
+    FFOT_PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
+    FFOT_LOG_FOLD_END(parameters.info, "");
     return output;
 }
 

@@ -32,7 +32,7 @@ inline IterativeBeamSearchOutput iterative_beam_search(
 {
     using Insertion = typename BranchingScheme::Insertion;
 
-    LOG_FOLD_START(parameters.info, "IBS" << std::endl);
+    FFOT_LOG_FOLD_START(parameters.info, "IBS" << std::endl);
     IterativeBeamSearchOutput output;
     auto node_hasher = branching_scheme.node_hasher();
     NodeSet<BranchingScheme> q1(branching_scheme);
@@ -69,18 +69,18 @@ inline IterativeBeamSearchOutput iterative_beam_search(
 
             while (!q->empty()) {
                 output.number_of_nodes++;
-                LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
+                FFOT_LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
 
                 // Check end.
                 if (parameters.info.needs_to_end()) {
-                    LOG_FOLD_END(parameters.info, "");
+                    FFOT_LOG_FOLD_END(parameters.info, "");
                     goto ibsend;
                 }
 
                 // Check node limit.
                 if (parameters.maximum_number_of_nodes != -1
                         && output.number_of_nodes > parameters.maximum_number_of_nodes) {
-                    LOG_FOLD_END(parameters.info, "");
+                    FFOT_LOG_FOLD_END(parameters.info, "");
                     goto ibsend;
                 }
 
@@ -90,7 +90,7 @@ inline IterativeBeamSearchOutput iterative_beam_search(
 
                 // Bound.
                 if (branching_scheme.bound(*node_cur, solution_pool.worst())) {
-                    LOG_FOLD_END(parameters.info, "bound ×");
+                    FFOT_LOG_FOLD_END(parameters.info, "bound ×");
                     continue;
                 }
 
@@ -99,7 +99,7 @@ inline IterativeBeamSearchOutput iterative_beam_search(
 
                     // Bound.
                     if (branching_scheme.bound(*child, solution_pool.worst())) {
-                        LOG(parameters.info, " bound ×" << std::endl);
+                        FFOT_LOG(parameters.info, " bound ×" << std::endl);
                         continue;
                     }
 
@@ -156,8 +156,8 @@ ibsend:
 
     std::stringstream ss;
     ss << "IBS (thread " << parameters.thread_id << ")";
-    PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
-    LOG_FOLD_END(parameters.info, "");
+    FFOT_PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
+    FFOT_LOG_FOLD_END(parameters.info, "");
     return output;
 }
 
