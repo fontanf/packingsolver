@@ -863,7 +863,7 @@ void BranchingScheme::insertion_defect(
     Length h = instance_.bin(i).height(o);
     Length min_waste = parameters_.min_waste;
     Length x = std::max(instance_.right(k, o), x3_prev(father, df) + min_waste);
-    Length y = std::max(instance_.top(k, o),   y2_prev(father, df) + min_waste);
+    Length y = std::max(instance_.top(k, o), y2_prev(father, df) + min_waste);
     if (x > w || y > h) {
         FFOT_LOG_FOLD_END(info, "too wide/high");
         return;
@@ -872,7 +872,7 @@ void BranchingScheme::insertion_defect(
     Insertion insertion {
         -1, -1, df,
         x, y, x,
-        x1_max(father, df), y2_max(father, df, x), 1, 1};
+        x1_max(father, df), y2_max(father, df, x), 0, 1};
     FFOT_LOG(info, insertion << std::endl);
 
     update(father, insertions, insertion, info);
@@ -1401,11 +1401,11 @@ Solution BranchingScheme::to_solution(
         //std::cout << ">>> node"
         //    << " o " << o
         //    << " df " << current_node->df
-        //    << " x1_prev " << current_node->x1_prev
-        //    << " x1_curr " << current_node->x1_curr
-        //    << " y2_prev " << current_node->y2_prev
-        //    << " y2_curr " << current_node->y2_curr
-        //    << " x3_curr " << current_node->x3_curr
+        //    << " x1p " << current_node->x1_prev
+        //    << " x1c " << current_node->x1_curr
+        //    << " y2p " << current_node->y2_prev
+        //    << " y2c " << current_node->y2_curr
+        //    << " x3c " << current_node->x3_curr
         //    << " z1 " << current_node->z1
         //    << " z2 " << current_node->z2
         //    << " j1 " << current_node->j1

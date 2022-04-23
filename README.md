@@ -26,6 +26,84 @@ Or in short:
 ```shell
 ./bazel-bin/packingsolver/main -v -p RG -f KP -i data/rectangle/alvarez2002/ATP35 -c ATP35_solution.csv -o ATP35_output.json -t 1  -q "RG -p 3NHO -c 4" -a "IBS"  -q "RG -p 3NHO -c 5" -a "IBS"
 ```
+```
+===================================
+           PackingSolver           
+===================================
+
+Problem type
+------------
+rectangleguillotine
+
+Instance
+--------
+Objective:                Knapsack
+Number of item types:     29
+Number of items:          153
+Number of bin types:      1
+Number of bins:           1
+Number of stacks:         29
+Number of defects:        0
+
+        Time        Profit   # items                         Comment
+        ----        ------   -------                         -------
+       0.001         68970         1              IBS (thread 1) q 1
+       0.001         72000         1              IBS (thread 1) q 1
+       0.007         76395         2              IBS (thread 1) q 1
+       0.008         90705         2              IBS (thread 1) q 1
+       0.008        132839         2              IBS (thread 1) q 1
+       0.008        140970         2              IBS (thread 1) q 1
+       0.008        148395         3              IBS (thread 1) q 1
+       0.008        150705         4              IBS (thread 1) q 1
+       0.008        153015         5              IBS (thread 1) q 1
+       0.008        212970         3              IBS (thread 2) q 1
+       0.008        216000         3              IBS (thread 2) q 1
+       0.008        284970         4              IBS (thread 2) q 1
+       0.009        292395         5              IBS (thread 2) q 1
+       0.009        306705         5              IBS (thread 2) q 1
+       0.009        348839         5              IBS (thread 2) q 1
+       0.009        358042         6              IBS (thread 2) q 1
+       0.009        375517        13              IBS (thread 1) q 1
+       0.009        379768         7              IBS (thread 2) q 1
+       0.009        383648        13              IBS (thread 1) q 1
+       0.010        388389         7              IBS (thread 2) q 1
+       0.010        391073        14              IBS (thread 1) q 1
+       0.010        408379         7              IBS (thread 2) q 1
+       0.010        415804         8              IBS (thread 2) q 1
+       0.010        447517        14              IBS (thread 1) q 1
+       0.010        449082        16              IBS (thread 1) q 1
+       0.011        456337        16              IBS (thread 1) q 1
+       0.011        459088        18              IBS (thread 1) q 1
+       0.011        466142        20              IBS (thread 1) q 1
+       0.011        513965        20              IBS (thread 1) q 1
+       0.012        521390        21              IBS (thread 1) q 1
+       0.012        530011        21              IBS (thread 1) q 1
+       0.012        577834        21              IBS (thread 1) q 1
+       0.012        581548         9              IBS (thread 2) q 2
+       0.013        588973        10              IBS (thread 2) q 2
+       0.013        597058        10              IBS (thread 2) q 2
+       0.013        599368        11              IBS (thread 2) q 2
+       0.013        602118        14              IBS (thread 1) q 2
+       0.015        605793        11              IBS (thread 2) q 9
+       0.019        606147        13             IBS (thread 2) q 19
+       0.026        606672        12             IBS (thread 2) q 42
+       0.036        607062        14             IBS (thread 2) q 94
+       0.059        609550        15            IBS (thread 2) q 211
+       0.095        610101        31            IBS (thread 1) q 141
+       0.095        610578        31            IBS (thread 1) q 141
+       0.096        610787        32            IBS (thread 1) q 141
+       0.138        611135        34            IBS (thread 1) q 211
+       0.199        614725        31            IBS (thread 1) q 316
+       0.206        614967        42            IBS (thread 1) q 316
+       0.328        616880        16           IBS (thread 2) q 1599
+       0.618        619897        28           IBS (thread 1) q 1066
+
+Final statistics
+----------------
+Profit:            619897
+Number of items:   28
+Time:              1.00226
+```
 
 A solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
 
@@ -42,8 +120,20 @@ Options `--bin-infinite-copies`, `--bin-infinite-width`, `--bin-infinite-height`
 
 ### Problem type rectangleguillotine (RG)
 
-* Available objectives: `default`, `bin-packing` (`BPP`), `knapsack` (`KP`), `strip-packing-width` (`SPPW`), `strip-packing-height` (`SPPH`), `bin-packing-with-leftovers` (`BPPL`), `variable-sized-bin-packing` (`VBPP`)
-* Available branching schemes: `rectangle-guillotine` (`RG`)
+Available objectives:
+* `default`
+* `bin-packing` (`BPP`)
+* `knapsack` (`KP`)
+* `strip-packing-width` (`SPPW`)
+* `strip-packing-height` (`SPPH`)
+* `bin-packing-with-leftovers` (`BPPL`)
+* `variable-sized-bin-packing` (`VBPP`)
+
+Algorithms:
+* Branching scheme `rectangle-guillotine` (`RG`)
+  (Objectives: `default`, `BPP`, `KP`, `SPPW`, `SPPH`, `BPPL`)
+* Column generation heuristic + branching scheme `RG`
+  (Objectives: `VBPP`)
 
 ### Branching scheme rectangle-guillotine (RG)
 
@@ -61,8 +151,6 @@ options:
   * `2NHO`: `--cut-type-1 two-staged-guillotine --cut-type-2 non-exact --first-stage-orientation horizontal --no-item-rotation`
   * `3EAR`: `--cut-type-1 three-staged-guillotine --cut-type-2 exact --first-stage-orientation any`
   * `roadef2018`
-
-Compatible algorithms: `A*`, `DFS`, `IMBA*`, `DPA*`, `IBS`
 
 ## Benchmarks
 
