@@ -111,13 +111,13 @@ inline IterativeMemoryBoundedAStarOutput iterative_memory_bounded_a_star(
         FFOT_LOG_FOLD_END(parameters.info, "");
         std::stringstream ss;
         ss << "IMBA* (thread " << parameters.thread_id << ")";
-        FFOT_PUT(parameters.info, ss.str(), "QueueMaxSize", output.queue_size_max);
+        parameters.info.add_to_json(ss.str(), "QueueMaxSize", output.queue_size_max);
     }
 mbastarend:
 
     std::stringstream ss;
     ss << "IMBA* (thread " << parameters.thread_id << ")";
-    FFOT_PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
+    parameters.info.add_to_json(ss.str(), "NumberOfNodes", output.number_of_nodes);
     FFOT_LOG_FOLD_END(parameters.info, "");
     return output;
 }
