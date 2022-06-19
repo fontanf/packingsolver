@@ -79,7 +79,7 @@ inline AStarOutput a_star(
 
     std::stringstream ss;
     ss << "A* (thread " << parameters.thread_id << ")";
-    FFOT_PUT(parameters.info, ss.str(), "NumberOfNodes", output.number_of_nodes);
+    parameters.info.add_to_json(ss.str(), "NumberOfNodes", output.number_of_nodes);
     FFOT_LOG_FOLD_END(parameters.info, "");
     return output;
 }
