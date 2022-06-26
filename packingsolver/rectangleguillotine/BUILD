@@ -24,6 +24,7 @@ cc_test(
                 "tests/add_test.cpp",
                 "tests/insertion_test.cpp",
                 "tests/defect_test.cpp",
+                "tests/trim_test.cpp",
                 "tests/integration_test.cpp",
         ],
         deps = [

@@ -11,6 +11,18 @@ enum class CutType1 { ThreeStagedGuillotine, TwoStagedGuillotine };
 enum class CutType2 { Roadef2018, NonExact, Exact, Homogenous };
 enum class CutOrientation { Horinzontal, Vertical, Any };
 
+/**
+ * Trims are borders of a bin which are not used to pack item.
+ *
+ * If a trim is 'Hard', then the trimmed part is effectively cut. This implies
+ * that the minium waste constraint considers the new border (after the trim).
+ *
+ * On the other hand, if a trim is 'Soft', then the trimmed part is not cut
+ * even if no item can be packed there. However, the minimum waste constraint
+ * considers the real border of the plate and not the trim.
+ */
+enum class TrimType { Soft, Hard };
+
 std::istream& operator>>(std::istream& in, CutType1& cut_type_1);
 std::istream& operator>>(std::istream& in, CutType2& cut_type_2);
 std::istream& operator>>(std::istream& in, CutOrientation& o);
@@ -99,6 +111,24 @@ struct BinType
     /** Defects of the bin type. */
     std::vector<Defect> defects;
 
+    /** Bottom trim. */
+    Length bottom_trim = 0;
+    /** Top trim. */
+    Length top_trim = 0;
+    /** Left trim. */
+    Length left_trim = 0;
+    /** Right trim. */
+    Length right_trim = 0;
+
+    /** Type of the bottom trim. */
+    TrimType bottom_trim_type = TrimType::Hard;
+    /** Type of the top trim. */
+    TrimType top_trim_type = TrimType::Soft;
+    /** Type of the left trim. */
+    TrimType left_trim_type = TrimType::Hard;
+    /** Type of the right trim. */
+    TrimType right_trim_type = TrimType::Soft;
+
     /*
      * Computed attributes.
      */
@@ -156,6 +186,18 @@ public:
             Profit cost = -1,
             BinPos copies = 1,
             BinPos copies_min = 0);
+
+    /** Add trims to bin type 'i'. */
+    void add_trims(
+            BinTypeId i,
+            Length left_trim,
+            TrimType left_trim_type,
+            Length right_trim,
+            TrimType right_trim_type,
+            Length bottom_trim,
+            TrimType bottom_trim_type,
+            Length top_trim,
+            TrimType top_trim_type);
 
     /** Add a defect. */
     void add_defect(
@@ -332,6 +374,58 @@ public:
             bool rotate,
             CutOrientation o) const;
 
+    /**
+     * Bin trims.
+     */
+
+    /** Get the bottom trim of a bin depending on its orientation. */
+    inline Length bottom_trim(
+            const BinType& bin_type,
+            CutOrientation o) const;
+
+    /** Get the top trim of a bin depending on its orientation. */
+    inline Length top_trim(
+            const BinType& bin_type,
+            CutOrientation o) const;
+
+    /** Get the left trim of a bin depending on its orientation. */
+    inline Length left_trim(
+            const BinType& bin_type,
+            CutOrientation o) const;
+
+    /** Get the right trim of a bin depending on its orientation. */
+    inline Length right_trim(
+            const BinType& bin_type,
+            CutOrientation o) const;
+
+    /**
+     * Get the type of the bottom trim of a bin depending on its orientation.
+     */
+    inline TrimType bottom_trim_type(
+            const BinType& bin_type,
+            CutOrientation o) const;
+
+    /**
+     * Get the type of the top trim of a bin depending on its orientation.
+     */
+    inline TrimType top_trim_type(
+            const BinType& bin_type,
+            CutOrientation o) const;
+
+    /**
+     * Get the type of the left trim of a bin depending on its orientation.
+     */
+    inline TrimType left_trim_type(
+            const BinType& bin_type,
+            CutOrientation o) const;
+
+    /**
+     * Get the type of the right trim of a bin depending on its orientation.
+     */
+    inline TrimType right_trim_type(
+            const BinType& bin_type,
+            CutOrientation o) const;
+
     /*
      * Defect coordinates.
      */
@@ -482,11 +576,75 @@ std::ostream& operator<<(std::ostream &os, const Instance& ins);
 /////////////////////////////// Inlined methods ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+Length Instance::bottom_trim(
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)? bin_type.bottom_trim: bin_type.left_trim;
+}
+
+Length Instance::top_trim(
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)? bin_type.top_trim: bin_type.right_trim;
+}
+
+Length Instance::left_trim(
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)? bin_type.left_trim: bin_type.top_trim;
+}
+
+Length Instance::right_trim(
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)? bin_type.right_trim: bin_type.bottom_trim;
+}
+
+TrimType Instance::bottom_trim_type(
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)?
+        bin_type.bottom_trim_type:
+        bin_type.left_trim_type;
+}
+
+TrimType Instance::top_trim_type(
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)?
+        bin_type.top_trim_type:
+        bin_type.right_trim_type;
+}
+
+TrimType Instance::left_trim_type(
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)?
+        bin_type.left_trim_type:
+        bin_type.top_trim_type;
+}
+
+TrimType Instance::right_trim_type(
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)?
+        bin_type.right_trim_type:
+        bin_type.bottom_trim_type;
+}
+
 Length Instance::left(
         const Defect& defect,
         CutOrientation o) const
 {
-    return (o == CutOrientation::Vertical)?  defect.pos.x: defect.pos.y;
+    return (o == CutOrientation::Vertical)? defect.pos.x: defect.pos.y;
 }
 
 Length Instance::right(
