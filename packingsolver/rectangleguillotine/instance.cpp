@@ -307,6 +307,73 @@ BinTypeId Instance::add_bin_type(
     return bin_type.id;
 }
 
+void Instance::add_trims(
+        BinTypeId i,
+        Length left_trim,
+        TrimType left_trim_type,
+        Length right_trim,
+        TrimType right_trim_type,
+        Length bottom_trim,
+        TrimType bottom_trim_type,
+        Length top_trim,
+        TrimType top_trim_type)
+{
+    BinType& bin_type = bin_types_[i];
+
+    if (bottom_trim < 0) {
+        throw std::invalid_argument(
+                "'rectangleguillotine::Instance::add_trims'"
+                " requires 'bottom_trim >= 0'.");
+    }
+    if (bottom_trim >= bin_type.rect.h) {
+        throw std::invalid_argument(
+                "'rectangleguillotine::Instance::add_trims'"
+                " requires 'bottom_trim < h'.");
+    }
+
+    if (top_trim < 0) {
+        throw std::invalid_argument(
+                "'rectangleguillotine::Instance::add_trims'"
+                " requires 'top_trim >= 0'.");
+    }
+    if (top_trim >= bin_type.rect.h - bottom_trim) {
+        throw std::invalid_argument(
+                "'rectangleguillotine::Instance::add_trims'"
+                " requires 'top_trim < h - bottom_trim'.");
+    }
+
+    if (left_trim < 0) {
+        throw std::invalid_argument(
+                "'rectangleguillotine::Instance::add_trims'"
+                " requires 'left_trim >= 0'.");
+    }
+    if (left_trim >= bin_type.rect.w) {
+        throw std::invalid_argument(
+                "'rectangleguillotine::Instance::add_trims'"
+                " requires 'left_trim < w'.");
+    }
+
+    if (right_trim < 0) {
+        throw std::invalid_argument(
+                "'rectangleguillotine::Instance::add_trims'"
+                " requires 'right_trim >= 0'.");
+    }
+    if (right_trim > bin_type.rect.h - left_trim) {
+        throw std::invalid_argument(
+                "'rectangleguillotine::Instance::add_trims'"
+                " requires 'right_trim < w - left_trim'.");
+    }
+
+    bin_type.left_trim = left_trim;
+    bin_type.left_trim_type = left_trim_type;
+    bin_type.right_trim = right_trim;
+    bin_type.right_trim_type = right_trim_type;
+    bin_type.bottom_trim = bottom_trim;
+    bin_type.bottom_trim_type = bottom_trim_type;
+    bin_type.top_trim = top_trim;
+    bin_type.top_trim_type = top_trim_type;
+}
+
 void Instance::add_defect(BinTypeId i, Length x, Length y, Length w, Length h)
 {
     Defect defect;
@@ -468,6 +535,14 @@ Instance::Instance(
         Profit cost = -1;
         BinPos c = 1;
         BinPos c_min = 0;
+        Length bottom_trim = 0;
+        Length top_trim = 0;
+        Length left_trim = 0;
+        Length right_trim = 0;
+        TrimType bottom_trim_type = TrimType::Hard;
+        TrimType top_trim_type = TrimType::Soft;
+        TrimType left_trim_type = TrimType::Hard;
+        TrimType right_trim_type = TrimType::Soft;
         for (Counter i = 0; i < (Counter)line.size(); ++i) {
             if (labels[i] == "WIDTH") {
                 w = (Length)std::stol(line[i]);
@@ -479,6 +554,22 @@ Instance::Instance(
                 c = (BinPos)std::stol(line[i]);
             } else if (labels[i] == "COPIES_MIN") {
                 c = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "BOTTOM_TRIM") {
+                bottom_trim = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "TOP_TRIM") {
+                top_trim = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "LEFT_TRIM") {
+                left_trim = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "RIGHT_TRIM") {
+                right_trim = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "BOTTOM_TRIM_TYPE") {
+                bottom_trim_type = (TrimType)std::stol(line[i]);
+            } else if (labels[i] == "TOP_TRIM_TYPE") {
+                top_trim_type = (TrimType)std::stol(line[i]);
+            } else if (labels[i] == "LEFT_TRIM_TYPE") {
+                left_trim_type = (TrimType)std::stol(line[i]);
+            } else if (labels[i] == "RIGHT_TRIM_TYPE") {
+                right_trim_type = (TrimType)std::stol(line[i]);
             }
         }
         if (w == -1) {
@@ -489,7 +580,17 @@ Instance::Instance(
             throw std::runtime_error(
                     "Missing \"HEIGHT\" column in \"" + bins_path + "\".");
         }
-        add_bin_type(w, h, cost, c, c_min);
+        BinTypeId i = add_bin_type(w, h, cost, c, c_min);
+        add_trims(
+                i,
+                bottom_trim,
+                bottom_trim_type,
+                top_trim,
+                top_trim_type,
+                left_trim,
+                left_trim_type,
+                right_trim,
+                right_trim_type);
     }
 
     // read defects file
