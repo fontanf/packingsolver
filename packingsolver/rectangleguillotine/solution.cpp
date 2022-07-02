@@ -3,7 +3,9 @@
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 
-/************************************ Node ************************************/
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////// Node /////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 std::ostream& print(std::ostream& os,
         const std::vector<Solution::Node>& res,
@@ -30,7 +32,9 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(std::ostream &os, c
     return os;
 }
 
-/********************************** Solution **********************************/
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////// Solution ///////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 Solution::Solution(const Solution& solution):
     instance_(solution.instance_),
@@ -195,7 +199,7 @@ void Solution::display(
     info.output->number_of_solutions++;
     double t = info.elapsed_time();
 
-    std::streamsize precision = std::cout.precision();
+    std::streamsize precision = info.os().precision();
     std::string sol_str = "Solution" + std::to_string(info.output->number_of_solutions);
     switch (instance().objective()) {
     case Objective::Default: {
@@ -295,15 +299,9 @@ void Solution::algorithm_start(Info& info) const
             << "rectangleguillotine" << std::endl
             << std::endl
             << "Instance" << std::endl
-            << "--------" << std::endl
-            << "Objective:                " << instance().objective() << std::endl
-            << "Number of item types:     " << instance().number_of_item_types() << std::endl
-            << "Number of items:          " << instance().number_of_items() << std::endl
-            << "Number of bin types:      " << instance().number_of_bin_types() << std::endl
-            << "Number of bins:           " << instance().number_of_bins() << std::endl
-            << "Number of stacks:         " << instance().number_of_stacks() << std::endl
-            << "Number of defects:        " << instance().number_of_defects() << std::endl
-            << std::endl;
+            << "--------" << std::endl;
+    instance().print(info.os(), info.verbosity_level());
+    info.os() << std::endl;
 
     switch (instance().objective()) {
     case Objective::Default: {

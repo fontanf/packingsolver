@@ -1,20 +1,44 @@
 load("//packingsolver:variables.bzl", "STDCPP")
+load("//packingsolver:variables.bzl", "COINOR_COPTS")
+load("//packingsolver:variables.bzl", "CPLEX_COPTS")
+load("//packingsolver:variables.bzl", "XPRESS_COPTS")
+load("//packingsolver:variables.bzl", "GUROBI_COPTS")
 
 cc_library(
         name = "rectangleguillotine",
         hdrs = [
                 "instance.hpp",
                 "solution.hpp",
+                "optimize.hpp",
                 "branching_scheme.hpp",
         ],
         srcs = [
                 "instance.cpp",
                 "solution.cpp",
+                "optimize.cpp",
                 "branching_scheme.cpp",
         ],
-        deps = ["//packingsolver/algorithms:common"],
-        copts = STDCPP,
+        deps = [
+                "//packingsolver/algorithms:common",
+                "//packingsolver/algorithms:algorithms",
+        ],
+        copts = STDCPP + COINOR_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
         visibility = ["//visibility:public"],
+)
+
+cc_binary(
+        name = "main",
+        srcs = ["main.cpp"],
+        deps = [
+                ":rectangleguillotine",
+                "@boost//:program_options",
+        ],
+        copts = STDCPP + COINOR_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
+        linkopts = select({
+                "@bazel_tools//src/conditions:windows": [],
+                "//conditions:default":                 ["-lpthread"],
+        }),
+        data = ["//data/rectangle:rectangle"],
 )
 
 cc_test(

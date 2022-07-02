@@ -418,33 +418,24 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective bin-packing-with-leftovers"
+                 " --predefined roadef2018"
                  " --time-limit 3600"
-                 " -q \"RG -p roadef2018 -c 0\" -a \"IBS -f 1.33\""
-                 " -q \"RG -p roadef2018 -c 1\" -a \"IBS -f 1.33\""
-                 " -q \"RG -p roadef2018 -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p roadef2018 -c 1\" -a \"IBS -f 1.5\""
                  ) for f in datas_rectangle["roadef2018_A"]]
     if problem == "roadef2018_B":
         # parreno2020
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective bin-packing-with-leftovers"
+                 " --predefined roadef2018"
                  " --time-limit 3600"
-                 " -q \"RG -p roadef2018 -c 0\" -a \"IBS -f 1.33\""
-                 " -q \"RG -p roadef2018 -c 1\" -a \"IBS -f 1.33\""
-                 " -q \"RG -p roadef2018 -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p roadef2018 -c 1\" -a \"IBS -f 1.5\""
                  ) for f in datas_rectangle["roadef2018_B"]]
     if problem == "roadef2018_X":
         # parreno2020
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective bin-packing-with-leftovers"
+                 " --predefined roadef2018"
                  " --time-limit 3600"
-                 " -q \"RG -p roadef2018 -c 0\" -a \"IBS -f 1.33\""
-                 " -q \"RG -p roadef2018 -c 1\" -a \"IBS -f 1.33\""
-                 " -q \"RG -p roadef2018 -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p roadef2018 -c 1\" -a \"IBS -f 1.5\""
                  ) for f in datas_rectangle["roadef2018_X"]]
 
     # BPP
@@ -456,10 +447,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
+                 " --predefined 3NHO"
                  " --time-limit 60"
-                 " -q \"RG -p 3NHO -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NHO -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NHO -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["christofides1977"]
                 + datas_rectangle["beasley1985"]
@@ -472,9 +461,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 3NHO"
                  " --time-limit 60"
-                 " -q \"RG -p 3NHO -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3NHO -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["christofides1977"]
                 + datas_rectangle["beasley1985"]
@@ -488,10 +476,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
+                 " --predefined 3NHR"
                  " --time-limit 60"
-                 " -q \"RG -p 3NHR -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NHR -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NHR -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["berkey1987"]
                 + datas_rectangle["martello1998"]
@@ -501,9 +487,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 3NHR"
                  " --time-limit 60"
-                 " -q \"RG -p 3NHR -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3NHR -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["berkey1987"]
                 + datas_rectangle["martello1998"]
@@ -514,10 +499,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
+                 " --predefined 3NVO --one2cut"
                  " --time-limit 10"
-                 " -q \"RG -p 3NVO --one2cut -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NVO --one2cut -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NVO --one2cut -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["long2020"]
                 ]
@@ -526,11 +509,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 3NVO --one2cut"
                  " --time-limit 15"
-                 " -q \"RG -p 3NVO --one2cut -c 4\""
-                 " -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3NVO --one2cut -c 5\""
-                 " -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["long2020"]
                 ]
@@ -540,10 +520,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
+                 " --predefined 3EHO"
                  " --time-limit 60"
-                 " -q \"RG -p 3EHO -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3EHO -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3EHO -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["christofides1977"]
                 + datas_rectangle["beasley1985"]
@@ -556,9 +534,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 3EHO"
                  " --time-limit 60"
-                 " -q \"RG -p 3EHO -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3EHO -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["christofides1977"]
                 + datas_rectangle["beasley1985"]
@@ -572,10 +549,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
+                 " --predefined 3HAO"
                  " --time-limit 60"
-                 " -q \"RG -p 3HAO -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3HAO -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3HAO -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["imahori2005"]
                 + datas_rectangle["cintra2008_bpp"]
@@ -585,11 +560,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 3HVO"
                  " --time-limit 60"
-                 " -q \"RG -p 3HVO -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3HVO -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3HHO -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3HHO -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["imahori2005"]
                 + datas_rectangle["cintra2008_bpp"]
@@ -600,10 +572,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
+                 " --predefined 3HVO"
                  " --time-limit 5"
-                 " -q \"RG -p 3HVO -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3HVO -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3HVO -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["wang1983"]
                 + datas_rectangle["oliveira1990"]
@@ -624,9 +594,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 3HVO"
                  " --time-limit 30"
-                 " -q \"RG -p 3HVO -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3HVO -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["wang1983"]
                 + datas_rectangle["oliveira1990"]
@@ -649,10 +618,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
-                 " --time-limit " + str(t) +
-                 " -q \"RG -p 2NHO -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NHO -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NHO -c 3\" -a \"IBS -f 1.5\""
+                 " --predefined 2NHO"
+                 " --time-limit " + str(t)
                  ) for f, t in []
                 + [(ff, 10) for ff in []
                    + datas_rectangle["christofides1977"]
@@ -683,9 +650,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 2NHO"
                  " --time-limit 60"
-                 " -q \"RG -p 2NHO -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 2NHO -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["christofides1977"]
                 + datas_rectangle["wang1983"]
@@ -713,10 +679,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
+                 " --predefined 2NHR"
                  " --time-limit 60"
-                 " -q \"RG -p 2NHR -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NHR -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NHR -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["cintra2008_bpp"]
                 + datas_rectangle["berkey1987"]
@@ -727,9 +691,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 2NHR"
                  " --time-limit 60"
-                 " -q \"RG -p 2NHR -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 2NHR -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["cintra2008_bpp"]
                 + datas_rectangle["berkey1987"]
@@ -740,10 +703,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
+                 " --predefined 2EHO"
                  " --time-limit 60"
-                 " -q \"RG -p 2EHO -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2EHO -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2EHO -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["christofides1977"]
                 + datas_rectangle["beasley1985"]
@@ -756,9 +717,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 2EHO"
                  " --time-limit 60"
-                 " -q \"RG -p 2EHO -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 2EHO -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["christofides1977"]
                 + datas_rectangle["beasley1985"]
@@ -776,11 +736,8 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
-                 " --time-limit " + str(t) +
-                 " -q \"RG -p 3NHO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NVO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NHO -c 5\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NVO -c 5\" -a \"IBS -f 1.5\""
+                 " --predefined 3NHO"
+                 " --time-limit " + str(t)
                  ) for f, t in []
                 + [(ff, 10) for ff in []
                    + datas_rectangle["christofides1977"]
@@ -819,11 +776,8 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
-                 " --time-limit " + str(t) +
-                 " -q \"RG -p 3NHR -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NVR -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NHR -c 5\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NVR -c 5\" -a \"IBS -f 1.5\""
+                 " --predefined 3NHR"
+                 " --time-limit " + str(t)
                  ) for f, t in []
                 + [(ff, 30) for ff in []
                    + datas_rectangle["christofides1977"]
@@ -847,9 +801,8 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
+                 " --predefined 3NVO"
                  " --time-limit 60"
-                 " -q \"RG -p 3NVO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NVO -c 5\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["alvarez2002_cu"]
                 + datas_rectangle["alvarez2002_cw"]
@@ -860,12 +813,9 @@ def get_tests(problem):
         return [(f + ("_unweighted" if unweighted else ""),
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
+                 " --predefined 3HAO"
                  + (" --unweighted" if unweighted else "") +
-                 " --time-limit " + str(t) +
-                 " -q \"RG -p 3HHO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3HVO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3HHO -c 5\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3HVO -c 5\" -a \"IBS -f 1.5\""
+                 " --time-limit " + str(t)
                  ) for f, t, unweighted in []
                 + [(ff, 2, False) for ff in []
                    + datas_rectangle["wang1983"]
@@ -892,9 +842,8 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
-                 " --time-limit " + str(t) +
-                 " -q \"RG -p 2NAO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NAO -c 5\" -a \"IBS -f 1.5\""
+                 " --predefined 2NAO"
+                 " --time-limit " + str(t)
                  ) for f, t in []
                 + [(ff, 1) for ff in []
                    + datas_rectangle["christofides1977"]
@@ -919,9 +868,8 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
-                 " --time-limit " + str(t) +
-                 " -q \"RG -p 2NHO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NHO -c 5\" -a \"IBS -f 1.5\""
+                 " --predefined 2NHO"
+                 " --time-limit " + str(t)
                  ) for f, t in []
                 + [(ff, 1) for ff in []
                    + datas_rectangle["christofides1977"]
@@ -953,9 +901,8 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
-                 " --time-limit " + str(t) +
-                 " -q \"RG -p 2NVO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NVO -c 5\" -a \"IBS -f 1.5\""
+                 " --predefined 2NVO"
+                 " --time-limit " + str(t)
                  ) for f, t in []
                 + [(ff, 1) for ff in []
                    + datas_rectangle["christofides1977"]
@@ -987,9 +934,8 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
-                 " --time-limit " + str(t) +
-                 " -q \"RG -p 2NHR -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NHR -c 5\" -a \"IBS -f 1.5\""
+                 " --predefined 2NHR"
+                 " --time-limit " + str(t)
                  ) for f, t in []
                 + [(ff, 1) for ff in []
                    + datas_rectangle["wang1983"]
@@ -1012,9 +958,8 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
+                 " --predefined 2EAO"
                  " --time-limit 1"
-                 " -q \"RG -p 2EAO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2EAO -c 5\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["wang1983"]
                 + datas_rectangle["oliveira1990"]
@@ -1032,9 +977,8 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
+                 " --predefined 2EHO"
                  " --time-limit 1"
-                 " -q \"RG -p 2EHO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2EHO -c 5\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["wang1983"]
                 + datas_rectangle["oliveira1990"]
@@ -1052,9 +996,8 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
+                 " --predefined 2EVO"
                  " --time-limit 1"
-                 " -q \"RG -p 2EVO -c 4\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2EVO -c 5\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["wang1983"]
                 + datas_rectangle["oliveira1990"]
@@ -1076,10 +1019,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-height"
                  " --objective strip-packing-height"
+                 " --predefined 3NHO"
                  " --time-limit 60"
-                 " -q \"RG -p 3NHO -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NHO -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NHO -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["kroger1995"]
                 + datas_rectangle["hopper2000_n"]
@@ -1096,10 +1037,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-height"
                  " --objective strip-packing-height"
+                 " --predefined 3NHR"
                  " --time-limit 60"
-                 " -q \"RG -p 3NHR -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NHR -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 3NHR -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["kroger1995"]
                 + datas_rectangle["hopper2000_n"]
@@ -1115,10 +1054,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-height"
                  " --objective strip-packing-height"
+                 " --predefined 2NHO"
                  " --time-limit 10"
-                 " -q \"RG -p 2NHO -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NHO -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NHO -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["cintra2008_bpp"]
                 + datas_rectangle["alvarez2002_cu"]
@@ -1132,10 +1069,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-height"
                  " --objective strip-packing-height"
+                 " --predefined 2NHR"
                  " --time-limit 10"
-                 " -q \"RG -p 2NHR -c 0\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NHR -c 2\" -a \"IBS -f 1.5\""
-                 " -q \"RG -p 2NHR -c 3\" -a \"IBS -f 1.5\""
                  ) for f in []
                 + datas_rectangle["berkey1987"]
                 + datas_rectangle["martello1998"]
@@ -1152,10 +1087,7 @@ def get_tests(problem):
                  y +
                  " --objective variable-sized-bin-packing"
                  " --time-limit 60"
-                 " -q \"RG -p 3NHO -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3NHO -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3NVO -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3NVO -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
+                 " --predefined 3NAO"
                  ) for f, x, y in []
                 + [(ff, "", "") for ff in []
                    + datas_rectangle["wang1983_vbpp"]
@@ -1182,11 +1114,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 3NAR"
                  " --time-limit 60"
-                 " -q \"RG -p 3NHR -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3NHR -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3NVR -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 3NVR -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["cintra2008_vbpp"]
                 ]
@@ -1196,9 +1125,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 2NHO"
                  " --time-limit 60"
-                 " -q \"RG -p 2NHO -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 2NHO -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["cintra2008_vbpp"]
                 ]
@@ -1208,9 +1136,8 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
+                 " --predefined 2NHR"
                  " --time-limit 60"
-                 " -q \"RG -p 2NHR -c 4\" -a \"IBS -f 1.5 -m 128 -M 128\""
-                 " -q \"RG -p 2NHR -c 5\" -a \"IBS -f 1.5 -m 128 -M 128\""
                  ) for f in []
                 + datas_rectangle["cintra2008_vbpp"]
                 ]
@@ -1274,8 +1201,8 @@ if __name__ == "__main__":
             if not os.path.exists(os.path.dirname(output_filepath)):
                 os.makedirs(os.path.dirname(output_filepath))
             command = (
-                    "./bazel-bin/packingsolver/main"
-                    " -p rectangleguillotine -v -e"
+                    "./bazel-bin/packingsolver/rectangleguillotine/main"
+                    " -v 1 -e"
                     + args
                     + " -c \"" + cert_filepath + "\""
                     + " -o \"" + output_filepath + "\""

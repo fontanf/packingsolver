@@ -31,7 +31,9 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimSoft)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     BinTypeId i = instance.add_bin_type(6000, 3210);
     instance.add_trims(
             i,
@@ -42,9 +44,7 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimSoft)
     instance.add_defect(i, 495, 25, 5, 5);
     instance.add_item_type(1000, 500, -1, 1, true, true);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -81,7 +81,9 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimHard)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     BinTypeId i = instance.add_bin_type(6000, 3210);
     instance.add_trims(
             i,
@@ -92,9 +94,7 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimHard)
     instance.add_defect(i, 495, 25, 5, 5);
     instance.add_item_type(1000, 500, -1, 1, true, true);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -130,7 +130,9 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimSoft)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     BinTypeId i = instance.add_bin_type(6000, 3210);
     instance.add_trims(
             i,
@@ -141,9 +143,7 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimSoft)
     instance.add_defect(i, 25, 495, 5, 5);
     instance.add_item_type(500, 1000, -1, 1, true, true);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -179,7 +179,9 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimHard)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     BinTypeId i = instance.add_bin_type(6000, 3210);
     instance.add_trims(
             i,
@@ -190,9 +192,7 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimHard)
     instance.add_defect(i, 25, 495, 5, 5);
     instance.add_item_type(500, 1000, -1, 1, true, true);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -226,7 +226,9 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     BinTypeId i = instance.add_bin_type(6000, 3210);
     instance.add_trims(
             i,
@@ -236,9 +238,7 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
             20, TrimType::Soft);
     instance.add_item_type(1000, 3180, -1, 1, true, true);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -271,7 +271,9 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimHard)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     BinTypeId i = instance.add_bin_type(6000, 3210);
     instance.add_trims(
             i,
@@ -281,9 +283,7 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimHard)
             20, TrimType::Hard);
     instance.add_item_type(1000, 3180, -1, 1, true, true);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -315,7 +315,9 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     BinTypeId i = instance.add_bin_type(3000, 3210);
     instance.add_trims(
             i,
@@ -325,9 +327,7 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
             0, TrimType::Soft);
     instance.add_item_type(2970, 500, -1, 1, true, true);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -360,7 +360,9 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     BinTypeId i = instance.add_bin_type(3000, 3210);
     instance.add_trims(
             i,
@@ -370,9 +372,7 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
             0, TrimType::Soft);
     instance.add_item_type(2970, 500, -1, 1, true, true);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {

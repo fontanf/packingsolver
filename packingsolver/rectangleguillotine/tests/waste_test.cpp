@@ -25,15 +25,15 @@ TEST(RectangleGuillotineBranchingScheme, Waste1)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(500, 500, -1, 1, false, true);
     instance.add_item_type(300, 300, -1, 1, false, false);
     instance.add_item_type(400, 400, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 {0, -1, -1, 500, 500, 500, 3500, 3210, 0, 0};
@@ -75,16 +75,16 @@ TEST(RectangleGuillotineBranchingScheme, Waste2)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(500, 500, -1, 1, false, true);
     instance.add_item_type(300, 300, -1, 1, false, false);
     instance.add_item_type(100, 500, -1, 1, false, false);
     instance.add_item_type(100, 500, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 {0, -1, -1, 500, 500, 500, 3500, 3210, 0, 0};
@@ -138,7 +138,9 @@ TEST(RectangleGuillotineBranchingScheme, Waste3)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(200, 500, -1, 1, false, true);
     instance.add_item_type(200, 400, -1, 1, false, false);
     instance.add_item_type(200, 500, -1, 1, false, false);
@@ -146,9 +148,7 @@ TEST(RectangleGuillotineBranchingScheme, Waste3)
     instance.add_item_type(600, 100, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 {0, -1, -1, 200, 500, 200, 3500, 3210, 0, 0};
@@ -182,7 +182,9 @@ TEST(RectangleGuillotineBranchingScheme, Waste4)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1578, 758, -1, 1, false, true);
     instance.add_item_type(738, 1550, -1, 1, false, false);
     instance.add_item_type(581, 276, -1, 1, false, false);
@@ -190,9 +192,7 @@ TEST(RectangleGuillotineBranchingScheme, Waste4)
     instance.add_item_type(1426, 648, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 {0, -1, -1, 758, 1578, 758, 3500, 3210, 0, 0};
@@ -232,7 +232,9 @@ TEST(RectangleGuillotineBranchingScheme, Waste5)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1578, 758, -1, 1, false, true);
     instance.add_item_type(738, 1550, -1, 1, false, false);
     instance.add_item_type(581, 276, -1, 1, false, false);
@@ -240,9 +242,7 @@ TEST(RectangleGuillotineBranchingScheme, Waste5)
     instance.add_item_type(1426, 648, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 {0, -1, -1, 758, 1578, 758, 3500, 3210, 0, 0};
@@ -306,14 +306,14 @@ TEST(RectangleGuillotineBranchingScheme, Waste6)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1500, 2000);
     instance.add_item_type(1710, 1995);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 {0, -1, -1, 2000, 1500, 2000, 3500, 3210, 0, 0};

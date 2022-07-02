@@ -177,7 +177,9 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
         if (fixed_bin_types_[i] == instance_.bin_type(i).copies)
             continue;
         // Build knapsack instance.
-        Instance instance_kp = Instance(Objective::Knapsack);
+        Instance instance_kp = Instance();
+        instance_kp.set_objective(Objective::Knapsack);
+        instance_kp.set_parameters(instance_);
         instance_kp.add_bin_type(instance_.bin_type(i), 1);
         std::vector<ItemTypeId> kp2vbpp;
         for (ItemTypeId j = 0; j < n; ++j) {
@@ -213,46 +215,6 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
         }
     }
     return columns;
-}
-
-template <typename Instance, typename Solution>
-void column_generation_heuristic_variable_sized_bin_packing(
-        const Instance& instance,
-        SolutionPool<Instance, Solution>& solution_pool,
-        const VariableSizeBinPackingPricingFunction<Instance, Solution>& pricing_function,
-        Info info = {})
-{
-    columngenerationsolver::Parameters p = get_parameters(instance, pricing_function);
-    columngenerationsolver::HeuristicTreeSearchOptionalParameters op;
-    op.new_bound_callback = [&instance, &info, &solution_pool](
-                const columngenerationsolver::HeuristicTreeSearchOutput& o)
-        {
-            if (o.solution.size() > 0) {
-                Solution solution(instance);
-                for (const auto& pair: o.solution) {
-                    const Column& column = pair.first;
-                    BinPos value = std::round(pair.second);
-                    if (value < 0.5)
-                        continue;
-                    //std::cout << "append val " << value << " col " << column << std::endl;
-                    std::shared_ptr<VariableSizeBinPackingColumnExtra<Solution>> extra
-                        = std::static_pointer_cast<VariableSizeBinPackingColumnExtra<Solution>>(column.extra);
-                    solution.append(extra->solution, extra->bin_type_id, extra->kp2vbpp, value);
-                }
-                std::stringstream ss;
-                ss << "iteration " << o.solution_iteration << " node " << o.solution_node;
-                solution_pool.add(solution, ss, info);
-            }
-        };
-    op.info.set_time_limit(info.remaining_time());
-    //op.info.set_verbose(true);
-    op.column_generation_parameters.linear_programming_solver
-        = columngenerationsolver::LinearProgrammingSolver::CPLEX;
-    //op.columngeneration_parameters.self_adjusting_wentges_smoothing = true;
-    //op.columngeneration_parameters.automatic_directional_smoothing = true;
-    //op.columngeneration_parameters.info.set_verbose(true);
-
-    auto output_limiteddiscrepancysearch = columngenerationsolver::heuristic_tree_search(p, op);
 }
 
 }

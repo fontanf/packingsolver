@@ -26,13 +26,13 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDFm1I)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(500, 1000, -1, 1, false, true);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -47,16 +47,16 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDfm1II)
 {
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(3000, 3210, -1, 1, false, true);
     instance.add_item_type(3000, 3210, -1, 1, false, false);
     instance.add_item_type(3000, 3210, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3000, 3210, 3000, 3500, 3210, 0, 0};
@@ -95,14 +95,14 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf0)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 1500, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -144,15 +144,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1I)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 3000, -1, 1, false, false);
     instance.add_item_type(1100, 2000, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -195,15 +195,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1II)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 3000, -1, 1, false, false);
     instance.add_item_type(1100, 2990, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -246,15 +246,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1III)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 3000, -1, 1, false, false);
     instance.add_item_type(1100, 3010, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -297,15 +297,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1IV)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 3000, -1, 1, false, false);
     instance.add_item_type(1100, 3020, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -349,16 +349,16 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1V)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 3000, -1, 1, false, false);
     instance.add_item_type(1100, 3010, -1, 1, false, false);
     instance.add_item_type(1110, 3050, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -406,16 +406,16 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteI)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1500, 2000, -1, 1, false, true);
     instance.add_item_type(1000, 1500, -1, 1, false, false);
     instance.add_item_type(1010, 1500, -1, 1, false, false);
     instance.add_item_type(1000, 1500, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 2000, 1500, 2000, 3500, 3210, 0, 0};
@@ -463,15 +463,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteII)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 2000, -1, 1, false, true);
     instance.add_item_type(1010, 2005, -1, 1, false, false);
     instance.add_item_type(1200, 2010, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 2000, 1000, 2000, 3500, 3210, 0, 0};
@@ -514,16 +514,16 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2I)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 2000, -1, 1, false, false);
     instance.add_item_type(500, 2210, -1, 1, false, false);
     instance.add_item_type(700, 1010, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -569,16 +569,16 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2II)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 2000, -1, 1, false, false);
     instance.add_item_type(500, 1010, -1, 1, false, false);
     instance.add_item_type(700, 1000, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -624,16 +624,16 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2III)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 2000, -1, 1, false, false);
     instance.add_item_type(500, 1000, -1, 1, false, false);
     instance.add_item_type(700, 1010, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -679,16 +679,16 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2IV)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 2000, -1, 1, false, false);
     instance.add_item_type(1000, 1500, -1, 1, false, false);
     instance.add_item_type(1000, 2000, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -734,15 +734,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2V)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 1500, -1, 1, false, true);
     instance.add_item_type(500, 1000, -1, 1, false, false);
     instance.add_item_type(500, 1500, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 1500, 1000, 3500, 3210, 0, 0};
@@ -791,15 +791,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX1)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(500, 980, -1, 1, false, true);
     instance.add_item_type(500, 990, -1, 1, false, true);
     instance.add_item_type(500, 1000, -1, 1, false, true);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 980, 500, 980, 3500, 3210, 0, 0};
@@ -829,7 +829,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX2)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(431, 658, -1, 1, false, true);
     instance.add_item_type(431, 1170, -1, 1, false, true);
     instance.add_item_type(303, 1054, -1, 1, false, true);
@@ -837,9 +839,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX2)
     instance.add_item_type(545, 872, -1, 1, false, true);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 431, 658, 431, 3500, 3210, 0, 0};
@@ -894,15 +894,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX3)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(3000, 3210, -1, 1, false, true);
     instance.add_item_type(1000, 2960, -1, 1, false, true);
     instance.add_item_type(1000, 2970, -1, 1, false, true);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3000, 3210, 3000, 3500, 3210, 0, 0};
@@ -950,15 +950,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionY1)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(500, 980, -1, 1, false, true);
     instance.add_item_type(500, 990, -1, 1, false, true);
     instance.add_item_type(500, 1000, -1, 1, false, true);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 500, 980, 500, 3500, 3210, 0, 0};
@@ -1000,14 +1000,14 @@ TEST(RectangleGuillotineBranchingScheme, InsertionY2)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(1000, 3000, -1, 1, false, true);
     instance.add_item_type(1000, 3200, -1, 1, false, true);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3000, 1000, 3500, 3210, 0, 0};
@@ -1048,7 +1048,9 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDfm1)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(400, 1000, -1, 1, false, true);
     instance.add_item_type(500, 1001, -1, 1, false, false);
     instance.add_item_type(700, 1002, -1, 1, false, false);
@@ -1056,9 +1058,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDfm1)
     instance.add_item_type(590, 1003, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, 3, -1, 1000, 600, 1000, 3500, 3210, 0, 2};
@@ -1103,7 +1103,9 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf0)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(400, 1000, -1, 1, false, true);
     instance.add_item_type(500, 1001, -1, 1, false, false);
     instance.add_item_type(700, 1002, -1, 1, false, false);
@@ -1112,9 +1114,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf0)
     instance.add_item_type(1000, 3210, -1, 1, false, true);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {5, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -1163,7 +1163,9 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf1)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(3210, 1000, -1, 1, false, true);
     instance.add_item_type(1000, 2000, -1, 1, false, true);
     instance.add_item_type(400, 1000, -1, 1, false, true);
@@ -1173,9 +1175,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf1)
     instance.add_item_type(590, 1003, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 3210, 1000, 3500, 3210, 0, 0};
@@ -1233,7 +1233,9 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf2)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(3000, 3210, -1, 1, false, true);
     instance.add_item_type(2000, 3000, -1, 1, false, true);
     instance.add_item_type(500, 1000, -1, 1, false, true);
@@ -1244,9 +1246,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf2)
     instance.add_item_type(590, 1000, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3000, 3210, 3000, 3500, 3210, 0, 0};
@@ -1298,14 +1298,14 @@ TEST(RectangleGuillotineBranchingScheme, PlateRotationI)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
+    instance.set_first_stage_orientation(CutOrientation::Any);
     instance.add_item_type(500, 1000, -1, 1, false, true);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.first_stage_orientation = CutOrientation::Any;
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -1340,17 +1340,17 @@ TEST(RectangleGuillotineBranchingScheme, InsertionSymmetry)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_cut_type_1(CutType1::ThreeStagedGuillotine);
+    instance.set_cut_type_2(CutType2::NonExact);
+    instance.set_no_item_rotation(true);
     instance.add_item_type(70, 100, -1, 1, false, true);
     instance.add_item_type(40, 80, -1, 1, false, false);
     instance.add_item_type(40, 80, -1, 1, false, false);
     instance.add_bin_type(100, 200);
 
-    BranchingScheme::Parameters p;
-    p.cut_type_1 = CutType1::ThreeStagedGuillotine;
-    p.cut_type_2 = CutType2::NonExact;
-    p.no_item_rotation = true;
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 70, 100, 70, 100, 200, 0, 0};
@@ -1392,15 +1392,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteI)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
+    instance.set_cut_type_1(CutType1::TwoStagedGuillotine);
     instance.add_item_type(500, 3200, -1, 1, false, true);
     instance.add_item_type(500, 3200, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.cut_type_1 = CutType1::TwoStagedGuillotine;
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -1437,15 +1437,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteII)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
+    instance.set_cut_type_1(CutType1::TwoStagedGuillotine);
     instance.add_item_type(250, 3200, -1, 1, false, true);
     instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 240, 3190, 10, 10);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.cut_type_1 = CutType1::TwoStagedGuillotine;
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
@@ -1485,15 +1485,15 @@ TEST(RectangleGuillotineBranchingScheme, InsertionUpdate)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(3000, 1500, -1, 1, false, true);
     instance.add_item_type(3050, 1500, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 3005, 1590, 10, 10);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3000, 1500, 3000, 3500, 3210, 0, 0};
