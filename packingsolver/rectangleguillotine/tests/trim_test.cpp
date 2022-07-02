@@ -242,7 +242,7 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
-        {0, -1, -1, 1000, 3180, 1000, 3500, 3210, 0, 0},
+        {0, -1, -1, 1000, 3180, 1000, 3500, 3190, 0, 0},
     };
 
     EXPECT_EQ(branching_scheme.insertions(root, info), is);
@@ -331,7 +331,7 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
-        {0, -1, -1, 2970, 500, 2970, 3000, 3210, 0, 0},
+        {0, -1, -1, 2970, 500, 2970, 2980, 3210, 0, 0},
     };
 
     EXPECT_EQ(branching_scheme.insertions(root, info), is);
