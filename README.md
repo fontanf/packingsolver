@@ -1,6 +1,6 @@
 # PackingSolver
 
-A state-of-the-art tree search based solver for (geometrical) Packing Problems.
+A state-of-the-art solver for (geometrical) Packing Problems.
 
 Only `rectangleguillotine` problem type has been implemented yet.
 

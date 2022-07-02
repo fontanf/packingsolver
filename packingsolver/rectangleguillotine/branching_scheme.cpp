@@ -104,7 +104,7 @@ bool BranchingScheme::bound(
         Area a = instance_.item_area() + node.waste;
         while (a > 0) {
             i_pos++;
-            a -= instance_.bin(i_pos).rect.area();
+            a -= instance_.bin(i_pos).area();
         }
         return (i_pos + 1 >= solution_best.number_of_bins());
     } case Objective::BinPackingWithLeftovers: {
@@ -432,24 +432,24 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
 
     // Update pos_stack, items_area, squared_item_area and profit.
     node.pos_stack         = father.pos_stack;
-    node.number_of_items       = father.number_of_items;
+    node.number_of_items   = father.number_of_items;
     node.item_area         = father.item_area;
     node.squared_item_area = father.squared_item_area;
     node.profit            = father.profit;
     if (insertion.j1 != -1) {
         const ItemType& item = instance_.item_type(insertion.j1);
         node.pos_stack[item.stack]++;
-        node.number_of_items       += 1;
-        node.item_area         += item.rect.area();
-        node.squared_item_area += item.rect.area() * item.rect.area();
+        node.number_of_items   += 1;
+        node.item_area         += item.area();
+        node.squared_item_area += item.area() * item.area();
         node.profit            += item.profit;
     }
     if (insertion.j2 != -1) {
         const ItemType& item = instance_.item_type(insertion.j2);
         node.pos_stack[item.stack]++;
-        node.number_of_items       += 1;
-        node.item_area         += item.rect.area();
-        node.squared_item_area += item.rect.area() * item.rect.area();
+        node.number_of_items   += 1;
+        node.item_area         += item.area();
+        node.squared_item_area += item.area() * item.area();
         node.profit            += item.profit;
     }
     assert(node.item_area <= instance_.packable_area());
@@ -458,10 +458,11 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     node.current_area = instance_.previous_bin_area(i);
     if (full(node)) {
         node.current_area += (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)?
-            node.x1_curr * h: node.y2_curr * w;
+            (node.x1_curr - instance_.left_trim(bin_type, o)) * h:
+            (node.y2_curr - instance_.bottom_trim(bin_type, o)) * w;
     } else {
-        node.current_area += node.x1_prev * h
-            + (node.x1_curr - node.x1_prev) * node.y2_prev
+        node.current_area += (node.x1_prev - instance_.left_trim(bin_type, o)) * h
+            + (node.x1_curr - node.x1_prev) * (node.y2_prev - instance_.bottom_trim(bin_type, o))
             + (node.x3_curr - node.x1_prev) * (node.y2_curr - node.y2_prev);
     }
     node.waste = node.current_area - node.item_area;
@@ -626,11 +627,11 @@ Area BranchingScheme::waste(const Node& node, const Insertion& insertion) const
     Area item_area = node.item_area;
     if (insertion.j1 != -1) {
         n++;
-        item_area += instance_.item_type(insertion.j1).rect.area();
+        item_area += instance_.item_type(insertion.j1).area();
     }
     if (insertion.j2 != -1) {
         n++;
-        item_area += instance_.item_type(insertion.j2).rect.area();
+        item_area += instance_.item_type(insertion.j2).area();
     }
     Area current_area = (n == instance_.number_of_items())?
         instance_.previous_bin_area(i)
@@ -1331,7 +1332,11 @@ bool BranchingScheme::BranchingScheme::check(
 
         } else if (node.j == -1) {
             // Check minimum waste constraint
-            if ((node.r != w - bin_type.right_trim
+            if ((node.r <= w - bin_type.right_trim)
+                    && (node.t <= h - bin_type.top_trim)
+                    && (node.l >= bin_type.left_trim)
+                    && (node.b >= bin_type.bottom_trim)
+                    && (node.r != w - bin_type.right_trim
                         || bin_type.right_trim_type == TrimType::Hard)
                     && (node.t != h - bin_type.top_trim
                         || bin_type.top_trim_type == TrimType::Hard)
@@ -1348,17 +1353,7 @@ bool BranchingScheme::BranchingScheme::check(
             }
         }
 
-        if (node.d == 0) {
-             if (node.l != bin_type.left_trim
-                     || node.r != w - bin_type.right_trim
-                     || node.b != bin_type.bottom_trim
-                     || node.t != h - bin_type.top_trim) {
-                 std::cerr << "\033[31m" << "ERROR, "
-                     "Node " << node << " incorrect dimensions"
-                     << "\033[0m" << std::endl;
-                 return false;
-             }
-         } else if (node.d == 1 && node.j != -1 && node.j != -3) {
+         if (node.d == 1 && node.j != -1 && node.j != -3) {
              if (node.r - node.l < instance_.min1cut()) {
                  std::cerr << "\033[31m" << "ERROR, "
                      "Node " << node << " violates min1cut constraint"
@@ -1452,12 +1447,156 @@ Solution BranchingScheme::to_solution(
             n.d = 0;
             n.f = -1;
             n.i = i;
-            n.l = bin_type.left_trim;
-            n.r = bin_type.rect.w - bin_type.right_trim;
-            n.b = bin_type.bottom_trim;
-            n.t = bin_type.rect.h - bin_type.top_trim;
+            n.l = 0;
+            n.r = bin_type.rect.w;
+            n.b = 0;
+            n.t = bin_type.rect.h;
             n.j = (b1)? -1: -2;
             subplate0_curr = id;
+            NodeId father_id = id;
+
+            if (bin_type.left_trim > 0
+                    || bin_type.right_trim > 0
+                    || bin_type.bottom_trim > 0
+                    || bin_type.top_trim > 0) {
+
+                {
+                    nodes.push_back(Solution::Node());
+                    Solution::Node& n = nodes.back();
+                    SolutionNodeId id = nodes.size() - 1;
+                    n.id = id;
+                    n.d = -1;
+                    n.f = father_id;
+                    n.i = i;
+                    n.l = 0;
+                    n.r = bin_type.left_trim;
+                    n.b = 0;
+                    n.t = bin_type.bottom_trim;
+                    n.j = -1;
+                }
+
+                {
+                    nodes.push_back(Solution::Node());
+                    Solution::Node& n = nodes.back();
+                    SolutionNodeId id = nodes.size() - 1;
+                    n.id = id;
+                    n.d = -1;
+                    n.f = father_id;
+                    n.i = i;
+                    n.l = 0;
+                    n.r = bin_type.left_trim;
+                    n.b = bin_type.rect.h - bin_type.top_trim;
+                    n.t = bin_type.rect.h;
+                    n.j = -1;
+                }
+
+                {
+                    nodes.push_back(Solution::Node());
+                    Solution::Node& n = nodes.back();
+                    SolutionNodeId id = nodes.size() - 1;
+                    n.id = id;
+                    n.d = -1;
+                    n.f = father_id;
+                    n.i = i;
+                    n.l = bin_type.rect.w - bin_type.right_trim;
+                    n.r = bin_type.rect.w;
+                    n.b = 0;
+                    n.t = bin_type.bottom_trim;
+                    n.j = -1;
+                }
+
+                {
+                    nodes.push_back(Solution::Node());
+                    Solution::Node& n = nodes.back();
+                    SolutionNodeId id = nodes.size() - 1;
+                    n.id = id;
+                    n.d = -1;
+                    n.f = father_id;
+                    n.i = i;
+                    n.l = bin_type.rect.w - bin_type.right_trim;
+                    n.r = bin_type.rect.w;
+                    n.b = bin_type.rect.h - bin_type.top_trim;
+                    n.t = bin_type.rect.h;
+                    n.j = -1;
+                }
+
+                {
+                    nodes.push_back(Solution::Node());
+                    Solution::Node& n = nodes.back();
+                    SolutionNodeId id = nodes.size() - 1;
+                    n.id = id;
+                    n.d = -1;
+                    n.f = father_id;
+                    n.i = i;
+                    n.l = 0;
+                    n.r = bin_type.left_trim;
+                    n.b = bin_type.bottom_trim;
+                    n.t = bin_type.rect.h - bin_type.top_trim;
+                    n.j = -1;
+                }
+
+                {
+                    nodes.push_back(Solution::Node());
+                    Solution::Node& n = nodes.back();
+                    SolutionNodeId id = nodes.size() - 1;
+                    n.id = id;
+                    n.d = -1;
+                    n.f = father_id;
+                    n.i = i;
+                    n.l = bin_type.left_trim;
+                    n.r = bin_type.rect.w - bin_type.right_trim;
+                    n.b = 0;
+                    n.t = bin_type.bottom_trim;
+                    n.j = -1;
+                }
+
+                {
+                    nodes.push_back(Solution::Node());
+                    Solution::Node& n = nodes.back();
+                    SolutionNodeId id = nodes.size() - 1;
+                    n.id = id;
+                    n.d = -1;
+                    n.f = father_id;
+                    n.i = i;
+                    n.l = bin_type.rect.w - bin_type.right_trim;
+                    n.r = bin_type.rect.w;
+                    n.b = bin_type.bottom_trim;
+                    n.t = bin_type.rect.h - bin_type.top_trim;
+                    n.j = -1;
+                }
+
+                {
+                    nodes.push_back(Solution::Node());
+                    Solution::Node& n = nodes.back();
+                    SolutionNodeId id = nodes.size() - 1;
+                    n.id = id;
+                    n.d = -1;
+                    n.f = father_id;
+                    n.i = i;
+                    n.l = bin_type.left_trim;
+                    n.r = bin_type.rect.w - bin_type.right_trim;
+                    n.b = bin_type.rect.h - bin_type.top_trim;
+                    n.t = bin_type.rect.h;
+                    n.j = -1;
+                }
+
+                {
+                    nodes.push_back(Solution::Node());
+                    Solution::Node& n = nodes.back();
+                    SolutionNodeId id = nodes.size() - 1;
+                    n.id = id;
+                    n.d = -1;
+                    n.f = father_id;
+                    n.i = i;
+                    n.l = bin_type.left_trim;
+                    n.r = bin_type.rect.w - bin_type.right_trim;
+                    n.b = bin_type.bottom_trim;
+                    n.t = bin_type.rect.h - bin_type.top_trim;
+                    n.j = (b1)? -1: -2;
+                    subplate0_curr = id;
+                }
+            }
+
             //std::cout << n << std::endl;
         }
 

@@ -73,6 +73,8 @@ struct ItemType
     StackId stack;
     /** Indicates if the item is oriented (i.e. cannot be rotated). */
     bool oriented;
+
+    Area area() const { return rect.area(); }
 };
 
 std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
@@ -141,6 +143,7 @@ struct BinType
 
     Length width(CutOrientation o) const { return (o == CutOrientation::Vertical)? rect.w: rect.h; }
     Length height(CutOrientation o) const { return (o == CutOrientation::Vertical)? rect.h: rect.w; }
+    Area area() const { return (rect.h - top_trim - bottom_trim) * (rect.w - right_trim - left_trim); }
 };
 
 std::ostream& operator<<(std::ostream &os, const BinType& bin_type);

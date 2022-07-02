@@ -217,7 +217,7 @@ Area Instance::previous_bin_area(BinPos i_pos) const
 {
     assert(i_pos < number_of_bins());
     const BinType& b = bin(i_pos);
-    return b.previous_bin_area + b.rect.area() * (i_pos - b.previous_bin_copies);
+    return b.previous_bin_area + b.area() * (i_pos - b.previous_bin_copies);
 }
 
 ItemTypeId Instance::add_item_type(
@@ -253,11 +253,11 @@ ItemTypeId Instance::add_item_type(
         items_pos2type_.back().push_back(item_type.id);
 
     // Update item_area_ and item_profit_.
-    item_area_ += item_type.copies * item_type.rect.area();
+    item_area_ += item_type.copies * item_type.area();
     item_profit_ += item_type.copies * item_type.profit;
     if (max_efficiency_item_ == -1
-            || (item_types_[max_efficiency_item_].profit * item_type.rect.area()
-                < item_type.profit * item_types_[max_efficiency_item_].rect.area()))
+            || (item_types_[max_efficiency_item_].profit * item_type.area()
+                < item_type.profit * item_types_[max_efficiency_item_].area()))
         max_efficiency_item_ = item_type.id;
 
     return item_type.id;
@@ -310,7 +310,7 @@ BinTypeId Instance::add_bin_type(
     bin_type.copies_min = copies_min;
     bin_type.previous_bin_area = (number_of_bins() == 0)? 0:
         bin_types_.back().previous_bin_area
-        + bin_types_.back().rect.area() * bin_types_.back().copies;
+        + bin_types_.back().area() * bin_types_.back().copies;
     bin_type.previous_bin_copies = (number_of_bins() == 0)? 0:
         bin_types_.back().previous_bin_copies + bin_types_.back().copies;
     bin_types_.push_back(bin_type);
@@ -318,7 +318,7 @@ BinTypeId Instance::add_bin_type(
     for (ItemPos pos = 0; pos < copies; ++pos)
         bins_pos2type_.push_back(bin_type.id);
     // Update packable_area_.
-    packable_area_ += bin_types_.back().copies * bin_types_.back().rect.area();
+    packable_area_ += bin_types_.back().copies * bin_types_.back().area();
 
     return bin_type.id;
 }
@@ -427,13 +427,13 @@ void Instance::set_bin_infinite_copies()
         bin_types_[i].previous_bin_area = (i == 0)?
             0:
             bin_types_[i - 1].previous_bin_area
-            + bin_types_[i - 1].rect.area() * bin_types_[i - 1].copies;
+            + bin_types_[i - 1].area() * bin_types_[i - 1].copies;
         bin_types_[i].previous_bin_copies = (i == 0)?
             0:
             bin_types_[i - 1].previous_bin_copies + bin_types_[i - 1].copies;
         for (ItemPos pos = 0; pos < bin_types_[i].copies; ++pos)
             bins_pos2type_.push_back(i);
-        packable_area_ += bin_types_[i].copies * bin_types_[i].rect.area();
+        packable_area_ += bin_types_[i].copies * bin_types_[i].area();
     }
 }
 
@@ -443,17 +443,17 @@ void Instance::set_item_infinite_copies()
         items_pos2type_[s].clear();
         for (ItemType& item: stacks_[s]) {
             number_of_items_ -= item.copies;
-            item_area_ -= item.copies * item.rect.area();
+            item_area_ -= item.copies * item.area();
             item_profit_ -= item.copies * item.profit;
             length_sum_ -= item.copies * std::max(item.rect.w, item.rect.h);
 
-            ItemPos c = (bin_types_[0].rect.area() - 1) / item.rect.area() + 1;
+            ItemPos c = (bin_types_[0].area() - 1) / item.area() + 1;
             item.copies = c;
             item_types_[item.id].copies = c;
 
             number_of_items_ += item.copies;
             length_sum_ += item.copies * std::max(item.rect.w, item.rect.h);
-            item_area_ += item.copies * item.rect.area();
+            item_area_ += item.copies * item.area();
             item_profit_ += item.copies * item.profit;
 
             for (ItemPos pos = 0; pos < item.copies; ++pos)
@@ -466,13 +466,13 @@ void Instance::set_item_infinite_copies()
 void Instance::set_bin_unweighted()
 {
     for (BinTypeId i = 0; i < number_of_bin_types(); ++i)
-        bin_types_[i].cost = bin_types_[i].rect.area();
+        bin_types_[i].cost = bin_types_[i].area();
 }
 
 void Instance::set_unweighted()
 {
     for (ItemTypeId j = 0; j < number_of_item_types(); ++j)
-        item_types_[j].profit = item_types_[j].rect.area();
+        item_types_[j].profit = item_types_[j].area();
 }
 
 void Instance::read_item_types(std::string items_path)

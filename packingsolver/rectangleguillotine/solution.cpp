@@ -84,26 +84,24 @@ void Solution::add_node(const Node& node)
     if (number_of_bins_ < node.i + 1) {
         number_of_bins_ = node.i + 1;
         bin_copies_[node.bin_type_id]++;
-        cost_ += instance_.bin_type(node.bin_type_id).cost;
+        const BinType& bin_type = instance_.bin_type(node.bin_type_id);
+        cost_ += bin_type.cost;
+        area_ += bin_type.area();
+        full_area_ += bin_type.area();
     }
-    if (node.d == 0) {
-        assert(node.b == 0);
-        assert(node.l == 0);
-        area_      += node.r * node.t;
-        full_area_ += node.r * node.t;
-    }
+    if (node.d >= 0)
     if (node.j >= 0) {
         number_of_items_++;
         item_area_ += instance().item_type(node.j).rect.area();
-        profit_    += instance().item_type(node.j).profit;
+        profit_ += instance().item_type(node.j).profit;
         item_copies_[node.j]++;
     }
     if (node.j == -3) // Subtract residual area
         area_ -= (node.t - node.b) * (node.r - node.l);
     // Update width_ and height_
-    if (node.r != instance().bin(node.i).rect.w && width_ < node.r)
+    if (node.r < instance().bin(node.i).rect.w && width_ < node.r)
         width_ = node.r;
-    if (node.t != instance().bin(node.i).rect.h && height_ < node.t)
+    if (node.t < instance().bin(node.i).rect.h && height_ < node.t)
         height_ = node.t;
 }
 
