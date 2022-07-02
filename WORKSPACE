@@ -32,14 +32,14 @@ cc_library(
 )
 
 git_repository(
-    name = "optimizationtools_",
+    name = "optimizationtools",
     remote = "https://github.com/fontanf/optimizationtools.git",
-    commit = "82aadd81a837b02c03d5fa025b7f253129c8f0af",
-    shallow_since = "1655661915 +0200",
+    commit = "d7299a707f3b6b3b8aa8c428f5254b9ea39bfc53",
+    shallow_since = "1656765328 +0200",
 )
 
 local_repository(
-    name = "optimizationtools",
+    name = "optimizationtools_",
     path = "../optimizationtools/",
 )
 
