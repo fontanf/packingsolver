@@ -1,5 +1,5 @@
 STDCPP = select({
-            "@bazel_tools//src/conditions:windows": ['/std:c++latest'],
+            "@bazel_tools//src/conditions:windows": [''],
             "//conditions:default":                 ["-std=c++11"]})
 
 COINOR_COPTS = select({

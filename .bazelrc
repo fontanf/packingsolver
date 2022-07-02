@@ -1,5 +1,5 @@
 build --compilation_mode=opt
-build --cxxopt=-Wall --cxxopt=-Wextra
+#build --cxxopt=-Wall --cxxopt=-Wextra
 
 #build --define coinor=true
 #build --define cplex=true
