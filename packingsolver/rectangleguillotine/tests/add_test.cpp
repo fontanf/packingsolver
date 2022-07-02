@@ -27,14 +27,14 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion1)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(200, 300);
     instance.add_item_type(300, 400);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     EXPECT_EQ(static_cast<const BranchingScheme::Node&>(*root).number_of_bins, 0);
@@ -92,15 +92,15 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion2)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(500, 600);
     instance.add_item_type(200, 300);
     instance.add_item_type(100, 400);
     instance.add_bin_type(6000, 3210);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
 
     auto root = branching_scheme.root();
 

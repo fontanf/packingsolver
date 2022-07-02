@@ -30,16 +30,16 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
+    instance.set_cut_type_1(CutType1::TwoStagedGuillotine);
     instance.add_item_type(3000, 3210, -1, 1, false, true);
     instance.add_item_type(3000, 500, -1, 1, false, true);
     instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 3100, 600, 2, 2);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.cut_type_1 = CutType1::TwoStagedGuillotine;
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -2, 3210, 3000, 3210, 3210, 6000, 0, 0};
@@ -60,14 +60,14 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
     Info info = Info()
         //.set_log2stderr(true)
         ;
-    Instance instance(Objective::BinPackingWithLeftovers,
-            "data/rectangle/tests/C1_items.csv",
-            "data/rectangle/tests/C1_bins.csv",
-            "data/rectangle/tests/C1_defects.csv");
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.guide_id = 6;
-    BranchingScheme branching_scheme(instance, p);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.read_item_types("data/rectangle/tests/C1_items.csv");
+    instance.read_bin_types("data/rectangle/tests/C1_bins.csv");
+    instance.read_defects("data/rectangle/tests/C1_defects.csv");
+    instance.set_roadef2018();
+    BranchingScheme branching_scheme(instance);
+    branching_scheme.set_guide(6);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
     EXPECT_EQ(solution_pool.best().waste(), 0);
@@ -76,14 +76,14 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
 TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
 {
     Info info;
-    Instance instance(Objective::BinPackingWithLeftovers,
-            "data/rectangle/tests/C2_items.csv",
-            "data/rectangle/tests/C2_bins.csv",
-            "data/rectangle/tests/C2_defects.csv");
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.guide_id = 6;
-    BranchingScheme branching_scheme(instance, p);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.read_item_types("data/rectangle/tests/C2_items.csv");
+    instance.read_bin_types("data/rectangle/tests/C2_bins.csv");
+    instance.read_defects("data/rectangle/tests/C2_defects.csv");
+    instance.set_roadef2018();
+    BranchingScheme branching_scheme(instance);
+    branching_scheme.set_guide(6);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
     EXPECT_EQ(solution_pool.best().waste(), 210 * 5700);
@@ -91,15 +91,14 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
 {
-    Info info;
-    Instance instance(Objective::BinPackingWithLeftovers,
-            "data/rectangle/tests/C3_items.csv",
-            "data/rectangle/tests/C3_bins.csv",
-            "data/rectangle/tests/C3_defects.csv");
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.guide_id = 6;
-    BranchingScheme branching_scheme(instance, p);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.read_item_types("data/rectangle/tests/C3_items.csv");
+    instance.read_bin_types("data/rectangle/tests/C3_bins.csv");
+    instance.read_defects("data/rectangle/tests/C3_defects.csv");
+    instance.set_roadef2018();
+    BranchingScheme branching_scheme(instance);
+    branching_scheme.set_guide(6);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
     EXPECT_EQ(solution_pool.best().waste(), 0);
@@ -128,15 +127,15 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
      */
 
     Info info;
-    Instance instance(Objective::BinPackingWithLeftovers,
-            "data/rectangle/tests/C11_items.csv",
-            "data/rectangle/tests/C11_bins.csv",
-            "data/rectangle/tests/C11_defects.csv");
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.cut_type_2 = CutType2::Exact;
-    p.guide_id = 6;
-    BranchingScheme branching_scheme(instance, p);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.read_item_types("data/rectangle/tests/C11_items.csv");
+    instance.read_bin_types("data/rectangle/tests/C11_bins.csv");
+    instance.read_defects("data/rectangle/tests/C11_defects.csv");
+    instance.set_roadef2018();
+    instance.set_cut_type_2(CutType2::Exact);
+    BranchingScheme branching_scheme(instance);
+    branching_scheme.set_guide(6);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
     EXPECT_EQ(solution_pool.best().waste(), 3210 * (6000 + 210) - instance.item_area());
@@ -163,16 +162,16 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(500, 1000, -1, 1, false, true);
     instance.add_item_type(1500, 1600, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 950, 950, 100, 100);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.guide_id = 6;
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
+    branching_scheme.set_guide(6);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
@@ -200,17 +199,17 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(500, 1000, -1, 1, false, true);
     instance.add_item_type(500, 1500, -1, 1, false, false);
     instance.add_item_type(1500, 1600, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 950, 1250, 50, 50);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.guide_id = 6;
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
+    branching_scheme.set_guide(6);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
@@ -239,17 +238,17 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
 
     Info info;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
     instance.add_item_type(500, 2900, -1, 1, false, true);
     instance.add_item_type(500, 2800, -1, 1, false, false);
     instance.add_item_type(2950, 3210, -1, 1, false, false);
     instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 2950, 1500, 100, 100);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.guide_id = 6;
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
+    branching_scheme.set_guide(6);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
@@ -279,7 +278,10 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
         //.set_log2stderr(true)
         ;
 
-    Instance instance(Objective::BinPackingWithLeftovers);
+    Instance instance;
+    instance.set_objective(Objective::BinPackingWithLeftovers);
+    instance.set_roadef2018();
+    instance.set_cut_type_2(CutType2::Exact);
     instance.add_item_type(1400, 1600, -1, 1, false, true);
     instance.add_item_type(1500, 1500, -1, 1, false, false);
     instance.add_item_type(1500, 3000, -1, 1, false, false);
@@ -287,11 +289,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
     instance.add_defect(0, 1000, 3100, 10, 10);
     instance.add_defect(0, 2000, 200, 10, 10);
 
-    BranchingScheme::Parameters p;
-    p.set_roadef2018();
-    p.cut_type_2 = CutType2::Exact;
-    p.guide_id = 6;
-    BranchingScheme branching_scheme(instance, p);
+    BranchingScheme branching_scheme(instance);
+    branching_scheme.set_guide(6);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
@@ -330,10 +329,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
 
         Info info;
 
-        Instance instance(Objective::BinPackingWithLeftovers,
-                "data/rectangle/roadef2018/" + name + "_items.csv",
-                "data/rectangle/roadef2018/" + name + "_bins.csv",
-                "data/rectangle/roadef2018/" + name + "_defects.csv");
+        Instance instance;
+        instance.set_objective(Objective::BinPackingWithLeftovers);
+        instance.read_item_types("data/rectangle/roadef2018/" + name + "_items.csv");
+        instance.read_bin_types("data/rectangle/roadef2018/" + name + "_bins.csv");
+        instance.read_defects("data/rectangle/roadef2018/" + name + "_defects.csv");
 
         std::string solution_filepath = "data/rectangle_solutions/roadef2018/" + name + "_solution.csv";
         std::ifstream f(solution_filepath);
@@ -353,7 +353,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
             }
         }
 
-        Instance instance_new(Objective::BinPackingWithLeftovers);
+        Instance instance_new;
+        instance_new.set_objective(Objective::BinPackingWithLeftovers);
+        instance_new.set_roadef2018();
         for (BinTypeId i = 0; i < instance.number_of_bin_types(); ++i) {
             const BinType& bin = instance.bin_type(i);
             instance_new.add_bin_type(bin.rect.w, bin.rect.h, bin.copies);
@@ -369,9 +371,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
             new_stack = false;
         }
 
-        BranchingScheme::Parameters p;
-        p.set_roadef2018();
-        BranchingScheme branching_scheme(instance_new, p);
+        BranchingScheme branching_scheme(instance_new);
         SolutionPool<Instance, Solution> solution_pool(instance_new, 1);
         dynamic_programming_a_star(branching_scheme, solution_pool);
         const Solution& solution = solution_pool.best();

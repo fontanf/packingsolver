@@ -9,19 +9,3 @@ load("//packingsolver:variables.bzl", "STDCPP",
          "GUROBI_COPTS", "GUROBI_DEP",
          "XPRESS_COPTS", "XPRESS_DEP")
 
-cc_binary(
-        name = "main",
-        srcs = ["main.cpp"],
-        deps = [
-                "//packingsolver/algorithms:algorithms",
-                "//packingsolver/rectangleguillotine:rectangleguillotine",
-                "@boost//:program_options",
-        ],
-        copts = STDCPP + COINOR_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
-        linkopts = select({
-                "@bazel_tools//src/conditions:windows": [],
-                "//conditions:default":                 ["-lpthread"],
-        }),
-        data = ["//data/rectangle:rectangle"],
-)
-

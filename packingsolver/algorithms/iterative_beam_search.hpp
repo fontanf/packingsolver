@@ -156,7 +156,9 @@ ibsend:
 
     std::stringstream ss;
     ss << "IBS (thread " << parameters.thread_id << ")";
+    parameters.info.lock();
     parameters.info.add_to_json(ss.str(), "NumberOfNodes", output.number_of_nodes);
+    parameters.info.unlock();
     FFOT_LOG_FOLD_END(parameters.info, "");
     return output;
 }

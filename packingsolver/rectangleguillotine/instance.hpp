@@ -30,6 +30,7 @@ std::istream& operator>>(std::istream& in, CutOrientation& o);
 std::ostream& operator<<(std::ostream &os, CutType1 cut_type_1);
 std::ostream& operator<<(std::ostream &os, CutType2 cut_type_2);
 std::ostream& operator<<(std::ostream &os, CutOrientation o);
+std::ostream& operator<<(std::ostream &os, TrimType trim_type);
 
 struct Coord
 {
@@ -144,6 +145,45 @@ struct BinType
 
 std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
 
+struct Parameters
+{
+    /** CutType1. */
+    CutType1 cut_type_1 = CutType1::ThreeStagedGuillotine;
+
+    /** CutType2. */
+    CutType2 cut_type_2 = CutType2::NonExact;
+
+    /** Orientation of the first stage. */
+    CutOrientation first_stage_orientation = CutOrientation::Vertical;
+
+    /** Minimum distance between two consecutive 1-cuts. */
+    Length min1cut = 0;
+
+    /** Maximum distance between two consecutive 1-cuts. */
+    Length max1cut = -1;
+
+    /** Minimum distance between two consecutive 2-cuts. */
+    Length min2cut = 0;
+
+    /** Maximum distance between two consecutive 2-cuts. */
+    Length max2cut = -1;
+
+    /** Minimum distance between two cuts. */
+    Length min_waste = 1;
+
+    /**
+     * Boolean indicating whether a single 2-cut is allowed in each first-level
+     * sub-plate.
+     */
+    bool one2cut = false;
+
+    /** No item rotation. */
+    bool no_item_rotation = false;
+
+    /** Boolean indicating whether it is allowed to cut through defects. */
+    bool cut_through_defects = false;
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Instance ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -160,15 +200,26 @@ public:
      * Constructors and destructor.
      */
 
-    /** Create an instance from a file. */
-    Instance(
-            Objective objective,
-            std::string items_path,
-            std::string bins_path,
-            std::string defects_path);
-
     /** Create an instance manually. */
-    Instance(Objective objective): objective_(objective) { }
+    Instance() { }
+
+    /** Set the objective. */
+    void set_objective(Objective objective) { objective_ = objective; }
+
+    /** Read item types from a file. */
+    void read_item_types(std::string items_path);
+
+    /** Read bin types from a file. */
+    void read_bin_types(std::string bins_path);
+
+    /** Read defects from a file. */
+    void read_defects(std::string defects_path);
+
+    /** Read parameters from a file. */
+    void read_parameters(std::string parameters_path);
+
+    /** Set parameters. */
+    void set_parameters(const Parameters& parameters) { parameters_ = parameters; }
 
     /** Add an item type. */
     ItemTypeId add_item_type(
@@ -206,6 +257,17 @@ public:
             Length y,
             Length w,
             Length h);
+
+    /**
+     * Set parameters from another instance.
+     *
+     * This method is used in the column generation procedure.
+     */
+    inline void set_parameters(
+            const Instance& instance)
+    {
+        parameters_ = instance.parameters_;
+    }
 
     /**
      * Add a bin type from another bin type.
@@ -289,6 +351,32 @@ public:
      * Knapsack Problem.
      */
     void set_unweighted();
+
+    void set_cut_type_1(CutType1 cut_type_1) { parameters_.cut_type_1 = cut_type_1; }
+    void set_cut_type_2(CutType2 cut_type_2) { parameters_.cut_type_2 = cut_type_2; }
+    void set_first_stage_orientation(CutOrientation first_stage_orientation) { parameters_.first_stage_orientation = first_stage_orientation; }
+    void set_min1cut(Length min1cut) { parameters_.min1cut = min1cut; }
+    void set_max1cut(Length max1cut) { parameters_.max1cut = max1cut; }
+    void set_min2cut(Length min2cut) { parameters_.min2cut = min2cut; }
+    void set_max2cut(Length max2cut) { parameters_.max2cut = max2cut; }
+    void set_min_waste(Length min_waste) { parameters_.min_waste = min_waste; }
+    void set_one2cut(bool one2cut) { parameters_.one2cut = one2cut; }
+    void set_no_item_rotation(bool no_item_rotation) { parameters_.no_item_rotation = no_item_rotation; }
+    void set_cut_through_defects(bool cut_through_defects) { parameters_.cut_through_defects = cut_through_defects; }
+
+    void set_predefined(std::string str);
+    void set_roadef2018()
+    {
+        parameters_.cut_type_1 = rectangleguillotine::CutType1::ThreeStagedGuillotine;
+        parameters_.cut_type_2 = rectangleguillotine::CutType2::Roadef2018;
+        parameters_.first_stage_orientation = rectangleguillotine::CutOrientation::Vertical;
+        parameters_.min1cut = 100;
+        parameters_.max1cut = 3500;
+        parameters_.min2cut = 100;
+        parameters_.min_waste = 20;
+        parameters_.no_item_rotation = false;
+        parameters_.cut_through_defects = false;
+    }
 
     /*
      * Getters
@@ -463,6 +551,22 @@ public:
             CutOrientation o) const;
 
     /*
+     * Pattern properties.
+     */
+
+    CutType1 cut_type_1() const { return parameters_.cut_type_1; }
+    CutType2 cut_type_2() const { return parameters_.cut_type_2; }
+    CutOrientation first_stage_orientation() const { return parameters_.first_stage_orientation; }
+    Length min1cut() const { return parameters_.min1cut; }
+    Length max1cut() const { return parameters_.max1cut; }
+    Length min2cut() const { return parameters_.min2cut; }
+    Length max2cut() const { return parameters_.max2cut; }
+    Length min_waste() const { return parameters_.min_waste; }
+    bool one2cut() const { return parameters_.one2cut; }
+    bool no_item_rotation() const { return parameters_.no_item_rotation; }
+    bool cut_through_defects() const { return parameters_.cut_through_defects; }
+
+    /*
      * Intersections.
      */
 
@@ -523,6 +627,11 @@ public:
      * Export.
      */
 
+    /** Print the instance into a stream. */
+    std::ostream& print(
+            std::ostream& os,
+            int verbose = 1) const;
+
     /** Write the instance to a file. */
     void write(std::string instance_path) const;
 
@@ -535,10 +644,15 @@ private:
     /** Objective. */
     Objective objective_;
 
+    /** Parameters. */
+    Parameters parameters_;
+
     /** Item types. */
     std::vector<ItemType> item_types_;
+
     /** Defects. */
     std::vector<Defect> defects_;
+
     /** Bin types. */
     std::vector<BinType> bin_types_;
 
@@ -547,20 +661,28 @@ private:
 
     /** Number of items. */
     ItemPos number_of_items_ = 0;
+
     /** Convert item position to item type. */
     std::vector<std::vector<BinTypeId>> items_pos2type_;
+
     /** Convert bin position to bin type. */
     std::vector<BinTypeId> bins_pos2type_;
+
     /** Total length (max of width and height) of the items. */
     Length length_sum_ = 0;
+
     /** Total item area. */
     Area item_area_ = 0;
+
     /** Total defect area. */
     Area defect_area_ = 0;
+
     /** Total packable area. */
     Area packable_area_ = 0;
+
     /** Total item profit. */
     Profit item_profit_ = 0;
+
     /** Id of the item with maximum efficiency. */
     ItemTypeId max_efficiency_item_ = -1;
 
@@ -568,9 +690,6 @@ private:
     bool all_item_type_infinite_copies_ = false;
 
 };
-
-/** Stream insertion operator. */
-std::ostream& operator<<(std::ostream &os, const Instance& ins);
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Inlined methods ////////////////////////////////

@@ -35,39 +35,6 @@ public:
      * Sub-structures.
      */
 
-    /**
-     * Parameter structure of the branching scheme.
-     */
-    struct Parameters
-    {
-        CutType1 cut_type_1 = CutType1::ThreeStagedGuillotine;
-        CutType2 cut_type_2 = CutType2::NonExact;
-        CutOrientation first_stage_orientation = CutOrientation::Vertical;
-        Length min1cut = 0;
-        Length max1cut = -1;
-        Length min2cut = 0;
-        Length max2cut = -1;
-        Length min_waste = 1;
-        bool one2cut = false;
-        bool no_item_rotation = false;
-        bool cut_through_defects = false;
-        GuideId guide_id = 0;
-
-        void set_predefined(std::string str);
-        void set_roadef2018()
-        {
-            cut_type_1 = rectangleguillotine::CutType1::ThreeStagedGuillotine;
-            cut_type_2 = rectangleguillotine::CutType2::Roadef2018;
-            first_stage_orientation = rectangleguillotine::CutOrientation::Vertical;
-            min1cut = 100;
-            max1cut = 3500;
-            min2cut = 100;
-            min_waste = 20;
-            no_item_rotation = false;
-            cut_through_defects = false;
-        }
-    };
-
     struct Insertion
     {
         /** Id of the item at the bottom of the third-level sub-plate, -1 if none. */
@@ -226,10 +193,16 @@ public:
     };
 
     /** Constructor */
-    BranchingScheme(const Instance& instance, const Parameters& parameters);
+    BranchingScheme(const Instance& instance);
 
     /** Destructor */
     virtual ~BranchingScheme() { }
+
+    /** Set the guide used by the branching scheme. */
+    void set_guide(GuideId guide_id) { guide_id_ = guide_id; }
+
+    /** Set the first stage orientation. */
+    void set_first_stage_orientation(CutOrientation first_stage_orientation);
 
     /*
      * Branching scheme methods
@@ -317,8 +290,12 @@ private:
 
     /** Instance. */
     const Instance& instance_;
-    /** Parameters. */
-    Parameters parameters_;
+
+    /** Guide. */
+    GuideId guide_id_ = 0;
+
+    /** First stage orientation. */
+    CutOrientation first_stage_orientation_;
 
     bool no_oriented_items_;
 
@@ -334,7 +311,7 @@ private:
      * Private methods
      */
 
-    inline bool oriented(ItemTypeId j) const { return (instance_.item_type(j).oriented)? true: parameters_.no_item_rotation; }
+    inline bool oriented(ItemTypeId j) const { return (instance_.item_type(j).oriented)? true: instance_.no_item_rotation(); }
 
     /**
      * Return true iff s1 and s2 contains identical objects in the same order.
@@ -353,8 +330,8 @@ private:
     inline double       remaining_item_area(const Node& node) const { return instance_.item_area() - node.item_area; }
     inline double          waste_percentage(const Node& node) const { return (double)node.waste / node.current_area; }
     inline double               waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
-    inline Length                     width(const Node& node) const { return (parameters_.cut_type_1 == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
-    inline Length                    height(const Node& node) const { return (parameters_.cut_type_1 == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+    inline Length                     width(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+    inline Length                    height(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
     inline Profit                      ubkp(const Node& node) const;
     inline bool       last_insertion_defect(const Node& node) const { return node.number_of_bins > 0 && node.j1 == -1 && node.j2 == -1; }
 
@@ -386,7 +363,6 @@ private:
     bool check(const std::vector<Solution::Node>& nodes) const;
 };
 
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Parameters& parameters);
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Insertion& insertion);
 std::ostream& operator<<(std::ostream &os, const std::vector<BranchingScheme::Insertion>& insertions);
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Front& front);
@@ -422,7 +398,7 @@ bool BranchingScheme::operator()(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    switch(parameters_.guide_id) {
+    switch(guide_id_) {
     case 0: {
         if (node_1->current_area == 0) {
             if (node_2->current_area != 0) {
