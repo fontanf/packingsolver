@@ -595,14 +595,14 @@ void Instance::read_bin_types(std::string bins_path)
         BinTypeId i = add_bin_type(w, h, cost, c, c_min);
         add_trims(
                 i,
-                bottom_trim,
-                bottom_trim_type,
-                top_trim,
-                top_trim_type,
                 left_trim,
                 left_trim_type,
                 right_trim,
-                right_trim_type);
+                right_trim_type,
+                bottom_trim,
+                bottom_trim_type,
+                top_trim,
+                top_trim_type);
     }
 }
 
