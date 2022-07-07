@@ -1353,35 +1353,6 @@ bool BranchingScheme::BranchingScheme::check(
             }
         }
 
-         if (node.d == 1 && node.j != -1 && node.j != -3) {
-             if (node.r - node.l < instance_.min1cut()) {
-                 std::cerr << "\033[31m" << "ERROR, "
-                     "Node " << node << " violates min1cut constraint"
-                     << "\033[0m" << std::endl;
-                 return false;
-             }
-             if (instance_.max1cut() >= 0
-                     && node.r - node.l > instance_.max1cut()) {
-                 std::cerr << "\033[31m" << "ERROR, "
-                     "Node " << node << " violates max1cut constraint"
-                     << "\033[0m" << std::endl;
-                 return false;
-             }
-         } else if (node.d == 2 && node.j != -1) {
-             if (node.t - node.b < instance_.min2cut()) {
-                 std::cerr << "\033[31m" << "ERROR, "
-                     "Node " << node << " violates min2cut constraint"
-                     << "\033[0m" << std::endl;
-                 return false;
-             }
-             if (instance_.max2cut() >= 0
-                     && node.t - node.b > instance_.max2cut()) {
-                 std::cerr << "\033[31m" << "ERROR, "
-                     "Node " << node << " violates max2cut constraint"
-                     << "\033[0m" << std::endl;
-                 return false;
-             }
-         }
     }
 
     return true;
@@ -1455,6 +1426,7 @@ Solution BranchingScheme::to_solution(
             subplate0_curr = id;
             NodeId father_id = id;
 
+            // Trims.
             if (bin_type.left_trim > 0
                     || bin_type.right_trim > 0
                     || bin_type.bottom_trim > 0
