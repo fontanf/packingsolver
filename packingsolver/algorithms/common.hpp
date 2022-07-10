@@ -43,10 +43,14 @@ enum class Objective {
     VariableSizedBinPacking,
 };
 
+enum class Orientation { Horinzontal, Vertical, Any };
+
 std::istream& operator>>(std::istream& in, ProblemType& problem_type);
 std::istream& operator>>(std::istream& in, Objective& objective);
+std::istream& operator>>(std::istream& in, Orientation& o);
 std::ostream& operator<<(std::ostream &os, ProblemType problem_type);
 std::ostream& operator<<(std::ostream &os, Objective objective);
+std::ostream& operator<<(std::ostream &os, Orientation o);
 
 struct AbstractBinType
 {

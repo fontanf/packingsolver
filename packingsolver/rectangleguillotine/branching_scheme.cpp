@@ -9,10 +9,24 @@ using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 
 BranchingScheme::BranchingScheme(
-        const Instance& instance):
-    instance_(instance)
+        const Instance& instance,
+        const Parameters& parameters):
+    instance_(instance),
+    parameters_(parameters)
 {
-    set_first_stage_orientation(instance.first_stage_orientation());
+    // Compute first_stage_orientation_.
+    CutOrientation first_stage_orientation = (instance.first_stage_orientation() != CutOrientation::Any)?
+        instance.first_stage_orientation():
+        parameters.first_stage_orientation;
+    if (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine) {
+        first_stage_orientation_ = first_stage_orientation;
+    } else if (instance_.cut_type_1() == CutType1::TwoStagedGuillotine) {
+        if (first_stage_orientation == CutOrientation::Horinzontal) {
+            first_stage_orientation_ = CutOrientation::Vertical;
+        } else if (first_stage_orientation == CutOrientation::Vertical) {
+            first_stage_orientation_ = CutOrientation::Horinzontal;
+        }
+    }
 
     // Compute no_oriented_items_;
     if (instance_.no_item_rotation()) {
@@ -35,19 +49,6 @@ BranchingScheme::BranchingScheme(
                 stack_pred_[s] = s0;
                 break;
             }
-        }
-    }
-}
-
-void BranchingScheme::set_first_stage_orientation(CutOrientation first_stage_orientation)
-{
-    if (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine) {
-        first_stage_orientation_ = first_stage_orientation;
-    } else if (instance_.cut_type_1() == CutType1::TwoStagedGuillotine) {
-        if (first_stage_orientation == CutOrientation::Horinzontal) {
-            first_stage_orientation_ = CutOrientation::Vertical;
-        } else if (first_stage_orientation == CutOrientation::Vertical) {
-            first_stage_orientation_ = CutOrientation::Horinzontal;
         }
     }
 }

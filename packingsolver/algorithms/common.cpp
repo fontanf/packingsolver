@@ -83,3 +83,39 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Objective objective)
     return os;
 }
 
+std::istream& packingsolver::operator>>(
+        std::istream& in,
+        Orientation& o)
+{
+    std::string token;
+    in >> token;
+    if (token == "horizontal") {
+        o = Orientation::Horinzontal;
+    } else if (token == "vertical") {
+        o = Orientation::Vertical;
+    } else if (token == "any") {
+        o = Orientation::Any;
+    } else  {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& packingsolver::operator<<(
+        std::ostream &os,
+        Orientation o)
+{
+    switch (o) {
+    case Orientation::Vertical: {
+        os << "Vertical";
+        break;
+    } case Orientation::Horinzontal: {
+        os << "Horinzontal";
+        break;
+    } case Orientation::Any: {
+        os << "Any";
+        break;
+    }
+    }
+    return os;
+}

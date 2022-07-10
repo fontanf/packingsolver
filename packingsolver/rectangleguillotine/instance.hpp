@@ -262,17 +262,6 @@ public:
             Length h);
 
     /**
-     * Set parameters from another instance.
-     *
-     * This method is used in the column generation procedure.
-     */
-    inline void set_parameters(
-            const Instance& instance)
-    {
-        parameters_ = instance.parameters_;
-    }
-
-    /**
      * Add a bin type from another bin type.
      *
      * This method is used in the column generation procedure.
@@ -557,6 +546,7 @@ public:
      * Pattern properties.
      */
 
+    const Parameters& parameters() const { return parameters_; }
     CutType1 cut_type_1() const { return parameters_.cut_type_1; }
     CutType2 cut_type_2() const { return parameters_.cut_type_2; }
     CutOrientation first_stage_orientation() const { return parameters_.first_stage_orientation; }

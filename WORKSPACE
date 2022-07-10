@@ -44,6 +44,18 @@ local_repository(
 )
 
 git_repository(
+    name = "treesearchsolver",
+    remote = "https://github.com/fontanf/treesearchsolver.git",
+    commit = "c39a99bb46ef73f4bd092460517d530f3a273569",
+    shallow_since = "1655023961 +0200",
+)
+
+local_repository(
+    name = "treesearchsolver_",
+    path = "../treesearchsolver/",
+)
+
+git_repository(
     name = "columngenerationsolver",
     remote = "https://github.com/fontanf/columngenerationsolver.git",
     commit = "40c2daef0bdb8a83330e472b7a4103a4ff38c614",

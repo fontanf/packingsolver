@@ -9,6 +9,8 @@ def Settings(**kwargs):
                 '-I', './bazel-packingsolver/external/boost/',
                 '-I', './bazel-packingsolver/external/optimizationtools/',
                 # '-I', './../optimizationtools/',
+                '-I', './bazel-packingsolver/external/treesearchsolver/',
+                # '-I', './../treesearchsolver/',
                 '-I', './bazel-packingsolver/external/columngenerationsolver/',
                 # '-I', './../columngenerationsolver/',
                 ],
