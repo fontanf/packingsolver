@@ -192,17 +192,29 @@ public:
         std::vector<JRX> subplate2curr_items_above_defect = {};
     };
 
+    struct Parameters
+    {
+        /** Guide. */
+        GuideId guide_id = 0;
+
+        /** First stage orientation. */
+        CutOrientation first_stage_orientation = CutOrientation::Any;
+    };
+
     /** Constructor */
-    BranchingScheme(const Instance& instance);
+    BranchingScheme(
+            const Instance& instance,
+            const Parameters& parameters);
+
+    BranchingScheme(
+            const Instance& instance):
+        BranchingScheme(instance, Parameters()) {  }
 
     /** Destructor */
     virtual ~BranchingScheme() { }
 
-    /** Set the guide used by the branching scheme. */
-    void set_guide(GuideId guide_id) { guide_id_ = guide_id; }
-
-    /** Set the first stage orientation. */
-    void set_first_stage_orientation(CutOrientation first_stage_orientation);
+    /** Get instance. */
+    const Instance& instance() const { return instance_; }
 
     /*
      * Branching scheme methods
@@ -215,8 +227,6 @@ public:
     std::shared_ptr<Node> child(
             const std::shared_ptr<Node>& father,
             const Insertion& insertion) const;
-
-    const Instance& instance() const { return instance_; }
 
     const std::shared_ptr<Node> root() const;
 
@@ -291,11 +301,11 @@ private:
     /** Instance. */
     const Instance& instance_;
 
-    /** Guide. */
-    GuideId guide_id_ = 0;
+    /** Parameters. */
+    Parameters parameters_;
 
     /** First stage orientation. */
-    CutOrientation first_stage_orientation_;
+    CutOrientation first_stage_orientation_ = CutOrientation::Any;
 
     bool no_oriented_items_;
 
@@ -398,7 +408,7 @@ bool BranchingScheme::operator()(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    switch(guide_id_) {
+    switch(parameters_.guide_id) {
     case 0: {
         if (node_1->current_area == 0) {
             if (node_2->current_area != 0) {

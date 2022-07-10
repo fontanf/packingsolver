@@ -66,8 +66,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
     instance.read_bin_types("data/rectangle/tests/C1_bins.csv");
     instance.read_defects("data/rectangle/tests/C1_defects.csv");
     instance.set_roadef2018();
-    BranchingScheme branching_scheme(instance);
-    branching_scheme.set_guide(6);
+    BranchingScheme::Parameters branching_scheme_parameters;
+    branching_scheme_parameters.guide_id = 0;
+    BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
     EXPECT_EQ(solution_pool.best().waste(), 0);
@@ -82,8 +83,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
     instance.read_bin_types("data/rectangle/tests/C2_bins.csv");
     instance.read_defects("data/rectangle/tests/C2_defects.csv");
     instance.set_roadef2018();
-    BranchingScheme branching_scheme(instance);
-    branching_scheme.set_guide(6);
+    BranchingScheme::Parameters branching_scheme_parameters;
+    branching_scheme_parameters.guide_id = 0;
+    BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
     EXPECT_EQ(solution_pool.best().waste(), 210 * 5700);
@@ -97,8 +99,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
     instance.read_bin_types("data/rectangle/tests/C3_bins.csv");
     instance.read_defects("data/rectangle/tests/C3_defects.csv");
     instance.set_roadef2018();
-    BranchingScheme branching_scheme(instance);
-    branching_scheme.set_guide(6);
+    BranchingScheme::Parameters branching_scheme_parameters;
+    branching_scheme_parameters.guide_id = 6;
+    BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
     EXPECT_EQ(solution_pool.best().waste(), 0);
@@ -134,8 +137,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
     instance.read_defects("data/rectangle/tests/C11_defects.csv");
     instance.set_roadef2018();
     instance.set_cut_type_2(CutType2::Exact);
-    BranchingScheme branching_scheme(instance);
-    branching_scheme.set_guide(6);
+    BranchingScheme::Parameters branching_scheme_parameters;
+    branching_scheme_parameters.guide_id = 6;
+    BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
     EXPECT_EQ(solution_pool.best().waste(), 3210 * (6000 + 210) - instance.item_area());
@@ -170,8 +174,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
     instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 950, 950, 100, 100);
 
-    BranchingScheme branching_scheme(instance);
-    branching_scheme.set_guide(6);
+    BranchingScheme::Parameters branching_scheme_parameters;
+    branching_scheme_parameters.guide_id = 6;
+    BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
@@ -208,8 +213,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
     instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 950, 1250, 50, 50);
 
-    BranchingScheme branching_scheme(instance);
-    branching_scheme.set_guide(6);
+    BranchingScheme::Parameters branching_scheme_parameters;
+    branching_scheme_parameters.guide_id = 6;
+    BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
@@ -247,8 +253,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
     instance.add_bin_type(6000, 3210);
     instance.add_defect(0, 2950, 1500, 100, 100);
 
-    BranchingScheme branching_scheme(instance);
-    branching_scheme.set_guide(6);
+    BranchingScheme::Parameters branching_scheme_parameters;
+    branching_scheme_parameters.guide_id = 6;
+    BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
@@ -289,8 +296,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
     instance.add_defect(0, 1000, 3100, 10, 10);
     instance.add_defect(0, 2000, 200, 10, 10);
 
-    BranchingScheme branching_scheme(instance);
-    branching_scheme.set_guide(6);
+    BranchingScheme::Parameters branching_scheme_parameters;
+    branching_scheme_parameters.guide_id = 6;
+    BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);

@@ -179,7 +179,7 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
         // Build knapsack instance.
         Instance instance_kp = Instance();
         instance_kp.set_objective(Objective::Knapsack);
-        instance_kp.set_parameters(instance_);
+        instance_kp.set_parameters(instance_.parameters());
         instance_kp.add_bin_type(instance_.bin_type(i), 1);
         std::vector<ItemTypeId> kp2vbpp;
         for (ItemTypeId j = 0; j < n; ++j) {

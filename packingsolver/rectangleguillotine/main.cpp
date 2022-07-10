@@ -82,7 +82,6 @@ int main(int argc, char *argv[])
     }
 
     Instance instance;
-    instance.set_objective(objective);
 
     if (!vm.count("-d"))
         if (std::ifstream(items_path + "_defects.csv").good())
