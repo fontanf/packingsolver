@@ -1433,7 +1433,7 @@ Solution BranchingScheme::to_solution(
                     || bin_type.bottom_trim > 0
                     || bin_type.top_trim > 0) {
 
-                {
+                if (bin_type.left_trim != 0 && bin_type.bottom_trim != 0) {
                     nodes.push_back(Solution::Node());
                     Solution::Node& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
@@ -1448,7 +1448,7 @@ Solution BranchingScheme::to_solution(
                     n.j = -1;
                 }
 
-                {
+                if (bin_type.left_trim != 0 && bin_type.top_trim != 0) {
                     nodes.push_back(Solution::Node());
                     Solution::Node& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
@@ -1463,7 +1463,7 @@ Solution BranchingScheme::to_solution(
                     n.j = -1;
                 }
 
-                {
+                if (bin_type.right_trim != 0 && bin_type.bottom_trim != 0) {
                     nodes.push_back(Solution::Node());
                     Solution::Node& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
@@ -1478,7 +1478,7 @@ Solution BranchingScheme::to_solution(
                     n.j = -1;
                 }
 
-                {
+                if (bin_type.right_trim != 0 && bin_type.top_trim != 0) {
                     nodes.push_back(Solution::Node());
                     Solution::Node& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
@@ -1493,7 +1493,7 @@ Solution BranchingScheme::to_solution(
                     n.j = -1;
                 }
 
-                {
+                if (bin_type.left_trim != 0) {
                     nodes.push_back(Solution::Node());
                     Solution::Node& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
@@ -1508,7 +1508,7 @@ Solution BranchingScheme::to_solution(
                     n.j = -1;
                 }
 
-                {
+                if (bin_type.bottom_trim != 0) {
                     nodes.push_back(Solution::Node());
                     Solution::Node& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
@@ -1523,7 +1523,7 @@ Solution BranchingScheme::to_solution(
                     n.j = -1;
                 }
 
-                {
+                if (bin_type.right_trim != 0) {
                     nodes.push_back(Solution::Node());
                     Solution::Node& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
@@ -1538,7 +1538,7 @@ Solution BranchingScheme::to_solution(
                     n.j = -1;
                 }
 
-                {
+                if (bin_type.top_trim != 0) {
                     nodes.push_back(Solution::Node());
                     Solution::Node& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
@@ -1553,21 +1553,19 @@ Solution BranchingScheme::to_solution(
                     n.j = -1;
                 }
 
-                {
-                    nodes.push_back(Solution::Node());
-                    Solution::Node& n = nodes.back();
-                    SolutionNodeId id = nodes.size() - 1;
-                    n.id = id;
-                    n.d = -1;
-                    n.f = father_id;
-                    n.i = i;
-                    n.l = bin_type.left_trim;
-                    n.r = bin_type.rect.w - bin_type.right_trim;
-                    n.b = bin_type.bottom_trim;
-                    n.t = bin_type.rect.h - bin_type.top_trim;
-                    n.j = (b1)? -1: -2;
-                    subplate0_curr = id;
-                }
+                nodes.push_back(Solution::Node());
+                Solution::Node& n = nodes.back();
+                SolutionNodeId id = nodes.size() - 1;
+                n.id = id;
+                n.d = -1;
+                n.f = father_id;
+                n.i = i;
+                n.l = bin_type.left_trim;
+                n.r = bin_type.rect.w - bin_type.right_trim;
+                n.b = bin_type.bottom_trim;
+                n.t = bin_type.rect.h - bin_type.top_trim;
+                n.j = (b1)? -1: -2;
+                subplate0_curr = id;
             }
 
             //std::cout << n << std::endl;
