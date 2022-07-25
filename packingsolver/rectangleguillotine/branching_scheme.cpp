@@ -1909,6 +1909,9 @@ Solution BranchingScheme::to_solution(
 
     }
 
+    for (Solution::Node& n: nodes)
+        n.bin_type_id = instance().bin(n.i).id;
+
     if (!check(nodes)) {
         throw std::runtime_error("");
     }
