@@ -413,7 +413,7 @@ public:
     inline const BinType& bin_type(BinTypeId i) const { return bin_types_[i]; }
 
     /** Get the j_pos's item of stack s. */
-    inline const ItemType& item(StackId s, ItemPos j_pos) const { return item_types_[items_pos2type_[s][j_pos]]; }
+    inline ItemTypeId item(StackId s, ItemPos j_pos) const { return items_pos2type_[s][j_pos]; }
     /** Get the i_pos's bin. */
     inline const BinType& bin(BinPos i_pos) const { return bin_types_[bins_pos2type_[i_pos]]; }
     /** Get the total area of the bins before bin i_pos. */

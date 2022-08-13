@@ -318,6 +318,15 @@ private:
     mutable NodeId node_id_ = 0;
 
     /*
+     * Temporary variables.
+     */
+
+    /** Position of the last bin. */
+    mutable BinPos i = -1;
+    /** Orientation of the last bin. */
+    mutable CutOrientation o = CutOrientation::Vertical;
+
+    /*
      * Private methods
      */
 
