@@ -605,7 +605,7 @@ if __name__ == "__main__":
         convert_vbpp(f, "xmnxxx", "whp", "", "whcx")
 
     for f in [
-            "egeblad2009/ep-" + i + "-" + a + "-" + b + "-" + j + ".2kp"
+            "egeblad2009/ep2-" + i + "-" + a + "-" + b + "-" + j + ".2kp"
             for i in ["30", "50", "100", "200"]
             for a in ["D", "S", "T", "U", "W"]
             for b in ["C", "R"]
