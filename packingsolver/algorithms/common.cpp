@@ -40,10 +40,10 @@ std::istream& packingsolver::operator>>(std::istream& in, Objective& objective)
         objective = Objective::BinPacking;
     } else if (token == "bin-packing-with-leftovers" || token == "BPPL") {
         objective = Objective::BinPackingWithLeftovers;
-    } else if (token == "strip-packing-width" || token == "SPPW") {
-        objective = Objective::StripPackingWidth;
-    } else if (token == "strip-packing-height" || token == "SPPH") {
-        objective = Objective::StripPackingHeight;
+    } else if (token == "strip-packing-x" || token == "SPPX") {
+        objective = Objective::StripPackingX;
+    } else if (token == "strip-packing-y" || token == "SPPY") {
+        objective = Objective::StripPackingY;
     } else if (token == "knapsack" || token == "KP") {
         objective = Objective::Knapsack;
     } else if (token == "variable-sized-bin-packing" || token == "VBPP") {
@@ -66,11 +66,11 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Objective objective)
     } case Objective::BinPackingWithLeftovers: {
         os << "BinPackingWithLeftovers";
         break;
-    } case Objective::StripPackingWidth: {
-        os << "StripPackingWidth";
+    } case Objective::StripPackingX: {
+        os << "StripPackingX";
         break;
-    } case Objective::StripPackingHeight: {
-        os << "StripPackingHeight";
+    } case Objective::StripPackingY: {
+        os << "StripPackingY";
         break;
     } case Objective::Knapsack: {
         os << "Knapsack";
@@ -85,16 +85,16 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Objective objective)
 
 std::istream& packingsolver::operator>>(
         std::istream& in,
-        Orientation& o)
+        Direction& o)
 {
     std::string token;
     in >> token;
-    if (token == "horizontal") {
-        o = Orientation::Horinzontal;
-    } else if (token == "vertical") {
-        o = Orientation::Vertical;
+    if (token == "x") {
+        o = Direction::X;
+    } else if (token == "y") {
+        o = Direction::Y;
     } else if (token == "any") {
-        o = Orientation::Any;
+        o = Direction::Any;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -103,16 +103,16 @@ std::istream& packingsolver::operator>>(
 
 std::ostream& packingsolver::operator<<(
         std::ostream &os,
-        Orientation o)
+        Direction o)
 {
     switch (o) {
-    case Orientation::Vertical: {
-        os << "Vertical";
+    case Direction::X: {
+        os << "X";
         break;
-    } case Orientation::Horinzontal: {
-        os << "Horinzontal";
+    } case Direction::Y: {
+        os << "Y";
         break;
-    } case Orientation::Any: {
+    } case Direction::Any: {
         os << "Any";
         break;
     }

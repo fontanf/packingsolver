@@ -12,8 +12,8 @@ Features:
 * Objectives:
   * Bin packing
   * Knapsack
-  * Strip packing width
-  * Strip packing height
+  * Strip packing X
+  * Strip packing Y
   * Bin packing with leftovers
   * Variable-sized bin packing
 * Item rotations

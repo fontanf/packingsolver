@@ -141,9 +141,7 @@ struct BinType
     /** Number of previous bins. */
     BinPos previous_bin_copies = 0;
 
-    Length width(CutOrientation o) const { return (o == CutOrientation::Vertical)? rect.w: rect.h; }
-    Length height(CutOrientation o) const { return (o == CutOrientation::Vertical)? rect.h: rect.w; }
-    Area area() const { return (rect.h - top_trim - bottom_trim) * (rect.w - right_trim - left_trim); }
+    inline Area area() const { return (rect.h - top_trim - bottom_trim) * (rect.w - right_trim - left_trim); }
 };
 
 std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
@@ -298,18 +296,18 @@ public:
     }
 
     /**
-     * For each bin type, set an infinite width.
+     * For each bin type, set an infinite x.
      *
      * This method is used to transform a problem into a Strip Packing problem.
      */
-    void set_bin_infinite_width();
+    void set_bin_infinite_x();
 
     /**
-     * For each bin type, set an infinite height.
+     * For each bin type, set an infinite y.
      *
      * This method is used to transform a problem into a Strip Packing problem.
      */
-    void set_bin_infinite_height();
+    void set_bin_infinite_y();
 
     /**
      * Foe each bin type, set an infinite number of copies.
@@ -433,29 +431,21 @@ public:
     inline const std::vector<Defect>& defects() const { return defects_; }
 
     /*
-     * Item type dimensions.
+     * Bin type dimensions.
      */
 
-    /**
-     * Get the width of an item depending on whether it has been rotated and
-     * the orientation of the bin.
-     */
+    /** Get the width of an bin type depending on its orientation. */
     inline Length width(
-            const ItemType& item,
-            bool rotate,
+            const BinType& bin_type,
             CutOrientation o) const;
 
-    /**
-     * Get the height of an item depending on whether it has been rotated and
-     * the orientation of the bin.
-     */
+    /** Get the height of an bin type depending on its orientation. */
     inline Length height(
-            const ItemType& item,
-            bool rotate,
+            const BinType& bin_type,
             CutOrientation o) const;
 
     /**
-     * Bin trims.
+     * Bin type trims.
      */
 
     /** Get the bottom trim of a bin depending on its orientation. */
@@ -507,6 +497,28 @@ public:
             CutOrientation o) const;
 
     /*
+     * Item type dimensions.
+     */
+
+    /**
+     * Get the width of an item depending on whether it has been rotated and
+     * the orientation of the bin.
+     */
+    inline Length width(
+            const ItemType& item,
+            bool rotate,
+            CutOrientation o) const;
+
+    /**
+     * Get the height of an item depending on whether it has been rotated and
+     * the orientation of the bin.
+     */
+    inline Length height(
+            const ItemType& item,
+            bool rotate,
+            CutOrientation o) const;
+
+    /*
      * Defect coordinates.
      */
 
@@ -546,18 +558,18 @@ public:
      * Pattern properties.
      */
 
-    const Parameters& parameters() const { return parameters_; }
-    CutType1 cut_type_1() const { return parameters_.cut_type_1; }
-    CutType2 cut_type_2() const { return parameters_.cut_type_2; }
-    CutOrientation first_stage_orientation() const { return parameters_.first_stage_orientation; }
-    Length min1cut() const { return parameters_.min1cut; }
-    Length max1cut() const { return parameters_.max1cut; }
-    Length min2cut() const { return parameters_.min2cut; }
-    Length max2cut() const { return parameters_.max2cut; }
-    Length min_waste() const { return parameters_.min_waste; }
-    bool one2cut() const { return parameters_.one2cut; }
-    bool no_item_rotation() const { return parameters_.no_item_rotation; }
-    bool cut_through_defects() const { return parameters_.cut_through_defects; }
+    inline const Parameters& parameters() const { return parameters_; }
+    inline CutType1 cut_type_1() const { return parameters_.cut_type_1; }
+    inline CutType2 cut_type_2() const { return parameters_.cut_type_2; }
+    inline CutOrientation first_stage_orientation() const { return parameters_.first_stage_orientation; }
+    inline Length min1cut() const { return parameters_.min1cut; }
+    inline Length max1cut() const { return parameters_.max1cut; }
+    inline Length min2cut() const { return parameters_.min2cut; }
+    inline Length max2cut() const { return parameters_.max2cut; }
+    inline Length min_waste() const { return parameters_.min_waste; }
+    inline bool one2cut() const { return parameters_.one2cut; }
+    inline bool no_item_rotation() const { return parameters_.no_item_rotation; }
+    inline bool cut_through_defects() const { return parameters_.cut_through_defects; }
 
     /*
      * Intersections.
@@ -688,32 +700,54 @@ private:
 /////////////////////////////// Inlined methods ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+inline Length Instance::width(
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)? bin_type.rect.w: bin_type.rect.h;
+}
+
+inline Length Instance::height(
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    return (o == CutOrientation::Vertical)? bin_type.rect.h: bin_type.rect.w;
+}
+
 Length Instance::bottom_trim(
         const BinType& bin_type,
         CutOrientation o) const
 {
-    return (o == CutOrientation::Vertical)? bin_type.bottom_trim: bin_type.left_trim;
+    return (o == CutOrientation::Vertical)?
+        bin_type.bottom_trim:
+        bin_type.left_trim;
 }
 
 Length Instance::top_trim(
         const BinType& bin_type,
         CutOrientation o) const
 {
-    return (o == CutOrientation::Vertical)? bin_type.top_trim: bin_type.right_trim;
+    return (o == CutOrientation::Vertical)?
+        bin_type.top_trim:
+        bin_type.right_trim;
 }
 
 Length Instance::left_trim(
         const BinType& bin_type,
         CutOrientation o) const
 {
-    return (o == CutOrientation::Vertical)? bin_type.left_trim: bin_type.top_trim;
+    return (o == CutOrientation::Vertical)?
+        bin_type.left_trim:
+        bin_type.top_trim;
 }
 
 Length Instance::right_trim(
         const BinType& bin_type,
         CutOrientation o) const
 {
-    return (o == CutOrientation::Vertical)? bin_type.right_trim: bin_type.bottom_trim;
+    return (o == CutOrientation::Vertical)?
+        bin_type.right_trim:
+        bin_type.bottom_trim;
 }
 
 TrimType Instance::bottom_trim_type(

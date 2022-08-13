@@ -1017,8 +1017,8 @@ def get_tests(problem):
         # [G-SPP-O] bortfeldt2012 wei2014
         return [(f,
                  " --items data/rectangle/" + f +
-                 " --bin-infinite-height"
-                 " --objective strip-packing-height"
+                 " --bin-infinite-y"
+                 " --objective strip-packing-y"
                  " --predefined 3NHO"
                  " --time-limit 60"
                  ) for f in []
@@ -1035,8 +1035,8 @@ def get_tests(problem):
         #           cui2008 bortfeldt2012 cui2013 wei2014
         return [(f,
                  " --items data/rectangle/" + f +
-                 " --bin-infinite-height"
-                 " --objective strip-packing-height"
+                 " --bin-infinite-y"
+                 " --objective strip-packing-y"
                  " --predefined 3NHR"
                  " --time-limit 60"
                  ) for f in []
@@ -1052,8 +1052,8 @@ def get_tests(problem):
         # lodi2004 cintra2008 mrad2015 cui2017
         return [(f,
                  " --items data/rectangle/" + f +
-                 " --bin-infinite-height"
-                 " --objective strip-packing-height"
+                 " --bin-infinite-y"
+                 " --objective strip-packing-y"
                  " --predefined 2NHO"
                  " --time-limit 10"
                  ) for f in []
@@ -1067,8 +1067,8 @@ def get_tests(problem):
         #
         return [(f,
                  " --items data/rectangle/" + f +
-                 " --bin-infinite-height"
-                 " --objective strip-packing-height"
+                 " --bin-infinite-y"
+                 " --objective strip-packing-y"
                  " --predefined 2NHR"
                  " --time-limit 10"
                  ) for f in []

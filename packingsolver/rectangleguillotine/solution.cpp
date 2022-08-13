@@ -61,18 +61,18 @@ Solution& Solution::operator=(const Solution& solution)
                     "Assign a solution to a solution from a different instance.");
         }
 
-        nodes_           = solution.nodes_;
+        nodes_ = solution.nodes_;
         number_of_items_ = solution.number_of_items_;
-        number_of_bins_  = solution.number_of_bins_;
-        area_            = solution.area_;
-        full_area_       = solution.full_area_;
-        item_area_       = solution.item_area_;
-        profit_          = solution.profit_;
-        cost_            = solution.cost_;
-        width_           = solution.width_;
-        height_          = solution.height_;
-        bin_copies_      = solution.bin_copies_;
-        item_copies_     = solution.item_copies_;
+        number_of_bins_ = solution.number_of_bins_;
+        area_ = solution.area_;
+        full_area_ = solution.full_area_;
+        item_area_ = solution.item_area_;
+        profit_ = solution.profit_;
+        cost_ = solution.cost_;
+        width_ = solution.width_;
+        height_ = solution.height_;
+        bin_copies_ = solution.bin_copies_;
+        item_copies_ = solution.item_copies_;
         assert(number_of_items_ >= 0);
     }
     return *this;
@@ -92,7 +92,7 @@ void Solution::add_node(const Node& node)
     if (node.d >= 0)
     if (node.j >= 0) {
         number_of_items_++;
-        item_area_ += instance().item_type(node.j).rect.area();
+        item_area_ += instance().item_type(node.j).area();
         profit_ += instance().item_type(node.j).profit;
         item_copies_[node.j]++;
     }
@@ -161,13 +161,13 @@ bool Solution::operator<(const Solution& solution) const
         if (!full())
             return true;
         return solution.waste() < waste();
-    } case Objective::StripPackingWidth: {
+    } case Objective::StripPackingX: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
         return solution.width() < width();
-    } case Objective::StripPackingHeight: {
+    } case Objective::StripPackingY: {
         if (!solution.full())
             return false;
         if (!full())
@@ -232,16 +232,16 @@ void Solution::display(
                 << std::setw(32) << algorithm.str()
                 << std::endl;
         break;
-    } case Objective::StripPackingWidth: {
-        info.add_to_json(sol_str, "Width", width());
+    } case Objective::StripPackingX: {
+        info.add_to_json(sol_str, "X", width());
         info.os()
                 << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
                 << std::setw(12) << width()
                 << std::setw(32) << algorithm.str()
                 << std::endl;
         break;
-    } case Objective::StripPackingHeight: {
-        info.add_to_json(sol_str, "Height", height());
+    } case Objective::StripPackingY: {
+        info.add_to_json(sol_str, "Y", height());
         info.os()
                 << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
                 << std::setw(12) << height()
@@ -343,10 +343,10 @@ void Solution::algorithm_start(Info& info) const
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
-    } case Objective::StripPackingWidth: {
+    } case Objective::StripPackingX: {
         info.os()
                 << std::setw(12) << "Time"
-                << std::setw(12) << "Width"
+                << std::setw(12) << "X"
                 << std::setw(32) << "Comment"
                 << std::endl
                 << std::setw(12) << "----"
@@ -354,10 +354,10 @@ void Solution::algorithm_start(Info& info) const
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
-    } case Objective::StripPackingHeight: {
+    } case Objective::StripPackingY: {
         info.os()
                 << std::setw(12) << "Time"
-                << std::setw(12) << "Height"
+                << std::setw(12) << "Y"
                 << std::setw(32) << "Comment"
                 << std::endl
                 << std::setw(12) << "----"
@@ -387,7 +387,7 @@ void Solution::algorithm_start(Info& info) const
                 << std::setw(32) << "Comment"
                 << std::endl
                 << std::setw(12) << "----"
-                << std::setw(14) << "-----"
+                << std::setw(14) << "----"
                 << std::setw(8) << "------"
                 << std::setw(16) << "--------------"
                 << std::setw(32) << "-------"
@@ -435,13 +435,13 @@ void Solution::algorithm_end(Info& info) const
                 << "Waste:             " << waste() << std::endl
                 << "Waste (%):         " << 100 * waste_percentage() << std::endl;
         break;
-    } case Objective::StripPackingWidth: {
-        info.add_to_json(sol_str, "Width", width());
-        info.os() << "Width:             " << width() << std::endl;
+    } case Objective::StripPackingX: {
+        info.add_to_json(sol_str, "X", width());
+        info.os() << "X:                 " << width() << std::endl;
         break;
-    } case Objective::StripPackingHeight: {
-        info.add_to_json(sol_str, "Height", height());
-        info.os() << "Height:            " << height() << std::endl;
+    } case Objective::StripPackingY: {
+        info.add_to_json(sol_str, "Y", height());
+        info.os() << "Y:                 " << height() << std::endl;
         break;
     } case Objective::Knapsack: {
         info.add_to_json(sol_str, "Profit", profit());

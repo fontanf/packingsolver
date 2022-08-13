@@ -90,8 +90,8 @@ Output packingsolver::rectangleguillotine::optimize(
                         branching_scheme_parameters.first_stage_orientation = first_stage_orientation;
                         branching_schemes.push_back(BranchingScheme(instance_kp, branching_scheme_parameters));
                         IterativeBeamSearchOptionalParameters ibs_parameters;
-                        ibs_parameters.queue_size_min = 256;
-                        ibs_parameters.queue_size_max = 256;
+                        ibs_parameters.queue_size_min = 128;
+                        ibs_parameters.queue_size_max = 128;
                         ibs_parameters.thread_id = i + 1;
                         ibs_parameters.info = Info(info, true, "thread" + std::to_string(i + 1));
                         ibs_parameterss.push_back(ibs_parameters);

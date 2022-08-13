@@ -67,7 +67,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
     instance.read_defects("data/rectangle/tests/C1_defects.csv");
     instance.set_roadef2018();
     BranchingScheme::Parameters branching_scheme_parameters;
-    branching_scheme_parameters.guide_id = 0;
+    branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);
@@ -84,7 +84,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
     instance.read_defects("data/rectangle/tests/C2_defects.csv");
     instance.set_roadef2018();
     BranchingScheme::Parameters branching_scheme_parameters;
-    branching_scheme_parameters.guide_id = 0;
+    branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
     a_star(branching_scheme, solution_pool);

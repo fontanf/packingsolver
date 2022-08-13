@@ -407,13 +407,13 @@ void Instance::add_defect(BinTypeId i, Length x, Length y, Length w, Length h)
     // TODO
 }
 
-void Instance::set_bin_infinite_width()
+void Instance::set_bin_infinite_x()
 {
     for (BinTypeId i = 0; i < number_of_bin_types(); ++i)
         bin_types_[i].rect.w = length_sum_;
 }
 
-void Instance::set_bin_infinite_height()
+void Instance::set_bin_infinite_y()
 {
     for (BinTypeId i = 0; i < number_of_bin_types(); ++i)
         bin_types_[i].rect.h = length_sum_;

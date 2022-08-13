@@ -214,7 +214,7 @@ public:
     virtual ~BranchingScheme() { }
 
     /** Get instance. */
-    const Instance& instance() const { return instance_; }
+    inline const Instance& instance() const { return instance_; }
 
     /*
      * Branching scheme methods
@@ -331,44 +331,63 @@ private:
     Front front(const Node&) const;
     bool dominates(const Front& f1, const Front& f2) const;
 
-    inline bool                        full(const Node& node) const { return node.number_of_items == instance_.number_of_items(); }
-    inline double           item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
-    inline double                 mean_area(const Node& node) const { return (double)node.current_area / node.number_of_items; }
-    inline double            mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
-    inline double    mean_squared_item_area(const Node& node) const { return (double)node.squared_item_area / node.number_of_items; }
-    inline double  mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance_.number_of_items() - node.number_of_items); }
-    inline double       remaining_item_area(const Node& node) const { return instance_.item_area() - node.item_area; }
-    inline double          waste_percentage(const Node& node) const { return (double)node.waste / node.current_area; }
-    inline double               waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
-    inline Length                     width(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
-    inline Length                    height(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
-    inline Profit                      ubkp(const Node& node) const;
-    inline bool       last_insertion_defect(const Node& node) const { return node.number_of_bins > 0 && node.j1 == -1 && node.j2 == -1; }
+    inline bool full(const Node& node) const { return node.number_of_items == instance_.number_of_items(); }
+    inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
+    inline double mean_area(const Node& node) const { return (double)node.current_area / node.number_of_items; }
+    inline double mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
+    inline double mean_squared_item_area(const Node& node) const { return (double)node.squared_item_area / node.number_of_items; }
+    inline double mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance_.number_of_items() - node.number_of_items); }
+    inline double remaining_item_area(const Node& node) const { return instance_.item_area() - node.item_area; }
+    inline double waste_percentage(const Node& node) const { return (double)node.waste / node.current_area; }
+    inline double waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
+    inline Length width(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+    inline Length height(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+    inline Profit ubkp(const Node& node) const;
+    inline bool last_insertion_defect(const Node& node) const { return node.number_of_bins > 0 && node.j1 == -1 && node.j2 == -1; }
 
     inline Front front(const Node& node, const Insertion& insertion) const;
-    inline Area  waste(const Node& node, const Insertion& insertion) const;
+    inline Area waste(const Node& node, const Insertion& insertion) const;
 
     /** Attributes of the new node if an insertion is performed at depth df.  */
     inline CutOrientation last_bin_orientation(const Node& node, Depth df) const;
     inline BinPos last_bin(const Node& node, Depth df) const;
-    inline Length  x1_prev(const Node& node, Depth df) const;
-    inline Length  y2_prev(const Node& node, Depth df) const;
-    inline Length  x3_prev(const Node& node, Depth df) const;
-    inline Length   x1_max(const Node& node, Depth df) const;
-    inline Length   y2_max(const Node& node, Depth df, Length x3) const;
+    inline Length x1_prev(const Node& node, Depth df) const;
+    inline Length y2_prev(const Node& node, Depth df) const;
+    inline Length x3_prev(const Node& node, Depth df) const;
+    inline Length x1_max(const Node& node, Depth df) const;
+    inline Length y2_max(const Node& node, Depth df, Length x3) const;
 
     /** Insertion of one item. */
-    void insertion_1_item(const Node& father, std::vector<Insertion>& insertions,
-            ItemTypeId j, bool rotate, Depth df, Info& info) const;
+    void insertion_1_item(
+            const Node& father,
+            std::vector<Insertion>& insertions,
+            ItemTypeId j,
+            bool rotate,
+            Depth df,
+            Info& info) const;
     /** Insertion of two items. */
-    void insertion_2_items(const Node& father, std::vector<Insertion>& insertions,
-            ItemTypeId j1, bool rotate1, ItemTypeId j2, bool rotate2, Depth df, Info& info) const;
+    void insertion_2_items(
+            const Node& father,
+            std::vector<Insertion>& insertions,
+            ItemTypeId j1,
+            bool rotate1,
+            ItemTypeId j2,
+            bool rotate2,
+            Depth df,
+            Info& info) const;
     /** Insertion of a defect. */
-    void insertion_defect(const Node& father, std::vector<Insertion>& insertions,
-            const Defect& k, Depth df, Info& info) const;
+    void insertion_defect(
+            const Node& father,
+            std::vector<Insertion>& insertions,
+            const Defect& k,
+            Depth df,
+            Info& info) const;
     /** Update insertion (x1, z1, y2, z2) and add insertion to insertions. */
-    void update(const Node& father, std::vector<Insertion>& insertions,
-            Insertion& insertion, Info& info) const;
+    void update(
+            const Node& father,
+            std::vector<Insertion>& insertions,
+            Insertion& insertion,
+            Info& info) const;
 
     bool check(const std::vector<Solution::Node>& nodes) const;
 };
