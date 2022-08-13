@@ -34,8 +34,8 @@ int main(int argc, char *argv[])
         ("defects,d", po::value<std::string>(&defects_path), "Defects path")
         ("parameters", po::value<std::string>(&parameters_path), "Parameters path")
 
-        ("bin-infinite-width", "")
-        ("bin-infinite-height", "")
+        ("bin-infinite-x", "")
+        ("bin-infinite-y", "")
         ("bin-infinite-copies", "")
         ("bin-unweighted", "")
         ("item-infinite-copies", "")
@@ -101,10 +101,10 @@ int main(int argc, char *argv[])
     instance.read_bin_types(bins_path);
     instance.read_defects(defects_path);
 
-    if (vm.count("bin-infinite-width"))
-        instance.set_bin_infinite_width();
-    if (vm.count("bin-infinite-height"))
-        instance.set_bin_infinite_height();
+    if (vm.count("bin-infinite-x"))
+        instance.set_bin_infinite_x();
+    if (vm.count("bin-infinite-y"))
+        instance.set_bin_infinite_y();
     if (vm.count("bin-infinite-copies"))
         instance.set_bin_infinite_copies();
     if (vm.count("item-infinite-copies"))

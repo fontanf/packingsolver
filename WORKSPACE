@@ -44,14 +44,14 @@ local_repository(
 )
 
 git_repository(
-    name = "treesearchsolver",
+    name = "treesearchsolver_",
     remote = "https://github.com/fontanf/treesearchsolver.git",
     commit = "c39a99bb46ef73f4bd092460517d530f3a273569",
     shallow_since = "1655023961 +0200",
 )
 
 local_repository(
-    name = "treesearchsolver_",
+    name = "treesearchsolver",
     path = "../treesearchsolver/",
 )
 

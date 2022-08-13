@@ -14,9 +14,12 @@ using Counter = int64_t;
 
 using ItemTypeId = int16_t;
 using ItemPos = int16_t;
+using GroupId = int16_t;
 using StackId = int16_t;
 using Length = int64_t;
 using Area = int64_t;
+using Volume = int64_t;
+using Weight = int64_t;
 using Angle = double;
 using AnglePos = int64_t;
 using Profit = int64_t;
@@ -37,20 +40,20 @@ enum class Objective {
     Default,
     BinPacking,
     BinPackingWithLeftovers,
-    StripPackingWidth,
-    StripPackingHeight,
+    StripPackingX,
+    StripPackingY,
     Knapsack,
     VariableSizedBinPacking,
 };
 
-enum class Orientation { Horinzontal, Vertical, Any };
+enum class Direction { X, Y, Any };
 
 std::istream& operator>>(std::istream& in, ProblemType& problem_type);
 std::istream& operator>>(std::istream& in, Objective& objective);
-std::istream& operator>>(std::istream& in, Orientation& o);
+std::istream& operator>>(std::istream& in, Direction& o);
 std::ostream& operator<<(std::ostream &os, ProblemType problem_type);
 std::ostream& operator<<(std::ostream &os, Objective objective);
-std::ostream& operator<<(std::ostream &os, Orientation o);
+std::ostream& operator<<(std::ostream &os, Direction o);
 
 struct AbstractBinType
 {
