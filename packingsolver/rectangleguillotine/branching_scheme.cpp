@@ -29,15 +29,11 @@ BranchingScheme::BranchingScheme(
     }
 
     // Compute no_oriented_items_;
-    if (instance_.no_item_rotation()) {
-        no_oriented_items_ = false;
-    } else {
-        no_oriented_items_ = true;
-        for (ItemTypeId j = 0; j < instance.number_of_item_types(); ++j) {
-            if (instance.item_type(j).oriented) {
-                no_oriented_items_ = false;
-                break;
-            }
+    no_oriented_items_ = true;
+    for (ItemTypeId j = 0; j < instance.number_of_item_types(); ++j) {
+        if (instance.item_type(j).oriented) {
+            no_oriented_items_ = false;
+            break;
         }
     }
 
@@ -543,8 +539,9 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                 continue;
 
             ItemTypeId j = instance_.item(s, father.pos_stack[s]).id;
+            const ItemType& item_type = instance_.item_type(j);
 
-            if (!oriented(j)) {
+            if (!item_type.oriented) {
                 bool b = instance_.item_type(j).rect.w > instance_.item_type(j).rect.h;
                 insertion_1_item(father, insertions, j, !b, df, info);
                 insertion_1_item(father, insertions, j,  b, df, info);
@@ -590,13 +587,13 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                     if (instance_.width(item1, false, o) == instance_.width(item2, false, o))
                         insertion_2_items(father, insertions, j, false, j2, false, df, info);
 
-                    if (!oriented(j2))
+                    if (!item2.oriented)
                         if (instance_.width(item1, false, o) == instance_.width(item2, true, o))
                             insertion_2_items(father, insertions, j, false, j2, true,  df, info);
-                    if (!oriented(j))
+                    if (!item1.oriented)
                         if (instance_.width(item1, true, o) == instance_.width(item2, false, o))
                             insertion_2_items(father, insertions, j, true,  j2, false, df, info);
-                    if (!oriented(j2) && !oriented(j))
+                    if (!item2.oriented && !item1.oriented)
                         if (instance_.width(item1, true, o) == instance_.width(item2, true, o))
                             insertion_2_items(father, insertions, j, true,  j2, true,  df, info);
                 }

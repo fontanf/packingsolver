@@ -475,6 +475,12 @@ void Instance::set_unweighted()
         item_types_[j].profit = item_types_[j].area();
 }
 
+void Instance::set_no_item_rotation()
+{
+    for (ItemTypeId j = 0; j < number_of_item_types(); ++j)
+        item_types_[j].oriented = true;
+}
+
 void Instance::read_item_types(std::string items_path)
 {
     std::ifstream f_items(items_path);
@@ -825,10 +831,9 @@ void Instance::set_predefined(std::string str)
     }
     switch (str[3]) {
     case 'R': {
-        parameters_.no_item_rotation = false;
         break;
     } case 'O': {
-        parameters_.no_item_rotation = true;
+        set_no_item_rotation();
         break;
     } default: {
         std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter 4th character \"" << str[3] << "\" invalid." << "\033[0m" << std::endl;
@@ -858,7 +863,6 @@ std::ostream& Instance::print(
             << "max2cut:                  " << max2cut() << std::endl
             << "Minimum waste:            " << min_waste() << std::endl
             << "one2cut:                  " << one2cut() << std::endl
-            << "No item rotation:         " << no_item_rotation() << std::endl
             << "Cut through defects:      " << cut_through_defects() << std::endl;
     }
 

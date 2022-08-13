@@ -1344,7 +1344,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionSymmetry)
     instance.set_objective(Objective::BinPackingWithLeftovers);
     instance.set_cut_type_1(CutType1::ThreeStagedGuillotine);
     instance.set_cut_type_2(CutType2::NonExact);
-    instance.set_no_item_rotation(true);
+    instance.set_no_item_rotation();
     instance.add_item_type(70, 100, -1, 1, false, true);
     instance.add_item_type(40, 80, -1, 1, false, false);
     instance.add_item_type(40, 80, -1, 1, false, false);

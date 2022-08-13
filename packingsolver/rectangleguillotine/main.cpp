@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
         ("bin-unweighted", "")
         ("item-infinite-copies", "")
         ("unweighted", "")
+        ("no-item-rotation", "")
 
         ("objective,f", po::value<Objective>(&objective), "Objective")
 
@@ -54,7 +55,6 @@ int main(int argc, char *argv[])
         ("max2cut,", po::value<Length>(&parameters.max2cut), "")
         ("min-waste,", po::value<Length>(&parameters.min_waste), "")
         ("one2cut,", po::value<bool>(&parameters.one2cut), "")
-        ("no-item-rotation,", po::value<bool>(&parameters.no_item_rotation), "")
         ("cut-through-defects", po::value<bool>(&parameters.cut_through_defects), "")
 
         ("output,o", po::value<std::string>(&output_path), "Output path")
@@ -107,6 +107,8 @@ int main(int argc, char *argv[])
         instance.set_bin_infinite_y();
     if (vm.count("bin-infinite-copies"))
         instance.set_bin_infinite_copies();
+    if (vm.count("no-item-rotation"))
+        instance.set_no_item_rotation();
     if (vm.count("item-infinite-copies"))
         instance.set_item_infinite_copies();
     if (vm.count("unweighted"))
@@ -135,8 +137,6 @@ int main(int argc, char *argv[])
         instance.set_min_waste(parameters.min_waste);
     if (vm.count("one2cut"))
         instance.set_one2cut(parameters.one2cut);
-    if (vm.count("no-item-rotation"))
-        instance.set_no_item_rotation(parameters.no_item_rotation);
     if (vm.count("cut-through-defects"))
         instance.set_cut_through_defects(parameters.cut_through_defects);
 

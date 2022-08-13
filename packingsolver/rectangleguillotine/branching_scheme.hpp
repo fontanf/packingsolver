@@ -321,8 +321,6 @@ private:
      * Private methods
      */
 
-    inline bool oriented(ItemTypeId j) const { return (instance_.item_type(j).oriented)? true: instance_.no_item_rotation(); }
-
     /**
      * Return true iff s1 and s2 contains identical objects in the same order.
      */
