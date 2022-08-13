@@ -70,64 +70,71 @@ min2cut:                  0
 max2cut:                  -1
 Minimum waste:            1
 one2cut:                  0
-No item rotation:         1
 Cut through defects:      0
 
         Time        Profit   # items                         Comment
         ----        ------   -------                         -------
        0.000         68970         1              IBS (thread 1) q 1
        0.000         72000         1              IBS (thread 1) q 1
-       0.007         76395         2              IBS (thread 1) q 1
-       0.007         90705         2              IBS (thread 1) q 1
-       0.008        140970         2              IBS (thread 4) q 1
-       0.008        144000         2              IBS (thread 4) q 1
-       0.008        212970         3              IBS (thread 4) q 1
-       0.008        216000         3              IBS (thread 4) q 1
-       0.008        284970         4              IBS (thread 4) q 1
-       0.008        292395         5              IBS (thread 4) q 1
-       0.008        303517        12              IBS (thread 1) q 1
-       0.009        306705         5              IBS (thread 4) q 1
-       0.009        348839         5              IBS (thread 4) q 1
-       0.009        358042         6              IBS (thread 4) q 1
-       0.009        372343         6              IBS (thread 4) q 1
-       0.009        379768         7              IBS (thread 4) q 1
-       0.009        388389         7              IBS (thread 4) q 1
-       0.009        408379         7              IBS (thread 4) q 1
-       0.010        415804         8              IBS (thread 4) q 1
-       0.010        424425         8              IBS (thread 4) q 1
-       0.010        444415         8              IBS (thread 4) q 1
-       0.010        451840         9              IBS (thread 4) q 1
-       0.010        460461         9              IBS (thread 4) q 1
-       0.010        480451         9              IBS (thread 4) q 1
-       0.010        496497        10              IBS (thread 4) q 1
-       0.011        502186        10              IBS (thread 4) q 1
-       0.011        523921        11              IBS (thread 4) q 1
-       0.011        539967        12              IBS (thread 4) q 1
-       0.011        577834        21              IBS (thread 3) q 1
-       0.012        581548         9              IBS (thread 4) q 2
-       0.012        588973        10              IBS (thread 4) q 2
-       0.012        597058        10              IBS (thread 4) q 2
-       0.012        599368        11              IBS (thread 4) q 2
-       0.013        602118        14              IBS (thread 1) q 2
-       0.015        605793        11              IBS (thread 4) q 9
-       0.019        606147        13             IBS (thread 4) q 19
-       0.025        606672        12             IBS (thread 4) q 42
-       0.037        607062        14             IBS (thread 4) q 94
-       0.063        609550        15            IBS (thread 4) q 211
-       0.104        610101        31            IBS (thread 3) q 141
-       0.104        610578        31            IBS (thread 3) q 141
-       0.105        610787        32            IBS (thread 3) q 141
-       0.149        611135        34            IBS (thread 1) q 156
-       0.221        614725        31            IBS (thread 3) q 316
-       0.229        614967        42            IBS (thread 3) q 316
-       0.276        616880        16            IBS (thread 2) q 857
-       0.689        619897        28           IBS (thread 3) q 1066
+       0.000         76395         2              IBS (thread 1) q 1
+       0.008         90705         2              IBS (thread 1) q 1
+       0.008        132839         2              IBS (thread 1) q 1
+       0.008        140970         2              IBS (thread 1) q 1
+       0.009        148395         3              IBS (thread 1) q 1
+       0.009        150705         4              IBS (thread 1) q 1
+       0.010        153015         5              IBS (thread 1) q 1
+       0.011        154087         6              IBS (thread 1) q 1
+       0.011        196221         6              IBS (thread 1) q 1
+       0.012        204352         6              IBS (thread 1) q 1
+       0.012        206897         7              IBS (thread 1) q 1
+       0.013        215028         7              IBS (thread 1) q 1
+       0.013        216000         3              IBS (thread 4) q 1
+       0.013        284970         4              IBS (thread 4) q 1
+       0.013        292395         5              IBS (thread 4) q 1
+       0.013        306705         5              IBS (thread 4) q 1
+       0.013        348839         5              IBS (thread 4) q 1
+       0.014        358042         6              IBS (thread 4) q 1
+       0.014        372343         6              IBS (thread 4) q 1
+       0.014        379768         7              IBS (thread 4) q 1
+       0.014        388389         7              IBS (thread 4) q 1
+       0.014        408379         7              IBS (thread 4) q 1
+       0.014        415804         8              IBS (thread 4) q 1
+       0.014        424425         8              IBS (thread 4) q 1
+       0.015        444415         8              IBS (thread 4) q 1
+       0.015        447517        14              IBS (thread 3) q 1
+       0.015        449082        16              IBS (thread 3) q 1
+       0.015        451840         9              IBS (thread 4) q 1
+       0.015        460461         9              IBS (thread 4) q 1
+       0.015        480451         9              IBS (thread 4) q 1
+       0.016        496497        10              IBS (thread 4) q 1
+       0.016        502186        10              IBS (thread 4) q 1
+       0.016        523921        11              IBS (thread 4) q 1
+       0.016        539967        12              IBS (thread 4) q 1
+       0.016        577834        21              IBS (thread 3) q 1
+       0.017        581548         9              IBS (thread 4) q 2
+       0.017        588973        10              IBS (thread 2) q 2
+       0.017        597058        10              IBS (thread 2) q 2
+       0.017        599368        11              IBS (thread 2) q 2
+       0.017        602118        14              IBS (thread 1) q 2
+       0.020        605793        11              IBS (thread 4) q 9
+       0.023        606147        13             IBS (thread 4) q 19
+       0.029        606672        12             IBS (thread 4) q 42
+       0.042        607062        14             IBS (thread 4) q 94
+       0.068        609550        15            IBS (thread 4) q 211
+       0.118        610101        31            IBS (thread 3) q 141
+       0.118        610578        31            IBS (thread 3) q 141
+       0.119        610787        32            IBS (thread 3) q 141
+       0.158        611135        34            IBS (thread 1) q 156
+       0.247        614725        31            IBS (thread 3) q 316
+       0.257        614967        42            IBS (thread 3) q 316
+       0.295        616880        16            IBS (thread 2) q 857
+       0.751        619897        28            IBS (thread 1) q 857
 
 Final statistics
 ----------------
 Profit:            619897
 Number of items:   28
-Time:              1.0024
+Time:              1.00226
 ```
 
 A solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
