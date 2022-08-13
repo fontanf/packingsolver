@@ -178,9 +178,6 @@ struct Parameters
      */
     bool one2cut = false;
 
-    /** No item rotation. */
-    bool no_item_rotation = false;
-
     /** Boolean indicating whether it is allowed to cut through defects. */
     bool cut_through_defects = false;
 };
@@ -342,6 +339,9 @@ public:
      */
     void set_unweighted();
 
+    /** For each item type, set 'oriented' to 'true'. */
+    void set_no_item_rotation();
+
     void set_cut_type_1(CutType1 cut_type_1) { parameters_.cut_type_1 = cut_type_1; }
     void set_cut_type_2(CutType2 cut_type_2) { parameters_.cut_type_2 = cut_type_2; }
     void set_first_stage_orientation(CutOrientation first_stage_orientation) { parameters_.first_stage_orientation = first_stage_orientation; }
@@ -351,7 +351,6 @@ public:
     void set_max2cut(Length max2cut) { parameters_.max2cut = max2cut; }
     void set_min_waste(Length min_waste) { parameters_.min_waste = min_waste; }
     void set_one2cut(bool one2cut) { parameters_.one2cut = one2cut; }
-    void set_no_item_rotation(bool no_item_rotation) { parameters_.no_item_rotation = no_item_rotation; }
     void set_cut_through_defects(bool cut_through_defects) { parameters_.cut_through_defects = cut_through_defects; }
 
     void set_predefined(std::string str);
@@ -364,7 +363,6 @@ public:
         parameters_.max1cut = 3500;
         parameters_.min2cut = 100;
         parameters_.min_waste = 20;
-        parameters_.no_item_rotation = false;
         parameters_.cut_through_defects = false;
     }
 
@@ -568,7 +566,6 @@ public:
     inline Length max2cut() const { return parameters_.max2cut; }
     inline Length min_waste() const { return parameters_.min_waste; }
     inline bool one2cut() const { return parameters_.one2cut; }
-    inline bool no_item_rotation() const { return parameters_.no_item_rotation; }
     inline bool cut_through_defects() const { return parameters_.cut_through_defects; }
 
     /*
