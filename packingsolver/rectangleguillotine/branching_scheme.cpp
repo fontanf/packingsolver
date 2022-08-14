@@ -526,13 +526,17 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         for (const Insertion& insertion: insertions) {
             if (insertion.j1 == -1 && insertion.j2 == -1)
                 continue;
-            if        (df == 1 && insertion.x1 == father.x1_curr && insertion.y2 == father.y2_curr) {
+            if (df == 1
+                    && insertion.x1 == father.x1_curr
+                    && insertion.y2 == father.y2_curr) {
                 stop = true;
                 break;
-            } else if (df == 0 && insertion.x1 == father.x1_curr) {
+            } else if (df == 0
+                    && insertion.x1 == father.x1_curr) {
                 stop = true;
                 break;
-            } else if (df < 0 && insertion.df >= 0) {
+            } else if (df < 0
+                    && insertion.df >= 0) {
                 stop = true;
                 break;
             }
