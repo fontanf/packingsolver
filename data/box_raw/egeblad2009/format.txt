@@ -1,0 +1,19 @@
+Format description of instances for the two-dimensional knapsack problem
+-----------------------------------------------------------------------------
+
+Every line consists of a keyword and values. The keyword determines the type of line.
+
+Keyword: "dim"
+
+This line describes the dimensions of the knapsack and consists of three integer values apart from the keyword. The values describe the width, height and depth of the knapsack in that order.
+
+Keyword: "box"
+
+This line describes a box. Apart from the keyword there are 6 values on a box line; rectangle box no., width, height, depth, profit, and multiplicity in that order. The multiplicity determines the number of boxes of this type in the instance. 
+
+
+Implementation suggestions:
+------------------------------
+The easiest way to create a parser is to read in the entire line of data and split the data into up-to 7 different string values based on ",". Remember to remove leading and trailing spaces. Then use the first string value to determine if a line consists of dimensions or a rectangle and use the remaining values depending on the keyword. 
+
+Good Luck! - Jens Egeblad 2006
