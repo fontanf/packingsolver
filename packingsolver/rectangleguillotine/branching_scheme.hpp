@@ -339,16 +339,27 @@ private:
     bool dominates(const Front& f1, const Front& f2) const;
 
     inline bool full(const Node& node) const { return node.number_of_items == instance_.number_of_items(); }
+    /** Get the percentage of item inserted into a node. */
     inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
+    /** Get the mean area of a node. */
     inline double mean_area(const Node& node) const { return (double)node.current_area / node.number_of_items; }
+    /** Get the mean item area of a node; */
     inline double mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
+    /** Get the mean squared item area of a node. */
     inline double mean_squared_item_area(const Node& node) const { return (double)node.squared_item_area / node.number_of_items; }
+    /** Get the mean remaining item area of a node. */
     inline double mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance_.number_of_items() - node.number_of_items); }
+    /** Get the remaining item area of a node. */
     inline double remaining_item_area(const Node& node) const { return instance_.item_area() - node.item_area; }
+    /** Get the waste percentage of a node. */
     inline double waste_percentage(const Node& node) const { return (double)node.waste / node.current_area; }
+    /** Get the waste ratio of a node. */
     inline double waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
+    /** Get the width of a node. */
     inline Length width(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+    /** Get the height of a node. */
     inline Length height(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+    /** Get the knapsack upper bound of a node. */
     inline Profit ubkp(const Node& node) const;
     inline bool last_insertion_defect(const Node& node) const { return node.number_of_bins > 0 && node.j1 == -1 && node.j2 == -1; }
 
@@ -410,7 +421,7 @@ std::ostream& operator<<(std::ostream &os, const BranchingScheme::Node& node);
 
 inline Profit BranchingScheme::ubkp(const Node& node) const
 {
-    Area remaining_item_area     = instance_.item_area() - node.item_area;
+    Area remaining_item_area = instance_.item_area() - node.item_area;
     Area remaining_packabla_area = instance_.packable_area() - node.current_area;
     if (remaining_packabla_area >= remaining_item_area) {
         return instance_.item_profit();

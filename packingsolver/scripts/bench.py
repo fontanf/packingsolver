@@ -1224,11 +1224,11 @@ if __name__ == "__main__":
                 first_loop = False
                 results_file.write("Name,Arguments")
                 for key in data["Solution" + str(k)].keys():
-                    results_file.write(";" + key)
+                    results_file.write("," + key)
                 results_file.write("\n")
 
             # Write test informations
             results_file.write(f + "," + args)
             for key, value in data["Solution" + str(k)].items():
-                results_file.write(";" + str(value))
+                results_file.write("," + str(value))
             results_file.write("\n")

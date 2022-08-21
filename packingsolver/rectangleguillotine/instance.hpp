@@ -432,12 +432,12 @@ public:
      * Bin type dimensions.
      */
 
-    /** Get the width of an bin type depending on its orientation. */
+    /** Get the width of a bin type depending on its orientation. */
     inline Length width(
             const BinType& bin_type,
             CutOrientation o) const;
 
-    /** Get the height of an bin type depending on its orientation. */
+    /** Get the height of a bin type depending on its orientation. */
     inline Length height(
             const BinType& bin_type,
             CutOrientation o) const;
@@ -503,7 +503,7 @@ public:
      * the orientation of the bin.
      */
     inline Length width(
-            const ItemType& item,
+            const ItemType& item_type,
             bool rotate,
             CutOrientation o) const;
 
@@ -512,7 +512,7 @@ public:
      * the orientation of the bin.
      */
     inline Length height(
-            const ItemType& item,
+            const ItemType& item_type,
             bool rotate,
             CutOrientation o) const;
 
@@ -816,26 +816,26 @@ Length Instance::bottom(
 }
 
 Length Instance::width(
-        const ItemType& item,
+        const ItemType& item_type,
         bool rotate,
         CutOrientation o) const
 {
     if (o == CutOrientation::Vertical) {
-        return (!rotate)? item.rect.w: item.rect.h;
+        return (!rotate)? item_type.rect.w: item_type.rect.h;
     } else {
-        return (!rotate)? item.rect.h: item.rect.w;
+        return (!rotate)? item_type.rect.h: item_type.rect.w;
     }
 }
 
 Length Instance::height(
-        const ItemType& item,
+        const ItemType& item_type,
         bool rotate,
         CutOrientation o) const
 {
     if (o == CutOrientation::Vertical) {
-        return (!rotate)? item.rect.h: item.rect.w;
+        return (!rotate)? item_type.rect.h: item_type.rect.w;
     } else {
-        return (!rotate)? item.rect.w: item.rect.h;
+        return (!rotate)? item_type.rect.w: item_type.rect.h;
     }
 }
 
