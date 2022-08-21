@@ -499,8 +499,8 @@ void Instance::read_item_types(std::string items_path)
         line = optimizationtools::split(tmp, ',');
         Length w = -1;
         Length h = -1;
-        Profit p = -1;
-        ItemPos c = 1;
+        Profit profit = -1;
+        ItemPos copies = 1;
         bool oriented = false;
         bool new_stack = true;
         for (Counter i = 0; i < (Counter)line.size(); ++i) {
@@ -509,9 +509,9 @@ void Instance::read_item_types(std::string items_path)
             } else if (labels[i] == "HEIGHT") {
                 h = (Length)std::stol(line[i]);
             } else if (labels[i] == "PROFIT") {
-                p = (Profit)std::stol(line[i]);
+                profit = (Profit)std::stol(line[i]);
             } else if (labels[i] == "COPIES") {
-                c = (ItemPos)std::stol(line[i]);
+                copies = (ItemPos)std::stol(line[i]);
             } else if (labels[i] == "ORIENTED") {
                 oriented = (bool)std::stol(line[i]);
             } else if (labels[i] == "NEWSTACK") {
@@ -526,9 +526,9 @@ void Instance::read_item_types(std::string items_path)
             throw std::runtime_error(
                     "Missing \"HEIGHT\" column in \"" + items_path + "\".");
         }
-        if (p == -1)
-            p = w * h;
-        add_item_type(w, h, p, c, oriented, new_stack);
+        if (profit == -1)
+            profit = w * h;
+        add_item_type(w, h, profit, copies, oriented, new_stack);
     }
 }
 
@@ -551,8 +551,8 @@ void Instance::read_bin_types(std::string bins_path)
         Length w = -1;
         Length h = -1;
         Profit cost = -1;
-        BinPos c = 1;
-        BinPos c_min = 0;
+        BinPos copies = 1;
+        BinPos copies_min = 0;
         Length bottom_trim = 0;
         Length top_trim = 0;
         Length left_trim = 0;
@@ -569,9 +569,9 @@ void Instance::read_bin_types(std::string bins_path)
             } else if (labels[i] == "COST") {
                 cost = (Profit)std::stol(line[i]);
             } else if (labels[i] == "COPIES") {
-                c = (BinPos)std::stol(line[i]);
+                copies = (BinPos)std::stol(line[i]);
             } else if (labels[i] == "COPIES_MIN") {
-                c = (BinPos)std::stol(line[i]);
+                copies_min = (BinPos)std::stol(line[i]);
             } else if (labels[i] == "BOTTOM_TRIM") {
                 bottom_trim = (BinPos)std::stol(line[i]);
             } else if (labels[i] == "TOP_TRIM") {
@@ -598,7 +598,7 @@ void Instance::read_bin_types(std::string bins_path)
             throw std::runtime_error(
                     "Missing \"HEIGHT\" column in \"" + bins_path + "\".");
         }
-        BinTypeId i = add_bin_type(w, h, cost, c, c_min);
+        BinTypeId i = add_bin_type(w, h, cost, copies, copies_min);
         add_trims(
                 i,
                 left_trim,
