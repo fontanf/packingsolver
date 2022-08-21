@@ -145,8 +145,6 @@ The performances of PackingSolver have been compared to all published results fr
 Detailed results are available in `results_*.ods`.
 `output.7z` contains all output files and solutions.
 
-Do not hesitate to contact us if you are aware of any variant or article that we missed.
-
 All experiments can be reproduced using the following scripts:
 ```shell
 python3 packingsolver/scripts/bench.py "roadef2018_A" "roadef2018_B" "roadef2018_X" # ~50h
