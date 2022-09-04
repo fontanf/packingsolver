@@ -137,7 +137,12 @@ Number of items:   28
 Time:              1.00226
 ```
 
-A solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
+Visualize:
+```
+python3 packingsolver/scripts/visualize_rectangleguillotine.py ATP35_solution.csv
+```
+
+Another solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
 
 ## Benchmarks
 
