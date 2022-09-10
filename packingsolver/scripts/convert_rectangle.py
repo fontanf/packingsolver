@@ -252,20 +252,20 @@ def convert_silveira2013(filename):
     w = words(filename)
 
     bins = {"WIDTH": [], "HEIGHT": []}
-    items = {"WIDTH": [], "HEIGHT": [], "NEW_STACK": []}
+    items = {"WIDTH": [], "HEIGHT": [], "GROUP": []}
 
     next(w)
-    next(w)
-
+    number_of_groups = int(next(w))
     number_of_item_types = int(next(w))
     bins["HEIGHT"].append(int(next(w)))
     bins["WIDTH"].append(int(next(w)))
-    while next(w, None):
-        stack_size = int(next(w))
-        for i in range(stack_size):
+    for group in range(number_of_groups):
+        next(w)
+        group_size = int(next(w))
+        for i in range(group_size):
             items["HEIGHT"].append(int(next(w)))
             items["WIDTH"].append(int(next(w)))
-            items["NEW_STACK"].append((1 if i == 0 else 0))
+            items["GROUP"].append(group)
 
     write_dict(bins, filename + "_bins.csv")
     write_dict(items, filename + "_items.csv")
