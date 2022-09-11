@@ -2,13 +2,12 @@ import argparse
 import csv
 import plotly.graph_objects as go
 import plotly.express as px
-import plotly.subplots as ps
+import plotly.subplots
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('csvpath', help='path to CSV file')
 args = parser.parse_args()
 
-bins_height = []
 bins_x = []
 bins_y = []
 trims_x = []
@@ -37,7 +36,6 @@ with open(args.csvpath, newline='') as csvfile:
         y2 = y1 + h
 
         if depth == 0:  # Bin.
-            bins_height.append(h + h / 4)
             bins_x.append([])
             bins_y.append([])
             trims_x.append([])
@@ -69,9 +67,9 @@ with open(args.csvpath, newline='') as csvfile:
             cuts_x[i][depth] += [x1, x2, x2, x1, x1, None]
             cuts_y[i][depth] += [y1, y1, y2, y2, y1, None]
 
-m = len(bins_height)
+m = len(bins_x)
 colors = px.colors.qualitative.Plotly
-fig = ps.make_subplots(
+fig = plotly.subplots.make_subplots(
         rows=m,
         cols=1,
         shared_xaxes=True,
@@ -149,7 +147,7 @@ for i in range(0, m):
         y=item_ids_y[i],
         name="Item ids",
         legendgroup="items",
-        showlegend=(i == 0),
+        showlegend=False,
         mode="text",
         text=item_ids[i],
         textfont=dict(size=8),
