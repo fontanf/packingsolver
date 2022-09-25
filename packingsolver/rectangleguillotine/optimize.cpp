@@ -40,6 +40,9 @@ Output packingsolver::rectangleguillotine::optimize(
             algorithm = Algorithm::DichotomicSearch;
         }
     }
+    std::stringstream ss;
+    ss << algorithm;
+    parameters.info.add_to_json("Algorithm", "Algorithm", ss.str());
 
     output.solution_pool.best().algorithm_start(parameters.info, algorithm);
 
@@ -153,9 +156,15 @@ Output packingsolver::rectangleguillotine::optimize(
                 output.solution_pool.add(solution, ss, parameters.info);
             }
         };
-        op.info.set_time_limit(parameters.info.remaining_time());
+#if defined(CPLEX_FOUND)
+        op.column_generation_parameters.linear_programming_solver
+            = columngenerationsolver::LinearProgrammingSolver::CPLEX;
+#endif
+#if defined(COINOR_FOUND)
         op.column_generation_parameters.linear_programming_solver
             = columngenerationsolver::LinearProgrammingSolver::CLP;
+#endif
+        op.info = Info(parameters.info, false, "");
         columngenerationsolver::limited_discrepancy_search(p, op);
 
     } else if (algorithm == Algorithm::DichotomicSearch) {
@@ -178,6 +187,7 @@ Output packingsolver::rectangleguillotine::optimize(
             ss << "waste percentage " << o.waste_percentage;
             output.solution_pool.add(o.solution_pool.best(), ss, parameters.info);
         };
+        op.info = Info(parameters.info, false, "");
         dichotomic_search(instance, bpp_solve, op);
 
     }
