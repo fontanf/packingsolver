@@ -116,7 +116,7 @@ Solution::Solution(const Instance& instance, const std::vector<Solution::Node>& 
 
 void Solution::append(
         const Solution& solution,
-        BinTypeId bin_type_id,
+        const std::vector<BinTypeId>& bin_type_ids,
         const std::vector<ItemTypeId>& item_type_ids,
         BinPos copies)
 {
@@ -124,7 +124,7 @@ void Solution::append(
     BinPos offset_bin = number_of_bins_;
     for (BinPos i = 0; i < copies; ++i) {
         for (Solution::Node node: solution.nodes()) {
-            node.bin_type_id = bin_type_id;
+            node.bin_type_id = bin_type_ids[node.bin_type_id];
             node.id += offset_node;
             if (node.f != -1)
                 node.f += offset_node;
@@ -285,7 +285,9 @@ void Solution::display(
     }
 }
 
-void Solution::algorithm_start(Info& info) const
+void Solution::algorithm_start(
+        Info& info,
+        Algorithm algorithm) const
 {
     info.os()
             << "===================================" << std::endl
@@ -299,6 +301,11 @@ void Solution::algorithm_start(Info& info) const
             << "Instance" << std::endl
             << "--------" << std::endl;
     instance().print(info.os(), info.verbosity_level());
+    info.os()
+            << std::endl
+            << "Algorithm" << std::endl
+            << "---------" << std::endl
+            << algorithm << std::endl;
     info.os() << std::endl;
 
     switch (instance().objective()) {

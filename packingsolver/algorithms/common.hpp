@@ -20,10 +20,10 @@ using StackId = int16_t;
 using Length = int64_t;
 using Area = int64_t;
 using Volume = int64_t;
-using Weight = int64_t;
+using Weight = double;
 using Angle = double;
 using AnglePos = int64_t;
-using Profit = int64_t;
+using Profit = double;
 using BinTypeId = int16_t;
 using BinPos = int16_t;
 using DefectId = int16_t;
@@ -36,8 +36,22 @@ using GuideId = int16_t;
 
 using optimizationtools::Info;
 
-enum class ProblemType { RectangleGuillotine, Rectangle };
-enum class Objective {
+enum class ProblemType
+{
+    RectangleGuillotine,
+    Rectangle,
+};
+
+enum class Algorithm
+{
+    Auto,
+    TreeSearch,
+    ColumnGeneration,
+    DichotomicSearch,
+};
+
+enum class Objective
+{
     Default,
     BinPacking,
     BinPackingWithLeftovers,
@@ -50,9 +64,11 @@ enum class Objective {
 enum class Direction { X, Y, Any };
 
 std::istream& operator>>(std::istream& in, ProblemType& problem_type);
+std::istream& operator>>(std::istream& in, Algorithm& algorithm);
 std::istream& operator>>(std::istream& in, Objective& objective);
 std::istream& operator>>(std::istream& in, Direction& o);
 std::ostream& operator<<(std::ostream &os, ProblemType problem_type);
+std::ostream& operator<<(std::ostream &os, Algorithm algorithm);
 std::ostream& operator<<(std::ostream &os, Objective objective);
 std::ostream& operator<<(std::ostream &os, Direction o);
 

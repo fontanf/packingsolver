@@ -103,6 +103,8 @@ bool BranchingScheme::bound(
         Area a = instance_.item_area() + node.waste;
         while (a > 0) {
             i_pos++;
+            if (i_pos >= instance_.number_of_bins())
+                return true;
             a -= instance_.bin(i_pos).area();
         }
         return (i_pos + 1 >= solution_best.number_of_bins());

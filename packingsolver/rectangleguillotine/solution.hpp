@@ -64,7 +64,7 @@ public:
 
     void append(
             const Solution& solution,
-            BinTypeId bin_type_id,
+            const std::vector<BinTypeId>& bin_type_id,
             const std::vector<ItemTypeId>& item_type_ids,
             BinPos copies);
 
@@ -112,7 +112,7 @@ public:
     /** CSV export */
     void write(Info& info) const;
 
-    void algorithm_start(Info& info) const;
+    void algorithm_start(Info& info, Algorithm algorithm) const;
     void algorithm_end(Info& info) const;
 
     void display(

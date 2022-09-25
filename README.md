@@ -30,7 +30,8 @@ Features:
 Compile:
 ```shell
 bazel build -- //...
-# Or, to enable VBPP objective:
+# Or, to enable the column generation algorithm:
+bazel build --define coinor=true -- //...
 bazel build --define cplex=true -- //...
 ```
 
