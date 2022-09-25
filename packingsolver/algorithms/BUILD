@@ -18,11 +18,7 @@ cc_library(
 cc_library(
         name = "algorithms",
         hdrs = [
-                "a_star.hpp",
-                "depth_first_search.hpp",
-                "iterative_memory_bounded_a_star.hpp",
                 "iterative_beam_search.hpp",
-                "dynamic_programming_a_star.hpp",
                 "vbpp2bpp.hpp",
                 "column_generation.hpp",
                 "dichotomic_search.hpp",
