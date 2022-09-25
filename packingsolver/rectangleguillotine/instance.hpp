@@ -74,7 +74,9 @@ struct ItemType
     /** Indicates if the item is oriented (i.e. cannot be rotated). */
     bool oriented;
 
-    Area area() const { return rect.area(); }
+    /** Get the area of the item type. */
+    inline Area area() const { return rect.area(); }
+    inline Area space() const { return area(); }
 };
 
 std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
@@ -141,7 +143,9 @@ struct BinType
     /** Number of previous bins. */
     BinPos previous_bin_copies = 0;
 
+    /** Get the area of the bin type. */
     inline Area area() const { return (rect.h - top_trim - bottom_trim) * (rect.w - right_trim - left_trim); }
+    inline Area space() const { return area(); }
 };
 
 std::ostream& operator<<(std::ostream &os, const BinType& bin_type);

@@ -24,6 +24,8 @@ int main(int argc, char *argv[])
     int log_levelmax = 999;
     double time_limit = std::numeric_limits<double>::infinity();
     Seed seed = 0;
+    Algorithm bpp_algorithm = Algorithm::Auto;
+    Algorithm vbpp_algorithm = Algorithm::Auto;
 
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -41,6 +43,9 @@ int main(int argc, char *argv[])
         ("item-infinite-copies", "")
         ("unweighted", "")
         ("no-item-rotation", "")
+
+        ("bpp-algorithm,", po::value<Algorithm>(&bpp_algorithm), "Algorithm for Bin Packing problems")
+        ("vbpp-algorithm,", po::value<Algorithm>(&vbpp_algorithm), "Algorithm for Variable-sized Bin Packing problems")
 
         ("objective,f", po::value<Objective>(&objective), "Objective")
 
@@ -154,6 +159,8 @@ int main(int argc, char *argv[])
 
     OptimizeOptionalParameters parameters_opt;
     parameters_opt.info = info;
+    parameters_opt.bpp_algorithm = bpp_algorithm;
+    parameters_opt.vbpp_algorithm = vbpp_algorithm;
     optimize(instance, parameters_opt);
 
     return 0;

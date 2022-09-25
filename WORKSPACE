@@ -44,27 +44,39 @@ local_repository(
 )
 
 git_repository(
-    name = "treesearchsolver_",
+    name = "treesearchsolver",
     remote = "https://github.com/fontanf/treesearchsolver.git",
-    commit = "c39a99bb46ef73f4bd092460517d530f3a273569",
-    shallow_since = "1655023961 +0200",
+    commit = "d0236497be177160b4ec242ae53edadce93909d1",
+    shallow_since = "1664086189 +0200",
 )
 
 local_repository(
-    name = "treesearchsolver",
+    name = "treesearchsolver_",
     path = "../treesearchsolver/",
 )
 
 git_repository(
     name = "columngenerationsolver",
     remote = "https://github.com/fontanf/columngenerationsolver.git",
-    commit = "40c2daef0bdb8a83330e472b7a4103a4ff38c614",
-    shallow_since = "1655662016 +0200",
+    commit = "7e0188e650925974e92d11bf054e71e08ba27850",
+    shallow_since = "1664086275 +0200",
 )
 
 local_repository(
     name = "columngenerationsolver_",
     path = "../columngenerationsolver/",
+)
+
+git_repository(
+    name = "knapsacksolver",
+    remote = "https://github.com/fontanf/knapsacksolver.git",
+    commit = "7bf93c7aabbecf9af2a62c0d88ac8233bdbb3dbe",
+    shallow_since = "1664086122 +0200",
+)
+
+local_repository(
+    name = "knapsacksolver_",
+    path = "../knapsacksolver/",
 )
 
 new_local_repository(

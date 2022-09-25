@@ -3,6 +3,7 @@
 #include "packingsolver/algorithms/common.hpp"
 
 #include "columngenerationsolver/algorithms/heuristic_tree_search.hpp"
+#include "columngenerationsolver/algorithms/limited_discrepancy_search.hpp"
 
 /**
  * Variable-sized Bin Packing Problem.
@@ -124,6 +125,7 @@ columngenerationsolver::Parameters get_parameters(
     }
     // Dummy column objective coefficient.
     p.dummy_column_objective_coefficient = 10 * maximum_bin_type_cost * maximum_item_type_demand;
+    //std::cout << "dummy_column_objective_coefficient " << p.dummy_column_objective_coefficient << std::endl;
     // Pricing solver.
     p.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
             new VariableSizeBinPackingPricingSolver<Instance, Solution>(instance, pricing_function));
@@ -135,6 +137,7 @@ std::vector<ColIdx> VariableSizeBinPackingPricingSolver<Instance, Solution>::ini
             const std::vector<Column>& columns,
             const std::vector<std::pair<ColIdx, Value>>& fixed_columns)
 {
+    //std::cout << "initialize_pricing " << fixed_columns.size() << std::endl;
     ItemTypeId m = instance_.number_of_bin_types();
     std::fill(fixed_bin_types_.begin(), fixed_bin_types_.end(), 0);
     std::fill(filled_demands_.begin(), filled_demands_.end(), 0);
@@ -153,6 +156,7 @@ std::vector<ColIdx> VariableSizeBinPackingPricingSolver<Instance, Solution>::ini
             }
         }
     }
+    //std::cout << "initialize_pricing end" << std::endl;
     return {};
 }
 
@@ -168,9 +172,9 @@ template <typename Instance, typename Solution>
 std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::solve_pricing(
             const std::vector<Value>& duals)
 {
+    //std::cout << "solve_pricing" << std::endl;
     ItemTypeId m = instance_.number_of_bin_types();
     ItemTypeId n = instance_.number_of_item_types();
-    Profit mult = 10000;
     std::vector<Column> columns;
 
     for (BinTypeId i = 0; i < m; ++i) {
@@ -183,7 +187,8 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
         instance_kp.add_bin_type(instance_.bin_type(i), 1);
         std::vector<ItemTypeId> kp2vbpp;
         for (ItemTypeId j = 0; j < n; ++j) {
-            Profit profit = std::floor(mult * duals[m + j]);
+            Profit profit = duals[m + j];
+            //std::cout << "j " << j << " profit " << profit << std::endl;
             if (profit <= 0)
                 continue;
             ItemPos copies = instance_.item_type(j).copies - filled_demands_[j];
@@ -192,7 +197,9 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
         }
 
         // Solve knapsack instance.
+        //std::cout << "pricing_function" << std::endl;
         SolutionPool<Instance, Solution> solution_pool = pricing_function_(instance_kp);
+        //std::cout << "pricing_function end" << std::endl;
 
         // Retrieve column.
         for (const Solution& solution: solution_pool.solutions()) {
@@ -202,8 +209,10 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
             column.row_indices.push_back(i);
             column.row_coefficients.push_back(1);
             //std::cout << duals[i] << std::endl;
+            //std::cout << "number_of_items " << extra.solution.number_of_items() << std::endl;
             for (ItemTypeId j_kp = 0; j_kp < instance_kp.number_of_item_types(); ++j_kp) {
                 if (extra.solution.item_copies(j_kp) > 0) {
+                    //std::cout << "j " << extra.kp2vbpp[j_kp] << " copies " << extra.solution.item_copies(j_kp) << std::endl;
                     column.row_indices.push_back(m + extra.kp2vbpp[j_kp]);
                     column.row_coefficients.push_back(extra.solution.item_copies(j_kp));
                     //std::cout << duals[m + extra->kp2vbpp[j_kp]] << std::endl;
@@ -214,6 +223,7 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
             columns.push_back(column);
         }
     }
+    //std::cout << "solve_pricing end" << std::endl;
     return columns;
 }
 

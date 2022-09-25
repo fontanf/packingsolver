@@ -23,13 +23,16 @@ cc_library(
                 "iterative_memory_bounded_a_star.hpp",
                 "iterative_beam_search.hpp",
                 "dynamic_programming_a_star.hpp",
+                "vbpp2bpp.hpp",
                 "column_generation.hpp",
+                "dichotomic_search.hpp",
         ],
         srcs = [
         ],
         deps = [
                 ":common",
                 "@columngenerationsolver//columngenerationsolver:columngenerationsolver",
+                "@knapsacksolver//knapsacksolver/algorithms:minknap",
         ] + COINOR_DEP + CPLEX_DEP + GUROBI_DEP + XPRESS_DEP,
         copts = COINOR_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
         visibility = ["//visibility:public"],
