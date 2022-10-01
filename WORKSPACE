@@ -87,7 +87,10 @@ cc_library(
     name = "coinor",
     hdrs = glob(["dist/include/**/*.h*"], exclude_directories = 0),
     strip_include_prefix = "dist/include/",
-    srcs = glob(["dist/lib/**/*.so"], exclude_directories = 0),
+    srcs = [
+        "dist/lib/libClp.so",
+        "dist/lib/libCoinUtils.so",
+    ],
     visibility = ["//visibility:public"],
 )
 """,

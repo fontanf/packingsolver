@@ -162,9 +162,6 @@ python3 packingsolver/scripts/bench.py "2NEG-KP-O" "2NEGH-KP-O" "2NEGV-KP-O" "2N
 python3 packingsolver/scripts/bench.py "2G-KP-O" "2GH-KP-O" "2GV-KP-O" # 1m
 python3 packingsolver/scripts/bench.py "3NEGH-SPP-O" "3NEGH-SPP-R" # ~20h
 python3 packingsolver/scripts/bench.py "2NEGH-SPP-O" "2NEGH-SPP-R" # ~4h
-python3 packingsolver/scripts/bench.py "3NEGH-CSP-O" "3NEGH-CSP-R" "long2020_CSP" # ~20h
-python3 packingsolver/scripts/bench.py "3GH-CSP-O" "3HG-CSP-O" "3HGV-CSP-O" # ~15h
-python3 packingsolver/scripts/bench.py "2NEGH-CSP-O" "2NEGH-CSP-R" "2GH-CSP-O" # ~30h
 python3 packingsolver/scripts/bench.py "3NEG-VBPP-O" "3NEG-VBPP-R" "2GH-VBPP-O" "2GH-VBPP-R" # ~16h
 ```
 

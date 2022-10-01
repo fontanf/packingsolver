@@ -97,11 +97,11 @@ public:
     /** Get the waste of the solution. */
     inline Area waste() const { return area_ - item_area_; }
     /** Get the fraction of waste of the solution. */
-    inline double waste_percentage() const { return (double)waste() / area(); }
+    inline double waste_percentage() const { return (area() == 0)? 0: (double)waste() / area(); }
     /** Get the waste of the solution including the residual. */
     inline Area full_waste() const { return full_area() - item_area(); }
     /** Get the fraction of waste of the solution including the residual. */
-    inline double full_waste_percentage() const { return (double)full_waste() / full_area(); }
+    inline double full_waste_percentage() const { return (full_area() == 0)? 0: (double)full_waste() / full_area(); }
     /** Get the number of copies of item 'j' in the solution. */
     inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
     /** Get the nodes of the solution. */
@@ -109,7 +109,7 @@ public:
 
     bool operator<(const Solution& solution) const;
 
-    /** CSV export */
+    /** Write CSV certificate file. */
     void write(Info& info) const;
 
     void algorithm_start(Info& info, Algorithm algorithm) const;

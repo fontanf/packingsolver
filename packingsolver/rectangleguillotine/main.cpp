@@ -24,8 +24,7 @@ int main(int argc, char *argv[])
     int log_levelmax = 999;
     double time_limit = std::numeric_limits<double>::infinity();
     Seed seed = 0;
-    Algorithm bpp_algorithm = Algorithm::Auto;
-    Algorithm vbpp_algorithm = Algorithm::Auto;
+    OptimizeOptionalParameters optimize_parameters;
 
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -44,9 +43,6 @@ int main(int argc, char *argv[])
         ("unweighted", "")
         ("no-item-rotation", "")
 
-        ("bpp-algorithm,", po::value<Algorithm>(&bpp_algorithm), "Algorithm for Bin Packing problems")
-        ("vbpp-algorithm,", po::value<Algorithm>(&vbpp_algorithm), "Algorithm for Variable-sized Bin Packing problems")
-
         ("objective,f", po::value<Objective>(&objective), "Objective")
 
         ("predefined,p", po::value<std::string>(&predefined), "")
@@ -61,6 +57,16 @@ int main(int argc, char *argv[])
         ("min-waste,", po::value<Length>(&parameters.min_waste), "")
         ("one2cut,", po::value<bool>(&parameters.one2cut), "")
         ("cut-through-defects", po::value<bool>(&parameters.cut_through_defects), "")
+
+        ("bpp-algorithm,", po::value<Algorithm>(&optimize_parameters.bpp_algorithm), "Algorithm for Bin Packing problems")
+        ("vbpp-algorithm,", po::value<Algorithm>(&optimize_parameters.vbpp_algorithm), "Algorithm for Variable-sized Bin Packing problems")
+
+        ("tree-search-queue-size,", po::value<NodeId>(&optimize_parameters.tree_search_queue_size), "")
+        ("tree-search-guides,", po::value<std::vector<GuideId>>(&optimize_parameters.tree_search_guides), "")
+        ("column-generation-vbpp2bpp-time-limit,", po::value<double>(&optimize_parameters.column_generation_vbpp2bpp_time_limit), "")
+        ("column-generation-vbpp2bpp-queue-size,", po::value<NodeId>(&optimize_parameters.column_generation_vbpp2bpp_queue_size), "")
+        ("column-generation-pricing-queue-size,", po::value<NodeId>(&optimize_parameters.column_generation_pricing_queue_size), "")
+        ("dichotomic-search-queue-size,", po::value<NodeId>(&optimize_parameters.dichotomic_search_queue_size), "")
 
         ("output,o", po::value<std::string>(&output_path), "Output path")
         ("certificate,c", po::value<std::string>(&certificate_path), "Certificate path")
@@ -145,7 +151,7 @@ int main(int argc, char *argv[])
     if (vm.count("cut-through-defects"))
         instance.set_cut_through_defects(parameters.cut_through_defects);
 
-    Info info = optimizationtools::Info()
+    optimize_parameters.info = optimizationtools::Info()
         .set_verbosity_level(verbosity_level)
         .set_time_limit(time_limit)
         .set_certificate_path(certificate_path)
@@ -157,11 +163,7 @@ int main(int argc, char *argv[])
         .set_sigint_handler()
         ;
 
-    OptimizeOptionalParameters parameters_opt;
-    parameters_opt.info = info;
-    parameters_opt.bpp_algorithm = bpp_algorithm;
-    parameters_opt.vbpp_algorithm = vbpp_algorithm;
-    optimize(instance, parameters_opt);
+    optimize(instance, optimize_parameters);
 
     return 0;
 }
