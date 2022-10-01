@@ -15,20 +15,39 @@ struct OptimizeOptionalParameters
     /** Algorithm for Variable-sized Bin Packing problems. */
     Algorithm vbpp_algorithm = Algorithm::Auto;
 
+
     /** Size of the queue in the tree search algorithm. */
     NodeId tree_search_queue_size = -1;
+
+    /** Guides used in the tree search algorithm. */
+    std::vector<GuideId> tree_search_guides;
+
+
+    /**
+     * Time limit for the vbpp2bpp bin packing sub-problem of the column
+     * generation algorithm.
+     */
+    double column_generation_vbpp2bpp_time_limit = -1;
+
+    /**
+     * Size of the queue for the vbpp2bpp bin packing sub-problem of the column
+     * generation algorithm.
+     */
+    NodeId column_generation_vbpp2bpp_queue_size = 1024;
 
     /**
      * Size of the queue for the pricing knapsack sub-problem of the column
      * generation algorithm.
      */
-    NodeId column_generation_queue_size = 256;
+    NodeId column_generation_pricing_queue_size = 256;
+
 
     /**
      * Size of the queue for the bin packing sub-problem of the dichotomic
      * search algorithm.
      */
     NodeId dichotomic_search_queue_size = 1024;
+
 
     /** Info structure. */
     optimizationtools::Info info = optimizationtools::Info();

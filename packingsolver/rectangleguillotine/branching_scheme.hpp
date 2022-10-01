@@ -338,7 +338,6 @@ private:
     Front front(const Node&) const;
     bool dominates(const Front& f1, const Front& f2) const;
 
-    inline bool full(const Node& node) const { return node.number_of_items == instance_.number_of_items(); }
     /** Get the percentage of item inserted into a node. */
     inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
     /** Get the mean area of a node. */

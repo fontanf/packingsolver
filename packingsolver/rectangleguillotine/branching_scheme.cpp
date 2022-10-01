@@ -458,7 +458,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
 
     // Update current_area_ and waste_
     node.current_area = instance_.previous_bin_area(i);
-    if (full(node)) {
+    if (leaf(node)) {
         node.current_area += (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)?
             (node.x1_curr - instance_.left_trim(bin_type, o)) * h:
             (node.y2_curr - instance_.bottom_trim(bin_type, o)) * w;
@@ -479,7 +479,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
     const Node& father = *pfather;
     FFOT_LOG_FOLD_START(info, "insertions" << std::endl);
 
-    if (full(father))
+    if (leaf(father))
         return {};
 
     std::vector<Insertion> insertions;

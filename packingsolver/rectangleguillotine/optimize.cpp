@@ -49,10 +49,14 @@ Output packingsolver::rectangleguillotine::optimize(
     if (algorithm == Algorithm::TreeSearch) {
 
         std::vector<GuideId> guides;
-        if (instance.objective() != Objective::Knapsack) {
+        if (!parameters.tree_search_guides.empty()) {
+            guides = parameters.tree_search_guides;
+        } else if (instance.objective() == Objective::Knapsack) {
+            guides = {4, 5};
+        } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
             guides = {0, 1};
         } else {
-            guides = {4, 5};
+            guides = {0, 2};
         }
 
         std::vector<CutOrientation> first_stage_orientations = {instance.first_stage_orientation()};
@@ -73,6 +77,7 @@ Output packingsolver::rectangleguillotine::optimize(
         for (double growth_factor: growth_factors) {
             for (GuideId guide_id: guides) {
                 for (CutOrientation first_stage_orientation: first_stage_orientations) {
+                    //std::cout << growth_factor << " " << guide_id << " " << first_stage_orientation << std::endl;
                     Counter i = branching_schemes.size();
                     BranchingScheme::Parameters branching_scheme_parameters;
                     branching_scheme_parameters.guide_id = guide_id;
@@ -110,8 +115,10 @@ Output packingsolver::rectangleguillotine::optimize(
                 {
                     OptimizeOptionalParameters bpp_parameters;
                     bpp_parameters.bpp_algorithm = Algorithm::TreeSearch;
-                    bpp_parameters.tree_search_queue_size = parameters.column_generation_queue_size;
+                    bpp_parameters.tree_search_queue_size = parameters.column_generation_vbpp2bpp_queue_size;
                     bpp_parameters.info = Info(parameters.info, false, "");
+                    if (parameters.column_generation_vbpp2bpp_time_limit >= 0)
+                        bpp_parameters.info.set_time_limit(parameters.column_generation_vbpp2bpp_time_limit);
                     //bpp_parameters.info.set_verbosity_level(1);
                     auto bpp_output = optimize(bpp_instance, bpp_parameters);
                     return bpp_output.solution_pool;
@@ -127,7 +134,7 @@ Output packingsolver::rectangleguillotine::optimize(
             = [&parameters](const rectangleguillotine::Instance& kp_instance)
             {
                 OptimizeOptionalParameters kp_parameters;
-                kp_parameters.tree_search_queue_size = parameters.column_generation_queue_size;
+                kp_parameters.tree_search_queue_size = parameters.column_generation_pricing_queue_size;
                 kp_parameters.info = Info(parameters.info, false, "");
                 //kp_parameters.info.set_verbosity_level(1);
                 auto kp_output = optimize(kp_instance, kp_parameters);

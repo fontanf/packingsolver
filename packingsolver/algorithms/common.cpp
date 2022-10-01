@@ -37,7 +37,7 @@ std::istream& packingsolver::operator>>(std::istream& in, Algorithm& algorithm)
     if (token == "auto") {
         algorithm = Algorithm::Auto;
     } else if (token == "tree-search" || token == "TS") {
-        algorithm = Algorithm::ColumnGeneration;
+        algorithm = Algorithm::TreeSearch;
     } else if (token == "column-generation" || token == "CG") {
         algorithm = Algorithm::ColumnGeneration;
     } else if (token == "dichotomic-search" || token == "DS") {

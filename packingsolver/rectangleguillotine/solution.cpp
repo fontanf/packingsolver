@@ -424,46 +424,49 @@ void Solution::algorithm_end(Info& info) const
         info.add_to_json(sol_str, "Full", (full())? 1: 0);
         info.add_to_json(sol_str, "Waste", waste());
         info.os()
-                << "Profit:           " << profit() << std::endl
-                << "Full:             " << full() << std::endl
-                << "Waste:            " << waste() << std::endl;
+            << "Profit:            " << profit() << std::endl
+            << "Full:              " << full() << std::endl
+            << "Waste:             " << waste() << std::endl;
         break;
     } case Objective::BinPacking: {
         info.add_to_json(sol_str, "NumberOfBins", number_of_bins());
         info.add_to_json(sol_str, "FullWaste", full_waste());
         info.add_to_json(sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        info.os() << "Number of bins:   " << number_of_bins() << std::endl;
-        info.os() << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl;
+        info.os()
+            << "Number of bins:    " << number_of_bins() << std::endl
+            << "Full waste (%):    " << 100 * full_waste_percentage() << std::endl;
         break;
     } case Objective::BinPackingWithLeftovers: {
         info.add_to_json(sol_str, "Waste", waste());
         info.add_to_json(sol_str, "WastePercentage", 100 * waste_percentage());
         info.os()
-                << "Waste:             " << waste() << std::endl
-                << "Waste (%):         " << 100 * waste_percentage() << std::endl;
+            << "Waste:             " << waste() << std::endl
+            << "Waste (%):         " << 100 * waste_percentage() << std::endl;
         break;
     } case Objective::StripPackingX: {
         info.add_to_json(sol_str, "X", width());
-        info.os() << "X:                 " << width() << std::endl;
+        info.os()
+            << "X:                 " << width() << std::endl;
         break;
     } case Objective::StripPackingY: {
         info.add_to_json(sol_str, "Y", height());
-        info.os() << "Y:                 " << height() << std::endl;
+        info.os()
+            << "Y:                 " << height() << std::endl;
         break;
     } case Objective::Knapsack: {
         info.add_to_json(sol_str, "Profit", profit());
         info.os()
-                << "Profit:            " << profit() << std::endl
-                << "Number of items:   " << number_of_items() << std::endl;
+            << "Profit:            " << profit() << std::endl
+            << "Number of items:   " << number_of_items() << std::endl;
         break;
     } case Objective::VariableSizedBinPacking: {
         info.add_to_json(sol_str, "Cost", cost());
         info.add_to_json(sol_str, "NumberOfBins", number_of_bins());
         info.add_to_json(sol_str, "FullWastePercentage", 100 * full_waste_percentage());
         info.os()
-                << "Cost:              " << cost() << std::endl
-                << "Number of bins:    " << number_of_bins() << std::endl
-                << "Full waste (%):    " << 100 * full_waste_percentage() << std::endl;
+            << "Cost:              " << cost() << std::endl
+            << "Number of bins:    " << number_of_bins() << std::endl
+            << "Full waste (%):    " << 100 * full_waste_percentage() << std::endl;
         break;
     } default: {
         std::stringstream ss;
