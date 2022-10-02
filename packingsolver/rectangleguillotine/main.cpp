@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         ("vbpp-algorithm,", po::value<Algorithm>(&optimize_parameters.vbpp_algorithm), "Algorithm for Variable-sized Bin Packing problems")
 
         ("tree-search-queue-size,", po::value<NodeId>(&optimize_parameters.tree_search_queue_size), "")
-        ("tree-search-guides,", po::value<std::vector<GuideId>>(&optimize_parameters.tree_search_guides), "")
+        ("tree-search-guides,", po::value<std::vector<GuideId>>(&optimize_parameters.tree_search_guides)->multitoken(), "")
         ("column-generation-vbpp2bpp-time-limit,", po::value<double>(&optimize_parameters.column_generation_vbpp2bpp_time_limit), "")
         ("column-generation-vbpp2bpp-queue-size,", po::value<NodeId>(&optimize_parameters.column_generation_vbpp2bpp_queue_size), "")
         ("column-generation-pricing-queue-size,", po::value<NodeId>(&optimize_parameters.column_generation_pricing_queue_size), "")

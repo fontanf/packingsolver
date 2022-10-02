@@ -406,7 +406,7 @@ private:
             Insertion& insertion,
             Info& info) const;
 
-    bool check(const std::vector<Solution::Node>& nodes) const;
+    bool check(const std::vector<SolutionNode>& nodes) const;
 };
 
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Insertion& insertion);

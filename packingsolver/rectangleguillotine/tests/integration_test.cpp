@@ -383,25 +383,6 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
         iterative_beam_search(branching_scheme, solution_pool);
         const Solution& solution = solution_pool.best();
         std::cout << name << " " << waste << std::endl;
-
-        if (solution.waste() != waste) {
-            std::cout << "PLATE_ID,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
-            for (const Solution::Node& n: solution.nodes()) {
-                std::cout
-                    << n.i << ","
-                    << n.id << ","
-                    << n.l << ","
-                    << n.b << ","
-                    << n.r - n.l << ","
-                    << n.t - n.b << ","
-                    << ((n.j < 0)? n.j: items[n.j]) << ","
-                    << n.d << ",";
-                if (n.f != -1)
-                    std::cout << n.f;
-                std::cout << std::endl;
-            }
-
-        }
         EXPECT_EQ(solution.waste(), waste);
         info.set_certificate_path(name + "_solution.csv");
 

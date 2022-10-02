@@ -71,7 +71,7 @@ Vbpp2BppOutput<Instance, Solution> vbpp2bpp(
         // Save solution.
         Solution solution(instance);
         //std::cout << bpp_solution.number_of_items() << " " << bpp_solution.number_of_bins() << std::endl;
-        solution.append(bpp_solution, bin_types_bpp2ps, item_types_bpp2ps, 1);
+        solution.append(bpp_solution, bin_types_bpp2ps, item_types_bpp2ps);
         //std::cout << solution.number_of_items() << " " << solution.number_of_bins() << std::endl;
         std::stringstream ss;
         output.solution_pool.add(solution, ss, parameters.info);

@@ -67,7 +67,7 @@ Output packingsolver::rectangleguillotine::optimize(
         }
 
         std::vector<double> growth_factors = {1.5};
-        if (guides.size() * first_stage_orientations.size() < 4)
+        if (guides.size() * first_stage_orientations.size() * 2 <= 4)
             growth_factors = {1.33, 1.5};
         if (parameters.tree_search_queue_size != -1)
             growth_factors = {1.5};
@@ -142,6 +142,8 @@ Output packingsolver::rectangleguillotine::optimize(
             };
 
         columngenerationsolver::Parameters p = get_parameters(instance, pricing_function);
+        if (output.solution_pool.best().full())
+            p.columns = solution2column(output.solution_pool.best());
         columngenerationsolver::LimitedDiscrepancySearchOptionalParameters op;
         op.new_bound_callback = [&instance, &parameters, &output](
                 const columngenerationsolver::LimitedDiscrepancySearchOutput& o)
@@ -156,7 +158,7 @@ Output packingsolver::rectangleguillotine::optimize(
                     //std::cout << "append val " << value << " col " << column << std::endl;
                     std::shared_ptr<VariableSizeBinPackingColumnExtra<Solution>> extra
                         = std::static_pointer_cast<VariableSizeBinPackingColumnExtra<Solution>>(column.extra);
-                    solution.append(extra->solution, {extra->bin_type_id}, extra->kp2vbpp, value);
+                    solution.append(extra->solution, 0, value, {extra->bin_type_id}, extra->kp2vbpp);
                 }
                 std::stringstream ss;
                 ss << "discrepancy " << o.solution_discrepancy;
