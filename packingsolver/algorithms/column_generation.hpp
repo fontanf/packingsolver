@@ -168,6 +168,33 @@ struct VariableSizeBinPackingColumnExtra
     std::vector<ItemTypeId> kp2vbpp;
 };
 
+template <typename Solution>
+std::vector<Column> solution2column(
+        const Solution& solution)
+{
+    std::vector<Column> columns;
+    BinPos m = solution.instance().number_of_bin_types();
+    for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
+        BinTypeId bin_type_id = solution.bin(bin_pos).i;
+        Solution solution_i(solution.instance());
+        solution_i.append(solution, bin_pos, 1);
+        VariableSizeBinPackingColumnExtra<Solution> extra {solution_i, bin_type_id, {}};
+        Column column;
+        column.objective_coefficient = solution.instance().bin_type(bin_type_id).cost;
+        column.row_indices.push_back(bin_type_id);
+        column.row_coefficients.push_back(1);
+        for (ItemTypeId j = 0; j < solution.instance().number_of_item_types(); ++j) {
+            if (extra.solution.item_copies(j) > 0) {
+                column.row_indices.push_back(m + j);
+                column.row_coefficients.push_back(extra.solution.item_copies(j));
+            }
+        }
+        column.extra = std::shared_ptr<void>(new VariableSizeBinPackingColumnExtra<Solution>(extra));
+        columns.push_back(column);
+    }
+    return columns;
+}
+
 template <typename Instance, typename Solution>
 std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::solve_pricing(
             const std::vector<Value>& duals)

@@ -1269,12 +1269,13 @@ void BranchingScheme::update(
 //////////////////////////////////// Export ////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+/*
 bool BranchingScheme::BranchingScheme::check(
-        const std::vector<Solution::Node>& nodes) const
+        const std::vector<SolutionNode>& nodes) const
 {
     std::vector<ItemPos> items(instance_.number_of_items(), 0);
 
-    for (const Solution::Node& node: nodes) {
+    for (const SolutionNode& node: nodes) {
         const BinType& bin_type = instance_.bin(node.i);
         Length w = bin_type.rect.w;
         Length h = bin_type.rect.h;
@@ -1367,6 +1368,7 @@ bool BranchingScheme::BranchingScheme::check(
 
     return true;
 }
+*/
 
 Solution BranchingScheme::to_solution(
         const Node& node,
@@ -1380,7 +1382,8 @@ Solution BranchingScheme::to_solution(
     }
     std::reverse(descendents.begin(), descendents.end());
 
-    std::vector<Solution::Node> nodes;
+    Solution solution(instance_);
+    std::vector<SolutionNode> nodes;
 
     SolutionNodeId subplate0_curr = -1;
     SolutionNodeId subplate1_curr = -1;
@@ -1421,13 +1424,12 @@ Solution BranchingScheme::to_solution(
         // Create a new bin.
         if (current_node->df <= -1) {
             //std::cout << "Create a new bin..." << std::endl;
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
             n.d = 0;
             n.f = -1;
-            n.i = i;
             n.l = 0;
             n.r = bin_type.rect.w;
             n.b = 0;
@@ -1443,13 +1445,12 @@ Solution BranchingScheme::to_solution(
                     || bin_type.top_trim > 0) {
 
                 if (bin_type.left_trim != 0 && bin_type.bottom_trim != 0) {
-                    nodes.push_back(Solution::Node());
-                    Solution::Node& n = nodes.back();
+                    nodes.push_back(SolutionNode());
+                    SolutionNode& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
                     n.id = id;
                     n.d = -1;
                     n.f = father_id;
-                    n.i = i;
                     n.l = 0;
                     n.r = bin_type.left_trim;
                     n.b = 0;
@@ -1458,13 +1459,12 @@ Solution BranchingScheme::to_solution(
                 }
 
                 if (bin_type.left_trim != 0 && bin_type.top_trim != 0) {
-                    nodes.push_back(Solution::Node());
-                    Solution::Node& n = nodes.back();
+                    nodes.push_back(SolutionNode());
+                    SolutionNode& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
                     n.id = id;
                     n.d = -1;
                     n.f = father_id;
-                    n.i = i;
                     n.l = 0;
                     n.r = bin_type.left_trim;
                     n.b = bin_type.rect.h - bin_type.top_trim;
@@ -1473,13 +1473,12 @@ Solution BranchingScheme::to_solution(
                 }
 
                 if (bin_type.right_trim != 0 && bin_type.bottom_trim != 0) {
-                    nodes.push_back(Solution::Node());
-                    Solution::Node& n = nodes.back();
+                    nodes.push_back(SolutionNode());
+                    SolutionNode& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
                     n.id = id;
                     n.d = -1;
                     n.f = father_id;
-                    n.i = i;
                     n.l = bin_type.rect.w - bin_type.right_trim;
                     n.r = bin_type.rect.w;
                     n.b = 0;
@@ -1488,13 +1487,12 @@ Solution BranchingScheme::to_solution(
                 }
 
                 if (bin_type.right_trim != 0 && bin_type.top_trim != 0) {
-                    nodes.push_back(Solution::Node());
-                    Solution::Node& n = nodes.back();
+                    nodes.push_back(SolutionNode());
+                    SolutionNode& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
                     n.id = id;
                     n.d = -1;
                     n.f = father_id;
-                    n.i = i;
                     n.l = bin_type.rect.w - bin_type.right_trim;
                     n.r = bin_type.rect.w;
                     n.b = bin_type.rect.h - bin_type.top_trim;
@@ -1503,13 +1501,12 @@ Solution BranchingScheme::to_solution(
                 }
 
                 if (bin_type.left_trim != 0) {
-                    nodes.push_back(Solution::Node());
-                    Solution::Node& n = nodes.back();
+                    nodes.push_back(SolutionNode());
+                    SolutionNode& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
                     n.id = id;
                     n.d = -1;
                     n.f = father_id;
-                    n.i = i;
                     n.l = 0;
                     n.r = bin_type.left_trim;
                     n.b = bin_type.bottom_trim;
@@ -1518,13 +1515,12 @@ Solution BranchingScheme::to_solution(
                 }
 
                 if (bin_type.bottom_trim != 0) {
-                    nodes.push_back(Solution::Node());
-                    Solution::Node& n = nodes.back();
+                    nodes.push_back(SolutionNode());
+                    SolutionNode& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
                     n.id = id;
                     n.d = -1;
                     n.f = father_id;
-                    n.i = i;
                     n.l = bin_type.left_trim;
                     n.r = bin_type.rect.w - bin_type.right_trim;
                     n.b = 0;
@@ -1533,13 +1529,12 @@ Solution BranchingScheme::to_solution(
                 }
 
                 if (bin_type.right_trim != 0) {
-                    nodes.push_back(Solution::Node());
-                    Solution::Node& n = nodes.back();
+                    nodes.push_back(SolutionNode());
+                    SolutionNode& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
                     n.id = id;
                     n.d = -1;
                     n.f = father_id;
-                    n.i = i;
                     n.l = bin_type.rect.w - bin_type.right_trim;
                     n.r = bin_type.rect.w;
                     n.b = bin_type.bottom_trim;
@@ -1548,13 +1543,12 @@ Solution BranchingScheme::to_solution(
                 }
 
                 if (bin_type.top_trim != 0) {
-                    nodes.push_back(Solution::Node());
-                    Solution::Node& n = nodes.back();
+                    nodes.push_back(SolutionNode());
+                    SolutionNode& n = nodes.back();
                     SolutionNodeId id = nodes.size() - 1;
                     n.id = id;
                     n.d = -1;
                     n.f = father_id;
-                    n.i = i;
                     n.l = bin_type.left_trim;
                     n.r = bin_type.rect.w - bin_type.right_trim;
                     n.b = bin_type.rect.h - bin_type.top_trim;
@@ -1562,13 +1556,12 @@ Solution BranchingScheme::to_solution(
                     n.j = -1;
                 }
 
-                nodes.push_back(Solution::Node());
-                Solution::Node& n = nodes.back();
+                nodes.push_back(SolutionNode());
+                SolutionNode& n = nodes.back();
                 SolutionNodeId id = nodes.size() - 1;
                 n.id = id;
                 n.d = -1;
                 n.f = father_id;
-                n.i = i;
                 n.l = bin_type.left_trim;
                 n.r = bin_type.rect.w - bin_type.right_trim;
                 n.b = bin_type.bottom_trim;
@@ -1597,13 +1590,12 @@ Solution BranchingScheme::to_solution(
             }
             //std::cout << "subplate1_curr_x1 " << subplate1_curr_x1 << std::endl;
 
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
             n.d = 1;
             n.f = subplate0_curr;
-            n.i = i;
             if (o == CutOrientation::Vertical) {
                 n.l = current_node->x1_prev;
                 n.r = subplate1_curr_x1;
@@ -1637,11 +1629,10 @@ Solution BranchingScheme::to_solution(
             }
             //std::cout << "subplate2_curr_y2 " << subplate2_curr_y2 << std::endl;
 
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.i = i;
             SolutionNodeId s = (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? subplate1_curr: subplate0_curr;
             n.d = (instance_.cut_type_1() != CutType1::TwoStagedGuillotine)? 2: 1;
             n.f = s;
@@ -1667,14 +1658,13 @@ Solution BranchingScheme::to_solution(
             subplate3_curr = -1;
         } else {
             //std::cout << "Create a new third-level sub-plate..." << std::endl;
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
             n.d = (instance_.cut_type_1() != CutType1::TwoStagedGuillotine)? 3: 2;
             n.f = subplate2_curr;
             nodes[subplate2_curr].children.push_back(id);
-            n.i = i;
             if (o == CutOrientation::Vertical) {
                 n.l = (current_node->df < 2)?
                     nodes[subplate2_curr].l:
@@ -1698,14 +1688,13 @@ Solution BranchingScheme::to_solution(
         // Create a new fourth-level sub-plate.
         if (has_item) {
             //std::cout << "Create a new fourth-level sub-plate..." << std::endl;
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
             n.d = (instance_.cut_type_1() != CutType1::TwoStagedGuillotine)? 4: 3;
             n.f = subplate3_curr;
             nodes[subplate3_curr].children.push_back(id);
-            n.i = i;
             if (o == CutOrientation::Vertical) {
                 Length w_tmp = nodes[subplate3_curr].r - nodes[subplate3_curr].l;
 
@@ -1755,14 +1744,13 @@ Solution BranchingScheme::to_solution(
             Length r = nodes.back().r;
             if (t != nodes[subplate3_curr].t) {
                 //std::cout << "Create an additional fourth-level sub-plate..." << std::endl;
-                nodes.push_back(Solution::Node());
-                Solution::Node& n = nodes.back();
+                nodes.push_back(SolutionNode());
+                SolutionNode& n = nodes.back();
                 SolutionNodeId id = nodes.size() - 1;
                 n.id = id;
                 n.d = (instance_.cut_type_1() != CutType1::TwoStagedGuillotine)? 4: 3;
                 n.f = subplate3_curr;
                 nodes[subplate3_curr].children.push_back(id);
-                n.i = i;
                 n.l = nodes[subplate3_curr].l;
                 n.r = nodes[subplate3_curr].r;
                 n.b = t;
@@ -1772,14 +1760,13 @@ Solution BranchingScheme::to_solution(
             }
             if (r != nodes[subplate3_curr].r) {
                 //std::cout << "Create an additional fourth-level sub-plate..." << std::endl;
-                nodes.push_back(Solution::Node());
-                Solution::Node& n = nodes.back();
+                nodes.push_back(SolutionNode());
+                SolutionNode& n = nodes.back();
                 SolutionNodeId id = nodes.size() - 1;
                 n.id = id;
                 n.d = (instance_.cut_type_1() != CutType1::TwoStagedGuillotine)? 4: 3;
                 n.f = subplate3_curr;
                 nodes[subplate3_curr].children.push_back(id);
-                n.i = i;
                 n.l = r;
                 n.r = nodes[subplate3_curr].r;
                 n.b = nodes[subplate3_curr].b;
@@ -1794,14 +1781,13 @@ Solution BranchingScheme::to_solution(
                 && subplate3_curr != -1
                 && nodes[subplate3_curr].r != nodes[subplate2_curr].r) {
             //std::cout << "Add waste to the right of the second-level sub-plate..." << std::endl;
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
             n.d = (instance_.cut_type_1() != CutType1::TwoStagedGuillotine)? 3: 2;
             n.f = subplate2_curr;
             nodes[subplate2_curr].children.push_back(id);
-            n.i = i;
             n.l = nodes[subplate3_curr].r;
             n.r = nodes[subplate2_curr].r;
             n.b = nodes[subplate2_curr].b;
@@ -1813,14 +1799,13 @@ Solution BranchingScheme::to_solution(
                 && subplate3_curr != -1
                 && nodes[subplate3_curr].t != nodes[subplate2_curr].t) {
             //std::cout << "Add waste to the right of the second-level sub-plate..." << std::endl;
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
             n.d = (instance_.cut_type_1() != CutType1::TwoStagedGuillotine)? 3: 2;
             n.f = subplate2_curr;
             nodes[subplate2_curr].children.push_back(id);
-            n.i = i;
             n.l = nodes[subplate2_curr].l;
             n.r = nodes[subplate2_curr].r;
             n.b = nodes[subplate3_curr].t;
@@ -1835,14 +1820,13 @@ Solution BranchingScheme::to_solution(
                 && subplate2_curr != -1
                 && nodes[subplate2_curr].t != nodes[s].t) {
             //std::cout << "Add waste at the top of the first-level sub-plate..." << std::endl;
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
             n.d = (instance_.cut_type_1() != CutType1::TwoStagedGuillotine)? 2: 1;
             n.f = s;
             nodes[s].children.push_back(id);
-            n.i = i;
             n.l = nodes[s].l;
             n.r = nodes[s].r;
             n.b = nodes[subplate2_curr].t;
@@ -1855,14 +1839,13 @@ Solution BranchingScheme::to_solution(
                 && subplate2_curr != -1
                 && nodes[subplate2_curr].r != nodes[s].r) {
             //std::cout << "Add waste at the top of the first-level sub-plate..." << std::endl;
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
             n.d = (instance_.cut_type_1() != CutType1::TwoStagedGuillotine)? 2: 1;
             n.f = s;
             nodes[s].children.push_back(id);
-            n.i = i;
             n.l = nodes[subplate2_curr].r;
             n.r = nodes[s].r;
             n.b = nodes[s].b;
@@ -1878,14 +1861,13 @@ Solution BranchingScheme::to_solution(
                 && subplate1_curr != -1
                 && nodes[subplate1_curr].r != nodes[subplate0_curr].r) {
             //std::cout << "Add waste to the right of the plate..." << std::endl;
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
             n.d = 1;
             n.f = subplate0_curr;
             nodes[subplate0_curr].children.push_back(id);
-            n.i = i;
             n.l = nodes[subplate1_curr].r;
             n.r = nodes[subplate0_curr].r;
             n.b = nodes[subplate0_curr].b;
@@ -1899,14 +1881,13 @@ Solution BranchingScheme::to_solution(
                 && subplate1_curr != -1
                 && nodes[subplate1_curr].t != nodes[subplate0_curr].t) {
             //std::cout << "Add waste to the right of the plate..." << std::endl;
-            nodes.push_back(Solution::Node());
-            Solution::Node& n = nodes.back();
+            nodes.push_back(SolutionNode());
+            SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
             n.d = 1;
             n.f = subplate0_curr;
             nodes[subplate0_curr].children.push_back(id);
-            n.i = i;
             n.l = nodes[subplate0_curr].l;
             n.r = nodes[subplate0_curr].r;
             n.b = nodes[subplate1_curr].t;
@@ -1916,15 +1897,16 @@ Solution BranchingScheme::to_solution(
             //std::cout << n << std::endl;
         }
 
+        // If the next node is a new bin or this is the last node, add the bin
+        // to the solution.
+        if (df_next < 0) {
+            solution.add_bin(bin_type.id, nodes);
+            nodes.clear();
+        }
+
     }
 
-    for (Solution::Node& n: nodes)
-        n.bin_type_id = instance().bin(n.i).id;
-
-    if (!check(nodes)) {
-        throw std::runtime_error("");
-    }
-    return Solution(instance_, nodes);
+    return solution;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

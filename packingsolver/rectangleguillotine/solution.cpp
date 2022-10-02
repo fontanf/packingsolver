@@ -8,7 +8,7 @@ using namespace packingsolver::rectangleguillotine;
 ////////////////////////////////////////////////////////////////////////////////
 
 std::ostream& print(std::ostream& os,
-        const std::vector<Solution::Node>& res,
+        const std::vector<SolutionNode>& res,
         SolutionNodeId id, std::string tab)
 {
     os << tab << res[id] << std::endl;
@@ -17,13 +17,14 @@ std::ostream& print(std::ostream& os,
     return os;
 }
 
-std::ostream& packingsolver::rectangleguillotine::operator<<(std::ostream &os, const Solution::Node& node)
+std::ostream& packingsolver::rectangleguillotine::operator<<(
+        std::ostream &os,
+        const SolutionNode& node)
 {
     os
         << "id " << node.id
         << " f " << node.f
         << " d " << node.d
-        << " i " << node.i
         << " l " << node.l
         << " r " << node.r
         << " b " << node.b
@@ -36,23 +37,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(std::ostream &os, c
 /////////////////////////////////// Solution ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-Solution::Solution(const Solution& solution):
-    instance_(solution.instance_),
-    nodes_(solution.nodes_),
-    number_of_items_(solution.number_of_items_),
-    number_of_bins_(solution.number_of_bins_),
-    area_(solution.area_),
-    full_area_(solution.full_area_),
-    item_area_(solution.item_area_),
-    profit_(solution.profit_),
-    cost_(solution.cost_),
-    width_(solution.width_),
-    height_(solution.height_),
-    bin_copies_(solution.bin_copies_),
-    item_copies_(solution.item_copies_)
-{
-}
-
 Solution& Solution::operator=(const Solution& solution)
 {
     if (this != &solution) {
@@ -61,7 +45,7 @@ Solution& Solution::operator=(const Solution& solution)
                     "Assign a solution to a solution from a different instance.");
         }
 
-        nodes_ = solution.nodes_;
+        bins_ = solution.bins_;
         number_of_items_ = solution.number_of_items_;
         number_of_bins_ = solution.number_of_bins_;
         area_ = solution.area_;
@@ -78,17 +62,35 @@ Solution& Solution::operator=(const Solution& solution)
     return *this;
 }
 
-void Solution::add_node(const Node& node)
+BinPos Solution::add_bin(
+        BinTypeId bin_type_id,
+        const std::vector<SolutionNode>& nodes)
 {
-    nodes_.push_back(node);
-    if (number_of_bins_ < node.i + 1) {
-        number_of_bins_ = node.i + 1;
-        bin_copies_[node.bin_type_id]++;
-        const BinType& bin_type = instance_.bin_type(node.bin_type_id);
-        cost_ += bin_type.cost;
-        area_ += bin_type.area();
-        full_area_ += bin_type.area();
-    }
+    BinPos bin_pos = bins_.size();
+    SolutionBin solution_bin;
+    solution_bin.i = bin_type_id;
+    solution_bin.copies = 1;
+    bins_.push_back(solution_bin);
+
+    number_of_bins_++;
+    bin_copies_[bin_type_id]++;
+    const BinType& bin_type = instance_.bin_type(bin_type_id);
+    cost_ += bin_type.cost;
+    area_ += bin_type.area();
+    full_area_ += bin_type.area();
+
+    for (const SolutionNode& node: nodes)
+        add_node(bin_pos, node);
+
+    return bin_pos;
+}
+
+void Solution::add_node(
+        BinPos bin_pos,
+        const SolutionNode& node)
+{
+    BinTypeId bin_type_id = bins_[bin_pos].i;
+    bins_[bin_pos].nodes.push_back(node);
     if (node.d >= 0)
     if (node.j >= 0) {
         number_of_items_++;
@@ -99,45 +101,43 @@ void Solution::add_node(const Node& node)
     if (node.j == -3) // Subtract residual area
         area_ -= (node.t - node.b) * (node.r - node.l);
     // Update width_ and height_
-    if (node.r < instance().bin(node.i).rect.w && width_ < node.r)
+    if (node.r < instance().bin(bin_type_id).rect.w && width_ < node.r)
         width_ = node.r;
-    if (node.t < instance().bin(node.i).rect.h && height_ < node.t)
+    if (node.t < instance().bin(bin_type_id).rect.h && height_ < node.t)
         height_ = node.t;
 }
 
-Solution::Solution(const Instance& instance, const std::vector<Solution::Node>& nodes):
-    instance_(instance),
-    bin_copies_(instance.number_of_bin_types(), 0),
-    item_copies_(instance.number_of_item_types(), 0)
+void Solution::append(
+        const Solution& solution,
+        BinPos bin_pos,
+        BinPos copies,
+        const std::vector<BinTypeId>& bin_type_ids,
+        const std::vector<ItemTypeId>& item_type_ids)
 {
-    for (const Solution::Node& node: nodes)
-        add_node(node);
+    BinTypeId bin_type_id = (bin_type_ids.empty())?
+        solution.bins_[bin_pos].i:
+        bin_type_ids[solution.bins_[bin_pos].i];
+    for (BinPos copie = 0; copie < copies; ++copie) {
+        BinPos i_pos = add_bin(bin_type_id, {});
+        for (SolutionNode node: solution.bin(bin_pos).nodes) {
+            if (node.j >= 0)
+                node.j = (item_type_ids.empty())?
+                    node.j:
+                    item_type_ids[node.j];
+            if (node.j == -3)
+                node.j = -1;
+            add_node(i_pos, node);
+        }
+    }
 }
 
 void Solution::append(
         const Solution& solution,
         const std::vector<BinTypeId>& bin_type_ids,
-        const std::vector<ItemTypeId>& item_type_ids,
-        BinPos copies)
+        const std::vector<ItemTypeId>& item_type_ids)
 {
-    SolutionNodeId offset_node = nodes_.size();
-    BinPos offset_bin = number_of_bins_;
-    for (BinPos i = 0; i < copies; ++i) {
-        for (Solution::Node node: solution.nodes()) {
-            node.bin_type_id = bin_type_ids[node.bin_type_id];
-            node.id += offset_node;
-            if (node.f != -1)
-                node.f += offset_node;
-            if (node.j >= 0)
-                node.j = item_type_ids[node.j];
-            if (node.j == -3)
-                node.j = -1;
-            for (SolutionNodeId& child: node.children)
-                child += offset_node;
-            node.i += i + offset_bin;
-            add_node(node);
-        }
-    }
+    for (BinPos i = 0; i < solution.number_of_bins(); ++i)
+        append(solution, i, 1, bin_type_ids, item_type_ids);
 }
 
 bool Solution::operator<(const Solution& solution) const
@@ -493,19 +493,26 @@ void Solution::write(Info& info) const
     }
 
     f << "PLATE_ID,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
-    for (const Solution::Node& n: nodes_) {
-        f
-            << n.i << ","
-            << n.id << ","
-            << n.l << ","
-            << n.b << ","
-            << n.r - n.l << ","
-            << n.t - n.b << ","
-            << n.j << ","
-            << n.d << ",";
-        if (n.f != -1)
-            f << n.f;
-        f << std::endl;
+    SolutionNodeId offset = 0;
+    for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
+        const SolutionBin& solution_bin = bins_[bin_pos];
+        for (BinPos copie = 0; copie < solution_bin.copies; ++copie) {
+            for (const SolutionNode& n: solution_bin.nodes) {
+                f
+                    << bin_pos << ","
+                    << offset + n.id << ","
+                    << n.l << ","
+                    << n.b << ","
+                    << n.r - n.l << ","
+                    << n.t - n.b << ","
+                    << n.j << ","
+                    << n.d << ",";
+                if (n.f != -1)
+                    f << n.f;
+                f << std::endl;
+            }
+            offset += solution_bin.nodes.size();
+        }
     }
     f.close();
 }
