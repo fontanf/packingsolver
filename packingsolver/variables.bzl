@@ -2,8 +2,8 @@ STDCPP = select({
             "@bazel_tools//src/conditions:windows": [''],
             "//conditions:default":                 ["-std=c++11"]})
 
-COINOR_COPTS = select({
-            "//packingsolver:coinor_build": ["-DCOINOR_FOUND"],
+CLP_COPTS = select({
+            "//packingsolver:clp_build": ["-DCLP_FOUND"],
             "//conditions:default": []})
 CPLEX_COPTS = select({
             "//packingsolver:cplex_build": [
@@ -18,8 +18,8 @@ XPRESS_COPTS = select({
             "//packingsolver:xpress_build": ["-DXPRESS_FOUND"],
             "//conditions:default": []})
 
-COINOR_DEP = select({
-            "//packingsolver:coinor_build": ["@coinor//:coinor"],
+CLP_DEP = select({
+            "//packingsolver:clp_build": ["@coinor//:clp"],
             "//conditions:default": []})
 CPLEX_DEP = select({
             "//packingsolver:cplex_build": ["@cplex//:cplex"],

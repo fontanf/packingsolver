@@ -1,10 +1,3 @@
-#pragma once
-
-#include "packingsolver/algorithms/common.hpp"
-
-#include "columngenerationsolver/algorithms/heuristic_tree_search.hpp"
-#include "columngenerationsolver/algorithms/limited_discrepancy_search.hpp"
-
 /**
  * Variable-sized Bin Packing Problem.
  *
@@ -44,6 +37,13 @@
  * a Bounded Knapsack Problems with items with profit vⱼ.
  *
  */
+
+#pragma once
+
+#include "packingsolver/algorithms/common.hpp"
+
+#include "columngenerationsolver/algorithms/heuristic_tree_search.hpp"
+#include "columngenerationsolver/algorithms/limited_discrepancy_search.hpp"
 
 namespace packingsolver
 {

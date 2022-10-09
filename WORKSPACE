@@ -58,8 +58,8 @@ local_repository(
 git_repository(
     name = "columngenerationsolver",
     remote = "https://github.com/fontanf/columngenerationsolver.git",
-    commit = "7e0188e650925974e92d11bf054e71e08ba27850",
-    shallow_since = "1664086275 +0200",
+    commit = "49799082fb93d415a5f378675384dad88ed05e2c",
+    shallow_since = "1664718456 +0200",
 )
 
 local_repository(
@@ -84,13 +84,28 @@ new_local_repository(
     path = "/home/florian/Programmes/coinbrew/",
     build_file_content = """
 cc_library(
-    name = "coinor",
-    hdrs = glob(["dist/include/**/*.h*"], exclude_directories = 0),
-    strip_include_prefix = "dist/include/",
+    name = "osi",
+    hdrs = glob(["dist/include/coin/Osi*.h*"], exclude_directories = 0),
+    strip_include_prefix = "dist/include/coin/",
+    visibility = ["//visibility:public"],
+)
+cc_library(
+    name = "coinutils",
+    hdrs = glob(["dist/include/coin/Coin*.h*"], exclude_directories = 0),
+    strip_include_prefix = "dist/include/coin/",
     srcs = [
-        "dist/lib/libClp.so",
         "dist/lib/libCoinUtils.so",
     ],
+    visibility = ["//visibility:public"],
+)
+cc_library(
+    name = "clp",
+    hdrs = glob(["dist/include/coin/Clp*.h*"], exclude_directories = 0),
+    strip_include_prefix = "dist/include/coin",
+    srcs = [
+        "dist/lib/libClp.so",
+    ],
+    deps = [":coinutils", ":osi"],
     visibility = ["//visibility:public"],
 )
 """,
