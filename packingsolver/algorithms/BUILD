@@ -1,5 +1,5 @@
 load("//packingsolver:variables.bzl",
-         "COINOR_COPTS", "COINOR_DEP",
+         "CLP_COPTS", "CLP_DEP",
          "CPLEX_COPTS", "CPLEX_DEP",
          "GUROBI_COPTS", "GUROBI_DEP",
          "XPRESS_COPTS", "XPRESS_DEP")
@@ -29,8 +29,8 @@ cc_library(
                 ":common",
                 "@columngenerationsolver//columngenerationsolver:columngenerationsolver",
                 "@knapsacksolver//knapsacksolver/algorithms:minknap",
-        ] + COINOR_DEP + CPLEX_DEP + GUROBI_DEP + XPRESS_DEP,
-        copts = COINOR_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
+        ] + CLP_DEP + CPLEX_DEP + GUROBI_DEP + XPRESS_DEP,
+        copts = CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
         visibility = ["//visibility:public"],
 )
 
