@@ -9,6 +9,9 @@ namespace rectangleguillotine
 
 struct OptimizeOptionalParameters
 {
+    /** Number of threads. */
+    Counter number_of_threads = 0;
+
     /** Algorithm for Bin Packing problems. */
     Algorithm bpp_algorithm = Algorithm::Auto;
 

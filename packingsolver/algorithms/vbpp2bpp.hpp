@@ -2,8 +2,6 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
-#include "knapsacksolver/algorithms/minknap.hpp"
-
 namespace packingsolver
 {
 

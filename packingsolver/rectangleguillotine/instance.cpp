@@ -15,9 +15,13 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "two-staged-guillotine") {
+    if (token == "two-staged-guillotine"
+            || token == "TWO_STAGED_GUILLOTINE"
+            || token == "TwoStagedGuillotine") {
         cut_type_1 = CutType1::TwoStagedGuillotine;
-    } else if (token == "three-staged-guillotine") {
+    } else if (token == "three-staged-guillotine"
+            || token == "THREE_STAGED_GUILLOTINE"
+            || token == "ThreeStagedGuillotine") {
         cut_type_1 = CutType1::ThreeStagedGuillotine;
     } else  {
         in.setstate(std::ios_base::failbit);

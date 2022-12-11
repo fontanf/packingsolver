@@ -55,7 +55,7 @@ public:
 
     /** Standard constructor. */
     Solution(const Instance& instance):
-        instance_(instance),
+        instance_(&instance),
         bin_copies_(instance.number_of_bin_types(), 0),
         item_copies_(instance.number_of_item_types(), 0)
     { }
@@ -63,12 +63,6 @@ public:
     BinPos add_bin(
             BinTypeId bin_type_id,
             const std::vector<SolutionNode>& nodes);
-
-    /** Assignment operator. */
-    Solution& operator=(const Solution& solution);
-
-    /** Destructor. */
-    virtual ~Solution() { }
 
     void append(
             const Solution& solution,
@@ -87,7 +81,7 @@ public:
      */
 
     /** Get the instance. */
-    inline const Instance& instance() const { return instance_; }
+    inline const Instance& instance() const { return *instance_; }
     /** Get the number of items in the solution. */
     inline ItemPos number_of_items() const { return number_of_items_; }
     /** Return 'tree' iff the solution contains all items. */
@@ -142,31 +136,41 @@ private:
             const SolutionNode& node);
 
     /** Instance. */
-    const Instance& instance_;
+    const Instance* instance_;
 
     /** Bins. */
     std::vector<SolutionBin> bins_;
 
     /** Number of items in the solution. */
     ItemPos number_of_items_ = 0;
+
     /** Number of bins in the solution. */
     BinPos number_of_bins_ = 0;
+
     /** Total area of the solution. */
     Area area_ = 0;
+
     /** Total area of the bins of the solution. */
     Area full_area_ = 0;
+
     /** Total area of the items of the solution. */
     Area item_area_ = 0;
+
     /** Profit of the solution. */
     Profit profit_ = 0;
+
     /** Cost of the solution. */
     Profit cost_ = 0;
+
     /** Width of the solution. */
     Length width_ = 0;
+
     /** Height of the solution. */
     Length height_ = 0;
+
     /** Number of copies of each bin type in the solution. */
     std::vector<BinPos> bin_copies_;
+
     /** Number of copies of each item type in the solution. */
     std::vector<ItemPos> item_copies_;
 
