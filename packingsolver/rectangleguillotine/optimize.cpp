@@ -98,11 +98,18 @@ Output packingsolver::rectangleguillotine::optimize(
 
         std::vector<std::thread> threads;
         for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
-            threads.push_back(std::thread(
-                        iterative_beam_search<Instance, Solution, BranchingScheme>,
-                        std::ref(branching_schemes[i]),
-                        std::ref(output.solution_pool),
-                        ibs_parameterss[i]));
+            if (parameters.number_of_threads != 1 && branching_schemes.size() > 1) {
+                threads.push_back(std::thread(
+                            iterative_beam_search<Instance, Solution, BranchingScheme>,
+                            std::ref(branching_schemes[i]),
+                            std::ref(output.solution_pool),
+                            ibs_parameterss[i]));
+            } else {
+                iterative_beam_search<Instance, Solution, BranchingScheme>(
+                        branching_schemes[i],
+                        output.solution_pool,
+                        ibs_parameterss[i]);
+            }
         }
         for (Counter i = 0; i < (Counter)threads.size(); ++i)
             threads[i].join();
@@ -114,6 +121,7 @@ Output packingsolver::rectangleguillotine::optimize(
                 = [&parameters](const Instance& bpp_instance)
                 {
                     OptimizeOptionalParameters bpp_parameters;
+                    bpp_parameters.number_of_threads = parameters.number_of_threads;
                     bpp_parameters.bpp_algorithm = Algorithm::TreeSearch;
                     bpp_parameters.tree_search_queue_size = parameters.column_generation_vbpp2bpp_queue_size;
                     bpp_parameters.info = Info(parameters.info, false, "");
@@ -123,8 +131,8 @@ Output packingsolver::rectangleguillotine::optimize(
                     auto bpp_output = optimize(bpp_instance, bpp_parameters);
                     return bpp_output.solution_pool;
                 };
-            Vbpp2BppOptionalParameters<Instance, Solution> vbpp2bpp_op;
-            auto vbpp2bpp_output = vbpp2bpp(instance, bpp_solve, vbpp2bpp_op);
+            Vbpp2BppOptionalParameters<Instance, Solution> vbpp2bpp_parameters;
+            auto vbpp2bpp_output = vbpp2bpp(instance, bpp_solve, vbpp2bpp_parameters);
             std::stringstream ss;
             ss << "vbpp2bpp";
             output.solution_pool.add(vbpp2bpp_output.solution_pool.best(), ss, parameters.info);
@@ -134,6 +142,7 @@ Output packingsolver::rectangleguillotine::optimize(
             = [&parameters](const rectangleguillotine::Instance& kp_instance)
             {
                 OptimizeOptionalParameters kp_parameters;
+                kp_parameters.number_of_threads = parameters.number_of_threads;
                 kp_parameters.tree_search_queue_size = parameters.column_generation_pricing_queue_size;
                 kp_parameters.info = Info(parameters.info, false, "");
                 //kp_parameters.info.set_verbosity_level(1);
@@ -141,11 +150,11 @@ Output packingsolver::rectangleguillotine::optimize(
                 return kp_output.solution_pool;
             };
 
-        columngenerationsolver::Parameters p = get_parameters(instance, pricing_function);
+        columngenerationsolver::Parameters cgs_parameters = get_parameters(instance, pricing_function);
         if (output.solution_pool.best().full())
-            p.columns = solution2column(output.solution_pool.best());
-        columngenerationsolver::LimitedDiscrepancySearchOptionalParameters op;
-        op.new_bound_callback = [&instance, &parameters, &output](
+            cgs_parameters.columns = solution2column(output.solution_pool.best());
+        columngenerationsolver::LimitedDiscrepancySearchOptionalParameters lds_parameters;
+        lds_parameters.new_bound_callback = [&instance, &parameters, &output](
                 const columngenerationsolver::LimitedDiscrepancySearchOutput& o)
         {
             if (o.solution.size() > 0) {
@@ -166,15 +175,15 @@ Output packingsolver::rectangleguillotine::optimize(
             }
         };
 #if defined(CPLEX_FOUND)
-        op.column_generation_parameters.linear_programming_solver
+        lds_parameters.column_generation_parameters.linear_programming_solver
             = columngenerationsolver::LinearProgrammingSolver::CPLEX;
 #endif
 #if defined(CLP_FOUND)
-        op.column_generation_parameters.linear_programming_solver
+        lds_parameters.column_generation_parameters.linear_programming_solver
             = columngenerationsolver::LinearProgrammingSolver::CLP;
 #endif
-        op.info = Info(parameters.info, false, "");
-        columngenerationsolver::limited_discrepancy_search(p, op);
+        lds_parameters.info = Info(parameters.info, false, "");
+        columngenerationsolver::limited_discrepancy_search(cgs_parameters, lds_parameters);
 
     } else if (algorithm == Algorithm::DichotomicSearch) {
 
@@ -182,22 +191,23 @@ Output packingsolver::rectangleguillotine::optimize(
             = [&parameters](const Instance& bpp_instance)
             {
                 OptimizeOptionalParameters bpp_parameters;
+                bpp_parameters.number_of_threads = parameters.number_of_threads;
                 bpp_parameters.tree_search_queue_size = parameters.dichotomic_search_queue_size;
                 bpp_parameters.info = Info(parameters.info, false, "");
                 //bpp_parameters.info.set_verbosity_level(1);
                 auto bpp_output = optimize(bpp_instance, bpp_parameters);
                 return bpp_output.solution_pool;
             };
-        DichotomicSearchOptionalParameters<Instance, Solution> op;
-        op.new_solution_callback = [&parameters, &output](
+        DichotomicSearchOptionalParameters<Instance, Solution> ds_parameters;
+        ds_parameters.new_solution_callback = [&parameters, &output](
                 const DichotomicSearchOutput<Instance, Solution>& o)
         {
             std::stringstream ss;
             ss << "waste percentage " << o.waste_percentage;
             output.solution_pool.add(o.solution_pool.best(), ss, parameters.info);
         };
-        op.info = Info(parameters.info, false, "");
-        dichotomic_search(instance, bpp_solve, op);
+        ds_parameters.info = Info(parameters.info, false, "");
+        dichotomic_search(instance, bpp_solve, ds_parameters);
 
     }
 

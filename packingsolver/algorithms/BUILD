@@ -28,7 +28,7 @@ cc_library(
         deps = [
                 ":common",
                 "@columngenerationsolver//columngenerationsolver:columngenerationsolver",
-                "@knapsacksolver//knapsacksolver/algorithms:minknap",
+                "@knapsacksolver//knapsacksolver/algorithms:dynamic_programming_primal_dual",
         ] + CLP_DEP + CPLEX_DEP + GUROBI_DEP + XPRESS_DEP,
         copts = CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
         visibility = ["//visibility:public"],

@@ -2,7 +2,7 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
-#include "knapsacksolver/algorithms/minknap.hpp"
+#include "knapsacksolver/algorithms/dynamic_programming_primal_dual.hpp"
 
 namespace packingsolver
 {
@@ -140,10 +140,10 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
         //    std::cout << " " << i;
         //std::cout << std::endl;
         // Solve knapsack instance.
-        knapsacksolver::MinknapOptionalParameters kp_parameters;
+        knapsacksolver::DynamicProgrammingPrimalDualOptionalParameters kp_parameters;
         kp_parameters.info = Info(parameters.info, false, "knapsack");
         //kp_parameters.info.set_verbosity_level(2);
-        auto kp_output = knapsacksolver::minknap(kp_instance, kp_parameters);
+        auto kp_output = knapsacksolver::dynamic_programming_primal_dual(kp_instance, kp_parameters);
 
         // Build PackingSolver Bin Packing instance.
         //std::cout << "Build Bin Packing instance..." << std::endl;

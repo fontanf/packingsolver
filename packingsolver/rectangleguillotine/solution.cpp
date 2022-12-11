@@ -37,31 +37,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 /////////////////////////////////// Solution ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-Solution& Solution::operator=(const Solution& solution)
-{
-    if (this != &solution) {
-        if (&instance_ != &solution.instance_) {
-            throw std::runtime_error(
-                    "Assign a solution to a solution from a different instance.");
-        }
-
-        bins_ = solution.bins_;
-        number_of_items_ = solution.number_of_items_;
-        number_of_bins_ = solution.number_of_bins_;
-        area_ = solution.area_;
-        full_area_ = solution.full_area_;
-        item_area_ = solution.item_area_;
-        profit_ = solution.profit_;
-        cost_ = solution.cost_;
-        width_ = solution.width_;
-        height_ = solution.height_;
-        bin_copies_ = solution.bin_copies_;
-        item_copies_ = solution.item_copies_;
-        assert(number_of_items_ >= 0);
-    }
-    return *this;
-}
-
 BinPos Solution::add_bin(
         BinTypeId bin_type_id,
         const std::vector<SolutionNode>& nodes)
@@ -74,7 +49,7 @@ BinPos Solution::add_bin(
 
     number_of_bins_++;
     bin_copies_[bin_type_id]++;
-    const BinType& bin_type = instance_.bin_type(bin_type_id);
+    const BinType& bin_type = instance().bin_type(bin_type_id);
     cost_ += bin_type.cost;
     area_ += bin_type.area();
     full_area_ += bin_type.area();
