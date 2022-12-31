@@ -22,7 +22,7 @@ Output packingsolver::rectangleguillotine::optimize(
         if (parameters.bpp_algorithm != Algorithm::Auto) {
             algorithm = parameters.bpp_algorithm;
         } else {
-#if defined(CLP_FOUND) || defined(CPLEX_FOUND)
+#if defined(CLP_FOUND) || defined(CPLEX_FOUND) || defined(XPRESS_FOUND)
             if (instance.number_of_bin_types() == 1
                     && largest_bin_space(instance) / mean_item_space(instance) < 16) {
                 algorithm = Algorithm::ColumnGeneration;
@@ -32,7 +32,7 @@ Output packingsolver::rectangleguillotine::optimize(
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         if (parameters.vbpp_algorithm != Algorithm::Auto) {
             algorithm = parameters.vbpp_algorithm;
-#if defined(CLP_FOUND) || defined(CPLEX_FOUND)
+#if defined(CLP_FOUND) || defined(CPLEX_FOUND) || defined(XPRESS_FOUND)
         } else if (largest_bin_space(instance) / mean_item_space(instance) < 16) {
             algorithm = Algorithm::ColumnGeneration;
 #endif
@@ -174,14 +174,8 @@ Output packingsolver::rectangleguillotine::optimize(
                 output.solution_pool.add(solution, ss, parameters.info);
             }
         };
-#if defined(CPLEX_FOUND)
         lds_parameters.column_generation_parameters.linear_programming_solver
-            = columngenerationsolver::LinearProgrammingSolver::CPLEX;
-#endif
-#if defined(CLP_FOUND)
-        lds_parameters.column_generation_parameters.linear_programming_solver
-            = columngenerationsolver::LinearProgrammingSolver::CLP;
-#endif
+            = parameters.linear_programming_solver;
         lds_parameters.info = Info(parameters.info, false, "");
         columngenerationsolver::limited_discrepancy_search(cgs_parameters, lds_parameters);
 

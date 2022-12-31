@@ -4,15 +4,15 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 git_repository(
     name = "googletest",
     remote = "https://github.com/google/googletest.git",
-    commit = "703bd9caab50b139428cea1aaff9974ebee5742e",
-    shallow_since = "1570114335 -0400",
+    commit = "58d77fa8070e8cec2dc1ed015d66b454c8d78850",
+    shallow_since = "1656350095 -0400",
 )
 
 git_repository(
     name = "com_github_nelhage_rules_boost",
-    commit = "9f9fb8b2f0213989247c9d5c0e814a8451d18d7f",
     remote = "https://github.com/nelhage/rules_boost",
-    shallow_since = "1570056263 -0700",
+    commit = "e83dfef18d91a3e35c8eac9b9aeb1444473c0efd",
+    shallow_since = "1671181466 +0000",
 )
 load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
 boost_deps()
@@ -58,8 +58,8 @@ local_repository(
 git_repository(
     name = "columngenerationsolver",
     remote = "https://github.com/fontanf/columngenerationsolver.git",
-    commit = "83ee22bea4b7ae2d4f61d182acc2717b265b05c2",
-    shallow_since = "1667023777 +0200",
+    commit = "2595e3ad316143827d8a8fa943d5713d2b180b70",
+    shallow_since = "1672489298 +0100",
 )
 
 local_repository(
@@ -171,15 +171,13 @@ cc_library(
 
 new_local_repository(
     name = "xpress",
-    path = "/home/florian/Programmes/",
+    path = "/opt/xpressmp/",
     build_file_content = """
 cc_library(
     name = "xpress",
-    hdrs = [
-    ],
+    hdrs = glob(["include/*.h"], exclude_directories = 0),
     strip_include_prefix = "include/",
-    srcs = [
-    ],
+    srcs = ["lib/libxprs.so"],
     visibility = ["//visibility:public"],
 )
 """,

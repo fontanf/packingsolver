@@ -10,15 +10,23 @@ def Settings(**kwargs):
                 'googletest/googletest/include/',
                 '-I', './bazel-packingsolver/external/'
                 'boost/',
-                '-I', './bazel-packingsolver/external/'
-                # '-I', './../'
+
+                # optimizationtools
+                # '-I', './bazel-packingsolver/external/'
+                '-I', './../'
                 'optimizationtools/',
+
+                # treesearchsolver
                 '-I', './bazel-packingsolver/external/'
                 # '-I', './../'
                 'treesearchsolver/',
-                '-I', './bazel-packingsolver/external/'
-                # '-I', './../'
+
+                # knapsacksolver
+                # '-I', './bazel-packingsolver/external/'
+                '-I', './../'
                 'knapsacksolver/',
+
+                # columngenerationsolver
                 '-I', './bazel-packingsolver/external/'
                 # '-I', './../'
                 'columngenerationsolver/',

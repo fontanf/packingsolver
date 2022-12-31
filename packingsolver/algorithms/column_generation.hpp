@@ -239,7 +239,6 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
             //std::cout << "number_of_items " << extra.solution.number_of_items() << std::endl;
             for (ItemTypeId j_kp = 0; j_kp < instance_kp.number_of_item_types(); ++j_kp) {
                 if (extra.solution.item_copies(j_kp) > 0) {
-                    //std::cout << "j " << extra.kp2vbpp[j_kp] << " copies " << extra.solution.item_copies(j_kp) << std::endl;
                     column.row_indices.push_back(m + extra.kp2vbpp[j_kp]);
                     column.row_coefficients.push_back(extra.solution.item_copies(j_kp));
                     //std::cout << duals[m + extra->kp2vbpp[j_kp]] << std::endl;

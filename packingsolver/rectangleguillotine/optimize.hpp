@@ -2,6 +2,8 @@
 
 #include "packingsolver/rectangleguillotine/solution.hpp"
 
+#include "columngenerationsolver/linear_programming_solver.hpp"
+
 namespace packingsolver
 {
 namespace rectangleguillotine
@@ -43,6 +45,10 @@ struct OptimizeOptionalParameters
      * generation algorithm.
      */
     NodeId column_generation_pricing_queue_size = 256;
+
+    /** Linear programming solver. */
+    columngenerationsolver::LinearProgrammingSolver linear_programming_solver
+        = columngenerationsolver::LinearProgrammingSolver::CLP;
 
 
     /**
