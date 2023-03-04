@@ -1,3 +1,15 @@
+/**
+ * VBPP2BPP algorithm
+ *
+ * Algorithm for Variable-sized Bin Packing problems.
+ *
+ * The algorithm just fixes an order for the bins and solves a Bin Packing
+ * subproblem.
+ *
+ * This algorithm is used to quickly get an initial solution before running the
+ * column generation algorithm.
+ */
+
 #pragma once
 
 #include "packingsolver/algorithms/common.hpp"

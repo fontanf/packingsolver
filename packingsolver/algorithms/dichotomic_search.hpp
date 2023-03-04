@@ -1,3 +1,18 @@
+/**
+ * Dichotomic Search algorithm
+ *
+ * Algorithm for Variable-sized Bin Packing problems.
+ *
+ * The algorithm estimates the waste of the solution and deduces the bins to
+ * use to reach this quantity of waste. Then it solves a Bin Packing subproblem
+ * with all the selected bins. If it manages to pack all items in the selected
+ * bins, then it decreases the waste estimate; otherwise, it increases it.
+ *
+ * This algorithm works well for problems with many types of bins, or with bins
+ * in which many items can fit. In particular, it works much better than the
+ * Column Generation algorithm that struggles in these cases.
+ */
+
 #pragma once
 
 #include "packingsolver/algorithms/common.hpp"
@@ -80,6 +95,9 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
         DichotomicSearchOptionalParameters<Instance, Solution> parameters)
 {
     DichotomicSearchOutput<Instance, Solution> output(instance);
+
+    if (instance.number_of_item_types() == 0)
+        return output;
 
     // Compute item_space.
     auto item_space = instance.item_type(0).space();
