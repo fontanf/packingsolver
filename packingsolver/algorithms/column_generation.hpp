@@ -1,5 +1,7 @@
 /**
- * Variable-sized Bin Packing Problem.
+ * Column Generation algorithm
+ *
+ * Algorithm for Variable-sized Bin Packing and Bin Packing Problems.
  *
  * Input:
  * - m bin types with lower bounds lᵢ, upper bounds uᵢ and costs cᵢ (i = 0..m)
@@ -208,10 +210,10 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
         if (fixed_bin_types_[i] == instance_.bin_type(i).copies)
             continue;
         // Build knapsack instance.
-        Instance instance_kp = Instance();
-        instance_kp.set_objective(Objective::Knapsack);
-        instance_kp.set_parameters(instance_.parameters());
-        instance_kp.add_bin_type(instance_.bin_type(i), 1);
+        Instance kp_instance = Instance();
+        kp_instance.set_objective(Objective::Knapsack);
+        kp_instance.set_parameters(instance_.parameters());
+        kp_instance.add_bin_type(instance_.bin_type(i), 1);
         std::vector<ItemTypeId> kp2vbpp;
         for (ItemTypeId j = 0; j < n; ++j) {
             Profit profit = duals[m + j];
@@ -219,29 +221,29 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, Solution>::sol
             if (profit <= 0)
                 continue;
             ItemPos copies = instance_.item_type(j).copies - filled_demands_[j];
-            instance_kp.add_item_type(instance_.item_type(j), profit, copies);
+            kp_instance.add_item_type(instance_.item_type(j), profit, copies);
             kp2vbpp.push_back(j);
         }
 
         // Solve knapsack instance.
         //std::cout << "pricing_function" << std::endl;
-        SolutionPool<Instance, Solution> solution_pool = pricing_function_(instance_kp);
+        SolutionPool<Instance, Solution> kp_solution_pool = pricing_function_(kp_instance);
         //std::cout << "pricing_function end" << std::endl;
 
         // Retrieve column.
-        for (const Solution& solution: solution_pool.solutions()) {
-            VariableSizeBinPackingColumnExtra<Solution> extra {solution, i, kp2vbpp};
+        for (const Solution& kp_solution: kp_solution_pool.solutions()) {
+            VariableSizeBinPackingColumnExtra<Solution> extra {kp_solution, i, kp2vbpp};
             Column column;
             column.objective_coefficient = instance_.bin_type(i).cost;
             column.row_indices.push_back(i);
             column.row_coefficients.push_back(1);
             //std::cout << duals[i] << std::endl;
             //std::cout << "number_of_items " << extra.solution.number_of_items() << std::endl;
-            for (ItemTypeId j_kp = 0; j_kp < instance_kp.number_of_item_types(); ++j_kp) {
-                if (extra.solution.item_copies(j_kp) > 0) {
-                    column.row_indices.push_back(m + extra.kp2vbpp[j_kp]);
-                    column.row_coefficients.push_back(extra.solution.item_copies(j_kp));
-                    //std::cout << duals[m + extra->kp2vbpp[j_kp]] << std::endl;
+            for (ItemTypeId kp_j = 0; kp_j < kp_instance.number_of_item_types(); ++kp_j) {
+                if (extra.solution.item_copies(kp_j) > 0) {
+                    column.row_indices.push_back(m + extra.kp2vbpp[kp_j]);
+                    column.row_coefficients.push_back(extra.solution.item_copies(kp_j));
+                    //std::cout << duals[m + extra->kp2vbpp[kp_j]] << std::endl;
                 }
             }
             column.extra = std::shared_ptr<void>(new VariableSizeBinPackingColumnExtra<Solution>(extra));
