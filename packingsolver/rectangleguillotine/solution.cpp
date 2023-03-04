@@ -136,13 +136,13 @@ bool Solution::operator<(const Solution& solution) const
         if (!full())
             return true;
         return solution.waste() < waste();
-    } case Objective::StripPackingX: {
+    } case Objective::OpenDimensionX: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
         return solution.width() < width();
-    } case Objective::StripPackingY: {
+    } case Objective::OpenDimensionY: {
         if (!solution.full())
             return false;
         if (!full())
@@ -207,7 +207,7 @@ void Solution::display(
                 << std::setw(32) << algorithm.str()
                 << std::endl;
         break;
-    } case Objective::StripPackingX: {
+    } case Objective::OpenDimensionX: {
         info.add_to_json(sol_str, "X", width());
         info.os()
                 << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
@@ -215,7 +215,7 @@ void Solution::display(
                 << std::setw(32) << algorithm.str()
                 << std::endl;
         break;
-    } case Objective::StripPackingY: {
+    } case Objective::OpenDimensionY: {
         info.add_to_json(sol_str, "Y", height());
         info.os()
                 << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
@@ -325,7 +325,7 @@ void Solution::algorithm_start(
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
-    } case Objective::StripPackingX: {
+    } case Objective::OpenDimensionX: {
         info.os()
                 << std::setw(12) << "Time"
                 << std::setw(12) << "X"
@@ -336,7 +336,7 @@ void Solution::algorithm_start(
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
-    } case Objective::StripPackingY: {
+    } case Objective::OpenDimensionY: {
         info.os()
                 << std::setw(12) << "Time"
                 << std::setw(12) << "Y"
@@ -418,12 +418,12 @@ void Solution::algorithm_end(Info& info) const
             << "Waste:             " << waste() << std::endl
             << "Waste (%):         " << 100 * waste_percentage() << std::endl;
         break;
-    } case Objective::StripPackingX: {
+    } case Objective::OpenDimensionX: {
         info.add_to_json(sol_str, "X", width());
         info.os()
             << "X:                 " << width() << std::endl;
         break;
-    } case Objective::StripPackingY: {
+    } case Objective::OpenDimensionY: {
         info.add_to_json(sol_str, "Y", height());
         info.os()
             << "Y:                 " << height() << std::endl;

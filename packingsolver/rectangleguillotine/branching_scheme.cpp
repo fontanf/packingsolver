@@ -114,11 +114,11 @@ bool BranchingScheme::bound(
         return node.waste >= solution_best.waste();
     } case Objective::Knapsack: {
         return ubkp(node) <= solution_best.profit();
-    } case Objective::StripPackingX: {
+    } case Objective::OpenDimensionX: {
         if (!solution_best.full())
             return false;
         return std::max(width(node), (node.waste + instance_.item_area() - 1) / instance_.height(instance_.bin(0), CutOrientation::Vertical) + 1) >= solution_best.width();
-    } case Objective::StripPackingY: {
+    } case Objective::OpenDimensionY: {
         if (!solution_best.full())
             return false;
         return std::max(height(node), (node.waste + instance_.item_area() - 1) / instance_.height(instance_.bin(0), CutOrientation::Horinzontal) + 1) >= solution_best.height();
@@ -155,13 +155,13 @@ bool BranchingScheme::better(
         if (!solution_best.full())
             return true;
         return solution_best.waste() > node.waste;
-    } case Objective::StripPackingX: {
+    } case Objective::OpenDimensionX: {
         if (!leaf(node))
             return false;
         if (!solution_best.full())
             return true;
         return solution_best.width() > width(node);
-    } case Objective::StripPackingY: {
+    } case Objective::OpenDimensionY: {
         if (!leaf(node))
             return false;
         if (!solution_best.full())
