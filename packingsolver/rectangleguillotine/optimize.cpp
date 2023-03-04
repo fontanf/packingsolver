@@ -17,6 +17,7 @@ Output packingsolver::rectangleguillotine::optimize(
 {
     Output output(instance);
 
+    // Select algorithm.
     Algorithm algorithm = Algorithm::TreeSearch;
     if (instance.objective() == Objective::BinPacking) {
         if (parameters.bpp_algorithm != Algorithm::Auto) {
