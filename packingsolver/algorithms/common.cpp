@@ -78,10 +78,10 @@ std::istream& packingsolver::operator>>(std::istream& in, Objective& objective)
         objective = Objective::BinPacking;
     } else if (token == "bin-packing-with-leftovers" || token == "BPPL") {
         objective = Objective::BinPackingWithLeftovers;
-    } else if (token == "strip-packing-x" || token == "SPPX") {
-        objective = Objective::StripPackingX;
-    } else if (token == "strip-packing-y" || token == "SPPY") {
-        objective = Objective::StripPackingY;
+    } else if (token == "open-dimension-x" || token == "ODX") {
+        objective = Objective::OpenDimensionX;
+    } else if (token == "open-dimension-y" || token == "ODY") {
+        objective = Objective::OpenDimensionY;
     } else if (token == "knapsack" || token == "KP") {
         objective = Objective::Knapsack;
     } else if (token == "variable-sized-bin-packing" || token == "VBPP") {
@@ -104,11 +104,14 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Objective objective)
     } case Objective::BinPackingWithLeftovers: {
         os << "BinPackingWithLeftovers";
         break;
-    } case Objective::StripPackingX: {
-        os << "StripPackingX";
+    } case Objective::OpenDimensionX: {
+        os << "OpenDimensionX";
         break;
-    } case Objective::StripPackingY: {
-        os << "StripPackingY";
+    } case Objective::OpenDimensionY: {
+        os << "OpenDimensionY";
+        break;
+    } case Objective::OpenDimensionXY: {
+        os << "OpenDimensionXY";
         break;
     } case Objective::Knapsack: {
         os << "Knapsack";

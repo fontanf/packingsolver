@@ -882,7 +882,7 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
-                 " --objective strip-packing-y"
+                 " --objective open-dimension-y"
                  " --predefined 3NHO"
                  " --time-limit 60"
                  ) for f in []
@@ -900,7 +900,7 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
-                 " --objective strip-packing-y"
+                 " --objective open-dimension-y"
                  " --predefined 3NHR"
                  " --time-limit 60"
                  ) for f in []
@@ -917,7 +917,7 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
-                 " --objective strip-packing-y"
+                 " --objective open-dimension-y"
                  " --predefined 2NHO"
                  " --time-limit 10"
                  ) for f in []
@@ -932,7 +932,7 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
-                 " --objective strip-packing-y"
+                 " --objective open-dimension-y"
                  " --predefined 2NHR"
                  " --time-limit 10"
                  ) for f in []

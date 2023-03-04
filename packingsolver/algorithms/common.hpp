@@ -56,8 +56,9 @@ enum class Objective
     Default,
     BinPacking,
     BinPackingWithLeftovers,
-    StripPackingX,
-    StripPackingY,
+    OpenDimensionX,
+    OpenDimensionY,
+    OpenDimensionXY,
     Knapsack,
     VariableSizedBinPacking,
 };
