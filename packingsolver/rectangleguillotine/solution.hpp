@@ -24,10 +24,15 @@ using SolutionNodeId = int64_t;
 struct SolutionNode
 {
     SolutionNodeId id;
+
     SolutionNodeId f;
+
     Depth d;
+
     Length l, r, b, t;
+
     std::vector<SolutionNodeId> children;
+
     ItemTypeId j;
 };
 
@@ -35,8 +40,10 @@ struct SolutionBin
 {
     /** Bin type. */
     BinTypeId i;
+
     /** Number of copies. */
     BinPos copies;
+
     /** Nodes. */
     std::vector<SolutionNode> nodes;
 };
@@ -82,40 +89,60 @@ public:
 
     /** Get the instance. */
     inline const Instance& instance() const { return *instance_; }
+
     /** Get the number of items in the solution. */
     inline ItemPos number_of_items() const { return number_of_items_; }
+
     /** Return 'tree' iff the solution contains all items. */
     inline bool full() const { return number_of_items() == instance().number_of_items(); }
+
     /** Get the number of bins in the solution. */
     inline BinPos number_of_bins() const { return number_of_bins_; }
+
     /** Get the number of different bins in the solution. */
     inline BinPos number_of_different_bins() const { return number_of_bins_; }
+
     /** Get the height of the solution. */
     inline Length height() const { return height_; }
+
     /** Get the width of the solution. */
     inline Length width() const { return width_; }
+
     /** Get the profit of the solution. */
     inline Profit profit() const { return profit_; }
+
     /** Get the cost of the solution. */
     inline Profit cost() const { return cost_; }
+
     /** Get the area of the solution. */
     inline Area area() const { return area_; }
+
     /** Get the total area of the items of the solution. */
     inline Area item_area() const { return item_area_; }
+
     /** Get the total area of the bins of the solution. */
     inline Area full_area() const { return full_area_; }
+
     /** Get the waste of the solution. */
     inline Area waste() const { return area_ - item_area_; }
+
     /** Get the fraction of waste of the solution. */
     inline double waste_percentage() const { return (area() == 0)? 0: (double)waste() / area(); }
+
     /** Get the waste of the solution including the residual. */
     inline Area full_waste() const { return full_area() - item_area(); }
+
     /** Get the fraction of waste of the solution including the residual. */
     inline double full_waste_percentage() const { return (full_area() == 0)? 0: (double)full_waste() / full_area(); }
+
     /** Get the number of copies of item 'j' in the solution. */
     inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
+
     /** Get a bin. */
     const SolutionBin& bin(BinPos i) const { return bins_[i]; }
+
+    /** Get the number of copies of bin 'i' in the solution. */
+    inline BinPos bin_copies(BinTypeId i) const { return bin_copies_[i]; }
 
     bool operator<(const Solution& solution) const;
 
@@ -123,6 +150,7 @@ public:
     void write(Info& info) const;
 
     void algorithm_start(Info& info, Algorithm algorithm) const;
+
     void algorithm_end(Info& info) const;
 
     void display(
@@ -177,6 +205,7 @@ private:
 };
 
 std::ostream& operator<<(std::ostream &os, const SolutionNode& node);
+
 std::ostream& operator<<(std::ostream &os, const Solution& solution);
 
 }
