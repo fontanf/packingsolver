@@ -1070,15 +1070,17 @@ void BranchingScheme::update(
     }
 
     // Update insertion.x1 and insertion.z1 with respect to defect intersections.
-    for (;;) {
-        DefectId k = instance_.x_intersects_defect(insertion.x1, i, o);
-        if (k == -1)
-            break;
-        const Defect& defect = instance_.defect(k);
-        insertion.x1 = (insertion.z1 == 0)?
-            std::max(instance_.right(defect, o), insertion.x1 + min_waste):
-            instance_.right(defect, o);
-        insertion.z1 = 1;
+    if (!instance_.cut_through_defects()) {
+        for (;;) {
+            DefectId k = instance_.x_intersects_defect(insertion.x1, i, o);
+            if (k == -1)
+                break;
+            const Defect& defect = instance_.defect(k);
+            insertion.x1 = (insertion.z1 == 0)?
+                std::max(instance_.right(defect, o), insertion.x1 + min_waste):
+                instance_.right(defect, o);
+            insertion.z1 = 1;
+        }
     }
 
     // Increase width if too close from border
@@ -1108,13 +1110,20 @@ void BranchingScheme::update(
         bool found = false;
 
         // Increase y2 if it intersects a defect.
-        DefectId k = instance_.y_intersects_defect(
-                x1_prev(father, insertion.df), insertion.x1, insertion.y2, i, o);
-        if (k != -1) {
-            const Defect& defect = instance_.defect(k);
-            if (y2_fixed) {
-                FFOT_LOG_FOLD_END(info, "y2_fixed");
-                return;
+        if (!instance_.cut_through_defects()) {
+            DefectId k = instance_.y_intersects_defect(
+                    x1_prev(father, insertion.df), insertion.x1, insertion.y2, i, o);
+            if (k != -1) {
+                const Defect& defect = instance_.defect(k);
+                if (y2_fixed) {
+                    FFOT_LOG_FOLD_END(info, "y2_fixed");
+                    return;
+                }
+                insertion.y2 = (insertion.z2 == 0)?
+                    std::max(instance_.top(defect, o), insertion.y2 + min_waste):
+                    instance_.top(defect, o);
+                insertion.z2 = 1;
+                found = true;
             }
             insertion.y2 = (insertion.z2 == 0)?
                 std::max(instance_.top(defect, o), insertion.y2 + min_waste):
