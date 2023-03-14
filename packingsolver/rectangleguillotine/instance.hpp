@@ -347,17 +347,27 @@ public:
     void set_no_item_rotation();
 
     void set_cut_type_1(CutType1 cut_type_1) { parameters_.cut_type_1 = cut_type_1; }
+
     void set_cut_type_2(CutType2 cut_type_2) { parameters_.cut_type_2 = cut_type_2; }
+
     void set_first_stage_orientation(CutOrientation first_stage_orientation) { parameters_.first_stage_orientation = first_stage_orientation; }
+
     void set_min1cut(Length min1cut) { parameters_.min1cut = min1cut; }
+
     void set_max1cut(Length max1cut) { parameters_.max1cut = max1cut; }
+
     void set_min2cut(Length min2cut) { parameters_.min2cut = min2cut; }
+
     void set_max2cut(Length max2cut) { parameters_.max2cut = max2cut; }
+
     void set_min_waste(Length min_waste) { parameters_.min_waste = min_waste; }
+
     void set_one2cut(bool one2cut) { parameters_.one2cut = one2cut; }
+
     void set_cut_through_defects(bool cut_through_defects) { parameters_.cut_through_defects = cut_through_defects; }
 
     void set_predefined(std::string str);
+
     void set_roadef2018()
     {
         parameters_.cut_type_1 = rectangleguillotine::CutType1::ThreeStagedGuillotine;
@@ -376,59 +386,79 @@ public:
 
     /** Get the problem type. */
     inline ProblemType type() const { return ProblemType::RectangleGuillotine; };
+
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
 
     /* Get the number of item types. */
     inline ItemTypeId number_of_item_types() const { return item_types_.size(); }
+
     /** Get the number of items. */
     inline ItemTypeId number_of_items() const { return number_of_items_; }
+
     /** Get the number of stacks. */
     inline StackId number_of_stacks() const { return stacks_.size(); }
+
     /** Get the size of stack s. */
     inline ItemPos stack_size(StackId s) const { return items_pos2type_[s].size(); }
+
     /** Get the number of defects. */
     inline DefectId number_of_defects() const { return defects_.size(); }
+
     /** Get the number of bin types. */
     inline BinTypeId number_of_bin_types() const { return bin_types_.size(); }
+
     /** Get the number of bins. */
     inline BinPos number_of_bins() const { return bins_pos2type_.size(); }
 
     /** Get the total area of the items. */
     inline Area item_area() const { return item_area_; }
+
     /** Get the mean area of the items. */
     inline Area mean_area() const { return item_area_ / number_of_items(); }
+
     /** Get the total area of the defects. */
     inline Area defect_area() const { return defect_area_; }
+
     /** Get the total packable area. */
     inline Area packable_area() const { return packable_area_; }
+
     /** Get the total profit of the items. */
     inline Profit item_profit() const { return item_profit_; }
+
     /** Get the id of the item type with maximum efficiency. */
     inline ItemTypeId max_efficiency_item() const { return max_efficiency_item_; }
+
     /** Return true iff all items have infinite copies. */
     inline bool unbounded_knapsck() const { return all_item_type_infinite_copies_; }
 
     /** Get item type j. */
     inline const ItemType& item_type(ItemTypeId j) const { return item_types_[j]; }
+
     /** Get defect k. */
     inline const Defect& defect(DefectId k) const { return defects_[k]; }
+
     /** Get bin type i. */
     inline const BinType& bin_type(BinTypeId i) const { return bin_types_[i]; }
 
     /** Get the j_pos's item of stack s. */
     inline ItemTypeId item(StackId s, ItemPos j_pos) const { return items_pos2type_[s][j_pos]; }
+
     /** Get the i_pos's bin. */
     inline const BinType& bin(BinPos i_pos) const { return bin_types_[bins_pos2type_[i_pos]]; }
+
     /** Get the total area of the bins before bin i_pos. */
     Area previous_bin_area(BinPos i_pos) const;
 
     /** Get the item types. */
     inline const std::vector<ItemType>& item_types() const { return item_types_; }
+
     /** Get stack s. */
     inline const std::vector<ItemType>& stack(StackId s) const { return stacks_[s]; }
+
     /** Get the stacks. */
     inline const std::vector<std::vector<ItemType>>& stacks() const { return stacks_; }
+
     /** Get the defects. */
     inline const std::vector<Defect>& defects() const { return defects_; }
 
@@ -561,15 +591,25 @@ public:
      */
 
     inline const Parameters& parameters() const { return parameters_; }
+
     inline CutType1 cut_type_1() const { return parameters_.cut_type_1; }
+
     inline CutType2 cut_type_2() const { return parameters_.cut_type_2; }
+
     inline CutOrientation first_stage_orientation() const { return parameters_.first_stage_orientation; }
+
     inline Length min1cut() const { return parameters_.min1cut; }
+
     inline Length max1cut() const { return parameters_.max1cut; }
+
     inline Length min2cut() const { return parameters_.min2cut; }
+
     inline Length max2cut() const { return parameters_.max2cut; }
+
     inline Length min_waste() const { return parameters_.min_waste; }
+
     inline bool one2cut() const { return parameters_.one2cut; }
+
     inline bool cut_through_defects() const { return parameters_.cut_through_defects; }
 
     /*
