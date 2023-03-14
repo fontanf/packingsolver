@@ -184,6 +184,9 @@ struct Parameters
 
     /** Boolean indicating whether it is allowed to cut through defects. */
     bool cut_through_defects = false;
+
+    /** Cut thickness. */
+    Length cut_thickness = 0;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -365,6 +368,9 @@ public:
     void set_one2cut(bool one2cut) { parameters_.one2cut = one2cut; }
 
     void set_cut_through_defects(bool cut_through_defects) { parameters_.cut_through_defects = cut_through_defects; }
+
+    /** Set cut thickness. */
+    void set_cut_thickness(Length cut_thickness) { parameters_.cut_thickness = cut_thickness; }
 
     void set_predefined(std::string str);
 
@@ -611,6 +617,9 @@ public:
     inline bool one2cut() const { return parameters_.one2cut; }
 
     inline bool cut_through_defects() const { return parameters_.cut_through_defects; }
+
+    /** Get cut thickness. */
+    inline Length cut_thickness() const { return parameters_.cut_thickness; }
 
     /*
      * Intersections.
