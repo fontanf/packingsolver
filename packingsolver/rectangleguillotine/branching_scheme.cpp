@@ -1141,11 +1141,6 @@ void BranchingScheme::update(
                 insertion.z2 = 1;
                 found = true;
             }
-            insertion.y2 = (insertion.z2 == 0)?
-                std::max(instance_.top(defect, o), insertion.y2 + min_waste):
-                instance_.top(defect, o);
-            insertion.z2 = 1;
-            found = true;
         }
 
         // Increase y2 if an item on top of its third-level sub-plate
