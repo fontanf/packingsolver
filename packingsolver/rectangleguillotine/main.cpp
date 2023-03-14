@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
         ("min-waste,", po::value<Length>(&parameters.min_waste), "")
         ("one2cut,", po::value<bool>(&parameters.one2cut), "")
         ("cut-through-defects", po::value<bool>(&parameters.cut_through_defects), "")
+        ("cut-thickness", po::value<Length>(&parameters.cut_thickness), "")
 
         ("bpp-algorithm,", po::value<Algorithm>(&optimize_parameters.bpp_algorithm), "Algorithm for Bin Packing problems")
         ("vbpp-algorithm,", po::value<Algorithm>(&optimize_parameters.vbpp_algorithm), "Algorithm for Variable-sized Bin Packing problems")
@@ -151,6 +152,8 @@ int main(int argc, char *argv[])
         instance.set_one2cut(parameters.one2cut);
     if (vm.count("cut-through-defects"))
         instance.set_cut_through_defects(parameters.cut_through_defects);
+    if (vm.count("cut-thickness"))
+        instance.set_cut_thickness(parameters.cut_thickness);
 
     optimize_parameters.info = optimizationtools::Info()
         .set_verbosity_level(verbosity_level)

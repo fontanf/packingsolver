@@ -234,7 +234,7 @@ Length BranchingScheme::x1_prev(const Node& node, Depth df) const
                 instance_.bin(node.number_of_bins),
                 CutOrientation::Vertical);
     } case 0: {
-        return node.x1_curr;
+        return node.x1_curr + instance_.cut_thickness();
     } case 1: {
         return node.x1_prev;
     } case 2: {
@@ -258,11 +258,11 @@ Length BranchingScheme::x3_prev(const Node& node, Depth df) const
                 instance_.bin(node.number_of_bins),
                 CutOrientation::Vertical);
     } case 0: {
-        return node.x1_curr;
+        return node.x1_curr + instance_.cut_thickness();
     } case 1: {
         return node.x1_prev;
     } case 2: {
-        return node.x3_curr;
+        return node.x3_curr + instance_.cut_thickness();
     } default: {
         assert(false);
         return -1;
@@ -286,7 +286,7 @@ Length BranchingScheme::y2_prev(const Node& node, Depth df) const
                 instance_.bin(node.number_of_bins - 1),
                 node.first_stage_orientation);
     } case 1: {
-        return node.y2_curr;
+        return node.y2_curr + instance_.cut_thickness();
     } case 2: {
         return node.y2_prev;
     } default: {
@@ -398,12 +398,12 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
         node.y2_prev = instance_.bottom_trim(bin_type, o);
         break;
     } case 0: {
-        node.x1_prev = father.x1_curr;
+        node.x1_prev = father.x1_curr + instance_.cut_thickness();
         node.y2_prev = instance_.bottom_trim(bin_type, o);
         break;
     } case 1: {
         node.x1_prev = father.x1_prev;
-        node.y2_prev = father.y2_curr;
+        node.y2_prev = father.y2_curr + instance_.cut_thickness();
         break;
     } case 2: {
         node.x1_prev = father.x1_prev;
@@ -686,7 +686,8 @@ Length BranchingScheme::x1_max(const Node& node, Depth df) const
         Length x = node.x1_max;
         if (!instance_.cut_through_defects())
             for (const Defect& k: instance_.bin(i).defects)
-                if (instance_.bottom(k, o) < node.y2_curr && instance_.top(k, o) > node.y2_curr)
+                if (instance_.bottom(k, o) < node.y2_curr + instance_.cut_thickness()
+                        && instance_.top(k, o) > node.y2_curr)
                     if (instance_.left(k, o) > node.x1_prev)
                         if (x > instance_.left(k, o))
                             x = instance_.left(k, o);
@@ -707,7 +708,8 @@ Length BranchingScheme::y2_max(const Node& node, Depth df, Length x3) const
         instance_.height(bin_type, o) - instance_.top_trim(bin_type, o);
     if (!instance_.cut_through_defects())
         for (const Defect& k: instance_.bin(i).defects)
-            if (instance_.left(k, o) < x3 && instance_.right(k, o) > x3)
+            if (instance_.left(k, o) < x3 + instance_.cut_thickness()
+                    && instance_.right(k, o) > x3)
                 if (instance_.bottom(k, o) >= y2_prev(node, df))
                     if (y > instance_.bottom(k, o))
                         y = instance_.bottom(k, o);
@@ -827,7 +829,10 @@ void BranchingScheme::insertion_2_items(
     Length h = instance_.height(bin_type, o) - instance_.top_trim(bin_type, o);
     Length h_j1 = instance_.height(item1, rotate1, o);
     Length x = x3_prev(father, df) + instance_.width(item1, rotate1, o);
-    Length y = y2_prev(father, df) + h_j1 + instance_.height(item2, rotate2, o);
+    Length y = y2_prev(father, df)
+        + h_j1
+        + instance_.parameters().cut_thickness
+        + instance_.height(item2, rotate2, o);
     if (x > w || y > h) {
         FFOT_LOG_FOLD_END(info, "too wide/high");
         return;
@@ -1072,7 +1077,13 @@ void BranchingScheme::update(
     // Update insertion.x1 and insertion.z1 with respect to defect intersections.
     if (!instance_.cut_through_defects()) {
         for (;;) {
-            DefectId k = instance_.x_intersects_defect(insertion.x1, i, o);
+            DefectId k = instance_.rect_intersects_defect(
+                    insertion.x1,
+                    insertion.x1 + instance_.cut_thickness(),
+                    0,
+                    h_orig,
+                    i,
+                    o);
             if (k == -1)
                 break;
             const Defect& defect = instance_.defect(k);
@@ -1111,8 +1122,13 @@ void BranchingScheme::update(
 
         // Increase y2 if it intersects a defect.
         if (!instance_.cut_through_defects()) {
-            DefectId k = instance_.y_intersects_defect(
-                    x1_prev(father, insertion.df), insertion.x1, insertion.y2, i, o);
+            DefectId k = instance_.rect_intersects_defect(
+                    x1_prev(father, insertion.df),
+                    insertion.x1,
+                    insertion.y2,
+                    insertion.y2 + instance_.cut_thickness(),
+                    i,
+                    o);
             if (k != -1) {
                 const Defect& defect = instance_.defect(k);
                 if (y2_fixed) {
@@ -1230,6 +1246,20 @@ void BranchingScheme::update(
         return;
     }
     FFOT_LOG(info, "height OK" << std::endl);
+
+    // Check if 3-cut is cutting through a defect when cutting through a defect
+    // is not allowed and cut thickness is non-null.
+    if (!instance_.cut_through_defects() && instance_.cut_thickness() > 0) {
+        DefectId k = instance_.rect_intersects_defect(
+                insertion.x3,
+                insertion.x3 + instance_.cut_thickness(),
+                y2_prev(father, insertion.df),
+                insertion.y2,
+                i,
+                o);
+        if (k != -1)
+            return;
+    }
 
     // Check dominance
     for (auto it = insertions.begin(); it != insertions.end();) {
@@ -1675,18 +1705,14 @@ Solution BranchingScheme::to_solution(
             n.f = subplate2_curr;
             nodes[subplate2_curr].children.push_back(id);
             if (o == CutOrientation::Vertical) {
-                n.l = (current_node->df < 2)?
-                    nodes[subplate2_curr].l:
-                    nodes[subplate3_curr].r;
+                n.l = x3_prev(*current_node->father, current_node->df);
                 n.r = current_node->x3_curr;
                 n.b = nodes[subplate2_curr].b;
                 n.t = nodes[subplate2_curr].t;
             } else {
                 n.l = nodes[subplate2_curr].l;
                 n.r = nodes[subplate2_curr].r;
-                n.b = (current_node->df < 2)?
-                    nodes[subplate2_curr].b:
-                    nodes[subplate3_curr].t;
+                n.b = x3_prev(*current_node->father, current_node->df);
                 n.t = current_node->x3_curr;
             }
             n.j = (has_item)? -2: -1;
@@ -1762,9 +1788,18 @@ Solution BranchingScheme::to_solution(
                 nodes[subplate3_curr].children.push_back(id);
                 n.l = nodes[subplate3_curr].l;
                 n.r = nodes[subplate3_curr].r;
-                n.b = t;
                 n.t = nodes[subplate3_curr].t;
-                n.j = (current_node->j2 != -1)? current_node->j2: -1;
+                if (current_node->j2 == -1) {
+                    n.b = t;
+                    n.j = -1;
+                } else {
+                    Length w_tmp = nodes[subplate3_curr].r - nodes[subplate3_curr].l;
+                    Length hj = (w_tmp == instance_.item_type(current_node->j2).rect.w)?
+                        instance_.item_type(current_node->j2).rect.h:
+                        instance_.item_type(current_node->j2).rect.w;
+                    n.b = n.t - hj;
+                    n.j = current_node->j2;
+                }
                 //std::cout << n << std::endl;
             }
             if (r != nodes[subplate3_curr].r) {
@@ -1776,11 +1811,20 @@ Solution BranchingScheme::to_solution(
                 n.d = (instance_.cut_type_1() != CutType1::TwoStagedGuillotine)? 4: 3;
                 n.f = subplate3_curr;
                 nodes[subplate3_curr].children.push_back(id);
-                n.l = r;
                 n.r = nodes[subplate3_curr].r;
                 n.b = nodes[subplate3_curr].b;
                 n.t = nodes[subplate3_curr].t;
-                n.j = (current_node->j2 != -1)? current_node->j2: -1;
+                if (current_node->j2 == -1) {
+                    n.l = r;
+                    n.j = -1;
+                } else {
+                    Length h_tmp = nodes[subplate3_curr].t - nodes[subplate3_curr].b;
+                    Length wj = (h_tmp == instance_.item_type(current_node->j1).rect.h)?
+                        instance_.item_type(current_node->j1).rect.w:
+                        instance_.item_type(current_node->j1).rect.h;
+                    n.l = n.r - wj;
+                    n.j = current_node->j2;
+                }
                 //std::cout << n << std::endl;
             }
         }

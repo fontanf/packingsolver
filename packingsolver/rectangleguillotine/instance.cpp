@@ -730,6 +730,8 @@ void Instance::read_parameters(std::string parameters_path)
             set_max2cut(std::stol(value));
         } else if (name == "min_waste" || name == "minwaste" || name == "minWaste") {
             set_min_waste(std::stol(value));
+        } else if (name == "cut_thickness") {
+            set_cut_thickness(std::stol(value));
         }
     }
 }
@@ -867,7 +869,8 @@ std::ostream& Instance::print(
             << "max2cut:                  " << max2cut() << std::endl
             << "Minimum waste:            " << min_waste() << std::endl
             << "one2cut:                  " << one2cut() << std::endl
-            << "Cut through defects:      " << cut_through_defects() << std::endl;
+            << "Cut through defects:      " << cut_through_defects() << std::endl
+            << "Cut thickness:            " << cut_thickness() << std::endl;
     }
 
     if (verbose >= 2) {
