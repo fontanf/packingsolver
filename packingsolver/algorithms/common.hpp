@@ -9,6 +9,8 @@
 namespace packingsolver
 {
 
+const double PSTOL = 1 + 1e-9;
+
 using Seed = int64_t;
 using Counter = int64_t;
 
@@ -36,6 +38,22 @@ using Depth = int16_t;
 using GuideId = int16_t;
 
 using optimizationtools::Info;
+
+inline bool striclty_lesser(double v1, double v2)
+{
+    return v1 * PSTOL < v2;
+}
+
+inline bool striclty_greater(double v1, double v2)
+{
+    return v1 > v2 * PSTOL;
+}
+
+inline bool equal(double v1, double v2)
+{
+    return (v1 * PSTOL >= v2) && (v1 <= v2 * PSTOL);
+}
+
 
 enum class ProblemType
 {
