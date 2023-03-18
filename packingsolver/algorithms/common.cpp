@@ -10,6 +10,8 @@ std::istream& packingsolver::operator>>(std::istream& in, ProblemType& problem_t
         problem_type = ProblemType::RectangleGuillotine;
     } else if (token == "rectangle" || token == "R") {
         problem_type = ProblemType::Rectangle;
+    } else if (token == "irregular" || token == "I") {
+        problem_type = ProblemType::Irregular;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -24,6 +26,9 @@ std::ostream& packingsolver::operator<<(std::ostream &os, ProblemType problem_ty
         break;
     } case ProblemType::Rectangle: {
         os << "Rectangle";
+        break;
+    } case ProblemType::Irregular: {
+        os << "Irregular";
         break;
     }
     }
@@ -42,6 +47,8 @@ std::istream& packingsolver::operator>>(std::istream& in, Algorithm& algorithm)
         algorithm = Algorithm::ColumnGeneration;
     } else if (token == "dichotomic-search" || token == "DS") {
         algorithm = Algorithm::DichotomicSearch;
+    } else if (token == "minlp" || token == "MINLP") {
+        algorithm = Algorithm::Minlp;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -62,6 +69,9 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Algorithm algorithm)
         break;
     } case Algorithm::DichotomicSearch: {
         os << "Dichotomic search";
+        break;
+    } case Algorithm::Minlp: {
+        os << "MINLP";
         break;
     }
     }
