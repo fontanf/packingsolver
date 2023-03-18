@@ -2,10 +2,6 @@ STDCPP = select({
             "@bazel_tools//src/conditions:windows": [''],
             "//conditions:default":                 ["-std=c++11"]})
 
-STDCPP17 = select({
-            "@bazel_tools//src/conditions:windows": [''],
-            "//conditions:default":                 ["-std=c++17"]})
-
 CLP_COPTS = select({
             "//packingsolver:clp_build": ["-DCLP_FOUND"],
             "//conditions:default": []})
@@ -21,6 +17,9 @@ GUROBI_COPTS = select({
 XPRESS_COPTS = select({
             "//packingsolver:xpress_build": ["-DXPRESS_FOUND"],
             "//conditions:default": []})
+AMPL_COPTS = select({
+            "//packingsolver:ampl_build": ["-DAMPL_FOUND"],
+            "//conditions:default": []})
 
 CLP_DEP = select({
             "//packingsolver:clp_build": ["@coinor//:clp"],
@@ -33,5 +32,8 @@ GUROBI_DEP = select({
             "//conditions:default": []})
 XPRESS_DEP = select({
             "//packingsolver:xpress_build": ["@xpress//:xpress"],
+            "//conditions:default": []})
+AMPL_DEP = select({
+            "//packingsolver:ampl_build": ["@ampl//:ampl"],
             "//conditions:default": []})
 

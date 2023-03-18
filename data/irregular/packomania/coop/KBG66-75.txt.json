@@ -1,0 +1,311 @@
+{
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "height": 10.0,
+            "length": 100
+        }
+    ],
+    "item_types": [
+        {
+            "type": "circle",
+            "radius": 1.252
+        },
+        {
+            "type": "circle",
+            "radius": 1.255
+        },
+        {
+            "type": "circle",
+            "radius": 1.257
+        },
+        {
+            "type": "circle",
+            "radius": 1.26
+        },
+        {
+            "type": "circle",
+            "radius": 1.27
+        },
+        {
+            "type": "circle",
+            "radius": 1.273
+        },
+        {
+            "type": "circle",
+            "radius": 1.276
+        },
+        {
+            "type": "circle",
+            "radius": 1.281
+        },
+        {
+            "type": "circle",
+            "radius": 1.287
+        },
+        {
+            "type": "circle",
+            "radius": 1.292
+        },
+        {
+            "type": "circle",
+            "radius": 1.314
+        },
+        {
+            "type": "circle",
+            "radius": 1.315
+        },
+        {
+            "type": "circle",
+            "radius": 1.318
+        },
+        {
+            "type": "circle",
+            "radius": 1.335
+        },
+        {
+            "type": "circle",
+            "radius": 1.339
+        },
+        {
+            "type": "circle",
+            "radius": 1.341
+        },
+        {
+            "type": "circle",
+            "radius": 1.353
+        },
+        {
+            "type": "circle",
+            "radius": 1.355
+        },
+        {
+            "type": "circle",
+            "radius": 1.359
+        },
+        {
+            "type": "circle",
+            "radius": 1.367
+        },
+        {
+            "type": "circle",
+            "radius": 1.373
+        },
+        {
+            "type": "circle",
+            "radius": 1.375
+        },
+        {
+            "type": "circle",
+            "radius": 1.377
+        },
+        {
+            "type": "circle",
+            "radius": 1.383
+        },
+        {
+            "type": "circle",
+            "radius": 1.385
+        },
+        {
+            "type": "circle",
+            "radius": 1.391
+        },
+        {
+            "type": "circle",
+            "radius": 1.396
+        },
+        {
+            "type": "circle",
+            "radius": 1.397
+        },
+        {
+            "type": "circle",
+            "radius": 1.405
+        },
+        {
+            "type": "circle",
+            "radius": 1.416
+        },
+        {
+            "type": "circle",
+            "radius": 1.42
+        },
+        {
+            "type": "circle",
+            "radius": 1.422
+        },
+        {
+            "type": "circle",
+            "radius": 1.433
+        },
+        {
+            "type": "circle",
+            "radius": 1.44
+        },
+        {
+            "type": "circle",
+            "radius": 1.442
+        },
+        {
+            "type": "circle",
+            "radius": 1.444
+        },
+        {
+            "type": "circle",
+            "radius": 1.446
+        },
+        {
+            "type": "circle",
+            "radius": 1.448
+        },
+        {
+            "type": "circle",
+            "radius": 1.449
+        },
+        {
+            "type": "circle",
+            "radius": 1.457
+        },
+        {
+            "type": "circle",
+            "radius": 1.464
+        },
+        {
+            "type": "circle",
+            "radius": 1.473
+        },
+        {
+            "type": "circle",
+            "radius": 1.487
+        },
+        {
+            "type": "circle",
+            "radius": 1.492
+        },
+        {
+            "type": "circle",
+            "radius": 1.495
+        },
+        {
+            "type": "circle",
+            "radius": 1.497
+        },
+        {
+            "type": "circle",
+            "radius": 1.501
+        },
+        {
+            "type": "circle",
+            "radius": 1.506
+        },
+        {
+            "type": "circle",
+            "radius": 1.515
+        },
+        {
+            "type": "circle",
+            "radius": 1.525
+        },
+        {
+            "type": "circle",
+            "radius": 1.534
+        },
+        {
+            "type": "circle",
+            "radius": 1.537
+        },
+        {
+            "type": "circle",
+            "radius": 1.541
+        },
+        {
+            "type": "circle",
+            "radius": 1.544
+        },
+        {
+            "type": "circle",
+            "radius": 1.547
+        },
+        {
+            "type": "circle",
+            "radius": 1.56
+        },
+        {
+            "type": "circle",
+            "radius": 1.563
+        },
+        {
+            "type": "circle",
+            "radius": 1.568
+        },
+        {
+            "type": "circle",
+            "radius": 1.577
+        },
+        {
+            "type": "circle",
+            "radius": 1.581
+        },
+        {
+            "type": "circle",
+            "radius": 1.582
+        },
+        {
+            "type": "circle",
+            "radius": 1.584
+        },
+        {
+            "type": "circle",
+            "radius": 1.594
+        },
+        {
+            "type": "circle",
+            "radius": 1.596
+        },
+        {
+            "type": "circle",
+            "radius": 1.606
+        },
+        {
+            "type": "circle",
+            "radius": 1.607
+        },
+        {
+            "type": "circle",
+            "radius": 1.619
+        },
+        {
+            "type": "circle",
+            "radius": 1.624
+        },
+        {
+            "type": "circle",
+            "radius": 1.627
+        },
+        {
+            "type": "circle",
+            "radius": 1.634
+        },
+        {
+            "type": "circle",
+            "radius": 1.639
+        },
+        {
+            "type": "circle",
+            "radius": 1.645
+        },
+        {
+            "type": "circle",
+            "radius": 1.647
+        },
+        {
+            "type": "circle",
+            "radius": 1.651
+        },
+        {
+            "type": "circle",
+            "radius": 1.659
+        }
+    ]
+}

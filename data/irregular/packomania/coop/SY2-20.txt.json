@@ -1,0 +1,91 @@
+{
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "height": 8.5,
+            "length": 100
+        }
+    ],
+    "item_types": [
+        {
+            "type": "circle",
+            "radius": 0.566
+        },
+        {
+            "type": "circle",
+            "radius": 0.612
+        },
+        {
+            "type": "circle",
+            "radius": 0.68
+        },
+        {
+            "type": "circle",
+            "radius": 0.85
+        },
+        {
+            "type": "circle",
+            "radius": 0.891
+        },
+        {
+            "type": "circle",
+            "radius": 0.934
+        },
+        {
+            "type": "circle",
+            "radius": 0.947
+        },
+        {
+            "type": "circle",
+            "radius": 0.961
+        },
+        {
+            "type": "circle",
+            "radius": 1.189
+        },
+        {
+            "type": "circle",
+            "radius": 1.21
+        },
+        {
+            "type": "circle",
+            "radius": 1.229
+        },
+        {
+            "type": "circle",
+            "radius": 1.309
+        },
+        {
+            "type": "circle",
+            "radius": 1.325
+        },
+        {
+            "type": "circle",
+            "radius": 1.43
+        },
+        {
+            "type": "circle",
+            "radius": 1.484
+        },
+        {
+            "type": "circle",
+            "radius": 1.525
+        },
+        {
+            "type": "circle",
+            "radius": 1.551
+        },
+        {
+            "type": "circle",
+            "radius": 1.636
+        },
+        {
+            "type": "circle",
+            "radius": 1.819
+        },
+        {
+            "type": "circle",
+            "radius": 2.171
+        }
+    ]
+}

@@ -1,0 +1,46 @@
+load("//packingsolver:variables.bzl", "STDCPP")
+load("//packingsolver:variables.bzl", "CLP_COPTS")
+load("//packingsolver:variables.bzl", "CPLEX_COPTS")
+load("//packingsolver:variables.bzl", "XPRESS_COPTS")
+load("//packingsolver:variables.bzl", "GUROBI_COPTS")
+load("//packingsolver:variables.bzl", "AMPL_COPTS")
+load("//packingsolver:variables.bzl", "AMPL_DEP")
+
+cc_library(
+        name = "irregular",
+        hdrs = [
+                "instance.hpp",
+                "solution.hpp",
+                "optimize.hpp",
+                "minlp.hpp",
+                "minlp_model.hpp",
+        ],
+        srcs = [
+                "instance.cpp",
+                "solution.cpp",
+                "optimize.cpp",
+                "minlp.cpp",
+                "minlp_model.cpp",
+        ],
+        deps = [
+                "//packingsolver/algorithms:common",
+                "//packingsolver/algorithms:algorithms",
+                "@treesearchsolver//treesearchsolver:treesearchsolver",
+        ] + AMPL_DEP,
+        copts = STDCPP + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + AMPL_COPTS,
+        visibility = ["//visibility:public"],
+)
+
+cc_binary(
+        name = "main",
+        srcs = ["main.cpp"],
+        deps = [
+                ":irregular",
+                "@boost//:program_options",
+        ],
+        copts = STDCPP + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + AMPL_COPTS,
+        linkopts = select({
+                "@bazel_tools//src/conditions:windows": [],
+                "//conditions:default":                 ["-lpthread"],
+        }),
+)

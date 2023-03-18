@@ -41,6 +41,7 @@ enum class ProblemType
 {
     RectangleGuillotine,
     Rectangle,
+    Irregular,
 };
 
 enum class Algorithm
@@ -49,6 +50,7 @@ enum class Algorithm
     TreeSearch,
     ColumnGeneration,
     DichotomicSearch,
+    Minlp,
 };
 
 enum class Objective
