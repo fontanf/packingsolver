@@ -1,11 +1,12 @@
 #pragma once
 
+#define _USE_MATH_DEFINES
+
 #include "optimizationtools/utils/info.hpp"
 #include "optimizationtools/utils/utils.hpp"
 
 #include <cstdint>
 #include <set>
-#include <cmath>
 
 namespace packingsolver
 {
