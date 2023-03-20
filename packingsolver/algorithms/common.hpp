@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <set>
+#include <cmath>
 
 namespace packingsolver
 {
