@@ -684,13 +684,13 @@ Length BranchingScheme::x1_max(const Node& node, Depth df) const
         return x;
     } case 1: {
         Length x = node.x1_max;
-        if (!instance_.cut_through_defects())
+        if (!instance().cut_through_defects())
             for (const Defect& k: instance_.bin(i).defects)
-                if (instance_.bottom(k, o) < node.y2_curr + instance_.cut_thickness()
-                        && instance_.top(k, o) > node.y2_curr)
+                if (instance().bottom(k, o) < node.y2_curr + instance().cut_thickness()
+                        && instance().top(k, o) > node.y2_curr)
                     if (instance_.left(k, o) > node.x1_prev)
-                        if (x > instance_.left(k, o))
-                            x = instance_.left(k, o);
+                        if (x > instance_.left(k, o) - instance().cut_thickness())
+                            x = instance_.left(k, o) - instance().cut_thickness();;
         return x;
     } case 2: {
         return node.x1_max;
@@ -702,17 +702,17 @@ Length BranchingScheme::x1_max(const Node& node, Depth df) const
 
 Length BranchingScheme::y2_max(const Node& node, Depth df, Length x3) const
 {
-    const BinType& bin_type = instance_.bin(i);
+    const BinType& bin_type = instance().bin(i);
     Length y = (df == 2)?
         node.y2_max:
-        instance_.height(bin_type, o) - instance_.top_trim(bin_type, o);
-    if (!instance_.cut_through_defects())
-        for (const Defect& k: instance_.bin(i).defects)
-            if (instance_.left(k, o) < x3 + instance_.cut_thickness()
-                    && instance_.right(k, o) > x3)
-                if (instance_.bottom(k, o) >= y2_prev(node, df))
-                    if (y > instance_.bottom(k, o))
-                        y = instance_.bottom(k, o);
+        instance_.height(bin_type, o) - instance().top_trim(bin_type, o);
+    if (!instance().cut_through_defects())
+        for (const Defect& k: instance().bin(i).defects)
+            if (instance().left(k, o) < x3 + instance().cut_thickness()
+                    && instance().right(k, o) > x3)
+                if (instance().bottom(k, o) >= y2_prev(node, df))
+                    if (y > instance_.bottom(k, o) - instance().cut_thickness())
+                        y = instance_.bottom(k, o) - instance().cut_thickness();
     return y;
 }
 
@@ -903,6 +903,7 @@ void BranchingScheme::update(
 {
     (void)info;
     Length min_waste = instance_.min_waste();
+    Length cut_thickness = instance_.cut_thickness();
     const BinType& bin_type = instance_.bin(i);
     Length w_orig = instance_.width(bin_type, o);
     Length h_orig = instance_.height(bin_type, o);
@@ -911,12 +912,22 @@ void BranchingScheme::update(
     Length w_physical = (instance_.right_trim_type(bin_type, o) == TrimType::Soft)? w_orig: w;
     Length h_physical = (instance_.top_trim_type(bin_type, o) == TrimType::Soft)?  h_orig: h;
 
+    // If there is no min_waste constraint, we set insertion.z1 and
+    // insertion.z2 to 1 instead of 0 directly. This simplifies the handling of
+    // the constraint when the cut thickness is non-null.
+    if (min_waste == 1) {
+        if (insertion.z1 == 0)
+            insertion.z1 = 1;
+        if (insertion.z2 == 0)
+            insertion.z2 = 1;
+    }
+
     // Update insertion.x1 and insertion.z1 with respect to min1cut()
     if ((insertion.j1 != -1 || insertion.j2 != -1)
             && insertion.x1 - x1_prev(father, insertion.df) < instance_.min1cut()) {
         if (insertion.z1 == 0) {
             insertion.x1 = std::max(
-                    insertion.x1 + min_waste,
+                    insertion.x1 + cut_thickness + min_waste,
                     x1_prev(father, insertion.df) + instance_.min1cut());
             insertion.z1 = 1;
         } else { // insertion.z1 = 1
@@ -929,7 +940,7 @@ void BranchingScheme::update(
             && insertion.y2 - y2_prev(father, insertion.df) < instance_.min2cut()) {
         if (insertion.z2 == 0) {
             insertion.y2 = std::max(
-                    insertion.y2 + min_waste,
+                    insertion.y2 + cut_thickness + min_waste,
                     y2_prev(father, insertion.df) + instance_.min2cut());
             insertion.z2 = 1;
         } else if (insertion.z2 == 1) {
@@ -943,7 +954,7 @@ void BranchingScheme::update(
     if (instance_.one2cut() && insertion.df == 1
             && y2_prev(father, insertion.df) != 0 && insertion.y2 != h) {
         if (insertion.z2 == 0) {
-            if (insertion.y2 + min_waste > h_physical)
+            if (insertion.y2 + cut_thickness + min_waste > h_physical)
                 return;
             insertion.y2 = h;
         } else if (insertion.z2 == 1) {
@@ -956,7 +967,7 @@ void BranchingScheme::update(
     // Update insertion.x1 if 2-staged
     if (instance_.cut_type_1() == CutType1::TwoStagedGuillotine && insertion.x1 != w) {
         if (insertion.z1 == 0) {
-            if (insertion.x1 + min_waste > w_physical)
+            if (insertion.x1 + cut_thickness + min_waste > w_physical)
                 return;
             insertion.x1 = w;
         } else { // insertion.z1 == 1
@@ -973,16 +984,16 @@ void BranchingScheme::update(
                 insertion.z1 = father.z1;
             } else if (insertion.x1 < father.x1_curr) { // x - min_waste < insertion.x1 < x
                 if (father.z1 == 0) {
-                    insertion.x1 = father.x1_curr + min_waste;
+                    insertion.x1 = father.x1_curr + cut_thickness + min_waste;
                     insertion.z1 = 1;
                 } else {
-                    insertion.x1 = insertion.x1 + min_waste;
+                    insertion.x1 = insertion.x1 + cut_thickness + min_waste;
                     insertion.z1 = 1;
                 }
             } else if (insertion.x1 == father.x1_curr) {
             } else { // x1_curr() < insertion.x1
                 if (father.z1 == 0 && insertion.x1 < father.x1_curr + min_waste) {
-                    insertion.x1 = insertion.x1 + min_waste;
+                    insertion.x1 = insertion.x1 + cut_thickness + min_waste;
                     insertion.z1 = 1;
                 }
             }
@@ -992,7 +1003,7 @@ void BranchingScheme::update(
                 insertion.z1 = father.z1;
             } else { // x1_curr() < insertion.x1
                 if (father.z1 == 0 && father.x1_curr + min_waste > insertion.x1)
-                    insertion.x1 = father.x1_curr + min_waste;
+                    insertion.x1 = father.x1_curr + cut_thickness + min_waste;
             }
         }
     }
@@ -1009,21 +1020,22 @@ void BranchingScheme::update(
                     FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
-                    insertion.y2 = father.y2_curr + min_waste;
+                    insertion.y2 = father.y2_curr + cut_thickness + min_waste;
                     insertion.z2 = 1;
                 } else { // z2() == 1
-                    insertion.y2 = insertion.y2 + min_waste;
+                    insertion.y2 = insertion.y2 + cut_thickness + min_waste;
                     insertion.z2 = 1;
                 }
             } else if (insertion.y2 == father.y2_curr) {
                 if (father.z2 == 2)
                     insertion.z2 = 2;
-            } else if (father.y2_curr < insertion.y2 && insertion.y2 < father.y2_curr + min_waste) {
+            } else if (father.y2_curr < insertion.y2
+                    && insertion.y2 < father.y2_curr + min_waste) {
                 if (father.z2 == 2) {
                     FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
-                    insertion.y2 = insertion.y2 + min_waste;
+                    insertion.y2 = insertion.y2 + cut_thickness + min_waste;
                     insertion.z2 = 1;
                 } else { // z2() == 1
                 }
@@ -1037,12 +1049,13 @@ void BranchingScheme::update(
             if (insertion.y2 <= father.y2_curr) {
                 insertion.y2 = father.y2_curr;
                 insertion.z2 = father.z2;
-            } else if (father.y2_curr < insertion.y2 && insertion.y2 < father.y2_curr + min_waste) {
+            } else if (father.y2_curr < insertion.y2
+                    && insertion.y2 < father.y2_curr + min_waste) {
                 if (father.z2 == 2) {
                     FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
-                    insertion.y2 = father.y2_curr + min_waste;
+                    insertion.y2 = father.y2_curr + cut_thickness + min_waste;
                 } else { // z2() == 1
                 }
             } else {
@@ -1056,7 +1069,8 @@ void BranchingScheme::update(
                 FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                 return;
             } else if (insertion.y2 == father.y2_curr) {
-            } else if (father.y2_curr < insertion.y2 && insertion.y2 < father.y2_curr + min_waste) {
+            } else if (father.y2_curr < insertion.y2
+                    && insertion.y2 < father.y2_curr + cut_thickness + min_waste) {
                 if (father.z2 == 2) {
                     FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
@@ -1088,14 +1102,24 @@ void BranchingScheme::update(
                 break;
             const Defect& defect = instance_.defect(k);
             insertion.x1 = (insertion.z1 == 0)?
-                std::max(instance_.right(defect, o), insertion.x1 + min_waste):
+                std::max(instance_.right(defect, o), insertion.x1 + cut_thickness + min_waste):
                 instance_.right(defect, o);
             insertion.z1 = 1;
         }
     }
 
+    // Check max width
+    if (insertion.x1 < w
+            && min_waste > 1
+            && insertion.x1 + cut_thickness > w_physical) {
+        FFOT_LOG(info, insertion << std::endl);
+        FFOT_LOG_FOLD_END(info, "too long insertion.x1 > insertion.x1_max");
+        return;
+    }
+
     // Increase width if too close from border
-    if (insertion.x1 < w && insertion.x1 + min_waste > w_physical) {
+    if (insertion.x1 + cut_thickness < w
+            && insertion.x1 + cut_thickness + min_waste > w_physical) {
         if (insertion.z1 == 1) {
             insertion.x1 = w;
             insertion.z1 = 0;
@@ -1126,7 +1150,7 @@ void BranchingScheme::update(
                     x1_prev(father, insertion.df),
                     insertion.x1,
                     insertion.y2,
-                    insertion.y2 + instance_.cut_thickness(),
+                    insertion.y2 + cut_thickness,
                     i,
                     o);
             if (k != -1) {
@@ -1136,7 +1160,9 @@ void BranchingScheme::update(
                     return;
                 }
                 insertion.y2 = (insertion.z2 == 0)?
-                    std::max(instance_.top(defect, o), insertion.y2 + min_waste):
+                    std::max(
+                            instance_.top(defect, o),
+                            insertion.y2 + cut_thickness + min_waste):
                     instance_.top(defect, o);
                 insertion.z2 = 1;
                 found = true;
@@ -1159,8 +1185,9 @@ void BranchingScheme::update(
                         return;
                     }
                     insertion.y2 = (insertion.z2 == 0)?
-                        std::max(instance_.top(defect, o) + h_j2,
-                                insertion.y2 + min_waste):
+                        std::max(
+                                instance_.top(defect, o) + h_j2,
+                                insertion.y2 + cut_thickness + min_waste):
                         instance_.top(defect, o) + h_j2;
                     insertion.z2 = 1;
                     found = true;
@@ -1182,7 +1209,9 @@ void BranchingScheme::update(
                     return;
                 }
                 insertion.y2 = (insertion.z2 == 0)?
-                    std::max(instance_.top(defect, o) + h_j2, insertion.y2 + min_waste):
+                    std::max(
+                            instance_.top(defect, o) + h_j2,
+                            insertion.y2 + cut_thickness + min_waste):
                     instance_.top(defect, o) + h_j2;
                 insertion.z2 = 1;
                 found = true;
@@ -1194,7 +1223,8 @@ void BranchingScheme::update(
     }
 
     // Now check bin's height
-    if (insertion.y2 < h && insertion.y2 + min_waste > h_physical) {
+    if (insertion.y2 + cut_thickness < h
+            && insertion.y2 + cut_thickness + min_waste > h_physical) {
         if (insertion.z2 == 1) {
             insertion.y2 = h;
             insertion.z2 = 0;
@@ -1235,6 +1265,15 @@ void BranchingScheme::update(
     }
 
     // Check max height
+    if (insertion.y2 < h
+            && min_waste > 1
+            && insertion.y2 + cut_thickness > h_physical) {
+        FFOT_LOG(info, insertion << std::endl);
+        FFOT_LOG_FOLD_END(info, "too high");
+        return;
+    }
+
+    // Check max height
     if (insertion.y2 > insertion.y2_max) {
         FFOT_LOG(info, insertion << std::endl);
         FFOT_LOG_FOLD_END(info, "too high");
@@ -1244,10 +1283,10 @@ void BranchingScheme::update(
 
     // Check if 3-cut is cutting through a defect when cutting through a defect
     // is not allowed and cut thickness is non-null.
-    if (!instance_.cut_through_defects() && instance_.cut_thickness() > 0) {
+    if (!instance_.cut_through_defects() && cut_thickness > 0) {
         DefectId k = instance_.rect_intersects_defect(
                 insertion.x3,
-                insertion.x3 + instance_.cut_thickness(),
+                insertion.x3 + cut_thickness,
                 y2_prev(father, insertion.df),
                 insertion.y2,
                 i,
