@@ -48,7 +48,9 @@ cc_test(
                 "tests/add_test.cpp",
                 "tests/insertion_test.cpp",
                 "tests/defect_test.cpp",
+                "tests/cut_through_defect_test.cpp",
                 "tests/trim_test.cpp",
+                "tests/cut_thickness_test.cpp",
                 "tests/integration_test.cpp",
         ],
         deps = [

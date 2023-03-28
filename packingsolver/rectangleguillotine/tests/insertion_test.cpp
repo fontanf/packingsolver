@@ -1353,18 +1353,18 @@ TEST(RectangleGuillotineBranchingScheme, InsertionSymmetry)
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
-    BranchingScheme::Insertion i0 = {0, -1, -1, 70, 100, 70, 100, 200, 0, 0};
+    BranchingScheme::Insertion i0 = {0, -1, -1, 70, 100, 70, 100, 200, 1, 1};
     std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
-    BranchingScheme::Insertion i1 = {1, -1, 1, 70, 180, 40, 100, 200, 0, 0};
+    BranchingScheme::Insertion i1 = {1, -1, 1, 70, 180, 40, 100, 200, 1, 1};
     std::vector<BranchingScheme::Insertion> is1 = branching_scheme.insertions(node_1, info);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
     auto node_2 = branching_scheme.child(node_1, i1);
 
     std::vector<BranchingScheme::Insertion> is2 {
-        {2, -1, 2, 80, 180, 80, 100, 200, 0, 0},
+        {2, -1, 2, 80, 180, 80, 100, 200, 1, 1},
     };
     EXPECT_EQ(branching_scheme.insertions(node_2, info), is2);
 }
