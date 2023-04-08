@@ -778,7 +778,12 @@ void BranchingScheme::insertion_1_item(
 
     // Check defect intersection
     DefectId k = instance_.item_intersects_defect(
-            x3_prev(father, df), y2_prev(father, df), item, rotate, i, o);
+            x3_prev(father, df),
+            y2_prev(father, df),
+            item,
+            rotate,
+            bin_type,
+            o);
     if (k >= 0) {
         if (instance_.cut_type_2() == CutType2::Roadef2018
                 || instance_.cut_type_2() == CutType2::NonExact) {
@@ -838,9 +843,9 @@ void BranchingScheme::insertion_2_items(
         return;
     }
     if (instance_.item_intersects_defect(
-                x3_prev(father, df), y2_prev(father, df), item1, rotate1, i, o) >= 0
+                x3_prev(father, df), y2_prev(father, df), item1, rotate1, bin_type, o) >= 0
             || instance_.item_intersects_defect(
-                x3_prev(father, df), y2_prev(father, df) + h_j1, item2, rotate2, i, o) >= 0) {
+                x3_prev(father, df), y2_prev(father, df) + h_j1, item2, rotate2, bin_type, o) >= 0) {
         FFOT_LOG_FOLD_END(info, "intersects defect");
         return;
     }
@@ -1096,7 +1101,7 @@ void BranchingScheme::update(
                     insertion.x1 + instance_.cut_thickness(),
                     0,
                     h_orig,
-                    i,
+                    bin_type,
                     o);
             if (k == -1)
                 break;
@@ -1151,7 +1156,7 @@ void BranchingScheme::update(
                     insertion.x1,
                     insertion.y2,
                     insertion.y2 + cut_thickness,
-                    i,
+                    bin_type,
                     o);
             if (k != -1) {
                 const Defect& defect = bin_type.defects[k];
@@ -1177,7 +1182,7 @@ void BranchingScheme::update(
                 Length h_j2 = instance_.height(item, jrx.rotate, o);
                 Length l = jrx.x;
                 DefectId k = instance_.item_intersects_defect(
-                        l, insertion.y2 - h_j2, item, jrx.rotate, i, o);
+                        l, insertion.y2 - h_j2, item, jrx.rotate, bin_type, o);
                 if (k >= 0) {
                     const Defect& defect = bin_type.defects[k];
                     if (y2_fixed) {
@@ -1201,7 +1206,7 @@ void BranchingScheme::update(
             Length h_j2 = instance_.height(item, rotate_j2, o);
             Length l = x3_prev(father, insertion.df);
             DefectId k = instance_.item_intersects_defect(
-                    l, insertion.y2 - h_j2, item, rotate_j2, i, o);
+                    l, insertion.y2 - h_j2, item, rotate_j2, bin_type, o);
             if (k >= 0) {
                 const Defect& defect = bin_type.defects[k];
                 if (y2_fixed) {
@@ -1235,7 +1240,7 @@ void BranchingScheme::update(
                     Length l = jrx.x;
                     Length h_j2 = instance_.height(item, jrx.rotate, o);
                     DefectId k = instance_.item_intersects_defect(
-                            l, insertion.y2 - h_j2, item, jrx.rotate, i, o);
+                            l, insertion.y2 - h_j2, item, jrx.rotate, bin_type, o);
                     if (k >= 0) {
                         FFOT_LOG_FOLD_END(info, "too high");
                         return;
@@ -1250,7 +1255,7 @@ void BranchingScheme::update(
                 Length h_j2 = instance_.height(item, rotate_j2, o);
                 Length l = x3_prev(father, insertion.df);
                 DefectId k = instance_.item_intersects_defect(
-                        l, insertion.y2 - h_j2, item, rotate_j2, i, o);
+                        l, insertion.y2 - h_j2, item, rotate_j2, bin_type, o);
                 if (k >= 0) {
                     FFOT_LOG_FOLD_END(info, "too high");
                     return;
@@ -1289,7 +1294,7 @@ void BranchingScheme::update(
                 insertion.x3 + cut_thickness,
                 y2_prev(father, insertion.df),
                 insertion.y2,
-                i,
+                bin_type,
                 o);
         if (k != -1)
             return;
