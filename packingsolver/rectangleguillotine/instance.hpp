@@ -664,7 +664,7 @@ public:
             Length r,
             Length b,
             Length t,
-            BinTypeId i,
+            const BinType& bin_type,
             CutOrientation o) const;
 
     /**
@@ -679,7 +679,7 @@ public:
             Length b,
             const ItemType& item,
             bool rotate,
-            BinTypeId i,
+            const BinType& bin_type,
             CutOrientation o) const;
 
     /**
@@ -690,7 +690,7 @@ public:
      */
     inline DefectId x_intersects_defect(
             Length x,
-            BinTypeId i,
+            const BinType& bin_type,
             CutOrientation o) const;
 
     /**
@@ -703,7 +703,7 @@ public:
             Length l,
             Length r,
             Length y,
-            BinTypeId i,
+            const BinType& bin_type,
             CutOrientation o) const;
 
     /*
@@ -925,12 +925,12 @@ DefectId Instance::rect_intersects_defect(
         Length r,
         Length b,
         Length t,
-        BinTypeId bin_type_id,
+        const BinType& bin_type,
         CutOrientation o) const
 {
     assert(l <= r);
     assert(b <= t);
-    for (const Defect& defect: bin(bin_type_id).defects) {
+    for (const Defect& defect: bin_type.defects) {
         if (left(defect, o) >= r)
             continue;
         if (l >= right(defect, o))
@@ -949,24 +949,23 @@ DefectId Instance::item_intersects_defect(
         Length b,
         const ItemType& item_type,
         bool rotate,
-        BinTypeId i,
+        const BinType& bin_type,
         CutOrientation o) const
 {
     return rect_intersects_defect(
             l, l + width(item_type, rotate, o),
             b, b + height(item_type, rotate, o),
-            i, o);
+            bin_type, o);
 }
 
 DefectId Instance::y_intersects_defect(
         Length l,
         Length r,
         Length y,
-        BinTypeId bin_type_id,
+        const BinType& bin_type,
         CutOrientation o) const
 {
     DefectId k_min = -1;
-    const BinType& bin_type = this->bin_type(bin_type_id);
     for (const Defect& k: bin_type.defects) {
         if (right(k, o) <= l || left(k, o) >= r)
             continue;
@@ -980,10 +979,10 @@ DefectId Instance::y_intersects_defect(
 
 DefectId Instance::x_intersects_defect(
         Length x,
-        BinTypeId bin_type_id,
+        const BinType& bin_type,
         CutOrientation o) const
 {
-    for (const Defect& k: bin_type(bin_type_id).defects)
+    for (const Defect& k: bin_type.defects)
         if (left(k, o) < x && right(k, o) > x)
             return k.id;
     return -1;
