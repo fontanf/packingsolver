@@ -57,7 +57,7 @@ class Solution
 public:
 
     /*
-     * Constructors and destructor.
+     * Constructors and destructor
      */
 
     /** Standard constructor. */
@@ -90,11 +90,9 @@ public:
     /** Get the instance. */
     inline const Instance& instance() const { return *instance_; }
 
-    /** Get the number of items in the solution. */
-    inline ItemPos number_of_items() const { return number_of_items_; }
-
-    /** Return 'tree' iff the solution contains all items. */
-    inline bool full() const { return number_of_items() == instance().number_of_items(); }
+    /*
+     * Getters: bins
+     */
 
     /** Get the number of bins in the solution. */
     inline BinPos number_of_bins() const { return number_of_bins_; }
@@ -102,26 +100,53 @@ public:
     /** Get the number of different bins in the solution. */
     inline BinPos number_of_different_bins() const { return number_of_bins_; }
 
+    /** Get a bin. */
+    const SolutionBin& bin(BinPos i) const { return bins_[i]; }
+
+    /** Get the number of copies of bin 'i' in the solution. */
+    inline BinPos bin_copies(BinTypeId i) const { return bin_copies_[i]; }
+
+    /** Get the cost of the solution. */
+    inline Profit cost() const { return cost_; }
+
+    /*
+     * Getters: items
+     */
+
+    /** Get the number of items in the solution. */
+    inline ItemPos number_of_items() const { return number_of_items_; }
+
+    /** Return 'tree' iff the solution contains all items. */
+    inline bool full() const { return number_of_items() == instance().number_of_items(); }
+
+    /** Get the total area of the items of the solution. */
+    inline Area item_area() const { return item_area_; }
+
+    /** Get the profit of the solution. */
+    inline Profit profit() const { return profit_; }
+
+    /** Get the number of copies of item 'j' in the solution. */
+    inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
+
+    /*
+     * Getters: others
+     */
+
     /** Get the height of the solution. */
     inline Length height() const { return height_; }
 
     /** Get the width of the solution. */
     inline Length width() const { return width_; }
 
-    /** Get the profit of the solution. */
-    inline Profit profit() const { return profit_; }
-
-    /** Get the cost of the solution. */
-    inline Profit cost() const { return cost_; }
-
     /** Get the area of the solution. */
     inline Area area() const { return area_; }
 
-    /** Get the total area of the items of the solution. */
-    inline Area item_area() const { return item_area_; }
-
     /** Get the total area of the bins of the solution. */
     inline Area full_area() const { return full_area_; }
+
+    /*
+     * Getters: computed values
+     */
 
     /** Get the waste of the solution. */
     inline Area waste() const { return area_ - item_area_; }
@@ -135,14 +160,9 @@ public:
     /** Get the fraction of waste of the solution including the residual. */
     inline double full_waste_percentage() const { return (full_area() == 0)? 0: (double)full_waste() / full_area(); }
 
-    /** Get the number of copies of item 'j' in the solution. */
-    inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
-
-    /** Get a bin. */
-    const SolutionBin& bin(BinPos i) const { return bins_[i]; }
-
-    /** Get the number of copies of bin 'i' in the solution. */
-    inline BinPos bin_copies(BinTypeId i) const { return bin_copies_[i]; }
+    /*
+     * Others
+     */
 
     bool operator<(const Solution& solution) const;
 
@@ -159,27 +179,46 @@ public:
 
 private:
 
+    /*
+     * Private methods
+     */
+
     void add_node(
             BinPos bin_pos,
             const SolutionNode& node);
 
+    /*
+     * Private attributes
+     */
+
     /** Instance. */
     const Instance* instance_;
+
+    /*
+     * Private attributes: bins
+     */
 
     /** Bins. */
     std::vector<SolutionBin> bins_;
 
-    /** Number of items in the solution. */
-    ItemPos number_of_items_ = 0;
-
     /** Number of bins in the solution. */
     BinPos number_of_bins_ = 0;
 
-    /** Total area of the solution. */
-    Area area_ = 0;
+    /** Number of copies of each bin type in the solution. */
+    std::vector<BinPos> bin_copies_;
 
-    /** Total area of the bins of the solution. */
-    Area full_area_ = 0;
+    /** Cost of the solution. */
+    Profit cost_ = 0;
+
+    /*
+     * Private attributes: items
+     */
+
+    /** Number of items in the solution. */
+    ItemPos number_of_items_ = 0;
+
+    /** Number of copies of each item type in the solution. */
+    std::vector<ItemPos> item_copies_;
 
     /** Total area of the items of the solution. */
     Area item_area_ = 0;
@@ -187,20 +226,21 @@ private:
     /** Profit of the solution. */
     Profit profit_ = 0;
 
-    /** Cost of the solution. */
-    Profit cost_ = 0;
+    /*
+     * Private attributes: others
+     */
+
+    /** Total area of the solution. */
+    Area area_ = 0;
+
+    /** Total area of the bins of the solution. */
+    Area full_area_ = 0;
 
     /** Width of the solution. */
     Length width_ = 0;
 
     /** Height of the solution. */
     Length height_ = 0;
-
-    /** Number of copies of each bin type in the solution. */
-    std::vector<BinPos> bin_copies_;
-
-    /** Number of copies of each item type in the solution. */
-    std::vector<ItemPos> item_copies_;
 
 };
 

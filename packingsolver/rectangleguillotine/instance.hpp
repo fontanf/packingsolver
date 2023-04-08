@@ -56,100 +56,6 @@ std::ostream& operator<<(std::ostream &os, Rectangle r);
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-/**
- * Item type structure for a problem of type 'rectangleguillotine'.
- */
-struct ItemType
-{
-    /** Id of the item type. */
-    ItemTypeId id;
-    /** Profit of the item type. */
-    Profit profit;
-    /** Number of copies of the item type. */
-    ItemPos copies;
-    /** Dimensions of the item type. */
-    Rectangle rect;
-    /** Stack id to which the item type belongs. */
-    StackId stack;
-    /** Indicates if the item is oriented (i.e. cannot be rotated). */
-    bool oriented;
-
-    /** Get the area of the item type. */
-    inline Area area() const { return rect.area(); }
-    inline Area space() const { return area(); }
-};
-
-std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
-
-/**
- * Defect structure for a problem of type 'rectangleguillotine'.
- */
-struct Defect
-{
-    /** Id of the defect. */
-    DefectId id;
-    /** Bin type of the defect. */
-    BinTypeId bin_id;
-    /** Position of the defect. */
-    Coord pos;
-    /** Dimensions of the defect. */
-    Rectangle rect;
-};
-
-std::ostream& operator<<(std::ostream &os, const Defect& defect);
-
-/**
- * Bin type structure for a problem of type 'rectangleguillotine'.
- */
-struct BinType
-{
-    /** Id of the bin type. */
-    BinTypeId id;
-    /** Cost of the bin type. */
-    Profit cost;
-    /** Maximum number of copies of the bin type. */
-    BinPos copies;
-    /** Minimum number of copies to use of the bin type. */
-    BinPos copies_min;
-    /** Dimensions of the bin type. */
-    Rectangle rect;
-    /** Defects of the bin type. */
-    std::vector<Defect> defects;
-
-    /** Bottom trim. */
-    Length bottom_trim = 0;
-    /** Top trim. */
-    Length top_trim = 0;
-    /** Left trim. */
-    Length left_trim = 0;
-    /** Right trim. */
-    Length right_trim = 0;
-
-    /** Type of the bottom trim. */
-    TrimType bottom_trim_type = TrimType::Hard;
-    /** Type of the top trim. */
-    TrimType top_trim_type = TrimType::Soft;
-    /** Type of the left trim. */
-    TrimType left_trim_type = TrimType::Hard;
-    /** Type of the right trim. */
-    TrimType right_trim_type = TrimType::Soft;
-
-    /*
-     * Computed attributes.
-     */
-
-    /** Total area of the previous bins. */
-    Area previous_bin_area = 0;
-    /** Number of previous bins. */
-    BinPos previous_bin_copies = 0;
-
-    /** Get the area of the bin type. */
-    inline Area area() const { return (rect.h - top_trim - bottom_trim) * (rect.w - right_trim - left_trim); }
-    inline Area space() const { return area(); }
-};
-
-std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
-
 struct Parameters
 {
     /** CutType1. */
@@ -188,6 +94,126 @@ struct Parameters
     /** Cut thickness. */
     Length cut_thickness = 0;
 };
+
+/**
+ * Defect structure for a problem of type 'rectangleguillotine'.
+ */
+struct Defect
+{
+    /** Id of the defect. */
+    DefectId id;
+
+    /** Bin type of the defect. */
+    BinTypeId bin_id;
+
+    /** Position of the defect. */
+    Coord pos;
+
+    /** Dimensions of the defect. */
+    Rectangle rect;
+};
+
+std::ostream& operator<<(std::ostream &os, const Defect& defect);
+
+/**
+ * Bin type structure for a problem of type 'rectangleguillotine'.
+ */
+struct BinType
+{
+    /** Id of the bin type. */
+    BinTypeId id;
+
+    /** Cost of the bin type. */
+    Profit cost;
+
+    /** Maximum number of copies of the bin type. */
+    BinPos copies;
+
+    /** Minimum number of copies to use of the bin type. */
+    BinPos copies_min;
+
+    /** Dimensions of the bin type. */
+    Rectangle rect;
+
+    /** Defects of the bin type. */
+    std::vector<Defect> defects;
+
+    /** Bottom trim. */
+    Length bottom_trim = 0;
+
+    /** Top trim. */
+    Length top_trim = 0;
+
+    /** Left trim. */
+    Length left_trim = 0;
+
+    /** Right trim. */
+    Length right_trim = 0;
+
+    /** Type of the bottom trim. */
+    TrimType bottom_trim_type = TrimType::Hard;
+
+    /** Type of the top trim. */
+    TrimType top_trim_type = TrimType::Soft;
+
+    /** Type of the left trim. */
+    TrimType left_trim_type = TrimType::Hard;
+
+    /** Type of the right trim. */
+    TrimType right_trim_type = TrimType::Soft;
+
+    /*
+     * Computed attributes
+     */
+
+    /** Total area of the previous bins. */
+    Area previous_bin_area = 0;
+
+    /** Number of previous bins. */
+    BinPos previous_bin_copies = 0;
+
+    /** Get the area of the bin type. */
+    inline Area area() const { return (rect.h - top_trim - bottom_trim) * (rect.w - right_trim - left_trim); }
+
+    inline Area space() const { return area(); }
+};
+
+std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
+
+/**
+ * Item type structure for a problem of type 'rectangleguillotine'.
+ */
+struct ItemType
+{
+    /** Id of the item type. */
+    ItemTypeId id;
+
+    /** Profit of the item type. */
+    Profit profit;
+
+    /** Number of copies of the item type. */
+    ItemPos copies;
+
+    /** Dimensions of the item type. */
+    Rectangle rect;
+
+    /** Stack id to which the item type belongs. */
+    StackId stack;
+
+    /** Indicates if the item is oriented (i.e. cannot be rotated). */
+    bool oriented;
+
+    /*
+     * Computed attributes
+     */
+
+    /** Get the area of the item type. */
+    inline Area area() const { return rect.area(); }
+
+    inline Area space() const { return area(); }
+};
+
+std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Instance ///////////////////////////////////
@@ -396,32 +422,56 @@ public:
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
 
-    /* Get the number of item types. */
-    inline ItemTypeId number_of_item_types() const { return item_types_.size(); }
+    /*
+     * Getters: parameters
+     */
 
-    /** Get the number of items. */
-    inline ItemTypeId number_of_items() const { return number_of_items_; }
+    inline const Parameters& parameters() const { return parameters_; }
 
-    /** Get the number of stacks. */
-    inline StackId number_of_stacks() const { return stacks_.size(); }
+    inline CutType1 cut_type_1() const { return parameters_.cut_type_1; }
 
-    /** Get the size of stack s. */
-    inline ItemPos stack_size(StackId s) const { return items_pos2type_[s].size(); }
+    inline CutType2 cut_type_2() const { return parameters_.cut_type_2; }
 
-    /** Get the number of defects. */
-    inline DefectId number_of_defects() const { return defects_.size(); }
+    inline CutOrientation first_stage_orientation() const { return parameters_.first_stage_orientation; }
+
+    inline Length min1cut() const { return parameters_.min1cut; }
+
+    inline Length max1cut() const { return parameters_.max1cut; }
+
+    inline Length min2cut() const { return parameters_.min2cut; }
+
+    inline Length max2cut() const { return parameters_.max2cut; }
+
+    inline Length min_waste() const { return parameters_.min_waste; }
+
+    inline bool one2cut() const { return parameters_.one2cut; }
+
+    inline bool cut_through_defects() const { return parameters_.cut_through_defects; }
+
+    /** Get cut thickness. */
+    inline Length cut_thickness() const { return parameters_.cut_thickness; }
+
+    /*
+     * Getters: bin types
+     */
 
     /** Get the number of bin types. */
     inline BinTypeId number_of_bin_types() const { return bin_types_.size(); }
 
+    /** Get bin type i. */
+    inline const BinType& bin_type(BinTypeId i) const { return bin_types_[i]; }
+
     /** Get the number of bins. */
     inline BinPos number_of_bins() const { return bins_pos2type_.size(); }
 
-    /** Get the total area of the items. */
-    inline Area item_area() const { return item_area_; }
+    /** Get the i_pos's bin. */
+    inline const BinType& bin(BinPos i_pos) const { return bin_types_[bins_pos2type_[i_pos]]; }
 
-    /** Get the mean area of the items. */
-    inline Area mean_area() const { return item_area_ / number_of_items(); }
+    /** Get the number of defects. */
+    inline DefectId number_of_defects() const { return defects_.size(); }
+
+    /** Get defect k. */
+    inline const Defect& defect(DefectId k) const { return defects_[k]; }
 
     /** Get the total area of the defects. */
     inline Area defect_area() const { return defect_area_; }
@@ -429,47 +479,14 @@ public:
     /** Get the total packable area. */
     inline Area packable_area() const { return packable_area_; }
 
-    /** Get the total profit of the items. */
-    inline Profit item_profit() const { return item_profit_; }
-
-    /** Get the id of the item type with maximum efficiency. */
-    inline ItemTypeId max_efficiency_item() const { return max_efficiency_item_; }
-
-    /** Return true iff all items have infinite copies. */
-    inline bool unbounded_knapsck() const { return all_item_type_infinite_copies_; }
-
-    /** Get item type j. */
-    inline const ItemType& item_type(ItemTypeId j) const { return item_types_[j]; }
-
-    /** Get defect k. */
-    inline const Defect& defect(DefectId k) const { return defects_[k]; }
-
-    /** Get bin type i. */
-    inline const BinType& bin_type(BinTypeId i) const { return bin_types_[i]; }
-
-    /** Get the j_pos's item of stack s. */
-    inline ItemTypeId item(StackId s, ItemPos j_pos) const { return items_pos2type_[s][j_pos]; }
-
-    /** Get the i_pos's bin. */
-    inline const BinType& bin(BinPos i_pos) const { return bin_types_[bins_pos2type_[i_pos]]; }
-
     /** Get the total area of the bins before bin i_pos. */
     Area previous_bin_area(BinPos i_pos) const;
-
-    /** Get the item types. */
-    inline const std::vector<ItemType>& item_types() const { return item_types_; }
-
-    /** Get stack s. */
-    inline const std::vector<ItemType>& stack(StackId s) const { return stacks_[s]; }
-
-    /** Get the stacks. */
-    inline const std::vector<std::vector<ItemType>>& stacks() const { return stacks_; }
 
     /** Get the defects. */
     inline const std::vector<Defect>& defects() const { return defects_; }
 
     /*
-     * Bin type dimensions.
+     * Getters: bin type dimensions
      */
 
     /** Get the width of a bin type depending on its orientation. */
@@ -483,7 +500,7 @@ public:
             CutOrientation o) const;
 
     /**
-     * Bin type trims.
+     * Getters: bin type trims
      */
 
     /** Get the bottom trim of a bin depending on its orientation. */
@@ -535,29 +552,7 @@ public:
             CutOrientation o) const;
 
     /*
-     * Item type dimensions.
-     */
-
-    /**
-     * Get the width of an item depending on whether it has been rotated and
-     * the orientation of the bin.
-     */
-    inline Length width(
-            const ItemType& item_type,
-            bool rotate,
-            CutOrientation o) const;
-
-    /**
-     * Get the height of an item depending on whether it has been rotated and
-     * the orientation of the bin.
-     */
-    inline Length height(
-            const ItemType& item_type,
-            bool rotate,
-            CutOrientation o) const;
-
-    /*
-     * Defect coordinates.
+     * Getters: defect coordinates
      */
 
     /**
@@ -593,36 +588,75 @@ public:
             CutOrientation o) const;
 
     /*
-     * Pattern properties.
+     * Getters: item types
      */
 
-    inline const Parameters& parameters() const { return parameters_; }
+    /* Get the number of item types. */
+    inline ItemTypeId number_of_item_types() const { return item_types_.size(); }
 
-    inline CutType1 cut_type_1() const { return parameters_.cut_type_1; }
+    /** Get item type j. */
+    inline const ItemType& item_type(ItemTypeId j) const { return item_types_[j]; }
 
-    inline CutType2 cut_type_2() const { return parameters_.cut_type_2; }
+    /** Get the number of items. */
+    inline ItemTypeId number_of_items() const { return number_of_items_; }
 
-    inline CutOrientation first_stage_orientation() const { return parameters_.first_stage_orientation; }
+    /** Get the number of stacks. */
+    inline StackId number_of_stacks() const { return stacks_.size(); }
 
-    inline Length min1cut() const { return parameters_.min1cut; }
+    /** Get the size of stack s. */
+    inline ItemPos stack_size(StackId s) const { return items_pos2type_[s].size(); }
 
-    inline Length max1cut() const { return parameters_.max1cut; }
+    /** Get the j_pos's item of stack s. */
+    inline ItemTypeId item(StackId s, ItemPos j_pos) const { return items_pos2type_[s][j_pos]; }
 
-    inline Length min2cut() const { return parameters_.min2cut; }
+    /** Get the total area of the items. */
+    inline Area item_area() const { return item_area_; }
 
-    inline Length max2cut() const { return parameters_.max2cut; }
+    /** Get the mean area of the items. */
+    inline Area mean_area() const { return item_area_ / number_of_items(); }
 
-    inline Length min_waste() const { return parameters_.min_waste; }
+    /** Get the total profit of the items. */
+    inline Profit item_profit() const { return item_profit_; }
 
-    inline bool one2cut() const { return parameters_.one2cut; }
+    /** Get the id of the item type with maximum efficiency. */
+    inline ItemTypeId max_efficiency_item() const { return max_efficiency_item_; }
 
-    inline bool cut_through_defects() const { return parameters_.cut_through_defects; }
+    /** Return true iff all items have infinite copies. */
+    inline bool unbounded_knapsck() const { return all_item_type_infinite_copies_; }
 
-    /** Get cut thickness. */
-    inline Length cut_thickness() const { return parameters_.cut_thickness; }
+    /** Get the item types. */
+    inline const std::vector<ItemType>& item_types() const { return item_types_; }
+
+    /** Get stack s. */
+    inline const std::vector<ItemType>& stack(StackId s) const { return stacks_[s]; }
+
+    /** Get the stacks. */
+    inline const std::vector<std::vector<ItemType>>& stacks() const { return stacks_; }
 
     /*
-     * Intersections.
+     * Getters: item type dimensions
+     */
+
+    /**
+     * Get the width of an item depending on whether it has been rotated and
+     * the orientation of the bin.
+     */
+    inline Length width(
+            const ItemType& item_type,
+            bool rotate,
+            CutOrientation o) const;
+
+    /**
+     * Get the height of an item depending on whether it has been rotated and
+     * the orientation of the bin.
+     */
+    inline Length height(
+            const ItemType& item_type,
+            bool rotate,
+            CutOrientation o) const;
+
+    /*
+     * Intersections
      */
 
     /**
@@ -679,7 +713,7 @@ public:
             CutOrientation o) const;
 
     /*
-     * Export.
+     * Export
      */
 
     /** Print the instance into a stream. */
@@ -693,7 +727,7 @@ public:
 private:
 
     /*
-     * Private attributes.
+     * Private attributes
      */
 
     /** Objective. */
@@ -702,14 +736,14 @@ private:
     /** Parameters. */
     Parameters parameters_;
 
+    /** Bin types. */
+    std::vector<BinType> bin_types_;
+
     /** Item types. */
     std::vector<ItemType> item_types_;
 
     /** Defects. */
     std::vector<Defect> defects_;
-
-    /** Bin types. */
-    std::vector<BinType> bin_types_;
 
     /** Stacks. */
     std::vector<std::vector<ItemType>> stacks_;
