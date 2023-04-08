@@ -228,7 +228,7 @@ class Instance
 public:
 
     /*
-     * Constructors and destructor.
+     * Constructors and destructor
      */
 
     /** Create an instance manually. */
@@ -468,10 +468,7 @@ public:
     inline const BinType& bin(BinPos i_pos) const { return bin_types_[bins_pos2type_[i_pos]]; }
 
     /** Get the number of defects. */
-    inline DefectId number_of_defects() const { return defects_.size(); }
-
-    /** Get defect k. */
-    inline const Defect& defect(DefectId k) const { return defects_[k]; }
+    inline DefectId number_of_defects() const { return number_of_defects_; }
 
     /** Get the total area of the defects. */
     inline Area defect_area() const { return defect_area_; }
@@ -481,9 +478,6 @@ public:
 
     /** Get the total area of the bins before bin i_pos. */
     Area previous_bin_area(BinPos i_pos) const;
-
-    /** Get the defects. */
-    inline const std::vector<Defect>& defects() const { return defects_; }
 
     /*
      * Getters: bin type dimensions
@@ -742,14 +736,14 @@ private:
     /** Item types. */
     std::vector<ItemType> item_types_;
 
-    /** Defects. */
-    std::vector<Defect> defects_;
-
     /** Stacks. */
     std::vector<std::vector<ItemType>> stacks_;
 
     /** Number of items. */
     ItemPos number_of_items_ = 0;
+
+    /** Number of defects. */
+    DefectId number_of_defects_ = 0;
 
     /** Convert item position to item type. */
     std::vector<std::vector<BinTypeId>> items_pos2type_;
@@ -931,12 +925,12 @@ DefectId Instance::rect_intersects_defect(
         Length r,
         Length b,
         Length t,
-        BinTypeId i,
+        BinTypeId bin_type_id,
         CutOrientation o) const
 {
     assert(l <= r);
     assert(b <= t);
-    for (const Defect& defect: bin(i).defects) {
+    for (const Defect& defect: bin(bin_type_id).defects) {
         if (left(defect, o) >= r)
             continue;
         if (l >= right(defect, o))
@@ -968,16 +962,17 @@ DefectId Instance::y_intersects_defect(
         Length l,
         Length r,
         Length y,
-        BinTypeId i,
+        BinTypeId bin_type_id,
         CutOrientation o) const
 {
     DefectId k_min = -1;
-    for (const Defect& k: bin(i).defects) {
+    const BinType& bin_type = this->bin_type(bin_type_id);
+    for (const Defect& k: bin_type.defects) {
         if (right(k, o) <= l || left(k, o) >= r)
             continue;
         if (bottom(k, o) >= y || top(k, o) <= y)
             continue;
-        if (k_min == -1 || left(k, o) < left(defect(k_min), o))
+        if (k_min == -1 || left(k, o) < left(bin_type.defects[k_min], o))
             k_min = k.id;
     }
     return k_min;
@@ -985,10 +980,10 @@ DefectId Instance::y_intersects_defect(
 
 DefectId Instance::x_intersects_defect(
         Length x,
-        BinTypeId i,
+        BinTypeId bin_type_id,
         CutOrientation o) const
 {
-    for (const Defect& k: bin(i).defects)
+    for (const Defect& k: bin_type(bin_type_id).defects)
         if (left(k, o) < x && right(k, o) > x)
             return k.id;
     return -1;

@@ -394,18 +394,21 @@ void Instance::add_trims(
     bin_type.top_trim_type = top_trim_type;
 }
 
-void Instance::add_defect(BinTypeId i, Length x, Length y, Length w, Length h)
+void Instance::add_defect(
+        BinTypeId bin_type_id,
+        Length x,
+        Length y,
+        Length w,
+        Length h)
 {
     Defect defect;
-    defect.id = defects_.size();
-    defect.bin_id = i;
+    defect.id = bin_types_[bin_type_id].defects.size();
+    defect.bin_id = bin_type_id;
     defect.pos.x = x;
     defect.pos.y = y;
     defect.rect.w = w;
     defect.rect.h = h;
-    defects_.push_back(defect);
-
-    bin_types_[i].defects.push_back(defect);
+    bin_types_[bin_type_id].defects.push_back(defect);
 
     // Update packable_area_ and defect_area_
     // TODO
@@ -774,9 +777,22 @@ void Instance::write(std::string instance_path) const
     // Export defects.
     if (number_of_defects() > 0) {
         f_defects << "ID,BIN,X,Y,WIDTH,HEIGHT" << std::endl;
-        for (DefectId k = 0; k < number_of_defects(); ++k) {
-            const Defect& de = defect(k);
-            f_defects << k << "," << de.bin_id << "," << de.pos.x << "," << de.pos.y << "," << de.rect.w << "," << de.rect.h << std::endl;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = this->bin_type(bin_type_id);
+            for (DefectId defect_id = 0;
+                    defect_id < (DefectId)bin_type.defects.size();
+                    ++defect_id) {
+                const Defect& defect = bin_type.defects[defect_id];
+                f_defects
+                    << defect_id << ","
+                    << defect.bin_id << ","
+                    << defect.pos.x << ","
+                    << defect.pos.y << ","
+                    << defect.rect.w << ","
+                    << defect.rect.h << std::endl;
+            }
         }
     }
 }
@@ -946,15 +962,23 @@ std::ostream& Instance::print(
                 << std::setw(12) << "-----"
                 << std::setw(12) << "------"
                 << std::endl;
-            for (DefectId k = 0; k < number_of_defects(); ++k) {
-                os
-                    << std::setw(12) << k
-                    << std::setw(12) << defect(k).bin_id
-                    << std::setw(12) << defect(k).pos.x
-                    << std::setw(12) << defect(k).pos.y
-                    << std::setw(12) << defect(k).rect.w
-                    << std::setw(12) << defect(k).rect.h
-                    << std::endl;
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < number_of_bin_types();
+                    ++bin_type_id) {
+                const BinType& bin_type = this->bin_type(bin_type_id);
+                for (DefectId defect_id = 0;
+                        defect_id < (DefectId)bin_type.defects.size();
+                        ++defect_id) {
+                    const Defect& defect = bin_type.defects[defect_id];
+                    os
+                        << std::setw(12) << defect_id
+                        << std::setw(12) << defect.bin_id
+                        << std::setw(12) << defect.pos.x
+                        << std::setw(12) << defect.pos.y
+                        << std::setw(12) << defect.rect.w
+                        << std::setw(12) << defect.rect.h
+                        << std::endl;
+                }
             }
         }
 

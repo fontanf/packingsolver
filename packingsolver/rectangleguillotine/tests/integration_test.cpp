@@ -363,13 +363,25 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
         Instance instance_new;
         instance_new.set_objective(Objective::BinPackingWithLeftovers);
         instance_new.set_roadef2018();
-        for (BinTypeId i = 0; i < instance.number_of_bin_types(); ++i) {
-            const BinType& bin = instance.bin_type(i);
-            instance_new.add_bin_type(bin.rect.w, bin.rect.h, bin.copies);
-        }
-        for (DefectId k = 0; k < instance.number_of_defects(); ++k) {
-            const Defect& defect = instance.defect(k);
-            instance_new.add_defect(defect.bin_id, defect.pos.x, defect.pos.y, defect.rect.w, defect.rect.h);
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            instance_new.add_bin_type(
+                    bin_type.rect.w,
+                    bin_type.rect.h,
+                    bin_type.copies);
+            for (DefectId defect_id = 0;
+                    defect_id < (DefectId)bin_type.defects.size();
+                    ++defect_id) {
+                const Defect& defect = bin_type.defects[defect_id];
+                instance_new.add_defect(
+                        bin_type_id,
+                        defect.pos.x,
+                        defect.pos.y,
+                        defect.rect.w,
+                        defect.rect.h);
+            }
         }
         bool new_stack = true;
         for (ItemTypeId j: items) {

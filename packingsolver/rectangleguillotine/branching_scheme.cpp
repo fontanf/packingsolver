@@ -1100,7 +1100,7 @@ void BranchingScheme::update(
                     o);
             if (k == -1)
                 break;
-            const Defect& defect = instance_.defect(k);
+            const Defect& defect = bin_type.defects[k];
             insertion.x1 = (insertion.z1 == 0)?
                 std::max(instance_.right(defect, o), insertion.x1 + cut_thickness + min_waste):
                 instance_.right(defect, o);
@@ -1154,7 +1154,7 @@ void BranchingScheme::update(
                     i,
                     o);
             if (k != -1) {
-                const Defect& defect = instance_.defect(k);
+                const Defect& defect = bin_type.defects[k];
                 if (y2_fixed) {
                     FFOT_LOG_FOLD_END(info, "y2_fixed");
                     return;
@@ -1179,7 +1179,7 @@ void BranchingScheme::update(
                 DefectId k = instance_.item_intersects_defect(
                         l, insertion.y2 - h_j2, item, jrx.rotate, i, o);
                 if (k >= 0) {
-                    const Defect& defect = instance_.defect(k);
+                    const Defect& defect = bin_type.defects[k];
                     if (y2_fixed) {
                         FFOT_LOG_FOLD_END(info, "y2_fixed");
                         return;
@@ -1203,7 +1203,7 @@ void BranchingScheme::update(
             DefectId k = instance_.item_intersects_defect(
                     l, insertion.y2 - h_j2, item, rotate_j2, i, o);
             if (k >= 0) {
-                const Defect& defect = instance_.defect(k);
+                const Defect& defect = bin_type.defects[k];
                 if (y2_fixed) {
                     FFOT_LOG_FOLD_END(info, "y2_fixed");
                     return;
