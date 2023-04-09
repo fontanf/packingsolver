@@ -33,13 +33,13 @@ struct SolutionNode
 
     std::vector<SolutionNodeId> children;
 
-    ItemTypeId j;
+    ItemTypeId item_type_id;
 };
 
 struct SolutionBin
 {
     /** Bin type. */
-    BinTypeId i;
+    BinTypeId bin_type_id;
 
     /** Number of copies. */
     BinPos copies;

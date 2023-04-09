@@ -38,10 +38,10 @@ public:
     struct Insertion
     {
         /** Id of the item at the bottom of the third-level sub-plate, -1 if none. */
-        ItemTypeId j1;
+        ItemTypeId item_type_id_1;
 
         /** Id of the item at the top of the third-level sub-plate, -1 if none. */
-        ItemTypeId j2;
+        ItemTypeId item_type_id_2;
 
         /**
          * Depth of the father in the tree representation of the solution:
@@ -135,14 +135,14 @@ public:
          * the third level sub-plate.
          * -1 if no such item have been added or if the node is the root.
          */
-        ItemTypeId j1 = -1;
+        ItemTypeId item_type_id_1 = -1;
 
         /**
          * Type of the last item added to the partial solution at the top of
          * the third level sub-plate.
          * -1 if no such item have been added or if the node is the root.
          */
-        ItemTypeId j2 = -1;
+        ItemTypeId item_type_id_2 = -1;
 
         /** Depth of the last insertion, see Insertion. */
         Depth df = -1;
@@ -394,7 +394,7 @@ private:
     /** Get the knapsack upper bound of a node. */
     inline Profit ubkp(const Node& node) const;
 
-    inline bool last_insertion_defect(const Node& node) const { return node.number_of_bins > 0 && node.j1 == -1 && node.j2 == -1; }
+    inline bool last_insertion_defect(const Node& node) const { return node.number_of_bins > 0 && node.item_type_id_1 == -1 && node.item_type_id_2 == -1; }
 
     inline Front front(const Node& node, const Insertion& insertion) const;
 
@@ -467,7 +467,7 @@ private:
     void insertion_1_item(
             const Node& father,
             std::vector<Insertion>& insertions,
-            ItemTypeId j,
+            ItemTypeId item_type_id,
             bool rotate,
             Depth df,
             Info& info) const;
@@ -476,9 +476,9 @@ private:
     void insertion_2_items(
             const Node& father,
             std::vector<Insertion>& insertions,
-            ItemTypeId j1,
+            ItemTypeId item_type_id_1,
             bool rotate1,
-            ItemTypeId j2,
+            ItemTypeId item_type_id_2,
             bool rotate2,
             Depth df,
             Info& info) const;
@@ -487,7 +487,7 @@ private:
     void insertion_defect(
             const Node& father,
             std::vector<Insertion>& insertions,
-            const Defect& k,
+            const Defect& defect_id,
             Depth df,
             Info& info) const;
 
