@@ -203,8 +203,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         const Defect& defect)
 {
     os
-        << "k " << defect.id
-        << " i " << defect.bin_id
+        << "id " << defect.id
+        << " bin_type_id " << defect.bin_type_id
         << " x " << defect.pos.x
         << " y " << defect.pos.y
         << " w " << defect.rect.w
@@ -404,12 +404,14 @@ void Instance::add_defect(
 {
     Defect defect;
     defect.id = bin_types_[bin_type_id].defects.size();
-    defect.bin_id = bin_type_id;
+    defect.bin_type_id = bin_type_id;
     defect.pos.x = x;
     defect.pos.y = y;
     defect.rect.w = w;
     defect.rect.h = h;
     bin_types_[bin_type_id].defects.push_back(defect);
+
+    number_of_defects_++;
 
     // Update packable_area_ and defect_area_
     // TODO
@@ -417,31 +419,39 @@ void Instance::add_defect(
 
 void Instance::set_bin_infinite_x()
 {
-    for (BinTypeId i = 0; i < number_of_bin_types(); ++i)
-        bin_types_[i].rect.w = length_sum_;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        bin_types_[bin_type_id].rect.w = length_sum_;
+    }
 }
 
 void Instance::set_bin_infinite_y()
 {
-    for (BinTypeId i = 0; i < number_of_bin_types(); ++i)
-        bin_types_[i].rect.h = length_sum_;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        bin_types_[bin_type_id].rect.h = length_sum_;
+    }
 }
 
 void Instance::set_bin_infinite_copies()
 {
     bins_pos2type_.clear();
-    for (BinTypeId i = 0; i < number_of_bin_types(); ++i) {
-        bin_types_[i].copies = number_of_items();
-        bin_types_[i].previous_bin_area = (i == 0)?
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        bin_types_[bin_type_id].copies = number_of_items();
+        bin_types_[bin_type_id].previous_bin_area = (bin_type_id == 0)?
             0:
-            bin_types_[i - 1].previous_bin_area
-            + bin_types_[i - 1].area() * bin_types_[i - 1].copies;
-        bin_types_[i].previous_bin_copies = (i == 0)?
+            bin_types_[bin_type_id - 1].previous_bin_area
+            + bin_types_[bin_type_id - 1].area() * bin_types_[bin_type_id - 1].copies;
+        bin_types_[bin_type_id].previous_bin_copies = (bin_type_id == 0)?
             0:
-            bin_types_[i - 1].previous_bin_copies + bin_types_[i - 1].copies;
-        for (ItemPos pos = 0; pos < bin_types_[i].copies; ++pos)
-            bins_pos2type_.push_back(i);
-        packable_area_ += bin_types_[i].copies * bin_types_[i].area();
+            bin_types_[bin_type_id - 1].previous_bin_copies + bin_types_[bin_type_id - 1].copies;
+        for (ItemPos pos = 0; pos < bin_types_[bin_type_id].copies; ++pos)
+            bins_pos2type_.push_back(bin_type_id);
+        packable_area_ += bin_types_[bin_type_id].copies * bin_types_[bin_type_id].area();
     }
 }
 
@@ -473,20 +483,29 @@ void Instance::set_item_infinite_copies()
 
 void Instance::set_bin_unweighted()
 {
-    for (BinTypeId i = 0; i < number_of_bin_types(); ++i)
-        bin_types_[i].cost = bin_types_[i].area();
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        bin_types_[bin_type_id].cost = bin_types_[bin_type_id].area();
+    }
 }
 
 void Instance::set_unweighted()
 {
-    for (ItemTypeId j = 0; j < number_of_item_types(); ++j)
-        item_types_[j].profit = item_types_[j].area();
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        item_types_[item_type_id].profit = item_types_[item_type_id].area();
+    }
 }
 
 void Instance::set_no_item_rotation()
 {
-    for (ItemTypeId j = 0; j < number_of_item_types(); ++j)
-        item_types_[j].oriented = true;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        item_types_[item_type_id].oriented = true;
+    }
 }
 
 void Instance::read_item_types(std::string items_path)
@@ -606,9 +625,9 @@ void Instance::read_bin_types(std::string bins_path)
             throw std::runtime_error(
                     "Missing \"HEIGHT\" column in \"" + bins_path + "\".");
         }
-        BinTypeId i = add_bin_type(w, h, cost, copies, copies_min);
+        BinTypeId bin_type_id = add_bin_type(w, h, cost, copies, copies_min);
         add_trims(
-                i,
+                bin_type_id,
                 left_trim,
                 left_trim_type,
                 right_trim,
@@ -639,14 +658,14 @@ void Instance::read_defects(std::string defects_path)
     labels = optimizationtools::split(tmp, ',');
     while (getline(f_defects, tmp)) {
         line = optimizationtools::split(tmp, ',');
-        BinTypeId i = -1;
+        BinTypeId bin_type_id = -1;
         Length x = -1;
         Length y = -1;
         Length w = -1;
         Length h = -1;
         for (Counter c = 0; c < (Counter)line.size(); ++c) {
             if (labels[c] == "BIN") {
-                i = (BinTypeId)std::stol(line[c]);
+                bin_type_id = (BinTypeId)std::stol(line[c]);
             } else if (labels[c] == "X") {
                 x = (Length)std::stol(line[c]);
             } else if (labels[c] == "Y") {
@@ -657,7 +676,7 @@ void Instance::read_defects(std::string defects_path)
                 h = (Length)std::stol(line[c]);
             }
         }
-        if (i == -1) {
+        if (bin_type_id == -1) {
             throw std::runtime_error(
                     "Missing \"BIN\" column in \"" + defects_path + "\".");
         }
@@ -677,7 +696,7 @@ void Instance::read_defects(std::string defects_path)
             throw std::runtime_error(
                     "Missing \"HEIGHT\" column in \"" + defects_path + "\".");
         }
-        add_defect(i, x, y, w, h);
+        add_defect(bin_type_id, x, y, w, h);
     }
 }
 
@@ -763,9 +782,17 @@ void Instance::write(std::string instance_path) const
 
     // Export items.
     f_items << "ID,WIDTH,HEIGHT,PROFIT,COPIES,ORIENTED,NEWSTACK" << std::endl;
-    for (ItemTypeId j = 0; j < number_of_item_types(); ++j) {
-        const ItemType& it = item_type(j);
-        f_items << j << "," << it.rect.w << "," << it.rect.h << "," << it.profit << "," << it.copies << "," << it.oriented << "," << (j == 0 || it.stack != item_type(j - 1).stack) << std::endl;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = this->item_type(item_type_id);
+        f_items << item_type_id << ","
+            << item_type.rect.w << ","
+            << item_type.rect.h << ","
+            << item_type.profit << ","
+            << item_type.copies << ","
+            << item_type.oriented << ","
+            << (item_type_id == 0 || item_type.stack != this->item_type(item_type_id - 1).stack) << std::endl;
     }
 
     // Export bins.
@@ -793,7 +820,7 @@ void Instance::write(std::string instance_path) const
                 const Defect& defect = bin_type.defects[defect_id];
                 f_defects
                     << defect_id << ","
-                    << defect.bin_id << ","
+                    << defect.bin_type_id << ","
                     << defect.pos.x << ","
                     << defect.pos.y << ","
                     << defect.rect.w << ","
@@ -912,14 +939,17 @@ std::ostream& Instance::print(
             << std::setw(12) << "------"
             << std::setw(12) << "----------"
             << std::endl;
-        for (BinTypeId i = 0; i < number_of_bin_types(); ++i) {
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = this->bin_type(bin_type_id);
             os
-                << std::setw(12) << i
-                << std::setw(12) << bin_type(i).rect.w
-                << std::setw(12) << bin_type(i).rect.h
-                << std::setw(12) << bin_type(i).cost
-                << std::setw(12) << bin_type(i).copies
-                << std::setw(12) << bin_type(i).copies_min
+                << std::setw(12) << bin_type_id
+                << std::setw(12) << bin_type.rect.w
+                << std::setw(12) << bin_type.rect.h
+                << std::setw(12) << bin_type.cost
+                << std::setw(12) << bin_type.copies
+                << std::setw(12) << bin_type.copies_min
                 << std::endl;
         }
 
@@ -937,17 +967,20 @@ std::ostream& Instance::print(
             << std::setw(12) << "-----------"
             << std::setw(12) << "--------"
             << std::endl;
-        for (BinTypeId i = 0; i < number_of_bin_types(); ++i) {
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = this->bin_type(bin_type_id);
             os
-                << std::setw(12) << i
-                << std::setw(8) << bin_type(i).left_trim
-                << std::setw(4) << bin_type(i).left_trim_type
-                << std::setw(8) << bin_type(i).right_trim
-                << std::setw(4) << bin_type(i).right_trim_type
-                << std::setw(8) << bin_type(i).bottom_trim
-                << std::setw(4) << bin_type(i).bottom_trim_type
-                << std::setw(8) << bin_type(i).top_trim
-                << std::setw(4) << bin_type(i).top_trim_type
+                << std::setw(12) << bin_type_id
+                << std::setw(8) << bin_type.left_trim
+                << std::setw(4) << bin_type.left_trim_type
+                << std::setw(8) << bin_type.right_trim
+                << std::setw(4) << bin_type.right_trim_type
+                << std::setw(8) << bin_type.bottom_trim
+                << std::setw(4) << bin_type.bottom_trim_type
+                << std::setw(8) << bin_type.top_trim
+                << std::setw(4) << bin_type.top_trim_type
                 << std::endl;
         }
 
@@ -978,7 +1011,7 @@ std::ostream& Instance::print(
                     const Defect& defect = bin_type.defects[defect_id];
                     os
                         << std::setw(12) << defect_id
-                        << std::setw(12) << defect.bin_id
+                        << std::setw(12) << defect.bin_type_id
                         << std::setw(12) << defect.pos.x
                         << std::setw(12) << defect.pos.y
                         << std::setw(12) << defect.rect.w
@@ -1006,15 +1039,18 @@ std::ostream& Instance::print(
             << std::setw(12) << "--------"
             << std::setw(12) << "-----"
             << std::endl;
-        for (ItemTypeId j = 0; j < number_of_item_types(); ++j) {
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = this->item_type(item_type_id);
             os
-                << std::setw(12) << j
-                << std::setw(12) << item_type(j).rect.w
-                << std::setw(12) << item_type(j).rect.h
-                << std::setw(12) << item_type(j).profit
-                << std::setw(12) << item_type(j).copies
-                << std::setw(12) << item_type(j).oriented
-                << std::setw(12) << item_type(j).stack
+                << std::setw(12) << item_type_id
+                << std::setw(12) << item_type.rect.w
+                << std::setw(12) << item_type.rect.h
+                << std::setw(12) << item_type.profit
+                << std::setw(12) << item_type.copies
+                << std::setw(12) << item_type.oriented
+                << std::setw(12) << item_type.stack
                 << std::endl;
         }
     }

@@ -104,7 +104,7 @@ struct Defect
     DefectId id;
 
     /** Bin type of the defect. */
-    BinTypeId bin_id;
+    BinTypeId bin_type_id;
 
     /** Position of the defect. */
     Coord pos;
