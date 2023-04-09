@@ -99,15 +99,16 @@ bool BranchingScheme::bound(
     } case Objective::BinPacking: {
         if (!solution_best.full())
             return false;
-        BinPos i_pos = -1;
+        BinPos bin_pos = -1;
         Area a = instance_.item_area() + node.waste;
         while (a > 0) {
-            i_pos++;
-            if (i_pos >= instance_.number_of_bins())
+            bin_pos++;
+            if (bin_pos >= instance_.number_of_bins())
                 return true;
-            a -= instance_.bin(i_pos).area();
+            BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+            a -= instance().bin_type(bin_type_id).area();
         }
-        return (i_pos + 1 >= solution_best.number_of_bins());
+        return (bin_pos + 1 >= solution_best.number_of_bins());
     } case Objective::BinPackingWithLeftovers: {
         if (!solution_best.full())
             return false;
@@ -117,11 +118,11 @@ bool BranchingScheme::bound(
     } case Objective::OpenDimensionX: {
         if (!solution_best.full())
             return false;
-        return std::max(width(node), (node.waste + instance_.item_area() - 1) / instance_.height(instance_.bin(0), CutOrientation::Vertical) + 1) >= solution_best.width();
+        return std::max(width(node), (node.waste + instance_.item_area() - 1) / instance_.height(instance().bin_type(0), CutOrientation::Vertical) + 1) >= solution_best.width();
     } case Objective::OpenDimensionY: {
         if (!solution_best.full())
             return false;
-        return std::max(height(node), (node.waste + instance_.item_area() - 1) / instance_.height(instance_.bin(0), CutOrientation::Horinzontal) + 1) >= solution_best.height();
+        return std::max(height(node), (node.waste + instance_.item_area() - 1) / instance_.height(instance().bin_type(0), CutOrientation::Horinzontal) + 1) >= solution_best.height();
     } default: {
         std::stringstream ss;
         ss << "Branching scheme 'rectangleguillotine::BranchingScheme'"
@@ -192,7 +193,9 @@ bool BranchingScheme::dominates(
                 && f1.x1_curr <= f2.x1_curr
                 && f1.y2_curr <= f2.y2_prev)
             return true;
-        Length h = instance_.height(instance_.bin(f1.i), f1.o);
+        BinTypeId bin_type_id = instance().bin_type_id(f1.i);
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        Length h = instance_.height(bin_type, f1.o);
         if (f1.y2_curr != h
                 && f1.x1_prev <= f2.x1_prev
                 && f1.x3_curr <= f2.x3_curr
@@ -226,12 +229,14 @@ Length BranchingScheme::x1_prev(const Node& node, Depth df) const
 {
     switch (df) {
     case -2: {
+        BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance_.left_trim(
-                instance_.bin(node.number_of_bins),
+                instance_.bin_type(bin_type_id),
                 CutOrientation::Horinzontal);
     } case -1: {
+        BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance_.left_trim(
-                instance_.bin(node.number_of_bins),
+                instance_.bin_type(bin_type_id),
                 CutOrientation::Vertical);
     } case 0: {
         return node.x1_curr + instance_.cut_thickness();
@@ -250,12 +255,14 @@ Length BranchingScheme::x3_prev(const Node& node, Depth df) const
 {
     switch (df) {
     case -2: {
+        BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance_.left_trim(
-                instance_.bin(node.number_of_bins),
+                instance_.bin_type(bin_type_id),
                 CutOrientation::Horinzontal);
     } case -1: {
+        BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance_.left_trim(
-                instance_.bin(node.number_of_bins),
+                instance_.bin_type(bin_type_id),
                 CutOrientation::Vertical);
     } case 0: {
         return node.x1_curr + instance_.cut_thickness();
@@ -274,16 +281,19 @@ Length BranchingScheme::y2_prev(const Node& node, Depth df) const
 {
     switch (df) {
     case -2: {
+        BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance_.bottom_trim(
-                instance_.bin(node.number_of_bins),
+                instance_.bin_type(bin_type_id),
                 CutOrientation::Horinzontal);
     } case -1: {
+        BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance_.bottom_trim(
-                instance_.bin(node.number_of_bins),
+                instance_.bin_type(bin_type_id),
                 CutOrientation::Vertical);
     } case 0: {
+        BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins - 1);
         return instance_.bottom_trim(
-                instance_.bin(node.number_of_bins - 1),
+                instance_.bin_type(bin_type_id),
                 node.first_stage_orientation);
     } case 1: {
         return node.y2_curr + instance_.cut_thickness();
@@ -383,7 +393,8 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
 
     BinPos i = node.number_of_bins - 1;
     CutOrientation o = node.first_stage_orientation;
-    const BinType& bin_type = instance_.bin(i);
+    BinTypeId bin_type_id = instance().bin_type_id(i);
+    const BinType& bin_type = instance_.bin_type(bin_type_id);
     Length h = instance_.height(bin_type, o)
         - instance_.top_trim(bin_type, o)
         - instance_.bottom_trim(bin_type, o);
@@ -492,10 +503,10 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         df_min = -1;
     } else if (first_stage_orientation_ == CutOrientation::Any
             // Next bin has no defects,
-            && instance_.bin(father.number_of_bins).defects.size() == 0
+            && instance().bin_type(instance().bin_type_id(father.number_of_bins)).defects.size() == 0
             // is a square,
-            && instance_.bin(father.number_of_bins).rect.w
-            == instance_.bin(father.number_of_bins).rect.h
+            && instance().bin_type(instance().bin_type_id(father.number_of_bins)).rect.w
+            == instance().bin_type(instance().bin_type_id(father.number_of_bins)).rect.h
             // and items can be rotated
             && no_oriented_items_) {
         df_min = -1;
@@ -623,7 +634,9 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         }
 
         if (father.father == nullptr || father.j1 != -1 || father.j2 != -1) {
-            const std::vector<Defect>& defects = instance_.bin(i).defects;
+            BinTypeId bin_type_id = instance().bin_type_id(i);
+            const BinType& bin_type = instance().bin_type(bin_type_id);
+            const std::vector<Defect>& defects = bin_type.defects;
             for (const Defect& defect: defects)
                 if (instance_.left(defect, o) >= x && instance_.bottom(defect, o) >= y)
                     insertion_defect(father, insertions, defect, df, info);
@@ -641,9 +654,13 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
     return insertions;
 }
 
-Area BranchingScheme::waste(const Node& node, const Insertion& insertion) const
+Area BranchingScheme::waste(
+        const Node& node,
+        const Insertion& insertion) const
 {
-    Length h = instance_.height(instance_.bin(i), o);
+    BinTypeId bin_type_id = instance().bin_type_id(i);
+    const BinType& bin_type = instance().bin_type(bin_type_id);
+    Length h = instance_.height(bin_type, o);
     Front f = front(node, insertion);
     ItemPos n = node.number_of_items;
     Area item_area = node.item_area;
@@ -669,28 +686,32 @@ Length BranchingScheme::x1_max(const Node& node, Depth df) const
 {
     switch (df) {
     case -1: case -2: {
-        const BinType& bin_type = instance_.bin(i);
+        BinTypeId bin_type_id = instance().bin_type_id(i);
+        const BinType& bin_type = instance().bin_type(bin_type_id);
         Length x = instance_.width(bin_type, o) - instance_.right_trim(bin_type, o);
         if (instance_.max1cut() != -1)
             if (x > x1_prev(node, df) + instance_.max1cut())
                 x = x1_prev(node, df) + instance_.max1cut();
         return x;
     } case 0: {
-        const BinType& bin_type = instance_.bin(i);
+        BinTypeId bin_type_id = instance().bin_type_id(i);
+        const BinType& bin_type = instance().bin_type(bin_type_id);
         Length x = instance_.width(bin_type, o) - instance_.right_trim(bin_type, o);
         if (instance_.max1cut() != -1)
             if (x > x1_prev(node, df) + instance_.max1cut())
                 x = x1_prev(node, df) + instance_.max1cut();
         return x;
     } case 1: {
+        BinTypeId bin_type_id = instance().bin_type_id(i);
+        const BinType& bin_type = instance().bin_type(bin_type_id);
         Length x = node.x1_max;
         if (!instance().cut_through_defects())
-            for (const Defect& k: instance_.bin(i).defects)
-                if (instance().bottom(k, o) < node.y2_curr + instance().cut_thickness()
-                        && instance().top(k, o) > node.y2_curr)
-                    if (instance_.left(k, o) > node.x1_prev)
-                        if (x > instance_.left(k, o) - instance().cut_thickness())
-                            x = instance_.left(k, o) - instance().cut_thickness();;
+            for (const Defect& defect: bin_type.defects)
+                if (instance().bottom(defect, o) < node.y2_curr + instance().cut_thickness()
+                        && instance().top(defect, o) > node.y2_curr)
+                    if (instance_.left(defect, o) > node.x1_prev)
+                        if (x > instance_.left(defect, o) - instance().cut_thickness())
+                            x = instance_.left(defect, o) - instance().cut_thickness();;
         return x;
     } case 2: {
         return node.x1_max;
@@ -700,19 +721,23 @@ Length BranchingScheme::x1_max(const Node& node, Depth df) const
     }
 }
 
-Length BranchingScheme::y2_max(const Node& node, Depth df, Length x3) const
+Length BranchingScheme::y2_max(
+        const Node& node,
+        Depth df,
+        Length x3) const
 {
-    const BinType& bin_type = instance().bin(i);
+    BinTypeId bin_type_id = instance().bin_type_id(i);
+    const BinType& bin_type = instance().bin_type(bin_type_id);
     Length y = (df == 2)?
         node.y2_max:
         instance_.height(bin_type, o) - instance().top_trim(bin_type, o);
     if (!instance().cut_through_defects())
-        for (const Defect& k: instance().bin(i).defects)
-            if (instance().left(k, o) < x3 + instance().cut_thickness()
-                    && instance().right(k, o) > x3)
-                if (instance().bottom(k, o) >= y2_prev(node, df))
-                    if (y > instance_.bottom(k, o) - instance().cut_thickness())
-                        y = instance_.bottom(k, o) - instance().cut_thickness();
+        for (const Defect& defect: bin_type.defects)
+            if (instance().left(defect, o) < x3 + instance().cut_thickness()
+                    && instance().right(defect, o) > x3)
+                if (instance().bottom(defect, o) >= y2_prev(node, df))
+                    if (y > instance_.bottom(defect, o) - instance().cut_thickness())
+                        y = instance_.bottom(defect, o) - instance().cut_thickness();
     return y;
 }
 
@@ -746,7 +771,8 @@ void BranchingScheme::insertion_1_item(
     const rectangleguillotine::ItemType& item = instance_.item_type(j);
     Length x = x3_prev(father, df) + instance_.width(item, rotate, o);
     Length y = y2_prev(father, df) + instance_.height(item, rotate, o);
-    const BinType& bin_type = instance_.bin(i);
+    BinTypeId bin_type_id = instance().bin_type_id(i);
+    const BinType& bin_type = instance().bin_type(bin_type_id);
     Length w = instance_.width(bin_type, o) - instance_.right_trim(bin_type, o);
     Length h = instance_.height(bin_type, o) - instance_.top_trim(bin_type, o);
     FFOT_LOG(info, "x3_prev(df) " << x3_prev(father, df) << " y2_prev(df) " << y2_prev(father, df)
@@ -829,7 +855,8 @@ void BranchingScheme::insertion_2_items(
     // Check defect intersection
     const ItemType& item1 = instance_.item_type(j1);
     const ItemType& item2 = instance_.item_type(j2);
-    const BinType& bin_type = instance_.bin(i);
+    BinTypeId bin_type_id = instance().bin_type_id(i);
+    const BinType& bin_type = instance().bin_type(bin_type_id);
     Length w = instance_.width(bin_type, o) - instance_.right_trim(bin_type, o);
     Length h = instance_.height(bin_type, o) - instance_.top_trim(bin_type, o);
     Length h_j1 = instance_.height(item1, rotate1, o);
@@ -872,7 +899,8 @@ void BranchingScheme::insertion_defect(
     assert(df <= 3);
 
     // Check defect intersection
-    const BinType& bin_type = instance_.bin(i);
+    BinTypeId bin_type_id = instance().bin_type_id(i);
+    const BinType& bin_type = instance().bin_type(bin_type_id);
     Length w = instance_.width(bin_type, o) - instance_.right_trim(bin_type, o);
     Length h = instance_.height(bin_type, o) - instance_.top_trim(bin_type, o);
     Length min_waste = instance_.min_waste();
@@ -909,7 +937,8 @@ void BranchingScheme::update(
     (void)info;
     Length min_waste = instance_.min_waste();
     Length cut_thickness = instance_.cut_thickness();
-    const BinType& bin_type = instance_.bin(i);
+    BinTypeId bin_type_id = instance().bin_type_id(i);
+    const BinType& bin_type = instance().bin_type(bin_type_id);
     Length w_orig = instance_.width(bin_type, o);
     Length h_orig = instance_.height(bin_type, o);
     Length w = w_orig - instance_.right_trim(bin_type, o);
@@ -1475,7 +1504,8 @@ Solution BranchingScheme::to_solution(
 
         const Node* current_node = descendents[node_pos];
         BinPos i = current_node->number_of_bins - 1;
-        const BinType& bin_type = instance_.bin(i);
+        BinTypeId bin_type_id = instance().bin_type_id(i);
+        const BinType& bin_type = instance().bin_type(bin_type_id);
         CutOrientation o = current_node->first_stage_orientation;
         bool has_item = (current_node->j1 != -1 || current_node->j2 != -1);
         Depth df_next = (node_pos < (SolutionNodeId)descendents.size() - 1)?

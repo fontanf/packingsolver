@@ -464,8 +464,8 @@ public:
     /** Get the number of bins. */
     inline BinPos number_of_bins() const { return bins_pos2type_.size(); }
 
-    /** Get the i_pos's bin. */
-    inline const BinType& bin(BinPos i_pos) const { return bin_types_[bins_pos2type_[i_pos]]; }
+    /** Get the id of a bin at a given position. */
+    inline BinTypeId bin_type_id(BinPos bin_pos) const { return bins_pos2type_[bin_pos]; }
 
     /** Get the number of defects. */
     inline DefectId number_of_defects() const { return number_of_defects_; }

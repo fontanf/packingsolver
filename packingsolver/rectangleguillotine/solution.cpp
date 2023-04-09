@@ -65,6 +65,8 @@ void Solution::add_node(
         const SolutionNode& node)
 {
     BinTypeId bin_type_id = bins_[bin_pos].i;
+    const BinType& bin_type = instance().bin_type(bin_type_id);
+
     bins_[bin_pos].nodes.push_back(node);
     if (node.d >= 0)
     if (node.j >= 0) {
@@ -76,9 +78,9 @@ void Solution::add_node(
     if (node.j == -3) // Subtract residual area
         area_ -= (node.t - node.b) * (node.r - node.l);
     // Update width_ and height_
-    if (node.r < instance().bin(bin_type_id).rect.w && width_ < node.r)
+    if (node.r < bin_type.rect.w && width_ < node.r)
         width_ = node.r;
-    if (node.t < instance().bin(bin_type_id).rect.h && height_ < node.t)
+    if (node.t < bin_type.rect.h && height_ < node.t)
         height_ = node.t;
 }
 

@@ -220,8 +220,9 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 Area Instance::previous_bin_area(BinPos i_pos) const
 {
     assert(i_pos < number_of_bins());
-    const BinType& b = bin(i_pos);
-    return b.previous_bin_area + b.area() * (i_pos - b.previous_bin_copies);
+    BinTypeId bin_type_id = this->bin_type_id(i_pos);
+    const BinType& bin_type = this->bin_type(bin_type_id);
+    return bin_type.previous_bin_area + bin_type.area() * (i_pos - bin_type.previous_bin_copies);
 }
 
 ItemTypeId Instance::add_item_type(
@@ -769,9 +770,14 @@ void Instance::write(std::string instance_path) const
 
     // Export bins.
     f_bins << "ID,WIDTH,HEIGHT" << std::endl;
-    for (BinTypeId i = 0; i < number_of_bin_types(); ++i) {
-        const BinType& bi = bin(i);
-        f_bins << i << "," << bi.rect.w << "," << bi.rect.h << std::endl;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        f_bins
+            << bin_type_id << ","
+            << bin_type.rect.w << ","
+            << bin_type.rect.h << std::endl;
     }
 
     // Export defects.
