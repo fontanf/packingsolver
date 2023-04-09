@@ -30,8 +30,10 @@ BranchingScheme::BranchingScheme(
 
     // Compute no_oriented_items_;
     no_oriented_items_ = true;
-    for (ItemTypeId j = 0; j < instance.number_of_item_types(); ++j) {
-        if (instance.item_type(j).oriented) {
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        if (instance.item_type(item_type_id).oriented) {
             no_oriented_items_ = false;
             break;
         }
@@ -53,11 +55,11 @@ bool BranchingScheme::equals(StackId s1, StackId s2)
 {
     if (instance().stack_size(s1) != instance().stack_size(s2))
         return false;
-    for (ItemPos j = 0; j < instance().stack_size(s1); ++j) {
-        ItemTypeId j1 = instance().item(s1, j);
-        ItemTypeId j2 = instance().item(s2, j);
-        const ItemType& item_type_1 = instance().item_type(j1);
-        const ItemType& item_type_2 = instance().item_type(j2);
+    for (ItemPos pos = 0; pos < instance().stack_size(s1); ++pos) {
+        ItemTypeId item_type_id_1 = instance().item(s1, pos);
+        ItemTypeId item_type_id_2 = instance().item(s2, pos);
+        const ItemType& item_type_1 = instance().item_type(item_type_id_1);
+        const ItemType& item_type_2 = instance().item_type(item_type_id_2);
         if (item_type_1.oriented && item_type_2.oriented
                 && item_type_1.rect.w == item_type_2.rect.w
                 && item_type_1.rect.h == item_type_2.rect.h
@@ -439,7 +441,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
         node.subplate2curr_items_above_defect = father.subplate2curr_items_above_defect;
     if (node.item_type_id_1 == -1 && node.item_type_id_2 != -1) {
         JRX jrx;
-        jrx.j = insertion.item_type_id_2;
+        jrx.item_type_id = insertion.item_type_id_2;
         jrx.rotate = rotate_j2;
         jrx.x = x3_prev(father, node.df);
         node.subplate2curr_items_above_defect.push_back(jrx);
@@ -570,17 +572,33 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             if (sp != -1 && father.pos_stack[sp] <= father.pos_stack[s])
                 continue;
 
-            ItemTypeId j = instance().item(s, father.pos_stack[s]);
-            const ItemType& item_type = instance().item_type(j);
+            ItemTypeId item_type_id = instance().item(s, father.pos_stack[s]);
+            const ItemType& item_type = instance().item_type(item_type_id);
 
             if (!item_type.oriented) {
                 bool b = item_type.rect.w > item_type.rect.h;
-                insertion_1_item(father, insertions, j, !b, df, info);
-                insertion_1_item(father, insertions, j, b, df, info);
-                //insertion_1_item(insertions, j, false, df, df_min, info);
-                //insertion_1_item(insertions, j, true, df, df_min, info);
+                insertion_1_item(
+                        father,
+                        insertions,
+                        item_type_id,
+                        !b,  // rotate
+                        df,
+                        info);
+                insertion_1_item(
+                        father,
+                        insertions,
+                        item_type_id,
+                        b,  // rotate
+                        df,
+                        info);
             } else {
-                insertion_1_item(father, insertions, j, false, df, info);
+                insertion_1_item(
+                        father,
+                        insertions,
+                        item_type_id,
+                        false,  // rotate
+                        df,
+                        info);
             }
 
             // Try adding it with a second item
@@ -589,7 +607,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                 Length wjr = instance().width(item_type, true, o);
                 FFOT_LOG(info, "try adding with a second item" << std::endl);
                 for (StackId s2 = s; s2 < instance().number_of_stacks(); ++s2) {
-                    ItemTypeId j2 = -1;
+                    ItemTypeId item_type_id_2 = -1;
                     if (s2 == s) {
                         // Check is the whold stack has already been packed.
                         if (father.pos_stack[s2] + 1 == instance().stack_size(s2))
@@ -599,7 +617,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                                 && father.pos_stack[sp2]
                                 <= father.pos_stack[s2])
                             continue;
-                        j2 = instance().item(s2, father.pos_stack[s2] + 1);
+                        item_type_id_2 = instance().item(s2, father.pos_stack[s2] + 1);
                     } else {
                         // Check is the whold stack has already been packed.
                         if (father.pos_stack[s2] == instance().stack_size(s2))
@@ -613,23 +631,55 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                                     && father.pos_stack[sp2]
                                     <= father.pos_stack[s2]))
                             continue;
-                        j2 = instance().item(s2, father.pos_stack[s2]);
+                        item_type_id_2 = instance().item(s2, father.pos_stack[s2]);
                     }
 
-                    const ItemType& item_type_2 = instance().item_type(j2);
+                    const ItemType& item_type_2 = instance().item_type(item_type_id_2);
                     Length wj2 = instance().width(item_type_2, false, o);
                     Length wj2r = instance().width(item_type_2, true, o);
                     if (wj == wj2)
-                        insertion_2_items(father, insertions, j, false, j2, false, df, info);
+                        insertion_2_items(
+                                father,
+                                insertions,
+                                item_type_id,
+                                false,  // rotate_1
+                                item_type_id_2,
+                                false,  // rotate_2
+                                df,
+                                info);
                     if (!item_type_2.oriented)
                         if (wj == wj2r)
-                            insertion_2_items(father, insertions, j, false, j2, true,  df, info);
+                            insertion_2_items(
+                                    father,
+                                    insertions,
+                                    item_type_id,
+                                    false,  // rotate_1
+                                    item_type_id_2,
+                                    true,  // rotate_2
+                                    df,
+                                    info);
                     if (!item_type.oriented) {
                         if (wjr == wj2)
-                            insertion_2_items(father, insertions, j, true,  j2, false, df, info);
+                            insertion_2_items(
+                                    father,
+                                    insertions,
+                                    item_type_id,
+                                    true,  // rotate_1
+                                    item_type_id_2,
+                                    false,  // rotate_2
+                                    df,
+                                    info);
                         if (!item_type_2.oriented)
                             if (wjr == wj2r)
-                                insertion_2_items(father, insertions, j, true,  j2, true,  df, info);
+                                insertion_2_items(
+                                        father,
+                                        insertions,
+                                        item_type_id,
+                                        true,  // rotate_1
+                                        item_type_id_2,
+                                        true,  // rotate_2
+                                        df,
+                                        info);
                     }
                 }
             }
@@ -638,10 +688,13 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         if (father.father == nullptr || father.item_type_id_1 != -1 || father.item_type_id_2 != -1) {
             BinTypeId bin_type_id = instance().bin_type_id(i);
             const BinType& bin_type = instance().bin_type(bin_type_id);
-            const std::vector<Defect>& defects = bin_type.defects;
-            for (const Defect& defect: defects)
+            for (DefectId defect_id = 0;
+                    defect_id < (DefectId)bin_type.defects.size();
+                    ++defect_id) {
+                const Defect& defect = bin_type.defects[defect_id];
                 if (instance().left(defect, o) >= x && instance().bottom(defect, o) >= y)
-                    insertion_defect(father, insertions, defect, df, info);
+                    insertion_defect(father, insertions, defect_id, df, info);
+            }
         }
     }
 
@@ -760,27 +813,27 @@ BranchingScheme::Front BranchingScheme::front(
 void BranchingScheme::insertion_1_item(
         const Node& father,
         std::vector<Insertion>& insertions,
-        ItemTypeId j,
+        ItemTypeId item_type_id,
         bool rotate,
         Depth df,
         Info& info) const
 {
     FFOT_LOG_FOLD_START(info, "insertion_1_item"
-            << " j " << j << " rotate " << rotate << " df " << df << std::endl);
+            << " item_type_id " << item_type_id << " rotate " << rotate << " df " << df << std::endl);
     assert(-2 <= df); assert(df <= 3);
 
     // Check defect intersection
-    const rectangleguillotine::ItemType& item = instance().item_type(j);
-    Length x = x3_prev(father, df) + instance().width(item, rotate, o);
-    Length y = y2_prev(father, df) + instance().height(item, rotate, o);
+    const rectangleguillotine::ItemType& item_type = instance().item_type(item_type_id);
+    Length x = x3_prev(father, df) + instance().width(item_type, rotate, o);
+    Length y = y2_prev(father, df) + instance().height(item_type, rotate, o);
     BinTypeId bin_type_id = instance().bin_type_id(i);
     const BinType& bin_type = instance().bin_type(bin_type_id);
     Length w = instance().width(bin_type, o) - instance().right_trim(bin_type, o);
     Length h = instance().height(bin_type, o) - instance().top_trim(bin_type, o);
     FFOT_LOG(info, "x3_prev(df) " << x3_prev(father, df) << " y2_prev(df) " << y2_prev(father, df)
             << " i " << i
-            << " w " << instance().width(item, rotate, o)
-            << " h " << instance().height(item, rotate, o)
+            << " w " << instance().width(item_type, rotate, o)
+            << " h " << instance().height(item_type, rotate, o)
             << std::endl);
     if (x > w) {
         FFOT_LOG_FOLD_END(info, "too wide x " << x << " > w " << w);
@@ -793,31 +846,31 @@ void BranchingScheme::insertion_1_item(
 
     // Homogenous
     if (df == 2 && instance().cut_type_2() == CutType2::Homogenous
-            && father.item_type_id_1 != j) {
-        FFOT_LOG_FOLD_END(info, "homogenous father.item_type_id_1 " << father.item_type_id_1 << " j " << j);
+            && father.item_type_id_1 != item_type_id) {
+        FFOT_LOG_FOLD_END(info, "homogenous father.item_type_id_1 " << father.item_type_id_1 << " item_type_id " << item_type_id);
         return;
     }
 
     Insertion insertion {
-        j, -1, df,
+        item_type_id, -1, df,
         x, y, x,
         x1_max(father, df), y2_max(father, df, x), 0, 0};
     FFOT_LOG(info, insertion << std::endl);
 
     // Check defect intersection
-    DefectId k = instance().item_intersects_defect(
+    DefectId defect_id = instance().item_intersects_defect(
             x3_prev(father, df),
             y2_prev(father, df),
-            item,
+            item_type,
             rotate,
             bin_type,
             o);
-    if (k >= 0) {
+    if (defect_id >= 0) {
         if (instance().cut_type_2() == CutType2::Roadef2018
                 || instance().cut_type_2() == CutType2::NonExact) {
             // Place the item on top of its third-level sub-plate
             insertion.item_type_id_1 = -1;
-            insertion.item_type_id_2 = j;
+            insertion.item_type_id_2 = item_type_id;
             Length min_waste = instance().min_waste();
             if (df <= 0)  // y1_prev is the bottom trim.
                 if (instance().bottom_trim_type(bin_type, o) == TrimType::Soft)
@@ -841,46 +894,56 @@ void BranchingScheme::insertion_1_item(
 void BranchingScheme::insertion_2_items(
         const Node& father,
         std::vector<Insertion>& insertions,
-        ItemTypeId j1,
+        ItemTypeId item_type_id_1,
         bool rotate1,
-        ItemTypeId j2,
+        ItemTypeId item_type_id_2,
         bool rotate2,
         Depth df,
         Info& info) const
 {
     FFOT_LOG_FOLD_START(info, "insertion_2_items"
-            << " j1 " << j1 << " rotate1 " << rotate1
-            << " j2 " << j2 << " rotate2 " << rotate2
+            << " item_type_id_1 " << item_type_id_1 << " rotate1 " << rotate1
+            << " item_type_id_2 " << item_type_id_2 << " rotate2 " << rotate2
             << " df " << df << std::endl);
     assert(-2 <= df); assert(df <= 3);
 
     // Check defect intersection
-    const ItemType& item1 = instance().item_type(j1);
-    const ItemType& item2 = instance().item_type(j2);
+    const ItemType& item_type_1 = instance().item_type(item_type_id_1);
+    const ItemType& item_type_2 = instance().item_type(item_type_id_2);
     BinTypeId bin_type_id = instance().bin_type_id(i);
     const BinType& bin_type = instance().bin_type(bin_type_id);
     Length w = instance().width(bin_type, o) - instance().right_trim(bin_type, o);
     Length h = instance().height(bin_type, o) - instance().top_trim(bin_type, o);
-    Length h_j1 = instance().height(item1, rotate1, o);
-    Length x = x3_prev(father, df) + instance().width(item1, rotate1, o);
+    Length h_j1 = instance().height(item_type_1, rotate1, o);
+    Length x = x3_prev(father, df) + instance().width(item_type_1, rotate1, o);
     Length y = y2_prev(father, df)
         + h_j1
         + instance().parameters().cut_thickness
-        + instance().height(item2, rotate2, o);
+        + instance().height(item_type_2, rotate2, o);
     if (x > w || y > h) {
         FFOT_LOG_FOLD_END(info, "too wide/high");
         return;
     }
     if (instance().item_intersects_defect(
-                x3_prev(father, df), y2_prev(father, df), item1, rotate1, bin_type, o) >= 0
+                x3_prev(father, df),
+                y2_prev(father, df),
+                item_type_1,
+                rotate1,
+                bin_type,
+                o) >= 0
             || instance().item_intersects_defect(
-                x3_prev(father, df), y2_prev(father, df) + h_j1, item2, rotate2, bin_type, o) >= 0) {
+                x3_prev(father, df),
+                y2_prev(father, df) + h_j1,
+                item_type_2,
+                rotate2,
+                bin_type,
+                o) >= 0) {
         FFOT_LOG_FOLD_END(info, "intersects defect");
         return;
     }
 
     Insertion insertion {
-        j1, j2, df,
+        item_type_id_1, item_type_id_2, df,
         x, y, x,
         x1_max(father, df), y2_max(father, df, x), 0, 2};
     FFOT_LOG(info, insertion << std::endl);
@@ -891,18 +954,19 @@ void BranchingScheme::insertion_2_items(
 void BranchingScheme::insertion_defect(
         const Node& father,
         std::vector<Insertion>& insertions,
-        const Defect& k,
+        DefectId defect_id,
         Depth df,
         Info& info) const
 {
     FFOT_LOG_FOLD_START(info, "insertion_defect"
-            << " k " << k.id << " df " << df << std::endl);
+            << " defect " << defect_id << " df " << df << std::endl);
     assert(-2 <= df);
     assert(df <= 3);
 
     // Check defect intersection
     BinTypeId bin_type_id = instance().bin_type_id(i);
     const BinType& bin_type = instance().bin_type(bin_type_id);
+    const Defect& defect = bin_type.defects[defect_id];
     Length w = instance().width(bin_type, o) - instance().right_trim(bin_type, o);
     Length h = instance().height(bin_type, o) - instance().top_trim(bin_type, o);
     Length min_waste = instance().min_waste();
@@ -914,8 +978,8 @@ void BranchingScheme::insertion_defect(
     if (df <= 0)  // y2_prev is the bottom trim.
         if (instance().bottom_trim_type(bin_type, o) == TrimType::Soft)
             y_min = min_waste;
-    Length x = std::max(instance().right(k, o), x_min);
-    Length y = std::max(instance().top(k, o), y_min);
+    Length x = std::max(instance().right(defect, o), x_min);
+    Length y = std::max(instance().top(defect, o), y_min);
     if (x > w || y > h) {
         FFOT_LOG_FOLD_END(info, "too wide/high");
         return;
@@ -1127,16 +1191,16 @@ void BranchingScheme::update(
     // Update insertion.x1 and insertion.z1 with respect to defect intersections.
     if (!instance().cut_through_defects()) {
         for (;;) {
-            DefectId k = instance().rect_intersects_defect(
+            DefectId defect_id = instance().rect_intersects_defect(
                     insertion.x1,
                     insertion.x1 + instance().cut_thickness(),
                     0,
                     h_orig,
                     bin_type,
                     o);
-            if (k == -1)
+            if (defect_id == -1)
                 break;
-            const Defect& defect = bin_type.defects[k];
+            const Defect& defect = bin_type.defects[defect_id];
             insertion.x1 = (insertion.z1 == 0)?
                 std::max(instance().right(defect, o), insertion.x1 + cut_thickness + min_waste):
                 instance().right(defect, o);
@@ -1182,15 +1246,15 @@ void BranchingScheme::update(
 
         // Increase y2 if it intersects a defect.
         if (!instance().cut_through_defects()) {
-            DefectId k = instance().rect_intersects_defect(
+            DefectId defect_id = instance().rect_intersects_defect(
                     x1_prev(father, insertion.df),
                     insertion.x1,
                     insertion.y2,
                     insertion.y2 + cut_thickness,
                     bin_type,
                     o);
-            if (k != -1) {
-                const Defect& defect = bin_type.defects[k];
+            if (defect_id != -1) {
+                const Defect& defect = bin_type.defects[defect_id];
                 if (y2_fixed) {
                     FFOT_LOG_FOLD_END(info, "y2_fixed");
                     return;
@@ -1209,13 +1273,18 @@ void BranchingScheme::update(
         // intersects a defect.
         if (insertion.df == 2) {
             for (auto jrx: father.subplate2curr_items_above_defect) {
-                const ItemType& item = instance().item_type(jrx.j);
-                Length h_j2 = instance().height(item, jrx.rotate, o);
+                const ItemType& item_type = instance().item_type(jrx.item_type_id);
+                Length h_j2 = instance().height(item_type, jrx.rotate, o);
                 Length l = jrx.x;
-                DefectId k = instance().item_intersects_defect(
-                        l, insertion.y2 - h_j2, item, jrx.rotate, bin_type, o);
-                if (k >= 0) {
-                    const Defect& defect = bin_type.defects[k];
+                DefectId defect_id = instance().item_intersects_defect(
+                        l,
+                        insertion.y2 - h_j2,
+                        item_type,
+                        jrx.rotate,
+                        bin_type,
+                        o);
+                if (defect_id >= 0) {
+                    const Defect& defect = bin_type.defects[defect_id];
                     if (y2_fixed) {
                         FFOT_LOG_FOLD_END(info, "y2_fixed");
                         return;
@@ -1231,15 +1300,20 @@ void BranchingScheme::update(
             }
         }
         if (insertion.item_type_id_1 == -1 && insertion.item_type_id_2 != -1) {
-            const ItemType& item = instance().item_type(insertion.item_type_id_2);
+            const ItemType& item_type = instance().item_type(insertion.item_type_id_2);
             Length w_j = insertion.x3 - x3_prev(father, insertion.df);
-            bool rotate_j2 = (instance().width(item, true, o) == w_j);
-            Length h_j2 = instance().height(item, rotate_j2, o);
+            bool rotate_j2 = (instance().width(item_type, true, o) == w_j);
+            Length h_j2 = instance().height(item_type, rotate_j2, o);
             Length l = x3_prev(father, insertion.df);
-            DefectId k = instance().item_intersects_defect(
-                    l, insertion.y2 - h_j2, item, rotate_j2, bin_type, o);
-            if (k >= 0) {
-                const Defect& defect = bin_type.defects[k];
+            DefectId defect_id = instance().item_intersects_defect(
+                    l,
+                    insertion.y2 - h_j2,
+                    item_type,
+                    rotate_j2,
+                    bin_type,
+                    o);
+            if (defect_id >= 0) {
+                const Defect& defect = bin_type.defects[defect_id];
                 if (y2_fixed) {
                     FFOT_LOG_FOLD_END(info, "y2_fixed");
                     return;
@@ -1267,12 +1341,17 @@ void BranchingScheme::update(
 
             if (insertion.df == 2) {
                 for (auto jrx: father.subplate2curr_items_above_defect) {
-                    const ItemType& item = instance().item_type(jrx.j);
+                    const ItemType& item_type = instance().item_type(jrx.item_type_id);
                     Length l = jrx.x;
-                    Length h_j2 = instance().height(item, jrx.rotate, o);
-                    DefectId k = instance().item_intersects_defect(
-                            l, insertion.y2 - h_j2, item, jrx.rotate, bin_type, o);
-                    if (k >= 0) {
+                    Length h_j2 = instance().height(item_type, jrx.rotate, o);
+                    DefectId defect_id = instance().item_intersects_defect(
+                            l,
+                            insertion.y2 - h_j2,
+                            item_type,
+                            jrx.rotate,
+                            bin_type,
+                            o);
+                    if (defect_id >= 0) {
                         FFOT_LOG_FOLD_END(info, "too high");
                         return;
                     }
@@ -1280,14 +1359,19 @@ void BranchingScheme::update(
             }
 
             if (insertion.item_type_id_1 == -1 && insertion.item_type_id_2 != -1) {
-                const ItemType& item = instance().item_type(insertion.item_type_id_2);
+                const ItemType& item_type = instance().item_type(insertion.item_type_id_2);
                 Length w_j = insertion.x3 - x3_prev(father, insertion.df);
-                bool rotate_j2 = (instance().width(item, true, o) == w_j);
-                Length h_j2 = instance().height(item, rotate_j2, o);
+                bool rotate_j2 = (instance().width(item_type, true, o) == w_j);
+                Length h_j2 = instance().height(item_type, rotate_j2, o);
                 Length l = x3_prev(father, insertion.df);
-                DefectId k = instance().item_intersects_defect(
-                        l, insertion.y2 - h_j2, item, rotate_j2, bin_type, o);
-                if (k >= 0) {
+                DefectId defect_id = instance().item_intersects_defect(
+                        l,
+                        insertion.y2 - h_j2,
+                        item_type,
+                        rotate_j2,
+                        bin_type,
+                        o);
+                if (defect_id >= 0) {
                     FFOT_LOG_FOLD_END(info, "too high");
                     return;
                 }
@@ -1320,14 +1404,14 @@ void BranchingScheme::update(
     // Check if 3-cut is cutting through a defect when cutting through a defect
     // is not allowed and cut thickness is non-null.
     if (!instance().cut_through_defects() && cut_thickness > 0) {
-        DefectId k = instance().rect_intersects_defect(
+        DefectId defect_id = instance().rect_intersects_defect(
                 insertion.x3,
                 insertion.x3 + cut_thickness,
                 y2_prev(father, insertion.df),
                 insertion.y2,
                 bin_type,
                 o);
-        if (k != -1)
+        if (defect_id != -1)
             return;
     }
 

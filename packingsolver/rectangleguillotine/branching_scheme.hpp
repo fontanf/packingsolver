@@ -111,7 +111,7 @@ public:
 
     struct JRX
     {
-        ItemTypeId j;
+        ItemTypeId item_type_id;
         bool rotate;
         Length x;
     };
@@ -487,7 +487,7 @@ private:
     void insertion_defect(
             const Node& father,
             std::vector<Insertion>& insertions,
-            const Defect& defect_id,
+            DefectId defect_id,
             Depth df,
             Info& info) const;
 
