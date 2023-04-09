@@ -62,7 +62,7 @@ Output packingsolver::rectangleguillotine::optimize(
 
         std::vector<CutOrientation> first_stage_orientations = {instance.first_stage_orientation()};
         if (instance.number_of_bins() == 1
-                && instance.bin(0).rect.w != instance.bin(0).rect.h
+                && instance.bin_type(0).rect.w != instance.bin_type(0).rect.h
                 && instance.first_stage_orientation() == CutOrientation::Any) {
             first_stage_orientations = {CutOrientation::Vertical, CutOrientation::Horinzontal};
         }
