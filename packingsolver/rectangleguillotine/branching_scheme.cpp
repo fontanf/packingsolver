@@ -370,8 +370,8 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     node.id = node_id_;
     node_id_++;
     node.father = pfather;
-    node.j1 = insertion.j1;
-    node.j2 = insertion.j2;
+    node.item_type_id_1 = insertion.item_type_id_1;
+    node.item_type_id_2 = insertion.item_type_id_2;
     node.df = insertion.df;
     node.x1_curr = insertion.x1;
     node.y2_curr = insertion.y2;
@@ -427,17 +427,19 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     }
 
     Length w_j = node.x3_curr - x3_prev(father, node.df);
-    //bool rotate_j1 = (insertion.j1 == -1)? false: (instance().width(instance().item(insertion.j1), true, o) == w_j);
-    bool rotate_j2 = (node.j2 == -1)? false: (instance().width(instance().item_type(node.j2), true, o) == w_j);
-    //Length h_j1 = (insertion.j1 == -1)? -1: instance().height(instance().item_type(insertion.j1), rotate_j1, o);
-    //Length h_j2 = (insertion.j2 == -1)? -1: instance().height(instance().item_type(insertion.j2), rotate_j2, o);
+    //bool rotate_j1 = (insertion.item_type_id_1 == -1)? false: (instance().width(instance().item(insertion.item_type_id_1), true, o) == w_j);
+    bool rotate_j2 = (node.item_type_id_2 == -1)?
+        false:
+        (instance().width(instance().item_type(node.item_type_id_2), true, o) == w_j);
+    //Length h_j1 = (insertion.item_type_id_1 == -1)? -1: instance().height(instance().item_type(insertion.item_type_id_1), rotate_j1, o);
+    //Length h_j2 = (insertion.item_type_id_2 == -1)? -1: instance().height(instance().item_type(insertion.item_type_id_2), rotate_j2, o);
 
     // Compute subplate2curr_items_above_defect.
     if (node.df == 2)
         node.subplate2curr_items_above_defect = father.subplate2curr_items_above_defect;
-    if (node.j1 == -1 && node.j2 != -1) {
+    if (node.item_type_id_1 == -1 && node.item_type_id_2 != -1) {
         JRX jrx;
-        jrx.j = insertion.j2;
+        jrx.j = insertion.item_type_id_2;
         jrx.rotate = rotate_j2;
         jrx.x = x3_prev(father, node.df);
         node.subplate2curr_items_above_defect.push_back(jrx);
@@ -449,16 +451,16 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     node.item_area = father.item_area;
     node.squared_item_area = father.squared_item_area;
     node.profit = father.profit;
-    if (insertion.j1 != -1) {
-        const ItemType& item = instance().item_type(insertion.j1);
+    if (insertion.item_type_id_1 != -1) {
+        const ItemType& item = instance().item_type(insertion.item_type_id_1);
         node.pos_stack[item.stack]++;
         node.number_of_items += 1;
         node.item_area += item.area();
         node.squared_item_area += item.area() * item.area();
         node.profit += item.profit;
     }
-    if (insertion.j2 != -1) {
-        const ItemType& item = instance().item_type(insertion.j2);
+    if (insertion.item_type_id_2 != -1) {
+        const ItemType& item = instance().item_type(insertion.item_type_id_2);
         node.pos_stack[item.stack]++;
         node.number_of_items += 1;
         node.item_area += item.area();
@@ -537,7 +539,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         // Simple dominance rule
         bool stop = false;
         for (const Insertion& insertion: insertions) {
-            if (insertion.j1 == -1 && insertion.j2 == -1)
+            if (insertion.item_type_id_1 == -1 && insertion.item_type_id_2 == -1)
                 continue;
             if (df == 1
                     && insertion.x1 == father.x1_curr
@@ -633,7 +635,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             }
         }
 
-        if (father.father == nullptr || father.j1 != -1 || father.j2 != -1) {
+        if (father.father == nullptr || father.item_type_id_1 != -1 || father.item_type_id_2 != -1) {
             BinTypeId bin_type_id = instance().bin_type_id(i);
             const BinType& bin_type = instance().bin_type(bin_type_id);
             const std::vector<Defect>& defects = bin_type.defects;
@@ -664,13 +666,13 @@ Area BranchingScheme::waste(
     Front f = front(node, insertion);
     ItemPos n = node.number_of_items;
     Area item_area = node.item_area;
-    if (insertion.j1 != -1) {
+    if (insertion.item_type_id_1 != -1) {
         n++;
-        item_area += instance().item_type(insertion.j1).area();
+        item_area += instance().item_type(insertion.item_type_id_1).area();
     }
-    if (insertion.j2 != -1) {
+    if (insertion.item_type_id_2 != -1) {
         n++;
-        item_area += instance().item_type(insertion.j2).area();
+        item_area += instance().item_type(insertion.item_type_id_2).area();
     }
     Area current_area = (n == instance().number_of_items())?
         instance().previous_bin_area(i)
@@ -791,8 +793,8 @@ void BranchingScheme::insertion_1_item(
 
     // Homogenous
     if (df == 2 && instance().cut_type_2() == CutType2::Homogenous
-            && father.j1 != j) {
-        FFOT_LOG_FOLD_END(info, "homogenous father.j1 " << father.j1 << " j " << j);
+            && father.item_type_id_1 != j) {
+        FFOT_LOG_FOLD_END(info, "homogenous father.item_type_id_1 " << father.item_type_id_1 << " j " << j);
         return;
     }
 
@@ -814,8 +816,8 @@ void BranchingScheme::insertion_1_item(
         if (instance().cut_type_2() == CutType2::Roadef2018
                 || instance().cut_type_2() == CutType2::NonExact) {
             // Place the item on top of its third-level sub-plate
-            insertion.j1 = -1;
-            insertion.j2 = j;
+            insertion.item_type_id_1 = -1;
+            insertion.item_type_id_2 = j;
             Length min_waste = instance().min_waste();
             if (df <= 0)  // y1_prev is the bottom trim.
                 if (instance().bottom_trim_type(bin_type, o) == TrimType::Soft)
@@ -957,7 +959,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.x1 and insertion.z1 with respect to min1cut()
-    if ((insertion.j1 != -1 || insertion.j2 != -1)
+    if ((insertion.item_type_id_1 != -1 || insertion.item_type_id_2 != -1)
             && insertion.x1 - x1_prev(father, insertion.df) < instance().min1cut()) {
         if (insertion.z1 == 0) {
             insertion.x1 = std::max(
@@ -970,7 +972,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.y2 and insertion.z2 with respect to min2cut()
-    if ((insertion.j1 != -1 || insertion.j2 != -1)
+    if ((insertion.item_type_id_1 != -1 || insertion.item_type_id_2 != -1)
             && insertion.y2 - y2_prev(father, insertion.df) < instance().min2cut()) {
         if (insertion.z2 == 0) {
             insertion.y2 = std::max(
@@ -1228,8 +1230,8 @@ void BranchingScheme::update(
                 }
             }
         }
-        if (insertion.j1 == -1 && insertion.j2 != -1) {
-            const ItemType& item = instance().item_type(insertion.j2);
+        if (insertion.item_type_id_1 == -1 && insertion.item_type_id_2 != -1) {
+            const ItemType& item = instance().item_type(insertion.item_type_id_2);
             Length w_j = insertion.x3 - x3_prev(father, insertion.df);
             bool rotate_j2 = (instance().width(item, true, o) == w_j);
             Length h_j2 = instance().height(item, rotate_j2, o);
@@ -1277,8 +1279,8 @@ void BranchingScheme::update(
                 }
             }
 
-            if (insertion.j1 == -1 && insertion.j2 != -1) {
-                const ItemType& item = instance().item_type(insertion.j2);
+            if (insertion.item_type_id_1 == -1 && insertion.item_type_id_2 != -1) {
+                const ItemType& item = instance().item_type(insertion.item_type_id_2);
                 Length w_j = insertion.x3 - x3_prev(father, insertion.df);
                 bool rotate_j2 = (instance().width(item, true, o) == w_j);
                 Length h_j2 = instance().height(item, rotate_j2, o);
@@ -1334,24 +1336,24 @@ void BranchingScheme::update(
         bool b = true;
         FFOT_LOG(info, "f_i  " << front(father, insertion) << std::endl);
         FFOT_LOG(info, "f_it " << front(father, *it) << std::endl);
-        if (insertion.j1 == -1 && insertion.j2 == -1
-                && it->j1 == -1 && it->j2 == -1) {
+        if (insertion.item_type_id_1 == -1 && insertion.item_type_id_2 == -1
+                && it->item_type_id_1 == -1 && it->item_type_id_2 == -1) {
             if (insertion.df != -1 && insertion.x1 == it->x1 && insertion.y2 == it->y2 && insertion.x3 == it->x3) {
                 FFOT_LOG_FOLD_END(info, "dominated by " << *it);
                 return;
             }
         }
-        if ((it->j1 != -1 || it->j2 != -1)
-                && (insertion.j1 == -1 || insertion.j1 == it->j1 || insertion.j1 == it->j2)
-                && (insertion.j2 == -1 || insertion.j2 == it->j2 || insertion.j2 == it->j2)) {
+        if ((it->item_type_id_1 != -1 || it->item_type_id_2 != -1)
+                && (insertion.item_type_id_1 == -1 || insertion.item_type_id_1 == it->item_type_id_1 || insertion.item_type_id_1 == it->item_type_id_2)
+                && (insertion.item_type_id_2 == -1 || insertion.item_type_id_2 == it->item_type_id_2 || insertion.item_type_id_2 == it->item_type_id_2)) {
             if (dominates(front(father, *it), front(father, insertion))) {
                 FFOT_LOG_FOLD_END(info, "dominated by " << *it);
                 return;
             }
         }
-        if ((insertion.j1 != -1 || insertion.j2 != -1)
-                && (it->j1 == insertion.j1 || it->j1 == insertion.j2)
-                && (it->j2 == insertion.j2 || it->j2 == insertion.j1)) {
+        if ((insertion.item_type_id_1 != -1 || insertion.item_type_id_2 != -1)
+                && (it->item_type_id_1 == insertion.item_type_id_1 || it->item_type_id_1 == insertion.item_type_id_2)
+                && (it->item_type_id_2 == insertion.item_type_id_2 || it->item_type_id_2 == insertion.item_type_id_1)) {
             if (dominates(front(father, insertion), front(father, *it))) {
                 FFOT_LOG(info, "dominates " << *it << std::endl);
                 if (std::next(it) != insertions.end()) {
@@ -1507,7 +1509,7 @@ Solution BranchingScheme::to_solution(
         BinTypeId bin_type_id = instance().bin_type_id(i);
         const BinType& bin_type = instance().bin_type(bin_type_id);
         CutOrientation o = current_node->first_stage_orientation;
-        bool has_item = (current_node->j1 != -1 || current_node->j2 != -1);
+        bool has_item = (current_node->item_type_id_1 != -1 || current_node->item_type_id_2 != -1);
         Depth df_next = (node_pos < (SolutionNodeId)descendents.size() - 1)?
             descendents[node_pos + 1]->df: -1;
         //std::cout << ">>> node"
@@ -1520,8 +1522,8 @@ Solution BranchingScheme::to_solution(
         //    << " x3c " << current_node->x3_curr
         //    << " z1 " << current_node->z1
         //    << " z2 " << current_node->z2
-        //    << " j1 " << current_node->j1
-        //    << " j2 " << current_node->j2
+        //    << " j1 " << current_node->item_type_id_1
+        //    << " j2 " << current_node->item_type_id_2
         //    << std::endl;
 
         // We don't want sub-plates with children containing only waste.
@@ -1542,7 +1544,7 @@ Solution BranchingScheme::to_solution(
             n.r = bin_type.rect.w;
             n.b = 0;
             n.t = bin_type.rect.h;
-            n.j = (b1)? -1: -2;
+            n.item_type_id = (b1)? -1: -2;
             subplate0_curr = id;
             NodeId father_id = id;
 
@@ -1563,7 +1565,7 @@ Solution BranchingScheme::to_solution(
                     n.r = bin_type.left_trim;
                     n.b = 0;
                     n.t = bin_type.bottom_trim;
-                    n.j = -1;
+                    n.item_type_id = -1;
                 }
 
                 if (bin_type.left_trim != 0 && bin_type.top_trim != 0) {
@@ -1577,7 +1579,7 @@ Solution BranchingScheme::to_solution(
                     n.r = bin_type.left_trim;
                     n.b = bin_type.rect.h - bin_type.top_trim;
                     n.t = bin_type.rect.h;
-                    n.j = -1;
+                    n.item_type_id = -1;
                 }
 
                 if (bin_type.right_trim != 0 && bin_type.bottom_trim != 0) {
@@ -1591,7 +1593,7 @@ Solution BranchingScheme::to_solution(
                     n.r = bin_type.rect.w;
                     n.b = 0;
                     n.t = bin_type.bottom_trim;
-                    n.j = -1;
+                    n.item_type_id = -1;
                 }
 
                 if (bin_type.right_trim != 0 && bin_type.top_trim != 0) {
@@ -1605,7 +1607,7 @@ Solution BranchingScheme::to_solution(
                     n.r = bin_type.rect.w;
                     n.b = bin_type.rect.h - bin_type.top_trim;
                     n.t = bin_type.rect.h;
-                    n.j = -1;
+                    n.item_type_id = -1;
                 }
 
                 if (bin_type.left_trim != 0) {
@@ -1619,7 +1621,7 @@ Solution BranchingScheme::to_solution(
                     n.r = bin_type.left_trim;
                     n.b = bin_type.bottom_trim;
                     n.t = bin_type.rect.h - bin_type.top_trim;
-                    n.j = -1;
+                    n.item_type_id = -1;
                 }
 
                 if (bin_type.bottom_trim != 0) {
@@ -1633,7 +1635,7 @@ Solution BranchingScheme::to_solution(
                     n.r = bin_type.rect.w - bin_type.right_trim;
                     n.b = 0;
                     n.t = bin_type.bottom_trim;
-                    n.j = -1;
+                    n.item_type_id = -1;
                 }
 
                 if (bin_type.right_trim != 0) {
@@ -1647,7 +1649,7 @@ Solution BranchingScheme::to_solution(
                     n.r = bin_type.rect.w;
                     n.b = bin_type.bottom_trim;
                     n.t = bin_type.rect.h - bin_type.top_trim;
-                    n.j = -1;
+                    n.item_type_id = -1;
                 }
 
                 if (bin_type.top_trim != 0) {
@@ -1661,7 +1663,7 @@ Solution BranchingScheme::to_solution(
                     n.r = bin_type.rect.w - bin_type.right_trim;
                     n.b = bin_type.rect.h - bin_type.top_trim;
                     n.t = bin_type.rect.h;
-                    n.j = -1;
+                    n.item_type_id = -1;
                 }
 
                 nodes.push_back(SolutionNode());
@@ -1674,7 +1676,7 @@ Solution BranchingScheme::to_solution(
                 n.r = bin_type.rect.w - bin_type.right_trim;
                 n.b = bin_type.bottom_trim;
                 n.t = bin_type.rect.h - bin_type.top_trim;
-                n.j = (b1)? -1: -2;
+                n.item_type_id = (b1)? -1: -2;
                 subplate0_curr = id;
             }
 
@@ -1715,7 +1717,7 @@ Solution BranchingScheme::to_solution(
                 n.b = current_node->x1_prev;
                 n.t = subplate1_curr_x1;
             }
-            n.j = (b2)? -1: -2;
+            n.item_type_id = (b2)? -1: -2;
             nodes[subplate0_curr].children.push_back(id);
             subplate1_curr = id;
             //std::cout << n << std::endl;
@@ -1756,7 +1758,7 @@ Solution BranchingScheme::to_solution(
                 n.b = nodes[s].b;
                 n.t = nodes[s].t;
             }
-            n.j = (b3)? -1: -2;
+            n.item_type_id = (b3)? -1: -2;
             subplate2_curr = id;
             //std::cout << n << std::endl;
         }
@@ -1784,7 +1786,7 @@ Solution BranchingScheme::to_solution(
                 n.b = x3_prev(*current_node->father, current_node->df);
                 n.t = current_node->x3_curr;
             }
-            n.j = (has_item)? -2: -1;
+            n.item_type_id = (has_item)? -2: -1;
             subplate3_curr = id;
             //std::cout << n << std::endl;
         }
@@ -1805,16 +1807,16 @@ Solution BranchingScheme::to_solution(
                 n.l = nodes[subplate3_curr].l;
                 n.r = nodes[subplate3_curr].r;
                 n.b = nodes[subplate3_curr].b;
-                if (current_node->j1 != -1) {
-                    //std::cout << instance().item_type(current_node->j1) << std::endl;
-                    Length hj = (w_tmp == instance().item_type(current_node->j1).rect.w)?
-                        instance().item_type(current_node->j1).rect.h:
-                        instance().item_type(current_node->j1).rect.w;
+                if (current_node->item_type_id_1 != -1) {
+                    //std::cout << instance().item_type(current_node->item_type_id_1) << std::endl;
+                    Length hj = (w_tmp == instance().item_type(current_node->item_type_id_1).rect.w)?
+                        instance().item_type(current_node->item_type_id_1).rect.h:
+                        instance().item_type(current_node->item_type_id_1).rect.w;
                     n.t = nodes[subplate3_curr].b + hj;
-                } else if (current_node->j2 != -1) {
-                    Length hj = (w_tmp == instance().item_type(current_node->j2).rect.w)?
-                        instance().item_type(current_node->j2).rect.h:
-                        instance().item_type(current_node->j2).rect.w;
+                } else if (current_node->item_type_id_2 != -1) {
+                    Length hj = (w_tmp == instance().item_type(current_node->item_type_id_2).rect.w)?
+                        instance().item_type(current_node->item_type_id_2).rect.h:
+                        instance().item_type(current_node->item_type_id_2).rect.w;
                     n.t = nodes[subplate3_curr].t - hj;
                 } else {
                     n.t = nodes[subplate3_curr].t;
@@ -1823,16 +1825,16 @@ Solution BranchingScheme::to_solution(
                 Length h_tmp = nodes[subplate3_curr].t - nodes[subplate3_curr].b;
 
                 n.l = nodes[subplate3_curr].l;
-                if (current_node->j1 != -1) {
-                    //std::cout << instance().item_type(current_node->j1) << std::endl;
-                    Length wj = (h_tmp == instance().item_type(current_node->j1).rect.h)?
-                        instance().item_type(current_node->j1).rect.w:
-                        instance().item_type(current_node->j1).rect.h;
+                if (current_node->item_type_id_1 != -1) {
+                    //std::cout << instance().item_type(current_node->item_type_id_1) << std::endl;
+                    Length wj = (h_tmp == instance().item_type(current_node->item_type_id_1).rect.h)?
+                        instance().item_type(current_node->item_type_id_1).rect.w:
+                        instance().item_type(current_node->item_type_id_1).rect.h;
                     n.r = nodes[subplate3_curr].l + wj;
-                } else if (current_node->j2 != -1) {
-                    Length wj = (h_tmp == instance().item_type(current_node->j2).rect.h)?
-                        instance().item_type(current_node->j2).rect.w:
-                        instance().item_type(current_node->j2).rect.h;
+                } else if (current_node->item_type_id_2 != -1) {
+                    Length wj = (h_tmp == instance().item_type(current_node->item_type_id_2).rect.h)?
+                        instance().item_type(current_node->item_type_id_2).rect.w:
+                        instance().item_type(current_node->item_type_id_2).rect.h;
                     n.r = nodes[subplate3_curr].r - wj;
                 } else {
                     n.r = nodes[subplate3_curr].r;
@@ -1840,7 +1842,7 @@ Solution BranchingScheme::to_solution(
                 n.b = nodes[subplate3_curr].b;
                 n.t = nodes[subplate3_curr].t;
             }
-            n.j = (current_node->j1 != -1)? current_node->j1: -1;
+            n.item_type_id = (current_node->item_type_id_1 != -1)? current_node->item_type_id_1: -1;
             //std::cout << n << std::endl;
 
             // Add an additional fourth-level sub-plate if necessary.
@@ -1858,16 +1860,16 @@ Solution BranchingScheme::to_solution(
                 n.l = nodes[subplate3_curr].l;
                 n.r = nodes[subplate3_curr].r;
                 n.t = nodes[subplate3_curr].t;
-                if (current_node->j2 == -1) {
+                if (current_node->item_type_id_2 == -1) {
                     n.b = t;
-                    n.j = -1;
+                    n.item_type_id = -1;
                 } else {
                     Length w_tmp = nodes[subplate3_curr].r - nodes[subplate3_curr].l;
-                    Length hj = (w_tmp == instance().item_type(current_node->j2).rect.w)?
-                        instance().item_type(current_node->j2).rect.h:
-                        instance().item_type(current_node->j2).rect.w;
+                    Length hj = (w_tmp == instance().item_type(current_node->item_type_id_2).rect.w)?
+                        instance().item_type(current_node->item_type_id_2).rect.h:
+                        instance().item_type(current_node->item_type_id_2).rect.w;
                     n.b = n.t - hj;
-                    n.j = current_node->j2;
+                    n.item_type_id = current_node->item_type_id_2;
                 }
                 //std::cout << n << std::endl;
             }
@@ -1883,16 +1885,16 @@ Solution BranchingScheme::to_solution(
                 n.r = nodes[subplate3_curr].r;
                 n.b = nodes[subplate3_curr].b;
                 n.t = nodes[subplate3_curr].t;
-                if (current_node->j2 == -1) {
+                if (current_node->item_type_id_2 == -1) {
                     n.l = r;
-                    n.j = -1;
+                    n.item_type_id = -1;
                 } else {
                     Length h_tmp = nodes[subplate3_curr].t - nodes[subplate3_curr].b;
-                    Length wj = (h_tmp == instance().item_type(current_node->j1).rect.h)?
-                        instance().item_type(current_node->j1).rect.w:
-                        instance().item_type(current_node->j1).rect.h;
+                    Length wj = (h_tmp == instance().item_type(current_node->item_type_id_1).rect.h)?
+                        instance().item_type(current_node->item_type_id_1).rect.w:
+                        instance().item_type(current_node->item_type_id_1).rect.h;
                     n.l = n.r - wj;
-                    n.j = current_node->j2;
+                    n.item_type_id = current_node->item_type_id_2;
                 }
                 //std::cout << n << std::endl;
             }
@@ -1914,7 +1916,7 @@ Solution BranchingScheme::to_solution(
             n.r = nodes[subplate2_curr].r;
             n.b = nodes[subplate2_curr].b;
             n.t = nodes[subplate2_curr].t;
-            n.j = -1;
+            n.item_type_id = -1;
             //std::cout << n << std::endl;
         }
         if (df_next <= 1
@@ -1932,7 +1934,7 @@ Solution BranchingScheme::to_solution(
             n.r = nodes[subplate2_curr].r;
             n.b = nodes[subplate3_curr].t;
             n.t = nodes[subplate2_curr].t;
-            n.j = -1;
+            n.item_type_id = -1;
             //std::cout << n << std::endl;
         }
 
@@ -1954,7 +1956,7 @@ Solution BranchingScheme::to_solution(
             n.b = nodes[subplate2_curr].t;
             n.t = nodes[s].t;
             // Might be the residual if two-staged.
-            n.j = (instance().cut_type_1() == CutType1::TwoStagedGuillotine && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
+            n.item_type_id = (instance().cut_type_1() == CutType1::TwoStagedGuillotine && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
             //std::cout << n << std::endl;
         }
         if (df_next <= 0
@@ -1973,7 +1975,7 @@ Solution BranchingScheme::to_solution(
             n.b = nodes[s].b;
             n.t = nodes[s].t;
             // Might be the residual if two-staged.
-            n.j = (instance().cut_type_1() == CutType1::TwoStagedGuillotine && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
+            n.item_type_id = (instance().cut_type_1() == CutType1::TwoStagedGuillotine && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
             //std::cout << n << std::endl;
         }
 
@@ -1995,7 +1997,7 @@ Solution BranchingScheme::to_solution(
             n.b = nodes[subplate0_curr].b;
             n.t = nodes[subplate0_curr].t;
             // Might be the residual.
-            n.j = (node_pos < (SolutionNodeId)descendents.size() - 1)? -1: -3;
+            n.item_type_id = (node_pos < (SolutionNodeId)descendents.size() - 1)? -1: -3;
             //std::cout << n << std::endl;
         }
         if (instance().cut_type_1() != CutType1::TwoStagedGuillotine
@@ -2015,7 +2017,7 @@ Solution BranchingScheme::to_solution(
             n.b = nodes[subplate1_curr].t;
             n.t = nodes[subplate0_curr].t;
             // Might be the residual.
-            n.j = (node_pos < (SolutionNodeId)descendents.size() - 1)? -1: -3;
+            n.item_type_id = (node_pos < (SolutionNodeId)descendents.size() - 1)? -1: -3;
             //std::cout << n << std::endl;
         }
 
@@ -2037,8 +2039,8 @@ Solution BranchingScheme::to_solution(
 
 bool BranchingScheme::Insertion::operator==(const Insertion& insertion) const
 {
-    return ((j1 == insertion.j1)
-            && (j2 == insertion.j2)
+    return ((item_type_id_1 == insertion.item_type_id_1)
+            && (item_type_id_2 == insertion.item_type_id_2)
             && (df == insertion.df)
             && (x1 == insertion.x1)
             && (y2 == insertion.y2)
@@ -2053,8 +2055,8 @@ bool BranchingScheme::Insertion::operator==(const Insertion& insertion) const
 std::ostream& packingsolver::rectangleguillotine::operator<<(
         std::ostream &os, const BranchingScheme::Insertion& insertion)
 {
-    os << "j1 " << insertion.j1
-        << " j2 " << insertion.j2
+    os << "item_type_id_1 " << insertion.item_type_id_1
+        << " item_type_id_2 " << insertion.item_type_id_2
         << " df " << insertion.df
         << " x1 " << insertion.x1
         << " y2 " << insertion.y2

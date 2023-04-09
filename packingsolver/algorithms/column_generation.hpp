@@ -177,7 +177,7 @@ std::vector<Column> solution2column(
     std::vector<Column> columns;
     BinPos m = solution.instance().number_of_bin_types();
     for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
-        BinTypeId bin_type_id = solution.bin(bin_pos).i;
+        BinTypeId bin_type_id = solution.bin(bin_pos).bin_type_id;
         Solution solution_i(solution.instance());
         solution_i.append(solution, bin_pos, 1);
         VariableSizeBinPackingColumnExtra<Solution> extra {solution_i, bin_type_id, {}};

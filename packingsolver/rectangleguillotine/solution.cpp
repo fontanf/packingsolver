@@ -29,7 +29,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         << " r " << node.r
         << " b " << node.b
         << " t " << node.t
-        << " j " << node.j;
+        << " item_type_id " << node.item_type_id;
     return os;
 }
 
@@ -43,7 +43,7 @@ BinPos Solution::add_bin(
 {
     BinPos bin_pos = bins_.size();
     SolutionBin solution_bin;
-    solution_bin.i = bin_type_id;
+    solution_bin.bin_type_id = bin_type_id;
     solution_bin.copies = 1;
     bins_.push_back(solution_bin);
 
@@ -64,18 +64,18 @@ void Solution::add_node(
         BinPos bin_pos,
         const SolutionNode& node)
 {
-    BinTypeId bin_type_id = bins_[bin_pos].i;
+    BinTypeId bin_type_id = bins_[bin_pos].bin_type_id;
     const BinType& bin_type = instance().bin_type(bin_type_id);
 
     bins_[bin_pos].nodes.push_back(node);
     if (node.d >= 0)
-    if (node.j >= 0) {
+    if (node.item_type_id >= 0) {
         number_of_items_++;
-        item_area_ += instance().item_type(node.j).area();
-        profit_ += instance().item_type(node.j).profit;
-        item_copies_[node.j]++;
+        item_area_ += instance().item_type(node.item_type_id).area();
+        profit_ += instance().item_type(node.item_type_id).profit;
+        item_copies_[node.item_type_id]++;
     }
-    if (node.j == -3) // Subtract residual area
+    if (node.item_type_id == -3) // Subtract residual area
         area_ -= (node.t - node.b) * (node.r - node.l);
     // Update width_ and height_
     if (node.r < bin_type.rect.w && width_ < node.r)
@@ -92,17 +92,17 @@ void Solution::append(
         const std::vector<ItemTypeId>& item_type_ids)
 {
     BinTypeId bin_type_id = (bin_type_ids.empty())?
-        solution.bins_[bin_pos].i:
-        bin_type_ids[solution.bins_[bin_pos].i];
+        solution.bins_[bin_pos].bin_type_id:
+        bin_type_ids[solution.bins_[bin_pos].bin_type_id];
     for (BinPos copie = 0; copie < copies; ++copie) {
         BinPos i_pos = add_bin(bin_type_id, {});
         for (SolutionNode node: solution.bin(bin_pos).nodes) {
-            if (node.j >= 0)
-                node.j = (item_type_ids.empty())?
-                    node.j:
-                    item_type_ids[node.j];
-            if (node.j == -3)
-                node.j = -1;
+            if (node.item_type_id >= 0)
+                node.item_type_id = (item_type_ids.empty())?
+                    node.item_type_id:
+                    item_type_ids[node.item_type_id];
+            if (node.item_type_id == -3)
+                node.item_type_id = -1;
             add_node(i_pos, node);
         }
     }
@@ -482,7 +482,7 @@ void Solution::write(Info& info) const
                     << n.b << ","
                     << n.r - n.l << ","
                     << n.t - n.b << ","
-                    << n.j << ","
+                    << n.item_type_id << ","
                     << n.d << ",";
                 if (n.f != -1)
                     f << n.f;
