@@ -183,6 +183,17 @@ struct ItemShape
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+struct Parameters
+{
+    /**
+     * Quality rules.
+     *
+     * if 'quality_rules_[quality_rule][k] = 0' (resp. '1'), then defect 'k' is
+     * not allowed (resp. allowed) for qulity rule rule 'quality_rule'.
+     */
+    std::vector<std::vector<uint8_t>> quality_rules;
+};
+
 /**
  * Defect structure for a problem of type 'irregular'.
  */
@@ -199,6 +210,43 @@ struct Defect
 
     /** Type of the defect. */
     DefectTypeId type;
+
+    std::string to_string(Counter indentation) const;
+};
+
+/**
+ * Bin type structure for a problem of type 'irregular'.
+ */
+struct BinType
+{
+    /** Id of the bin type. */
+    BinTypeId id;
+
+    /** Cost of the bin type. */
+    Profit cost;
+
+    /** Maximum number of copies of the bin type. */
+    BinPos copies;
+
+    /** Minimum number of copies to use of the bin type. */
+    BinPos copies_min;
+
+    /** Shape of the bin type. */
+    Shape shape;
+
+    /** Defects of the bin type. */
+    std::vector<Defect> defects;
+
+    /*
+     * Computed attributes.
+     */
+
+    /** Area of the bin type. */
+    AreaDbl area = 0.0;
+
+    AreaDbl space() const { return area; }
+
+    AreaDbl packable_area(QualityRule quality_rule) const { (void)quality_rule; return 0; } // TODO
 
     std::string to_string(Counter indentation) const;
 };
@@ -255,53 +303,6 @@ struct ItemType
     std::string to_string(Counter indentation) const;
 };
 
-/**
- * Bin type structure for a problem of type 'irregular'.
- */
-struct BinType
-{
-    /** Id of the bin type. */
-    BinTypeId id;
-
-    /** Cost of the bin type. */
-    Profit cost;
-
-    /** Maximum number of copies of the bin type. */
-    BinPos copies;
-
-    /** Minimum number of copies to use of the bin type. */
-    BinPos copies_min;
-
-    /** Shape of the bin type. */
-    Shape shape;
-
-    /** Defects of the bin type. */
-    std::vector<Defect> defects;
-
-    /*
-     * Computed attributes.
-     */
-
-    /** Area of the bin type. */
-    AreaDbl area = 0.0;
-
-    /** Total area of the previous bins. */
-    AreaDbl previous_bin_area = 0;
-
-    /** Number of previous bins. */
-    BinPos previous_bin_copies = 0;
-
-    AreaDbl space() const { return area; }
-
-    AreaDbl packable_area(QualityRule quality_rule) const { (void)quality_rule; return 0; } // TODO
-
-    std::string to_string(Counter indentation) const;
-};
-
-struct Parameters
-{
-};
-
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Instance ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -315,81 +316,6 @@ class Instance
 public:
 
     /*
-     * Constructors and destructor.
-     */
-
-    /** Create an instance manually. */
-    Instance() { }
-
-    /** Set the objective. */
-    void set_objective(Objective objective) { objective_ = objective; }
-
-    /** Read item types from a file. */
-    void read(std::string instance_path);
-
-    /** Set parameters. */
-    void set_parameters(const Parameters& parameters) { parameters_ = parameters; }
-
-    /** Add a quality rule. */
-    inline void add_quality_rule(
-            const std::vector<uint8_t>& quality_rule);
-
-    /** Add an item type. */
-    ItemTypeId add_item_type(
-            const std::vector<ItemShape>& shapes,
-            Profit profit = -1,
-            ItemPos copies = 1,
-            const std::vector<std::pair<Angle, Angle>>& allowed_rotations = {{0, 0}});
-
-    /** Add a bin type. */
-    BinTypeId add_bin_type(
-            const Shape& shape,
-            Profit cost = -1,
-            BinPos copies = 1,
-            BinPos copies_min = 0);
-
-    /**
-     * Add a bin type from another bin type.
-     *
-     * This method is used in the column generation procedure.
-     */
-    inline void add_bin_type(
-            const BinType& bin_type,
-            BinPos copies,
-            BinPos copies_min = 0)
-    {
-        add_bin_type(
-                bin_type.shape,
-                bin_type.cost,
-                copies,
-                copies_min);
-    }
-
-    /**
-     * Add an item type from another item type.
-     *
-     * This method is used in the column generation procedure.
-     */
-    inline void add_item_type(
-            const ItemType& item_type,
-            Profit profit,
-            ItemPos copies)
-    {
-        add_item_type(
-                item_type.shapes,
-                profit,
-                copies,
-                item_type.allowed_rotations);
-    }
-
-    /** Add a defect. */
-    void add_defect(
-            BinTypeId i,
-            DefectTypeId type,
-            const Shape& shape,
-            const std::vector<Shape>& holes = {});
-
-    /*
      * Getters
      */
 
@@ -399,50 +325,12 @@ public:
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
 
-    /* Get the number of item types. */
-    inline ItemTypeId number_of_item_types() const { return item_types_.size(); }
+    /*
+     * Getters: parameters
+     */
 
-    /** Get the number of items. */
-    inline ItemTypeId number_of_items() const { return number_of_items_; }
-
-    /** Get the number of bin types. */
-    inline BinTypeId number_of_bin_types() const { return bin_types_.size(); }
-
-    /** Get the number of bins. */
-    inline BinPos number_of_bins() const { return bins_pos2type_.size(); }
-
-    /** Get the number of defects. */
-    inline DefectId number_of_defects() const { return number_of_defects_; }
-
-    /** Get the total area of the items. */
-    inline AreaDbl item_area() const { return item_area_; }
-
-    /** Get the total area of the bins. */
-    inline Area bin_area() const { return bin_area_; }
-
-    /** Get the mean area of the items. */
-    inline AreaDbl mean_area() const { return item_area_ / number_of_items(); }
-
-    /** Get the total packable area. */
-    inline AreaDbl packable_area() const { return packable_area_; }
-
-    /** Get the total profit of the items. */
-    inline Profit item_profit() const { return item_profit_; }
-
-    /** Get the id of the item type with maximum efficiency. */
-    inline ItemTypeId max_efficiency_item() const { return max_efficiency_item_; }
-
-    /** Return true iff all items have infinite copies. */
-    inline bool unbounded_knapsck() const { return all_item_type_infinite_copies_; }
-
-    /** Get item type j. */
-    inline const ItemType& item_type(ItemTypeId j) const { return item_types_[j]; }
-
-    /** Get bin type i. */
-    inline const BinType& bin_type(BinTypeId i) const { return bin_types_[i]; }
-
-    /** Get defect k. */
-    inline const Defect& defect(BinTypeId i, DefectId k) const { return bin_types_[i].defects[k]; }
+    /** Get parameters. */
+    const Parameters& parameters() const { return parameters_; }
 
     /**
      * Return 'true' iff quality_rule 'quality_rule' can contain a defect of
@@ -450,17 +338,61 @@ public:
      */
     inline bool can_contain(QualityRule quality_rule, DefectTypeId type) const;
 
+    /*
+     * Getters: bin types
+     */
+
+    /** Get the number of bin types. */
+    inline BinTypeId number_of_bin_types() const { return bin_types_.size(); }
+
+    /** Get bin type i. */
+    inline const BinType& bin_type(BinTypeId bin_type_id) const { return bin_types_[bin_type_id]; }
+
+    /** Get the number of bins. */
+    inline BinPos number_of_bins() const { return bin_type_ids_.size(); }
+
     /** Get the i_pos's bin. */
-    inline const BinType& bin(BinPos i_pos) const { return bin_types_[bins_pos2type_[i_pos]]; }
+    inline BinTypeId bin_type_id(BinPos bin_pos) const { return bin_type_ids_[bin_pos]; }
 
     /** Get the total area of the bins before bin i_pos. */
-    AreaDbl previous_bin_area(BinPos i_pos) const;
+    AreaDbl previous_bin_area(BinPos bin_pos_pos) const;
 
-    /** Get parameters. */
-    const Parameters& parameters() const { return parameters_; }
+    /** Get the total area of the bins. */
+    inline Area bin_area() const { return bin_area_; }
+
+    /** Get the number of defects. */
+    inline DefectId number_of_defects() const { return number_of_defects_; }
 
     /*
-     * Export.
+     * Getters: item types
+     */
+
+    /* Get the number of item types. */
+    inline ItemTypeId number_of_item_types() const { return item_types_.size(); }
+
+    /** Get an item type. */
+    inline const ItemType& item_type(ItemTypeId item_type_id) const { return item_types_[item_type_id]; }
+
+    /** Get the number of items. */
+    inline ItemTypeId number_of_items() const { return number_of_items_; }
+
+    /** Get the total area of the items. */
+    inline AreaDbl item_area() const { return item_area_; }
+
+    /** Get the mean area of the items. */
+    inline AreaDbl mean_area() const { return item_area_ / number_of_items(); }
+
+    /** Get the total profit of the items. */
+    inline Profit item_profit() const { return item_profit_; }
+
+    /** Get the id of the item type with maximum efficiency. */
+    inline ItemTypeId max_efficiency_item_type_id() const { return max_efficiency_item_type_id_; }
+
+    /** Return true iff all items have infinite copies. */
+    inline bool unbounded_knapsck() const { return all_item_types_infinite_copies_; }
+
+    /*
+     * Export
      */
 
     /** Print the instance into a stream. */
@@ -471,7 +403,14 @@ public:
 private:
 
     /*
-     * Private attributes.
+     * Private methods
+     */
+
+    /** Create an instance manually. */
+    Instance() { }
+
+    /*
+     * Private attributes
      */
 
     /** Objective. */
@@ -480,46 +419,44 @@ private:
     /** Parameters. */
     Parameters parameters_;
 
-    /** Item types. */
-    std::vector<ItemType> item_types_;
-
     /** Bin types. */
     std::vector<BinType> bin_types_;
 
-    /**
-     * Quality rules.
-     *
-     * if 'quality_rules_[quality_rule][k] = 0' (resp. '1'), then defect 'k' is
-     * not allowed (resp. allowed) for qulity rule rule 'quality_rule'.
-     */
-    std::vector<std::vector<uint8_t>> quality_rules_;
+    /** Item types. */
+    std::vector<ItemType> item_types_;
 
-    /** Number of items. */
-    ItemPos number_of_items_ = 0;
+    /*
+     * Private attributes computed by the 'build' method
+     */
 
     /** Convert bin position to bin type. */
-    std::vector<BinTypeId> bins_pos2type_;
+    std::vector<BinTypeId> bin_type_ids_;
 
-    /** Number of defects. */
-    DefectId number_of_defects_ = 0;
-
-    /** Total item area. */
-    AreaDbl item_area_ = 0;
+    /** For each bin position, the area of the previous bins. */
+    std::vector<Area> previous_bins_area_;
 
     /** Total bin area. */
     AreaDbl bin_area_ = 0;
 
-    /** Total packable area. */
-    AreaDbl packable_area_ = 0;
+    /** Number of defects. */
+    DefectId number_of_defects_ = 0;
+
+    /** Number of items. */
+    ItemPos number_of_items_ = 0;
+
+    /** Total item area. */
+    AreaDbl item_area_ = 0;
 
     /** Total item profit. */
     Profit item_profit_ = 0;
 
     /** Id of the item with maximum efficiency. */
-    ItemTypeId max_efficiency_item_ = -1;
+    ItemTypeId max_efficiency_item_type_id_ = -1;
 
     /** True iff all item types have an infinite number of copies. */
-    bool all_item_type_infinite_copies_ = false;
+    bool all_item_types_infinite_copies_ = false;
+
+    friend class InstanceBuilder;
 
 };
 

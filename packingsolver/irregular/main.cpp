@@ -55,9 +55,11 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Instance instance;
-    instance.read(instance_path);
-    instance.set_objective(objective);
+    InstanceBuilder instance_builder;
+    instance_builder.read(instance_path);
+    instance_builder.set_objective(objective);
+    optimize_parameters.output_nl_path = instance_path;
+    Instance instance = instance_builder.build();
 
     optimize_parameters.info = optimizationtools::Info()
         .set_verbosity_level(verbosity_level)
