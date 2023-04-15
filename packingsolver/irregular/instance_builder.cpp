@@ -48,6 +48,25 @@ void InstanceBuilder::add_defect(
     instance_.bin_types_[bin_type_id].defects.push_back(defect);
 }
 
+void InstanceBuilder::add_bin_type(
+        const BinType& bin_type,
+        BinPos copies,
+        BinPos copies_min)
+{
+    BinTypeId bin_type_id = add_bin_type(
+            bin_type.shape,
+            bin_type.cost,
+            copies,
+            copies_min);
+    for (const Defect& defect: bin_type.defects) {
+        add_defect(
+                bin_type_id,
+                defect.type,
+                defect.shape,
+                defect.holes);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Item types //////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -80,6 +99,18 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.copies = copies;
     instance_.item_types_.push_back(item_type);
     return item_type.id;
+}
+
+void InstanceBuilder::add_item_type(
+        const ItemType& item_type,
+        Profit profit,
+        ItemPos copies)
+{
+    add_item_type(
+            item_type.shapes,
+            profit,
+            copies,
+            item_type.allowed_rotations);
 }
 
 AreaDbl InstanceBuilder::compute_bin_types_area_max() const

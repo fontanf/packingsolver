@@ -59,17 +59,10 @@ public:
      *
      * This method is used in the column generation procedure.
      */
-    inline void add_bin_type(
+    void add_bin_type(
             const BinType& bin_type,
             BinPos copies,
-            BinPos copies_min = 0)
-    {
-        add_bin_type(
-                bin_type.shape,
-                bin_type.cost,
-                copies,
-                copies_min);
-    }
+            BinPos copies_min = 0);
 
     /*
      * Set item types
@@ -87,17 +80,10 @@ public:
      *
      * This method is used in the column generation procedure.
      */
-    inline void add_item_type(
+    void add_item_type(
             const ItemType& item_type,
             Profit profit,
-            ItemPos copies)
-    {
-        add_item_type(
-                item_type.shapes,
-                profit,
-                copies,
-                item_type.allowed_rotations);
-    }
+            ItemPos copies);
 
     /*
      * Build
