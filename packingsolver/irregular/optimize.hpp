@@ -1,5 +1,6 @@
 #pragma once
 
+#include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/solution.hpp"
 
 namespace packingsolver

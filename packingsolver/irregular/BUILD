@@ -10,6 +10,7 @@ cc_library(
         name = "irregular",
         hdrs = [
                 "instance.hpp",
+                "instance_builder.hpp",
                 "solution.hpp",
                 "optimize.hpp",
                 "minlp.hpp",
@@ -17,6 +18,7 @@ cc_library(
         ],
         srcs = [
                 "instance.cpp",
+                "instance_builder.cpp",
                 "solution.cpp",
                 "optimize.cpp",
                 "minlp.cpp",
