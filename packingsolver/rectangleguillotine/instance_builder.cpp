@@ -138,19 +138,6 @@ BinTypeId InstanceBuilder::add_bin_type(
     return bin_type.id;
 }
 
-void InstanceBuilder::add_bin_type(
-        const BinType& bin_type,
-        BinPos copies,
-        BinPos copies_min)
-{
-    add_bin_type(
-            bin_type.rect.w,
-            bin_type.rect.h,
-            bin_type.cost,
-            copies,
-            copies_min);
-}
-
 void InstanceBuilder::add_trims(
         BinTypeId bin_type_id,
         Length left_trim,
@@ -233,6 +220,27 @@ void InstanceBuilder::add_defect(
     defect.rect.w = w;
     defect.rect.h = h;
     instance_.bin_types_[bin_type_id].defects.push_back(defect);
+}
+
+void InstanceBuilder::add_bin_type(
+        const BinType& bin_type,
+        BinPos copies,
+        BinPos copies_min)
+{
+    BinTypeId bin_type_id = add_bin_type(
+            bin_type.rect.w,
+            bin_type.rect.h,
+            bin_type.cost,
+            copies,
+            copies_min);
+    for (const Defect& defect: bin_type.defects) {
+        add_defect(
+                bin_type_id,
+                defect.pos.x,
+                defect.pos.y,
+                defect.rect.w,
+                defect.rect.h);
+    }
 }
 
 Length InstanceBuilder::compute_item_types_max_length_sum() const

@@ -278,7 +278,7 @@ public:
     inline BinTypeId number_of_bin_types() const { return bin_types_.size(); }
 
     /** Get bin type i. */
-    inline const BinType& bin_type(BinTypeId i) const { return bin_types_[i]; }
+    inline const BinType& bin_type(BinTypeId bin_type_id) const { return bin_types_[bin_type_id]; }
 
     /** Get the number of bins. */
     inline BinPos number_of_bins() const { return bin_type_ids_.size(); }
@@ -405,7 +405,7 @@ public:
     inline ItemTypeId number_of_item_types() const { return item_types_.size(); }
 
     /** Get item type j. */
-    inline const ItemType& item_type(ItemTypeId j) const { return item_types_[j]; }
+    inline const ItemType& item_type(ItemTypeId item_type_id) const { return item_types_[item_type_id]; }
 
     /** Get the number of items. */
     inline ItemTypeId number_of_items() const { return number_of_items_; }
