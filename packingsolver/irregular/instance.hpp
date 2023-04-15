@@ -355,7 +355,7 @@ public:
     inline BinTypeId bin_type_id(BinPos bin_pos) const { return bin_type_ids_[bin_pos]; }
 
     /** Get the total area of the bins before bin i_pos. */
-    AreaDbl previous_bin_area(BinPos bin_pos_pos) const;
+    inline AreaDbl previous_bin_area(BinPos bin_pos) const { return previous_bins_area_[bin_pos]; }
 
     /** Get the total area of the bins. */
     inline Area bin_area() const { return bin_area_; }
@@ -433,7 +433,7 @@ private:
     std::vector<BinTypeId> bin_type_ids_;
 
     /** For each bin position, the area of the previous bins. */
-    std::vector<Area> previous_bins_area_;
+    std::vector<AreaDbl> previous_bins_area_;
 
     /** Total bin area. */
     AreaDbl bin_area_ = 0;

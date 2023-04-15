@@ -464,7 +464,7 @@ std::ostream& Instance::print(
             << std::setw(12) << "Area"
             << std::setw(12) << "Cost"
             << std::setw(12) << "Copies"
-            << std::setw(12) << "Copies_min"
+            << std::setw(12) << "Copies min"
             << std::endl
             << std::setw(12) << "--------"
             << std::setw(12) << "----"
