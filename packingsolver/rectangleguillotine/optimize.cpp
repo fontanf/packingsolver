@@ -118,7 +118,7 @@ Output packingsolver::rectangleguillotine::optimize(
     } else if (algorithm == Algorithm::ColumnGeneration) {
 
         if (instance.number_of_items() < 1024) {
-            Vbpp2BppFunction<Instance, Solution> bpp_solve
+            Vbpp2BppFunction<Instance, InstanceBuilder, Solution> bpp_solve
                 = [&parameters](const Instance& bpp_instance)
                 {
                     OptimizeOptionalParameters bpp_parameters;
@@ -132,14 +132,14 @@ Output packingsolver::rectangleguillotine::optimize(
                     auto bpp_output = optimize(bpp_instance, bpp_parameters);
                     return bpp_output.solution_pool;
                 };
-            Vbpp2BppOptionalParameters<Instance, Solution> vbpp2bpp_parameters;
+            Vbpp2BppOptionalParameters<Instance, InstanceBuilder, Solution> vbpp2bpp_parameters;
             auto vbpp2bpp_output = vbpp2bpp(instance, bpp_solve, vbpp2bpp_parameters);
             std::stringstream ss;
             ss << "vbpp2bpp";
             output.solution_pool.add(vbpp2bpp_output.solution_pool.best(), ss, parameters.info);
         }
 
-        VariableSizeBinPackingPricingFunction<rectangleguillotine::Instance, rectangleguillotine::Solution> pricing_function
+        VariableSizeBinPackingPricingFunction<Instance, InstanceBuilder, rectangleguillotine::Solution> pricing_function
             = [&parameters](const rectangleguillotine::Instance& kp_instance)
             {
                 OptimizeOptionalParameters kp_parameters;
@@ -151,7 +151,7 @@ Output packingsolver::rectangleguillotine::optimize(
                 return kp_output.solution_pool;
             };
 
-        columngenerationsolver::Parameters cgs_parameters = get_parameters(instance, pricing_function);
+        columngenerationsolver::Parameters cgs_parameters = get_parameters<Instance, InstanceBuilder, Solution>(instance, pricing_function);
         if (output.solution_pool.best().full())
             cgs_parameters.columns = solution2column(output.solution_pool.best());
         columngenerationsolver::LimitedDiscrepancySearchOptionalParameters lds_parameters;
@@ -182,7 +182,7 @@ Output packingsolver::rectangleguillotine::optimize(
 
     } else if (algorithm == Algorithm::DichotomicSearch) {
 
-        DichotomicSearchFunction<Instance, Solution> bpp_solve
+        DichotomicSearchFunction<Instance, InstanceBuilder, Solution> bpp_solve
             = [&parameters](const Instance& bpp_instance)
             {
                 OptimizeOptionalParameters bpp_parameters;
@@ -193,9 +193,9 @@ Output packingsolver::rectangleguillotine::optimize(
                 auto bpp_output = optimize(bpp_instance, bpp_parameters);
                 return bpp_output.solution_pool;
             };
-        DichotomicSearchOptionalParameters<Instance, Solution> ds_parameters;
+        DichotomicSearchOptionalParameters<Instance, InstanceBuilder, Solution> ds_parameters;
         ds_parameters.new_solution_callback = [&parameters, &output](
-                const DichotomicSearchOutput<Instance, Solution>& o)
+                const DichotomicSearchOutput<Instance, InstanceBuilder, Solution>& o)
         {
             std::stringstream ss;
             ss << "waste percentage " << o.waste_percentage;

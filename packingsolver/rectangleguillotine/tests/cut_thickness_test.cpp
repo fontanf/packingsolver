@@ -1,3 +1,4 @@
+#include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
 
 #include <gtest/gtest.h>
@@ -32,12 +33,13 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness1)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_cut_thickness(20);
-    instance.add_item_type(500, 500, -1, 1, false, true);
-    instance.add_item_type(1000, 1000, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_cut_thickness(20);
+    instance_builder.add_item_type(500, 500, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 1000, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -76,12 +78,13 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness2)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_cut_thickness(20);
-    instance.add_item_type(3000, 500, -1, 1, false, true);
-    instance.add_item_type(2970, 3210, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_cut_thickness(20);
+    instance_builder.add_item_type(3000, 500, -1, 1, false, 0);
+    instance_builder.add_item_type(2970, 3210, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -119,13 +122,14 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness3)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_cut_thickness(20);
-    instance.set_min_waste(10);
-    instance.add_item_type(3000, 500, -1, 1, false, true);
-    instance.add_item_type(2970, 3210, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_cut_thickness(20);
+    instance_builder.set_min_waste(10);
+    instance_builder.add_item_type(3000, 500, -1, 1, false, 0);
+    instance_builder.add_item_type(2970, 3210, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -162,12 +166,13 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness4)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_cut_thickness(20);
-    instance.add_item_type(3000, 1000, -1, 1, false, true);
-    instance.add_item_type(6000, 2180, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_cut_thickness(20);
+    instance_builder.add_item_type(3000, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(6000, 2180, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -205,13 +210,14 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness5)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_cut_thickness(20);
-    instance.set_min_waste(10);
-    instance.add_item_type(3000, 1000, -1, 1, false, true);
-    instance.add_item_type(6000, 2180, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_cut_thickness(20);
+    instance_builder.set_min_waste(10);
+    instance_builder.add_item_type(3000, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(6000, 2180, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -251,14 +257,15 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness6)
         //.set_log2stderr(true)
         ;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_cut_thickness(20);
-    instance.set_cut_through_defects(false);
-    instance.add_item_type(3000, 1000, -1, 1, false, true);
-    instance.add_item_type(3500, 2190, -1, 1, false, false);
-    BinTypeId bin_type_id = instance.add_bin_type(6000, 3210);
-    instance.add_defect(bin_type_id, 4000, 1000, 20, 20);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_cut_thickness(20);
+    instance_builder.set_cut_through_defects(false);
+    instance_builder.add_item_type(3000, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(3500, 2190, -1, 1, false, 0);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(bin_type_id, 4000, 1000, 20, 20);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -302,21 +309,21 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness7)
         //.set_log2stderr(true)
         ;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_cut_thickness(20);
-    instance.set_cut_through_defects(false);
-    instance.add_item_type(3000, 1500, -1, 1, true, true);
-    instance.add_item_type(1000, 2000, -1, 1, true, false);
-    BinTypeId bin_type_id = instance.add_bin_type(6000, 3210);
-    instance.add_defect(bin_type_id, 3000, 2500, 20, 20);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_cut_thickness(20);
+    instance_builder.set_cut_through_defects(false);
+    instance_builder.add_item_type(3000, 1500, -1, 1, true, 0);
+    instance_builder.add_item_type(1000, 2000, -1, 1, true, 0);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(bin_type_id, 3000, 2500, 20, 20);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3020, 1500, 3000, 6000, 2480, 1, 1};
     std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
-    std::cout << is0 << std::endl;
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
@@ -354,13 +361,14 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness8)
         //.set_log2stderr(true)
         ;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_cut_thickness(20);
-    instance.set_cut_through_defects(false);
-    instance.add_item_type(3000, 1000, -1, 1, true, true);
-    BinTypeId bin_type_id = instance.add_bin_type(6000, 3210);
-    instance.add_defect(bin_type_id, 3005, 500, 10, 10);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_cut_thickness(20);
+    instance_builder.set_cut_through_defects(false);
+    instance_builder.add_item_type(3000, 1000, -1, 1, true, 0);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(bin_type_id, 3005, 500, 10, 10);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -394,13 +402,14 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness9)
         //.set_log2stderr(true)
         ;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_cut_thickness(20);
-    instance.set_min_waste(30);
-    instance.add_item_type(3000, 1000, -1, 1, true, true);
-    instance.add_item_type(3010, 2190, -1, 1, true, false);
-    instance.add_bin_type(6000, 3210);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_cut_thickness(20);
+    instance_builder.set_min_waste(30);
+    instance_builder.add_item_type(3000, 1000, -1, 1, true, 0);
+    instance_builder.add_item_type(3010, 2190, -1, 1, true, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();

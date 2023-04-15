@@ -17,10 +17,10 @@
 namespace packingsolver
 {
 
-template <typename Instance, typename Solution>
+template <typename Instance, typename InstanceBuilder, typename Solution>
 using Vbpp2BppFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
-template <typename Instance, typename Solution>
+template <typename Instance, typename InstanceBuilder, typename Solution>
 struct Vbpp2BppOutput
 {
     /** Constructor. */
@@ -31,44 +31,54 @@ struct Vbpp2BppOutput
     SolutionPool<Instance, Solution> solution_pool;
 };
 
-template <typename Instance, typename Solution>
+template <typename Instance, typename InstanceBuilder, typename Solution>
 struct Vbpp2BppOptionalParameters
 {
     /** Info structure. */
     optimizationtools::Info info = optimizationtools::Info();
 };
 
-template <typename Instance, typename Solution>
-Vbpp2BppOutput<Instance, Solution> vbpp2bpp(
+template <typename Instance, typename InstanceBuilder, typename Solution>
+Vbpp2BppOutput<Instance, InstanceBuilder, Solution> vbpp2bpp(
         const Instance& instance,
-        const Vbpp2BppFunction<Instance, Solution>& function,
-        Vbpp2BppOptionalParameters<Instance, Solution> parameters = {});
+        const Vbpp2BppFunction<Instance, InstanceBuilder, Solution>& function,
+        Vbpp2BppOptionalParameters<Instance, InstanceBuilder, Solution> parameters = {});
 
-template <typename Instance, typename Solution>
-Vbpp2BppOutput<Instance, Solution> vbpp2bpp(
+template <typename Instance, typename InstanceBuilder, typename Solution>
+Vbpp2BppOutput<Instance, InstanceBuilder, Solution> vbpp2bpp(
         const Instance& instance,
-        const Vbpp2BppFunction<Instance, Solution>& function,
-        Vbpp2BppOptionalParameters<Instance, Solution> parameters)
+        const Vbpp2BppFunction<Instance, InstanceBuilder, Solution>& function,
+        Vbpp2BppOptionalParameters<Instance, InstanceBuilder, Solution> parameters)
 {
-    Vbpp2BppOutput<Instance, Solution> output(instance);
+    Vbpp2BppOutput<Instance, InstanceBuilder, Solution> output(instance);
 
     // Build PackingSolver Bin Packing instance.
     //std::cout << "Build Bin Packing instance..." << std::endl;
-    Instance bpp_instance;
-    bpp_instance.set_objective(Objective::BinPacking);
-    bpp_instance.set_parameters(instance.parameters());
+    InstanceBuilder bpp_instance_builder;
+    bpp_instance_builder.set_objective(Objective::BinPacking);
+    bpp_instance_builder.set_parameters(instance.parameters());
     // Add all items.
-    for (ItemTypeId j = 0; j < instance.number_of_item_types(); ++j) {
-        const auto& item_type = instance.item_type(j);
-        bpp_instance.add_item_type(item_type, item_type.profit, item_type.copies);
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const auto& item_type = instance.item_type(item_type_id);
+        bpp_instance_builder.add_item_type(
+                item_type,
+                item_type.profit,
+                item_type.copies);
     }
     std::vector<ItemTypeId> item_types_bpp2ps(instance.number_of_item_types());
     std::iota(item_types_bpp2ps.begin(), item_types_bpp2ps.end(), 0);
     // Add all bins.
-    for (BinTypeId i = 0; i < instance.number_of_bin_types(); ++i) {
-        const auto& bin_type = instance.bin_type(i);
-        bpp_instance.add_bin_type(instance.bin_type(i), bin_type.copies);
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const auto& bin_type = instance.bin_type(bin_type_id);
+        bpp_instance_builder.add_bin_type(
+                instance.bin_type(bin_type_id),
+                bin_type.copies);
     }
+    Instance bpp_instance = bpp_instance_builder.build();
     std::vector<ItemTypeId> bin_types_bpp2ps(instance.number_of_bin_types());
     std::iota(bin_types_bpp2ps.begin(), bin_types_bpp2ps.end(), 0);
     // Solve PackingSolver Bin Packing instance.

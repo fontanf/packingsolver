@@ -328,22 +328,16 @@ def convert_roadef2018(filename):
     write_dict(bins, filename + "_bins.csv")
 
     with open(os.path.join("data", "rectangle_raw", filename + "_batch.csv"), newline='') as csvfile:
-        items = {"WIDTH": [], "HEIGHT": [], "NEWSTACK": []}
+        items = {"WIDTH": [], "HEIGHT": [], "STACK_ID": []}
         spamreader = csv.reader(csvfile, delimiter=';', quotechar='|')
         first_line = True
-        row_prec = None
         for row in spamreader:
             if first_line:
                 first_line = False
                 continue
             items["WIDTH"].append(int(row[1]))
             items["HEIGHT"].append(int(row[2]))
-            if len(items["NEWSTACK"]) == 0:
-                new_stack = True
-            else:
-                new_stack = (row_prec[3] != row[3])
-            items["NEWSTACK"].append(int(new_stack))
-            row_prec = row
+            items["STACK_ID"].append(int(row[3]))
         write_dict(items, filename + "_items.csv")
 
     with open(os.path.join("data", "rectangle_raw", filename + "_defects.csv"), newline='') as csvfile:

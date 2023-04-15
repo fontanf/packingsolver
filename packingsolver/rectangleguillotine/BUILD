@@ -8,12 +8,14 @@ cc_library(
         name = "rectangleguillotine",
         hdrs = [
                 "instance.hpp",
+                "instance_builder.hpp",
                 "solution.hpp",
                 "optimize.hpp",
                 "branching_scheme.hpp",
         ],
         srcs = [
                 "instance.cpp",
+                "instance_builder.cpp",
                 "solution.cpp",
                 "optimize.cpp",
                 "branching_scheme.cpp",

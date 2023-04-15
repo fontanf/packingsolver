@@ -34,7 +34,10 @@ std::ostream& operator<<(std::ostream &os, TrimType trim_type);
 
 struct Coord
 {
+    /** x-coordinate. */
     Length x;
+
+    /** y-coordinate. */
     Length y;
 };
 
@@ -42,10 +45,17 @@ std::ostream& operator<<(std::ostream &os, Coord xy);
 
 struct Rectangle
 {
+    /** Width. */
     Length w;
+
+    /** Height. */
     Length h;
 
+    /** Get the area of the rectangle. */
     Area area() const { return w * h; }
+
+    /** Get the length of the largest side of the rectangle. */
+    Length max() const { return std::max(w, h); }
 };
 
 bool rect_intersection(Coord c1, Rectangle r1, Coord c2, Rectangle r2);
@@ -166,12 +176,6 @@ struct BinType
      * Computed attributes
      */
 
-    /** Total area of the previous bins. */
-    Area previous_bin_area = 0;
-
-    /** Number of previous bins. */
-    BinPos previous_bin_copies = 0;
-
     /** Get the area of the bin type. */
     inline Area area() const { return (rect.h - top_trim - bottom_trim) * (rect.w - right_trim - left_trim); }
 
@@ -198,7 +202,7 @@ struct ItemType
     Rectangle rect;
 
     /** Stack id to which the item type belongs. */
-    StackId stack;
+    StackId stack_id;
 
     /** Indicates if the item is oriented (i.e. cannot be rotated). */
     bool oriented;
@@ -226,191 +230,6 @@ class Instance
 {
 
 public:
-
-    /*
-     * Constructors and destructor
-     */
-
-    /** Create an instance manually. */
-    Instance() { }
-
-    /** Set the objective. */
-    void set_objective(Objective objective) { objective_ = objective; }
-
-    /** Read item types from a file. */
-    void read_item_types(std::string items_path);
-
-    /** Read bin types from a file. */
-    void read_bin_types(std::string bins_path);
-
-    /** Read defects from a file. */
-    void read_defects(std::string defects_path);
-
-    /** Read parameters from a file. */
-    void read_parameters(std::string parameters_path);
-
-    /** Set parameters. */
-    void set_parameters(const Parameters& parameters) { parameters_ = parameters; }
-
-    /** Add an item type. */
-    ItemTypeId add_item_type(
-            Length w,
-            Length h,
-            Profit p = -1,
-            ItemPos copies = 1,
-            bool oriented = false,
-            bool new_stack = true);
-
-    /** Add a bin type. */
-    BinTypeId add_bin_type(
-            Length w,
-            Length h,
-            Profit cost = -1,
-            BinPos copies = 1,
-            BinPos copies_min = 0);
-
-    /** Add trims to bin type 'i'. */
-    void add_trims(
-            BinTypeId i,
-            Length left_trim,
-            TrimType left_trim_type,
-            Length right_trim,
-            TrimType right_trim_type,
-            Length bottom_trim,
-            TrimType bottom_trim_type,
-            Length top_trim,
-            TrimType top_trim_type);
-
-    /** Add a defect. */
-    void add_defect(
-            BinTypeId i,
-            Length x,
-            Length y,
-            Length w,
-            Length h);
-
-    /**
-     * Add a bin type from another bin type.
-     *
-     * This method is used in the column generation procedure.
-     */
-    inline void add_bin_type(
-            const BinType& bin_type,
-            BinPos copies,
-            BinPos copies_min = 0)
-    {
-        add_bin_type(
-                bin_type.rect.w,
-                bin_type.rect.h,
-                bin_type.cost,
-                copies,
-                copies_min);
-    }
-
-    /**
-     * Add an item type from another item type.
-     *
-     * This method is used in the column generation procedure.
-     */
-    inline void add_item_type(
-            const ItemType& item_type,
-            Profit profit,
-            ItemPos copies)
-    {
-        add_item_type(
-                item_type.rect.w,
-                item_type.rect.h,
-                profit,
-                copies,
-                item_type.oriented);
-    }
-
-    /**
-     * For each bin type, set an infinite x.
-     *
-     * This method is used to transform a problem into a Strip Packing problem.
-     */
-    void set_bin_infinite_x();
-
-    /**
-     * For each bin type, set an infinite y.
-     *
-     * This method is used to transform a problem into a Strip Packing problem.
-     */
-    void set_bin_infinite_y();
-
-    /**
-     * Foe each bin type, set an infinite number of copies.
-     *
-     * This method should be used after reading bin files of Bin Packing
-     * Problems where the number of bin types is not given. By default, the
-     * number of bins would be set to 1.
-     */
-    void set_bin_infinite_copies();
-
-    /**
-     * For each bin type, set its cost to its area.
-     *
-     * This method is used to transform a Variable-sized Bin Packing Problem
-     * into an Unweighted Variable-sized Bin Packing Problem.
-     */
-    void set_bin_unweighted();
-
-    /**
-     * For each item type, set an infinite number of copies.
-     *
-     * This method is used to transform a Knapsack Problem into an Unbounded
-     * Knapsack Problem.
-     */
-    void set_item_infinite_copies();
-
-    /**
-     * For each item type, set its profit to its area.
-     *
-     * This method is used to transform a Knapsack Problem into an Unweighted
-     * Knapsack Problem.
-     */
-    void set_unweighted();
-
-    /** For each item type, set 'oriented' to 'true'. */
-    void set_no_item_rotation();
-
-    void set_cut_type_1(CutType1 cut_type_1) { parameters_.cut_type_1 = cut_type_1; }
-
-    void set_cut_type_2(CutType2 cut_type_2) { parameters_.cut_type_2 = cut_type_2; }
-
-    void set_first_stage_orientation(CutOrientation first_stage_orientation) { parameters_.first_stage_orientation = first_stage_orientation; }
-
-    void set_min1cut(Length min1cut) { parameters_.min1cut = min1cut; }
-
-    void set_max1cut(Length max1cut) { parameters_.max1cut = max1cut; }
-
-    void set_min2cut(Length min2cut) { parameters_.min2cut = min2cut; }
-
-    void set_max2cut(Length max2cut) { parameters_.max2cut = max2cut; }
-
-    void set_min_waste(Length min_waste) { parameters_.min_waste = min_waste; }
-
-    void set_one2cut(bool one2cut) { parameters_.one2cut = one2cut; }
-
-    void set_cut_through_defects(bool cut_through_defects) { parameters_.cut_through_defects = cut_through_defects; }
-
-    /** Set cut thickness. */
-    void set_cut_thickness(Length cut_thickness) { parameters_.cut_thickness = cut_thickness; }
-
-    void set_predefined(std::string str);
-
-    void set_roadef2018()
-    {
-        parameters_.cut_type_1 = rectangleguillotine::CutType1::ThreeStagedGuillotine;
-        parameters_.cut_type_2 = rectangleguillotine::CutType2::Roadef2018;
-        parameters_.first_stage_orientation = rectangleguillotine::CutOrientation::Vertical;
-        parameters_.min1cut = 100;
-        parameters_.max1cut = 3500;
-        parameters_.min2cut = 100;
-        parameters_.min_waste = 20;
-        parameters_.cut_through_defects = false;
-    }
 
     /*
      * Getters
@@ -462,22 +281,19 @@ public:
     inline const BinType& bin_type(BinTypeId i) const { return bin_types_[i]; }
 
     /** Get the number of bins. */
-    inline BinPos number_of_bins() const { return bins_pos2type_.size(); }
+    inline BinPos number_of_bins() const { return bin_type_ids_.size(); }
+
+    /** Get the bin area. */
+    inline Area bin_area() const { return bins_area_sum_; }
 
     /** Get the id of a bin at a given position. */
-    inline BinTypeId bin_type_id(BinPos bin_pos) const { return bins_pos2type_[bin_pos]; }
+    inline BinTypeId bin_type_id(BinPos bin_pos) const { return bin_type_ids_[bin_pos]; }
 
     /** Get the number of defects. */
     inline DefectId number_of_defects() const { return number_of_defects_; }
 
-    /** Get the total area of the defects. */
-    inline Area defect_area() const { return defect_area_; }
-
-    /** Get the total packable area. */
-    inline Area packable_area() const { return packable_area_; }
-
-    /** Get the total area of the bins before bin i_pos. */
-    Area previous_bin_area(BinPos i_pos) const;
+    /** Get the total area of the bins before a given position. */
+    inline Area previous_bin_area(BinPos bin_pos) const { return previous_bins_area_[bin_pos]; }
 
     /*
      * Getters: bin type dimensions
@@ -595,13 +411,13 @@ public:
     inline ItemTypeId number_of_items() const { return number_of_items_; }
 
     /** Get the number of stacks. */
-    inline StackId number_of_stacks() const { return stacks_.size(); }
+    inline StackId number_of_stacks() const { return item_type_ids_.size(); }
 
     /** Get the size of stack s. */
-    inline ItemPos stack_size(StackId s) const { return items_pos2type_[s].size(); }
+    inline ItemPos stack_size(StackId s) const { return item_type_ids_[s].size(); }
 
-    /** Get the j_pos's item of stack s. */
-    inline ItemTypeId item(StackId s, ItemPos j_pos) const { return items_pos2type_[s][j_pos]; }
+    /** Get the item_pos's item of stack s. */
+    inline ItemTypeId item(StackId s, ItemPos item_pos) const { return item_type_ids_[s][item_pos]; }
 
     /** Get the total area of the items. */
     inline Area item_area() const { return item_area_; }
@@ -613,19 +429,13 @@ public:
     inline Profit item_profit() const { return item_profit_; }
 
     /** Get the id of the item type with maximum efficiency. */
-    inline ItemTypeId max_efficiency_item() const { return max_efficiency_item_; }
+    inline ItemTypeId max_efficiency_item_type_id() const { return max_efficiency_item_type_id_; }
 
     /** Return true iff all items have infinite copies. */
-    inline bool unbounded_knapsck() const { return all_item_type_infinite_copies_; }
+    inline bool unbounded_knapsck() const { return all_item_types_infinite_copies_; }
 
     /** Get the item types. */
     inline const std::vector<ItemType>& item_types() const { return item_types_; }
-
-    /** Get stack s. */
-    inline const std::vector<ItemType>& stack(StackId s) const { return stacks_[s]; }
-
-    /** Get the stacks. */
-    inline const std::vector<std::vector<ItemType>>& stacks() const { return stacks_; }
 
     /*
      * Getters: item type dimensions
@@ -721,6 +531,13 @@ public:
 private:
 
     /*
+     * Private methods
+     */
+
+    /** Create an instance manually. */
+    Instance() { }
+
+    /*
      * Private attributes
      */
 
@@ -736,41 +553,41 @@ private:
     /** Item types. */
     std::vector<ItemType> item_types_;
 
-    /** Stacks. */
-    std::vector<std::vector<ItemType>> stacks_;
+    /*
+     * Private attributes computed by the 'build' method
+     */
 
-    /** Number of items. */
-    ItemPos number_of_items_ = 0;
+    /** For each bin position, the corresponding bin type. */
+    std::vector<BinTypeId> bin_type_ids_;
+
+    /** For each bin position, the area of the previous bins. */
+    std::vector<Area> previous_bins_area_;
+
+    /** Bins area sum. */
+    Area bins_area_sum_ = 0;
 
     /** Number of defects. */
     DefectId number_of_defects_ = 0;
 
+    /** Number of items. */
+    ItemPos number_of_items_ = 0;
+
     /** Convert item position to item type. */
-    std::vector<std::vector<BinTypeId>> items_pos2type_;
-
-    /** Convert bin position to bin type. */
-    std::vector<BinTypeId> bins_pos2type_;
-
-    /** Total length (max of width and height) of the items. */
-    Length length_sum_ = 0;
+    std::vector<std::vector<ItemTypeId>> item_type_ids_;
 
     /** Total item area. */
     Area item_area_ = 0;
-
-    /** Total defect area. */
-    Area defect_area_ = 0;
-
-    /** Total packable area. */
-    Area packable_area_ = 0;
 
     /** Total item profit. */
     Profit item_profit_ = 0;
 
     /** Id of the item with maximum efficiency. */
-    ItemTypeId max_efficiency_item_ = -1;
+    ItemTypeId max_efficiency_item_type_id_ = -1;
 
     /** True iff all item types have an infinite number of copies. */
-    bool all_item_type_infinite_copies_ = false;
+    bool all_item_types_infinite_copies_ = false;
+
+    friend class InstanceBuilder;
 
 };
 

@@ -1,3 +1,4 @@
+#include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
 
 #include <gtest/gtest.h>
@@ -27,12 +28,13 @@ TEST(RectangleGuillotineBranchingScheme, InsertionNoDefect)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(500, 1000, -1, 1, false, true);
-    instance.add_bin_type(6000, 3210);
-    instance.add_defect(0, 2000, 1500, 2, 2);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(0, 2000, 1500, 2, 2);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -75,14 +77,15 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect1)
         //.set_log2stderr(true)
         ;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(500, 1000, -1, 1, false, true);
-    instance.add_item_type(700, 1000, -1, 1, false, false);
-    instance.add_item_type(1700, 2000, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
-    instance.add_defect(0, 500, 248, 2, 2);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(700, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(1700, 2000, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(0, 500, 248, 2, 2);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -149,14 +152,15 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect2)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(500, 1000, -1, 1, false, true);
-    instance.add_item_type(700, 1000, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
-    instance.add_defect(0, 500, 298, 2, 2);
-    instance.add_defect(0, 500, 898, 2, 2);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(700, 1000, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(0, 500, 298, 2, 2);
+    instance_builder.add_defect(0, 500, 898, 2, 2);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -215,15 +219,16 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect3)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(500, 1000, -1, 1, false, true);
-    instance.add_item_type(700, 1000, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
-    instance.add_defect(0, 500, 298, 2, 2);
-    instance.add_defect(0, 500, 898, 2, 2);
-    instance.add_defect(0, 500, 1298, 2, 2);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(700, 1000, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(0, 500, 298, 2, 2);
+    instance_builder.add_defect(0, 500, 898, 2, 2);
+    instance_builder.add_defect(0, 500, 1298, 2, 2);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -281,13 +286,14 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect4)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(500, 1000, -1, 1, false, true);
-    instance.add_item_type(500, 1500, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
-    instance.add_defect(0, 1000, 248, 2, 2);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(500, 1500, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(0, 1000, 248, 2, 2);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -334,14 +340,15 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect5)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(500, 1000, -1, 1, false, true);
-    instance.add_item_type(500, 1500, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
-    instance.add_defect(0, 1000, 248, 2, 2);
-    instance.add_defect(0, 1000, 798, 2, 2);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(500, 1500, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(0, 1000, 248, 2, 2);
+    instance_builder.add_defect(0, 1000, 798, 2, 2);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -388,14 +395,15 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect6)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(500, 1000, -1, 1, false, true);
-    instance.add_item_type(500, 1000, -1, 1, false, false);
-    instance.add_item_type(500, 1500, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
-    instance.add_defect(0, 1250, 748, 2, 2);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(500, 1500, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(0, 1250, 748, 2, 2);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -441,12 +449,13 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect7)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(500, 1000, -1, 1, false, true);
-    instance.add_bin_type(6000, 3210);
-    instance.add_defect(0, 248, 8, 2, 2);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(0, 248, 8, 2, 2);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -490,15 +499,16 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDefect8)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(500, 1000, -1, 1, false, true);
-    instance.add_item_type(200, 3170, -1, 1, false, false);
-    instance.add_item_type(200, 3180, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
-    instance.add_defect(0, 498, 248, 2, 2);
-    instance.add_defect(0, 498, 3205, 2, 2);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(200, 3170, -1, 1, false, 0);
+    instance_builder.add_item_type(200, 3180, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(0, 498, 248, 2, 2);
+    instance_builder.add_defect(0, 498, 3205, 2, 2);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -548,15 +558,16 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDefect)
         //.set_log2stderr(true)
         ;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(2000, 1000, -1, 1, false, true);
-    instance.add_item_type(3000, 1000, -1, 1, false, false);
-    instance.add_item_type(3000, 1000, -1, 1, false, false);
-    instance.add_item_type(3000, 3210, -1, 1, false, false);
-    instance.add_bin_type(6000, 3210);
-    instance.add_defect(0, 2490, 1200, 10, 10);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(2000, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(3000, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(3000, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(3000, 3210, -1, 1, false, 0);
+    instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_defect(0, 2490, 1200, 10, 10);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
