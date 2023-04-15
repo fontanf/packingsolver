@@ -141,7 +141,10 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 bool rectangleguillotine::rect_intersection(
-        Coord c1, Rectangle r1, Coord c2, Rectangle r2)
+        Coord c1,
+        Rectangle r1,
+        Coord c2,
+        Rectangle r2)
 {
     return c1.x + r1.w > c2.x
         && c2.x + r2.w > c1.x
@@ -165,21 +168,17 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-///////////////////////// Item type, Bin type, Defect //////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
 std::ostream& packingsolver::rectangleguillotine::operator<<(
         std::ostream &os,
         const ItemType& item_type)
 {
     os
-        << "j " << item_type.id
+        << "item type id " << item_type.id
         << " w " << item_type.rect.w
         << " h " << item_type.rect.h
-        << " p " << item_type.profit
+        << " profit " << item_type.profit
         << " copies " << item_type.copies
-        << " stack " << item_type.stack
+        << " stack_id " << item_type.stack_id
         << " oriented " << item_type.oriented
         ;
     return os;
@@ -190,7 +189,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         const BinType& bin_type)
 {
     os
-        << "i " << bin_type.id
+        << "bin type id " << bin_type.id
         << " w " << bin_type.rect.w
         << " h " << bin_type.rect.h
         << " copies " << bin_type.copies
@@ -211,552 +210,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         << " h " << defect.rect.h
         ;
     return os;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////// Instance ///////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-Area Instance::previous_bin_area(BinPos i_pos) const
-{
-    assert(i_pos < number_of_bins());
-    BinTypeId bin_type_id = this->bin_type_id(i_pos);
-    const BinType& bin_type = this->bin_type(bin_type_id);
-    return bin_type.previous_bin_area + bin_type.area() * (i_pos - bin_type.previous_bin_copies);
-}
-
-ItemTypeId Instance::add_item_type(
-        Length w,
-        Length h,
-        Profit p,
-        ItemPos copies,
-        bool oriented,
-        bool new_stack)
-{
-    ItemType item_type;
-    item_type.id = item_types_.size();
-    item_type.rect.w = w;
-    item_type.rect.h = h;
-    item_type.profit = (p == -1)? w * h: p;
-    item_type.copies = copies;
-    item_type.stack = (new_stack)? number_of_stacks(): number_of_stacks() - 1;
-    item_type.oriented = oriented;
-    item_types_.push_back(item_type);
-
-    // Update number_of_items_.
-    number_of_items_ += copies;
-    // Update length_sum_.
-    length_sum_ += item_type.copies * std::max(item_type.rect.w, item_type.rect.h);
-
-    // Update stacks_.
-    if (new_stack) {
-        stacks_.push_back({});
-        items_pos2type_.push_back({});
-    }
-    stacks_.back().push_back(item_type);
-    for (ItemPos pos = 0; pos < copies; ++pos)
-        items_pos2type_.back().push_back(item_type.id);
-
-    // Update item_area_ and item_profit_.
-    item_area_ += item_type.copies * item_type.area();
-    item_profit_ += item_type.copies * item_type.profit;
-    if (max_efficiency_item_ == -1
-            || (item_types_[max_efficiency_item_].profit * item_type.area()
-                < item_type.profit * item_types_[max_efficiency_item_].area()))
-        max_efficiency_item_ = item_type.id;
-
-    return item_type.id;
-}
-
-BinTypeId Instance::add_bin_type(
-        Length w,
-        Length h,
-        Profit cost,
-        BinPos copies,
-        BinPos copies_min)
-{
-    if (w <= 0) {
-        throw std::runtime_error(
-                "'rectangleguillotine::Instance::add_bin_type'"
-                " requires 'w > 0'.");
-    }
-    if (h <= 0) {
-        throw std::runtime_error(
-                "'rectangleguillotine::Instance::add_bin_type'"
-                " requires 'h > 0'.");
-    }
-    if (cost < 0 && cost != -1) {
-        throw std::runtime_error(
-                "'rectangleguillotine::Instance::add_bin_type'"
-                " requires 'cost >= 0' or 'cost == -1'.");
-    }
-    if (copies <= 0) {
-        throw std::runtime_error(
-                "'rectangleguillotine::Instance::add_bin_type'"
-                " requires 'copies > 0'.");
-    }
-    if (copies_min < 0) {
-        throw std::runtime_error(
-                "'rectangleguillotine::Instance::add_bin_type'"
-                " requires 'copies_min >= 0'.");
-    }
-    if (copies_min > copies) {
-        throw std::runtime_error(
-                "'rectangleguillotine::Instance::add_bin_type'"
-                " requires 'copies_min <= copies'.");
-    }
-
-    BinType bin_type;
-    bin_type.id = bin_types_.size();
-    bin_type.rect.w = w;
-    bin_type.rect.h = h;
-    bin_type.cost = (cost == -1)? w * h: cost;
-    bin_type.copies = copies;
-    bin_type.copies_min = copies_min;
-    bin_type.previous_bin_area = (number_of_bins() == 0)? 0:
-        bin_types_.back().previous_bin_area
-        + bin_types_.back().area() * bin_types_.back().copies;
-    bin_type.previous_bin_copies = (number_of_bins() == 0)? 0:
-        bin_types_.back().previous_bin_copies + bin_types_.back().copies;
-    bin_types_.push_back(bin_type);
-
-    for (ItemPos pos = 0; pos < copies; ++pos)
-        bins_pos2type_.push_back(bin_type.id);
-    // Update packable_area_.
-    packable_area_ += bin_types_.back().copies * bin_types_.back().area();
-
-    return bin_type.id;
-}
-
-void Instance::add_trims(
-        BinTypeId i,
-        Length left_trim,
-        TrimType left_trim_type,
-        Length right_trim,
-        TrimType right_trim_type,
-        Length bottom_trim,
-        TrimType bottom_trim_type,
-        Length top_trim,
-        TrimType top_trim_type)
-{
-    BinType& bin_type = bin_types_[i];
-
-    if (bottom_trim < 0) {
-        throw std::invalid_argument(
-                "'rectangleguillotine::Instance::add_trims'"
-                " requires 'bottom_trim >= 0'.");
-    }
-    if (bottom_trim >= bin_type.rect.h) {
-        throw std::invalid_argument(
-                "'rectangleguillotine::Instance::add_trims'"
-                " requires 'bottom_trim < h'.");
-    }
-
-    if (top_trim < 0) {
-        throw std::invalid_argument(
-                "'rectangleguillotine::Instance::add_trims'"
-                " requires 'top_trim >= 0'.");
-    }
-    if (top_trim >= bin_type.rect.h - bottom_trim) {
-        throw std::invalid_argument(
-                "'rectangleguillotine::Instance::add_trims'"
-                " requires 'top_trim < h - bottom_trim'.");
-    }
-
-    if (left_trim < 0) {
-        throw std::invalid_argument(
-                "'rectangleguillotine::Instance::add_trims'"
-                " requires 'left_trim >= 0'.");
-    }
-    if (left_trim >= bin_type.rect.w) {
-        throw std::invalid_argument(
-                "'rectangleguillotine::Instance::add_trims'"
-                " requires 'left_trim < w'.");
-    }
-
-    if (right_trim < 0) {
-        throw std::invalid_argument(
-                "'rectangleguillotine::Instance::add_trims'"
-                " requires 'right_trim >= 0'.");
-    }
-    if (right_trim > bin_type.rect.h - left_trim) {
-        throw std::invalid_argument(
-                "'rectangleguillotine::Instance::add_trims'"
-                " requires 'right_trim < w - left_trim'.");
-    }
-
-    bin_type.left_trim = left_trim;
-    bin_type.left_trim_type = left_trim_type;
-    bin_type.right_trim = right_trim;
-    bin_type.right_trim_type = right_trim_type;
-    bin_type.bottom_trim = bottom_trim;
-    bin_type.bottom_trim_type = bottom_trim_type;
-    bin_type.top_trim = top_trim;
-    bin_type.top_trim_type = top_trim_type;
-}
-
-void Instance::add_defect(
-        BinTypeId bin_type_id,
-        Length x,
-        Length y,
-        Length w,
-        Length h)
-{
-    Defect defect;
-    defect.id = bin_types_[bin_type_id].defects.size();
-    defect.bin_type_id = bin_type_id;
-    defect.pos.x = x;
-    defect.pos.y = y;
-    defect.rect.w = w;
-    defect.rect.h = h;
-    bin_types_[bin_type_id].defects.push_back(defect);
-
-    number_of_defects_++;
-
-    // Update packable_area_ and defect_area_
-    // TODO
-}
-
-void Instance::set_bin_infinite_x()
-{
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < number_of_bin_types();
-            ++bin_type_id) {
-        bin_types_[bin_type_id].rect.w = length_sum_;
-    }
-}
-
-void Instance::set_bin_infinite_y()
-{
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < number_of_bin_types();
-            ++bin_type_id) {
-        bin_types_[bin_type_id].rect.h = length_sum_;
-    }
-}
-
-void Instance::set_bin_infinite_copies()
-{
-    bins_pos2type_.clear();
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < number_of_bin_types();
-            ++bin_type_id) {
-        bin_types_[bin_type_id].copies = number_of_items();
-        bin_types_[bin_type_id].previous_bin_area = (bin_type_id == 0)?
-            0:
-            bin_types_[bin_type_id - 1].previous_bin_area
-            + bin_types_[bin_type_id - 1].area() * bin_types_[bin_type_id - 1].copies;
-        bin_types_[bin_type_id].previous_bin_copies = (bin_type_id == 0)?
-            0:
-            bin_types_[bin_type_id - 1].previous_bin_copies + bin_types_[bin_type_id - 1].copies;
-        for (ItemPos pos = 0; pos < bin_types_[bin_type_id].copies; ++pos)
-            bins_pos2type_.push_back(bin_type_id);
-        packable_area_ += bin_types_[bin_type_id].copies * bin_types_[bin_type_id].area();
-    }
-}
-
-void Instance::set_item_infinite_copies()
-{
-    for (StackId s = 0; s < number_of_stacks(); ++s) {
-        items_pos2type_[s].clear();
-        for (ItemType& item: stacks_[s]) {
-            number_of_items_ -= item.copies;
-            item_area_ -= item.copies * item.area();
-            item_profit_ -= item.copies * item.profit;
-            length_sum_ -= item.copies * std::max(item.rect.w, item.rect.h);
-
-            ItemPos c = (bin_types_[0].area() - 1) / item.area() + 1;
-            item.copies = c;
-            item_types_[item.id].copies = c;
-
-            number_of_items_ += item.copies;
-            length_sum_ += item.copies * std::max(item.rect.w, item.rect.h);
-            item_area_ += item.copies * item.area();
-            item_profit_ += item.copies * item.profit;
-
-            for (ItemPos pos = 0; pos < item.copies; ++pos)
-                items_pos2type_[s].push_back(item.id);
-        }
-    }
-    all_item_type_infinite_copies_ = true;
-}
-
-void Instance::set_bin_unweighted()
-{
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < number_of_bin_types();
-            ++bin_type_id) {
-        bin_types_[bin_type_id].cost = bin_types_[bin_type_id].area();
-    }
-}
-
-void Instance::set_unweighted()
-{
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < number_of_item_types();
-            ++item_type_id) {
-        item_types_[item_type_id].profit = item_types_[item_type_id].area();
-    }
-}
-
-void Instance::set_no_item_rotation()
-{
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < number_of_item_types();
-            ++item_type_id) {
-        item_types_[item_type_id].oriented = true;
-    }
-}
-
-void Instance::read_item_types(std::string items_path)
-{
-    std::ifstream f_items(items_path);
-    if (!f_items.good()) {
-        throw std::runtime_error(
-                "Unable to open file \"" + items_path + "\".");
-    }
-
-    std::string tmp;
-    std::vector<std::string> line;
-    std::vector<std::string> labels;
-
-    getline(f_items, tmp);
-    labels = optimizationtools::split(tmp, ',');
-    while (getline(f_items, tmp)) {
-        line = optimizationtools::split(tmp, ',');
-        Length w = -1;
-        Length h = -1;
-        Profit profit = -1;
-        ItemPos copies = 1;
-        bool oriented = false;
-        bool new_stack = true;
-        for (Counter i = 0; i < (Counter)line.size(); ++i) {
-            if (labels[i] == "WIDTH") {
-                w = (Length)std::stol(line[i]);
-            } else if (labels[i] == "HEIGHT") {
-                h = (Length)std::stol(line[i]);
-            } else if (labels[i] == "PROFIT") {
-                profit = (Profit)std::stol(line[i]);
-            } else if (labels[i] == "COPIES") {
-                copies = (ItemPos)std::stol(line[i]);
-            } else if (labels[i] == "ORIENTED") {
-                oriented = (bool)std::stol(line[i]);
-            } else if (labels[i] == "NEWSTACK") {
-                new_stack = (bool)std::stol(line[i]);
-            }
-        }
-        if (w == -1) {
-            throw std::runtime_error(
-                    "Missing \"WIDTH\" column in \"" + items_path + "\".");
-        }
-        if (h == -1) {
-            throw std::runtime_error(
-                    "Missing \"HEIGHT\" column in \"" + items_path + "\".");
-        }
-        if (profit == -1)
-            profit = w * h;
-        add_item_type(w, h, profit, copies, oriented, new_stack);
-    }
-}
-
-void Instance::read_bin_types(std::string bins_path)
-{
-    std::ifstream f_bins(bins_path);
-    if (!f_bins.good()) {
-        throw std::runtime_error(
-                "Unable to open file \"" + bins_path + "\".");
-    }
-
-    std::string tmp;
-    std::vector<std::string> line;
-    std::vector<std::string> labels;
-
-    getline(f_bins, tmp);
-    labels = optimizationtools::split(tmp, ',');
-    while (getline(f_bins, tmp)) {
-        line = optimizationtools::split(tmp, ',');
-        Length w = -1;
-        Length h = -1;
-        Profit cost = -1;
-        BinPos copies = 1;
-        BinPos copies_min = 0;
-        Length bottom_trim = 0;
-        Length top_trim = 0;
-        Length left_trim = 0;
-        Length right_trim = 0;
-        TrimType bottom_trim_type = TrimType::Hard;
-        TrimType top_trim_type = TrimType::Soft;
-        TrimType left_trim_type = TrimType::Hard;
-        TrimType right_trim_type = TrimType::Soft;
-        for (Counter i = 0; i < (Counter)line.size(); ++i) {
-            if (labels[i] == "WIDTH") {
-                w = (Length)std::stol(line[i]);
-            } else if (labels[i] == "HEIGHT") {
-                h = (Length)std::stol(line[i]);
-            } else if (labels[i] == "COST") {
-                cost = (Profit)std::stol(line[i]);
-            } else if (labels[i] == "COPIES") {
-                copies = (BinPos)std::stol(line[i]);
-            } else if (labels[i] == "COPIES_MIN") {
-                copies_min = (BinPos)std::stol(line[i]);
-            } else if (labels[i] == "BOTTOM_TRIM") {
-                bottom_trim = (BinPos)std::stol(line[i]);
-            } else if (labels[i] == "TOP_TRIM") {
-                top_trim = (BinPos)std::stol(line[i]);
-            } else if (labels[i] == "LEFT_TRIM") {
-                left_trim = (BinPos)std::stol(line[i]);
-            } else if (labels[i] == "RIGHT_TRIM") {
-                right_trim = (BinPos)std::stol(line[i]);
-            } else if (labels[i] == "BOTTOM_TRIM_TYPE") {
-                bottom_trim_type = (TrimType)std::stol(line[i]);
-            } else if (labels[i] == "TOP_TRIM_TYPE") {
-                top_trim_type = (TrimType)std::stol(line[i]);
-            } else if (labels[i] == "LEFT_TRIM_TYPE") {
-                left_trim_type = (TrimType)std::stol(line[i]);
-            } else if (labels[i] == "RIGHT_TRIM_TYPE") {
-                right_trim_type = (TrimType)std::stol(line[i]);
-            }
-        }
-        if (w == -1) {
-            throw std::runtime_error(
-                    "Missing \"WIDTH\" column in \"" + bins_path + "\".");
-        }
-        if (h == -1) {
-            throw std::runtime_error(
-                    "Missing \"HEIGHT\" column in \"" + bins_path + "\".");
-        }
-        BinTypeId bin_type_id = add_bin_type(w, h, cost, copies, copies_min);
-        add_trims(
-                bin_type_id,
-                left_trim,
-                left_trim_type,
-                right_trim,
-                right_trim_type,
-                bottom_trim,
-                bottom_trim_type,
-                top_trim,
-                top_trim_type);
-    }
-}
-
-void Instance::read_defects(std::string defects_path)
-{
-    if (defects_path.empty())
-        return;
-
-    std::ifstream f_defects(defects_path);
-    if (defects_path != "" && !f_defects.good()) {
-        throw std::runtime_error(
-                "Unable to open file \"" + defects_path + "\".");
-    }
-
-    std::string tmp;
-    std::vector<std::string> line;
-    std::vector<std::string> labels;
-
-    getline(f_defects, tmp);
-    labels = optimizationtools::split(tmp, ',');
-    while (getline(f_defects, tmp)) {
-        line = optimizationtools::split(tmp, ',');
-        BinTypeId bin_type_id = -1;
-        Length x = -1;
-        Length y = -1;
-        Length w = -1;
-        Length h = -1;
-        for (Counter c = 0; c < (Counter)line.size(); ++c) {
-            if (labels[c] == "BIN") {
-                bin_type_id = (BinTypeId)std::stol(line[c]);
-            } else if (labels[c] == "X") {
-                x = (Length)std::stol(line[c]);
-            } else if (labels[c] == "Y") {
-                y = (Length)std::stol(line[c]);
-            } else if (labels[c] == "WIDTH") {
-                w = (Length)std::stol(line[c]);
-            } else if (labels[c] == "HEIGHT") {
-                h = (Length)std::stol(line[c]);
-            }
-        }
-        if (bin_type_id == -1) {
-            throw std::runtime_error(
-                    "Missing \"BIN\" column in \"" + defects_path + "\".");
-        }
-        if (x == -1) {
-            throw std::runtime_error(
-                    "Missing \"X\" column in \"" + defects_path + "\".");
-        }
-        if (y == -1) {
-            throw std::runtime_error(
-                    "Missing \"Y\" column in \"" + defects_path + "\".");
-        }
-        if (w == -1) {
-            throw std::runtime_error(
-                    "Missing \"WIDTH\" column in \"" + defects_path + "\".");
-        }
-        if (h == -1) {
-            throw std::runtime_error(
-                    "Missing \"HEIGHT\" column in \"" + defects_path + "\".");
-        }
-        add_defect(bin_type_id, x, y, w, h);
-    }
-}
-
-void Instance::read_parameters(std::string parameters_path)
-{
-    if (parameters_path.empty())
-        return;
-
-    std::ifstream f_parameterss(parameters_path);
-    if (parameters_path != "" && !f_parameterss.good()) {
-        throw std::runtime_error(
-                "Unable to open file \"" + parameters_path + "\".");
-    }
-
-    std::string tmp;
-    std::vector<std::string> line;
-    std::vector<std::string> labels;
-
-    getline(f_parameterss, tmp);
-    labels = optimizationtools::split(tmp, ',');
-    while (getline(f_parameterss, tmp)) {
-        line = optimizationtools::split(tmp, ',');
-        std::string name;
-        std::string value;
-        for (Counter c = 0; c < (Counter)line.size(); ++c) {
-            if (labels[c] == "NAME") {
-                name = line[c];
-            } else if (labels[c] == "VALUE") {
-                value = line[c];
-            }
-        }
-        if (name == "cut_type_1") {
-            CutType1 cut_type_1;
-            std::stringstream ss(value);
-            ss >> cut_type_1;
-            set_cut_type_1(cut_type_1);
-        } else if (name == "cut_type_2") {
-            CutType2 cut_type_2;
-            std::stringstream ss(value);
-            ss >> cut_type_2;
-            set_cut_type_2(cut_type_2);
-        } else if (name == "first_stage_orientation") {
-            CutOrientation first_stage_orientation;
-            std::stringstream ss(value);
-            ss >> first_stage_orientation;
-            set_first_stage_orientation(first_stage_orientation);
-        } else if (name == "min1cut" || name == "min1Cut") {
-            set_min1cut(std::stol(value));
-        } else if (name == "max1cut" || name == "max1Cut") {
-            set_max1cut(std::stol(value));
-        } else if (name == "min2cut" || name == "min2Cut") {
-            set_min2cut(std::stol(value));
-        } else if (name == "max2cut" || name == "max2Cut") {
-            set_max2cut(std::stol(value));
-        } else if (name == "min_waste" || name == "minwaste" || name == "minWaste") {
-            set_min_waste(std::stol(value));
-        } else if (name == "cut_thickness") {
-            set_cut_thickness(std::stol(value));
-        }
-    }
 }
 
 void Instance::write(std::string instance_path) const
@@ -781,7 +234,7 @@ void Instance::write(std::string instance_path) const
     }
 
     // Export items.
-    f_items << "ID,WIDTH,HEIGHT,PROFIT,COPIES,ORIENTED,NEWSTACK" << std::endl;
+    f_items << "ID,WIDTH,HEIGHT,PROFIT,COPIES,ORIENTED,STACK_ID" << std::endl;
     for (ItemTypeId item_type_id = 0;
             item_type_id < number_of_item_types();
             ++item_type_id) {
@@ -792,7 +245,7 @@ void Instance::write(std::string instance_path) const
             << item_type.profit << ","
             << item_type.copies << ","
             << item_type.oriented << ","
-            << (item_type_id == 0 || item_type.stack != this->item_type(item_type_id - 1).stack) << std::endl;
+            << item_type.stack_id << std::endl;
     }
 
     // Export bins.
@@ -830,72 +283,6 @@ void Instance::write(std::string instance_path) const
     }
 }
 
-void Instance::set_predefined(std::string str)
-{
-    if (str == "roadef2018") {
-        set_roadef2018();
-        return;
-    }
-
-    if (str.length() != 4) {
-        std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter \"" << str << "\" should contain four characters." << "\033[0m" << std::endl;
-        if (str.length() < 4)
-            return;
-    }
-    switch (str[0]) {
-    case '3': {
-        parameters_.cut_type_1 = rectangleguillotine::CutType1::ThreeStagedGuillotine;
-        break;
-    } case '2': {
-        parameters_.cut_type_1 = rectangleguillotine::CutType1::TwoStagedGuillotine;
-        break;
-    } default: {
-        std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter 1st character \"" << str[0] << "\" invalid." << "\033[0m" << std::endl;
-    }
-    }
-    switch (str[1]) {
-    case 'R': {
-        parameters_.cut_type_2 = rectangleguillotine::CutType2::Roadef2018;
-        break;
-    } case 'N': {
-        parameters_.cut_type_2 = rectangleguillotine::CutType2::NonExact;
-        break;
-    } case 'E': {
-        parameters_.cut_type_2 = rectangleguillotine::CutType2::Exact;
-        break;
-    } case 'H': {
-        parameters_.cut_type_2 = rectangleguillotine::CutType2::Homogenous;
-        break;
-    } default: {
-        std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter 2nd character \"" << str[1] << "\" invalid." << "\033[0m" << std::endl;
-    }
-    }
-    switch (str[2]) {
-    case 'V': {
-        parameters_.first_stage_orientation = rectangleguillotine::CutOrientation::Vertical;
-        break;
-    } case 'H': {
-        parameters_.first_stage_orientation = rectangleguillotine::CutOrientation::Horinzontal;
-        break;
-    } case 'A': {
-        parameters_.first_stage_orientation = rectangleguillotine::CutOrientation::Any;
-        break;
-    } default: {
-        std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter 3rd character \"" << str[2] << "\" invalid." << "\033[0m" << std::endl;
-    }
-    }
-    switch (str[3]) {
-    case 'R': {
-        break;
-    } case 'O': {
-        set_no_item_rotation();
-        break;
-    } default: {
-        std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter 4th character \"" << str[3] << "\" invalid." << "\033[0m" << std::endl;
-    }
-    }
-}
-
 std::ostream& Instance::print(
         std::ostream& os,
         int verbose) const
@@ -928,9 +315,9 @@ std::ostream& Instance::print(
             << std::setw(12) << "Bin type"
             << std::setw(12) << "Width"
             << std::setw(12) << "Height"
-            << std::setw(12) << "COST"
-            << std::setw(12) << "COPIES"
-            << std::setw(12) << "COPIES_MIN"
+            << std::setw(12) << "Cost"
+            << std::setw(12) << "Copies"
+            << std::setw(12) << "Copies min"
             << std::endl
             << std::setw(12) << "--------"
             << std::setw(12) << "-----"
@@ -988,14 +375,14 @@ std::ostream& Instance::print(
             os
                 << std::endl
                 << std::setw(12) << "Defect"
-                << std::setw(12) << "BIN"
+                << std::setw(12) << "Bin type"
                 << std::setw(12) << "X"
                 << std::setw(12) << "Y"
-                << std::setw(12) << "wIDTH"
-                << std::setw(12) << "HEIGHT"
+                << std::setw(12) << "width"
+                << std::setw(12) << "Height"
                 << std::endl
                 << std::setw(12) << "------"
-                << std::setw(12) << "---"
+                << std::setw(12) << "--------"
                 << std::setw(12) << "-"
                 << std::setw(12) << "-"
                 << std::setw(12) << "-----"
@@ -1024,12 +411,12 @@ std::ostream& Instance::print(
         os
             << std::endl
             << std::setw(12) << "Item type"
-            << std::setw(12) << "WIDTH"
-            << std::setw(12) << "HEIGHT"
-            << std::setw(12) << "PROFIT"
-            << std::setw(12) << "COPIES"
-            << std::setw(12) << "ORIENTED"
-            << std::setw(12) << "Stack"
+            << std::setw(12) << "Width"
+            << std::setw(12) << "Height"
+            << std::setw(12) << "Profit"
+            << std::setw(12) << "Copies"
+            << std::setw(12) << "Oriented"
+            << std::setw(12) << "Stack id"
             << std::endl
             << std::setw(12) << "---------"
             << std::setw(12) << "-----"
@@ -1050,7 +437,7 @@ std::ostream& Instance::print(
                 << std::setw(12) << item_type.profit
                 << std::setw(12) << item_type.copies
                 << std::setw(12) << item_type.oriented
-                << std::setw(12) << item_type.stack
+                << std::setw(12) << item_type.stack_id
                 << std::endl;
         }
     }

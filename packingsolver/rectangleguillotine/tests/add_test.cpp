@@ -1,3 +1,4 @@
+#include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
 
 #include <gtest/gtest.h>
@@ -27,12 +28,13 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion1)
         //.set_log2stderr(true)
         ;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(200, 300);
-    instance.add_item_type(300, 400);
-    instance.add_bin_type(6000, 3210);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(200, 300);
+    instance_builder.add_item_type(300, 400);
+    instance_builder.add_bin_type(6000, 3210);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -92,13 +94,14 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion2)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    instance.add_item_type(500, 600);
-    instance.add_item_type(200, 300);
-    instance.add_item_type(100, 400);
-    instance.add_bin_type(6000, 3210);
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    instance_builder.add_item_type(500, 600);
+    instance_builder.add_item_type(200, 300);
+    instance_builder.add_item_type(100, 400);
+    instance_builder.add_bin_type(6000, 3210);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
 

@@ -455,7 +455,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     node.profit = father.profit;
     if (insertion.item_type_id_1 != -1) {
         const ItemType& item = instance().item_type(insertion.item_type_id_1);
-        node.pos_stack[item.stack]++;
+        node.pos_stack[item.stack_id]++;
         node.number_of_items += 1;
         node.item_area += item.area();
         node.squared_item_area += item.area() * item.area();
@@ -463,13 +463,13 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     }
     if (insertion.item_type_id_2 != -1) {
         const ItemType& item = instance().item_type(insertion.item_type_id_2);
-        node.pos_stack[item.stack]++;
+        node.pos_stack[item.stack_id]++;
         node.number_of_items += 1;
         node.item_area += item.area();
         node.squared_item_area += item.area() * item.area();
         node.profit += item.profit;
     }
-    assert(node.item_area <= instance().packable_area());
+    assert(node.item_area <= instance().bin_area());
 
     // Update current_area_ and waste_
     node.current_area = instance().previous_bin_area(i);
