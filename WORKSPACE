@@ -34,8 +34,7 @@ cc_library(
 git_repository(
     name = "optimizationtools",
     remote = "https://github.com/fontanf/optimizationtools.git",
-    commit = "d7299a707f3b6b3b8aa8c428f5254b9ea39bfc53",
-    shallow_since = "1656765328 +0200",
+    commit = "6c40c5ba2890dbd2107962d5ef3fc120c9b11dc2",
 )
 
 local_repository(
@@ -44,22 +43,22 @@ local_repository(
 )
 
 git_repository(
-    name = "treesearchsolver_",
+    name = "treesearchsolver",
     remote = "https://github.com/fontanf/treesearchsolver.git",
-    commit = "c39a99bb46ef73f4bd092460517d530f3a273569",
-    shallow_since = "1655023961 +0200",
+    commit = "d0236497be177160b4ec242ae53edadce93909d1",
+    shallow_since = "1664086189 +0200",
 )
 
 local_repository(
-    name = "treesearchsolver",
+    name = "treesearchsolver_",
     path = "../treesearchsolver/",
 )
 
 git_repository(
     name = "columngenerationsolver",
     remote = "https://github.com/fontanf/columngenerationsolver.git",
-    commit = "40c2daef0bdb8a83330e472b7a4103a4ff38c614",
-    shallow_since = "1655662016 +0200",
+    commit = "2595e3ad316143827d8a8fa943d5713d2b180b70",
+    shallow_since = "1672489298 +0100",
 )
 
 local_repository(
@@ -67,15 +66,44 @@ local_repository(
     path = "../columngenerationsolver/",
 )
 
+git_repository(
+    name = "knapsacksolver",
+    remote = "https://github.com/fontanf/knapsacksolver.git",
+    commit = "5464348be438e0b339f30c5f4f72cdaf701c99ec",
+)
+
+local_repository(
+    name = "knapsacksolver_",
+    path = "../knapsacksolver/",
+)
+
 new_local_repository(
     name = "coinor",
     path = "/home/florian/Programmes/coinbrew/",
     build_file_content = """
 cc_library(
-    name = "coinor",
-    hdrs = glob(["dist/include/**/*.h*"], exclude_directories = 0),
-    strip_include_prefix = "dist/include/",
-    srcs = glob(["dist/lib/**/*.so"], exclude_directories = 0),
+    name = "osi",
+    hdrs = glob(["dist/include/coin/Osi*.h*"], exclude_directories = 0),
+    strip_include_prefix = "dist/include/coin/",
+    visibility = ["//visibility:public"],
+)
+cc_library(
+    name = "coinutils",
+    hdrs = glob(["dist/include/coin/Coin*.h*"], exclude_directories = 0),
+    strip_include_prefix = "dist/include/coin/",
+    srcs = [
+        "dist/lib/libCoinUtils.so",
+    ],
+    visibility = ["//visibility:public"],
+)
+cc_library(
+    name = "clp",
+    hdrs = glob(["dist/include/coin/Clp*.h*"], exclude_directories = 0),
+    strip_include_prefix = "dist/include/coin",
+    srcs = [
+        "dist/lib/libClp.so",
+    ],
+    deps = [":coinutils", ":osi"],
     visibility = ["//visibility:public"],
 )
 """,
@@ -141,15 +169,32 @@ cc_library(
 
 new_local_repository(
     name = "xpress",
-    path = "/home/florian/Programmes/",
+    path = "/opt/xpressmp/",
     build_file_content = """
 cc_library(
     name = "xpress",
-    hdrs = [
-    ],
+    hdrs = glob(["include/*.h"], exclude_directories = 0),
     strip_include_prefix = "include/",
-    srcs = [
-    ],
+    srcs = ["lib/libxprs.so"],
+    visibility = ["//visibility:public"],
+)
+""",
+)
+
+new_local_repository(
+    name = "ampl",
+    path = "/home/florian/Programmes/ampl.linux-intel64/amplapi/",
+    # path = "/home/florian/Programmes/ampl-z-13.1.20220703-Linux-64/amplapi/",
+    build_file_content = """
+cc_library(
+    name = "ampl",
+    hdrs = glob([
+            "include/ampl/*.h",
+            "include/ampl/ep/*.h",
+            "include/ampl/ep/format.cc",
+        ], exclude_directories = 0),
+    strip_include_prefix = "include/",
+    srcs = ["lib/libampl.so"],
     visibility = ["//visibility:public"],
 )
 """,

@@ -1,5 +1,5 @@
 load("//packingsolver:variables.bzl", "STDCPP")
-load("//packingsolver:variables.bzl", "COINOR_COPTS")
+load("//packingsolver:variables.bzl", "CLP_COPTS")
 load("//packingsolver:variables.bzl", "CPLEX_COPTS")
 load("//packingsolver:variables.bzl", "XPRESS_COPTS")
 load("//packingsolver:variables.bzl", "GUROBI_COPTS")
@@ -8,12 +8,14 @@ cc_library(
         name = "rectangleguillotine",
         hdrs = [
                 "instance.hpp",
+                "instance_builder.hpp",
                 "solution.hpp",
                 "optimize.hpp",
                 "branching_scheme.hpp",
         ],
         srcs = [
                 "instance.cpp",
+                "instance_builder.cpp",
                 "solution.cpp",
                 "optimize.cpp",
                 "branching_scheme.cpp",
@@ -22,7 +24,7 @@ cc_library(
                 "//packingsolver/algorithms:common",
                 "//packingsolver/algorithms:algorithms",
         ],
-        copts = STDCPP + COINOR_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
+        copts = STDCPP + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
         visibility = ["//visibility:public"],
 )
 
@@ -33,7 +35,7 @@ cc_binary(
                 ":rectangleguillotine",
                 "@boost//:program_options",
         ],
-        copts = STDCPP + COINOR_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
+        copts = STDCPP + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
         linkopts = select({
                 "@bazel_tools//src/conditions:windows": [],
                 "//conditions:default":                 ["-lpthread"],
@@ -48,7 +50,9 @@ cc_test(
                 "tests/add_test.cpp",
                 "tests/insertion_test.cpp",
                 "tests/defect_test.cpp",
+                "tests/cut_through_defect_test.cpp",
                 "tests/trim_test.cpp",
+                "tests/cut_thickness_test.cpp",
                 "tests/integration_test.cpp",
         ],
         deps = [
