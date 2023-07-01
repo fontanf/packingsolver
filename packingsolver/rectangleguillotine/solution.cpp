@@ -8,7 +8,7 @@ using namespace packingsolver::rectangleguillotine;
 ////////////////////////////////////////////////////////////////////////////////
 
 std::ostream& print(std::ostream& os,
-        const std::vector<Solution::Node>& res,
+        const std::vector<SolutionNode>& res,
         SolutionNodeId id, std::string tab)
 {
     os << tab << res[id] << std::endl;
@@ -17,18 +17,19 @@ std::ostream& print(std::ostream& os,
     return os;
 }
 
-std::ostream& packingsolver::rectangleguillotine::operator<<(std::ostream &os, const Solution::Node& node)
+std::ostream& packingsolver::rectangleguillotine::operator<<(
+        std::ostream &os,
+        const SolutionNode& node)
 {
     os
         << "id " << node.id
         << " f " << node.f
         << " d " << node.d
-        << " i " << node.i
         << " l " << node.l
         << " r " << node.r
         << " b " << node.b
         << " t " << node.t
-        << " j " << node.j;
+        << " item_type_id " << node.item_type_id;
     return os;
 }
 
@@ -36,108 +37,84 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(std::ostream &os, c
 /////////////////////////////////// Solution ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-Solution::Solution(const Solution& solution):
-    instance_(solution.instance_),
-    nodes_(solution.nodes_),
-    number_of_items_(solution.number_of_items_),
-    number_of_bins_(solution.number_of_bins_),
-    area_(solution.area_),
-    full_area_(solution.full_area_),
-    item_area_(solution.item_area_),
-    profit_(solution.profit_),
-    cost_(solution.cost_),
-    width_(solution.width_),
-    height_(solution.height_),
-    bin_copies_(solution.bin_copies_),
-    item_copies_(solution.item_copies_)
+BinPos Solution::add_bin(
+        BinTypeId bin_type_id,
+        const std::vector<SolutionNode>& nodes)
 {
+    BinPos bin_pos = bins_.size();
+    SolutionBin solution_bin;
+    solution_bin.bin_type_id = bin_type_id;
+    solution_bin.copies = 1;
+    bins_.push_back(solution_bin);
+
+    number_of_bins_++;
+    bin_copies_[bin_type_id]++;
+    const BinType& bin_type = instance().bin_type(bin_type_id);
+    cost_ += bin_type.cost;
+    area_ += bin_type.area();
+    full_area_ += bin_type.area();
+
+    for (const SolutionNode& node: nodes)
+        add_node(bin_pos, node);
+
+    return bin_pos;
 }
 
-Solution& Solution::operator=(const Solution& solution)
+void Solution::add_node(
+        BinPos bin_pos,
+        const SolutionNode& node)
 {
-    if (this != &solution) {
-        if (&instance_ != &solution.instance_) {
-            throw std::runtime_error(
-                    "Assign a solution to a solution from a different instance.");
-        }
+    BinTypeId bin_type_id = bins_[bin_pos].bin_type_id;
+    const BinType& bin_type = instance().bin_type(bin_type_id);
 
-        nodes_ = solution.nodes_;
-        number_of_items_ = solution.number_of_items_;
-        number_of_bins_ = solution.number_of_bins_;
-        area_ = solution.area_;
-        full_area_ = solution.full_area_;
-        item_area_ = solution.item_area_;
-        profit_ = solution.profit_;
-        cost_ = solution.cost_;
-        width_ = solution.width_;
-        height_ = solution.height_;
-        bin_copies_ = solution.bin_copies_;
-        item_copies_ = solution.item_copies_;
-        assert(number_of_items_ >= 0);
-    }
-    return *this;
-}
-
-void Solution::add_node(const Node& node)
-{
-    nodes_.push_back(node);
-    if (number_of_bins_ < node.i + 1) {
-        number_of_bins_ = node.i + 1;
-        bin_copies_[node.bin_type_id]++;
-        const BinType& bin_type = instance_.bin_type(node.bin_type_id);
-        cost_ += bin_type.cost;
-        area_ += bin_type.area();
-        full_area_ += bin_type.area();
-    }
+    bins_[bin_pos].nodes.push_back(node);
     if (node.d >= 0)
-    if (node.j >= 0) {
+    if (node.item_type_id >= 0) {
         number_of_items_++;
-        item_area_ += instance().item_type(node.j).area();
-        profit_ += instance().item_type(node.j).profit;
-        item_copies_[node.j]++;
+        item_area_ += instance().item_type(node.item_type_id).area();
+        profit_ += instance().item_type(node.item_type_id).profit;
+        item_copies_[node.item_type_id]++;
     }
-    if (node.j == -3) // Subtract residual area
+    if (node.item_type_id == -3) // Subtract residual area
         area_ -= (node.t - node.b) * (node.r - node.l);
     // Update width_ and height_
-    if (node.r < instance().bin(node.i).rect.w && width_ < node.r)
+    if (node.r < bin_type.rect.w && width_ < node.r)
         width_ = node.r;
-    if (node.t < instance().bin(node.i).rect.h && height_ < node.t)
+    if (node.t < bin_type.rect.h && height_ < node.t)
         height_ = node.t;
-}
-
-Solution::Solution(const Instance& instance, const std::vector<Solution::Node>& nodes):
-    instance_(instance),
-    bin_copies_(instance.number_of_bin_types(), 0),
-    item_copies_(instance.number_of_item_types(), 0)
-{
-    for (const Solution::Node& node: nodes)
-        add_node(node);
 }
 
 void Solution::append(
         const Solution& solution,
-        BinTypeId bin_type_id,
-        const std::vector<ItemTypeId>& item_type_ids,
-        BinPos copies)
+        BinPos bin_pos,
+        BinPos copies,
+        const std::vector<BinTypeId>& bin_type_ids,
+        const std::vector<ItemTypeId>& item_type_ids)
 {
-    SolutionNodeId offset_node = nodes_.size();
-    BinPos offset_bin = number_of_bins_;
-    for (BinPos i = 0; i < copies; ++i) {
-        for (Solution::Node node: solution.nodes()) {
-            node.bin_type_id = bin_type_id;
-            node.id += offset_node;
-            if (node.f != -1)
-                node.f += offset_node;
-            if (node.j >= 0)
-                node.j = item_type_ids[node.j];
-            if (node.j == -3)
-                node.j = -1;
-            for (SolutionNodeId& child: node.children)
-                child += offset_node;
-            node.i += i + offset_bin;
-            add_node(node);
+    BinTypeId bin_type_id = (bin_type_ids.empty())?
+        solution.bins_[bin_pos].bin_type_id:
+        bin_type_ids[solution.bins_[bin_pos].bin_type_id];
+    for (BinPos copie = 0; copie < copies; ++copie) {
+        BinPos i_pos = add_bin(bin_type_id, {});
+        for (SolutionNode node: solution.bin(bin_pos).nodes) {
+            if (node.item_type_id >= 0)
+                node.item_type_id = (item_type_ids.empty())?
+                    node.item_type_id:
+                    item_type_ids[node.item_type_id];
+            if (node.item_type_id == -3)
+                node.item_type_id = -1;
+            add_node(i_pos, node);
         }
     }
+}
+
+void Solution::append(
+        const Solution& solution,
+        const std::vector<BinTypeId>& bin_type_ids,
+        const std::vector<ItemTypeId>& item_type_ids)
+{
+    for (BinPos i = 0; i < solution.number_of_bins(); ++i)
+        append(solution, i, 1, bin_type_ids, item_type_ids);
 }
 
 bool Solution::operator<(const Solution& solution) const
@@ -161,13 +138,13 @@ bool Solution::operator<(const Solution& solution) const
         if (!full())
             return true;
         return solution.waste() < waste();
-    } case Objective::StripPackingX: {
+    } case Objective::OpenDimensionX: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
         return solution.width() < width();
-    } case Objective::StripPackingY: {
+    } case Objective::OpenDimensionY: {
         if (!solution.full())
             return false;
         if (!full())
@@ -232,7 +209,7 @@ void Solution::display(
                 << std::setw(32) << algorithm.str()
                 << std::endl;
         break;
-    } case Objective::StripPackingX: {
+    } case Objective::OpenDimensionX: {
         info.add_to_json(sol_str, "X", width());
         info.os()
                 << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
@@ -240,7 +217,7 @@ void Solution::display(
                 << std::setw(32) << algorithm.str()
                 << std::endl;
         break;
-    } case Objective::StripPackingY: {
+    } case Objective::OpenDimensionY: {
         info.add_to_json(sol_str, "Y", height());
         info.os()
                 << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
@@ -285,7 +262,9 @@ void Solution::display(
     }
 }
 
-void Solution::algorithm_start(Info& info) const
+void Solution::algorithm_start(
+        Info& info,
+        Algorithm algorithm) const
 {
     info.os()
             << "===================================" << std::endl
@@ -299,6 +278,11 @@ void Solution::algorithm_start(Info& info) const
             << "Instance" << std::endl
             << "--------" << std::endl;
     instance().print(info.os(), info.verbosity_level());
+    info.os()
+            << std::endl
+            << "Algorithm" << std::endl
+            << "---------" << std::endl
+            << algorithm << std::endl;
     info.os() << std::endl;
 
     switch (instance().objective()) {
@@ -343,7 +327,7 @@ void Solution::algorithm_start(Info& info) const
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
-    } case Objective::StripPackingX: {
+    } case Objective::OpenDimensionX: {
         info.os()
                 << std::setw(12) << "Time"
                 << std::setw(12) << "X"
@@ -354,7 +338,7 @@ void Solution::algorithm_start(Info& info) const
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
-    } case Objective::StripPackingY: {
+    } case Objective::OpenDimensionY: {
         info.os()
                 << std::setw(12) << "Time"
                 << std::setw(12) << "Y"
@@ -417,46 +401,49 @@ void Solution::algorithm_end(Info& info) const
         info.add_to_json(sol_str, "Full", (full())? 1: 0);
         info.add_to_json(sol_str, "Waste", waste());
         info.os()
-                << "Profit:           " << profit() << std::endl
-                << "Full:             " << full() << std::endl
-                << "Waste:            " << waste() << std::endl;
+            << "Profit:            " << profit() << std::endl
+            << "Full:              " << full() << std::endl
+            << "Waste:             " << waste() << std::endl;
         break;
     } case Objective::BinPacking: {
         info.add_to_json(sol_str, "NumberOfBins", number_of_bins());
         info.add_to_json(sol_str, "FullWaste", full_waste());
         info.add_to_json(sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        info.os() << "Number of bins:   " << number_of_bins() << std::endl;
-        info.os() << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl;
+        info.os()
+            << "Number of bins:    " << number_of_bins() << std::endl
+            << "Full waste (%):    " << 100 * full_waste_percentage() << std::endl;
         break;
     } case Objective::BinPackingWithLeftovers: {
         info.add_to_json(sol_str, "Waste", waste());
         info.add_to_json(sol_str, "WastePercentage", 100 * waste_percentage());
         info.os()
-                << "Waste:             " << waste() << std::endl
-                << "Waste (%):         " << 100 * waste_percentage() << std::endl;
+            << "Waste:             " << waste() << std::endl
+            << "Waste (%):         " << 100 * waste_percentage() << std::endl;
         break;
-    } case Objective::StripPackingX: {
+    } case Objective::OpenDimensionX: {
         info.add_to_json(sol_str, "X", width());
-        info.os() << "X:                 " << width() << std::endl;
+        info.os()
+            << "X:                 " << width() << std::endl;
         break;
-    } case Objective::StripPackingY: {
+    } case Objective::OpenDimensionY: {
         info.add_to_json(sol_str, "Y", height());
-        info.os() << "Y:                 " << height() << std::endl;
+        info.os()
+            << "Y:                 " << height() << std::endl;
         break;
     } case Objective::Knapsack: {
         info.add_to_json(sol_str, "Profit", profit());
         info.os()
-                << "Profit:            " << profit() << std::endl
-                << "Number of items:   " << number_of_items() << std::endl;
+            << "Profit:            " << profit() << std::endl
+            << "Number of items:   " << number_of_items() << std::endl;
         break;
     } case Objective::VariableSizedBinPacking: {
         info.add_to_json(sol_str, "Cost", cost());
         info.add_to_json(sol_str, "NumberOfBins", number_of_bins());
         info.add_to_json(sol_str, "FullWastePercentage", 100 * full_waste_percentage());
         info.os()
-                << "Cost:              " << cost() << std::endl
-                << "Number of bins:    " << number_of_bins() << std::endl
-                << "Full waste (%):    " << 100 * full_waste_percentage() << std::endl;
+            << "Cost:              " << cost() << std::endl
+            << "Number of bins:    " << number_of_bins() << std::endl
+            << "Full waste (%):    " << 100 * full_waste_percentage() << std::endl;
         break;
     } default: {
         std::stringstream ss;
@@ -483,19 +470,26 @@ void Solution::write(Info& info) const
     }
 
     f << "PLATE_ID,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
-    for (const Solution::Node& n: nodes_) {
-        f
-            << n.i << ","
-            << n.id << ","
-            << n.l << ","
-            << n.b << ","
-            << n.r - n.l << ","
-            << n.t - n.b << ","
-            << n.j << ","
-            << n.d << ",";
-        if (n.f != -1)
-            f << n.f;
-        f << std::endl;
+    SolutionNodeId offset = 0;
+    for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
+        const SolutionBin& solution_bin = bins_[bin_pos];
+        for (BinPos copie = 0; copie < solution_bin.copies; ++copie) {
+            for (const SolutionNode& n: solution_bin.nodes) {
+                f
+                    << bin_pos << ","
+                    << offset + n.id << ","
+                    << n.l << ","
+                    << n.b << ","
+                    << n.r - n.l << ","
+                    << n.t - n.b << ","
+                    << n.item_type_id << ","
+                    << n.d << ",";
+                if (n.f != -1)
+                    f << n.f;
+                f << std::endl;
+            }
+            offset += solution_bin.nodes.size();
+        }
     }
     f.close();
 }

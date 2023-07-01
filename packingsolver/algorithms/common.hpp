@@ -1,5 +1,7 @@
 #pragma once
 
+#define _USE_MATH_DEFINES
+
 #include "optimizationtools/utils/info.hpp"
 #include "optimizationtools/utils/utils.hpp"
 
@@ -9,25 +11,29 @@
 namespace packingsolver
 {
 
+const double PSTOL = 1 + 1e-9;
+
 using Seed = int64_t;
 using Counter = int64_t;
 
 using ItemTypeId = int16_t;
 using ItemPos = int16_t;
 using GroupId = int16_t;
+using StackabilityId = int64_t;
 using StackId = int16_t;
 using Length = int64_t;
 using Area = int64_t;
 using Volume = int64_t;
-using Weight = int64_t;
+using Weight = double;
 using Angle = double;
 using AnglePos = int64_t;
-using Profit = int64_t;
+using Profit = double;
 using BinTypeId = int16_t;
 using BinPos = int16_t;
 using DefectId = int16_t;
 using DefectTypeId = int64_t;
 using QualityRule = int64_t;
+using EligibilityId = int64_t;
 
 using NodeId = int64_t;
 using Depth = int16_t;
@@ -35,13 +41,46 @@ using GuideId = int16_t;
 
 using optimizationtools::Info;
 
-enum class ProblemType { RectangleGuillotine, Rectangle };
-enum class Objective {
+inline bool striclty_lesser(double v1, double v2)
+{
+    return v1 * PSTOL < v2;
+}
+
+inline bool striclty_greater(double v1, double v2)
+{
+    return v1 > v2 * PSTOL;
+}
+
+inline bool equal(double v1, double v2)
+{
+    return (v1 * PSTOL >= v2) && (v1 <= v2 * PSTOL);
+}
+
+
+enum class ProblemType
+{
+    RectangleGuillotine,
+    Rectangle,
+    Irregular,
+};
+
+enum class Algorithm
+{
+    Auto,
+    TreeSearch,
+    ColumnGeneration,
+    DichotomicSearch,
+    Minlp,
+};
+
+enum class Objective
+{
     Default,
     BinPacking,
     BinPackingWithLeftovers,
-    StripPackingX,
-    StripPackingY,
+    OpenDimensionX,
+    OpenDimensionY,
+    OpenDimensionXY,
     Knapsack,
     VariableSizedBinPacking,
 };
@@ -49,9 +88,11 @@ enum class Objective {
 enum class Direction { X, Y, Any };
 
 std::istream& operator>>(std::istream& in, ProblemType& problem_type);
+std::istream& operator>>(std::istream& in, Algorithm& algorithm);
 std::istream& operator>>(std::istream& in, Objective& objective);
 std::istream& operator>>(std::istream& in, Direction& o);
 std::ostream& operator<<(std::ostream &os, ProblemType problem_type);
+std::ostream& operator<<(std::ostream &os, Algorithm algorithm);
 std::ostream& operator<<(std::ostream &os, Objective objective);
 std::ostream& operator<<(std::ostream &os, Direction o);
 

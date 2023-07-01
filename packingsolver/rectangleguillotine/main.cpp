@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
     int log_levelmax = 999;
     double time_limit = std::numeric_limits<double>::infinity();
     Seed seed = 0;
+    OptimizeOptionalParameters optimize_parameters;
 
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -56,6 +57,18 @@ int main(int argc, char *argv[])
         ("min-waste,", po::value<Length>(&parameters.min_waste), "")
         ("one2cut,", po::value<bool>(&parameters.one2cut), "")
         ("cut-through-defects", po::value<bool>(&parameters.cut_through_defects), "")
+        ("cut-thickness", po::value<Length>(&parameters.cut_thickness), "")
+
+        ("bpp-algorithm,", po::value<Algorithm>(&optimize_parameters.bpp_algorithm), "Algorithm for Bin Packing problems")
+        ("vbpp-algorithm,", po::value<Algorithm>(&optimize_parameters.vbpp_algorithm), "Algorithm for Variable-sized Bin Packing problems")
+
+        ("tree-search-queue-size,", po::value<NodeId>(&optimize_parameters.tree_search_queue_size), "")
+        ("tree-search-guides,", po::value<std::vector<GuideId>>(&optimize_parameters.tree_search_guides)->multitoken(), "")
+        ("column-generation-vbpp2bpp-time-limit,", po::value<double>(&optimize_parameters.column_generation_vbpp2bpp_time_limit), "")
+        ("column-generation-vbpp2bpp-queue-size,", po::value<NodeId>(&optimize_parameters.column_generation_vbpp2bpp_queue_size), "")
+        ("column-generation-pricing-queue-size,", po::value<NodeId>(&optimize_parameters.column_generation_pricing_queue_size), "")
+        ("linear-programming-solver,", po::value<columngenerationsolver::LinearProgrammingSolver>(&optimize_parameters.linear_programming_solver), "")
+        ("dichotomic-search-queue-size,", po::value<NodeId>(&optimize_parameters.dichotomic_search_queue_size), "")
 
         ("output,o", po::value<std::string>(&output_path), "Output path")
         ("certificate,c", po::value<std::string>(&certificate_path), "Certificate path")
@@ -81,7 +94,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Instance instance;
+    InstanceBuilder instance_builder;
 
     if (!vm.count("-d"))
         if (std::ifstream(items_path + "_defects.csv").good())
@@ -96,51 +109,55 @@ int main(int argc, char *argv[])
         if (std::ifstream(items_path + "_items.csv").good())
             items_path = items_path + "_items.csv";
 
-    instance.set_objective(objective);
-    instance.read_item_types(items_path);
-    instance.read_bin_types(bins_path);
-    instance.read_defects(defects_path);
+    instance_builder.set_objective(objective);
+    instance_builder.read_item_types(items_path);
+    instance_builder.read_bin_types(bins_path);
+    instance_builder.read_defects(defects_path);
 
     if (vm.count("bin-infinite-x"))
-        instance.set_bin_infinite_x();
+        instance_builder.set_bin_types_infinite_x();
     if (vm.count("bin-infinite-y"))
-        instance.set_bin_infinite_y();
+        instance_builder.set_bin_types_infinite_y();
     if (vm.count("bin-infinite-copies"))
-        instance.set_bin_infinite_copies();
+        instance_builder.set_bin_types_infinite_copies();
     if (vm.count("no-item-rotation"))
-        instance.set_no_item_rotation();
+        instance_builder.set_item_types_oriented();
     if (vm.count("item-infinite-copies"))
-        instance.set_item_infinite_copies();
+        instance_builder.set_item_types_infinite_copies();
     if (vm.count("unweighted"))
-        instance.set_unweighted();
+        instance_builder.set_item_types_unweighted();
     if (vm.count("bin-unweighted"))
-        instance.set_bin_unweighted();
+        instance_builder.set_bin_types_unweighted();
 
-    instance.read_parameters(parameters_path);
-    instance.set_predefined(predefined);
+    instance_builder.read_parameters(parameters_path);
+    instance_builder.set_predefined(predefined);
 
     if (vm.count("cut-type-1"))
-        instance.set_cut_type_1(parameters.cut_type_1);
+        instance_builder.set_cut_type_1(parameters.cut_type_1);
     if (vm.count("cut-type-2"))
-        instance.set_cut_type_2(parameters.cut_type_2);
+        instance_builder.set_cut_type_2(parameters.cut_type_2);
     if (vm.count("first-stage-orientation"))
-        instance.set_first_stage_orientation(parameters.first_stage_orientation);
+        instance_builder.set_first_stage_orientation(parameters.first_stage_orientation);
     if (vm.count("min1cut"))
-        instance.set_min1cut(parameters.min1cut);
+        instance_builder.set_min1cut(parameters.min1cut);
     if (vm.count("max1cut"))
-        instance.set_max1cut(parameters.max1cut);
+        instance_builder.set_max1cut(parameters.max1cut);
     if (vm.count("min2cut"))
-        instance.set_min2cut(parameters.min2cut);
+        instance_builder.set_min2cut(parameters.min2cut);
     if (vm.count("max2cut"))
-        instance.set_max2cut(parameters.max2cut);
+        instance_builder.set_max2cut(parameters.max2cut);
     if (vm.count("min-waste"))
-        instance.set_min_waste(parameters.min_waste);
+        instance_builder.set_min_waste(parameters.min_waste);
     if (vm.count("one2cut"))
-        instance.set_one2cut(parameters.one2cut);
+        instance_builder.set_one2cut(parameters.one2cut);
     if (vm.count("cut-through-defects"))
-        instance.set_cut_through_defects(parameters.cut_through_defects);
+        instance_builder.set_cut_through_defects(parameters.cut_through_defects);
+    if (vm.count("cut-thickness"))
+        instance_builder.set_cut_thickness(parameters.cut_thickness);
 
-    Info info = optimizationtools::Info()
+    Instance instance = instance_builder.build();
+
+    optimize_parameters.info = optimizationtools::Info()
         .set_verbosity_level(verbosity_level)
         .set_time_limit(time_limit)
         .set_certificate_path(certificate_path)
@@ -152,9 +169,7 @@ int main(int argc, char *argv[])
         .set_sigint_handler()
         ;
 
-    OptimizeOptionalParameters parameters_opt;
-    parameters_opt.info = info;
-    optimize(instance, parameters_opt);
+    optimize(instance, optimize_parameters);
 
     return 0;
 }

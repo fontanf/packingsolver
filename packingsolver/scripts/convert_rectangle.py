@@ -252,20 +252,20 @@ def convert_silveira2013(filename):
     w = words(filename)
 
     bins = {"WIDTH": [], "HEIGHT": []}
-    items = {"WIDTH": [], "HEIGHT": [], "NEW_STACK": []}
+    items = {"WIDTH": [], "HEIGHT": [], "GROUP": []}
 
     next(w)
-    next(w)
-
+    number_of_groups = int(next(w))
     number_of_item_types = int(next(w))
     bins["HEIGHT"].append(int(next(w)))
     bins["WIDTH"].append(int(next(w)))
-    while next(w, None):
-        stack_size = int(next(w))
-        for i in range(stack_size):
+    for group in range(number_of_groups):
+        next(w)
+        group_size = int(next(w))
+        for i in range(group_size):
             items["HEIGHT"].append(int(next(w)))
             items["WIDTH"].append(int(next(w)))
-            items["NEW_STACK"].append((1 if i == 0 else 0))
+            items["GROUP"].append(group)
 
     write_dict(bins, filename + "_bins.csv")
     write_dict(items, filename + "_items.csv")
@@ -328,22 +328,16 @@ def convert_roadef2018(filename):
     write_dict(bins, filename + "_bins.csv")
 
     with open(os.path.join("data", "rectangle_raw", filename + "_batch.csv"), newline='') as csvfile:
-        items = {"WIDTH": [], "HEIGHT": [], "NEWSTACK": []}
+        items = {"WIDTH": [], "HEIGHT": [], "STACK_ID": []}
         spamreader = csv.reader(csvfile, delimiter=';', quotechar='|')
         first_line = True
-        row_prec = None
         for row in spamreader:
             if first_line:
                 first_line = False
                 continue
             items["WIDTH"].append(int(row[1]))
             items["HEIGHT"].append(int(row[2]))
-            if len(items["NEWSTACK"]) == 0:
-                new_stack = True
-            else:
-                new_stack = (row_prec[3] != row[3])
-            items["NEWSTACK"].append(int(new_stack))
-            row_prec = row
+            items["STACK_ID"].append(int(row[3]))
         write_dict(items, filename + "_items.csv")
 
     with open(os.path.join("data", "rectangle_raw", filename + "_defects.csv"), newline='') as csvfile:

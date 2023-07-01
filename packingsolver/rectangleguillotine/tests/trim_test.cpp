@@ -1,3 +1,4 @@
+#include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
 
 #include <gtest/gtest.h>
@@ -31,18 +32,19 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimSoft)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    BinTypeId i = instance.add_bin_type(6000, 3210);
-    instance.add_trims(
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_trims(
             i,
             0, TrimType::Soft,
             0, TrimType::Soft,
             20, TrimType::Soft,
             0, TrimType::Soft);
-    instance.add_defect(i, 495, 25, 5, 5);
-    instance.add_item_type(1000, 500, -1, 1, true, true);
+    instance_builder.add_defect(i, 495, 25, 5, 5);
+    instance_builder.add_item_type(1000, 500, -1, 1, true, 0);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -81,18 +83,19 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimHard)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    BinTypeId i = instance.add_bin_type(6000, 3210);
-    instance.add_trims(
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_trims(
             i,
             0, TrimType::Soft,
             0, TrimType::Soft,
             20, TrimType::Hard,
             0, TrimType::Soft);
-    instance.add_defect(i, 495, 25, 5, 5);
-    instance.add_item_type(1000, 500, -1, 1, true, true);
+    instance_builder.add_defect(i, 495, 25, 5, 5);
+    instance_builder.add_item_type(1000, 500, -1, 1, true, 0);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -130,18 +133,19 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimSoft)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    BinTypeId i = instance.add_bin_type(6000, 3210);
-    instance.add_trims(
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_trims(
             i,
             20, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft);
-    instance.add_defect(i, 25, 495, 5, 5);
-    instance.add_item_type(500, 1000, -1, 1, true, true);
+    instance_builder.add_defect(i, 25, 495, 5, 5);
+    instance_builder.add_item_type(500, 1000, -1, 1, true, 0);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -179,18 +183,19 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimHard)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    BinTypeId i = instance.add_bin_type(6000, 3210);
-    instance.add_trims(
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_trims(
             i,
             20, TrimType::Hard,
             0, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft);
-    instance.add_defect(i, 25, 495, 5, 5);
-    instance.add_item_type(500, 1000, -1, 1, true, true);
+    instance_builder.add_defect(i, 25, 495, 5, 5);
+    instance_builder.add_item_type(500, 1000, -1, 1, true, 0);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -226,17 +231,18 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    BinTypeId i = instance.add_bin_type(6000, 3210);
-    instance.add_trims(
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_trims(
             i,
             0, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft,
             20, TrimType::Soft);
-    instance.add_item_type(1000, 3180, -1, 1, true, true);
+    instance_builder.add_item_type(1000, 3180, -1, 1, true, 0);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -271,17 +277,18 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimHard)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    BinTypeId i = instance.add_bin_type(6000, 3210);
-    instance.add_trims(
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    instance_builder.add_trims(
             i,
             0, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft,
             20, TrimType::Hard);
-    instance.add_item_type(1000, 3180, -1, 1, true, true);
+    instance_builder.add_item_type(1000, 3180, -1, 1, true, 0);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -315,17 +322,18 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    BinTypeId i = instance.add_bin_type(3000, 3210);
-    instance.add_trims(
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    BinTypeId i = instance_builder.add_bin_type(3000, 3210);
+    instance_builder.add_trims(
             i,
             0, TrimType::Soft,
             20, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft);
-    instance.add_item_type(2970, 500, -1, 1, true, true);
+    instance_builder.add_item_type(2970, 500, -1, 1, true, 0);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();
@@ -360,17 +368,18 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
 
     Info info;
 
-    Instance instance;
-    instance.set_objective(Objective::BinPackingWithLeftovers);
-    instance.set_roadef2018();
-    BinTypeId i = instance.add_bin_type(3000, 3210);
-    instance.add_trims(
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_roadef2018();
+    BinTypeId i = instance_builder.add_bin_type(3000, 3210);
+    instance_builder.add_trims(
             i,
             0, TrimType::Soft,
             20, TrimType::Hard,
             0, TrimType::Soft,
             0, TrimType::Soft);
-    instance.add_item_type(2970, 500, -1, 1, true, true);
+    instance_builder.add_item_type(2970, 500, -1, 1, true, 0);
+    Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
     auto root = branching_scheme.root();

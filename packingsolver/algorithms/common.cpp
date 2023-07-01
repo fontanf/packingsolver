@@ -10,6 +10,8 @@ std::istream& packingsolver::operator>>(std::istream& in, ProblemType& problem_t
         problem_type = ProblemType::RectangleGuillotine;
     } else if (token == "rectangle" || token == "R") {
         problem_type = ProblemType::Rectangle;
+    } else if (token == "irregular" || token == "I") {
+        problem_type = ProblemType::Irregular;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -24,6 +26,52 @@ std::ostream& packingsolver::operator<<(std::ostream &os, ProblemType problem_ty
         break;
     } case ProblemType::Rectangle: {
         os << "Rectangle";
+        break;
+    } case ProblemType::Irregular: {
+        os << "Irregular";
+        break;
+    }
+    }
+    return os;
+}
+
+std::istream& packingsolver::operator>>(std::istream& in, Algorithm& algorithm)
+{
+    std::string token;
+    in >> token;
+    if (token == "auto") {
+        algorithm = Algorithm::Auto;
+    } else if (token == "tree-search" || token == "TS") {
+        algorithm = Algorithm::TreeSearch;
+    } else if (token == "column-generation" || token == "CG") {
+        algorithm = Algorithm::ColumnGeneration;
+    } else if (token == "dichotomic-search" || token == "DS") {
+        algorithm = Algorithm::DichotomicSearch;
+    } else if (token == "minlp" || token == "MINLP") {
+        algorithm = Algorithm::Minlp;
+    } else  {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& packingsolver::operator<<(std::ostream &os, Algorithm algorithm)
+{
+    switch (algorithm) {
+    case Algorithm::Auto: {
+        os << "Auto";
+        break;
+    } case Algorithm::TreeSearch: {
+        os << "Tree search";
+        break;
+    } case Algorithm::ColumnGeneration: {
+        os << "Column generation";
+        break;
+    } case Algorithm::DichotomicSearch: {
+        os << "Dichotomic search";
+        break;
+    } case Algorithm::Minlp: {
+        os << "MINLP";
         break;
     }
     }
@@ -40,10 +88,10 @@ std::istream& packingsolver::operator>>(std::istream& in, Objective& objective)
         objective = Objective::BinPacking;
     } else if (token == "bin-packing-with-leftovers" || token == "BPPL") {
         objective = Objective::BinPackingWithLeftovers;
-    } else if (token == "strip-packing-x" || token == "SPPX") {
-        objective = Objective::StripPackingX;
-    } else if (token == "strip-packing-y" || token == "SPPY") {
-        objective = Objective::StripPackingY;
+    } else if (token == "open-dimension-x" || token == "ODX") {
+        objective = Objective::OpenDimensionX;
+    } else if (token == "open-dimension-y" || token == "ODY") {
+        objective = Objective::OpenDimensionY;
     } else if (token == "knapsack" || token == "KP") {
         objective = Objective::Knapsack;
     } else if (token == "variable-sized-bin-packing" || token == "VBPP") {
@@ -66,11 +114,14 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Objective objective)
     } case Objective::BinPackingWithLeftovers: {
         os << "BinPackingWithLeftovers";
         break;
-    } case Objective::StripPackingX: {
-        os << "StripPackingX";
+    } case Objective::OpenDimensionX: {
+        os << "OpenDimensionX";
         break;
-    } case Objective::StripPackingY: {
-        os << "StripPackingY";
+    } case Objective::OpenDimensionY: {
+        os << "OpenDimensionY";
+        break;
+    } case Objective::OpenDimensionXY: {
+        os << "OpenDimensionXY";
         break;
     } case Objective::Knapsack: {
         os << "Knapsack";

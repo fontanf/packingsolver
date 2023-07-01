@@ -456,37 +456,12 @@ def get_tests(problem):
                 + datas_rectangle["berkey1987"]
                 + datas_rectangle["martello1998"]
                 ]
-    elif problem == "3NEGH-CSP-O":
-        return [(f,
-                 " --items data/rectangle/" + f +
-                 " --bin-infinite-copies"
-                 " --objective variable-sized-bin-packing"
-                 " --predefined 3NHO"
-                 " --time-limit 60"
-                 ) for f in []
-                + datas_rectangle["christofides1977"]
-                + datas_rectangle["beasley1985"]
-                + datas_rectangle["beasley2004_ngcutap"]
-                + datas_rectangle["berkey1987"]
-                + datas_rectangle["martello1998"]
-                ]
     elif problem == "3NEGH-BPP-R":
         # [G-BPP-R] charalambous2011 fleszar2013 cui2015 cui2018
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
-                 " --predefined 3NHR"
-                 " --time-limit 60"
-                 ) for f in []
-                + datas_rectangle["berkey1987"]
-                + datas_rectangle["martello1998"]
-                ]
-    elif problem == "3NEGH-CSP-R":
-        return [(f,
-                 " --items data/rectangle/" + f +
-                 " --bin-infinite-copies"
-                 " --objective variable-sized-bin-packing"
                  " --predefined 3NHR"
                  " --time-limit 60"
                  ) for f in []
@@ -504,36 +479,12 @@ def get_tests(problem):
                  ) for f in []
                 + datas_rectangle["long2020"]
                 ]
-    elif problem == "long2020_CSP":
-        return [(f,
-                 " --items data/rectangle/" + f +
-                 " --bin-infinite-copies"
-                 " --objective variable-sized-bin-packing"
-                 " --predefined 3NVO --one2cut"
-                 " --time-limit 15"
-                 ) for f in []
-                + datas_rectangle["long2020"]
-                ]
     elif problem == "3GH-BPP-O":
         # puchinger2007 alvelos2009
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
-                 " --predefined 3EHO"
-                 " --time-limit 60"
-                 ) for f in []
-                + datas_rectangle["christofides1977"]
-                + datas_rectangle["beasley1985"]
-                + datas_rectangle["beasley2004_ngcutap"]
-                + datas_rectangle["berkey1987"]
-                + datas_rectangle["martello1998"]
-                ]
-    elif problem == "3GH-CSP-O":
-        return [(f,
-                 " --items data/rectangle/" + f +
-                 " --bin-infinite-copies"
-                 " --objective variable-sized-bin-packing"
                  " --predefined 3EHO"
                  " --time-limit 60"
                  ) for f in []
@@ -555,17 +506,6 @@ def get_tests(problem):
                 + datas_rectangle["imahori2005"]
                 + datas_rectangle["cintra2008_bpp"]
                 ]
-    elif problem == "3HG-CSP-O":
-        return [(f,
-                 " --items data/rectangle/" + f +
-                 " --bin-infinite-copies"
-                 " --objective variable-sized-bin-packing"
-                 " --predefined 3HVO"
-                 " --time-limit 60"
-                 ) for f in []
-                + datas_rectangle["imahori2005"]
-                + datas_rectangle["cintra2008_bpp"]
-                ]
     elif problem == "3HGV-BPP-O":
         # chen2016
         return [(f,
@@ -574,28 +514,6 @@ def get_tests(problem):
                  " --objective bin-packing"
                  " --predefined 3HVO"
                  " --time-limit 5"
-                 ) for f in []
-                + datas_rectangle["wang1983"]
-                + datas_rectangle["oliveira1990"]
-                + datas_rectangle["tschoke1995_cw"]
-                + datas_rectangle["tschoke1995_cu"]
-                + datas_rectangle["fekete1997"]
-                + datas_rectangle["hifi1997a_cw"]
-                + datas_rectangle["hifi1997a_cu"]
-                + datas_rectangle["fayard1998_cw"]
-                + datas_rectangle["fayard1998_cu"]
-                + datas_rectangle["cung2000_cw"]
-                + datas_rectangle["cung2000_cu"]
-                + datas_rectangle["alvarez2002_cu"]
-                + datas_rectangle["alvarez2002_cw"]
-                ]
-    elif problem == "3HGV-CSP-O":
-        return [(f,
-                 " --items data/rectangle/" + f +
-                 " --bin-infinite-copies"
-                 " --objective variable-sized-bin-packing"
-                 " --predefined 3HVO"
-                 " --time-limit 30"
                  ) for f in []
                 + datas_rectangle["wang1983"]
                 + datas_rectangle["oliveira1990"]
@@ -645,34 +563,6 @@ def get_tests(problem):
                    + datas_rectangle["martello1998"]
                    ]
                 ]
-    elif problem == "2NEGH-CSP-O":
-        return [(f,
-                 " --items data/rectangle/" + f +
-                 " --bin-infinite-copies"
-                 " --objective variable-sized-bin-packing"
-                 " --predefined 2NHO"
-                 " --time-limit 60"
-                 ) for f in []
-                + datas_rectangle["christofides1977"]
-                + datas_rectangle["wang1983"]
-                + datas_rectangle["beasley1985"]
-                + datas_rectangle["oliveira1990"]
-                + datas_rectangle["tschoke1995_cw"]
-                + datas_rectangle["tschoke1995_cu"]
-                + datas_rectangle["fekete1997"]
-                + datas_rectangle["hifi1997a_cw"]
-                + datas_rectangle["hifi1997a_cu"]
-                + datas_rectangle["fayard1998_cw"]
-                + datas_rectangle["fayard1998_cu"]
-                + datas_rectangle["cung2000_cw"]
-                + datas_rectangle["cung2000_cu"]
-                + datas_rectangle["beasley2004_ngcutap"]
-                + datas_rectangle["alvarez2002_cu"]
-                + datas_rectangle["alvarez2002_cw"]
-                + datas_rectangle["cintra2008_bpp"]
-                + datas_rectangle["berkey1987"]
-                + datas_rectangle["martello1998"]
-                ]
     elif problem == "2NEGH-BPP-R":
         # cintra2008 cui2013 cui2016
         return [(f,
@@ -686,37 +576,11 @@ def get_tests(problem):
                 + datas_rectangle["berkey1987"]
                 + datas_rectangle["martello1998"]
                 ]
-    elif problem == "2NEGH-CSP-R":
-        return [(f,
-                 " --items data/rectangle/" + f +
-                 " --bin-infinite-copies"
-                 " --objective variable-sized-bin-packing"
-                 " --predefined 2NHR"
-                 " --time-limit 60"
-                 ) for f in []
-                + datas_rectangle["cintra2008_bpp"]
-                + datas_rectangle["berkey1987"]
-                + datas_rectangle["martello1998"]
-                ]
     elif problem == "2GH-BPP-O":  # alvelos2009 cui2013
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
-                 " --predefined 2EHO"
-                 " --time-limit 60"
-                 ) for f in []
-                + datas_rectangle["christofides1977"]
-                + datas_rectangle["beasley1985"]
-                + datas_rectangle["beasley2004_ngcutap"]
-                + datas_rectangle["berkey1987"]
-                + datas_rectangle["martello1998"]
-                ]
-    elif problem == "2GH-CSP-O":
-        return [(f,
-                 " --items data/rectangle/" + f +
-                 " --bin-infinite-copies"
-                 " --objective variable-sized-bin-packing"
                  " --predefined 2EHO"
                  " --time-limit 60"
                  ) for f in []
@@ -1018,7 +882,7 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
-                 " --objective strip-packing-y"
+                 " --objective open-dimension-y"
                  " --predefined 3NHO"
                  " --time-limit 60"
                  ) for f in []
@@ -1036,7 +900,7 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
-                 " --objective strip-packing-y"
+                 " --objective open-dimension-y"
                  " --predefined 3NHR"
                  " --time-limit 60"
                  ) for f in []
@@ -1053,7 +917,7 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
-                 " --objective strip-packing-y"
+                 " --objective open-dimension-y"
                  " --predefined 2NHO"
                  " --time-limit 10"
                  ) for f in []
@@ -1068,7 +932,7 @@ def get_tests(problem):
         return [(f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
-                 " --objective strip-packing-y"
+                 " --objective open-dimension-y"
                  " --predefined 2NHR"
                  " --time-limit 10"
                  ) for f in []
@@ -1224,11 +1088,11 @@ if __name__ == "__main__":
                 first_loop = False
                 results_file.write("Name,Arguments")
                 for key in data["Solution" + str(k)].keys():
-                    results_file.write(";" + key)
+                    results_file.write("," + key)
                 results_file.write("\n")
 
             # Write test informations
             results_file.write(f + "," + args)
             for key, value in data["Solution" + str(k)].items():
-                results_file.write(";" + str(value))
+                results_file.write("," + str(value))
             results_file.write("\n")

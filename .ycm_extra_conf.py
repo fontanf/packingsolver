@@ -4,14 +4,39 @@ def Settings(**kwargs):
                 '-x', 'c++',
                 '-Wall', '-Wextra', '-Werror',
                 '-I', '.',
-                '-I', './bazel-packingsolver/external/json/single_include/',
-                '-I', './bazel-packingsolver/external/googletest/googletest/include/',
-                '-I', './bazel-packingsolver/external/boost/',
-                '-I', './bazel-packingsolver/external/optimizationtools/',
-                # '-I', './../optimizationtools/',
-                '-I', './bazel-packingsolver/external/treesearchsolver/',
-                # '-I', './../treesearchsolver/',
-                '-I', './bazel-packingsolver/external/columngenerationsolver/',
-                # '-I', './../columngenerationsolver/',
+
+                '-I', './bazel-packingsolver/external/'
+                'json/single_include/',
+
+                '-I', './bazel-packingsolver/external/'
+                'googletest/googletest/include/',
+
+                '-I', './bazel-packingsolver/external/'
+                'boost/',
+
+                # optimizationtools
+                '-I', './bazel-packingsolver/external/'
+                # '-I', './../'
+                'optimizationtools/',
+
+                # treesearchsolver
+                '-I', './bazel-packingsolver/external/'
+                # '-I', './../'
+                'treesearchsolver/',
+
+                # knapsacksolver
+                # '-I', './bazel-packingsolver/external/'
+                '-I', './../'
+                'knapsacksolver/',
+
+                # columngenerationsolver
+                '-I', './bazel-packingsolver/external/'
+                # '-I', './../'
+                'columngenerationsolver/',
+
+                # AMPL
+                '-DAMPL_FOUND',
+                '-I', '/home/florian/Programmes/ampl.linux-intel64/amplapi/include/'
+
                 ],
             }

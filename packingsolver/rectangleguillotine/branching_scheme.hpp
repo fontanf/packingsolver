@@ -20,7 +20,7 @@ namespace rectangleguillotine
  * - or in a new bin
  *
  * This third-level sub-plate can contain:
- * - A single item at the bottom with possible some waste above
+ * - A single item at the bottom with possibly some waste above
  * - A single item at the top with waste below (in case it would intersect a
  *   defect if placed at the bottom)
  * - Two items (with the same width)
@@ -38,9 +38,10 @@ public:
     struct Insertion
     {
         /** Id of the item at the bottom of the third-level sub-plate, -1 if none. */
-        ItemTypeId j1;
+        ItemTypeId item_type_id_1;
+
         /** Id of the item at the top of the third-level sub-plate, -1 if none. */
-        ItemTypeId j2;
+        ItemTypeId item_type_id_2;
 
         /**
          * Depth of the father in the tree representation of the solution:
@@ -54,8 +55,10 @@ public:
 
         /** Position of the current 1-cut. */
         Length x1;
+
         /** Position of the current 2-cut. */
         Length y2;
+
         /** Position of the current 3-cut. */
         Length x3;
 
@@ -108,7 +111,7 @@ public:
 
     struct JRX
     {
-        ItemTypeId j;
+        ItemTypeId item_type_id;
         bool rotate;
         Length x;
     };
@@ -120,41 +123,54 @@ public:
     {
         /** Id of the node. */
         NodeId id = -1;
+
         /**
          * Pointer to the father of the node,
          * 'nullptr' if the node is the root.
          */
         std::shared_ptr<Node> father = nullptr;
+
         /**
          * Type of the last item added to the partial solution at the bottom of
          * the third level sub-plate.
          * -1 if no such item have been added or if the node is the root.
          */
-        ItemTypeId j1 = -1;
+        ItemTypeId item_type_id_1 = -1;
+
         /**
          * Type of the last item added to the partial solution at the top of
          * the third level sub-plate.
          * -1 if no such item have been added or if the node is the root.
          */
-        ItemTypeId j2 = -1;
+        ItemTypeId item_type_id_2 = -1;
+
         /** Depth of the last insertion, see Insertion. */
         Depth df = -1;
+
         /** Position of the current 1-cut. */
         Length x1_curr = 0;
+
         /** Position of the previous 1-cut. */
         Length x1_prev = 0;
+
         /** Position of the current 2-cut. */
         Length y2_curr = 0;
+
         /** Position of the previous 2-cut. */
         Length y2_prev = 0;
+
         /** Position of the current 3-cut. */
         Length x3_curr = 0;
+
         /** Maximum position at which the current 1-cut can be shifted. */
         Length x1_max = -1;
+
         /** Maximum position at which the current 2-cut can be shifted. */
         Length y2_max = -1;
+
         /** 'z1' value of the last insertion, see Insertion. */
         Counter z1 = 0;
+
         /** 'z2' value of the last insertion, see Insertion. */
         Counter z2 = 0;
 
@@ -174,14 +190,19 @@ public:
 
         /** Number of items in the partial solution. */
         ItemPos number_of_items = 0;
+
         /** Total area of the items of the partial solution. */
         Area item_area = 0;
+
         /** Total squared area of the items of the partial solution. */
         Area squared_item_area = 0;
+
         /** Area of the partial solution. */
         Area current_area = 0;
+
         /** Waste of the partial solution. */
         Area waste = 0;
+
         /** Profit of the partial solution. */
         Profit profit = 0;
 
@@ -323,6 +344,7 @@ private:
 
     /** Position of the last bin. */
     mutable BinPos i = -1;
+
     /** Orientation of the last bin. */
     mutable CutOrientation o = CutOrientation::Vertical;
 
@@ -336,59 +358,139 @@ private:
     bool equals(StackId s1, StackId s2);
 
     Front front(const Node&) const;
+
     bool dominates(const Front& f1, const Front& f2) const;
 
-    inline bool full(const Node& node) const { return node.number_of_items == instance_.number_of_items(); }
+    /** Get the percentage of item inserted into a node. */
     inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
+
+    /** Get the mean area of a node. */
     inline double mean_area(const Node& node) const { return (double)node.current_area / node.number_of_items; }
+
+    /** Get the mean item area of a node; */
     inline double mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
+
+    /** Get the mean squared item area of a node. */
     inline double mean_squared_item_area(const Node& node) const { return (double)node.squared_item_area / node.number_of_items; }
+
+    /** Get the mean remaining item area of a node. */
     inline double mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance_.number_of_items() - node.number_of_items); }
+
+    /** Get the remaining item area of a node. */
     inline double remaining_item_area(const Node& node) const { return instance_.item_area() - node.item_area; }
+
+    /** Get the waste percentage of a node. */
     inline double waste_percentage(const Node& node) const { return (double)node.waste / node.current_area; }
+
+    /** Get the waste ratio of a node. */
     inline double waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
+
+    /** Get the width of a node. */
     inline Length width(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+
+    /** Get the height of a node. */
     inline Length height(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+
+    /** Get the knapsack upper bound of a node. */
     inline Profit ubkp(const Node& node) const;
-    inline bool last_insertion_defect(const Node& node) const { return node.number_of_bins > 0 && node.j1 == -1 && node.j2 == -1; }
+
+    inline bool last_insertion_defect(const Node& node) const { return node.number_of_bins > 0 && node.item_type_id_1 == -1 && node.item_type_id_2 == -1; }
 
     inline Front front(const Node& node, const Insertion& insertion) const;
+
     inline Area waste(const Node& node, const Insertion& insertion) const;
 
-    /** Attributes of the new node if an insertion is performed at depth df.  */
-    inline CutOrientation last_bin_orientation(const Node& node, Depth df) const;
-    inline BinPos last_bin(const Node& node, Depth df) const;
-    inline Length x1_prev(const Node& node, Depth df) const;
-    inline Length y2_prev(const Node& node, Depth df) const;
-    inline Length x3_prev(const Node& node, Depth df) const;
-    inline Length x1_max(const Node& node, Depth df) const;
-    inline Length y2_max(const Node& node, Depth df, Length x3) const;
+    /*
+     * Attributes of the new node if an insertion is performed at depth 'df'.
+     */
+
+    /**
+     * Orientation of the last bin if an insertion is performed at depth 'df'.
+     */
+    inline CutOrientation last_bin_orientation(
+            const Node& node,
+            Depth df) const;
+
+    /**
+     * Position of the last bin if an insertion is performed at depth 'df'.
+     * */
+    inline BinPos last_bin(
+            const Node& node,
+            Depth df) const;
+
+    /**
+     * Position of the previous 1-cut if an insertion is performed at depth
+     * 'df'.
+     * */
+    inline Length x1_prev(
+            const Node& node,
+            Depth df) const;
+
+    /**
+     * Position of the previous 2-cut if an insertion is performed at depth
+     * 'df'.
+     */
+    inline Length y2_prev(
+            const Node& node,
+            Depth df) const;
+
+    /**
+     * Position of the previous 2-cut if an insertion is performed at depth
+     * 'df'.
+     */
+    inline Length x3_prev(
+            const Node& node,
+            Depth df) const;
+
+    /**
+     * Maximum possible osition of the current 1-cut if an insertion is
+     * performed at depth 'df'.
+     */
+    inline Length x1_max(
+            const Node& node,
+            Depth df) const;
+
+    /**
+     * Maximum possible osition of the current 2-cut if an insertion is
+     * performed at depth 'df'.
+     */
+    inline Length y2_max(
+            const Node& node,
+            Depth df,
+            Length x3) const;
+
+    /*
+     * Insertions.
+     */
 
     /** Insertion of one item. */
     void insertion_1_item(
             const Node& father,
             std::vector<Insertion>& insertions,
-            ItemTypeId j,
+            ItemTypeId item_type_id,
             bool rotate,
             Depth df,
             Info& info) const;
+
     /** Insertion of two items. */
     void insertion_2_items(
             const Node& father,
             std::vector<Insertion>& insertions,
-            ItemTypeId j1,
+            ItemTypeId item_type_id_1,
             bool rotate1,
-            ItemTypeId j2,
+            ItemTypeId item_type_id_2,
             bool rotate2,
             Depth df,
             Info& info) const;
+
     /** Insertion of a defect. */
     void insertion_defect(
             const Node& father,
             std::vector<Insertion>& insertions,
-            const Defect& k,
+            DefectId defect_id,
             Depth df,
             Info& info) const;
+
     /** Update insertion (x1, z1, y2, z2) and add insertion to insertions. */
     void update(
             const Node& father,
@@ -396,7 +498,7 @@ private:
             Insertion& insertion,
             Info& info) const;
 
-    bool check(const std::vector<Solution::Node>& nodes) const;
+    bool check(const std::vector<SolutionNode>& nodes) const;
 };
 
 std::ostream& operator<<(std::ostream &os, const BranchingScheme::Insertion& insertion);
@@ -410,12 +512,12 @@ std::ostream& operator<<(std::ostream &os, const BranchingScheme::Node& node);
 
 inline Profit BranchingScheme::ubkp(const Node& node) const
 {
-    Area remaining_item_area     = instance_.item_area() - node.item_area;
-    Area remaining_packabla_area = instance_.packable_area() - node.current_area;
+    Area remaining_item_area = instance_.item_area() - node.item_area;
+    Area remaining_packabla_area = instance_.bin_area() - node.current_area;
     if (remaining_packabla_area >= remaining_item_area) {
         return instance_.item_profit();
     } else {
-        ItemTypeId j = instance_.max_efficiency_item();
+        ItemTypeId j = instance_.max_efficiency_item_type_id();
         double e = (double)instance_.item_type(j).profit / instance_.item_type(j).rect.area();
         Profit p = node.profit + remaining_packabla_area * e;
         //std::cout << "j " << j << " " << instance_.item(j) << std::endl;
