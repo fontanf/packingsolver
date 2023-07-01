@@ -1,23 +1,23 @@
-#include "packingsolver/rectangleguillotine/optimize.hpp"
+#include "packingsolver/rectangle/optimize.hpp"
 
-#include "packingsolver/rectangleguillotine/branching_scheme.hpp"
-#include "packingsolver/algorithms/iterative_beam_search.hpp"
+#include "packingsolver/rectangle/branching_scheme.hpp"
 #include "packingsolver/algorithms/vbpp2bpp.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"
 #include "packingsolver/algorithms/dichotomic_search.hpp"
 
+#include "treesearchsolver/iterative_beam_search_2.hpp"
+
 #include <thread>
 
 using namespace packingsolver;
-using namespace packingsolver::rectangleguillotine;
+using namespace packingsolver::rectangle;
 
-Output packingsolver::rectangleguillotine::optimize(
+Output packingsolver::rectangle::optimize(
         const Instance& instance,
         OptimizeOptionalParameters parameters)
 {
     Output output(instance);
 
-    // Select algorithm.
     Algorithm algorithm = Algorithm::TreeSearch;
     if (instance.objective() == Objective::BinPacking) {
         if (parameters.bpp_algorithm != Algorithm::Auto) {
@@ -59,39 +59,53 @@ Output packingsolver::rectangleguillotine::optimize(
         } else {
             guides = {0, 2};
         }
+        //guides = {0};
 
-        std::vector<CutOrientation> first_stage_orientations = {instance.first_stage_orientation()};
-        if (instance.number_of_bins() == 1
-                && instance.bin_type(0).rect.w != instance.bin_type(0).rect.h
-                && instance.first_stage_orientation() == CutOrientation::Any) {
-            first_stage_orientations = {CutOrientation::Vertical, CutOrientation::Horinzontal};
+        std::vector<Direction> directions;
+        if (instance.objective() == Objective::OpenDimensionX) {
+            directions = {Direction::X};
+        } else if (instance.objective() == Objective::OpenDimensionY) {
+            directions = {Direction::Y};
+        } else if (instance.unloading_constraint() == UnloadingConstraint::IncreasingX
+                || instance.unloading_constraint() == UnloadingConstraint::OnlyXMovements) {
+            directions = {Direction::X};
+        } else if (instance.unloading_constraint() == UnloadingConstraint::IncreasingY
+                || instance.unloading_constraint() == UnloadingConstraint::OnlyYMovements) {
+            directions = {Direction::Y};
+        //} else if (instance.number_of_bins() == 1
+        //        && instance.bin_type(0).rect.x != instance.bin_type(0).rect.y) {
+        //    directions = {Direction::X, Direction::Y};
+        } else {
+            directions = {Direction::Any};
         }
 
         std::vector<double> growth_factors = {1.5};
-        if (guides.size() * first_stage_orientations.size() * 2 <= 4)
+        if (guides.size() * directions.size() * 2 <= 4)
             growth_factors = {1.33, 1.5};
         if (parameters.tree_search_queue_size != -1)
             growth_factors = {1.5};
+        //growth_factors = {1.5};
 
         std::vector<BranchingScheme> branching_schemes;
-        std::vector<IterativeBeamSearchOptionalParameters> ibs_parameterss;
+        std::vector<treesearchsolver::IterativeBeamSearch2OptionalParameters<BranchingScheme>> ibs_parameterss;
         for (double growth_factor: growth_factors) {
             for (GuideId guide_id: guides) {
-                for (CutOrientation first_stage_orientation: first_stage_orientations) {
-                    //std::cout << growth_factor << " " << guide_id << " " << first_stage_orientation << std::endl;
+                for (Direction direction: directions) {
+                    //std::cout << growth_factor << " " << guide_id << " " << direction << std::endl;
                     Counter i = branching_schemes.size();
                     BranchingScheme::Parameters branching_scheme_parameters;
                     branching_scheme_parameters.guide_id = guide_id;
-                    branching_scheme_parameters.first_stage_orientation = first_stage_orientation;
+                    branching_scheme_parameters.direction = direction;
+                    branching_scheme_parameters.fixed_items = parameters.fixed_items;
                     branching_schemes.push_back(BranchingScheme(instance, branching_scheme_parameters));
-                    IterativeBeamSearchOptionalParameters ibs_parameters;
+                    treesearchsolver::IterativeBeamSearch2OptionalParameters<BranchingScheme> ibs_parameters;
                     ibs_parameters.growth_factor = growth_factor;
-                    ibs_parameters.thread_id = i + 1;
                     if (parameters.tree_search_queue_size != -1) {
-                        ibs_parameters.queue_size_min = parameters.tree_search_queue_size;
-                        ibs_parameters.queue_size_max = parameters.tree_search_queue_size;
+                        ibs_parameters.minimum_size_of_the_queue = parameters.tree_search_queue_size;
+                        ibs_parameters.maximum_size_of_the_queue = parameters.tree_search_queue_size;
                     }
-                    ibs_parameters.info = Info(parameters.info, true, "thread" + std::to_string(i + 1));
+                    ibs_parameters.info = Info(parameters.info, false, "thread" + std::to_string(i + 1));
+                    //ibs_parameters.info.set_verbosity_level(1);
                     ibs_parameterss.push_back(ibs_parameters);
                 }
             }
@@ -99,16 +113,26 @@ Output packingsolver::rectangleguillotine::optimize(
 
         std::vector<std::thread> threads;
         for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
+            ibs_parameterss[i].new_solution_callback
+                = [&parameters, &output, &branching_schemes, i](
+                        const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& ibs_output)
+                {
+                    Solution solution = branching_schemes[i].to_solution(
+                            ibs_output.solution_pool.best());
+                    std::stringstream ss;
+                    ss << branching_schemes[i].parameters().guide_id
+                        << " " << branching_schemes[i].parameters().direction
+                        << " " << ibs_output.maximum_size_of_the_queue;
+                    output.solution_pool.add(solution, ss, parameters.info);
+                };
             if (parameters.number_of_threads != 1 && branching_schemes.size() > 1) {
                 threads.push_back(std::thread(
-                            iterative_beam_search<Instance, Solution, BranchingScheme>,
+                            treesearchsolver::iterative_beam_search_2<BranchingScheme>,
                             std::ref(branching_schemes[i]),
-                            std::ref(output.solution_pool),
                             ibs_parameterss[i]));
             } else {
-                iterative_beam_search<Instance, Solution, BranchingScheme>(
+                treesearchsolver::iterative_beam_search_2<BranchingScheme>(
                         branching_schemes[i],
-                        output.solution_pool,
                         ibs_parameterss[i]);
             }
         }
@@ -139,14 +163,13 @@ Output packingsolver::rectangleguillotine::optimize(
             output.solution_pool.add(vbpp2bpp_output.solution_pool.best(), ss, parameters.info);
         }
 
-        VariableSizeBinPackingPricingFunction<Instance, InstanceBuilder, rectangleguillotine::Solution> pricing_function
-            = [&parameters](const rectangleguillotine::Instance& kp_instance)
+        VariableSizeBinPackingPricingFunction<Instance, InstanceBuilder, Solution> pricing_function
+            = [&parameters](const rectangle::Instance& kp_instance)
             {
                 OptimizeOptionalParameters kp_parameters;
                 kp_parameters.number_of_threads = parameters.number_of_threads;
                 kp_parameters.tree_search_queue_size = parameters.column_generation_pricing_queue_size;
                 kp_parameters.info = Info(parameters.info, false, "");
-                //kp_parameters.info.set_verbosity_level(1);
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
@@ -165,7 +188,6 @@ Output packingsolver::rectangleguillotine::optimize(
                     BinPos value = std::round(pair.second);
                     if (value < 0.5)
                         continue;
-                    //std::cout << "append val " << value << " col " << column << std::endl;
                     std::shared_ptr<VariableSizeBinPackingColumnExtra<Solution>> extra
                         = std::static_pointer_cast<VariableSizeBinPackingColumnExtra<Solution>>(column.extra);
                     solution.append(extra->solution, 0, value, {extra->bin_type_id}, extra->kp2vbpp);
@@ -187,6 +209,7 @@ Output packingsolver::rectangleguillotine::optimize(
             {
                 OptimizeOptionalParameters bpp_parameters;
                 bpp_parameters.number_of_threads = parameters.number_of_threads;
+                bpp_parameters.bpp_algorithm = Algorithm::TreeSearch;
                 bpp_parameters.tree_search_queue_size = parameters.dichotomic_search_queue_size;
                 bpp_parameters.info = Info(parameters.info, false, "");
                 //bpp_parameters.info.set_verbosity_level(1);
@@ -203,30 +226,6 @@ Output packingsolver::rectangleguillotine::optimize(
         };
         ds_parameters.info = Info(parameters.info, false, "");
         dichotomic_search(instance, bpp_solve, ds_parameters);
-
-    } else if (algorithm == Algorithm::SequentialValueCorrection) {
-
-        SequentialValueCorrectionFunction<Instance, InstanceBuilder, Solution> kp_solve
-            = [&parameters](const Instance& kp_instance)
-            {
-                OptimizeOptionalParameters kp_parameters;
-                kp_parameters.number_of_threads = parameters.number_of_threads;
-                kp_parameters.tree_search_queue_size = parameters.sequential_value_correction_queue_size;
-                kp_parameters.info = Info(parameters.info, false, "");
-                //kp_parameters.info.set_verbosity_level(1);
-                auto kp_output = optimize(kp_instance, kp_parameters);
-                return kp_output.solution_pool;
-            };
-        SequentialValueCorrectionOptionalParameters<Instance, InstanceBuilder, Solution> sqv_parameters = parameters.sequential_value_correction_parameters;
-        sqv_parameters.new_solution_callback = [&parameters, &output](
-                const SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution>& o)
-        {
-            std::stringstream ss;
-            ss << "iteration " << o.number_of_iterations;
-            output.solution_pool.add(o.solution_pool.best(), ss, parameters.info);
-        };
-        sqv_parameters.info = Info(parameters.info, false, "");
-        sequential_value_correction(instance, kp_solve, sqv_parameters);
 
     }
 
