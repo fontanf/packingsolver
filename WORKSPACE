@@ -181,3 +181,22 @@ cc_library(
 """,
 )
 
+new_local_repository(
+    name = "ampl",
+    path = "/home/florian/Programmes/ampl.linux-intel64/amplapi/",
+    # path = "/home/florian/Programmes/ampl-z-13.1.20220703-Linux-64/amplapi/",
+    build_file_content = """
+cc_library(
+    name = "ampl",
+    hdrs = glob([
+            "include/ampl/*.h",
+            "include/ampl/ep/*.h",
+            "include/ampl/ep/format.cc",
+        ], exclude_directories = 0),
+    strip_include_prefix = "include/",
+    srcs = ["lib/libampl.so"],
+    visibility = ["//visibility:public"],
+)
+""",
+)
+
