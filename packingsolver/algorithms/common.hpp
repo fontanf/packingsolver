@@ -61,6 +61,8 @@ enum class ProblemType
 {
     RectangleGuillotine,
     Rectangle,
+    OneDimensional,
+    BoxStacks,
     Irregular,
 };
 
@@ -70,6 +72,9 @@ enum class Algorithm
     TreeSearch,
     ColumnGeneration,
     DichotomicSearch,
+    SequentialValueCorrection,
+    SequentialOneDimensionalRectangle,
+    Vsbpp2Bpp,
     Minlp,
 };
 
@@ -83,6 +88,7 @@ enum class Objective
     OpenDimensionXY,
     Knapsack,
     VariableSizedBinPacking,
+    SequentialOneDimensionalRectangleSubproblem,
 };
 
 enum class Direction { X, Y, Any };

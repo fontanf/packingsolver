@@ -1,14 +1,14 @@
 #pragma once
 
-#include "packingsolver/rectangleguillotine/instance_builder.hpp"
-#include "packingsolver/rectangleguillotine/solution.hpp"
+#include "packingsolver/onedimensional/instance_builder.hpp"
+#include "packingsolver/onedimensional/solution.hpp"
 #include "packingsolver/algorithms/sequential_value_correction.hpp"
 
 #include "columngenerationsolver/linear_programming_solver.hpp"
 
 namespace packingsolver
 {
-namespace rectangleguillotine
+namespace onedimensional
 {
 
 struct OptimizeOptionalParameters
@@ -40,13 +40,28 @@ struct OptimizeOptionalParameters
      * Size of the queue for the vbpp2bpp bin packing sub-problem of the column
      * generation algorithm.
      */
-    NodeId column_generation_vbpp2bpp_queue_size = 1024;
+    NodeId column_generation_vbpp2bpp_queue_size = 256;
+
+    /**
+     * Guides for the vbpp2bpp bin packing sub-problem of the column generation
+     * algorithm.
+     */
+    std::vector<GuideId> column_generation_vbpp2bpp_guides;
 
     /**
      * Size of the queue for the pricing knapsack sub-problem of the column
      * generation algorithm.
      */
     NodeId column_generation_pricing_queue_size = 256;
+
+    /**
+     * Guides used in the pricing knapsack sub-problem of the column generation
+     * algorithm.
+     */
+    std::vector<GuideId> column_generation_pricing_guides;
+
+    /** Maximum discrepancy of the column generation algorithm. */
+    Counter column_generation_maximum_discrepancy = -1;
 
     /** Linear programming solver. */
     columngenerationsolver::LinearProgrammingSolver linear_programming_solver
@@ -57,7 +72,7 @@ struct OptimizeOptionalParameters
      * Size of the queue for the bin packing sub-problem of the dichotomic
      * search algorithm.
      */
-    NodeId dichotomic_search_queue_size = 1024;
+    NodeId dichotomic_search_queue_size = 32;
 
 
     /** Parameters for the Sequential Value Correction algorithm. */

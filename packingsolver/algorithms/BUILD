@@ -6,7 +6,10 @@ load("//packingsolver:variables.bzl",
 
 cc_library(
         name = "common",
-        hdrs = ["common.hpp"],
+        hdrs = [
+                "common.hpp",
+                "truck.hpp"
+        ],
         srcs = ["common.cpp"],
         deps = [
                 "@optimizationtools//optimizationtools/utils:info",
@@ -22,6 +25,7 @@ cc_library(
                 "vbpp2bpp.hpp",
                 "column_generation.hpp",
                 "dichotomic_search.hpp",
+                "sequential_value_correction.hpp",
         ],
         srcs = [
         ],

@@ -219,7 +219,7 @@ datas_rectangle["cintra2008_vbpp"] = [
         for i in range(1, 13)]
 
 datas_rectangle["egeblad2009"] = [
-        "egeblad2009/ep-" + i + "-" + a + "-" + b + "-" + j + ".2kp"
+        "egeblad2009/ep2-" + i + "-" + a + "-" + b + "-" + j + ".2kp"
         for i in ["30", "50", "100", "200"]
         for a in ["D", "S", "T", "U", "W"]
         for b in ["C", "R"]
@@ -345,9 +345,9 @@ datas_rectangle["velasco2019"] = [
 
 datas_rectangle["goncalves2020"] = [
         "afsharian2014/" + i + "M" + str(m) + "R" + str(r) + "N15_D4"
+        for r in [6, 8, 10]
         for i in ["75-75.txt/C12", "112-50.txt/C13", "150-150.txt/C11",
                   "225-100.txt/C12", "300-300.txt/C21", "450-200.txt/C22"]
-        for r in [6, 8, 10]
         for m in [5, 10, 15, 20, 25]]
 
 datas_rectangle["long2020"] = [
@@ -367,20 +367,50 @@ def get_tests(problem):
     if problem == "BPP-O":
         # lodi1999 boschetti2003 faroe2003 monaci2006
         # parreno2010 zhu2012 wei2013
-        pass
+        return [("rectangle", f,
+                 " --items data/rectangle/" + f +
+                 " --bin-infinite-copies"
+                 " --no-item-rotation"
+                 " --objective bin-packing"
+                 " --time-limit 60"
+                 ) for f in []
+                + datas_rectangle["berkey1987"]
+                + datas_rectangle["martello1998"]
+                ]
     if problem == "BPP-R":
         # lodi1999 boschetti2003 harwig2006 hayek2008 cui2015 cui2018
-        pass
+        return [("rectangle", f,
+                 " --items data/rectangle/" + f +
+                 " --bin-infinite-copies"
+                 " --objective bin-packing"
+                 " --time-limit 60"
+                 ) for f in []
+                + datas_rectangle["berkey1987"]
+                + datas_rectangle["martello1998"]
+                ]
 
     # KP
     if problem == "KP-O":
         # beasley2004 alvarez2005 alvarez2007 goncalves2007
         # hadjiconstantinou2007 huang2007 bortfeldt2009 egeblad2009 he2012
         # leung2012
-        pass
+        return [("rectangle", f,
+                 " --items data/rectangle/" + f +
+                 " --no-item-rotation"
+                 " --objective knapsack"
+                 " --time-limit 60"
+                 ) for f in []
+                + datas_rectangle["egeblad2009"]
+                ]
     if problem == "KP-R":
         # hopper2001 wu2002 bortfeldt2009 egeblad2009 he2012
-        pass
+        return [("rectangle", f,
+                 " --items data/rectangle/" + f +
+                 " --objective knapsack"
+                 " --time-limit 60"
+                 ) for f in []
+                + datas_rectangle["egeblad2009"]
+                ]
 
     # SPP
     if problem == "SPP-O":
@@ -405,7 +435,15 @@ def get_tests(problem):
         pass
     if problem == "UKP-O-D":
         # goncalves2020
-        pass
+        return [("rectangle", f,
+                 " --items data/rectangle/" + f +
+                 " --item-infinite-copies"
+                 " --no-item-rotation"
+                 " --objective knapsack"
+                 " --time-limit 60"
+                 ) for f in []
+                + datas_rectangle["goncalves2020"]
+                ]
 
     ########################
     # Rectangle guillotine #
@@ -415,7 +453,7 @@ def get_tests(problem):
 
     if problem == "roadef2018_A":
         # parreno2020
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective bin-packing-with-leftovers"
                  " --predefined roadef2018"
@@ -423,7 +461,7 @@ def get_tests(problem):
                  ) for f in datas_rectangle["roadef2018_A"]]
     if problem == "roadef2018_B":
         # parreno2020
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective bin-packing-with-leftovers"
                  " --predefined roadef2018"
@@ -431,7 +469,7 @@ def get_tests(problem):
                  ) for f in datas_rectangle["roadef2018_B"]]
     if problem == "roadef2018_X":
         # parreno2020
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective bin-packing-with-leftovers"
                  " --predefined roadef2018"
@@ -443,7 +481,7 @@ def get_tests(problem):
     elif problem == "3NEGH-BPP-O":
         # alvelos2009
         # [G-BPP-O] charalambous2011 fleszar2013 hong2014 lodi2017 cui2018
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
@@ -458,7 +496,7 @@ def get_tests(problem):
                 ]
     elif problem == "3NEGH-BPP-R":
         # [G-BPP-R] charalambous2011 fleszar2013 cui2015 cui2018
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
@@ -470,7 +508,7 @@ def get_tests(problem):
                 ]
     elif problem == "long2020_BPP":
         # long2020
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
@@ -481,7 +519,7 @@ def get_tests(problem):
                 ]
     elif problem == "3GH-BPP-O":
         # puchinger2007 alvelos2009
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
@@ -496,7 +534,7 @@ def get_tests(problem):
                 ]
     elif problem == "3HG-BPP-O":
         # chen2016
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
@@ -508,7 +546,7 @@ def get_tests(problem):
                 ]
     elif problem == "3HGV-BPP-O":
         # chen2016
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
@@ -532,7 +570,7 @@ def get_tests(problem):
 
     elif problem == "2NEGH-BPP-O":
         # cintra2008 alvelos2009 cui2013 alvelos2014
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
@@ -565,7 +603,7 @@ def get_tests(problem):
                 ]
     elif problem == "2NEGH-BPP-R":
         # cintra2008 cui2013 cui2016
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
@@ -577,7 +615,7 @@ def get_tests(problem):
                 + datas_rectangle["martello1998"]
                 ]
     elif problem == "2GH-BPP-O":  # alvelos2009 cui2013
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
@@ -597,7 +635,7 @@ def get_tests(problem):
         # [G-KP-O] fayard1998 alvarez2002 chen2007
         #          bortfeldt2009 morabito2010 dolatabadi2012
         #          wei2015 (furini2016) velasco2019 (martin2019) (martin2020)
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
                  " --predefined 3NHO"
@@ -637,7 +675,7 @@ def get_tests(problem):
                 ]
     elif problem == "3NEG-KP-R":
         # [G-KP-R] bortfeldt2009 wei2015 velasco2019
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
                  " --predefined 3NHR"
@@ -662,7 +700,7 @@ def get_tests(problem):
                 ]
     elif problem == "3NEGV-KP-O":
         # cui2015
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
                  " --predefined 3NVO"
@@ -703,7 +741,7 @@ def get_tests(problem):
 
     elif problem == "2NEG-KP-O":
         # hifi2001
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
                  " --predefined 2NAO"
@@ -729,7 +767,7 @@ def get_tests(problem):
     elif problem == "2NEGH-KP-O":
         # hifi2001 lodi2003 belov2006 hifi2006 alvarez2007 hifi2008 hifi2012
         # (martin2020)
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
                  " --predefined 2NHO"
@@ -762,7 +800,7 @@ def get_tests(problem):
                 ]
     elif problem == "2NEGV-KP-O":
         # hifi2001 lodi2003 hifi2006 alvarez2007 hifi2008 hifi2012
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
                  " --predefined 2NVO"
@@ -795,7 +833,7 @@ def get_tests(problem):
                 ]
     elif problem == "2NEGH-KP-R":
         # lodi2003
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
                  " --predefined 2NHR"
@@ -819,7 +857,7 @@ def get_tests(problem):
 
     elif problem == "2G-KP-O":
         # hifi2001
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
                  " --predefined 2EAO"
@@ -838,7 +876,7 @@ def get_tests(problem):
                 ]
     elif problem == "2GH-KP-O":
         # hifi2001
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
                  " --predefined 2EHO"
@@ -857,7 +895,7 @@ def get_tests(problem):
                 ]
     elif problem == "2GV-KP-O":
         # hifi2001
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --objective knapsack"
                  " --predefined 2EVO"
@@ -879,7 +917,7 @@ def get_tests(problem):
 
     elif problem == "3NEGH-SPP-O":
         # [G-SPP-O] bortfeldt2012 wei2014
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
                  " --objective open-dimension-y"
@@ -897,7 +935,7 @@ def get_tests(problem):
     elif problem == "3NEGH-SPP-R":
         # [G-SPP-R] kroger1993 schneke1996 mumford2003 zhang2006 bortfeldt2006
         #           cui2008 bortfeldt2012 cui2013 wei2014
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
                  " --objective open-dimension-y"
@@ -914,7 +952,7 @@ def get_tests(problem):
                 ]
     elif problem == "2NEGH-SPP-O":
         # lodi2004 cintra2008 mrad2015 cui2017
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
                  " --objective open-dimension-y"
@@ -929,7 +967,7 @@ def get_tests(problem):
                 ]
     elif problem == "2NEGH-SPP-R":
         #
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-y"
                  " --objective open-dimension-y"
@@ -945,7 +983,7 @@ def get_tests(problem):
     if problem == "3NEG-VBPP-O":
         # [G-VBPP-O] cintra2008 ortmann2010 liu2011 hong2014
         # [4GH-VBPP-O] cintra2008
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  x +
                  y +
@@ -974,7 +1012,7 @@ def get_tests(problem):
     if problem == "3NEG-VBPP-R":
         # [G-VBPP-R] cintra2008
         # [4GH-VBPP-R] cintra2008
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
@@ -985,7 +1023,7 @@ def get_tests(problem):
                 ]
     if problem == "2GH-VBPP-O":
         # cintra2008
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
@@ -996,7 +1034,7 @@ def get_tests(problem):
                 ]
     if problem == "2GH-VBPP-R":
         # cintra2008
-        return [(f,
+        return [("rectangleguillotine", f,
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective variable-sized-bin-packing"
@@ -1059,13 +1097,13 @@ if __name__ == "__main__":
         results_file = open(os.path.join(directory_out, "results.csv"), "w")
         first_loop = True
 
-        for f, args in get_tests(problem):
+        for problem_type, f, args in get_tests(problem):
             output_filepath = os.path.join(directory_out, f + "_output.json")
             cert_filepath = os.path.join(directory_out, f + "_solution.csv")
             if not os.path.exists(os.path.dirname(output_filepath)):
                 os.makedirs(os.path.dirname(output_filepath))
             command = (
-                    "./bazel-bin/packingsolver/rectangleguillotine/main"
+                    "./bazel-bin/packingsolver/" + problem_type + "/main"
                     " -v 1 -e"
                     + args
                     + " -c \"" + cert_filepath + "\""
@@ -1079,9 +1117,11 @@ if __name__ == "__main__":
             data = json.load(output_file)
 
             # Find last solution
-            k = 1
-            while "Solution" + str(k + 1) in data.keys():
-                k += 1
+            k = ""
+            if "Solution1" in data.keys():
+                k = 1
+                while "Solution" + str(k + 1) in data.keys():
+                    k += 1
 
             # Write header (only in the first loop)
             if first_loop:

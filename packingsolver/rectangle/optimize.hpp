@@ -1,14 +1,13 @@
 #pragma once
 
-#include "packingsolver/rectangleguillotine/instance_builder.hpp"
-#include "packingsolver/rectangleguillotine/solution.hpp"
-#include "packingsolver/algorithms/sequential_value_correction.hpp"
+#include "packingsolver/rectangle/instance_builder.hpp"
+#include "packingsolver/rectangle/solution.hpp"
 
 #include "columngenerationsolver/linear_programming_solver.hpp"
 
 namespace packingsolver
 {
-namespace rectangleguillotine
+namespace rectangle
 {
 
 struct OptimizeOptionalParameters
@@ -29,6 +28,8 @@ struct OptimizeOptionalParameters
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 
+    Solution* fixed_items = nullptr;
+
 
     /**
      * Time limit for the vbpp2bpp bin packing sub-problem of the column
@@ -40,7 +41,7 @@ struct OptimizeOptionalParameters
      * Size of the queue for the vbpp2bpp bin packing sub-problem of the column
      * generation algorithm.
      */
-    NodeId column_generation_vbpp2bpp_queue_size = 1024;
+    NodeId column_generation_vbpp2bpp_queue_size = 256;
 
     /**
      * Size of the queue for the pricing knapsack sub-problem of the column
@@ -57,17 +58,7 @@ struct OptimizeOptionalParameters
      * Size of the queue for the bin packing sub-problem of the dichotomic
      * search algorithm.
      */
-    NodeId dichotomic_search_queue_size = 1024;
-
-
-    /** Parameters for the Sequential Value Correction algorithm. */
-    SequentialValueCorrectionOptionalParameters<Instance, InstanceBuilder, Solution> sequential_value_correction_parameters;
-
-    /**
-     * Size of the queue for the knapsack sub-problem of the sequential value
-     * correction algorithm.
-     */
-    NodeId sequential_value_correction_queue_size = 1024;
+    NodeId dichotomic_search_queue_size = 128;
 
 
     /** Info structure. */

@@ -34,7 +34,7 @@ cc_library(
 git_repository(
     name = "optimizationtools",
     remote = "https://github.com/fontanf/optimizationtools.git",
-    commit = "6c40c5ba2890dbd2107962d5ef3fc120c9b11dc2",
+    commit = "ab54558ca28f5095ddc5360779d9d75b2553483f",
 )
 
 local_repository(
@@ -69,7 +69,7 @@ local_repository(
 git_repository(
     name = "knapsacksolver",
     remote = "https://github.com/fontanf/knapsacksolver.git",
-    commit = "5464348be438e0b339f30c5f4f72cdaf701c99ec",
+    commit = "8b4d27227877d2098601888059a35d69cd10b018",
 )
 
 local_repository(
