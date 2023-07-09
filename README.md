@@ -2,28 +2,99 @@
 
 A state-of-the-art solver for (geometrical) Packing Problems.
 
-Only `rectangleguillotine` problem type has been implemented yet.
+PackingSolver solves the following problem types:
 
-![Example](example.png?raw=true "Example")
+* `rectangleguillotine`
+  * Items: two-dimensional rectangles
+  * Only edge-to-edge cuts are allowed
+
+![Example](img/rectangleguillotine.png?raw=true "Example rectangleguillotine")
+
+* `rectangle`
+  * Items: two-dimensional rectangles
+
+![Example](img/rectangle.png?raw=true "Example rectangle")
+
+* `boxstacks`
+  * Items: three-dimensional rectangular parallelepipeds
+  * Items can be stacked; a stack contains items with the same width and length
+
+![Example](img/boxstacks.png?raw=true "Example boxstacks")
+
+* `onedimensional`
+  * Items: one-dimensional items
 
 ## Problem type `rectangleguillotine`
 
 Features:
 * Objectives:
-  * Bin packing
   * Knapsack
-  * Strip packing X
-  * Strip packing Y
+  * Open dimension X
+  * Open dimension Y
+  * Bin packing
   * Bin packing with leftovers
   * Variable-sized bin packing
-* Item rotations
-* Item stacks
-* Bins with defects
-* Trims
+* Item types
+  * With or without rotations
+  * Stacks (precedence constraints on the order in which items are extracted)
+* Bins types
+  * May contain defects
+  * Allow or forbid cutting through a defect
 * Two- and three-staged, exact, non-exact, roadef2018 and homogenous patterns
 * First cut vertical, horizontal or any
+* Trims
+* Cut thickness
 * Minimum and maximum distance between consecutive 1- and 2-cuts
 * Minimum distance between cuts
+
+## Problem type `rectangle`
+
+Features:
+* Objectives:
+  * Knapsack
+  * Open dimension X
+  * Open dimension Y
+  * Bin packing
+  * Bin packing with leftovers
+  * Variable-sized bin packing
+* Item types
+  * With or without rotations
+* Bin types
+  * May contain defects
+  * Maximum weight
+* Unloading constraints: only horizontal/vertical movements, increasing x/y
+
+## Problem type `boxstacks`
+
+Features:
+* Objectives:
+  * Knapsack
+  * Bin packing
+  * Variable-sized bin packing
+* Item types
+  * Rotations (among the 6 possible rotations)
+  * Nesting height
+  * Maximum number of items in a stack containing an item of a given type
+  * Maximum weight allowed above an item of a given type
+* Bin types
+  * Maximum weight
+  * Maximum stack density
+  * Maximum weight on middle and rear axles
+* Unloading constraints: only horizontal/vertical movements, increasing x/y
+
+## Problem type `onedimensional`
+
+Features:
+* Objectives:
+  * Knapsack
+  * Variable-sized bin packing
+* Item types
+  * Nesting length
+  * Maximum number of items in a bin containing an item of a given type
+  * Maximum weight allowed after an item of a given type
+* Bin types
+  * Maximum weight
+* Item type / Bin type eligibility
 
 ## Usage
 
@@ -141,27 +212,5 @@ Time:              1.00226
 Visualize:
 ```
 python3 packingsolver/scripts/visualize_rectangleguillotine.py ATP35_solution.csv
-```
-
-Another solution visualizer is available here: https://librallu.gitlab.io/packing-viz/
-
-## Benchmarks
-
-The performances of PackingSolver have been compared to all published results from the scientific literature on corresponding Packing Problems.
-Detailed results are available in `results_*.ods`.
-`output.7z` contains all output files and solutions.
-
-All experiments can be reproduced using the following scripts:
-```shell
-python3 packingsolver/scripts/bench.py "roadef2018_A" "roadef2018_B" "roadef2018_X" # ~50h
-python3 packingsolver/scripts/bench.py "3NEGH-BPP-O" "3NEGH-BPP-R" "long2020_BPP" # ~10h
-python3 packingsolver/scripts/bench.py "3GH-BPP-O" "3HG-BPP-O" "3HGV-BPP-O" # ~7h
-python3 packingsolver/scripts/bench.py "2NEGH-BPP-O" "2NEGH-BPP-R" "2GH-BPP-O" # ~30h
-python3 packingsolver/scripts/bench.py "3NEG-KP-O" "3NEG-KP-R" "3NEGV-KP-O" "3HG-KP-O" # ~10h
-python3 packingsolver/scripts/bench.py "2NEG-KP-O" "2NEGH-KP-O" "2NEGV-KP-O" "2NEGH-KP-R"  # 1h
-python3 packingsolver/scripts/bench.py "2G-KP-O" "2GH-KP-O" "2GV-KP-O" # 1m
-python3 packingsolver/scripts/bench.py "3NEGH-SPP-O" "3NEGH-SPP-R" # ~20h
-python3 packingsolver/scripts/bench.py "2NEGH-SPP-O" "2NEGH-SPP-R" # ~4h
-python3 packingsolver/scripts/bench.py "3NEG-VBPP-O" "3NEG-VBPP-R" "2GH-VBPP-O" "2GH-VBPP-R" # ~16h
 ```
 
