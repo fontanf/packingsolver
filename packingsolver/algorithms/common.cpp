@@ -10,6 +10,10 @@ std::istream& packingsolver::operator>>(std::istream& in, ProblemType& problem_t
         problem_type = ProblemType::RectangleGuillotine;
     } else if (token == "rectangle" || token == "R") {
         problem_type = ProblemType::Rectangle;
+    } else if (token == "onedimensional" || token == "1") {
+        problem_type = ProblemType::OneDimensional;
+    } else if (token == "boxstacks" || token == "BS") {
+        problem_type = ProblemType::BoxStacks;
     } else if (token == "irregular" || token == "I") {
         problem_type = ProblemType::Irregular;
     } else  {
@@ -26,6 +30,12 @@ std::ostream& packingsolver::operator<<(std::ostream &os, ProblemType problem_ty
         break;
     } case ProblemType::Rectangle: {
         os << "Rectangle";
+        break;
+    } case ProblemType::OneDimensional: {
+        os << "OneDimensional";
+        break;
+    } case ProblemType::BoxStacks: {
+        os << "BoxStacks";
         break;
     } case ProblemType::Irregular: {
         os << "Irregular";
@@ -47,6 +57,12 @@ std::istream& packingsolver::operator>>(std::istream& in, Algorithm& algorithm)
         algorithm = Algorithm::ColumnGeneration;
     } else if (token == "dichotomic-search" || token == "DS") {
         algorithm = Algorithm::DichotomicSearch;
+    } else if (token == "sequential-onedimensional-rectangle" || token == "SOR") {
+        algorithm = Algorithm::SequentialOneDimensionalRectangle;
+    } else if (token == "sequential-value-correction" || token == "SVC") {
+        algorithm = Algorithm::SequentialValueCorrection;
+    } else if (token == "vsbpp2bpp" || token == "VSBPP2BPP") {
+        algorithm = Algorithm::Vsbpp2Bpp;
     } else if (token == "minlp" || token == "MINLP") {
         algorithm = Algorithm::Minlp;
     } else  {
@@ -69,6 +85,15 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Algorithm algorithm)
         break;
     } case Algorithm::DichotomicSearch: {
         os << "Dichotomic search";
+        break;
+    } case Algorithm::SequentialValueCorrection: {
+        os << "Sequential Value Correction";
+        break;
+    } case Algorithm::SequentialOneDimensionalRectangle: {
+        os << "Sequential onedimensional rectangle";
+        break;
+    } case Algorithm::Vsbpp2Bpp: {
+        os << "VSBPP2BPP";
         break;
     } case Algorithm::Minlp: {
         os << "MINLP";
@@ -96,6 +121,8 @@ std::istream& packingsolver::operator>>(std::istream& in, Objective& objective)
         objective = Objective::Knapsack;
     } else if (token == "variable-sized-bin-packing" || token == "VBPP") {
         objective = Objective::VariableSizedBinPacking;
+    } else if (token == "sequential-onedimensional-rectangle-subproblem" || token == "BDRS") {
+        objective = Objective::SequentialOneDimensionalRectangleSubproblem;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -128,6 +155,9 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Objective objective)
         break;
     } case Objective::VariableSizedBinPacking: {
         os << "VariableSizedBinPacking";
+        break;
+    } case Objective::SequentialOneDimensionalRectangleSubproblem: {
+        os << "SequentialOneDimensionalRectangleSubproblem";
         break;
     }
     }

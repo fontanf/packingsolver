@@ -1,23 +1,23 @@
-#include "packingsolver/rectangleguillotine/optimize.hpp"
+#include "packingsolver/onedimensional/optimize.hpp"
 
-#include "packingsolver/rectangleguillotine/branching_scheme.hpp"
-#include "packingsolver/algorithms/iterative_beam_search.hpp"
+#include "packingsolver/onedimensional/branching_scheme.hpp"
 #include "packingsolver/algorithms/vbpp2bpp.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"
 #include "packingsolver/algorithms/dichotomic_search.hpp"
 
+#include "treesearchsolver/iterative_beam_search_2.hpp"
+
 #include <thread>
 
 using namespace packingsolver;
-using namespace packingsolver::rectangleguillotine;
+using namespace packingsolver::onedimensional;
 
-Output packingsolver::rectangleguillotine::optimize(
+Output packingsolver::onedimensional::optimize(
         const Instance& instance,
         OptimizeOptionalParameters parameters)
 {
     Output output(instance);
 
-    // Select algorithm.
     Algorithm algorithm = Algorithm::TreeSearch;
     if (instance.objective() == Objective::BinPacking) {
         if (parameters.bpp_algorithm != Algorithm::Auto) {
@@ -60,55 +60,55 @@ Output packingsolver::rectangleguillotine::optimize(
             guides = {0, 2};
         }
 
-        std::vector<CutOrientation> first_stage_orientations = {instance.first_stage_orientation()};
-        if (instance.number_of_bins() == 1
-                && instance.bin_type(0).rect.w != instance.bin_type(0).rect.h
-                && instance.first_stage_orientation() == CutOrientation::Any) {
-            first_stage_orientations = {CutOrientation::Vertical, CutOrientation::Horinzontal};
-        }
-
         std::vector<double> growth_factors = {1.5};
-        if (guides.size() * first_stage_orientations.size() * 2 <= 4)
+        if (guides.size() * 2 <= 4)
             growth_factors = {1.33, 1.5};
         if (parameters.tree_search_queue_size != -1)
             growth_factors = {1.5};
 
         std::vector<BranchingScheme> branching_schemes;
-        std::vector<IterativeBeamSearchOptionalParameters> ibs_parameterss;
+        std::vector<treesearchsolver::IterativeBeamSearch2OptionalParameters<BranchingScheme>> ibs_parameterss;
+        std::vector<SolutionPool<Instance, Solution>> solution_pools;
         for (double growth_factor: growth_factors) {
             for (GuideId guide_id: guides) {
-                for (CutOrientation first_stage_orientation: first_stage_orientations) {
-                    //std::cout << growth_factor << " " << guide_id << " " << first_stage_orientation << std::endl;
-                    Counter i = branching_schemes.size();
-                    BranchingScheme::Parameters branching_scheme_parameters;
-                    branching_scheme_parameters.guide_id = guide_id;
-                    branching_scheme_parameters.first_stage_orientation = first_stage_orientation;
-                    branching_schemes.push_back(BranchingScheme(instance, branching_scheme_parameters));
-                    IterativeBeamSearchOptionalParameters ibs_parameters;
-                    ibs_parameters.growth_factor = growth_factor;
-                    ibs_parameters.thread_id = i + 1;
-                    if (parameters.tree_search_queue_size != -1) {
-                        ibs_parameters.queue_size_min = parameters.tree_search_queue_size;
-                        ibs_parameters.queue_size_max = parameters.tree_search_queue_size;
-                    }
-                    ibs_parameters.info = Info(parameters.info, true, "thread" + std::to_string(i + 1));
-                    ibs_parameterss.push_back(ibs_parameters);
+                //std::cout << growth_factor << " " << guide_id << " " << direction << std::endl;
+                Counter i = branching_schemes.size();
+                BranchingScheme::Parameters branching_scheme_parameters;
+                branching_scheme_parameters.guide_id = guide_id;
+                branching_schemes.push_back(BranchingScheme(instance, branching_scheme_parameters));
+                treesearchsolver::IterativeBeamSearch2OptionalParameters<BranchingScheme> ibs_parameters;
+                ibs_parameters.growth_factor = growth_factor;
+                if (parameters.tree_search_queue_size != -1) {
+                    ibs_parameters.minimum_size_of_the_queue = parameters.tree_search_queue_size;
+                    ibs_parameters.maximum_size_of_the_queue = parameters.tree_search_queue_size;
                 }
+                ibs_parameters.info = Info(parameters.info, false, "thread" + std::to_string(i + 1));
+                ibs_parameterss.push_back(ibs_parameters);
+                solution_pools.push_back(SolutionPool<Instance, Solution>(instance, 10));
             }
         }
 
         std::vector<std::thread> threads;
         for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
+            ibs_parameterss[i].new_solution_callback
+                = [&parameters, &output, &branching_schemes, i](
+                        const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& ibs_output)
+                {
+                    Solution solution = branching_schemes[i].to_solution(
+                            ibs_output.solution_pool.best());
+                    std::stringstream ss;
+                    ss << branching_schemes[i].parameters().guide_id
+                        << " " << ibs_output.maximum_size_of_the_queue;
+                    output.solution_pool.add(solution, ss, parameters.info);
+                };
             if (parameters.number_of_threads != 1 && branching_schemes.size() > 1) {
                 threads.push_back(std::thread(
-                            iterative_beam_search<Instance, Solution, BranchingScheme>,
+                            treesearchsolver::iterative_beam_search_2<BranchingScheme>,
                             std::ref(branching_schemes[i]),
-                            std::ref(output.solution_pool),
                             ibs_parameterss[i]));
             } else {
-                iterative_beam_search<Instance, Solution, BranchingScheme>(
+                treesearchsolver::iterative_beam_search_2<BranchingScheme>(
                         branching_schemes[i],
-                        output.solution_pool,
                         ibs_parameterss[i]);
             }
         }
@@ -125,10 +125,11 @@ Output packingsolver::rectangleguillotine::optimize(
                     bpp_parameters.number_of_threads = parameters.number_of_threads;
                     bpp_parameters.bpp_algorithm = Algorithm::TreeSearch;
                     bpp_parameters.tree_search_queue_size = parameters.column_generation_vbpp2bpp_queue_size;
+                    bpp_parameters.tree_search_guides = parameters.column_generation_vbpp2bpp_guides;
                     bpp_parameters.info = Info(parameters.info, false, "");
                     if (parameters.column_generation_vbpp2bpp_time_limit >= 0)
                         bpp_parameters.info.set_time_limit(parameters.column_generation_vbpp2bpp_time_limit);
-                    //bpp_parameters.info.set_verbosity_level(1);
+                    //bpp_parameters.info.set_verbosity_level(2);
                     auto bpp_output = optimize(bpp_instance, bpp_parameters);
                     return bpp_output.solution_pool;
                 };
@@ -139,14 +140,15 @@ Output packingsolver::rectangleguillotine::optimize(
             output.solution_pool.add(vbpp2bpp_output.solution_pool.best(), ss, parameters.info);
         }
 
-        VariableSizeBinPackingPricingFunction<Instance, InstanceBuilder, rectangleguillotine::Solution> pricing_function
-            = [&parameters](const rectangleguillotine::Instance& kp_instance)
+        VariableSizeBinPackingPricingFunction<Instance, InstanceBuilder, Solution> pricing_function
+            = [&parameters](const onedimensional::Instance& kp_instance)
             {
                 OptimizeOptionalParameters kp_parameters;
                 kp_parameters.number_of_threads = parameters.number_of_threads;
                 kp_parameters.tree_search_queue_size = parameters.column_generation_pricing_queue_size;
+                kp_parameters.tree_search_guides = parameters.column_generation_pricing_guides;
                 kp_parameters.info = Info(parameters.info, false, "");
-                //kp_parameters.info.set_verbosity_level(1);
+                //kp_parameters.info.set_verbosity_level(2);
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
@@ -155,6 +157,9 @@ Output packingsolver::rectangleguillotine::optimize(
         if (output.solution_pool.best().full())
             cgs_parameters.columns = solution2column(output.solution_pool.best());
         columngenerationsolver::LimitedDiscrepancySearchOptionalParameters lds_parameters;
+        lds_parameters.continue_until_feasible = true;
+        if (parameters.column_generation_maximum_discrepancy >= 0)
+            lds_parameters.discrepancy_limit = parameters.column_generation_maximum_discrepancy;
         lds_parameters.new_bound_callback = [&instance, &parameters, &output](
                 const columngenerationsolver::LimitedDiscrepancySearchOutput& o)
         {
@@ -178,7 +183,8 @@ Output packingsolver::rectangleguillotine::optimize(
         lds_parameters.column_generation_parameters.linear_programming_solver
             = parameters.linear_programming_solver;
         lds_parameters.info = Info(parameters.info, false, "");
-        columngenerationsolver::limited_discrepancy_search(cgs_parameters, lds_parameters);
+        columngenerationsolver::limited_discrepancy_search(
+                cgs_parameters, lds_parameters);
 
     } else if (algorithm == Algorithm::DichotomicSearch) {
 
@@ -187,9 +193,10 @@ Output packingsolver::rectangleguillotine::optimize(
             {
                 OptimizeOptionalParameters bpp_parameters;
                 bpp_parameters.number_of_threads = parameters.number_of_threads;
+                bpp_parameters.bpp_algorithm = Algorithm::TreeSearch;
                 bpp_parameters.tree_search_queue_size = parameters.dichotomic_search_queue_size;
                 bpp_parameters.info = Info(parameters.info, false, "");
-                //bpp_parameters.info.set_verbosity_level(1);
+                //bpp_parameters.info.set_verbosity_level(2);
                 auto bpp_output = optimize(bpp_instance, bpp_parameters);
                 return bpp_output.solution_pool;
             };
