@@ -25,8 +25,8 @@ def Settings(**kwargs):
                 'treesearchsolver/',
 
                 # knapsacksolver
-                # '-I', './bazel-packingsolver/external/'
-                '-I', './../'
+                '-I', './bazel-packingsolver/external/'
+                # '-I', './../'
                 'knapsacksolver/',
 
                 # columngenerationsolver

@@ -47,7 +47,7 @@ struct ItemType
     ItemPos maximum_stackability = std::numeric_limits<ItemPos>::max();
 
     /** Maximum weight of the items packed after items of this type. */
-    Weight maximum_weight_after = std::numeric_limits<Weight>::max();
+    Weight maximum_weight_after = std::numeric_limits<Weight>::infinity();
 
     /**
      * Eligibility.
@@ -86,7 +86,7 @@ struct BinType
     BinPos copies_min;
 
     /** Maximum weight allowed in the bin type.  */
-    Weight maximum_weight = std::numeric_limits<double>::max();
+    Weight maximum_weight = std::numeric_limits<Weight>::infinity();
 
     /** Eligibility ids. */
     std::vector<EligibilityId> eligibility_ids;
