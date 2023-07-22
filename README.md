@@ -24,6 +24,8 @@ PackingSolver solves the following problem types:
 * `onedimensional`
   * Items: one-dimensional items
 
+![Example](img/onedimensional.png?raw=true "Example onedimensional")
+
 ## Problem type `rectangleguillotine`
 
 Features:
