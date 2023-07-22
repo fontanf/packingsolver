@@ -294,7 +294,7 @@ void InstanceBuilder::read_bin_types(std::string bins_path)
         Profit cost = -1;
         BinPos copies = 1;
         BinPos copies_min = 0;
-        Weight maximum_weight = std::numeric_limits<Weight>::max();
+        Weight maximum_weight = std::numeric_limits<Weight>::infinity();
 
         for (Counter i = 0; i < (Counter)line.size(); ++i) {
             if (labels[i] == "X") {
@@ -348,7 +348,7 @@ void InstanceBuilder::read_item_types(std::string items_path)
         ItemPos copies = 1;
         Length nesting_length = 0;
         ItemPos maximum_stackability = std::numeric_limits<ItemPos>::max();
-        Weight maximum_weight_after = std::numeric_limits<Weight>::max();
+        Weight maximum_weight_after = std::numeric_limits<Weight>::infinity();
 
         for (Counter i = 0; i < (Counter)line.size(); ++i) {
             if (labels[i] == "X") {
