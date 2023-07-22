@@ -415,8 +415,6 @@ void Solution::write(Info& info) const
             << bin_type_id << ","
             << bin.copies << ","
             << bin_pos << ","
-            << "-1,"
-            << "0,"
             << "0,"
             << instance().bin_type(bin_type_id).length << std::endl;
 
