@@ -188,9 +188,10 @@ Output packingsolver::rectangle::optimize(
                     BinPos value = std::round(pair.second);
                     if (value < 0.5)
                         continue;
-                    std::shared_ptr<VariableSizeBinPackingColumnExtra<Solution>> extra
-                        = std::static_pointer_cast<VariableSizeBinPackingColumnExtra<Solution>>(column.extra);
-                    solution.append(extra->solution, 0, value, {extra->bin_type_id}, extra->kp2vbpp);
+                    solution.append(
+                            *std::static_pointer_cast<Solution>(column.extra),
+                            0,
+                            value);
                 }
                 std::stringstream ss;
                 ss << "discrepancy " << o.solution_discrepancy;

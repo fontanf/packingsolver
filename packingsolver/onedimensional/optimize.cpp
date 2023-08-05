@@ -161,22 +161,23 @@ Output packingsolver::onedimensional::optimize(
         if (parameters.column_generation_maximum_discrepancy >= 0)
             lds_parameters.discrepancy_limit = parameters.column_generation_maximum_discrepancy;
         lds_parameters.new_bound_callback = [&instance, &parameters, &output](
-                const columngenerationsolver::LimitedDiscrepancySearchOutput& o)
+                const columngenerationsolver::LimitedDiscrepancySearchOutput& lds_output)
         {
-            if (o.solution.size() > 0) {
+            if (lds_output.solution.size() > 0) {
                 Solution solution(instance);
-                for (const auto& pair: o.solution) {
+                for (const auto& pair: lds_output.solution) {
                     const Column& column = pair.first;
                     BinPos value = std::round(pair.second);
                     if (value < 0.5)
                         continue;
                     //std::cout << "append val " << value << " col " << column << std::endl;
-                    std::shared_ptr<VariableSizeBinPackingColumnExtra<Solution>> extra
-                        = std::static_pointer_cast<VariableSizeBinPackingColumnExtra<Solution>>(column.extra);
-                    solution.append(extra->solution, 0, value, {extra->bin_type_id}, extra->kp2vbpp);
+                    solution.append(
+                            *std::static_pointer_cast<Solution>(column.extra),
+                            0,
+                            value);
                 }
                 std::stringstream ss;
-                ss << "discrepancy " << o.solution_discrepancy;
+                ss << "discrepancy " << lds_output.solution_discrepancy;
                 output.solution_pool.add(solution, ss, parameters.info);
             }
         };

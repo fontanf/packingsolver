@@ -62,6 +62,16 @@ void Solution::append(
         const std::vector<ItemTypeId>& item_type_ids)
 {
     const SolutionBin& bin = solution.bins_[bin_pos];
+
+    if (!bin_type_ids.empty()) {
+        if (bin.bin_type_id >= (BinPos)bin_type_ids.size()) {
+            throw std::runtime_error(
+                    "onedimensional::Solution::append"
+                    "; bin.bin_type_id: " + std::to_string(bin.bin_type_id)
+                    + "; bin_type_ids.size(): " + std::to_string(bin_type_ids.size()));
+        }
+    }
+
     BinTypeId bin_type_id = (bin_type_ids.empty())?
         solution.bins_[bin_pos].bin_type_id:
         bin_type_ids[bin.bin_type_id];
