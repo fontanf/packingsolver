@@ -163,14 +163,6 @@ std::vector<ColIdx> VariableSizeBinPackingPricingSolver<Instance, InstanceBuilde
 }
 
 template <typename Solution>
-struct VariableSizeBinPackingColumnExtra
-{
-    Solution solution;
-    BinTypeId bin_type_id;
-    std::vector<ItemTypeId> kp2vbpp;
-};
-
-template <typename Solution>
 std::vector<Column> solution2column(
         const Solution& solution)
 {
@@ -178,9 +170,8 @@ std::vector<Column> solution2column(
     BinPos m = solution.instance().number_of_bin_types();
     for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
         BinTypeId bin_type_id = solution.bin(bin_pos).bin_type_id;
-        Solution solution_i(solution.instance());
-        solution_i.append(solution, bin_pos, 1);
-        VariableSizeBinPackingColumnExtra<Solution> extra {solution_i, bin_type_id, {}};
+        Solution extra_solution(solution.instance());
+        extra_solution.append(solution, bin_pos, 1);
         Column column;
         column.objective_coefficient = solution.instance().bin_type(bin_type_id).cost;
         column.row_indices.push_back(bin_type_id);
@@ -188,13 +179,13 @@ std::vector<Column> solution2column(
         for (ItemTypeId item_type_id = 0;
                 item_type_id < solution.instance().number_of_item_types();
                 ++item_type_id) {
-            if (extra.solution.item_copies(item_type_id) > 0) {
+            if (extra_solution.item_copies(item_type_id) > 0) {
                 column.row_indices.push_back(m + item_type_id);
                 column.row_coefficients.push_back(
-                        extra.solution.item_copies(item_type_id));
+                        extra_solution.item_copies(item_type_id));
             }
         }
-        column.extra = std::shared_ptr<void>(new VariableSizeBinPackingColumnExtra<Solution>(extra));
+        column.extra = std::shared_ptr<void>(new Solution(extra_solution));
         columns.push_back(column);
     }
     return columns;
@@ -243,7 +234,9 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, InstanceBuilde
 
         // Retrieve column.
         for (const Solution& kp_solution: kp_solution_pool.solutions()) {
-            VariableSizeBinPackingColumnExtra<Solution> extra {kp_solution, bin_type_id, kp2vbpp};
+            if (kp_solution.number_of_bins() == 0)
+                continue;
+
             Column column;
             column.objective_coefficient = instance_.bin_type(bin_type_id).cost;
             column.row_indices.push_back(bin_type_id);
@@ -253,13 +246,20 @@ std::vector<Column> VariableSizeBinPackingPricingSolver<Instance, InstanceBuilde
             for (ItemTypeId kp_item_type_id = 0;
                     kp_item_type_id < kp_instance.number_of_item_types();
                     ++kp_item_type_id) {
-                if (extra.solution.item_copies(kp_item_type_id) > 0) {
-                    column.row_indices.push_back(m + extra.kp2vbpp[kp_item_type_id]);
-                    column.row_coefficients.push_back(extra.solution.item_copies(kp_item_type_id));
+                if (kp_solution.item_copies(kp_item_type_id) > 0) {
+                    column.row_indices.push_back(m + kp2vbpp[kp_item_type_id]);
+                    column.row_coefficients.push_back(kp_solution.item_copies(kp_item_type_id));
                     //std::cout << duals[m + extra->kp2vbpp[kp_j]] << std::endl;
                 }
             }
-            column.extra = std::shared_ptr<void>(new VariableSizeBinPackingColumnExtra<Solution>(extra));
+            Solution extra_solution(instance_);
+            extra_solution.append(
+                    kp_solution,
+                    0,
+                    1,
+                    {bin_type_id},
+                    kp2vbpp);
+            column.extra = std::shared_ptr<void>(new Solution(extra_solution));
             //std::cout << column << std::endl;
             columns.push_back(column);
         }
