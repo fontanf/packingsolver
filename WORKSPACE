@@ -92,7 +92,10 @@ cc_library(
     hdrs = glob(["dist/include/coin/Coin*.h*"], exclude_directories = 0),
     strip_include_prefix = "dist/include/coin/",
     srcs = [
+        # For Linux.
         "dist/lib/libCoinUtils.so",
+        # For Windows.
+        # "dist/lib/libCoinUtils.lib",
     ],
     visibility = ["//visibility:public"],
 )
@@ -101,7 +104,10 @@ cc_library(
     hdrs = glob(["dist/include/coin/Clp*.h*"], exclude_directories = 0),
     strip_include_prefix = "dist/include/coin",
     srcs = [
+        # For Linux.
         "dist/lib/libClp.so",
+        # For Windows.
+        # "dist/lib/libClp.lib",
     ],
     deps = [":coinutils", ":osi"],
     visibility = ["//visibility:public"],
