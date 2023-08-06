@@ -98,7 +98,7 @@ for i in range(0, m):
 # Plot.
 fig.update_layout(
         autosize=True,
-        height=m*52)
+        height=m*64+196)
 fig.update_xaxes(
         rangeslider=dict(visible=False))
 fig.update_yaxes(visible=False)
