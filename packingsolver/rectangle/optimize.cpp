@@ -19,27 +19,31 @@ Output packingsolver::rectangle::optimize(
     Output output(instance);
 
     Algorithm algorithm = Algorithm::TreeSearch;
-    if (instance.objective() == Objective::BinPacking) {
-        if (parameters.bpp_algorithm != Algorithm::Auto) {
-            algorithm = parameters.bpp_algorithm;
-        } else {
+    if (parameters.algorithm != Algorithm::Auto) {
+        algorithm = parameters.algorithm;
+    } else if (instance.objective() == Objective::Knapsack) {
+        algorithm = Algorithm::TreeSearch;
 #if defined(CLP_FOUND) || defined(CPLEX_FOUND) || defined(XPRESS_FOUND)
-            if (instance.number_of_bin_types() == 1
-                    && largest_bin_space(instance) / mean_item_space(instance) < 16) {
-                algorithm = Algorithm::ColumnGeneration;
-            }
-#endif
-        }
-    } else if (instance.objective() == Objective::VariableSizedBinPacking) {
-        if (parameters.vbpp_algorithm != Algorithm::Auto) {
-            algorithm = parameters.vbpp_algorithm;
-#if defined(CLP_FOUND) || defined(CPLEX_FOUND) || defined(XPRESS_FOUND)
-        } else if (largest_bin_space(instance) / mean_item_space(instance) < 16) {
+        if (instance.number_of_bins() > 1
+                && largest_bin_space(instance) / mean_item_space(instance) < 16) {
             algorithm = Algorithm::ColumnGeneration;
-#endif
-        } else {
-            algorithm = Algorithm::DichotomicSearch;
         }
+#endif
+    } if (instance.objective() == Objective::BinPacking) {
+#if defined(CLP_FOUND) || defined(CPLEX_FOUND) || defined(XPRESS_FOUND)
+        if (instance.number_of_bin_types() == 1
+                && largest_bin_space(instance) / mean_item_space(instance) < 16) {
+            algorithm = Algorithm::ColumnGeneration;
+        }
+#endif
+    } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+        algorithm = Algorithm::DichotomicSearch;
+        //algorithm = Algorithm::SequentialValueCorrection;
+#if defined(CLP_FOUND) || defined(CPLEX_FOUND) || defined(XPRESS_FOUND)
+        if (largest_bin_space(instance) / mean_item_space(instance) < 16) {
+            algorithm = Algorithm::ColumnGeneration;
+        }
+#endif
     }
     std::stringstream ss;
     ss << algorithm;
@@ -147,7 +151,7 @@ Output packingsolver::rectangle::optimize(
                 {
                     OptimizeOptionalParameters bpp_parameters;
                     bpp_parameters.number_of_threads = parameters.number_of_threads;
-                    bpp_parameters.bpp_algorithm = Algorithm::TreeSearch;
+                    bpp_parameters.algorithm = Algorithm::TreeSearch;
                     bpp_parameters.tree_search_queue_size = parameters.column_generation_vbpp2bpp_queue_size;
                     bpp_parameters.info = Info(parameters.info, false, "");
                     if (parameters.column_generation_vbpp2bpp_time_limit >= 0)
@@ -163,7 +167,7 @@ Output packingsolver::rectangle::optimize(
             output.solution_pool.add(vbpp2bpp_output.solution_pool.best(), ss, parameters.info);
         }
 
-        VariableSizeBinPackingPricingFunction<Instance, InstanceBuilder, Solution> pricing_function
+        ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution> pricing_function
             = [&parameters](const rectangle::Instance& kp_instance)
             {
                 OptimizeOptionalParameters kp_parameters;
@@ -210,7 +214,7 @@ Output packingsolver::rectangle::optimize(
             {
                 OptimizeOptionalParameters bpp_parameters;
                 bpp_parameters.number_of_threads = parameters.number_of_threads;
-                bpp_parameters.bpp_algorithm = Algorithm::TreeSearch;
+                bpp_parameters.algorithm = Algorithm::TreeSearch;
                 bpp_parameters.tree_search_queue_size = parameters.dichotomic_search_queue_size;
                 bpp_parameters.info = Info(parameters.info, false, "");
                 //bpp_parameters.info.set_verbosity_level(1);

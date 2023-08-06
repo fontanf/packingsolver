@@ -16,11 +16,8 @@ struct OptimizeOptionalParameters
     /** Number of threads. */
     Counter number_of_threads = 0;
 
-    /** Algorithm for Bin Packing problems. */
-    Algorithm bpp_algorithm = Algorithm::Auto;
-
-    /** Algorithm for Variable-sized Bin Packing problems. */
-    Algorithm vbpp_algorithm = Algorithm::Auto;
+    /** Algorithm. */
+    Algorithm algorithm = Algorithm::Auto;
 
 
     /** Size of the queue in the tree search algorithm. */

@@ -139,7 +139,7 @@ Output packingsolver::rectangleguillotine::optimize(
             output.solution_pool.add(vbpp2bpp_output.solution_pool.best(), ss, parameters.info);
         }
 
-        VariableSizeBinPackingPricingFunction<Instance, InstanceBuilder, rectangleguillotine::Solution> pricing_function
+        ColumnGenerationPricingFunction<Instance, InstanceBuilder, rectangleguillotine::Solution> pricing_function
             = [&parameters](const rectangleguillotine::Instance& kp_instance)
             {
                 OptimizeOptionalParameters kp_parameters;
