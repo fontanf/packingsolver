@@ -57,8 +57,7 @@ local_repository(
 git_repository(
     name = "columngenerationsolver",
     remote = "https://github.com/fontanf/columngenerationsolver.git",
-    commit = "2595e3ad316143827d8a8fa943d5713d2b180b70",
-    shallow_since = "1672489298 +0100",
+    commit = "ee7c9449bcceece2c09657f871c8d0da598645b7",
 )
 
 local_repository(

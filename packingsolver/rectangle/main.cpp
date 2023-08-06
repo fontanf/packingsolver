@@ -46,8 +46,7 @@ int main(int argc, char *argv[])
 
         ("unloading-constraint,", po::value<rectangle::UnloadingConstraint>(&parameters.unloading_constraint), "")
 
-        ("bpp-algorithm,", po::value<Algorithm>(&optimize_parameters.bpp_algorithm), "Algorithm for Bin Packing problems")
-        ("vbpp-algorithm,", po::value<Algorithm>(&optimize_parameters.vbpp_algorithm), "Algorithm for Variable-sized Bin Packing problems")
+        ("algorithm,", po::value<Algorithm>(&optimize_parameters.algorithm), "Algorithm")
 
         ("tree-search-queue-size,", po::value<NodeId>(&optimize_parameters.tree_search_queue_size), "")
         ("tree-search-guides,", po::value<std::vector<GuideId>>(&optimize_parameters.tree_search_guides)->multitoken(), "")
