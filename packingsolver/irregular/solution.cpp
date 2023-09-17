@@ -7,7 +7,7 @@ std::ostream& packingsolver::irregular::operator<<(
         std::ostream &os, const SolutionItem& item)
 {
     os
-        << " j " << item.j
+        << " item_type_id " << item.item_type_id
         << " l " << item.bl_corner.x
         << " b " << item.bl_corner.y
         << " angle " << item.angle
@@ -16,17 +16,17 @@ std::ostream& packingsolver::irregular::operator<<(
 }
 
 BinPos Solution::add_bin(
-        BinTypeId i,
+        BinTypeId bin_type_id,
         BinPos copies)
 {
-    const BinType& bin_type = instance().bin_type(i);
+    const BinType& bin_type = instance().bin_type(bin_type_id);
 
     SolutionBin bin;
-    bin.i = i;
+    bin.bin_type_id = bin_type_id;
     bin.copies = copies;
     bins_.push_back(bin);
 
-    bin_copies_[i]++;
+    bin_copies_[bin_type_id]++;
     number_of_bins_ += copies;
     bin_cost_ += copies * bin_type.cost;
     bin_area_ += copies * bin_type.area;
@@ -34,27 +34,27 @@ BinPos Solution::add_bin(
 }
 
 void Solution::add_item(
-        BinPos i,
-        ItemTypeId j,
+        BinPos bin_pos,
+        ItemTypeId item_type_id,
         Point bl_corner,
         Angle angle)
 {
-    SolutionBin& bin = bins_[i];
+    SolutionBin& bin = bins_[bin_pos];
 
-    const ItemType& item_type = instance().item_type(j);
+    const ItemType& item_type = instance().item_type(item_type_id);
     SolutionItem item;
-    item.j = j;
+    item.item_type_id = item_type_id;
     item.bl_corner = bl_corner;
     item.angle = angle;
-    bins_[i].items.push_back(item);
+    bin.items.push_back(item);
 
-    item_copies_[j]++;
+    item_copies_[item_type_id]++;
     item_area_ += item_type.area;
     item_profit_ += item_type.profit;
     x_max_ = std::max(x_max_, bl_corner.x + item_type.x_max);
     y_max_ = std::max(y_max_, bl_corner.x + item_type.y_max);
     number_of_items_ += bin.copies;
-    item_copies_[item.j] += bin.copies;
+    item_copies_[item.item_type_id] += bin.copies;
 }
 
 void Solution::append(
@@ -65,13 +65,13 @@ void Solution::append(
         const std::vector<ItemTypeId>& item_type_ids)
 {
     BinTypeId bin_type_id = (bin_type_ids.empty())?
-        solution.bins_[bin_pos].i:
-        bin_type_ids[solution.bins_[bin_pos].i];
+        solution.bins_[bin_pos].bin_type_id:
+        bin_type_ids[solution.bins_[bin_pos].bin_type_id];
     BinPos i_pos = add_bin(bin_type_id, copies);
     for (const SolutionItem& item: solution.bins_[bin_pos].items) {
         ItemTypeId item_type_id = (item_type_ids.empty())?
-            item.j:
-            item_type_ids[item.j];
+            item.item_type_id:
+            item_type_ids[item.item_type_id];
         add_item(i_pos, item_type_id, item.bl_corner, item.angle);
     }
 }
@@ -452,9 +452,9 @@ void Solution::write(Info& info) const
     nlohmann::json json;
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& bin = bins_[bin_pos];
-        const BinType& bin_type = instance().bin_type(bin.i);
+        const BinType& bin_type = instance().bin_type(bin.bin_type_id);
         json["bins"][bin_pos]["copies"] = bin.copies;
-        json["bins"][bin_pos]["id"] = bin.i;
+        json["bins"][bin_pos]["id"] = bin.bin_type_id;
         // Bin shape.
         for (Counter element_pos = 0; element_pos < (Counter)bin_type.shape.elements.size(); ++element_pos) {
             const ShapeElement& element = bin_type.shape.elements[element_pos];
@@ -505,8 +505,8 @@ void Solution::write(Info& info) const
         // Items.
         for (ItemPos item_pos = 0; item_pos < (ItemPos)bin.items.size(); ++item_pos) {
             const SolutionItem& item = bin.items[item_pos];
-            const ItemType& item_type = instance().item_type(item.j);
-            json["bins"][bin_pos]["items"][item_pos]["id"] = item.j;
+            const ItemType& item_type = instance().item_type(item.item_type_id);
+            json["bins"][bin_pos]["items"][item_pos]["id"] = item.item_type_id;
             for (Counter item_shape_pos = 0; item_shape_pos < (Counter)item_type.shapes.size(); ++item_shape_pos) {
                 const ItemShape& item_shape = item_type.shapes[item_shape_pos];
                 for (Counter element_pos = 0; element_pos < (Counter)item_shape.shape.elements.size(); ++element_pos) {

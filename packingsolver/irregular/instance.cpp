@@ -433,7 +433,9 @@ std::string BinType::to_string(
 /////////////////////////////////// Instance ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-bool Instance::can_contain(QualityRule quality_rule, DefectTypeId type) const
+bool Instance::can_contain(
+        QualityRule quality_rule,
+        DefectTypeId type) const
 {
     if (type < 0 || type > (QualityRule)parameters_.quality_rules[quality_rule].size())
         return false;
