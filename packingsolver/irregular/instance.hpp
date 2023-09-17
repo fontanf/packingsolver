@@ -53,6 +53,9 @@ Point rotate(
         const Point& point,
         Angle angle);
 
+Angle angle(
+        const Point& vector);
+
 /**
  * Return the angle between two vectors.
  *
@@ -445,6 +448,9 @@ private:
 
     /** Number of items. */
     ItemPos number_of_items_ = 0;
+
+    /** Number of rectangular items. */
+    ItemPos number_of_rectangular_items_ = 0;
 
     /** Total item area. */
     AreaDbl item_area_ = 0;

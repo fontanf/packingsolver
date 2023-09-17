@@ -389,15 +389,17 @@ void Solution::algorithm_end(Info& info) const
             << std::setw(12) << "------"
             << std::setw(12) << "-------"
             << std::endl;
-        for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
-            //const BinType& bin_type = instance().bin_type(bin(bin_pos).i);
+        for (BinPos bin_pos = 0;
+                bin_pos < number_of_different_bins();
+                ++bin_pos) {
+            const SolutionBin& solution_bin = bin(bin_pos);
             info.os()
                 << std::setw(12) << bin_pos
-                << std::setw(12) << bin(bin_pos).bin_type_id
-                << std::setw(12) << bin(bin_pos).copies
-                << std::setw(12) << bin(bin_pos).end
-                << std::setw(12) << bin(bin_pos).weight
-                << std::setw(12) << bin(bin_pos).items.size()
+                << std::setw(12) << solution_bin.bin_type_id
+                << std::setw(12) << solution_bin.copies
+                << std::setw(12) << solution_bin.end
+                << std::setw(12) << solution_bin.weight
+                << std::setw(12) << solution_bin.items.size()
                 << std::endl;
         }
     }

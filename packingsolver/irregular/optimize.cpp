@@ -17,14 +17,40 @@ Output packingsolver::irregular::optimize(
 {
     Output output(instance);
 
-    Algorithm algorithm = Algorithm::Minlp;
+    Algorithm algorithm = Algorithm::IrregularToRectangle;
     std::stringstream ss;
     ss << algorithm;
     parameters.info.add_to_json("Algorithm", "Algorithm", ss.str());
 
     output.solution_pool.best().algorithm_start(parameters.info, algorithm);
 
-    if (algorithm == Algorithm::Minlp) {
+    if (algorithm == Algorithm::IrregularToRectangle) {
+        IrregularToRectangleOptionalParameters i2r_parameters
+            = parameters.irregular_to_rectangle_parameters;
+        i2r_parameters.new_solution_callback = [&parameters, &output](
+                const IrregularToRectangleOutput& i2r_output)
+        {
+            // Lock mutex.
+            parameters.info.lock();
+
+            std::stringstream ss;
+            bool new_best = output.solution_pool.add(
+                    i2r_output.solution_pool.best(),
+                    ss,
+                    parameters.info);
+            if (new_best)
+                parameters.new_solution_callback(output);
+
+            // Unlock mutex.
+            parameters.info.unlock();
+        };
+        i2r_parameters.info = Info(parameters.info, false, "");
+
+        irregular_to_rectangle(
+                instance,
+                i2r_parameters);
+
+    } else if (algorithm == Algorithm::Minlp) {
         MinlpOptionalParameters minlp_parameters;
         minlp_parameters.output_nl_path = parameters.output_nl_path;
         minlp_parameters.info = Info(parameters.info, false, "");

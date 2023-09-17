@@ -57,12 +57,14 @@ std::istream& packingsolver::operator>>(std::istream& in, Algorithm& algorithm)
         algorithm = Algorithm::ColumnGeneration;
     } else if (token == "dichotomic-search" || token == "DS") {
         algorithm = Algorithm::DichotomicSearch;
-    } else if (token == "sequential-onedimensional-rectangle" || token == "SOR") {
-        algorithm = Algorithm::SequentialOneDimensionalRectangle;
     } else if (token == "sequential-value-correction" || token == "SVC") {
         algorithm = Algorithm::SequentialValueCorrection;
     } else if (token == "vsbpp2bpp" || token == "VSBPP2BPP") {
         algorithm = Algorithm::Vsbpp2Bpp;
+    } else if (token == "sequential-onedimensional-rectangle" || token == "SOR") {
+        algorithm = Algorithm::SequentialOneDimensionalRectangle;
+    } else if (token == "irregular-to-rectangle" || token == "I2R") {
+        algorithm = Algorithm::SequentialOneDimensionalRectangle;
     } else if (token == "minlp" || token == "MINLP") {
         algorithm = Algorithm::Minlp;
     } else  {
@@ -89,11 +91,14 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Algorithm algorithm)
     } case Algorithm::SequentialValueCorrection: {
         os << "Sequential Value Correction";
         break;
+    } case Algorithm::Vsbpp2Bpp: {
+        os << "VSBPP2BPP";
+        break;
     } case Algorithm::SequentialOneDimensionalRectangle: {
         os << "Sequential onedimensional rectangle";
         break;
-    } case Algorithm::Vsbpp2Bpp: {
-        os << "VSBPP2BPP";
+    } case Algorithm::IrregularToRectangle: {
+        os << "Irregular to rectangle";
         break;
     } case Algorithm::Minlp: {
         os << "MINLP";

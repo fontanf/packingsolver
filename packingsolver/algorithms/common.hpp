@@ -73,8 +73,9 @@ enum class Algorithm
     ColumnGeneration,
     DichotomicSearch,
     SequentialValueCorrection,
-    SequentialOneDimensionalRectangle,
     Vsbpp2Bpp,
+    SequentialOneDimensionalRectangle,
+    IrregularToRectangle,
     Minlp,
 };
 
@@ -119,9 +120,13 @@ struct SolutionPoolComparator
             return false;
         if (solution_2 < solution_1)
             return true;
-        for (ItemTypeId j = 0; j < solution_1.instance().number_of_item_types(); ++j)
-            if (solution_1.item_copies(j) != solution_2.item_copies(j))
-                return solution_1.item_copies(j) < solution_2.item_copies(j);
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < solution_1.instance().number_of_item_types();
+                ++item_type_id)
+            if (solution_1.item_copies(item_type_id)
+                    != solution_2.item_copies(item_type_id))
+                return solution_1.item_copies(item_type_id)
+                    < solution_2.item_copies(item_type_id);
         return false;
     }
 };
@@ -147,7 +152,14 @@ public:
     const Solution& best() const { return best_; }
     const Solution& worst() const { return worst_; }
 
-    bool add(
+    /**
+     * Add a solution to the solution pool.
+     *
+     * Return -1 if the solution is not added
+     *        +1 if the solution is the new best solution
+     *         0 if the solution is added but is not the new best solution.
+     */
+    int add(
             const Solution& solution,
             const std::stringstream& ss,
             Info& info)
@@ -155,31 +167,36 @@ public:
         // If the solution is worse than the worst solution of the pool, stop.
         if ((Counter)solutions_.size() >= size_max_)
             if (!(worst_ < solution))
-                return false;
-        // Lock mutex.
-        info.lock();
+                return -1;
+
         // Check again after mutex lock.
         if ((Counter)solutions_.size() >= size_max_) {
             if (!(worst_ < solution)) {
-                info.unlock();
-                return false;
+                return -1;
             }
         }
+
         // If new best solution, display.
         if (*solutions_.begin() < solution)
             solution.display(ss, info);
+
         // Add new solution to solution pool.
         auto res = solutions_.insert(solution);
+        if (!res.second)
+            return -1;
+
+        bool new_best = res.first == solutions_.begin();
+
         // If the pool size is now above its maximum allowed size, remove worst
         // solutions from it.
         if ((Counter)solutions_.size() > size_max_)
             solutions_.erase(std::prev(solutions_.end()));
+
         // Update best_ and worst_.
         best_ = *solutions_.begin();
         worst_ = *std::prev(solutions_.end());
-        // Unlock mutex.
-        info.unlock();
-        return res.second;
+
+        return (new_best)? 1: 0;
     }
 
 private:

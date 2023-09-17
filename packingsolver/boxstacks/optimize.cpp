@@ -173,6 +173,9 @@ Output packingsolver::boxstacks::optimize(
                     = [&parameters, &output, &branching_schemes, i](
                             const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& ibs_output)
                     {
+                        // Lock mutex.
+                        parameters.info.lock();
+
                         Solution solution = branching_schemes[i].to_solution(
                                 ibs_output.solution_pool.best());
                         std::stringstream ss;
@@ -180,6 +183,9 @@ Output packingsolver::boxstacks::optimize(
                             << " " << branching_schemes[i].parameters().direction
                             << " " << ibs_output.maximum_size_of_the_queue;
                         output.solution_pool.add(solution, ss, parameters.info);
+
+                        // Unlock mutex.
+                        parameters.info.unlock();
                     };
                 if (parameters.number_of_threads != 1 && branching_schemes.size() > 1) {
                     threads.push_back(std::thread(
@@ -244,9 +250,15 @@ Output packingsolver::boxstacks::optimize(
         svq_parameters.new_solution_callback = [&parameters, &output](
                 const SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution>& o)
         {
+            // Lock mutex.
+            parameters.info.lock();
+
             std::stringstream ss;
             ss << "iteration " << o.number_of_iterations;
             output.solution_pool.add(o.solution_pool.best(), ss, parameters.info);
+
+            // Unlock mutex.
+            parameters.info.unlock();
         };
         svq_parameters.info = Info(parameters.info, false, "");
         auto svq_output = sequential_value_correction(instance, kp_solve, svq_parameters);

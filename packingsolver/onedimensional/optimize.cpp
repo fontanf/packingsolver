@@ -98,12 +98,18 @@ Output packingsolver::onedimensional::optimize(
                 = [&parameters, &output, &branching_schemes, i](
                         const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& ibs_output)
                 {
+                    // Lock mutex.
+                    parameters.info.lock();
+
                     Solution solution = branching_schemes[i].to_solution(
                             ibs_output.solution_pool.best());
                     std::stringstream ss;
                     ss << branching_schemes[i].parameters().guide_id
                         << " " << ibs_output.maximum_size_of_the_queue;
                     output.solution_pool.add(solution, ss, parameters.info);
+
+                    // Unlock mutex.
+                    parameters.info.unlock();
                 };
             if (parameters.number_of_threads != 1 && branching_schemes.size() > 1) {
                 threads.push_back(std::thread(
@@ -211,9 +217,15 @@ Output packingsolver::onedimensional::optimize(
         ds_parameters.new_solution_callback = [&parameters, &output](
                 const DichotomicSearchOutput<Instance, InstanceBuilder, Solution>& o)
         {
+            // Lock mutex.
+            parameters.info.lock();
+
             std::stringstream ss;
             ss << "waste percentage " << o.waste_percentage;
             output.solution_pool.add(o.solution_pool.best(), ss, parameters.info);
+
+            // Unlock mutex.
+            parameters.info.unlock();
         };
         ds_parameters.info = Info(parameters.info, false, "");
         dichotomic_search(instance, bpp_solve, ds_parameters);
@@ -235,9 +247,15 @@ Output packingsolver::onedimensional::optimize(
         sqv_parameters.new_solution_callback = [&parameters, &output](
                 const SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution>& o)
         {
+            // Lock mutex.
+            parameters.info.lock();
+
             std::stringstream ss;
             ss << "iteration " << o.number_of_iterations;
             output.solution_pool.add(o.solution_pool.best(), ss, parameters.info);
+
+            // Unlock mutex.
+            parameters.info.unlock();
         };
         sqv_parameters.info = Info(parameters.info, false, "");
         sequential_value_correction(instance, kp_solve, sqv_parameters);

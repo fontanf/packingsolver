@@ -121,13 +121,24 @@ Output packingsolver::rectangle::optimize(
                 = [&parameters, &output, &branching_schemes, i](
                         const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& ibs_output)
                 {
+                    // Lock mutex.
+                    parameters.info.lock();
+
                     Solution solution = branching_schemes[i].to_solution(
                             ibs_output.solution_pool.best());
                     std::stringstream ss;
                     ss << branching_schemes[i].parameters().guide_id
                         << " " << branching_schemes[i].parameters().direction
                         << " " << ibs_output.maximum_size_of_the_queue;
-                    output.solution_pool.add(solution, ss, parameters.info);
+                    bool new_best = output.solution_pool.add(
+                            solution,
+                            ss,
+                            parameters.info);
+                    if (new_best)
+                        parameters.new_solution_callback(output);
+
+                    // Unlock mutex.
+                    parameters.info.unlock();
                 };
             if (parameters.number_of_threads != 1 && branching_schemes.size() > 1) {
                 threads.push_back(std::thread(
@@ -164,7 +175,9 @@ Output packingsolver::rectangle::optimize(
             auto vbpp2bpp_output = vbpp2bpp(instance, bpp_solve, vbpp2bpp_parameters);
             std::stringstream ss;
             ss << "vbpp2bpp";
-            output.solution_pool.add(vbpp2bpp_output.solution_pool.best(), ss, parameters.info);
+            bool new_best = output.solution_pool.add(vbpp2bpp_output.solution_pool.best(), ss, parameters.info);
+            if (new_best)
+                parameters.new_solution_callback(output);
         }
 
         ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution> pricing_function
@@ -199,7 +212,12 @@ Output packingsolver::rectangle::optimize(
                 }
                 std::stringstream ss;
                 ss << "discrepancy " << o.solution_discrepancy;
-                output.solution_pool.add(solution, ss, parameters.info);
+                bool new_best = output.solution_pool.add(
+                        solution,
+                        ss,
+                        parameters.info);
+                if (new_best)
+                    parameters.new_solution_callback(output);
             }
         };
         lds_parameters.column_generation_parameters.linear_programming_solver
@@ -223,11 +241,22 @@ Output packingsolver::rectangle::optimize(
             };
         DichotomicSearchOptionalParameters<Instance, InstanceBuilder, Solution> ds_parameters;
         ds_parameters.new_solution_callback = [&parameters, &output](
-                const DichotomicSearchOutput<Instance, InstanceBuilder, Solution>& o)
+                const DichotomicSearchOutput<Instance, InstanceBuilder, Solution>& ds_output)
         {
+            // Lock mutex.
+            parameters.info.lock();
+
             std::stringstream ss;
-            ss << "waste percentage " << o.waste_percentage;
-            output.solution_pool.add(o.solution_pool.best(), ss, parameters.info);
+            ss << "waste percentage " << ds_output.waste_percentage;
+            bool new_best = output.solution_pool.add(
+                    ds_output.solution_pool.best(),
+                    ss,
+                    parameters.info);
+            if (new_best)
+                parameters.new_solution_callback(output);
+
+            // Unlock mutex.
+            parameters.info.unlock();
         };
         ds_parameters.info = Info(parameters.info, false, "");
         dichotomic_search(instance, bpp_solve, ds_parameters);
