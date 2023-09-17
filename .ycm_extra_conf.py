@@ -36,7 +36,10 @@ def Settings(**kwargs):
 
                 # AMPL
                 '-DAMPL_FOUND',
-                '-I', '/home/florian/Programmes/ampl.linux-intel64/amplapi/include/'
+                '-I', '/home/florian/Programmes/ampl.linux-intel64/amplapi/include/',
+
+                # CGAL
+                '-I', './bazel-packingsolver/external/cgal/CGAL-5.6/include/',
 
                 ],
             }

@@ -260,3 +260,20 @@ cc_library(
 """,
 )
 
+http_archive(
+    name = "cgal",
+    build_file_content = """
+cc_library(
+        name = "cgal",
+        hdrs = glob(["CGAL-5.6/include/**/*.h*"], exclude_directories = 0),
+        visibility = ["//visibility:public"],
+        strip_include_prefix = "CGAL-5.6/include/",
+        deps = [
+                "@boost//:iterator",
+        ],
+)
+""",
+    urls = ["https://github.com/CGAL/cgal/releases/download/v5.6/CGAL-5.6.zip"],
+    sha256 = "b80e4825c4dd24c32b7326842cabf997129cd4ec6f06d73be144e979e592c74a",
+)
+
