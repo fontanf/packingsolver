@@ -244,6 +244,18 @@ struct BinType
     /** Area of the bin type. */
     AreaDbl area = 0.0;
 
+    /** Minimum x of the item type. */
+    LengthDbl x_min;
+
+    /** Maximum x of the item type. */
+    LengthDbl x_max;
+
+    /** Minimum y of the item type. */
+    LengthDbl y_min;
+
+    /** Maximum y of the item type. */
+    LengthDbl y_max;
+
     AreaDbl space() const { return area; }
 
     AreaDbl packable_area(QualityRule quality_rule) const { (void)quality_rule; return 0; } // TODO

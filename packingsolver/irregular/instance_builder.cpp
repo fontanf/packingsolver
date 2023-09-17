@@ -27,6 +27,10 @@ BinTypeId InstanceBuilder::add_bin_type(
     bin_type.id = instance_.bin_types_.size();
     bin_type.shape = shape;
     bin_type.area = shape.compute_area();
+    bin_type.x_min = std::min(bin_type.x_min, shape.compute_x_min());
+    bin_type.x_max = std::max(bin_type.x_max, shape.compute_x_max());
+    bin_type.y_min = std::min(bin_type.y_min, shape.compute_y_min());
+    bin_type.y_max = std::max(bin_type.y_max, shape.compute_y_max());
     bin_type.cost = (cost == -1)? bin_type.area: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
@@ -186,6 +190,23 @@ void InstanceBuilder::read(
             element.start = {json_item["radius"], 0.0};
             element.end = element.start;
             shape.elements.push_back(element);
+            ItemShape item_shape;
+            item_shape.shape = shape;
+            item_shapes.push_back(item_shape);
+        } else if (json_item["type"] == "polygon") {
+            Shape shape;
+            for (auto it = json_item["vertices"].begin();
+                    it != json_item["vertices"].end();
+                    ++it) {
+                auto it_next = it + 1;
+                if (it_next == json_item["vertices"].end())
+                    it_next = json_item["vertices"].begin();
+                ShapeElement element;
+                element.type = ShapeElementType::LineSegment;
+                element.start = {(*it)["x"], (*it)["y"]};
+                element.end = {(*it_next)["x"], (*it_next)["y"]};
+                shape.elements.push_back(element);
+            }
             ItemShape item_shape;
             item_shape.shape = shape;
             item_shapes.push_back(item_shape);

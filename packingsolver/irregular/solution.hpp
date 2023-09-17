@@ -12,7 +12,7 @@ namespace irregular
 struct SolutionItem
 {
     /** Item type. */
-    ItemTypeId j;
+    ItemTypeId item_type_id;
 
     /** Position of the bottom-left corner of the item. */
     Point bl_corner;
@@ -24,7 +24,7 @@ struct SolutionItem
 struct SolutionBin
 {
     /** Bin type. */
-    BinTypeId i;
+    BinTypeId bin_type_id;
 
     /** Number of copies. */
     BinPos copies;
@@ -53,13 +53,13 @@ public:
 
     /** Add a bin at the end of the solution. */
     BinPos add_bin(
-            BinTypeId i,
+            BinTypeId bin_type_id,
             BinPos copies);
 
     /** Add an item to the solution. */
     void add_item(
-            BinPos i,
-            ItemTypeId j,
+            BinPos bin_pos,
+            ItemTypeId item_type_id,
             Point bl_corner,
             Angle angle);
 
