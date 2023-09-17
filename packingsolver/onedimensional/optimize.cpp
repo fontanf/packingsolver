@@ -1,7 +1,7 @@
 #include "packingsolver/onedimensional/optimize.hpp"
 
 #include "packingsolver/onedimensional/branching_scheme.hpp"
-#include "packingsolver/algorithms/vbpp2bpp.hpp"
+#include "packingsolver/algorithms/vbpp_to_bpp.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"
 #include "packingsolver/algorithms/dichotomic_search.hpp"
 
@@ -128,26 +128,26 @@ Output packingsolver::onedimensional::optimize(
     } else if (algorithm == Algorithm::ColumnGeneration) {
 
         if (instance.number_of_items() < 1024) {
-            Vbpp2BppFunction<Instance, InstanceBuilder, Solution> bpp_solve
+            VbppToBppFunction<Instance, InstanceBuilder, Solution> bpp_solve
                 = [&parameters](const Instance& bpp_instance)
                 {
                     OptimizeOptionalParameters bpp_parameters;
                     bpp_parameters.number_of_threads = parameters.number_of_threads;
                     bpp_parameters.algorithm = Algorithm::TreeSearch;
-                    bpp_parameters.tree_search_queue_size = parameters.column_generation_vbpp2bpp_queue_size;
-                    bpp_parameters.tree_search_guides = parameters.column_generation_vbpp2bpp_guides;
+                    bpp_parameters.tree_search_queue_size = parameters.column_generation_vbpp_to_bpp_queue_size;
+                    bpp_parameters.tree_search_guides = parameters.column_generation_vbpp_to_bpp_guides;
                     bpp_parameters.info = Info(parameters.info, false, "");
-                    if (parameters.column_generation_vbpp2bpp_time_limit >= 0)
-                        bpp_parameters.info.set_time_limit(parameters.column_generation_vbpp2bpp_time_limit);
+                    if (parameters.column_generation_vbpp_to_bpp_time_limit >= 0)
+                        bpp_parameters.info.set_time_limit(parameters.column_generation_vbpp_to_bpp_time_limit);
                     //bpp_parameters.info.set_verbosity_level(2);
                     auto bpp_output = optimize(bpp_instance, bpp_parameters);
                     return bpp_output.solution_pool;
                 };
-            Vbpp2BppOptionalParameters<Instance, InstanceBuilder, Solution> vbpp2bpp_parameters;
-            auto vbpp2bpp_output = vbpp2bpp(instance, bpp_solve, vbpp2bpp_parameters);
+            VbppToBppOptionalParameters<Instance, InstanceBuilder, Solution> vbpp_to_bpp_parameters;
+            auto vbpp_to_bpp_output = vbpp_to_bpp(instance, bpp_solve, vbpp_to_bpp_parameters);
             std::stringstream ss;
-            ss << "vbpp2bpp";
-            output.solution_pool.add(vbpp2bpp_output.solution_pool.best(), ss, parameters.info);
+            ss << "VBPP to BPP";
+            output.solution_pool.add(vbpp_to_bpp_output.solution_pool.best(), ss, parameters.info);
         }
 
         ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution> pricing_function

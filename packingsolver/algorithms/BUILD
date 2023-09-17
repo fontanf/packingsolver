@@ -22,7 +22,7 @@ cc_library(
         name = "algorithms",
         hdrs = [
                 "iterative_beam_search.hpp",
-                "vbpp2bpp.hpp",
+                "vbpp_to_bpp.hpp",
                 "column_generation.hpp",
                 "dichotomic_search.hpp",
                 "sequential_value_correction.hpp",
