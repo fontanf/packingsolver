@@ -27,10 +27,11 @@ BinTypeId InstanceBuilder::add_bin_type(
     bin_type.id = instance_.bin_types_.size();
     bin_type.shape = shape;
     bin_type.area = shape.compute_area();
-    bin_type.x_min = std::min(bin_type.x_min, shape.compute_x_min());
-    bin_type.x_max = std::max(bin_type.x_max, shape.compute_x_max());
-    bin_type.y_min = std::min(bin_type.y_min, shape.compute_y_min());
-    bin_type.y_max = std::max(bin_type.y_max, shape.compute_y_max());
+    auto points = shape.compute_min_max();
+    bin_type.x_min = points.first.x;
+    bin_type.x_max = points.second.x;
+    bin_type.y_min = points.first.y;
+    bin_type.y_max = points.second.y;
     bin_type.cost = (cost == -1)? bin_type.area: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
@@ -85,16 +86,8 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.id = instance_.item_types_.size();
     item_type.shapes = shapes;
     item_type.allowed_rotations = allowed_rotations;
-    item_type.x_min = +std::numeric_limits<LengthDbl>::infinity();
-    item_type.x_max = -std::numeric_limits<LengthDbl>::infinity();
-    item_type.y_min = +std::numeric_limits<LengthDbl>::infinity();
-    item_type.y_max = -std::numeric_limits<LengthDbl>::infinity();
     item_type.area = 0;
     for (const auto& item_shape: item_type.shapes) {
-        item_type.x_min = std::min(item_type.x_min, item_shape.shape.compute_x_min());
-        item_type.x_max = std::max(item_type.x_max, item_shape.shape.compute_x_max());
-        item_type.y_min = std::min(item_type.y_min, item_shape.shape.compute_y_min());
-        item_type.y_max = std::max(item_type.y_max, item_shape.shape.compute_y_max());
         item_type.area += item_shape.shape.compute_area();
         for (const Shape& hole: item_shape.holes)
             item_type.area -= hole.compute_area();
