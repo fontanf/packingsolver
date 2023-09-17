@@ -197,6 +197,21 @@ ItemTypeId InstanceBuilder::add_item_type(
         bool oriented,
         GroupId group_id)
 {
+    if (x < 0) {
+        throw std::runtime_error(
+                "rectangle::InstanceBuilder::add_item_type."
+                " item type width "
+                + std::to_string(x)
+                + " must be >= 0.");
+    }
+    if (y < 0) {
+        throw std::runtime_error(
+                "rectangle::InstanceBuilder::add_item_type."
+                " item type height "
+                + std::to_string(y)
+                + " must be >= 0.");
+    }
+
     ItemType item_type;
     item_type.id = instance_.item_types_.size();
     item_type.rect.x = x;

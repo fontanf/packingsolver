@@ -70,12 +70,21 @@ Point irregular::rotate(
 }
 
 Angle irregular::angle(
+        const Point& vector)
+{
+    Angle a = std::atan2(vector.y, vector.x);
+    if (a < 0)
+        a += 2 * M_PI;
+    return a;
+}
+
+Angle irregular::angle(
         const Point& vector_1,
         const Point& vector_2)
 {
     Angle a = std::atan2(
-            cross_product(vector_1, vector_2),
-            dot_product(vector_1, vector_2));
+            cross_product(vector_2, vector_1),
+            dot_product(vector_2, vector_1));
     if (a < 0)
         a += 2 * M_PI;
     return a;
@@ -116,10 +125,10 @@ ShapeElement irregular::rotate(
         const ShapeElement& element,
         Angle angle)
 {
-    ShapeElement element_out;
+    ShapeElement element_out = element;
     element_out.start = rotate(element.start, angle);
-    element_out.end = rotate(element.start, angle);
-    element_out.center = rotate(element.start, angle);
+    element_out.end = rotate(element.end, angle);
+    element_out.center = rotate(element.center, angle);
     return element_out;
 }
 
@@ -495,14 +504,15 @@ std::ostream& Instance::print(
 {
     if (verbose >= 1) {
         os
-            << "Objective:                " << objective() << std::endl
-            << "Number of item types:     " << number_of_item_types() << std::endl
-            << "Number of items:          " << number_of_items() << std::endl
-            << "Number of bin types:      " << number_of_bin_types() << std::endl
-            << "Number of bins:           " << number_of_bins() << std::endl
-            << "Number of defects:        " << number_of_defects() << std::endl
-            << "Item area:                " << item_area() << std::endl
-            << "Bin area:                 " << bin_area() << std::endl
+            << "Objective:                    " << objective() << std::endl
+            << "Number of item types:         " << number_of_item_types() << std::endl
+            << "Number of items:              " << number_of_items() << std::endl
+            << "Number of bin types:          " << number_of_bin_types() << std::endl
+            << "Number of bins:               " << number_of_bins() << std::endl
+            << "Number of defects:            " << number_of_defects() << std::endl
+            << "Number of rectangular items:  " << number_of_rectangular_items_ << std::endl
+            << "Item area:                    " << item_area() << std::endl
+            << "Bin area:                     " << bin_area() << std::endl
             ;
     }
 

@@ -10,6 +10,16 @@ namespace packingsolver
 namespace rectangle
 {
 
+struct Output
+{
+    Output(const Instance& instance):
+        solution_pool(instance, 1) { }
+
+    SolutionPool<Instance, Solution> solution_pool;
+};
+
+using NewSolutionCallback = std::function<void(const Output&)>;
+
 struct OptimizeOptionalParameters
 {
     /** Number of threads. */
@@ -17,6 +27,9 @@ struct OptimizeOptionalParameters
 
     /** Algorithm. */
     Algorithm algorithm = Algorithm::Auto;
+
+    /** New solution callback. */
+    NewSolutionCallback new_solution_callback = [](const Output&) { };
 
 
     /** Size of the queue in the tree search algorithm. */
@@ -60,14 +73,6 @@ struct OptimizeOptionalParameters
 
     /** Info structure. */
     optimizationtools::Info info = optimizationtools::Info();
-};
-
-struct Output
-{
-    Output(const Instance& instance):
-        solution_pool(instance, 1) { }
-
-    SolutionPool<Instance, Solution> solution_pool;
 };
 
 Output optimize(

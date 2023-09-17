@@ -46,7 +46,25 @@ void Solution::add_item(
     if (bin_pos >= number_of_bins()) {
         throw "";
     }
+
+    if (item_type_id < 0
+            || item_type_id >= instance().number_of_item_types()) {
+        throw std::invalid_argument(
+                "rectangle::Solution::add_item."
+                " Item type id " + std::to_string(item_type_id)
+                + " invalid.");
+    }
+
     SolutionBin& bin = bins_[bin_pos];
+
+    const ItemType& item_type = instance().item_type(item_type_id);
+
+    if (rotate && item_type.oriented) {
+        throw std::invalid_argument(
+                "rectangle::Solution::add_item."
+                " Item type " + std::to_string(item_type_id)
+                + " cannot be rotated.");
+    }
 
     SolutionItem item;
     item.item_type_id = item_type_id;
@@ -56,7 +74,6 @@ void Solution::add_item(
 
     Direction o = Direction::X;
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
-    const ItemType& item_type = instance().item_type(item_type_id);
     Length xe = bl_corner.x + instance().x(item_type, rotate, o);
     Length ye = bl_corner.y + instance().y(item_type, rotate, o);
 
@@ -537,6 +554,75 @@ void Solution::algorithm_end(Info& info) const
     }
     info.add_to_json(sol_str, "Time", t);
     info.os() << "Time:                     " << t << std::endl;
+
+    if (info.verbosity_level() >= 2) {
+        info.os()
+            << std::endl
+            << std::setw(12) << "BIN"
+            << std::setw(12) << "TYPE"
+            << std::setw(12) << "COPIES"
+            << std::setw(12) << "WEIGHT"
+            << std::setw(12) << "# ITEMS"
+            << std::endl
+            << std::setw(12) << "---"
+            << std::setw(12) << "----"
+            << std::setw(12) << "------"
+            << std::setw(12) << "------"
+            << std::setw(12) << "------"
+            << std::setw(12) << "-------"
+            << std::endl;
+        for (BinPos bin_pos = 0;
+                bin_pos < number_of_different_bins();
+                ++bin_pos) {
+            const SolutionBin& solution_bin = bin(bin_pos);
+            info.os()
+                << std::setw(12) << bin_pos
+                << std::setw(12) << solution_bin.bin_type_id
+                << std::setw(12) << solution_bin.copies
+                << std::setw(12) << solution_bin.weight.front()
+                << std::setw(12) << solution_bin.items.size()
+                << std::endl;
+        }
+
+        info.os()
+            << std::endl
+            << std::setw(12) << "BIN"
+            << std::setw(12) << "ITEM"
+            << std::setw(12) << "ROTATE"
+            << std::setw(12) << "X"
+            << std::setw(12) << "y"
+            << std::setw(12) << "WIDTH"
+            << std::setw(12) << "HEIGHT"
+            << std::setw(12) << "WEIGHT"
+            << std::endl
+            << std::setw(12) << "---"
+            << std::setw(12) << "----"
+            << std::setw(12) << "------"
+            << std::setw(12) << "-"
+            << std::setw(12) << "-"
+            << std::setw(12) << "-----"
+            << std::setw(12) << "-------"
+            << std::setw(12) << "-------"
+            << std::endl;
+        for (BinPos bin_pos = 0;
+                bin_pos < number_of_different_bins();
+                ++bin_pos) {
+            const SolutionBin& solution_bin = bin(bin_pos);
+            for (const SolutionItem& solution_item: solution_bin.items) {
+                const ItemType& item_type = instance().item_type(solution_item.item_type_id);
+                info.os()
+                    << std::setw(12) << bin_pos
+                    << std::setw(12) << solution_item.item_type_id
+                    << std::setw(12) << solution_item.rotate
+                    << std::setw(12) << solution_item.bl_corner.x
+                    << std::setw(12) << solution_item.bl_corner.y
+                    << std::setw(12) << item_type.rect.x
+                    << std::setw(12) << item_type.rect.y
+                    << std::setw(12) << item_type.weight
+                    << std::endl;
+            }
+        }
+    }
 
     info.write_json_output();
     write(info.output->certificate_path);

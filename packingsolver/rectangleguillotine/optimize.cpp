@@ -198,9 +198,15 @@ Output packingsolver::rectangleguillotine::optimize(
         ds_parameters.new_solution_callback = [&parameters, &output](
                 const DichotomicSearchOutput<Instance, InstanceBuilder, Solution>& o)
         {
+            // Lock mutex.
+            parameters.info.lock();
+
             std::stringstream ss;
             ss << "waste percentage " << o.waste_percentage;
             output.solution_pool.add(o.solution_pool.best(), ss, parameters.info);
+
+            // Unlock mutex.
+            parameters.info.unlock();
         };
         ds_parameters.info = Info(parameters.info, false, "");
         dichotomic_search(instance, bpp_solve, ds_parameters);
@@ -222,9 +228,15 @@ Output packingsolver::rectangleguillotine::optimize(
         sqv_parameters.new_solution_callback = [&parameters, &output](
                 const SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution>& o)
         {
+            // Lock mutex.
+            parameters.info.lock();
+
             std::stringstream ss;
             ss << "iteration " << o.number_of_iterations;
             output.solution_pool.add(o.solution_pool.best(), ss, parameters.info);
+
+            // Unlock mutex.
+            parameters.info.unlock();
         };
         sqv_parameters.info = Info(parameters.info, false, "");
         sequential_value_correction(instance, kp_solve, sqv_parameters);

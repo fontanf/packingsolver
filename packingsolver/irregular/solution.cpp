@@ -39,6 +39,14 @@ void Solution::add_item(
         Point bl_corner,
         Angle angle)
 {
+    if (item_type_id < 0
+            || item_type_id >= instance().number_of_item_types()) {
+        throw std::invalid_argument(
+                "irregular::Solution::add_item."
+                " Item type id " + std::to_string(item_type_id)
+                + " invalid.");
+    }
+
     SolutionBin& bin = bins_[bin_pos];
 
     const ItemType& item_type = instance().item_type(item_type_id);
@@ -50,8 +58,8 @@ void Solution::add_item(
             angle_ok = true;
     if (!angle_ok) {
         throw std::invalid_argument(
-                "irregular::Solution::add_item:"
-                " angle " + std::to_string(angle)
+                "irregular::Solution::add_item."
+                " Angle " + std::to_string(angle)
                 + " is not allowed for item type "
                 + std::to_string(item_type_id) + ".");
     }
@@ -471,7 +479,9 @@ void Solution::write(Info& info) const
         json["bins"][bin_pos]["copies"] = bin.copies;
         json["bins"][bin_pos]["id"] = bin.bin_type_id;
         // Bin shape.
-        for (Counter element_pos = 0; element_pos < (Counter)bin_type.shape.elements.size(); ++element_pos) {
+        for (Counter element_pos = 0;
+                element_pos < (Counter)bin_type.shape.elements.size();
+                ++element_pos) {
             const ShapeElement& element = bin_type.shape.elements[element_pos];
             json["bins"][bin_pos]["shape"][element_pos]["type"] = element2str(element.type);
             json["bins"][bin_pos]["shape"][element_pos]["xs"] = element.start.x;
@@ -485,46 +495,60 @@ void Solution::write(Info& info) const
             }
         }
         // Bin defects.
-        for (DefectId k = 0; k < (DefectId)bin_type.defects.size(); ++k) {
-            const Defect& defect = bin_type.defects[k];
-            for (Counter element_pos = 0; element_pos < (Counter)defect.shape.elements.size(); ++element_pos) {
+        for (DefectId defect_id = 0;
+                defect_id < (DefectId)bin_type.defects.size();
+                ++defect_id) {
+            const Defect& defect = bin_type.defects[defect_id];
+            for (Counter element_pos = 0;
+                    element_pos < (Counter)defect.shape.elements.size();
+                    ++element_pos) {
                 const ShapeElement& element = defect.shape.elements[element_pos];
-                json["bins"][bin_pos]["defects"][k]["shape"][element_pos]["type"] = element2str(element.type);
-                json["bins"][bin_pos]["defects"][k]["shape"][element_pos]["xs"] = element.start.x;
-                json["bins"][bin_pos]["defects"][k]["shape"][element_pos]["ys"] = element.start.y;
-                json["bins"][bin_pos]["defects"][k]["shape"][element_pos]["xe"] = element.end.x;
-                json["bins"][bin_pos]["defects"][k]["shape"][element_pos]["ye"] = element.end.y;
+                json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["type"] = element2str(element.type);
+                json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["xs"] = element.start.x;
+                json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["ys"] = element.start.y;
+                json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["xe"] = element.end.x;
+                json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["ye"] = element.end.y;
                 if (element.type == ShapeElementType::CircularArc) {
-                    json["bins"][bin_pos]["defects"][k]["shape"][element_pos]["xc"] = element.center.x;
-                    json["bins"][bin_pos]["defects"][k]["shape"][element_pos]["yc"] = element.center.y;
-                    json["bins"][bin_pos]["defects"][k]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
+                    json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["xc"] = element.center.x;
+                    json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["yc"] = element.center.y;
+                    json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
                 }
-                for (Counter hole_pos = 0; hole_pos < (Counter)defect.holes.size(); ++hole_pos) {
+                for (Counter hole_pos = 0;
+                        hole_pos < (Counter)defect.holes.size();
+                        ++hole_pos) {
                     const Shape& hole = defect.holes[hole_pos];
-                    for (Counter element_pos = 0; element_pos < (Counter)hole.elements.size(); ++element_pos) {
+                    for (Counter element_pos = 0;
+                            element_pos < (Counter)hole.elements.size();
+                            ++element_pos) {
                         const ShapeElement& element = hole.elements[element_pos];
-                        json["bins"][bin_pos]["defects"][k]["holes"][hole_pos][element_pos]["type"] = element2str(element.type);
-                        json["bins"][bin_pos]["defects"][k]["holes"][hole_pos][element_pos]["xs"] = element.start.x;
-                        json["bins"][bin_pos]["defects"][k]["holes"][hole_pos][element_pos]["ys"] = element.start.y;
-                        json["bins"][bin_pos]["defects"][k]["holes"][hole_pos][element_pos]["xe"] = element.end.x;
-                        json["bins"][bin_pos]["defects"][k]["holes"][hole_pos][element_pos]["ye"] = element.end.y;
+                        json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["type"] = element2str(element.type);
+                        json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["xs"] = element.start.x;
+                        json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["ys"] = element.start.y;
+                        json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["xe"] = element.end.x;
+                        json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["ye"] = element.end.y;
                         if (element.type == ShapeElementType::CircularArc) {
-                            json["bins"][bin_pos]["defects"][k]["holes"][hole_pos][element_pos]["xc"] = element.center.x;
-                            json["bins"][bin_pos]["defects"][k]["holes"][hole_pos][element_pos]["yc"] = element.center.y;
-                            json["bins"][bin_pos]["defects"][k]["holes"][hole_pos][element_pos]["anticlockwise"] = element.anticlockwise;
+                            json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["xc"] = element.center.x;
+                            json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["yc"] = element.center.y;
+                            json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["anticlockwise"] = element.anticlockwise;
                         }
                     }
                 }
             }
         }
         // Items.
-        for (ItemPos item_pos = 0; item_pos < (ItemPos)bin.items.size(); ++item_pos) {
+        for (ItemPos item_pos = 0;
+                item_pos < (ItemPos)bin.items.size();
+                ++item_pos) {
             const SolutionItem& item = bin.items[item_pos];
             const ItemType& item_type = instance().item_type(item.item_type_id);
             json["bins"][bin_pos]["items"][item_pos]["id"] = item.item_type_id;
-            for (Counter item_shape_pos = 0; item_shape_pos < (Counter)item_type.shapes.size(); ++item_shape_pos) {
+            for (Counter item_shape_pos = 0;
+                    item_shape_pos < (Counter)item_type.shapes.size();
+                    ++item_shape_pos) {
                 const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                for (Counter element_pos = 0; element_pos < (Counter)item_shape.shape.elements.size(); ++element_pos) {
+                for (Counter element_pos = 0;
+                        element_pos < (Counter)item_shape.shape.elements.size();
+                        ++element_pos) {
                     const ShapeElement& element_orig = item_shape.shape.elements[element_pos];
                     ShapeElement element = rotate(element_orig, item.angle);
                     json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["type"] = element2str(element.type);
@@ -538,9 +562,13 @@ void Solution::write(Info& info) const
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
                     }
                 }
-                for (Counter hole_pos = 0; hole_pos < (Counter)item_shape.holes.size(); ++hole_pos) {
+                for (Counter hole_pos = 0;
+                        hole_pos < (Counter)item_shape.holes.size();
+                        ++hole_pos) {
                     const Shape& hole = item_shape.holes[hole_pos];
-                    for (Counter element_pos = 0; element_pos < (Counter)hole.elements.size(); ++element_pos) {
+                    for (Counter element_pos = 0;
+                            element_pos < (Counter)hole.elements.size();
+                            ++element_pos) {
                         const ShapeElement& element_orig = hole.elements[element_pos];
                         ShapeElement element = rotate(element_orig, item.angle);
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["type"] = element2str(element.type);
