@@ -1,5 +1,5 @@
 /**
- * VBPP2BPP algorithm
+ * VBPP to BPP algorithm
  *
  * Algorithm for Variable-sized Bin Packing problems.
  *
@@ -18,13 +18,13 @@ namespace packingsolver
 {
 
 template <typename Instance, typename InstanceBuilder, typename Solution>
-using Vbpp2BppFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
+using VbppToBppFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
 template <typename Instance, typename InstanceBuilder, typename Solution>
-struct Vbpp2BppOutput
+struct VbppToBppOutput
 {
     /** Constructor. */
-    Vbpp2BppOutput(const Instance& instance):
+    VbppToBppOutput(const Instance& instance):
         solution_pool(instance, 1) { }
 
     /** Solution pool. */
@@ -32,25 +32,25 @@ struct Vbpp2BppOutput
 };
 
 template <typename Instance, typename InstanceBuilder, typename Solution>
-struct Vbpp2BppOptionalParameters
+struct VbppToBppOptionalParameters
 {
     /** Info structure. */
     optimizationtools::Info info = optimizationtools::Info();
 };
 
 template <typename Instance, typename InstanceBuilder, typename Solution>
-Vbpp2BppOutput<Instance, InstanceBuilder, Solution> vbpp2bpp(
+VbppToBppOutput<Instance, InstanceBuilder, Solution> vbpp_to_bpp(
         const Instance& instance,
-        const Vbpp2BppFunction<Instance, InstanceBuilder, Solution>& function,
-        Vbpp2BppOptionalParameters<Instance, InstanceBuilder, Solution> parameters = {});
+        const VbppToBppFunction<Instance, InstanceBuilder, Solution>& function,
+        VbppToBppOptionalParameters<Instance, InstanceBuilder, Solution> parameters = {});
 
 template <typename Instance, typename InstanceBuilder, typename Solution>
-Vbpp2BppOutput<Instance, InstanceBuilder, Solution> vbpp2bpp(
+VbppToBppOutput<Instance, InstanceBuilder, Solution> vbpp_to_bpp(
         const Instance& instance,
-        const Vbpp2BppFunction<Instance, InstanceBuilder, Solution>& function,
-        Vbpp2BppOptionalParameters<Instance, InstanceBuilder, Solution> parameters)
+        const VbppToBppFunction<Instance, InstanceBuilder, Solution>& function,
+        VbppToBppOptionalParameters<Instance, InstanceBuilder, Solution> parameters)
 {
-    Vbpp2BppOutput<Instance, InstanceBuilder, Solution> output(instance);
+    VbppToBppOutput<Instance, InstanceBuilder, Solution> output(instance);
 
     // Build PackingSolver Bin Packing instance.
     //std::cout << "Build Bin Packing instance..." << std::endl;

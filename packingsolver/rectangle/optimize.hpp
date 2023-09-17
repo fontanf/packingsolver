@@ -42,16 +42,16 @@ struct OptimizeOptionalParameters
 
 
     /**
-     * Time limit for the vbpp2bpp bin packing sub-problem of the column
+     * Time limit for the VbppToBpp bin packing sub-problem of the column
      * generation algorithm.
      */
-    double column_generation_vbpp2bpp_time_limit = -1;
+    double column_generation_vbpp_to_bpp_time_limit = -1;
 
     /**
-     * Size of the queue for the vbpp2bpp bin packing sub-problem of the column
-     * generation algorithm.
+     * Size of the queue for the VbppToBpp bin packing sub-problem of the
+     * column generation algorithm.
      */
-    NodeId column_generation_vbpp2bpp_queue_size = 256;
+    NodeId column_generation_vbpp_to_bpp_queue_size = 256;
 
     /**
      * Size of the queue for the pricing knapsack sub-problem of the column
