@@ -65,8 +65,8 @@ std::istream& packingsolver::operator>>(std::istream& in, Algorithm& algorithm)
         algorithm = Algorithm::SequentialOneDimensionalRectangle;
     } else if (token == "irregular-to-rectangle" || token == "I2R") {
         algorithm = Algorithm::SequentialOneDimensionalRectangle;
-    } else if (token == "minlp" || token == "MINLP") {
-        algorithm = Algorithm::Minlp;
+    } else if (token == "nlp" || token == "NLP") {
+        algorithm = Algorithm::Nlp;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -100,8 +100,8 @@ std::ostream& packingsolver::operator<<(std::ostream &os, Algorithm algorithm)
     } case Algorithm::IrregularToRectangle: {
         os << "Irregular to rectangle";
         break;
-    } case Algorithm::Minlp: {
-        os << "MINLP";
+    } case Algorithm::Nlp: {
+        os << "NLP";
         break;
     }
     }

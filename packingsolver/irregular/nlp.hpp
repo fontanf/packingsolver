@@ -18,17 +18,17 @@ namespace packingsolver
 namespace irregular
 {
 
-struct MinlpOutput
+struct NlpOutput
 {
     /** Constructor. */
-    MinlpOutput(const Instance& instance):
+    NlpOutput(const Instance& instance):
         solution_pool(instance, 1) { }
 
     /** Solution pool. */
     SolutionPool<Instance, Solution> solution_pool;
 };
 
-struct MinlpOptionalParameters
+struct NlpOptionalParameters
 {
     /** Info structure. */
     optimizationtools::Info info = optimizationtools::Info();
@@ -37,9 +37,9 @@ struct MinlpOptionalParameters
     std::string output_nl_path;
 };
 
-MinlpOutput minlp(
+NlpOutput nlp(
         const Instance& instance,
-        MinlpOptionalParameters parameters = {});
+        NlpOptionalParameters parameters = {});
 
 }
 }

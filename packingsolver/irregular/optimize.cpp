@@ -1,6 +1,6 @@
 #include "packingsolver/irregular/optimize.hpp"
 
-#include "packingsolver/irregular/minlp.hpp"
+#include "packingsolver/irregular/nlp.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"
 
 #include "treesearchsolver/iterative_beam_search.hpp"
@@ -50,11 +50,11 @@ Output packingsolver::irregular::optimize(
                 instance,
                 i2r_parameters);
 
-    } else if (algorithm == Algorithm::Minlp) {
-        MinlpOptionalParameters minlp_parameters;
-        minlp_parameters.output_nl_path = parameters.output_nl_path;
-        minlp_parameters.info = Info(parameters.info, false, "");
-        auto minlp_output = minlp(instance, minlp_parameters);
+    } else if (algorithm == Algorithm::Nlp) {
+        NlpOptionalParameters nlp_parameters;
+        nlp_parameters.output_nl_path = parameters.output_nl_path;
+        nlp_parameters.info = Info(parameters.info, false, "");
+        auto minlp_output = nlp(instance, nlp_parameters);
         std::stringstream ss;
         output.solution_pool.add(minlp_output.solution_pool.best(), ss, parameters.info);
     }
