@@ -1,4 +1,4 @@
-load("//packingsolver:variables.bzl", "STDCPP")
+load("//packingsolver:variables.bzl", "STDCPP17")
 load("//packingsolver:variables.bzl", "CLP_COPTS")
 load("//packingsolver:variables.bzl", "CPLEX_COPTS")
 load("//packingsolver:variables.bzl", "XPRESS_COPTS")
@@ -28,8 +28,9 @@ cc_library(
                 "//packingsolver/algorithms:common",
                 "//packingsolver/algorithms:algorithms",
                 "@treesearchsolver//treesearchsolver:treesearchsolver",
+                "@cgal//:cgal",
         ] + AMPL_DEP,
-        copts = STDCPP + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + AMPL_COPTS,
+        copts = STDCPP17 + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + AMPL_COPTS,
         visibility = ["//visibility:public"],
 )
 
@@ -40,7 +41,7 @@ cc_binary(
                 ":irregular",
                 "@boost//:program_options",
         ],
-        copts = STDCPP + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + AMPL_COPTS,
+        copts = STDCPP17 + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + AMPL_COPTS,
         linkopts = select({
                 "@bazel_tools//src/conditions:windows": [],
                 "//conditions:default":                 ["-lpthread"],

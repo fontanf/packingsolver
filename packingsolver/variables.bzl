@@ -2,6 +2,10 @@ STDCPP = select({
             "@bazel_tools//src/conditions:windows": [''],
             "//conditions:default":                 ["-std=c++11"]})
 
+STDCPP17 = select({
+            "@bazel_tools//src/conditions:windows": ['/std:c++17'],
+            "//conditions:default":                 ["-std=c++17"]})
+
 CLP_COPTS = select({
             "//packingsolver:clp_build": ["-DCLP_FOUND"],
             "//conditions:default": []})
