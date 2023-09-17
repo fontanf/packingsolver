@@ -381,6 +381,12 @@ public:
     /** Get the number of items. */
     inline ItemTypeId number_of_items() const { return number_of_items_; }
 
+    /** Get the number rectangular of items. */
+    inline ItemTypeId number_of_rectangular_items() const { return number_of_rectangular_items_; }
+
+    /** Get the number circular of items. */
+    inline ItemTypeId number_of_circular_items() const { return number_of_circular_items_; }
+
     /** Get the total area of the items. */
     inline AreaDbl item_area() const { return item_area_; }
 
@@ -451,6 +457,9 @@ private:
 
     /** Number of rectangular items. */
     ItemPos number_of_rectangular_items_ = 0;
+
+    /** Number of circular items. */
+    ItemPos number_of_circular_items_ = 0;
 
     /** Total item area. */
     AreaDbl item_area_ = 0;

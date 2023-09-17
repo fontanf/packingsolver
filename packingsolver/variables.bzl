@@ -40,10 +40,13 @@ XPRESS_DEP = select({
             "//packingsolver:xpress_build": ["@xpress//:xpress"],
             "//conditions:default": []})
 
-AMPL_COPTS = select({
-            "//packingsolver:ampl_build": ["-DAMPL_FOUND"],
+KNITRO_COPTS = select({
+            "//packingsolver:knitro_build": ["-DKNITRO_FOUND"],
             "//conditions:default": []})
-AMPL_DEP = select({
-            "//packingsolver:ampl_build": ["@ampl//:ampl"],
+KNITRO_DEP = select({
+            "//packingsolver:knitro_build": [
+                    "@knitro//:knitro",
+                    "@knitrocpp//knitrocpp:knitrocpp",
+            ],
             "//conditions:default": []})
 

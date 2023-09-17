@@ -1,3 +1,6 @@
+import os
+
+
 def Settings(**kwargs):
     return {
             'flags': [
@@ -34,9 +37,14 @@ def Settings(**kwargs):
                 # '-I', './../'
                 'columngenerationsolver/',
 
-                # AMPL
-                '-DAMPL_FOUND',
-                '-I', '/home/florian/Programmes/ampl.linux-intel64/amplapi/include/',
+                # Knitro
+                '-DKNITRO_FOUND',
+                '-I', os.getenv('KNITRODIR') + '/include/',
+
+                # knitrocpp
+                '-I', './bazel-packingsolver/external/'
+                # '-I', './../'
+                'knitrocpp/',
 
                 # CGAL
                 '-I', './bazel-packingsolver/external/cgal/CGAL-5.6/include/',
