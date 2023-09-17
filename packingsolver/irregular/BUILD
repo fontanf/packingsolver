@@ -14,8 +14,8 @@ cc_library(
                 "solution.hpp",
                 "optimize.hpp",
                 "irregular_to_rectangle.hpp",
-                "minlp.hpp",
-                "minlp_model.hpp",
+                "nlp.hpp",
+                "nlp_model.hpp",
         ],
         srcs = [
                 "instance.cpp",
@@ -23,8 +23,8 @@ cc_library(
                 "solution.cpp",
                 "optimize.cpp",
                 "irregular_to_rectangle.cpp",
-                "minlp.cpp",
-                "minlp_model.cpp",
+                "nlp.cpp",
+                "nlp_model.cpp",
         ],
         deps = [
                 "//packingsolver/algorithms:common",

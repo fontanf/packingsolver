@@ -76,7 +76,7 @@ enum class Algorithm
     Vsbpp2Bpp,
     SequentialOneDimensionalRectangle,
     IrregularToRectangle,
-    Minlp,
+    Nlp,
 };
 
 enum class Objective

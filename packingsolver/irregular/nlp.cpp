@@ -1,5 +1,5 @@
-#include "packingsolver/irregular/minlp.hpp"
-#include "packingsolver/irregular/minlp_model.hpp"
+#include "packingsolver/irregular/nlp.hpp"
+#include "packingsolver/irregular/nlp_model.hpp"
 
 #if AMPL_FOUND
 #include "ampl/ampl.h"
@@ -23,18 +23,18 @@ public:
 };
 #endif
 
-MinlpOutput irregular::minlp(
+NlpOutput irregular::nlp(
         const Instance& instance,
-        MinlpOptionalParameters parameters)
+        NlpOptionalParameters parameters)
 {
-    MinlpOutput output(instance);
+    NlpOutput output(instance);
 
 #if AMPL_FOUND
 
     // Create an AMPL instance.
-    // bin2cpp --file=minlp_model.mod --output=. --headerfile=minlp_model.hpp --namespace=packingsolver --identifier=MinlpModel --override
+    // bin2cpp --file=minlp_model.mod --output=. --headerfile=minlp_model.hpp --namespace=packingsolver --identifier=NlpModel --override
     ampl::AMPL ampl;
-    const File& resource = getMinlpModelFile();
+    const File& resource = getNlpModelFile();
     const char* buffer = resource.getBuffer();
     ampl.eval(buffer);
 
