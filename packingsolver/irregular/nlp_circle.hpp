@@ -1,16 +1,16 @@
 /**
  * Nonlinear programming based algorithms
  *
- * Algorithm for irregular single Knapsack, Open Dimension problems.
+ * Algorithm for
  * - Problem type: 'irregular'
- *   - Item types must have a shape of type 'Polygon'
- *   - Bin types must have a shape of the 'Rectangle'
+ *   - Item types must have a shape of type 'Circle'
+ *   - Bin types must have shape of type 'Rectangle'
  * - Objective: 'OpenDimensionX'
  *
  * Some references from which this implementation is inspired:
- * - "Mathematical model and efficient algorithms for object packing problem"
- *   (Chernov et al., 2010)
- *   https://doi.org/10.1016/j.comgeo.2009.12.003
+ * - "Packing unequal circles into a strip of minimal length with a jump
+ *   algorithm" (Stoyan et Yaskov, 2014)
+ *   https://doi.org/10.1007/s11590-013-0646-1
  */
 
 #pragma once
@@ -22,17 +22,17 @@ namespace packingsolver
 namespace irregular
 {
 
-struct NlpOutput
+struct NlpCircleOutput
 {
     /** Constructor. */
-    NlpOutput(const Instance& instance):
+    NlpCircleOutput(const Instance& instance):
         solution_pool(instance, 1) { }
 
     /** Solution pool. */
     SolutionPool<Instance, Solution> solution_pool;
 };
 
-struct NlpOptionalParameters
+struct NlpCircleOptionalParameters
 {
     /** Info structure. */
     optimizationtools::Info info = optimizationtools::Info();
@@ -41,9 +41,9 @@ struct NlpOptionalParameters
     std::string output_nl_path;
 };
 
-NlpOutput nlp(
+NlpCircleOutput nlp_circle(
         const Instance& instance,
-        NlpOptionalParameters parameters = {});
+        NlpCircleOptionalParameters parameters = {});
 
 }
 }

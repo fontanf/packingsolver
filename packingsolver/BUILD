@@ -35,8 +35,8 @@ config_setting(
 )
 
 config_setting(
-        name = "ampl_build",
-        values = {"define": "ampl=true"},
+        name = "knitro_build",
+        values = {"define": "knitro=true"},
         visibility = ["//visibility:public"],
 )
 
@@ -44,6 +44,5 @@ load("//packingsolver:variables.bzl", "STDCPP",
          "CLP_COPTS", "CLP_DEP",
          "CPLEX_COPTS", "CPLEX_DEP",
          "GUROBI_COPTS", "GUROBI_DEP",
-         "XPRESS_COPTS", "XPRESS_DEP",
-         "AMPL_COPTS", "AMPL_DEP")
+         "XPRESS_COPTS", "XPRESS_DEP")
 

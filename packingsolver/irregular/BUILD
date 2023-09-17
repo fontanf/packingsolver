@@ -3,8 +3,7 @@ load("//packingsolver:variables.bzl", "CLP_COPTS")
 load("//packingsolver:variables.bzl", "CPLEX_COPTS")
 load("//packingsolver:variables.bzl", "XPRESS_COPTS")
 load("//packingsolver:variables.bzl", "GUROBI_COPTS")
-load("//packingsolver:variables.bzl", "AMPL_COPTS")
-load("//packingsolver:variables.bzl", "AMPL_DEP")
+load("//packingsolver:variables.bzl", "KNITRO_COPTS", "KNITRO_DEP")
 
 cc_library(
         name = "irregular",
@@ -14,8 +13,8 @@ cc_library(
                 "solution.hpp",
                 "optimize.hpp",
                 "irregular_to_rectangle.hpp",
+                "nlp_circle.hpp",
                 "nlp.hpp",
-                "nlp_model.hpp",
         ],
         srcs = [
                 "instance.cpp",
@@ -23,8 +22,8 @@ cc_library(
                 "solution.cpp",
                 "optimize.cpp",
                 "irregular_to_rectangle.cpp",
+                "nlp_circle.cpp",
                 "nlp.cpp",
-                "nlp_model.cpp",
         ],
         deps = [
                 "//packingsolver/algorithms:common",
@@ -32,8 +31,8 @@ cc_library(
                 "//packingsolver/rectangle:rectangle",
                 "@treesearchsolver//treesearchsolver:treesearchsolver",
                 "@cgal//:cgal",
-        ] + AMPL_DEP,
-        copts = STDCPP17 + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + AMPL_COPTS,
+        ] + KNITRO_DEP,
+        copts = STDCPP17 + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + KNITRO_COPTS,
         visibility = ["//visibility:public"],
 )
 
@@ -44,7 +43,7 @@ cc_binary(
                 ":irregular",
                 "@boost//:program_options",
         ],
-        copts = STDCPP17 + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + AMPL_COPTS,
+        copts = STDCPP17 + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
         linkopts = select({
                 "@bazel_tools//src/conditions:windows": [],
                 "//conditions:default":                 ["-lpthread"],

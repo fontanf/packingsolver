@@ -134,7 +134,14 @@ template <class basic_json>
 Shape read_shape(basic_json& json_item)
 {
     Shape shape;
-    if (json_item["type"] == "rectangle") {
+    if (json_item["type"] == "circle") {
+        ShapeElement element;
+        element.type = ShapeElementType::CircularArc;
+        element.center = {0.0, 0.0};
+        element.start = {json_item["radius"], 0.0};
+        element.end = element.start;
+        shape.elements.push_back(element);
+    } else if (json_item["type"] == "rectangle") {
         ShapeElement element_1;
         ShapeElement element_2;
         ShapeElement element_3;
@@ -169,7 +176,7 @@ Shape read_shape(basic_json& json_item)
             shape.elements.push_back(element);
         }
     } else {
-
+        throw std::invalid_argument("");
     }
     return shape;
 }
@@ -234,6 +241,9 @@ Instance InstanceBuilder::build()
         if (item_type.shape_type() == ShapeType::Square
                 || item_type.shape_type() == ShapeType::Rectangle) {
             instance_.number_of_rectangular_items_ += item_type.copies;
+        }
+        if (item_type.shape_type() == ShapeType::Circle) {
+            instance_.number_of_circular_items_ += item_type.copies;
         }
         // Update item_profit_.
         instance_.item_profit_ += item_type.profit;

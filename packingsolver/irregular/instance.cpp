@@ -273,15 +273,41 @@ std::pair<Point, Point> Shape::compute_min_max(Angle angle) const
         y_max = std::max(y_max, point.y);
 
         if (element.type == ShapeElementType::CircularArc) {
-            throw std::runtime_error(
-                    "Computing min and max points not implemented"
-                    " for element type 'CircularArc'.");
-            //Point point = rotate(element.center, angle);
-            //LengthDbl radius = distance(elements.front().center, elements.front().start);
-            //x_min = std::min(x_min, point.x);
-            //x_max = std::max(x_max, point.x);
-            //y_min = std::min(y_min, point.y);
-            //y_max = std::max(y_max, point.y);
+            LengthDbl radius = distance(elements.front().center, elements.front().start);
+            Angle starting_angle = irregular::angle(element.start - element.center);
+            Angle ending_angle = irregular::angle(element.end - element.center);
+            if (!element.anticlockwise)
+                std::swap(starting_angle, ending_angle);
+            if (starting_angle <= ending_angle) {
+                if (starting_angle <= M_PI
+                        && M_PI <= ending_angle) {
+                    x_min = std::min(x_min, element.center.x - radius);
+                }
+                if (starting_angle == 0)
+                    x_max = std::max(x_max, element.center.x + radius);
+                if (starting_angle <= 3 * M_PI / 2
+                        && 3 * M_PI / 2 <= ending_angle) {
+                    y_min = std::min(y_min, element.center.y - radius);
+                }
+                if (starting_angle <= M_PI / 2
+                        && M_PI / 2 <= ending_angle) {
+                    y_max = std::max(y_max, element.center.y + radius);
+                }
+            } else {  // starting_angle > ending_angle
+                if (starting_angle <= M_PI
+                        || ending_angle <= M_PI) {
+                    x_min = std::min(x_min, element.center.x - radius);
+                }
+                x_max = std::max(x_max, element.center.x + radius);
+                if (starting_angle <= 3 * M_PI / 4
+                        || ending_angle <= 3 * M_PI / 4) {
+                    y_min = std::min(y_min, element.center.y - radius);
+                }
+                if (starting_angle <= M_PI / 2
+                        || ending_angle <= M_PI / 2) {
+                    y_max = std::max(y_max, element.center.y + radius);
+                }
+            }
         }
     }
     return {{x_min, y_min}, {x_max, y_max}};
@@ -511,6 +537,7 @@ std::ostream& Instance::print(
             << "Number of bins:               " << number_of_bins() << std::endl
             << "Number of defects:            " << number_of_defects() << std::endl
             << "Number of rectangular items:  " << number_of_rectangular_items_ << std::endl
+            << "Number of circular items:     " << number_of_circular_items_ << std::endl
             << "Item area:                    " << item_area() << std::endl
             << "Bin area:                     " << bin_area() << std::endl
             ;

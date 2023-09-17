@@ -241,24 +241,18 @@ cc_library(
 """,
 )
 
-new_local_repository(
-    name = "ampl",
-    path = "/home/florian/Programmes/ampl.linux-intel64/amplapi/",
-    # path = "/home/florian/Programmes/ampl-z-13.1.20220703-Linux-64/amplapi/",
-    build_file_content = """
-cc_library(
-    name = "ampl",
-    hdrs = glob([
-            "include/ampl/*.h",
-            "include/ampl/ep/*.h",
-            "include/ampl/ep/format.cc",
-        ], exclude_directories = 0),
-    strip_include_prefix = "include/",
-    srcs = ["lib/libampl.so"],
-    visibility = ["//visibility:public"],
+# Knitro
+
+load("//bazel:knitro.bzl", "knitro")
+knitro(name = "knitro")
+
+git_repository(
+    name = "knitrocpp",
+    remote = "https://github.com/fontanf/knitrocpp.git",
+    commit = "125c6c359fdfc74fbeec5c0497de4e6b4820e909",
 )
-""",
-)
+
+# CGAL
 
 http_archive(
     name = "cgal",

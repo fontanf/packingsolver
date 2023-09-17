@@ -30,6 +30,8 @@ int main(int argc, char *argv[])
 
         ("objective,f", po::value<Objective>(&objective), "Objective")
 
+        ("algorithm,", po::value<Algorithm>(&optimize_parameters.algorithm), "Algorithm")
+
         ("output,o", po::value<std::string>(&output_path), "Output path")
         ("certificate,c", po::value<std::string>(&certificate_path), "Certificate path")
         ("log,l", po::value<std::string>(&log_path), "Log path")

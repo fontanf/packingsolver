@@ -1,6 +1,7 @@
 #include "packingsolver/irregular/optimize.hpp"
 
 #include "packingsolver/irregular/nlp.hpp"
+#include "packingsolver/irregular/nlp_circle.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"
 
 #include "treesearchsolver/iterative_beam_search.hpp"
@@ -18,6 +19,11 @@ Output packingsolver::irregular::optimize(
     Output output(instance);
 
     Algorithm algorithm = Algorithm::IrregularToRectangle;
+    if (parameters.algorithm != Algorithm::Auto) {
+        algorithm = parameters.algorithm;
+    } else {
+        algorithm = Algorithm::IrregularToRectangle;
+    }
     std::stringstream ss;
     ss << algorithm;
     parameters.info.add_to_json("Algorithm", "Algorithm", ss.str());
@@ -50,13 +56,35 @@ Output packingsolver::irregular::optimize(
                 instance,
                 i2r_parameters);
 
+    } else if (algorithm == Algorithm::Nlp
+            && instance.number_of_circular_items() == instance.number_of_items()) {
+        NlpCircleOptionalParameters nlp_parameters;
+        nlp_parameters.output_nl_path = parameters.output_nl_path;
+        nlp_parameters.info = Info(parameters.info, false, "");
+        auto nlp_output = nlp_circle(instance, nlp_parameters);
+
+        std::stringstream ss;
+        bool new_best = output.solution_pool.add(
+                nlp_output.solution_pool.best(),
+                ss,
+                parameters.info);
+        if (new_best)
+            parameters.new_solution_callback(output);
+
     } else if (algorithm == Algorithm::Nlp) {
         NlpOptionalParameters nlp_parameters;
         nlp_parameters.output_nl_path = parameters.output_nl_path;
         nlp_parameters.info = Info(parameters.info, false, "");
-        auto minlp_output = nlp(instance, nlp_parameters);
+
+        auto nlp_output = nlp(instance, nlp_parameters);
+
         std::stringstream ss;
-        output.solution_pool.add(minlp_output.solution_pool.best(), ss, parameters.info);
+        bool new_best = output.solution_pool.add(
+                nlp_output.solution_pool.best(),
+                ss,
+                parameters.info);
+        if (new_best)
+            parameters.new_solution_callback(output);
     }
 
     output.solution_pool.best().algorithm_end(parameters.info);
