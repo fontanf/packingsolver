@@ -42,6 +42,20 @@ void Solution::add_item(
     SolutionBin& bin = bins_[bin_pos];
 
     const ItemType& item_type = instance().item_type(item_type_id);
+
+    // Check angle.
+    bool angle_ok = false;
+    for (auto angles: item_type.allowed_rotations)
+        if (angles.first <= angle && angles.second <= angle)
+            angle_ok = true;
+    if (!angle_ok) {
+        throw std::invalid_argument(
+                "irregular::Solution::add_item:"
+                " angle " + std::to_string(angle)
+                + " is not allowed for item type "
+                + std::to_string(item_type_id) + ".");
+    }
+
     SolutionItem item;
     item.item_type_id = item_type_id;
     item.bl_corner = bl_corner;
@@ -51,8 +65,9 @@ void Solution::add_item(
     item_copies_[item_type_id]++;
     item_area_ += item_type.area;
     item_profit_ += item_type.profit;
-    x_max_ = std::max(x_max_, bl_corner.x + item_type.x_max);
-    y_max_ = std::max(y_max_, bl_corner.x + item_type.y_max);
+    auto points = item_type.compute_min_max(angle);
+    x_max_ = std::max(x_max_, bl_corner.x + points.second.x);
+    y_max_ = std::max(y_max_, bl_corner.x + points.second.y);
     number_of_items_ += bin.copies;
     item_copies_[item.item_type_id] += bin.copies;
 }
@@ -219,7 +234,7 @@ void Solution::display(
         break;
     } default: {
         std::stringstream ss;
-        ss << "Solution rectangleguillotine::Solution does not support objective \""
+        ss << "Solution irregular::Solution does not support objective \""
             << instance().objective() << "\"";
         throw std::logic_error(ss.str());
     }
@@ -350,7 +365,7 @@ void Solution::algorithm_start(
         break;
     } default: {
         std::stringstream ss;
-        ss << "Solution rectangleguillotine::Solution does not support objective \""
+        ss << "Solution irregular::Solution does not support objective \""
             << instance().objective() << "\"";
         throw std::logic_error(ss.str());
     }
@@ -427,7 +442,7 @@ void Solution::algorithm_end(Info& info) const
         break;
     } default: {
         std::stringstream ss;
-        ss << "Solution rectangleguillotine::Solution does not support objective \""
+        ss << "Solution irregular::Solution does not support objective \""
             << instance().objective() << "\"";
         throw std::logic_error(ss.str());
     }
@@ -510,7 +525,8 @@ void Solution::write(Info& info) const
             for (Counter item_shape_pos = 0; item_shape_pos < (Counter)item_type.shapes.size(); ++item_shape_pos) {
                 const ItemShape& item_shape = item_type.shapes[item_shape_pos];
                 for (Counter element_pos = 0; element_pos < (Counter)item_shape.shape.elements.size(); ++element_pos) {
-                    const ShapeElement& element = item_shape.shape.elements[element_pos];
+                    const ShapeElement& element_orig = item_shape.shape.elements[element_pos];
+                    ShapeElement element = rotate(element_orig, item.angle);
                     json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["type"] = element2str(element.type);
                     json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["xs"] = element.start.x + item.bl_corner.x;
                     json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["ys"] = element.start.y + item.bl_corner.y;
@@ -525,7 +541,8 @@ void Solution::write(Info& info) const
                 for (Counter hole_pos = 0; hole_pos < (Counter)item_shape.holes.size(); ++hole_pos) {
                     const Shape& hole = item_shape.holes[hole_pos];
                     for (Counter element_pos = 0; element_pos < (Counter)hole.elements.size(); ++element_pos) {
-                        const ShapeElement& element = hole.elements[element_pos];
+                        const ShapeElement& element_orig = hole.elements[element_pos];
+                        ShapeElement element = rotate(element_orig, item.angle);
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["type"] = element2str(element.type);
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["xs"] = element.start.x + item.bl_corner.x;
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["ys"] = element.start.y + item.bl_corner.y;
