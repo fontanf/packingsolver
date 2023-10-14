@@ -109,7 +109,7 @@ cc_library(
 http_archive(
     name = "coinutils_linux",
     urls = ["https://github.com/coin-or/CoinUtils/releases/download/releases%2F2.11.9/CoinUtils-releases.2.11.9-x86_64-ubuntu20-gcc940-static.tar.gz"],
-    sha256 = "872c78bfcdd1566f134d2f7757b76b2a2479a5b1ade065cdd1d4b303ed6f8006",
+    sha256 = "14d07de1b7961f68e037da6f0c57844fd67d4cc1a4b125642f42cd134b228094",
     build_file_content = """
 cc_library(
     name = "coinutils",
