@@ -182,11 +182,12 @@ public:
 
         /** Number of bins used in the partial solution. */
         BinPos number_of_bins = 0;
+
         /**
          * Orientation of the first stage of the last bin of the partial
          * solution.
          * */
-        CutOrientation first_stage_orientation;
+        CutOrientation first_stage_orientation = CutOrientation::Vertical;
 
         /** Number of items in the partial solution. */
         ItemPos number_of_items = 0;
@@ -270,7 +271,7 @@ public:
             const Solution& solution_best) const;
 
     /*
-     * Dominances.
+     * Dominances
      */
 
     inline bool comparable(
@@ -316,7 +317,7 @@ public:
 private:
 
     /*
-     * Private attributes.
+     * Private attributes
      */
 
     /** Instance. */
@@ -460,7 +461,7 @@ private:
             Length x3) const;
 
     /*
-     * Insertions.
+     * Insertions
      */
 
     /** Insertion of one item. */

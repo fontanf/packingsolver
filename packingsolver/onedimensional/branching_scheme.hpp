@@ -52,7 +52,7 @@ public:
         std::shared_ptr<Node> father = nullptr;
 
         /** Last inserted item type. */
-        ItemTypeId item_type_id;
+        ItemTypeId item_type_id = -1;
 
         /** For each item type, number of copies in the node. */
         std::vector<ItemPos> item_number_of_copies;
