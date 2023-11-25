@@ -63,7 +63,9 @@ struct ItemType
 
 };
 
-std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const ItemType& item_type);
 
 /**
  * Bin type structure for a problem of type 'onedimensional'.
@@ -102,7 +104,9 @@ struct BinType
 
 };
 
-std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const BinType& bin_type);
 
 struct Parameters
 {

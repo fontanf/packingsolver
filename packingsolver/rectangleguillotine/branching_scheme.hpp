@@ -32,7 +32,7 @@ class BranchingScheme
 public:
 
     /*
-     * Sub-structures.
+     * Sub-structures
      */
 
     struct Insertion
@@ -223,7 +223,7 @@ public:
         CutOrientation first_stage_orientation = CutOrientation::Any;
     };
 
-    /** Constructor */
+    /** Constructor. */
     BranchingScheme(
             const Instance& instance,
             const Parameters& parameters);
@@ -231,9 +231,6 @@ public:
     BranchingScheme(
             const Instance& instance):
         BranchingScheme(instance, Parameters()) {  }
-
-    /** Destructor */
-    virtual ~BranchingScheme() { }
 
     /** Get instance. */
     inline const Instance& instance() const { return instance_; }
@@ -340,7 +337,7 @@ private:
     mutable NodeId node_id_ = 0;
 
     /*
-     * Temporary variables.
+     * Temporary variables
      */
 
     /** Position of the last bin. */
@@ -502,10 +499,21 @@ private:
     bool check(const std::vector<SolutionNode>& nodes) const;
 };
 
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Insertion& insertion);
-std::ostream& operator<<(std::ostream &os, const std::vector<BranchingScheme::Insertion>& insertions);
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Front& front);
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Node& node);
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::Insertion& insertion);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const std::vector<BranchingScheme::Insertion>& insertions);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::Front& front);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::Node& node);
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Inlined methods ////////////////////////////////

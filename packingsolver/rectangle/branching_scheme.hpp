@@ -17,8 +17,8 @@ class BranchingScheme
 
 public:
 
-    /**
-     * Sub-structures.
+    /*
+     * Sub-structures
      */
 
     /**
@@ -178,9 +178,6 @@ public:
         /** Area used in the guides. */
         Area guide_area = 0;
 
-        /** Value of the items. */
-        Area item_value = 0;
-
         /** Maximum xe of all items in the last bin. */
         Length xe_max = 0;
 
@@ -263,13 +260,10 @@ public:
         Solution* fixed_items = nullptr;
     };
 
-    /** Constructor */
+    /** Constructor. */
     BranchingScheme(
             const Instance& instance,
             const Parameters& parameters);
-
-    /** Destructor */
-    virtual ~BranchingScheme() { }
 
     /** Get instance. */
     inline const Instance& instance() const { return instance_; }
@@ -277,7 +271,7 @@ public:
     /** Get parameters. */
     inline const Parameters& parameters() const { return parameters_; }
 
-    /**
+    /*
      * Branching scheme methods
      */
 
@@ -321,7 +315,7 @@ public:
     }
 
     /*
-     * Dominances.
+     * Dominances
      */
 
     inline bool comparable(const std::shared_ptr<Node>&) const { return true; }
@@ -391,7 +385,7 @@ public:
     }
 
     /*
-     * Outputs.
+     * Outputs
      */
 
     std::string display(const std::shared_ptr<Node>& node) const
@@ -425,7 +419,7 @@ private:
 
     mutable Counter node_id_ = 0;
 
-    /**
+    /*
      * Private methods
      */
 
@@ -437,9 +431,6 @@ private:
 
     /** Get the mean item area of a node; */
     inline double mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
-
-    /** Get the mean item value of a node. */
-    inline double mean_item_value(const Node& node) const { return (double)node.item_value / node.number_of_items; }
 
     /** Get the mean squared item area of a node. */
     inline double mean_squared_item_area(const Node& node) const { return (double)node.squared_item_area / node.number_of_items; }
@@ -474,9 +465,17 @@ private:
 
 };
 
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::UncoveredItem& uncovered_items);
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Insertion& insertion);
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Node& node);
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::UncoveredItem& uncovered_items);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::Insertion& insertion);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::Node& node);
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Inlined methods ////////////////////////////////

@@ -1,9 +1,9 @@
 load("@bazel_skylib//lib:selects.bzl", "selects")
 
 config_setting(
-        name = "clp_build",
-        values = {"define": "clp=true"},
-        visibility = ["//visibility:public"],
+    name = "clp_build",
+    values = {"define": "clp=true"},
+    visibility = ["//visibility:public"],
 )
 
 selects.config_setting_group(
@@ -17,27 +17,27 @@ selects.config_setting_group(
 )
 
 config_setting(
-        name = "cplex_build",
-        values = {"define": "cplex=true"},
-        visibility = ["//visibility:public"],
+    name = "cplex_build",
+    values = {"define": "cplex=true"},
+    visibility = ["//visibility:public"],
 )
 
 config_setting(
-        name = "xpress_build",
-        values = {"define": "xpress=true"},
-        visibility = ["//visibility:public"],
+    name = "xpress_build",
+    values = {"define": "xpress=true"},
+    visibility = ["//visibility:public"],
 )
 
 config_setting(
-        name = "gurobi_build",
-        values = {"define": "gurobi=true"},
-        visibility = ["//visibility:public"],
+    name = "gurobi_build",
+    values = {"define": "gurobi=true"},
+    visibility = ["//visibility:public"],
 )
 
 config_setting(
-        name = "knitro_build",
-        values = {"define": "knitro=true"},
-        visibility = ["//visibility:public"],
+    name = "knitro_build",
+    values = {"define": "knitro=true"},
+    visibility = ["//visibility:public"],
 )
 
 load("//packingsolver:variables.bzl", "STDCPP",

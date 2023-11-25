@@ -2137,7 +2137,8 @@ bool BranchingScheme::Insertion::operator==(const Insertion& insertion) const
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BranchingScheme::Insertion& insertion)
+        std::ostream& os,
+        const BranchingScheme::Insertion& insertion)
 {
     os << "item_type_id_1 " << insertion.item_type_id_1
         << " item_type_id_2 " << insertion.item_type_id_2
@@ -2154,7 +2155,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const std::vector<BranchingScheme::Insertion>& insertions)
 {
     std::copy(insertions.begin(), insertions.end(), std::ostream_iterator<BranchingScheme::Insertion>(os, "\n"));
@@ -2174,7 +2175,8 @@ bool BranchingScheme::Front::operator==(const Front& front) const
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BranchingScheme::Front& front)
+        std::ostream& os,
+        const BranchingScheme::Front& front)
 {
     os << "i " << front.i
         << " o " << front.o
@@ -2188,7 +2190,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BranchingScheme::Node& node)
+        std::ostream& os,
+        const BranchingScheme::Node& node)
 {
     os << "number_of_items " << node.number_of_items
         << " number_of_bins " << node.number_of_bins

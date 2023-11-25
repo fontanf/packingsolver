@@ -23,14 +23,33 @@ enum class CutOrientation { Horinzontal, Vertical, Any };
  */
 enum class TrimType { Soft, Hard };
 
-std::istream& operator>>(std::istream& in, CutType1& cut_type_1);
-std::istream& operator>>(std::istream& in, CutType2& cut_type_2);
-std::istream& operator>>(std::istream& in, CutOrientation& o);
+std::istream& operator>>(
+        std::istream& in,
+        CutType1& cut_type_1);
 
-std::ostream& operator<<(std::ostream &os, CutType1 cut_type_1);
-std::ostream& operator<<(std::ostream &os, CutType2 cut_type_2);
-std::ostream& operator<<(std::ostream &os, CutOrientation o);
-std::ostream& operator<<(std::ostream &os, TrimType trim_type);
+std::istream& operator>>(
+        std::istream& in,
+        CutType2& cut_type_2);
+
+std::istream& operator>>(
+        std::istream& in,
+        CutOrientation& o);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        CutType1 cut_type_1);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        CutType2 cut_type_2);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        CutOrientation o);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        TrimType trim_type);
 
 struct Coord
 {
@@ -41,7 +60,9 @@ struct Coord
     Length y;
 };
 
-std::ostream& operator<<(std::ostream &os, Coord xy);
+std::ostream& operator<<(
+        std::ostream& os,
+        Coord xy);
 
 struct Rectangle
 {
@@ -58,9 +79,15 @@ struct Rectangle
     Length max() const { return std::max(w, h); }
 };
 
-bool rect_intersection(Coord c1, Rectangle r1, Coord c2, Rectangle r2);
+bool rect_intersection(
+        Coord c1,
+        Rectangle r1,
+        Coord c2,
+        Rectangle r2);
 
-std::ostream& operator<<(std::ostream &os, Rectangle r);
+std::ostream& operator<<(
+        std::ostream& os,
+        Rectangle r);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
@@ -123,7 +150,9 @@ struct Defect
     Rectangle rect;
 };
 
-std::ostream& operator<<(std::ostream &os, const Defect& defect);
+std::ostream& operator<<(
+        std::ostream& os,
+        const Defect& defect);
 
 /**
  * Bin type structure for a problem of type 'rectangleguillotine'.
@@ -182,7 +211,9 @@ struct BinType
     inline Area space() const { return area(); }
 };
 
-std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const BinType& bin_type);
 
 /**
  * Item type structure for a problem of type 'rectangleguillotine'.
@@ -217,7 +248,9 @@ struct ItemType
     inline Area space() const { return area(); }
 };
 
-std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const ItemType& item_type);
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Instance ///////////////////////////////////

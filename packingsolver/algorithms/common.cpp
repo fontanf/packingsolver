@@ -73,7 +73,9 @@ std::istream& packingsolver::operator>>(std::istream& in, Algorithm& algorithm)
     return in;
 }
 
-std::ostream& packingsolver::operator<<(std::ostream &os, Algorithm algorithm)
+std::ostream& packingsolver::operator<<(
+        std::ostream& os,
+        Algorithm algorithm)
 {
     switch (algorithm) {
     case Algorithm::Auto: {
@@ -134,7 +136,9 @@ std::istream& packingsolver::operator>>(std::istream& in, Objective& objective)
     return in;
 }
 
-std::ostream& packingsolver::operator<<(std::ostream &os, Objective objective)
+std::ostream& packingsolver::operator<<(
+        std::ostream& os,
+        Objective objective)
 {
     switch (objective) {
     case Objective::Default: {
@@ -188,7 +192,7 @@ std::istream& packingsolver::operator>>(
 }
 
 std::ostream& packingsolver::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         Direction o)
 {
     switch (o) {

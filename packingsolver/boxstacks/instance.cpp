@@ -9,14 +9,16 @@
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 
-std::ostream& boxstacks::operator<<(std::ostream &os, Point xyz)
+std::ostream& boxstacks::operator<<(
+        std::ostream& os,
+        Point xyz)
 {
     os << "x " << xyz.x << " y " << xyz.y << " z " << xyz.z;
     return os;
 }
 
 std::ostream& packingsolver::boxstacks::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const ItemType& item_type)
 {
     os
@@ -33,7 +35,7 @@ std::ostream& packingsolver::boxstacks::operator<<(
 }
 
 std::ostream& packingsolver::boxstacks::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BinType& bin_type)
 {
     os
