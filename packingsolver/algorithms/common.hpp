@@ -94,14 +94,37 @@ enum class Objective
 
 enum class Direction { X, Y, Any };
 
-std::istream& operator>>(std::istream& in, ProblemType& problem_type);
-std::istream& operator>>(std::istream& in, Algorithm& algorithm);
-std::istream& operator>>(std::istream& in, Objective& objective);
-std::istream& operator>>(std::istream& in, Direction& o);
-std::ostream& operator<<(std::ostream &os, ProblemType problem_type);
-std::ostream& operator<<(std::ostream &os, Algorithm algorithm);
-std::ostream& operator<<(std::ostream &os, Objective objective);
-std::ostream& operator<<(std::ostream &os, Direction o);
+std::istream& operator>>(
+        std::istream& in,
+        ProblemType& problem_type);
+
+std::istream& operator>>(
+        std::istream& in,
+        Algorithm& algorithm);
+
+std::istream& operator>>(
+        std::istream& in,
+        Objective& objective);
+
+std::istream& operator>>(
+        std::istream& in,
+        Direction& o);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        ProblemType problem_type);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        Algorithm algorithm);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        Objective objective);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        Direction o);
 
 struct AbstractBinType
 {

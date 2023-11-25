@@ -314,8 +314,13 @@ private:
 
 };
 
-std::ostream& operator<<(std::ostream &os, const SolutionItem& item);
-std::ostream& operator<<(std::ostream &os, const Solution& solution);
+std::ostream& operator<<(
+        std::ostream& os,
+        const SolutionItem& item);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const Solution& solution);
 
 }
 }

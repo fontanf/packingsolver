@@ -4,7 +4,8 @@ using namespace packingsolver;
 using namespace packingsolver::rectangle;
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os, const SolutionItem& item)
+        std::ostream& os,
+        const SolutionItem& item)
 {
     os
         << " bl " << item.bl_corner

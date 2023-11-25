@@ -21,7 +21,9 @@ struct Point
     Length z;
 };
 
-std::ostream& operator<<(std::ostream &os, Point xyz);
+std::ostream& operator<<(
+        std::ostream& os,
+        Point xyz);
 
 struct Box
 {
@@ -41,7 +43,9 @@ struct Box
     Length max() const { return std::max(std::max(x, y), z); }
 };
 
-std::ostream& operator<<(std::ostream &os, Box box);
+std::ostream& operator<<(
+        std::ostream& os,
+        Box box);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
@@ -147,7 +151,9 @@ struct ItemType
     bool can_rotate(int rotation) const { return ((rotations >> rotation) & 1); }
 };
 
-std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const ItemType& item_type);
 
 /**
  * Bin type structure for a problem of type 'boxstacks'.
@@ -198,7 +204,9 @@ struct BinType
 
 };
 
-std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const BinType& bin_type);
 
 struct Parameters
 {

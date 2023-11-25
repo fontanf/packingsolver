@@ -8,7 +8,7 @@ using namespace packingsolver;
 using namespace packingsolver::onedimensional;
 
 std::ostream& packingsolver::onedimensional::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const ItemType& item_type)
 {
     os
@@ -22,7 +22,7 @@ std::ostream& packingsolver::onedimensional::operator<<(
 }
 
 std::ostream& packingsolver::onedimensional::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BinType& bin_type)
 {
     os

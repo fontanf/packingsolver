@@ -42,7 +42,7 @@ std::istream& rectangle::operator>>(
 }
 
 std::ostream& rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         UnloadingConstraint unloading_constraint)
 {
     switch (unloading_constraint) {
@@ -86,7 +86,7 @@ bool rectangle::rect_intersection(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         Point xy)
 {
     os << xy.x << " " << xy.y;
@@ -94,7 +94,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         Rectangle r)
 {
     os << r.x << " " << r.y;
@@ -102,7 +102,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const ItemType& item_type)
 {
     os
@@ -118,7 +118,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BinType& bin_type)
 {
     os
@@ -131,7 +131,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const Defect& defect)
 {
     os

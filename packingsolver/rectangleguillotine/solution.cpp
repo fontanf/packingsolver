@@ -18,7 +18,7 @@ std::ostream& print(std::ostream& os,
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const SolutionNode& node)
 {
     os

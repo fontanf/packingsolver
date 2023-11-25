@@ -244,9 +244,13 @@ private:
 
 };
 
-std::ostream& operator<<(std::ostream &os, const SolutionNode& node);
+std::ostream& operator<<(
+        std::ostream& os,
+        const SolutionNode& node);
 
-std::ostream& operator<<(std::ostream &os, const Solution& solution);
+std::ostream& operator<<(
+        std::ostream& os,
+        const Solution& solution);
 
 }
 }

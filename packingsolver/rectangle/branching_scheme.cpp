@@ -243,7 +243,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     Length xe = insertion.x + xj;
     Length ys = insertion.y;
     Length ye = insertion.y + yj;
-    Length xi = instance().x(bin_type, o);
+    //Length xi = instance().x(bin_type, o);
     Length yi = instance().y(bin_type, o);
 
     // Update uncovered_items.
@@ -323,11 +323,6 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     node.weight_profit = father.item_weight
         + (double)1.0 / item_type.weight / insertion.x;
     node.squared_item_area = father.squared_item_area + item_type.area() * item_type.area();
-    node.item_value = father.item_value + item_type.area() * ((item_type.oriented)?
-        std::max((double)xj / xi, (double)yj / yi):
-        std::max(
-                (double)std::max(xj, yj) / std::max(xi, yi),
-                (double)std::min(xj, yj) / std::min(xi, yi)));
     node.profit = father.profit + item_type.profit;
     if (parameters_.group_guiding_strategy == 0) {
         node.guide_item_area = father.guide_item_area
@@ -912,7 +907,7 @@ Solution BranchingScheme::to_solution(
 ////////////////////////////////////////////////////////////////////////////////
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::UncoveredItem& uncovered_item)
 {
     os << "item_type_id " << uncovered_item.item_type_id
@@ -947,7 +942,7 @@ bool BranchingScheme::Insertion::operator==(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::Insertion& insertion)
 {
     os << "item_type_id " << insertion.item_type_id
@@ -960,7 +955,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::Node& node)
 {
     os << "number_of_items " << node.number_of_items

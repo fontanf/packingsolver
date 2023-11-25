@@ -68,7 +68,7 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         CutType1 cut_type_1)
 {
     switch (cut_type_1) {
@@ -84,7 +84,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         CutType2 cut_type_2)
 {
     switch (cut_type_2) {
@@ -106,7 +106,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         CutOrientation o)
 {
     switch (o) {
@@ -125,7 +125,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         TrimType trim_type)
 {
     switch (trim_type) {
@@ -153,7 +153,7 @@ bool rectangleguillotine::rect_intersection(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         Coord xy)
 {
     os << xy.x << " " << xy.y;
@@ -161,7 +161,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         Rectangle r)
 {
     os << r.w << " " << r.h;
@@ -169,7 +169,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const ItemType& item_type)
 {
     os
@@ -185,7 +185,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BinType& bin_type)
 {
     os
@@ -198,7 +198,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const Defect& defect)
 {
     os

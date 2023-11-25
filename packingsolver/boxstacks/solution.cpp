@@ -6,7 +6,8 @@ using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 
 std::ostream& packingsolver::boxstacks::operator<<(
-        std::ostream &os, const SolutionItem& item)
+        std::ostream& os,
+        const SolutionItem& item)
 {
     os
         << " item_type_id " << item.item_type_id
