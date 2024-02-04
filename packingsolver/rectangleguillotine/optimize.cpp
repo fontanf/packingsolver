@@ -104,11 +104,13 @@ Output packingsolver::rectangleguillotine::optimize(
                             iterative_beam_search<Instance, Solution, BranchingScheme>,
                             std::ref(branching_schemes[i]),
                             std::ref(output.solution_pool),
+                            std::ref(parameters.info.output->mutex),
                             ibs_parameterss[i]));
             } else {
                 iterative_beam_search<Instance, Solution, BranchingScheme>(
                         branching_schemes[i],
                         output.solution_pool,
+                        parameters.info.output->mutex,
                         ibs_parameterss[i]);
             }
         }

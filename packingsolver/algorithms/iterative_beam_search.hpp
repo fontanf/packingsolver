@@ -28,6 +28,7 @@ template <typename Instance, typename Solution, typename BranchingScheme>
 inline IterativeBeamSearchOutput iterative_beam_search(
         const BranchingScheme& branching_scheme,
         SolutionPool<Instance, Solution>& solution_pool,
+        std::mutex& mutex,
         IterativeBeamSearchOptionalParameters parameters = {})
 {
     using Insertion = typename BranchingScheme::Insertion;
@@ -105,9 +106,11 @@ inline IterativeBeamSearchOutput iterative_beam_search(
 
                     // Update best solution.
                     if (branching_scheme.better(*child, solution_pool.worst())) {
+                        mutex.lock();
                         std::stringstream ss;
                         ss << "IBS (thread " << parameters.thread_id << ") q " << output.queue_size_max;
                         solution_pool.add(branching_scheme.to_solution(*child, solution_pool.worst()), ss, parameters.info);
+                        mutex.unlock();
                     }
 
                     // Add child to the queue.

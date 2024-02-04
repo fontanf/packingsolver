@@ -74,7 +74,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    iterative_beam_search(branching_scheme, solution_pool);
+    std::mutex mutex;
+    iterative_beam_search(branching_scheme, solution_pool, mutex);
     EXPECT_EQ(solution_pool.best().waste(), 0);
 }
 
@@ -94,7 +95,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    iterative_beam_search(branching_scheme, solution_pool);
+    std::mutex mutex;
+    iterative_beam_search(branching_scheme, solution_pool, mutex);
     EXPECT_EQ(solution_pool.best().waste(), 210 * 5700);
 }
 
@@ -112,7 +114,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    iterative_beam_search(branching_scheme, solution_pool);
+    std::mutex mutex;
+    iterative_beam_search(branching_scheme, solution_pool, mutex);
     EXPECT_EQ(solution_pool.best().waste(), 0);
 }
 
@@ -153,7 +156,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    iterative_beam_search(branching_scheme, solution_pool);
+    std::mutex mutex;
+    iterative_beam_search(branching_scheme, solution_pool, mutex);
     EXPECT_EQ(solution_pool.best().waste(), 3210 * (6000 + 210) - instance.item_area());
 }
 
@@ -192,7 +196,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    iterative_beam_search(branching_scheme, solution_pool);
+    std::mutex mutex;
+    iterative_beam_search(branching_scheme, solution_pool, mutex);
     EXPECT_EQ(solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
 }
 
@@ -232,7 +237,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    iterative_beam_search(branching_scheme, solution_pool);
+    std::mutex mutex;
+    iterative_beam_search(branching_scheme, solution_pool, mutex);
     EXPECT_EQ(solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
 }
 
@@ -273,7 +279,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    iterative_beam_search(branching_scheme, solution_pool);
+    std::mutex mutex;
+    iterative_beam_search(branching_scheme, solution_pool, mutex);
     EXPECT_EQ(solution_pool.best().waste(), 3210 * 6000 - instance.item_area());
 }
 
@@ -317,7 +324,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    iterative_beam_search(branching_scheme, solution_pool);
+    std::mutex mutex;
+    iterative_beam_search(branching_scheme, solution_pool, mutex);
     EXPECT_EQ(solution_pool.best().waste(), 3210 * 3000 - instance.item_area());
 }
 
@@ -415,7 +423,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
 
         BranchingScheme branching_scheme(instance_new);
         SolutionPool<Instance, Solution> solution_pool(instance_new, 1);
-        iterative_beam_search(branching_scheme, solution_pool);
+        std::mutex mutex;
+        iterative_beam_search(branching_scheme, solution_pool, mutex);
         const Solution& solution = solution_pool.best();
         std::cout << name << " " << waste << std::endl;
         EXPECT_EQ(solution.waste(), waste);
