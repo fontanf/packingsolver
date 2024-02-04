@@ -411,9 +411,9 @@ Instance InstanceBuilder::build()
         // Update number_of_items_.
         instance_.number_of_items_ += item_type.copies;
         // Update item_profit_.
-        instance_.item_profit_ += item_type.profit;
+        instance_.item_profit_ += item_type.copies * item_type.profit;
         // Update item_length_.
-        instance_.item_length_ += item_type.length;
+        instance_.item_length_ += item_type.copies * item_type.length;
         // Update max_efficiency_item_type_.
         if (instance_.max_efficiency_item_type_id_ == -1
                 || instance_.item_type(instance_.max_efficiency_item_type_id_).profit
