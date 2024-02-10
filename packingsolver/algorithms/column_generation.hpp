@@ -51,8 +51,6 @@
 namespace packingsolver
 {
 
-using RowIdx = columngenerationsolver::RowIdx;
-using ColIdx = columngenerationsolver::ColIdx;
 using Value = columngenerationsolver::Value;
 using Column = columngenerationsolver::Column;
 
@@ -74,114 +72,130 @@ public:
         filled_demands_(instance.number_of_item_types())
     { }
 
-    virtual std::vector<ColIdx> initialize_pricing(
-            const std::vector<Column>& columns,
-            const std::vector<std::pair<ColIdx, Value>>& fixed_columns);
+    virtual std::vector<std::shared_ptr<const Column>> initialize_pricing(
+            const std::vector<std::pair<std::shared_ptr<const Column>, Value>>& fixed_columns);
 
-    virtual std::vector<Column> solve_pricing(
+    virtual std::vector<std::shared_ptr<const Column>> solve_pricing(
             const std::vector<Value>& duals);
 
 private:
 
     const Instance& instance_;
+
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution> pricing_function_;
 
     std::vector<BinPos> fixed_bin_types_;
+
     std::vector<ItemPos> filled_demands_;
 
 };
 
 template <typename Instance, typename InstanceBuilder, typename Solution>
-columngenerationsolver::Parameters get_parameters(
+columngenerationsolver::Model get_model(
         const Instance& instance,
         const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution>& pricing_function)
 {
-    BinTypeId m = instance.number_of_bin_types();
-    ItemTypeId n = instance.number_of_item_types();
-    columngenerationsolver::Parameters p(m + n);
+    columngenerationsolver::Model model;
 
     Profit maximum_bin_type_cost = 0;
-    for (BinTypeId bin_type_id = 0; bin_type_id < m; ++bin_type_id)
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
         if (maximum_bin_type_cost < instance.bin_type(bin_type_id).cost)
             maximum_bin_type_cost = instance.bin_type(bin_type_id).cost;
+    }
 
     ItemPos maximum_item_type_demand = 0;
-    for (ItemTypeId item_type_id = 0; item_type_id < n; ++item_type_id)
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
         if (maximum_item_type_demand < instance.item_type(item_type_id).copies)
             maximum_item_type_demand = instance.item_type(item_type_id).copies;
+    }
 
     Profit maximum_item_profit = 0;
-    for (ItemTypeId item_type_id = 0; item_type_id < n; ++item_type_id)
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
         if (maximum_item_profit < instance.item_type(item_type_id).profit)
             maximum_item_profit = instance.item_type(item_type_id).profit;
-
-    if (instance.objective() == Objective::VariableSizedBinPacking) {
-        p.objective_sense = columngenerationsolver::ObjectiveSense::Min;
-    } else if (instance.objective() == Objective::Knapsack) {
-        p.objective_sense = columngenerationsolver::ObjectiveSense::Max;
     }
 
-    p.column_lower_bound = 0;
-    p.column_upper_bound = maximum_item_type_demand;
+    if (instance.objective() == Objective::VariableSizedBinPacking) {
+        model.objective_sense = optimizationtools::ObjectiveDirection::Minimize;
+    } else if (instance.objective() == Objective::Knapsack) {
+        model.objective_sense = optimizationtools::ObjectiveDirection::Maximize;
+    }
+
+    model.column_lower_bound = 0;
+    model.column_upper_bound = maximum_item_type_demand;
 
     // Row bounds.
-    for (BinTypeId bin_type_id = 0; bin_type_id < m; ++bin_type_id) {
-        p.row_lower_bounds[bin_type_id] = instance.bin_type(bin_type_id).copies_min;
-        p.row_upper_bounds[bin_type_id] = instance.bin_type(bin_type_id).copies;
-        p.row_coefficient_lower_bounds[bin_type_id] = 0;
-        p.row_coefficient_upper_bounds[bin_type_id] = 1;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        columngenerationsolver::Row row;
+        row.lower_bound = instance.bin_type(bin_type_id).copies_min;
+        row.upper_bound = instance.bin_type(bin_type_id).copies;
+        row.coefficient_lower_bound = 0;
+        row.coefficient_upper_bound = 1;
+        model.rows.push_back(row);
     }
     if (instance.objective() == Objective::VariableSizedBinPacking) {
-        for (ItemTypeId item_type_id = 0; item_type_id < n; ++item_type_id) {
-            p.row_lower_bounds[m + item_type_id] = instance.item_type(item_type_id).copies;
-            p.row_upper_bounds[m + item_type_id] = instance.item_type(item_type_id).copies;
-            p.row_coefficient_lower_bounds[m + item_type_id] = 0;
-            p.row_coefficient_upper_bounds[m + item_type_id] = instance.item_type(item_type_id).copies;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            columngenerationsolver::Row row;
+            row.lower_bound = instance.item_type(item_type_id).copies;
+            row.upper_bound = instance.item_type(item_type_id).copies;
+            row.coefficient_lower_bound = 0;
+            row.coefficient_upper_bound = instance.item_type(item_type_id).copies;
+            model.rows.push_back(row);
         }
     } else if (instance.objective() == Objective::Knapsack) {
-        for (ItemTypeId item_type_id = 0; item_type_id < n; ++item_type_id) {
-            p.row_lower_bounds[m + item_type_id] = 0;
-            p.row_upper_bounds[m + item_type_id] = instance.item_type(item_type_id).copies;
-            p.row_coefficient_lower_bounds[m + item_type_id] = 0;
-            p.row_coefficient_upper_bounds[m + item_type_id] = instance.item_type(item_type_id).copies;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            columngenerationsolver::Row row;
+            row.lower_bound = 0;
+            row.upper_bound = instance.item_type(item_type_id).copies;
+            row.coefficient_lower_bound = 0;
+            row.coefficient_upper_bound = instance.item_type(item_type_id).copies;
+            model.rows.push_back(row);
         }
     }
 
     // Dummy column objective coefficient.
     if (instance.objective() == Objective::VariableSizedBinPacking) {
-        p.dummy_column_objective_coefficient = 10 * maximum_bin_type_cost * maximum_item_type_demand;
+        model.dummy_column_objective_coefficient = 10 * maximum_bin_type_cost * maximum_item_type_demand;
     } else if (instance.objective() == Objective::Knapsack) {
-        p.dummy_column_objective_coefficient = -10 * maximum_item_profit;
+        model.dummy_column_objective_coefficient = -10 * maximum_item_profit;
     }
     //std::cout << "dummy_column_objective_coefficient " << p.dummy_column_objective_coefficient << std::endl;
 
     // Pricing solver.
-    p.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
+    model.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
             new ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>(instance, pricing_function));
-    return p;
+    return model;
 }
 
 template <typename Instance, typename InstanceBuilder, typename Solution>
-std::vector<ColIdx> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>::initialize_pricing(
-            const std::vector<Column>& columns,
-            const std::vector<std::pair<ColIdx, Value>>& fixed_columns)
+std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>::initialize_pricing(
+        const std::vector<std::pair<std::shared_ptr<const Column>, Value>>& fixed_columns)
 {
     //std::cout << "initialize_pricing " << fixed_columns.size() << std::endl;
-    ItemTypeId m = instance_.number_of_bin_types();
     std::fill(fixed_bin_types_.begin(), fixed_bin_types_.end(), 0);
     std::fill(filled_demands_.begin(), filled_demands_.end(), 0);
     for (auto p: fixed_columns) {
-        const Column& column = columns[p.first];
+        const Column& column = *(p.first);
         Value value = p.second;
         if (value < 0.5)
             continue;
-        for (RowIdx row_pos = 0; row_pos < (RowIdx)column.row_indices.size(); ++row_pos) {
-            RowIdx row_index = column.row_indices[row_pos];
-            Value row_coefficient = column.row_coefficients[row_pos];
-            if (row_index < m) {
-                fixed_bin_types_[row_index] += value;
+        for (const columngenerationsolver::LinearTerm& element: column.elements) {
+            if (element.row < instance_.number_of_bin_types()) {
+                fixed_bin_types_[element.row] += value;
             } else {
-                filled_demands_[row_index - m] += value * row_coefficient;
+                filled_demands_[element.row - instance_.number_of_bin_types()] += value * element.coefficient;
             }
         }
     }
@@ -190,12 +204,13 @@ std::vector<ColIdx> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Sol
 }
 
 template <typename Solution>
-std::vector<Column> solution2column(
+std::vector<std::shared_ptr<const Column>> solution2column(
         const Solution& solution)
 {
-    std::vector<Column> columns;
-    BinPos m = solution.instance().number_of_bin_types();
-    for (BinPos bin_pos = 0; bin_pos < solution.number_of_different_bins(); ++bin_pos) {
+    std::vector<std::shared_ptr<const Column>> columns;
+    for (BinPos bin_pos = 0;
+            bin_pos < solution.number_of_different_bins();
+            ++bin_pos) {
         BinTypeId bin_type_id = solution.bin(bin_pos).bin_type_id;
         Solution extra_solution(solution.instance());
         extra_solution.append(solution, bin_pos, 1);
@@ -205,35 +220,39 @@ std::vector<Column> solution2column(
         } else if (solution.instance().objective() == Objective::Knapsack) {
             column.objective_coefficient = extra_solution.profit();
         }
-        column.row_indices.push_back(bin_type_id);
-        column.row_coefficients.push_back(1);
+        columngenerationsolver::LinearTerm element;
+        element.row = bin_type_id;
+        element.coefficient = 1;
+        column.elements.push_back(element);
         for (ItemTypeId item_type_id = 0;
                 item_type_id < solution.instance().number_of_item_types();
                 ++item_type_id) {
             if (extra_solution.item_copies(item_type_id) > 0) {
-                column.row_indices.push_back(m + item_type_id);
-                column.row_coefficients.push_back(
-                        extra_solution.item_copies(item_type_id));
+                columngenerationsolver::LinearTerm element;
+                element.row = solution.instance().number_of_bin_types() + item_type_id;
+                element.coefficient = extra_solution.item_copies(item_type_id);
+                column.elements.push_back(element);
             }
         }
         column.extra = std::shared_ptr<void>(new Solution(extra_solution));
-        columns.push_back(column);
+        columns.push_back(std::shared_ptr<const Column>(new Column(column)));
     }
     return columns;
 }
 
 template <typename Instance, typename InstanceBuilder, typename Solution>
-std::vector<Column> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>::solve_pricing(
+std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>::solve_pricing(
             const std::vector<Value>& duals)
 {
     //std::cout << "solve_pricing" << std::endl;
-    ItemTypeId m = instance_.number_of_bin_types();
-    ItemTypeId n = instance_.number_of_item_types();
-    std::vector<Column> columns;
+    std::vector<std::shared_ptr<const Column>> columns;
 
-    for (BinTypeId bin_type_id = 0; bin_type_id < m; ++bin_type_id) {
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance_.number_of_bin_types();
+            ++bin_type_id) {
         if (fixed_bin_types_[bin_type_id] == instance_.bin_type(bin_type_id).copies)
             continue;
+
         // Build knapsack instance.
         InstanceBuilder kp_instance_builder = InstanceBuilder();
         kp_instance_builder.set_objective(Objective::Knapsack);
@@ -243,7 +262,7 @@ std::vector<Column> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Sol
                 1);
         std::vector<ItemTypeId> kp2vbpp;
         for (ItemTypeId item_type_id = 0;
-                item_type_id < n;
+                item_type_id < instance_.number_of_item_types();
                 ++item_type_id) {
             ItemPos copies = instance_.item_type(item_type_id).copies - filled_demands_[item_type_id];
             if (copies == 0)
@@ -251,9 +270,10 @@ std::vector<Column> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Sol
 
             Profit profit = 0;
             if (instance_.objective() == Objective::VariableSizedBinPacking) {
-                profit = duals[m + item_type_id];
+                profit = duals[instance_.number_of_bin_types() + item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = instance_.item_type(item_type_id).profit - duals[m + item_type_id];
+                profit = instance_.item_type(item_type_id).profit
+                    - duals[instance_.number_of_bin_types() + item_type_id];
             }
 
             //std::cout << "j " << j << " profit " << profit << std::endl;
@@ -294,21 +314,25 @@ std::vector<Column> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Sol
                 column.objective_coefficient = extra_solution.profit();
             }
 
-            column.row_indices.push_back(bin_type_id);
-            column.row_coefficients.push_back(1);
+            columngenerationsolver::LinearTerm element;
+            element.row = bin_type_id;
+            element.coefficient = 1;
+            column.elements.push_back(element);
             //std::cout << duals[i] << std::endl;
             //std::cout << "number_of_items " << extra_solution.number_of_items() << std::endl;
             for (ItemTypeId kp_item_type_id = 0;
                     kp_item_type_id < kp_instance.number_of_item_types();
                     ++kp_item_type_id) {
                 if (kp_solution.item_copies(kp_item_type_id) > 0) {
-                    column.row_indices.push_back(m + kp2vbpp[kp_item_type_id]);
-                    column.row_coefficients.push_back(kp_solution.item_copies(kp_item_type_id));
+                    columngenerationsolver::LinearTerm element;
+                    element.row = instance_.number_of_bin_types() + kp2vbpp[kp_item_type_id];
+                    element.coefficient = kp_solution.item_copies(kp_item_type_id);
+                    column.elements.push_back(element);
                     //std::cout << duals[m + extra->kp2vbpp[kp_j]] << std::endl;
                 }
             }
             //std::cout << column << std::endl;
-            columns.push_back(column);
+            columns.push_back(std::shared_ptr<const Column>(new Column(column)));
         }
     }
     //std::cout << "solve_pricing end" << std::endl;
@@ -316,4 +340,3 @@ std::vector<Column> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Sol
 }
 
 }
-

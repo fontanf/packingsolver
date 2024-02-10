@@ -48,7 +48,7 @@ std::ostream& packingsolver::boxstacks::operator<<(
     return os;
 }
 
-std::ostream& Instance::print(
+std::ostream& Instance::format(
         std::ostream& os,
         int verbose) const
 {
@@ -126,7 +126,7 @@ std::ostream& Instance::print(
             const BinType& bin_type = this->bin_type(bin_type_id);
             os
                 << std::setw(12) << bin_type_id;
-            bin_type.semi_trailer_truck_data.print(os);
+            bin_type.semi_trailer_truck_data.format(os);
         }
 
         if (number_of_defects() > 0) {
@@ -212,14 +212,16 @@ std::ostream& Instance::print(
     return os;
 }
 
-void Instance::write(std::string instance_path) const
+void Instance::write(
+        const std::string& instance_path) const
 {
     write_item_types(instance_path + "_items.csv");
     write_bin_types(instance_path + "_bins.csv");
     write_parameters(instance_path + "_parameters.csv");
 }
 
-void Instance::write_item_types(std::string items_path) const
+void Instance::write_item_types(
+        const std::string& items_path) const
 {
     std::ofstream file(items_path);
     if (!file.good()) {
@@ -260,7 +262,8 @@ void Instance::write_item_types(std::string items_path) const
     }
 }
 
-void Instance::write_bin_types(std::string bins_path) const
+void Instance::write_bin_types(
+        const std::string& bins_path) const
 {
     std::ofstream file(bins_path);
     if (!file.good()) {
@@ -297,7 +300,8 @@ void Instance::write_bin_types(std::string bins_path) const
     }
 }
 
-void Instance::write_parameters(std::string parameters_path) const
+void Instance::write_parameters(
+        const std::string& parameters_path) const
 {
     std::ofstream file(parameters_path);
     if (!file.good()) {

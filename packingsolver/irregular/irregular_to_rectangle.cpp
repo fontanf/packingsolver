@@ -1,5 +1,7 @@
 #include "packingsolver/irregular/irregular_to_rectangle.hpp"
 
+#include "packingsolver/irregular/algorithm_formatter.hpp"
+
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/convex_hull_2.h>
 #include <CGAL/min_quadrilateral_2.h>
@@ -9,11 +11,14 @@ using namespace packingsolver::irregular;
 
 using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
 
-IrregularToRectangleOutput irregular::irregular_to_rectangle(
+const IrregularToRectangleOutput irregular::irregular_to_rectangle(
         const Instance& instance,
-        IrregularToRectangleOptionalParameters parameters)
+        const IrregularToRectangleParameters& parameters)
 {
     IrregularToRectangleOutput output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
 
     // Build rectangle instance.
     rectangle::InstanceBuilder rectangle_instance_builder;
@@ -129,20 +134,18 @@ IrregularToRectangleOutput irregular::irregular_to_rectangle(
     rectangle::Instance rectangle_instance = rectangle_instance_builder.build();
 
     // Solve onedimensional instance.
-    rectangle::OptimizeOptionalParameters rectangle_parameters = parameters.rectangle_parameters;
+    rectangle::OptimizeParameters rectangle_parameters = parameters.rectangle_parameters;
 
     rectangle_parameters.new_solution_callback = [
             &instance,
-            &parameters,
-            &output,
+            &algorithm_formatter,
             &item_type_angles,
             &item_type_xs_min,
             &item_type_ys_min](
-                const rectangle::Output& rectangle_output)
+                const packingsolver::Output<rectangle::Instance, rectangle::Solution>& ps_output)
         {
-            // Lock mutex.
-            parameters.info.lock();
-
+            const rectangle::Output& rectangle_output
+                = static_cast<const rectangle::Output&>(ps_output);
             const rectangle::Solution& rectangle_solution
                 = rectangle_output.solution_pool.best();
             Solution solution(instance);
@@ -168,19 +171,11 @@ IrregularToRectangleOutput irregular::irregular_to_rectangle(
                 }
             }
             std::stringstream ss;
-            bool new_best = output.solution_pool.add(
-                    solution,
-                    ss,
-                    parameters.info);
-            if (new_best)
-                parameters.new_solution_callback(output);
-
-            // Unlock mutex.
-            parameters.info.unlock();
+            algorithm_formatter.update_solution(solution, ss.str());
         };
-    rectangle_parameters.info = Info(parameters.info, false, "");
-    //rectangle_parameters.info.set_verbosity_level(3);
 
+    rectangle_parameters.verbosity_level = 0;
+    rectangle_parameters.timer = parameters.timer;
     auto rectangle_output = rectangle::optimize(
             rectangle_instance,
             rectangle_parameters);

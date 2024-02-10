@@ -1,8 +1,7 @@
 #include "packingsolver/onedimensional/instance.hpp"
 
 #include <iostream>
-#include <fstream>
-#include <climits>
+#include <iomanip>
 
 using namespace packingsolver;
 using namespace packingsolver::onedimensional;
@@ -34,7 +33,7 @@ std::ostream& packingsolver::onedimensional::operator<<(
     return os;
 }
 
-std::ostream& Instance::print(
+std::ostream& Instance::format(
         std::ostream& os,
         int verbose) const
 {

@@ -1,5 +1,6 @@
 #include "packingsolver/irregular/optimize.hpp"
 
+#include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "packingsolver/irregular/nlp.hpp"
 #include "packingsolver/irregular/nlp_circle.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"
@@ -12,11 +13,14 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
-Output packingsolver::irregular::optimize(
+const packingsolver::irregular::Output packingsolver::irregular::optimize(
         const Instance& instance,
-        OptimizeOptionalParameters parameters)
+        const OptimizeParameters& parameters)
 {
     Output output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
 
     Algorithm algorithm = Algorithm::IrregularToRectangle;
     if (parameters.algorithm != Algorithm::Auto) {
@@ -24,33 +28,18 @@ Output packingsolver::irregular::optimize(
     } else {
         algorithm = Algorithm::IrregularToRectangle;
     }
-    std::stringstream ss;
-    ss << algorithm;
-    parameters.info.add_to_json("Algorithm", "Algorithm", ss.str());
-
-    output.solution_pool.best().algorithm_start(parameters.info, algorithm);
 
     if (algorithm == Algorithm::IrregularToRectangle) {
-        IrregularToRectangleOptionalParameters i2r_parameters
+        IrregularToRectangleParameters i2r_parameters
             = parameters.irregular_to_rectangle_parameters;
-        i2r_parameters.new_solution_callback = [&parameters, &output](
-                const IrregularToRectangleOutput& i2r_output)
+        i2r_parameters.verbosity_level = 0;
+        i2r_parameters.timer = parameters.timer;
+        i2r_parameters.new_solution_callback = [&algorithm_formatter](
+                const packingsolver::Output<Instance, Solution>& ps_output)
         {
-            // Lock mutex.
-            parameters.info.lock();
-
             std::stringstream ss;
-            bool new_best = output.solution_pool.add(
-                    i2r_output.solution_pool.best(),
-                    ss,
-                    parameters.info);
-            if (new_best)
-                parameters.new_solution_callback(output);
-
-            // Unlock mutex.
-            parameters.info.unlock();
+            algorithm_formatter.update_solution(ps_output.solution_pool.best(), ss.str());
         };
-        i2r_parameters.info = Info(parameters.info, false, "");
 
         irregular_to_rectangle(
                 instance,
@@ -58,36 +47,27 @@ Output packingsolver::irregular::optimize(
 
     } else if (algorithm == Algorithm::Nlp
             && instance.number_of_circular_items() == instance.number_of_items()) {
-        NlpCircleOptionalParameters nlp_parameters;
+        NlpCircleParameters nlp_parameters;
+        nlp_parameters.verbosity_level = 0;
+        nlp_parameters.timer = parameters.timer;
         nlp_parameters.output_nl_path = parameters.output_nl_path;
-        nlp_parameters.info = Info(parameters.info, false, "");
         auto nlp_output = nlp_circle(instance, nlp_parameters);
 
         std::stringstream ss;
-        bool new_best = output.solution_pool.add(
-                nlp_output.solution_pool.best(),
-                ss,
-                parameters.info);
-        if (new_best)
-            parameters.new_solution_callback(output);
+        algorithm_formatter.update_solution(nlp_output.solution_pool.best(), ss.str());
 
     } else if (algorithm == Algorithm::Nlp) {
-        NlpOptionalParameters nlp_parameters;
+        NlpParameters nlp_parameters;
+        nlp_parameters.verbosity_level = 0;
+        nlp_parameters.timer = parameters.timer;
         nlp_parameters.output_nl_path = parameters.output_nl_path;
-        nlp_parameters.info = Info(parameters.info, false, "");
 
         auto nlp_output = nlp(instance, nlp_parameters);
 
         std::stringstream ss;
-        bool new_best = output.solution_pool.add(
-                nlp_output.solution_pool.best(),
-                ss,
-                parameters.info);
-        if (new_best)
-            parameters.new_solution_callback(output);
+        algorithm_formatter.update_solution(nlp_output.solution_pool.best(), ss.str());
     }
 
-    output.solution_pool.best().algorithm_end(parameters.info);
+    algorithm_formatter.end();
     return output;
 }
-

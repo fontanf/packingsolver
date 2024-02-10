@@ -7,11 +7,12 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
-NlpOutput irregular::nlp(
+const NlpOutput irregular::nlp(
         const Instance& instance,
-        NlpOptionalParameters parameters)
+        const NlpParameters& parameters)
 {
     NlpOutput output(instance);
+    (void)parameters;
 
 #if KNITRO_FOUND
 

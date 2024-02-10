@@ -524,7 +524,7 @@ bool Instance::can_contain(
     return parameters_.quality_rules[quality_rule][type];
 }
 
-std::ostream& Instance::print(
+std::ostream& Instance::format(
         std::ostream& os,
         int verbose) const
 {

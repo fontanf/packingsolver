@@ -381,321 +381,23 @@ Weight Solution::compute_weight_constraints_violation(
     return violation;
 }
 
-void Solution::display(
-        const std::stringstream& algorithm,
-        Info& info) const
-{
-    info.output->number_of_solutions++;
-    double t = info.elapsed_time();
-
-    std::streamsize precision = std::cout.precision();
-    std::string sol_str = "Solution" + std::to_string(info.output->number_of_solutions);
-    switch (instance().objective()) {
-    case Objective::Default: {
-        info.add_to_json(sol_str, "Profit", profit());
-        info.add_to_json(sol_str, "Full", (full())? 1: 0);
-        info.add_to_json(sol_str, "Waste", waste());
-        info.os()
-                << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
-                << std::setw(12) << profit()
-                << std::setw(6) << full()
-                << std::setw(12) << waste()
-                << std::setw(32) << algorithm.str()
-                << std::endl;
-        break;
-    } case Objective::BinPacking: {
-        info.add_to_json(sol_str, "NumberOfBins", number_of_bins());
-        info.add_to_json(sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        info.os()
-                << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
-                << std::setw(8) << number_of_bins()
-                << std::setw(16) << std::fixed << std::setprecision(2) << 100 * full_waste_percentage() << std::defaultfloat << std::setprecision(precision)
-                << std::setw(32) << algorithm.str()
-                << std::endl;
-        break;
-    } case Objective::BinPackingWithLeftovers: {
-        info.add_to_json(sol_str, "Waste", waste());
-        info.add_to_json(sol_str, "WastePercentage", 100 * waste_percentage());
-        info.os()
-                << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
-                << std::setw(12) << waste()
-                << std::setw(12) << std::fixed << std::setprecision(2) << 100 * waste_percentage() << std::defaultfloat << std::setprecision(precision)
-                << std::setw(32) << algorithm.str()
-                << std::endl;
-        break;
-    } case Objective::OpenDimensionX: {
-        info.add_to_json(sol_str, "X", x_max());
-        info.os()
-                << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
-                << std::setw(12) << x_max()
-                << std::setw(32) << algorithm.str()
-                << std::endl;
-        break;
-    } case Objective::OpenDimensionY: {
-        info.add_to_json(sol_str, "Y", y_max());
-        info.os()
-                << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
-                << std::setw(12) << y_max()
-                << std::setw(32) << algorithm.str()
-                << std::endl;
-        break;
-    } case Objective::Knapsack: {
-        info.add_to_json(sol_str, "Profit", profit());
-        info.os()
-                << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
-                << std::setw(14) << profit()
-                << std::setw(10) << number_of_items()
-                << std::setw(32) << algorithm.str()
-                << std::endl;
-        break;
-    } case Objective::VariableSizedBinPacking: {
-        info.add_to_json(sol_str, "Cost", cost());
-        info.add_to_json(sol_str, "NumberOfBins", number_of_bins());
-        info.add_to_json(sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        info.os()
-                << std::setw(12) << std::fixed << std::setprecision(3) << t << std::defaultfloat << std::setprecision(precision)
-                << std::setw(14) << cost()
-                << std::setw(8) << number_of_bins()
-                << std::setw(16) << std::fixed << std::setprecision(2) << 100 * full_waste_percentage() << std::defaultfloat << std::setprecision(precision)
-                << std::setw(32) << algorithm.str()
-                << std::endl;
-        break;
-    } default: {
-        std::stringstream ss;
-        ss << "Solution \"boxstacks::Solution\" does not support objective \""
-            << instance().objective() << "\"";
-        throw std::logic_error(ss.str());
-    }
-    }
-    info.add_to_json(sol_str, "Algorithm", algorithm.str());
-    info.add_to_json(sol_str, "Time", t);
-
-    if (!info.output->only_write_at_the_end) {
-        info.write_json_output();
-        write(info.output->certificate_path);
-    }
-}
-
-void Solution::algorithm_start(
-        Info& info,
-        Algorithm algorithm) const
-{
-    info.os()
-            << "===================================" << std::endl
-            << "           PackingSolver           " << std::endl
-            << "===================================" << std::endl
-            << std::endl
-            << "Problem type" << std::endl
-            << "------------" << std::endl
-            << "boxstacks" << std::endl
-            << std::endl
-            << "Instance" << std::endl
-            << "--------" << std::endl;
-    instance().print(info.os(), info.verbosity_level());
-    info.os()
-            << std::endl
-            << "Algorithm" << std::endl
-            << "---------" << std::endl
-            << algorithm << std::endl;
-    info.os() << std::endl;
-
-    switch (instance().objective()) {
-    case Objective::Default: {
-        info.os()
-                << std::setw(12) << "Time"
-                << std::setw(12) << "Profit"
-                << std::setw(6) << "Full"
-                << std::setw(12) << "Waste"
-                << std::setw(32) << "Comment"
-                << std::endl
-                << std::setw(12) << "----"
-                << std::setw(12) << "------"
-                << std::setw(6) << "----"
-                << std::setw(12) << "-----"
-                << std::setw(32) << "-------"
-                << std::endl;
-        break;
-    } case Objective::BinPacking: {
-        info.os()
-                << std::setw(12) << "Time"
-                << std::setw(8) << "Bins"
-                << std::setw(16) << "Full waste (%)"
-                << std::setw(32) << "Comment"
-                << std::endl
-                << std::setw(12) << "----"
-                << std::setw(8) << "----"
-                << std::setw(16) << "--------------"
-                << std::setw(32) << "-------"
-                << std::endl;
-        break;
-    } case Objective::BinPackingWithLeftovers: {
-        info.os()
-                << std::setw(12) << "Time"
-                << std::setw(12) << "Waste"
-                << std::setw(12) << "Waste (%)"
-                << std::setw(32) << "Comment"
-                << std::endl
-                << std::setw(12) << "----"
-                << std::setw(12) << "-----"
-                << std::setw(12) << "---------"
-                << std::setw(32) << "-------"
-                << std::endl;
-        break;
-    } case Objective::OpenDimensionX: {
-        info.os()
-                << std::setw(12) << "Time"
-                << std::setw(12) << "X"
-                << std::setw(32) << "Comment"
-                << std::endl
-                << std::setw(12) << "----"
-                << std::setw(12) << "-----"
-                << std::setw(32) << "-------"
-                << std::endl;
-        break;
-    } case Objective::OpenDimensionY: {
-        info.os()
-                << std::setw(12) << "Time"
-                << std::setw(12) << "Y"
-                << std::setw(32) << "Comment"
-                << std::endl
-                << std::setw(12) << "----"
-                << std::setw(12) << "-----"
-                << std::setw(32) << "-------"
-                << std::endl;
-        break;
-    } case Objective::Knapsack: {
-        info.os()
-                << std::setw(12) << "Time"
-                << std::setw(14) << "Profit"
-                << std::setw(10) << "# items"
-                << std::setw(32) << "Comment"
-                << std::endl
-                << std::setw(12) << "----"
-                << std::setw(14) << "------"
-                << std::setw(10) << "-------"
-                << std::setw(32) << "-------"
-                << std::endl;
-        break;
-    } case Objective::VariableSizedBinPacking: {
-        info.os()
-                << std::setw(12) << "Time"
-                << std::setw(14) << "Cost"
-                << std::setw(8) << "# bins"
-                << std::setw(16) << "Full waste (%)"
-                << std::setw(32) << "Comment"
-                << std::endl
-                << std::setw(12) << "----"
-                << std::setw(14) << "----"
-                << std::setw(8) << "------"
-                << std::setw(16) << "--------------"
-                << std::setw(32) << "-------"
-                << std::endl;
-        break;
-    } default: {
-        std::stringstream ss;
-        ss << "Solution \"boxstacks::Solution\" does not support objective \""
-            << instance().objective() << "\"";
-        throw std::logic_error(ss.str());
-    }
-    }
-}
-
-void Solution::algorithm_end(Info& info) const
-{
-    double t = info.elapsed_time();
-
-    std::string sol_str = "Solution";
-    info.os()
-            << std::endl
-            << "Final statistics" << std::endl
-            << "----------------" << std::endl;
-    switch (instance().objective()) {
-    case Objective::Default: {
-        info.add_to_json(sol_str, "Profit", profit());
-        info.add_to_json(sol_str, "Full", (full())? 1: 0);
-        info.add_to_json(sol_str, "Waste", waste());
-        info.os()
-                << "Profit:           " << profit() << std::endl
-                << "Full:             " << full() << std::endl
-                << "Waste:            " << waste() << std::endl;
-        break;
-    } case Objective::BinPacking: {
-        info.add_to_json(sol_str, "NumberOfBins", number_of_bins());
-        info.add_to_json(sol_str, "FullWaste", full_waste());
-        info.add_to_json(sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        info.os() << "Number of bins:    " << number_of_bins() << std::endl;
-        info.os() << "Full waste (%):    " << 100 * full_waste_percentage() << std::endl;
-        break;
-    } case Objective::BinPackingWithLeftovers: {
-        info.add_to_json(sol_str, "Waste", waste());
-        info.add_to_json(sol_str, "WastePercentage", 100 * waste_percentage());
-        info.os()
-                << "Waste:             " << waste() << std::endl
-                << "Waste (%):         " << 100 * waste_percentage() << std::endl;
-        break;
-    } case Objective::OpenDimensionX: {
-        info.add_to_json(sol_str, "X", x_max());
-        info.os() << "X:                 " << x_max() << std::endl;
-        break;
-    } case Objective::OpenDimensionY: {
-        info.add_to_json(sol_str, "Y", y_max());
-        info.os() << "Y:                 " << y_max() << std::endl;
-        break;
-    } case Objective::Knapsack: {
-        info.add_to_json(sol_str, "Profit", profit());
-        info.add_to_json(sol_str, "NumberOfItems", number_of_items());
-        info.add_to_json(sol_str, "ItemFraction", item_fraction());
-        info.add_to_json(sol_str, "VolumeFraction", volume_fraction());
-        info.add_to_json(sol_str, "WeightFraction", weight_fraction());
-        info.add_to_json(sol_str, "Volume", item_volume());
-        info.add_to_json(sol_str, "Weight", item_weight());
-        info.add_to_json(sol_str, "WeightLoad", weight_load());
-        info.add_to_json(sol_str, "VolumeLoad", volume_load());
-        info.os()
-            << "Profit:            " << profit() << std::endl
-            << "Number of items:   " << number_of_items() << " / " << instance().number_of_items() << " (" << item_fraction() * 100 << "%)" << std::endl
-            << "Item volume:       " << item_volume() << " / " << bin_volume() << " (" << volume_load() * 100 << "%)" << std::endl
-            << "Item weight:       " << item_weight() << " / " << bin_weight() << " (" << weight_load() * 100 << "%)" << std::endl;
-        break;
-    } case Objective::VariableSizedBinPacking: {
-        info.add_to_json(sol_str, "Cost", cost());
-        info.add_to_json(sol_str, "NumberOfBins", number_of_bins());
-        info.add_to_json(sol_str, "FullWastePercentage", 100 * full_waste_percentage());
-        info.os()
-            << "Cost:              " << cost() << std::endl
-            << "Number of bins:    " << number_of_bins() << std::endl
-            << "Full waste (%):    " << 100 * full_waste_percentage() << std::endl;
-        break;
-    } default: {
-        std::stringstream ss;
-        ss << "Solution \"boxstacks::Solution\" does not support objective \""
-            << instance().objective() << "\"";
-        throw std::logic_error(ss.str());
-    }
-    }
-    info.add_to_json(sol_str, "Time", t);
-    info.os() << "Time:              " << t << std::endl;
-
-    info.write_json_output();
-    write(info.output->certificate_path);
-}
-
-void Solution::write(std::string certificate_path) const
+void Solution::write(
+        const std::string& certificate_path) const
 {
     if (certificate_path.empty())
         return;
-    std::ofstream f(certificate_path);
-    if (!f.good()) {
+    std::ofstream file(certificate_path);
+    if (!file.good()) {
         throw std::runtime_error(
                 "Unable to open file \"" + certificate_path + "\".");
     }
 
-    f << "TYPE,ID,COPIES,BIN,STACK,X,Y,Z,LX,LY,LZ" << std::endl;
+    file << "TYPE,ID,COPIES,BIN,STACK,X,Y,Z,LX,LY,LZ" << std::endl;
     Direction o = Direction::X;
     for (BinPos i = 0; i < (BinPos)bins_.size(); ++i) {
         const SolutionBin& bin = bins_[i];
         BinTypeId bin_type_id = bin.bin_type_id;
-        f
+        file
             << "BIN,"
             << bin_type_id << ","
             << bin.copies << ","
@@ -709,7 +411,7 @@ void Solution::write(std::string certificate_path) const
             << instance().bin_type(bin_type_id).box.z << std::endl;
 
         for (const rectangle::Defect& defect: instance().bin_type(bin_type_id).defects) {
-            f
+            file
                 << "DEFECT,"
                 << defect.id << ","
                 << bin.copies << ","
@@ -726,7 +428,7 @@ void Solution::write(std::string certificate_path) const
 
         for (StackId stack_id = 0; stack_id < (StackId)bin.stacks.size(); ++stack_id) {
             const SolutionStack& stack = bin.stacks[stack_id];
-            f
+            file
                 << "STACK,"
                 << stack_id << ","
                 << bin.copies << ","
@@ -741,7 +443,7 @@ void Solution::write(std::string certificate_path) const
 
             for (const SolutionItem& item: stack.items) {
                 const ItemType& item_type = instance().item_type(item.item_type_id);
-                f
+                file
                     << "ITEM,"
                     << item.item_type_id << ","
                     << bin.copies << ","
@@ -757,5 +459,52 @@ void Solution::write(std::string certificate_path) const
 
         }
     }
-    f.close();
+}
+
+nlohmann::json Solution::to_json() const
+{
+    return nlohmann::json {
+        {"NumberOfItems", number_of_items()},
+        {"ItemVolume", item_volume()},
+        {"ItemWeight", item_weight()},
+        {"ItemProfit", profit()},
+        {"NumberOfBins", number_of_bins()},
+        {"BinVolume", bin_volume()},
+        {"BinWeight", bin_weight()},
+        {"BinCost", cost()},
+        {"Waste", waste()},
+        {"WastePercentage", waste_percentage()},
+        {"FullWaste", full_waste()},
+        {"FullWastePercentage", full_waste_percentage()},
+        {"VolumeLoad", volume_load()},
+        {"WeightLoad", weight_load()},
+        {"XMax", x_max()},
+        {"YMax", y_max()},
+    };
+}
+
+void Solution::format(
+        std::ostream& os,
+        int verbosity_level) const
+{
+    if (verbosity_level >= 1) {
+        os
+            << "Number of items:  " << optimizationtools::Ratio<ItemPos>(number_of_items(), instance().number_of_items()) << std::endl
+            << "Item volume:      " << optimizationtools::Ratio<Profit>(item_volume(), instance().item_volume()) << std::endl
+            << "Item weight:      " << optimizationtools::Ratio<Profit>(item_weight(), instance().item_weight()) << std::endl
+            << "Item profit:      " << optimizationtools::Ratio<Profit>(profit(), instance().item_profit()) << std::endl
+            << "Number of bins:   " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
+            << "Bin volume:       " << optimizationtools::Ratio<BinPos>(bin_volume(), instance().bin_volume()) << std::endl
+            << "Bin weight:       " << optimizationtools::Ratio<BinPos>(bin_weight(), instance().bin_weight()) << std::endl
+            << "Bin cost:         " << cost() << std::endl
+            << "Waste:            " << waste() << std::endl
+            << "Waste (%):        " << 100 * waste_percentage() << std::endl
+            << "Full waste:       " << full_waste() << std::endl
+            << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl
+            << "Volume load:      " << volume_load() << std::endl
+            << "Weight load:      " << weight_load() << std::endl
+            << "X max:            " << x_max() << std::endl
+            << "Y max:            " << y_max() << std::endl
+            ;
+    }
 }

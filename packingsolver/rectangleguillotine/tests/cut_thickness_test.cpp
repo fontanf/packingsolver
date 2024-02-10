@@ -31,8 +31,6 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness1)
      *
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
@@ -45,7 +43,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness1)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 500, 500, 500, 6000, 3210, 1, 1};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
@@ -53,7 +51,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness1)
         {1, -1, 2, 1520, 1000, 1520, 6000, 3210, 1, 1},
         {1, -1, 1, 1000, 1520, 1000, 6000, 3210, 1, 1},
     };
-    EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+    EXPECT_EQ(branching_scheme.insertions(node_1), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, CutThickness2)
@@ -76,8 +74,6 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness2)
      *
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
@@ -90,14 +86,14 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness2)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3000, 500, 3000, 6000, 3210, 1, 1};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
     std::vector<BranchingScheme::Insertion> is {
         {1, -1, 0, 5990, 3210, 5990, 6000, 3210, 1, 1},
     };
-    EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+    EXPECT_EQ(branching_scheme.insertions(node_1), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, CutThickness3)
@@ -120,8 +116,6 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness3)
      *
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
@@ -135,13 +129,13 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness3)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3000, 500, 3000, 6000, 3210, 0, 0};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
     std::vector<BranchingScheme::Insertion> is {
     };
-    EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+    EXPECT_EQ(branching_scheme.insertions(node_1), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, CutThickness4)
@@ -164,8 +158,6 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness4)
      *
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
@@ -178,14 +170,14 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness4)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3000, 1000, 3000, 6000, 3210, 1, 1};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
     std::vector<BranchingScheme::Insertion> is {
         {1, -1, 1, 6000, 3200, 6000, 6000, 3210, 1, 1},
     };
-    EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+    EXPECT_EQ(branching_scheme.insertions(node_1), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, CutThickness5)
@@ -208,8 +200,6 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness5)
      *
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
@@ -223,13 +213,13 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness5)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3000, 1000, 3000, 6000, 3210, 0, 0};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
     std::vector<BranchingScheme::Insertion> is {
     };
-    EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+    EXPECT_EQ(branching_scheme.insertions(node_1), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, CutThickness6)
@@ -253,10 +243,6 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness6)
      *
      */
 
-    Info info = Info()
-        //.set_log2stderr(true)
-        ;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
@@ -271,7 +257,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness6)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3000, 1000, 3000, 6000, 3210, 1, 1};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
@@ -279,7 +265,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness6)
         {-1, -1, 2, 4020, 1020, 4020, 6000, 3210, 1, 1},
         {1, -1, 1, 3500, 3210, 3500, 3980, 3210, 1, 1},
     };
-    EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+    EXPECT_EQ(branching_scheme.insertions(node_1), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, CutThickness7)
@@ -305,10 +291,6 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness7)
      *
      */
 
-    Info info = Info()
-        //.set_log2stderr(true)
-        ;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
@@ -323,7 +305,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness7)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3020, 1500, 3000, 6000, 2480, 1, 1};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
@@ -331,7 +313,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness7)
         {1, -1, 2, 4020, 2000, 4020, 6000, 2480, 1, 1},
         {-1, -1, 1, 3020, 2520, 3020, 6000, 3210, 1, 1},
     };
-    EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+    EXPECT_EQ(branching_scheme.insertions(node_1), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, CutThickness8)
@@ -357,10 +339,6 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness8)
      *
      */
 
-    Info info = Info()
-        //.set_log2stderr(true)
-        ;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
@@ -376,7 +354,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness8)
     std::vector<BranchingScheme::Insertion> is {
         {-1, -1, -1, 3015, 510, 3015, 6000, 3210, 1, 1},
     };
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, CutThickness9)
@@ -398,10 +376,6 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness9)
      *
      */
 
-    Info info = Info()
-        //.set_log2stderr(true)
-        ;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
@@ -415,12 +389,12 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness9)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 3000, 1000, 3000, 6000, 3210, 0, 0};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
     std::vector<BranchingScheme::Insertion> is {
         {1, -1, 1, 3060, 3210, 3010, 6000, 3210, 1, 0},
     };
-    EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+    EXPECT_EQ(branching_scheme.insertions(node_1), is);
 }

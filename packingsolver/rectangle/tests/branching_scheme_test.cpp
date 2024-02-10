@@ -25,8 +25,6 @@ TEST(RectangleBranchingScheme, Insertion1)
      *                   1000                           6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.add_item_type(1000, 500);
     instance_builder.add_bin_type(6000, 3210);
@@ -70,8 +68,6 @@ TEST(RectangleBranchingScheme, Insertion2)
      * |-------------------|----|-------------------------|
      *                   1000 1250                      6000
      */
-
-    Info info;
 
     InstanceBuilder instance_builder;
     instance_builder.add_bin_type(6000, 3210);

@@ -13,7 +13,7 @@ namespace packingsolver
 namespace boxstacks
 {
 
-struct OptimizeOptionalParameters
+struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
     /** Number of threads. */
     Counter number_of_threads = 0;
@@ -26,7 +26,7 @@ struct OptimizeOptionalParameters
 
 
     /** Parameters of the sequential_onedimensional_rectangle algorithm. */
-    SequentialOneDimensionalRectangleOptionalParameters sequential_onedimensional_rectangle_parameters;
+    SequentialOneDimensionalRectangleParameters sequential_onedimensional_rectangle_parameters;
 
     /** Size of the queue in the tree search algorithm. */
     NodeId tree_search_queue_size = -1;
@@ -66,25 +66,20 @@ struct OptimizeOptionalParameters
 
 
     /** Parameters for the Sequential Value Correction algorithm. */
-    SequentialValueCorrectionOptionalParameters<Instance, InstanceBuilder, Solution> sequential_value_correction_parameters;
+    SequentialValueCorrectionParameters<Instance, Solution> sequential_value_correction_parameters;
 
     /**
      * Size of the queue for the knapsack sub-problem of the sequential value
      * correction algorithm.
      */
     NodeId sequential_value_correction_queue_size = 1024;
-
-
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
 };
 
-struct Output
+struct Output: packingsolver::Output<Instance, Solution>
 {
     Output(const Instance& instance):
-        solution_pool(instance, 1) { }
+        packingsolver::Output<Instance, Solution>(instance) { }
 
-    SolutionPool<Instance, Solution> solution_pool;
 
     /**
      * Number of items in the solution found by the Sequential onedimensional
@@ -147,10 +142,9 @@ struct Output
     Counter number_of_tree_search_better = 0;
 };
 
-Output optimize(
+const Output optimize(
         const Instance& instance,
-        OptimizeOptionalParameters parameters = {});
+        const OptimizeParameters& parameters = {});
 
 }
 }
-

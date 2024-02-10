@@ -1,10 +1,8 @@
 #include "packingsolver/rectangleguillotine/instance.hpp"
 
-#include "packingsolver/rectangleguillotine/solution.hpp"
-
 #include <iostream>
 #include <fstream>
-#include <climits>
+#include <iomanip>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
@@ -212,7 +210,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
-void Instance::write(std::string instance_path) const
+void Instance::write(
+        const std::string& instance_path) const
 {
     std::string items_path = instance_path + "_items.csv";
     std::string bins_path = instance_path + "_bins.csv";
@@ -283,7 +282,7 @@ void Instance::write(std::string instance_path) const
     }
 }
 
-std::ostream& Instance::print(
+std::ostream& Instance::format(
         std::ostream& os,
         int verbose) const
 {

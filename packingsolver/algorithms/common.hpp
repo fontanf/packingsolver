@@ -2,11 +2,15 @@
 
 #define _USE_MATH_DEFINES
 
-#include "optimizationtools/utils/info.hpp"
 #include "optimizationtools/utils/utils.hpp"
+#include "optimizationtools/utils/output.hpp"
 
 #include <cstdint>
 #include <set>
+#include <memory>
+#include <unordered_map>
+#include <cassert>
+#include <iomanip>
 
 namespace packingsolver
 {
@@ -38,8 +42,6 @@ using EligibilityId = int64_t;
 using NodeId = int64_t;
 using Depth = int16_t;
 using GuideId = int16_t;
-
-using optimizationtools::Info;
 
 inline bool striclty_lesser(double v1, double v2)
 {
@@ -183,9 +185,7 @@ public:
      *         0 if the solution is added but is not the new best solution.
      */
     int add(
-            const Solution& solution,
-            const std::stringstream& ss,
-            Info& info)
+            const Solution& solution)
     {
         // If the solution is worse than the worst solution of the pool, stop.
         if ((Counter)solutions_.size() >= size_max_)
@@ -198,10 +198,6 @@ public:
                 return -1;
             }
         }
-
-        // If new best solution, display.
-        if (*solutions_.begin() < solution)
-            solution.display(ss, info);
 
         // Add new solution to solution pool.
         auto res = solutions_.insert(solution);
@@ -230,6 +226,55 @@ private:
     Solution best_;
     Solution worst_;
 
+};
+
+/**
+ * Output stucture for packing optimization algorithms.
+ */
+template <typename Instance, typename Solution>
+struct Output: optimizationtools::Output
+{
+    Output(const Instance& instance):
+        solution_pool(instance, 1) { }
+
+
+    /** Solution pool. */
+    SolutionPool<Instance, Solution> solution_pool;
+
+    /** Elapsed time. */
+    double time = 0.0;
+
+
+    virtual nlohmann::json to_json() const
+    {
+        return nlohmann::json {
+            //{"Solution", solution_pool.best().to_json()},
+            {"Time", time}
+        };
+    }
+
+    virtual int format_width() const { return 30; }
+
+    virtual void format(std::ostream& os) const
+    {
+        int width = format_width();
+        os
+            << std::setw(width) << std::left << "Time (s): " << time << std::endl
+            ;
+    }
+};
+
+template <typename Instance, typename Solution>
+using NewSolutionCallback = std::function<void(const Output<Instance, Solution>&)>;
+
+template <typename Instance, typename Solution>
+struct Parameters: optimizationtools::Parameters
+{
+    /** Maximum size of the solution pool. */
+    Counter maximum_size_of_the_solution_pool = 1;
+
+    /** New solution callback. */
+    NewSolutionCallback<Instance, Solution> new_solution_callback;
 };
 
 template <typename BranchingScheme>
@@ -323,4 +368,3 @@ inline void remove_from_history_and_queue(
 }
 
 }
-

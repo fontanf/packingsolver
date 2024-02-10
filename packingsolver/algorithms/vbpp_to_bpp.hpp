@@ -17,40 +17,32 @@
 namespace packingsolver
 {
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
+template <typename Instance, typename Solution>
 using VbppToBppFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-struct VbppToBppOutput
+template <typename Instance, typename Solution>
+struct VbppToBppOutput: Output<Instance, Solution>
 {
     /** Constructor. */
     VbppToBppOutput(const Instance& instance):
-        solution_pool(instance, 1) { }
-
-    /** Solution pool. */
-    SolutionPool<Instance, Solution> solution_pool;
+        Output<Instance, Solution>(instance) { }
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-struct VbppToBppOptionalParameters
+template <typename Instance, typename Solution>
+struct VbppToBppParameters: Parameters<Instance, Solution>
 {
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-VbppToBppOutput<Instance, InstanceBuilder, Solution> vbpp_to_bpp(
+template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter>
+VbppToBppOutput<Instance, Solution> vbpp_to_bpp(
         const Instance& instance,
-        const VbppToBppFunction<Instance, InstanceBuilder, Solution>& function,
-        VbppToBppOptionalParameters<Instance, InstanceBuilder, Solution> parameters = {});
-
-template <typename Instance, typename InstanceBuilder, typename Solution>
-VbppToBppOutput<Instance, InstanceBuilder, Solution> vbpp_to_bpp(
-        const Instance& instance,
-        const VbppToBppFunction<Instance, InstanceBuilder, Solution>& function,
-        VbppToBppOptionalParameters<Instance, InstanceBuilder, Solution> parameters)
+        const VbppToBppFunction<Instance, Solution>& function,
+        const VbppToBppParameters<Instance, Solution>& parameters)
 {
-    VbppToBppOutput<Instance, InstanceBuilder, Solution> output(instance);
+    VbppToBppOutput<Instance, Solution> output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
 
     // Build PackingSolver Bin Packing instance.
     //std::cout << "Build Bin Packing instance..." << std::endl;
@@ -94,8 +86,10 @@ VbppToBppOutput<Instance, InstanceBuilder, Solution> vbpp_to_bpp(
         solution.append(bpp_solution, bin_types_bpp2ps, item_types_bpp2ps);
         //std::cout << solution.number_of_items() << " " << solution.number_of_bins() << std::endl;
         std::stringstream ss;
-        output.solution_pool.add(solution, ss, parameters.info);
+        algorithm_formatter.update_solution(solution, ss.str());
     }
+
+    algorithm_formatter.end();
     return output;
 }
 

@@ -129,7 +129,7 @@ public:
      */
 
     /** Get the problem type. */
-    inline ProblemType type() const { return ProblemType::OneDimensional; };
+    static inline ProblemType type() { return ProblemType::OneDimensional; };
 
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
@@ -196,12 +196,12 @@ public:
      */
 
     /** Print the instance into a stream. */
-    std::ostream& print(
+    std::ostream& format(
             std::ostream& os,
             int verbose = 1) const;
 
     /** Write the instance to a file. */
-    void write(std::string instance_path) const;
+    void write(const std::string& instance_path) const;
 
 private:
 

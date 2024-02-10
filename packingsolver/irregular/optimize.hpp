@@ -10,41 +10,31 @@ namespace packingsolver
 namespace irregular
 {
 
-struct Output
+struct Output: packingsolver::Output<Instance, Solution>
 {
     Output(const Instance& instance):
-        solution_pool(instance, 1) { }
-
-    SolutionPool<Instance, Solution> solution_pool;
+        packingsolver::Output<Instance, Solution>(instance) { }
 };
 
 using NewSolutionCallback = std::function<void(const Output&)>;
 
-struct OptimizeOptionalParameters
+struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
     /** Algorithm. */
     Algorithm algorithm = Algorithm::Auto;
 
-    /** New solution callback. */
-    NewSolutionCallback new_solution_callback = [](const Output&) { };
-
 
     /** Parameters of the algorithm 'IrregularToRectangle'. */
-    IrregularToRectangleOptionalParameters irregular_to_rectangle_parameters;
+    IrregularToRectangleParameters irregular_to_rectangle_parameters;
 
 
     /** Path of the .nl output file. */
     std::string output_nl_path;
-
-
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
 };
 
-Output optimize(
+const Output optimize(
         const Instance& instance,
-        OptimizeOptionalParameters parameters = {});
+        const OptimizeParameters& parameters = {});
 
 }
 }
-
