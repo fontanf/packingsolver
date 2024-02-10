@@ -1310,8 +1310,8 @@ TEST(RectangleGuillotineBranchingScheme, InsertionSymmetry)
 
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
-    instance_builder.set_cut_type_1(CutType1::ThreeStagedGuillotine);
-    instance_builder.set_cut_type_2(CutType2::NonExact);
+    instance_builder.set_number_of_stages(3);
+    instance_builder.set_cut_type(CutType::NonExact);
     instance_builder.set_item_types_oriented();
     instance_builder.add_item_type(70, 100, -1, 1, false, 0);
     instance_builder.add_item_type(40, 80, -1, 1, false, 0);
@@ -1362,7 +1362,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteI)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.set_cut_type_1(CutType1::TwoStagedGuillotine);
+    instance_builder.set_number_of_stages(2);
     instance_builder.add_item_type(500, 3200, -1, 1, false, 0);
     instance_builder.add_item_type(500, 3200, -1, 1, false, 0);
     instance_builder.add_bin_type(6000, 3210);
@@ -1406,7 +1406,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteII)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.set_cut_type_1(CutType1::TwoStagedGuillotine);
+    instance_builder.set_number_of_stages(2);
     instance_builder.add_item_type(250, 3200, -1, 1, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_defect(0, 240, 3190, 10, 10);

@@ -31,7 +31,7 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.set_cut_type_1(CutType1::TwoStagedGuillotine);
+    instance_builder.set_number_of_stages(2);
     instance_builder.add_item_type(3000, 3210, -1, 1, false, 0);
     instance_builder.add_item_type(3000, 500, -1, 1, false, 1);
     instance_builder.add_bin_type(6000, 3210);
@@ -143,7 +143,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
     instance_builder.read_bin_types("data/rectangle/tests/C11_bins.csv");
     instance_builder.read_defects("data/rectangle/tests/C11_defects.csv");
     instance_builder.set_roadef2018();
-    instance_builder.set_cut_type_2(CutType2::Exact);
+    instance_builder.set_cut_type(CutType::Exact);
     Instance instance = instance_builder.build();
 
     BranchingScheme::Parameters branching_scheme_parameters;
@@ -298,7 +298,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.set_cut_type_2(CutType2::Exact);
+    instance_builder.set_cut_type(CutType::Exact);
     instance_builder.add_item_type(1400, 1600, -1, 1, false, 0);
     instance_builder.add_item_type(1500, 1500, -1, 1, false, 0);
     instance_builder.add_item_type(1500, 3000, -1, 1, false, 0);

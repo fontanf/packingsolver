@@ -66,8 +66,8 @@ int main(int argc, char *argv[])
 
         ("predefined,p", po::value<std::string>(), "")
 
-        ("cut-type-1,", po::value<rectangleguillotine::CutType1>(), "")
-        ("cut-type-2,", po::value<rectangleguillotine::CutType2>(), "")
+        ("number-of-stages,", po::value<Counter>(), "")
+        ("cut-type,", po::value<rectangleguillotine::CutType>(), "")
         ("first-stage-orientation,", po::value<rectangleguillotine::CutOrientation>(), "")
         ("min1cut,", po::value<Length>(), "")
         ("max1cut,", po::value<Length>(), "")
@@ -148,10 +148,10 @@ int main(int argc, char *argv[])
     if (vm.count("predefined"))
         instance_builder.set_predefined(vm["predefined"].as<std::string>());
 
-    if (vm.count("cut-type-1"))
-        instance_builder.set_cut_type_1(vm["cut-type-1"].as<CutType1>());
-    if (vm.count("cut-type-2"))
-        instance_builder.set_cut_type_2(vm["cut-type-2"].as<CutType2>());
+    if (vm.count("number-of-stages"))
+        instance_builder.set_number_of_stages(vm["number-of-stages"].as<Counter>());
+    if (vm.count("cut-type"))
+        instance_builder.set_cut_type(vm["cut-type"].as<CutType>());
     if (vm.count("first-stage-orientation"))
         instance_builder.set_first_stage_orientation(vm["first-stage-orientation"].as<CutOrientation>());
     if (vm.count("min1cut"))
@@ -175,7 +175,10 @@ int main(int argc, char *argv[])
 
     OptimizeParameters parameters;
     read_args(parameters, vm);
-    optimize(instance, parameters);
+    const rectangleguillotine::Output output = optimize(instance, parameters);
 
-    return 0;
+    if (vm.count("certificate"))
+        output.solution_pool.best().write(vm["certificate"].as<std::string>());
+    if (vm.count("output"))
+        output.write_json_output(vm["output"].as<std::string>());
 }

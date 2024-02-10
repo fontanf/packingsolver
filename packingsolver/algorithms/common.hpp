@@ -248,7 +248,7 @@ struct Output: optimizationtools::Output
     virtual nlohmann::json to_json() const
     {
         return nlohmann::json {
-            //{"Solution", solution_pool.best().to_json()},
+            {"Solution", solution_pool.best().to_json()},
             {"Time", time}
         };
     }
@@ -274,7 +274,7 @@ struct Parameters: optimizationtools::Parameters
     Counter maximum_size_of_the_solution_pool = 1;
 
     /** New solution callback. */
-    NewSolutionCallback<Instance, Solution> new_solution_callback;
+    NewSolutionCallback<Instance, Solution> new_solution_callback = [](const Output<Instance, Solution>&) { };
 };
 
 template <typename BranchingScheme>

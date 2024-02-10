@@ -121,7 +121,12 @@ int main(int argc, char *argv[])
 
     OptimizeParameters parameters;
     read_args(parameters, vm);
-    optimize(instance, parameters);
+    const onedimensional::Output output = optimize(instance, parameters);
+
+    if (vm.count("certificate"))
+        output.solution_pool.best().write(vm["certificate"].as<std::string>());
+    if (vm.count("output"))
+        output.write_json_output(vm["output"].as<std::string>());
 
     return 0;
 }
