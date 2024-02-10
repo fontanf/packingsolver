@@ -225,14 +225,14 @@ void Solution::write(
     }
 
     file << "TYPE,ID,COPIES,BIN,X,Y,LX,LY" << std::endl;
-    for (BinPos i = 0; i < (BinPos)bins_.size(); ++i) {
-        const SolutionBin& bin = bins_[i];
+    for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
+        const SolutionBin& bin = bins_[bin_pos];
         BinTypeId bin_type_id = bin.bin_type_id;
         file
             << "BIN,"
             << bin_type_id << ","
             << bin.copies << ","
-            << i << ","
+            << bin_pos << ","
             << "0,"
             << "0,"
             << instance().bin_type(bin_type_id).rect.x << ","
@@ -243,7 +243,7 @@ void Solution::write(
                 << "DEFECT,"
                 << defect.id << ","
                 << bin.copies << ","
-                << i << ","
+                << bin_pos << ","
                 << defect.pos.x << ","
                 << defect.pos.y << ","
                 << defect.rect.x << ","
@@ -256,7 +256,7 @@ void Solution::write(
                 << "ITEM,"
                 << item.item_type_id << ","
                 << bin.copies << ","
-                << i << ","
+                << bin_pos << ","
                 << item.bl_corner.x << ","
                 << item.bl_corner.y << ","
                 << ((!item.rotate)? item_type.rect.x: item_type.rect.y) << ","

@@ -148,7 +148,7 @@ void Solution::write(
     }
 
     file << "TYPE,ID,COPIES,BIN,X,LX" << std::endl;
-    for (BinPos bin_pos = 0; bin_pos < (BinPos)bins_.size(); ++bin_pos) {
+    for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& bin = bins_[bin_pos];
         BinTypeId bin_type_id = bin.bin_type_id;
         file

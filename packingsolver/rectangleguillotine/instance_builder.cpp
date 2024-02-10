@@ -19,34 +19,33 @@ void InstanceBuilder::set_predefined(std::string str)
         if (str.length() < 4)
             return;
     }
-    switch (str[0]) {
-    case '3': {
-        set_cut_type_1(rectangleguillotine::CutType1::ThreeStagedGuillotine);
-        break;
-    } case '2': {
-        set_cut_type_1(rectangleguillotine::CutType1::TwoStagedGuillotine);
-        break;
-    } default: {
-        std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter 1st character \"" << str[0] << "\" invalid." << "\033[0m" << std::endl;
+
+    Counter number_of_stages = (Counter)(str[0] - 48);
+    if (number_of_stages <= 1) {
+        // TODO
+        throw std::invalid_argument("");
     }
-    }
+    set_number_of_stages(number_of_stages);
+
     switch (str[1]) {
     case 'R': {
-        set_cut_type_2(rectangleguillotine::CutType2::Roadef2018);
+        set_cut_type(rectangleguillotine::CutType::Roadef2018);
         break;
     } case 'N': {
-        set_cut_type_2(rectangleguillotine::CutType2::NonExact);
+        set_cut_type(rectangleguillotine::CutType::NonExact);
         break;
     } case 'E': {
-        set_cut_type_2(rectangleguillotine::CutType2::Exact);
+        set_cut_type(rectangleguillotine::CutType::Exact);
         break;
     } case 'H': {
-        set_cut_type_2(rectangleguillotine::CutType2::Homogenous);
+        set_cut_type(rectangleguillotine::CutType::Homogenous);
         break;
     } default: {
+        // TODO
         std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter 2nd character \"" << str[1] << "\" invalid." << "\033[0m" << std::endl;
     }
     }
+
     switch (str[2]) {
     case 'V': {
         set_first_stage_orientation(rectangleguillotine::CutOrientation::Vertical);
@@ -75,8 +74,8 @@ void InstanceBuilder::set_predefined(std::string str)
 
 void InstanceBuilder::set_roadef2018()
 {
-    instance_.parameters_.cut_type_1 = rectangleguillotine::CutType1::ThreeStagedGuillotine;
-    instance_.parameters_.cut_type_2 = rectangleguillotine::CutType2::Roadef2018;
+    instance_.parameters_.number_of_stages = 3;
+    instance_.parameters_.cut_type = rectangleguillotine::CutType::Roadef2018;
     instance_.parameters_.first_stage_orientation = rectangleguillotine::CutOrientation::Vertical;
     instance_.parameters_.min1cut = 100;
     instance_.parameters_.max1cut = 3500;
@@ -422,16 +421,13 @@ void InstanceBuilder::read_parameters(std::string parameters_path)
             }
         }
 
-        if (name == "cut_type_1") {
-            CutType1 cut_type_1;
+        if (name == "number_of_stages") {
+            set_number_of_stages(std::stol(value));
+        } else if (name == "cut_type") {
+            CutType cut_type;
             std::stringstream ss(value);
-            ss >> cut_type_1;
-            set_cut_type_1(cut_type_1);
-        } else if (name == "cut_type_2") {
-            CutType2 cut_type_2;
-            std::stringstream ss(value);
-            ss >> cut_type_2;
-            set_cut_type_2(cut_type_2);
+            ss >> cut_type;
+            set_cut_type(cut_type);
         } else if (name == "first_stage_orientation") {
             CutOrientation first_stage_orientation;
             std::stringstream ss(value);

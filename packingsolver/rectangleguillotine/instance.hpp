@@ -7,8 +7,7 @@ namespace packingsolver
 namespace rectangleguillotine
 {
 
-enum class CutType1 { ThreeStagedGuillotine, TwoStagedGuillotine };
-enum class CutType2 { Roadef2018, NonExact, Exact, Homogenous };
+enum class CutType { Roadef2018, NonExact, Exact, Homogenous };
 enum class CutOrientation { Horinzontal, Vertical, Any };
 
 /**
@@ -25,11 +24,7 @@ enum class TrimType { Soft, Hard };
 
 std::istream& operator>>(
         std::istream& in,
-        CutType1& cut_type_1);
-
-std::istream& operator>>(
-        std::istream& in,
-        CutType2& cut_type_2);
+        CutType& cut_type_2);
 
 std::istream& operator>>(
         std::istream& in,
@@ -37,11 +32,7 @@ std::istream& operator>>(
 
 std::ostream& operator<<(
         std::ostream& os,
-        CutType1 cut_type_1);
-
-std::ostream& operator<<(
-        std::ostream& os,
-        CutType2 cut_type_2);
+        CutType cut_type_2);
 
 std::ostream& operator<<(
         std::ostream& os,
@@ -95,11 +86,11 @@ std::ostream& operator<<(
 
 struct Parameters
 {
-    /** CutType1. */
-    CutType1 cut_type_1 = CutType1::ThreeStagedGuillotine;
+    /** Number of stages. */
+    Counter number_of_stages = 3;
 
-    /** CutType2. */
-    CutType2 cut_type_2 = CutType2::NonExact;
+    /** Cut type. */
+    CutType cut_type = CutType::NonExact;
 
     /** Orientation of the first stage. */
     CutOrientation first_stage_orientation = CutOrientation::Vertical;
@@ -280,9 +271,9 @@ public:
 
     inline const Parameters& parameters() const { return parameters_; }
 
-    inline CutType1 cut_type_1() const { return parameters_.cut_type_1; }
+    inline Counter number_of_stages() const { return parameters_.number_of_stages; }
 
-    inline CutType2 cut_type_2() const { return parameters_.cut_type_2; }
+    inline CutType cut_type() const { return parameters_.cut_type; }
 
     inline CutOrientation first_stage_orientation() const { return parameters_.first_stage_orientation; }
 

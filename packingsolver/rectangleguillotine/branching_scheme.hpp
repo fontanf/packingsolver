@@ -381,10 +381,10 @@ private:
     inline double waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
 
     /** Get the width of a node. */
-    inline Length width(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+    inline Length width(const Node& node) const { return (instance_.number_of_stages() == 3)? node.x1_curr: node.y2_curr; }
 
     /** Get the height of a node. */
-    inline Length height(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+    inline Length height(const Node& node) const { return (instance_.number_of_stages() == 3)? node.x1_curr: node.y2_curr; }
 
     /** Get the knapsack upper bound of a node. */
     inline Profit ubkp(const Node& node) const;

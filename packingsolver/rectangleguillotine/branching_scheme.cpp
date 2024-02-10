@@ -18,9 +18,9 @@ BranchingScheme::BranchingScheme(
     CutOrientation first_stage_orientation = (instance.first_stage_orientation() != CutOrientation::Any)?
         instance.first_stage_orientation():
         parameters.first_stage_orientation;
-    if (instance.cut_type_1() == CutType1::ThreeStagedGuillotine) {
+    if (instance.number_of_stages() == 3) {
         first_stage_orientation_ = first_stage_orientation;
-    } else if (instance.cut_type_1() == CutType1::TwoStagedGuillotine) {
+    } else if (instance.number_of_stages() == 2) {
         if (first_stage_orientation == CutOrientation::Horinzontal) {
             first_stage_orientation_ = CutOrientation::Vertical;
         } else if (first_stage_orientation == CutOrientation::Vertical) {
@@ -474,7 +474,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     // Update current_area_ and waste_
     node.current_area = instance().previous_bin_area(i);
     if (leaf(node)) {
-        node.current_area += (instance().cut_type_1() == CutType1::ThreeStagedGuillotine)?
+        node.current_area += (instance().number_of_stages() == 3)?
             (node.x1_curr - instance().left_trim(bin_type, o)) * h:
             (node.y2_curr - instance().bottom_trim(bin_type, o)) * w;
     } else {
@@ -595,7 +595,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             }
 
             // Try adding it with a second item
-            if (instance().cut_type_2() == CutType2::Roadef2018) {
+            if (instance().cut_type() == CutType::Roadef2018) {
                 Length wj = instance().width(item_type, false, o);
                 Length wjr = instance().width(item_type, true, o);
                 for (StackId s2 = s; s2 < instance().number_of_stacks(); ++s2) {
@@ -815,7 +815,7 @@ void BranchingScheme::insertion_1_item(
     }
 
     // Homogenous
-    if (df == 2 && instance().cut_type_2() == CutType2::Homogenous
+    if (df == 2 && instance().cut_type() == CutType::Homogenous
             && father.item_type_id_1 != item_type_id) {
         return;
     }
@@ -834,8 +834,8 @@ void BranchingScheme::insertion_1_item(
             bin_type,
             o);
     if (defect_id >= 0) {
-        if (instance().cut_type_2() == CutType2::Roadef2018
-                || instance().cut_type_2() == CutType2::NonExact) {
+        if (instance().cut_type() == CutType::Roadef2018
+                || instance().cut_type() == CutType::NonExact) {
             // Place the item on top of its third-level sub-plate
             insertion.item_type_id_1 = -1;
             insertion.item_type_id_2 = item_type_id;
@@ -850,9 +850,9 @@ void BranchingScheme::insertion_1_item(
         }
     }
 
-    // Update insertion.z2 with respect to cut_type_2()
-    if (instance().cut_type_2() == CutType2::Exact
-            || instance().cut_type_2() == CutType2::Homogenous)
+    // Update insertion.z2 with respect to cut_type()
+    if (instance().cut_type() == CutType::Exact
+            || instance().cut_type() == CutType::Homogenous)
         insertion.z2 = 2;
 
     update(father, insertions, insertion);
@@ -1017,7 +1017,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.x1 if 2-staged
-    if (instance().cut_type_1() == CutType1::TwoStagedGuillotine && insertion.x1 != w) {
+    if (instance().number_of_stages() == 2 && insertion.x1 != w) {
         if (insertion.z1 == 0) {
             if (insertion.x1 + cut_thickness + min_waste > w_physical)
                 return;
@@ -1683,7 +1683,7 @@ Solution BranchingScheme::to_solution(
         }
 
         // Create a new first-level sub-plate.
-        if (instance().cut_type_1() == CutType1::TwoStagedGuillotine
+        if (instance().number_of_stages() == 2
                 || current_node->df >= 1) {
         } else if (b1) {
             subplate1_curr = -1;
@@ -1742,8 +1742,8 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            SolutionNodeId s = (instance().cut_type_1() == CutType1::ThreeStagedGuillotine)? subplate1_curr: subplate0_curr;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 2: 1;
+            SolutionNodeId s = (instance().number_of_stages() == 3)? subplate1_curr: subplate0_curr;
+            n.d = (instance().number_of_stages() != 2)? 2: 1;
             n.f = s;
             nodes[s].children.push_back(id);
             if (o == CutOrientation::Vertical) {
@@ -1771,7 +1771,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 3: 2;
+            n.d = (instance().number_of_stages() != 2)? 3: 2;
             n.f = subplate2_curr;
             nodes[subplate2_curr].children.push_back(id);
             if (o == CutOrientation::Vertical) {
@@ -1797,7 +1797,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 4: 3;
+            n.d = (instance().number_of_stages() != 2)? 4: 3;
             n.f = subplate3_curr;
             nodes[subplate3_curr].children.push_back(id);
             if (o == CutOrientation::Vertical) {
@@ -1853,7 +1853,7 @@ Solution BranchingScheme::to_solution(
                 SolutionNode& n = nodes.back();
                 SolutionNodeId id = nodes.size() - 1;
                 n.id = id;
-                n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 4: 3;
+                n.d = (instance().number_of_stages() != 2)? 4: 3;
                 n.f = subplate3_curr;
                 nodes[subplate3_curr].children.push_back(id);
                 n.l = nodes[subplate3_curr].l;
@@ -1878,7 +1878,7 @@ Solution BranchingScheme::to_solution(
                 SolutionNode& n = nodes.back();
                 SolutionNodeId id = nodes.size() - 1;
                 n.id = id;
-                n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 4: 3;
+                n.d = (instance().number_of_stages() != 2)? 4: 3;
                 n.f = subplate3_curr;
                 nodes[subplate3_curr].children.push_back(id);
                 n.r = nodes[subplate3_curr].r;
@@ -1908,7 +1908,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 3: 2;
+            n.d = (instance().number_of_stages() != 2)? 3: 2;
             n.f = subplate2_curr;
             nodes[subplate2_curr].children.push_back(id);
             n.l = nodes[subplate3_curr].r;
@@ -1926,7 +1926,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 3: 2;
+            n.d = (instance().number_of_stages() != 2)? 3: 2;
             n.f = subplate2_curr;
             nodes[subplate2_curr].children.push_back(id);
             n.l = nodes[subplate2_curr].l;
@@ -1938,7 +1938,7 @@ Solution BranchingScheme::to_solution(
         }
 
         // Add waste at the top of the 1-level sub-plate.
-        SolutionNodeId s = (instance().cut_type_1() == CutType1::ThreeStagedGuillotine)? subplate1_curr: subplate0_curr;
+        SolutionNodeId s = (instance().number_of_stages() == 3)? subplate1_curr: subplate0_curr;
         if (df_next <= 0
                 && subplate2_curr != -1
                 && nodes[subplate2_curr].t != nodes[s].t) {
@@ -1947,7 +1947,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 2: 1;
+            n.d = (instance().number_of_stages() != 2)? 2: 1;
             n.f = s;
             nodes[s].children.push_back(id);
             n.l = nodes[s].l;
@@ -1955,7 +1955,7 @@ Solution BranchingScheme::to_solution(
             n.b = nodes[subplate2_curr].t;
             n.t = nodes[s].t;
             // Might be the residual if two-staged.
-            n.item_type_id = (instance().cut_type_1() == CutType1::TwoStagedGuillotine && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
+            n.item_type_id = (instance().number_of_stages() == 2 && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
             //std::cout << n << std::endl;
         }
         if (df_next <= 0
@@ -1966,7 +1966,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 2: 1;
+            n.d = (instance().number_of_stages() != 2)? 2: 1;
             n.f = s;
             nodes[s].children.push_back(id);
             n.l = nodes[subplate2_curr].r;
@@ -1974,12 +1974,12 @@ Solution BranchingScheme::to_solution(
             n.b = nodes[s].b;
             n.t = nodes[s].t;
             // Might be the residual if two-staged.
-            n.item_type_id = (instance().cut_type_1() == CutType1::TwoStagedGuillotine && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
+            n.item_type_id = (instance().number_of_stages() == 2 && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
             //std::cout << n << std::endl;
         }
 
         // Add waste to the right of the plate.
-        if (instance().cut_type_1() != CutType1::TwoStagedGuillotine
+        if (instance().number_of_stages() != 2
                 && df_next <= -1
                 && subplate1_curr != -1
                 && nodes[subplate1_curr].r != nodes[subplate0_curr].r) {
@@ -1999,7 +1999,7 @@ Solution BranchingScheme::to_solution(
             n.item_type_id = (node_pos < (SolutionNodeId)descendents.size() - 1)? -1: -3;
             //std::cout << n << std::endl;
         }
-        if (instance().cut_type_1() != CutType1::TwoStagedGuillotine
+        if (instance().number_of_stages() != 2
                 && df_next <= -1
                 && subplate1_curr != -1
                 && nodes[subplate1_curr].t != nodes[subplate0_curr].t) {
