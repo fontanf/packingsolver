@@ -2,8 +2,6 @@
 
 #include "packingsolver/rectangleguillotine/solution.hpp"
 
-#include <sstream>
-
 namespace packingsolver
 {
 namespace rectangleguillotine
@@ -240,8 +238,7 @@ public:
      */
 
     std::vector<Insertion> insertions(
-            const std::shared_ptr<Node>& father,
-            Info& info) const;
+            const std::shared_ptr<Node>& father) const;
 
     std::shared_ptr<Node> child(
             const std::shared_ptr<Node>& father,
@@ -467,8 +464,7 @@ private:
             std::vector<Insertion>& insertions,
             ItemTypeId item_type_id,
             bool rotate,
-            Depth df,
-            Info& info) const;
+            Depth df) const;
 
     /** Insertion of two items. */
     void insertion_2_items(
@@ -478,23 +474,20 @@ private:
             bool rotate1,
             ItemTypeId item_type_id_2,
             bool rotate2,
-            Depth df,
-            Info& info) const;
+            Depth df) const;
 
     /** Insertion of a defect. */
     void insertion_defect(
             const Node& father,
             std::vector<Insertion>& insertions,
             DefectId defect_id,
-            Depth df,
-            Info& info) const;
+            Depth df) const;
 
     /** Update insertion (x1, z1, y2, z2) and add insertion to insertions. */
     void update(
             const Node& father,
             std::vector<Insertion>& insertions,
-            Insertion& insertion,
-            Info& info) const;
+            Insertion& insertion) const;
 
     bool check(const std::vector<SolutionNode>& nodes) const;
 };

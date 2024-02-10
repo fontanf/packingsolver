@@ -28,8 +28,6 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
      *                         3000                     6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -44,12 +42,12 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -2, 3210, 3000, 3210, 3210, 6000, 0, 0};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {1, -1, 1, 3210, 6000, 500, 3210, 6000, 0, 0};
-    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.insertions(node_1, info);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.insertions(node_1);
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
     auto node_2 = branching_scheme.child(node_1, i1);
 
@@ -58,10 +56,6 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
 {
-    Info info = Info()
-        //.set_log2stderr(true)
-        ;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.read_item_types("data/rectangle/tests/C1_items.csv");
@@ -73,16 +67,15 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
     BranchingScheme::Parameters branching_scheme_parameters;
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-    SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    std::mutex mutex;
-    iterative_beam_search(branching_scheme, solution_pool, mutex);
-    EXPECT_EQ(solution_pool.best().waste(), 0);
+    packingsolver::Output<Instance, Solution> output(instance);
+    packingsolver::Parameters<Instance, Solution> parameters;
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    iterative_beam_search(branching_scheme, algorithm_formatter);
+    EXPECT_EQ(output.solution_pool.best().waste(), 0);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
 {
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.read_item_types("data/rectangle/tests/C2_items.csv");
@@ -94,10 +87,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
     BranchingScheme::Parameters branching_scheme_parameters;
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-    SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    std::mutex mutex;
-    iterative_beam_search(branching_scheme, solution_pool, mutex);
-    EXPECT_EQ(solution_pool.best().waste(), 210 * 5700);
+    packingsolver::Output<Instance, Solution> output(instance);
+    packingsolver::Parameters<Instance, Solution> parameters;
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    iterative_beam_search(branching_scheme, algorithm_formatter);
+    EXPECT_EQ(output.solution_pool.best().waste(), 210 * 5700);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
@@ -114,9 +108,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    std::mutex mutex;
-    iterative_beam_search(branching_scheme, solution_pool, mutex);
-    EXPECT_EQ(solution_pool.best().waste(), 0);
+    packingsolver::Output<Instance, Solution> output(instance);
+    packingsolver::Parameters<Instance, Solution> parameters;
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    iterative_beam_search(branching_scheme, algorithm_formatter);
+    EXPECT_EQ(output.solution_pool.best().waste(), 0);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
@@ -141,8 +137,6 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
      *
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.read_item_types("data/rectangle/tests/C11_items.csv");
@@ -155,10 +149,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
     BranchingScheme::Parameters branching_scheme_parameters;
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-    SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    std::mutex mutex;
-    iterative_beam_search(branching_scheme, solution_pool, mutex);
-    EXPECT_EQ(solution_pool.best().waste(), 3210 * (6000 + 210) - instance.item_area());
+    packingsolver::Output<Instance, Solution> output(instance);
+    packingsolver::Parameters<Instance, Solution> parameters;
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    iterative_beam_search(branching_scheme, algorithm_formatter);
+    EXPECT_EQ(output.solution_pool.best().waste(), 3210 * (6000 + 210) - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
@@ -180,8 +175,6 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
      *           500    1000   1500                     6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -195,10 +188,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    std::mutex mutex;
-    iterative_beam_search(branching_scheme, solution_pool, mutex);
-    EXPECT_EQ(solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
+    packingsolver::Output<Instance, Solution> output(instance);
+    packingsolver::Parameters<Instance, Solution> parameters;
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    iterative_beam_search(branching_scheme, algorithm_formatter);
+    EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
@@ -220,8 +214,6 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
      *           500    1000   1500                     6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -236,10 +228,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    std::mutex mutex;
-    iterative_beam_search(branching_scheme, solution_pool, mutex);
-    EXPECT_EQ(solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
+    packingsolver::Output<Instance, Solution> output(instance);
+    packingsolver::Parameters<Instance, Solution> parameters;
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    iterative_beam_search(branching_scheme, algorithm_formatter);
+    EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
@@ -262,8 +255,6 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
      *                       2800
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -278,10 +269,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    std::mutex mutex;
-    iterative_beam_search(branching_scheme, solution_pool, mutex);
-    EXPECT_EQ(solution_pool.best().waste(), 3210 * 6000 - instance.item_area());
+    packingsolver::Output<Instance, Solution> output(instance);
+    packingsolver::Parameters<Instance, Solution> parameters;
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    iterative_beam_search(branching_scheme, algorithm_formatter);
+    EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 6000 - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
@@ -303,10 +295,6 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
      *              1500           3000                 6000
      */
 
-    Info info = Info()
-        //.set_log2stderr(true)
-        ;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -323,10 +311,11 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    std::mutex mutex;
-    iterative_beam_search(branching_scheme, solution_pool, mutex);
-    EXPECT_EQ(solution_pool.best().waste(), 3210 * 3000 - instance.item_area());
+    packingsolver::Output<Instance, Solution> output(instance);
+    packingsolver::Parameters<Instance, Solution> parameters;
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    iterative_beam_search(branching_scheme, algorithm_formatter);
+    EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 3000 - instance.item_area());
 }
 
 static inline void rtrim(std::string &s) {
@@ -358,8 +347,6 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
             "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11", "B12", "B13", "B14", /*"B15", */
             /*"X1", *//*"X2", */"X3", "X4", "X5", "X6", "X7", "X8", "X9", "X10", "X11", "X12", "X13", "X14", /*"X15", */
             }) {
-
-        Info info;
 
         InstanceBuilder instance_builder;
         instance_builder.set_objective(Objective::BinPackingWithLeftovers);
@@ -422,14 +409,12 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
         Instance instance_new = instance_builder_new.build();
 
         BranchingScheme branching_scheme(instance_new);
-        SolutionPool<Instance, Solution> solution_pool(instance_new, 1);
-        std::mutex mutex;
-        iterative_beam_search(branching_scheme, solution_pool, mutex);
-        const Solution& solution = solution_pool.best();
+        packingsolver::Output<Instance, Solution> output(instance);
+        packingsolver::Parameters<Instance, Solution> parameters;
+        AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+        iterative_beam_search(branching_scheme, algorithm_formatter);
+        const Solution& solution = output.solution_pool.best();
         std::cout << name << " " << waste << std::endl;
         EXPECT_EQ(solution.waste(), waste);
-        info.set_certificate_path(name + "_solution.csv");
-
     }
 }
-

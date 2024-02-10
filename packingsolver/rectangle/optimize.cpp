@@ -1,5 +1,6 @@
 #include "packingsolver/rectangle/optimize.hpp"
 
+#include "packingsolver/rectangle/algorithm_formatter.hpp"
 #include "packingsolver/rectangle/branching_scheme.hpp"
 #include "packingsolver/algorithms/vbpp_to_bpp.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"
@@ -12,11 +13,14 @@
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
 
-Output packingsolver::rectangle::optimize(
+const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         const Instance& instance,
-        OptimizeOptionalParameters parameters)
+        const OptimizeParameters& parameters)
 {
     Output output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
 
     Algorithm algorithm = Algorithm::TreeSearch;
     if (parameters.algorithm != Algorithm::Auto) {
@@ -45,11 +49,6 @@ Output packingsolver::rectangle::optimize(
         }
 #endif
     }
-    std::stringstream ss;
-    ss << algorithm;
-    parameters.info.add_to_json("Algorithm", "Algorithm", ss.str());
-
-    output.solution_pool.best().algorithm_start(parameters.info, algorithm);
 
     if (algorithm == Algorithm::TreeSearch) {
 
@@ -91,24 +90,24 @@ Output packingsolver::rectangle::optimize(
         //growth_factors = {1.5};
 
         std::vector<BranchingScheme> branching_schemes;
-        std::vector<treesearchsolver::IterativeBeamSearch2OptionalParameters<BranchingScheme>> ibs_parameterss;
+        std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameterss;
         for (double growth_factor: growth_factors) {
             for (GuideId guide_id: guides) {
                 for (Direction direction: directions) {
                     //std::cout << growth_factor << " " << guide_id << " " << direction << std::endl;
-                    Counter i = branching_schemes.size();
                     BranchingScheme::Parameters branching_scheme_parameters;
                     branching_scheme_parameters.guide_id = guide_id;
                     branching_scheme_parameters.direction = direction;
                     branching_scheme_parameters.fixed_items = parameters.fixed_items;
                     branching_schemes.push_back(BranchingScheme(instance, branching_scheme_parameters));
-                    treesearchsolver::IterativeBeamSearch2OptionalParameters<BranchingScheme> ibs_parameters;
+                    treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
+                    ibs_parameters.verbosity_level = 0;
+                    ibs_parameters.timer = parameters.timer;
                     ibs_parameters.growth_factor = growth_factor;
                     if (parameters.tree_search_queue_size != -1) {
                         ibs_parameters.minimum_size_of_the_queue = parameters.tree_search_queue_size;
                         ibs_parameters.maximum_size_of_the_queue = parameters.tree_search_queue_size;
                     }
-                    ibs_parameters.info = Info(parameters.info, false, "thread" + std::to_string(i + 1));
                     //ibs_parameters.info.set_verbosity_level(1);
                     ibs_parameterss.push_back(ibs_parameters);
                 }
@@ -118,27 +117,18 @@ Output packingsolver::rectangle::optimize(
         std::vector<std::thread> threads;
         for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
             ibs_parameterss[i].new_solution_callback
-                = [&parameters, &output, &branching_schemes, i](
-                        const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& ibs_output)
+                = [&algorithm_formatter, &branching_schemes, i](
+                        const treesearchsolver::Output<BranchingScheme>& tss_output)
                 {
-                    // Lock mutex.
-                    parameters.info.lock();
-
+                    const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
+                        = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
                     Solution solution = branching_schemes[i].to_solution(
-                            ibs_output.solution_pool.best());
+                            tssibs_output.solution_pool.best());
                     std::stringstream ss;
                     ss << branching_schemes[i].parameters().guide_id
                         << " " << branching_schemes[i].parameters().direction
-                        << " " << ibs_output.maximum_size_of_the_queue;
-                    bool new_best = output.solution_pool.add(
-                            solution,
-                            ss,
-                            parameters.info);
-                    if (new_best)
-                        parameters.new_solution_callback(output);
-
-                    // Unlock mutex.
-                    parameters.info.unlock();
+                        << " " << tssibs_output.maximum_size_of_the_queue;
+                    algorithm_formatter.update_solution(solution, ss.str());
                 };
             if (parameters.number_of_threads != 1 && branching_schemes.size() > 1) {
                 threads.push_back(std::thread(
@@ -157,51 +147,54 @@ Output packingsolver::rectangle::optimize(
     } else if (algorithm == Algorithm::ColumnGeneration) {
 
         if (instance.number_of_items() < 1024) {
-            VbppToBppFunction<Instance, InstanceBuilder, Solution> bpp_solve
+            VbppToBppFunction<Instance, Solution> bpp_solve
                 = [&parameters](const Instance& bpp_instance)
                 {
-                    OptimizeOptionalParameters bpp_parameters;
+                    OptimizeParameters bpp_parameters;
+                    bpp_parameters.verbosity_level = 0;
+                    bpp_parameters.timer = parameters.timer;
                     bpp_parameters.number_of_threads = parameters.number_of_threads;
                     bpp_parameters.algorithm = Algorithm::TreeSearch;
                     bpp_parameters.tree_search_queue_size = parameters.column_generation_vbpp_to_bpp_queue_size;
-                    bpp_parameters.info = Info(parameters.info, false, "");
                     if (parameters.column_generation_vbpp_to_bpp_time_limit >= 0)
-                        bpp_parameters.info.set_time_limit(parameters.column_generation_vbpp_to_bpp_time_limit);
-                    //bpp_parameters.info.set_verbosity_level(1);
+                        bpp_parameters.timer.set_time_limit(parameters.column_generation_vbpp_to_bpp_time_limit);
                     auto bpp_output = optimize(bpp_instance, bpp_parameters);
                     return bpp_output.solution_pool;
                 };
-            VbppToBppOptionalParameters<Instance, InstanceBuilder, Solution> vbpp_to_bpp_parameters;
-            auto vbpp_to_bpp_output = vbpp_to_bpp(instance, bpp_solve, vbpp_to_bpp_parameters);
+            VbppToBppParameters<Instance, Solution> vbpp_to_bpp_parameters;
+            auto vbpp_to_bpp_output = vbpp_to_bpp<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, bpp_solve, vbpp_to_bpp_parameters);
             std::stringstream ss;
             ss << "VBPP to BPP";
-            bool new_best = output.solution_pool.add(vbpp_to_bpp_output.solution_pool.best(), ss, parameters.info);
-            if (new_best)
-                parameters.new_solution_callback(output);
+            algorithm_formatter.update_solution(vbpp_to_bpp_output.solution_pool.best(), ss.str());
         }
 
         ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution> pricing_function
             = [&parameters](const rectangle::Instance& kp_instance)
             {
-                OptimizeOptionalParameters kp_parameters;
+                OptimizeParameters kp_parameters;
+                kp_parameters.verbosity_level = 0;
+                kp_parameters.timer = parameters.timer;
                 kp_parameters.number_of_threads = parameters.number_of_threads;
                 kp_parameters.tree_search_queue_size = parameters.column_generation_pricing_queue_size;
-                kp_parameters.info = Info(parameters.info, false, "");
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
 
-        columngenerationsolver::Parameters cgs_parameters = get_parameters<Instance, InstanceBuilder, Solution>(instance, pricing_function);
+        columngenerationsolver::Model cgs_parameters = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
         if (output.solution_pool.best().full())
             cgs_parameters.columns = solution2column(output.solution_pool.best());
-        columngenerationsolver::LimitedDiscrepancySearchOptionalParameters lds_parameters;
-        lds_parameters.new_bound_callback = [&instance, &parameters, &output](
-                const columngenerationsolver::LimitedDiscrepancySearchOutput& o)
+        columngenerationsolver::LimitedDiscrepancySearchParameters lds_parameters;
+        lds_parameters.verbosity_level = 0;
+        lds_parameters.timer = parameters.timer;
+        lds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
+                const columngenerationsolver::Output& cgs_output)
         {
-            if (o.solution.size() > 0) {
+            const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
+                = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
+            if (cgslds_output.solution.feasible()) {
                 Solution solution(instance);
-                for (const auto& pair: o.solution) {
-                    const Column& column = pair.first;
+                for (const auto& pair: cgslds_output.solution.columns()) {
+                    const Column& column = *(pair.first);
                     BinPos value = std::round(pair.second);
                     if (value < 0.5)
                         continue;
@@ -211,59 +204,42 @@ Output packingsolver::rectangle::optimize(
                             value);
                 }
                 std::stringstream ss;
-                ss << "discrepancy " << o.solution_discrepancy;
-                bool new_best = output.solution_pool.add(
-                        solution,
-                        ss,
-                        parameters.info);
-                if (new_best)
-                    parameters.new_solution_callback(output);
+                ss << "discrepancy " << cgslds_output.maximum_discrepancy;
+                algorithm_formatter.update_solution(solution, ss.str());
             }
         };
         lds_parameters.column_generation_parameters.linear_programming_solver
             = parameters.linear_programming_solver;
-        lds_parameters.info = Info(parameters.info, false, "");
         columngenerationsolver::limited_discrepancy_search(cgs_parameters, lds_parameters);
 
     } else if (algorithm == Algorithm::DichotomicSearch) {
 
-        DichotomicSearchFunction<Instance, InstanceBuilder, Solution> bpp_solve
+        DichotomicSearchFunction<Instance, Solution> bpp_solve
             = [&parameters](const Instance& bpp_instance)
             {
-                OptimizeOptionalParameters bpp_parameters;
+                OptimizeParameters bpp_parameters;
+                bpp_parameters.verbosity_level = 0;
+                bpp_parameters.timer = parameters.timer;
                 bpp_parameters.number_of_threads = parameters.number_of_threads;
                 bpp_parameters.algorithm = Algorithm::TreeSearch;
                 bpp_parameters.tree_search_queue_size = parameters.dichotomic_search_queue_size;
-                bpp_parameters.info = Info(parameters.info, false, "");
-                //bpp_parameters.info.set_verbosity_level(1);
                 auto bpp_output = optimize(bpp_instance, bpp_parameters);
                 return bpp_output.solution_pool;
             };
-        DichotomicSearchOptionalParameters<Instance, InstanceBuilder, Solution> ds_parameters;
-        ds_parameters.new_solution_callback = [&parameters, &output](
-                const DichotomicSearchOutput<Instance, InstanceBuilder, Solution>& ds_output)
+        DichotomicSearchParameters<Instance, Solution> ds_parameters;
+        ds_parameters.new_solution_callback = [&algorithm_formatter](
+                const packingsolver::Output<Instance, Solution>& ps_output)
         {
-            // Lock mutex.
-            parameters.info.lock();
-
+            const DichotomicSearchOutput<Instance, Solution>& psds_output
+                = static_cast<const DichotomicSearchOutput<Instance, Solution>&>(ps_output);
             std::stringstream ss;
-            ss << "waste percentage " << ds_output.waste_percentage;
-            bool new_best = output.solution_pool.add(
-                    ds_output.solution_pool.best(),
-                    ss,
-                    parameters.info);
-            if (new_best)
-                parameters.new_solution_callback(output);
-
-            // Unlock mutex.
-            parameters.info.unlock();
+            ss << "waste percentage " << psds_output.waste_percentage;
+            algorithm_formatter.update_solution(psds_output.solution_pool.best(), ss.str());
         };
-        ds_parameters.info = Info(parameters.info, false, "");
-        dichotomic_search(instance, bpp_solve, ds_parameters);
+        dichotomic_search<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, bpp_solve, ds_parameters);
 
     }
 
-    output.solution_pool.best().algorithm_end(parameters.info);
+    algorithm_formatter.end();
     return output;
 }
-

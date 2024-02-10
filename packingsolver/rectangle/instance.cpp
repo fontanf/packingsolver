@@ -143,7 +143,7 @@ std::ostream& packingsolver::rectangle::operator<<(
     return os;
 }
 
-std::ostream& Instance::print(
+std::ostream& Instance::format(
         std::ostream& os,
         int verbose) const
 {

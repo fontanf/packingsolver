@@ -34,8 +34,6 @@ TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect1)
      *
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -50,7 +48,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect1)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 500, 1000, 3500, 3210, 0, 0};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
@@ -59,7 +57,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect1)
         {-1, 1, 1, 1000, 2005, 1000, 3500, 3210, 0, 1},
         {-1, -1, 1, 1000, 1005, 510, 3500, 3210, 0, 1},
     };
-    EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+    EXPECT_EQ(branching_scheme.insertions(node_1), is);
 
     {
         // Test where cutting through defects is allowed.
@@ -78,7 +76,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect1)
         auto root = branching_scheme.root();
 
         BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 500, 1000, 3500, 3210, 0, 0};
-        std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+        std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
         EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
         auto node_1 = branching_scheme.child(root, i0);
 
@@ -87,7 +85,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionCutOnDefect1)
             {-1, 1, 1, 1000, 2005, 1000, 3500, 3210, 0, 1},
             {-1, -1, 1, 1000, 1005, 510, 3500, 3210, 0, 1},
         };
-        EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+        EXPECT_EQ(branching_scheme.insertions(node_1), is);
     }
 }
 
@@ -117,10 +115,6 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutOnDefect4)
      *
      */
 
-    Info info = Info()
-        //.set_log2stderr(true)
-        ;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -136,7 +130,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutOnDefect4)
         {0, -1, -1, 500, 1000, 500, 3500, 3210, 0, 0},
         {-1, -1, -1, 1010, 20, 1010, 3500, 3210, 1, 1},
     };
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 
     {
         // Test where cutting through defects is allowed.
@@ -157,7 +151,7 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutOnDefect4)
             {0, -1, -1, 500, 1000, 500, 3500, 3210, 0, 0},
             {-1, -1, -1, 1010, 20, 1010, 3500, 3210, 1, 1},
         };
-        EXPECT_EQ(branching_scheme.insertions(root, info), is);
+        EXPECT_EQ(branching_scheme.insertions(root), is);
     }
 
 }
@@ -191,8 +185,6 @@ TEST(RectangleGuillotineBranchingScheme, InsertionXMaxDefect)
      *          1500     2500
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -207,7 +199,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionXMaxDefect)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 500, 1000, 3500, 3210, 0, 0};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
@@ -219,7 +211,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionXMaxDefect)
         {1, -1, 1, 1500, 1010, 1500, 2000, 3210, 0, 0},
         {1, -1, 1, 1000, 2000, 510, 2000, 3210, 0, 0},
     };
-    EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+    EXPECT_EQ(branching_scheme.insertions(node_1), is);
 
     {
         // Test where cutting through defects is allowed.
@@ -238,7 +230,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionXMaxDefect)
         auto root = branching_scheme.root();
 
         BranchingScheme::Insertion i0 = {0, -1, -1, 1000, 500, 1000, 3500, 3210, 0, 0};
-        std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root, info);
+        std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
         EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
         auto node_1 = branching_scheme.child(root, i0);
 
@@ -250,7 +242,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionXMaxDefect)
             {1, -1, 1, 1500, 1010, 1500, 3500, 3210, 0, 0},
             {1, -1, 1, 1000, 2000, 510, 3500, 3210, 0, 0},
         };
-        EXPECT_EQ(branching_scheme.insertions(node_1, info), is);
+        EXPECT_EQ(branching_scheme.insertions(node_1), is);
     }
 
 }
@@ -284,8 +276,6 @@ TEST(RectangleGuillotineBranchingScheme, InsertionYMaxDefect)
      *
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -305,7 +295,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionYMaxDefect)
         {0, -1, -1, 500, 1000, 500, 3500, 3210, 0, 0},
         {-1, -1, -1, 1005, 910, 1005, 3500, 3210, 1, 1},
     };
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 
     {
         // Test where cutting through defects is allowed.
@@ -329,7 +319,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionYMaxDefect)
             {0, -1, -1, 1000, 500, 1000, 3500, 3210, 0, 0},
             {0, -1, -1, 500, 1000, 500, 3500, 3210, 0, 0},
         };
-        EXPECT_EQ(branching_scheme.insertions(root, info), is);
+        EXPECT_EQ(branching_scheme.insertions(root), is);
     }
 }
 

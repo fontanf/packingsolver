@@ -22,28 +22,22 @@ namespace packingsolver
 namespace irregular
 {
 
-struct NlpOutput
+struct NlpOutput: packingsolver::Output<Instance, Solution>
 {
     /** Constructor. */
     NlpOutput(const Instance& instance):
-        solution_pool(instance, 1) { }
-
-    /** Solution pool. */
-    SolutionPool<Instance, Solution> solution_pool;
+        packingsolver::Output<Instance, Solution>(instance) { }
 };
 
-struct NlpOptionalParameters
+struct NlpParameters: packingsolver::Parameters<Instance, Solution>
 {
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
-
     /** Path of the .nl output file. */
     std::string output_nl_path;
 };
 
-NlpOutput nlp(
+const NlpOutput nlp(
         const Instance& instance,
-        NlpOptionalParameters parameters = {});
+        const NlpParameters& parameters = {});
 
 }
 }

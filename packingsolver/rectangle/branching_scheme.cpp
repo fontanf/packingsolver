@@ -1,9 +1,6 @@
 #include "packingsolver/rectangle/branching_scheme.hpp"
 
 #include <string>
-#include <fstream>
-#include <iomanip>
-#include <locale>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
@@ -381,11 +378,11 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     }
     node.waste = node.current_area - node.item_area;
     if (node.waste < 0) {
-        std::cout
-            << "current_area " << node.current_area
-            << " item_area " << node.item_area
-            << " waste " << node.waste
-            << std::endl;
+        //std::cout
+        //    << "current_area " << node.current_area
+        //    << " item_area " << node.item_area
+        //    << " waste " << node.waste
+        //    << std::endl;
         throw std::runtime_error("waste");
     }
 

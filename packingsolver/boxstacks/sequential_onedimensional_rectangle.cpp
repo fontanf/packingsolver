@@ -1,4 +1,7 @@
 #include "packingsolver/boxstacks/sequential_onedimensional_rectangle.hpp"
+
+#include "packingsolver/boxstacks/algorithm_formatter.hpp"
+
 #include "packingsolver/rectangle/branching_scheme.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
@@ -112,8 +115,9 @@ struct SequentialOneDimensionalRectangleSubproblemOutput
 
 SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rectangle_subproblem(
         const Instance& instance,
-        SequentialOneDimensionalRectangleOptionalParameters& parameters,
-        SequentialOneDimensionalRectangleOutput& sequential_onedimensional_rectangle_output,
+        const SequentialOneDimensionalRectangleParameters& parameters,
+        SequentialOneDimensionalRectangleOutput& sor_output,
+        AlgorithmFormatter& sor_algorithm_formatter,
         Counter iteration,
         const Solution& fixed_items,
         std::vector<StackabilityGroup> stackability_groups,
@@ -127,11 +131,11 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     // Solve rectanlge instance.
     //rectangle_parameters.fixed_items = &rectangle_fixed_items;
     rectangle::BranchingScheme rectangle_branching_scheme(rectangle_instance, rectangle_parameters);
-    treesearchsolver::IterativeBeamSearch2OptionalParameters<rectangle::BranchingScheme> ibs_parameters;
+    treesearchsolver::IterativeBeamSearch2Parameters<rectangle::BranchingScheme> ibs_parameters;
+    ibs_parameters.verbosity_level = 0;
+    ibs_parameters.timer = parameters.timer;
     ibs_parameters.minimum_size_of_the_queue = parameters.rectangle_queue_size;
     ibs_parameters.maximum_size_of_the_queue = parameters.rectangle_queue_size;
-    ibs_parameters.info = Info(parameters.info, false, "");
-    //ibs_parameters.info.set_verbosity_level(2);
     auto rectangle_begin = std::chrono::steady_clock::now();
     auto rectangle_output = treesearchsolver::iterative_beam_search_2<rectangle::BranchingScheme>(
             rectangle_branching_scheme,
@@ -139,8 +143,8 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     auto rectangle_end = std::chrono::steady_clock::now();
     std::chrono::duration<double> rectangle_time_span
         = std::chrono::duration_cast<std::chrono::duration<double>>(rectangle_end - rectangle_begin);
-    sequential_onedimensional_rectangle_output.rectangle_time += rectangle_time_span.count();
-    sequential_onedimensional_rectangle_output.number_of_rectangle_calls++;
+    sor_output.rectangle_time += rectangle_time_span.count();
+    sor_output.number_of_rectangle_calls++;
     auto rectangle_solution = rectangle_branching_scheme.to_solution(rectangle_output.solution_pool.best());
     //std::cout << "rectangle_solution.number_of_items " << rectangle_solution.number_of_items()
     //    << " / " << rectangle_instance.number_of_items()
@@ -279,8 +283,8 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
         }
     }
     ItemPos number_of_items_before_repair = solution.number_of_items();
-    sequential_onedimensional_rectangle_output.maximum_number_of_items = std::max(
-            sequential_onedimensional_rectangle_output.maximum_number_of_items,
+    sor_output.maximum_number_of_items = std::max(
+            sor_output.maximum_number_of_items,
             number_of_items_before_repair);
     output.profit_before_repair = solution.profit();
     //solution.write("sol_" + std::to_string(iteration) + "_" + std::to_string(rectangle_parameters.guide_id) + "_before.csv");
@@ -1162,18 +1166,21 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     if (solution.compute_weight_constraints_violation() == 0) {
         std::stringstream ss;
         ss << "iteration " << iteration;
-        sequential_onedimensional_rectangle_output.solution_pool.add(solution, ss, parameters.info);
+        sor_algorithm_formatter.update_solution(solution, ss.str());
     }
     output.solution = solution;
     return output;
 }
 
-SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rectangle(
+const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rectangle(
         const Instance& instance,
-        SequentialOneDimensionalRectangleOptionalParameters parameters)
+        const SequentialOneDimensionalRectangleParameters& parameters)
 {
     //std::cout << "sequential_onedimensional_rectangle" << std::endl;
     SequentialOneDimensionalRectangleOutput output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
 
     // Part of solution which is fixed.
     Solution fixed_items(instance);
@@ -1324,10 +1331,10 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
             onedimensional::Instance onedim_instance = onedim_instance_builder.build();
 
             // Solve onedimensional instance.
-            onedimensional::OptimizeOptionalParameters onedim_parameters = parameters.onedimensional_parameters;
+            onedimensional::OptimizeParameters onedim_parameters = parameters.onedimensional_parameters;
+            onedim_parameters.verbosity_level = 0;
+            onedim_parameters.timer = parameters.timer;
             onedim_parameters.column_generation_maximum_discrepancy = 0;
-            onedim_parameters.info = Info(parameters.info, false, "");
-            //onedim_parameters.info.set_verbosity_level(2);
             auto onedim_begin = std::chrono::steady_clock::now();
             auto onedim_output = onedimensional::optimize(
                     onedim_instance,
@@ -1339,7 +1346,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
             output.number_of_onedimensional_calls++;
 
             auto onedim_solution = onedim_output.solution_pool.best();
-            if (parameters.info.needs_to_end())
+            if (parameters.timer.needs_to_end())
                 return output;
             if (!onedim_solution.full()) {
                 throw std::runtime_error("No solution to VBPP subproblem.");
@@ -1490,7 +1497,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
             }
         }
 
-        //rectangle_instance.print(std::cout, 2);
+        //rectangle_instance.format(std::cout, 2);
 
         Profit best_possible_profit = 0;
         if (try_to_pack_all_items) {
@@ -1523,6 +1530,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                         instance,
                         parameters,
                         output,
+                        algorithm_formatter,
                         iteration,
                         fixed_items,
                         stackability_groups,
@@ -1546,6 +1554,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                         instance,
                         parameters,
                         output,
+                        algorithm_formatter,
                         iteration,
                         fixed_items,
                         stackability_groups,
@@ -1573,6 +1582,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                             instance,
                             parameters,
                             output,
+                            algorithm_formatter,
                             iteration,
                             fixed_items,
                             stackability_groups,
@@ -1599,6 +1609,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                             instance,
                             parameters,
                             output,
+                            algorithm_formatter,
                             iteration,
                             fixed_items,
                             stackability_groups,
@@ -1624,6 +1635,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                             instance,
                             parameters,
                             output,
+                            algorithm_formatter,
                             iteration,
                             fixed_items,
                             stackability_groups,
@@ -1656,6 +1668,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                             instance,
                             parameters,
                             output,
+                            algorithm_formatter,
                             iteration,
                             fixed_items,
                             stackability_groups,
@@ -1681,6 +1694,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                             instance,
                             parameters,
                             output,
+                            algorithm_formatter,
                             iteration,
                             fixed_items,
                             stackability_groups,
@@ -1709,6 +1723,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                             instance,
                             parameters,
                             output,
+                            algorithm_formatter,
                             iteration,
                             fixed_items,
                             stackability_groups,
@@ -1745,6 +1760,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                         instance,
                         parameters,
                         output,
+                        algorithm_formatter,
                         iteration,
                         fixed_items,
                         stackability_groups,
@@ -1768,6 +1784,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                         instance,
                         parameters,
                         output,
+                        algorithm_formatter,
                         iteration,
                         fixed_items,
                         stackability_groups,
@@ -1794,6 +1811,7 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
                         instance,
                         parameters,
                         output,
+                        algorithm_formatter,
                         iteration,
                         fixed_items,
                         stackability_groups,
@@ -1924,5 +1942,6 @@ SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimensional_rec
     }
 
     //std::cout << "sequential_onedimensional_rectangle end" << std::endl;
+    algorithm_formatter.end();
     return output;
 }

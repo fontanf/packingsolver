@@ -38,31 +38,31 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
+#include <functional>
+
 namespace packingsolver
 {
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
+template <typename Instance, typename Solution>
 using SequentialValueCorrectionFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-struct SequentialValueCorrectionOutput
+template <typename Instance, typename Solution>
+struct SequentialValueCorrectionOutput: packingsolver::Output<Instance, Solution>
 {
     /** Constructor. */
     SequentialValueCorrectionOutput(const Instance& instance):
-        solution_pool(instance, 1) { }
+        packingsolver::Output<Instance, Solution>(instance) { }
 
-    /** Solution pool. */
-    SolutionPool<Instance, Solution> solution_pool;
 
     /** Number of iterations. */
     Counter number_of_iterations = 0;
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-using SequentialValueCorrectionNewSolutionCallback = std::function<void(const SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution>&)>;
+template <typename Instance, typename Solution>
+using SequentialValueCorrectionNewSolutionCallback = std::function<void(const SequentialValueCorrectionOutput<Instance, Solution>&)>;
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-struct SequentialValueCorrectionOptionalParameters
+template <typename Instance, typename Solution>
+struct SequentialValueCorrectionParameters: packingsolver::Parameters<Instance, Solution>
 {
     /** Maximum number of iterations. */
     Counter maximum_number_of_iterations = -1;
@@ -76,28 +76,18 @@ struct SequentialValueCorrectionOptionalParameters
      * iterations manage to pack all items in the first bin only.
      */
     BinPos bin_packing_goal = 2;
-
-    /** New solution callback. */
-    SequentialValueCorrectionNewSolutionCallback<Instance, InstanceBuilder, Solution> new_solution_callback
-        = [](const SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution>&) { };
-
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> dichotomic_search(
+template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter>
+SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         const Instance& instance,
-        const SequentialValueCorrectionFunction<Instance, InstanceBuilder, Solution>& function,
-        SequentialValueCorrectionOptionalParameters<Instance, InstanceBuilder, Solution> parameters = {});
-
-template <typename Instance, typename InstanceBuilder, typename Solution>
-SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_value_correction(
-        const Instance& instance,
-        const SequentialValueCorrectionFunction<Instance, InstanceBuilder, Solution>& function,
-        SequentialValueCorrectionOptionalParameters<Instance, InstanceBuilder, Solution> parameters)
+        const SequentialValueCorrectionFunction<Instance, Solution>& function,
+        const SequentialValueCorrectionParameters<Instance, Solution>& parameters)
 {
-    SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> output(instance);
+    SequentialValueCorrectionOutput<Instance, Solution> output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
 
     if (instance.number_of_item_types() == 0)
         return output;
@@ -131,7 +121,7 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
         for (;;) {
 
             // Check end.
-            if (parameters.info.needs_to_end())
+            if (parameters.timer.needs_to_end())
                 return output;
 
             // Stop if all items have been packed.
@@ -306,7 +296,7 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
         // Update best solution.
         std::stringstream ss;
         ss << "iteration " << output.number_of_iterations;
-        output.solution_pool.add(solution, ss, parameters.info);
+        algorithm_formatter.update_solution(solution, ss.str());
         parameters.new_solution_callback(output);
 
         // Check BinPacking goal.
@@ -329,8 +319,8 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
 
     }
 
+    algorithm_formatter.end();
     return output;
-
 }
 
 }

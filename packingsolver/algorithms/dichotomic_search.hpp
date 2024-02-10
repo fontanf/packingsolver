@@ -17,7 +17,8 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
-#include "knapsacksolver/algorithms/dynamic_programming_primal_dual.hpp"
+#include "knapsacksolver/knapsack/instance_builder.hpp"
+#include "knapsacksolver/knapsack/algorithms/dynamic_programming_primal_dual.hpp"
 
 namespace packingsolver
 {
@@ -46,18 +47,16 @@ double mean_item_space(const Instance& instance)
     return space;
 }
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
+template <typename Instance, typename Solution>
 using DichotomicSearchFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-struct DichotomicSearchOutput
+template <typename Instance, typename Solution>
+struct DichotomicSearchOutput: Output<Instance, Solution>
 {
     /** Constructor. */
     DichotomicSearchOutput(const Instance& instance):
-        solution_pool(instance, 1) { }
+        Output<Instance, Solution>(instance) { }
 
-    /** Solution pool. */
-    SolutionPool<Instance, Solution> solution_pool;
 
     /** Lower bound on the waste percentage. */
     double waste_percentage_lower_bound = 0;
@@ -69,36 +68,23 @@ struct DichotomicSearchOutput
     double waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-using DichotomicSearchNewSolutionCallback = std::function<void(const DichotomicSearchOutput<Instance, InstanceBuilder, Solution>&)>;
-
-template <typename Instance, typename InstanceBuilder, typename Solution>
-struct DichotomicSearchOptionalParameters
+template <typename Instance, typename Solution>
+struct DichotomicSearchParameters: Parameters<Instance, Solution>
 {
     /** Initial waste percentage. */
     double initial_waste_percentage = 0.1;
-
-    /** New solution callback. */
-    DichotomicSearchNewSolutionCallback<Instance, InstanceBuilder, Solution> new_solution_callback
-        = [](const DichotomicSearchOutput<Instance, InstanceBuilder, Solution>&) { };
-
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-DichotomicSearchOutput<Instance, InstanceBuilder, Solution> dichotomic_search(
+template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter>
+DichotomicSearchOutput<Instance, Solution> dichotomic_search(
         const Instance& instance,
-        const DichotomicSearchFunction<Instance, InstanceBuilder, Solution>& function,
-        DichotomicSearchOptionalParameters<Instance, InstanceBuilder, Solution> parameters = {});
-
-template <typename Instance, typename InstanceBuilder, typename Solution>
-DichotomicSearchOutput<Instance, InstanceBuilder, Solution> dichotomic_search(
-        const Instance& instance,
-        const DichotomicSearchFunction<Instance, InstanceBuilder, Solution>& function,
-        DichotomicSearchOptionalParameters<Instance, InstanceBuilder, Solution> parameters)
+        const DichotomicSearchFunction<Instance, Solution>& function,
+        const DichotomicSearchParameters<Instance, Solution>& parameters)
 {
-    DichotomicSearchOutput<Instance, InstanceBuilder, Solution> output(instance);
+    DichotomicSearchOutput<Instance, Solution> output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
 
     if (instance.number_of_item_types() == 0)
         return output;
@@ -143,16 +129,16 @@ DichotomicSearchOutput<Instance, InstanceBuilder, Solution> dichotomic_search(
     while (output.waste_percentage_upper_bound - output.waste_percentage_lower_bound > 0.00001) {
         //std::cout << output.waste_percentage << std::endl;
 
-        if (parameters.info.needs_to_end())
+        if (parameters.timer.needs_to_end())
             break;
 
         // Build knapsack instance.
         //std::cout << "Build Knapsack instance..." << std::endl;
-        knapsacksolver::Instance kp_instance;
+        knapsacksolver::knapsack::InstanceBuilder kp_instance_builder;
         // Set knapsack capacity.
         //std::cout << "bin_space " << bin_space << std::endl;
         //std::cout << "item_space " << item_space << std::endl;
-        kp_instance.set_capacity(
+        kp_instance_builder.set_capacity(
                 bin_space - bin_min_space - (item_space * (1 + output.waste_percentage)));
         // Add knapsack items which are PackingSolver bins.
         std::vector<BinTypeId> kp2ps;
@@ -161,19 +147,21 @@ DichotomicSearchOutput<Instance, InstanceBuilder, Solution> dichotomic_search(
                 ++bin_type_id) {
             const auto& bin_type = instance.bin_type(bin_type_id);
             for (BinPos pos = 0; pos < bin_type.copies; ++pos) {
-                kp_instance.add_item(bin_type.space(), bin_type.cost);
+                kp_instance_builder.add_item(bin_type.space(), bin_type.cost);
                 kp2ps.push_back(bin_type_id);
             }
         }
+        const knapsacksolver::knapsack::Instance kp_instance = kp_instance_builder.build();
         //std::cout << "kp2ps";
         //for (BinTypeId i: kp2ps)
         //    std::cout << " " << i;
         //std::cout << std::endl;
         // Solve knapsack instance.
-        knapsacksolver::DynamicProgrammingPrimalDualOptionalParameters kp_parameters;
-        kp_parameters.info = Info(parameters.info, false, "knapsack");
-        //kp_parameters.info.set_verbosity_level(2);
-        auto kp_output = knapsacksolver::dynamic_programming_primal_dual(kp_instance, kp_parameters);
+        knapsacksolver::knapsack::DynamicProgrammingPrimalDualParameters kp_parameters;
+        kp_parameters.verbosity_level = 0;
+        auto kp_output = knapsacksolver::knapsack::dynamic_programming_primal_dual(
+                kp_instance,
+                kp_parameters);
 
         // Build PackingSolver Bin Packing instance.
         //std::cout << "Build Bin Packing instance..." << std::endl;
@@ -198,10 +186,12 @@ DichotomicSearchOutput<Instance, InstanceBuilder, Solution> dichotomic_search(
                 bin_type_id < instance.number_of_bin_types();
                 ++bin_type_id)
             bin_copies[bin_type_id] += instance.bin_type(bin_type_id).copies_min;
-        for (knapsacksolver::ItemIdx j_kp = 0; j_kp < kp_instance.number_of_items(); ++j_kp) {
-            //std::cout << "j_kp " << j_kp << " sol " << kp_output.solution.contains(j_kp) << std::endl;
-            if (kp_output.solution.contains_idx(j_kp) == 0)
-                bin_copies[kp2ps[j_kp]]++;
+        for (knapsacksolver::knapsack::ItemId kp_item_id = 0;
+                kp_item_id < kp_instance.number_of_items();
+                ++kp_item_id) {
+            //std::cout << "kp_item_id " << kp_item_id << " sol " << kp_output.solution.contains(kp_item_id) << std::endl;
+            if (kp_output.solution.contains(kp_item_id) == 0)
+                bin_copies[kp2ps[kp_item_id]]++;
         }
         if (memory.find(bin_copies) == memory.end()) {
             // Add bins.
@@ -229,8 +219,7 @@ DichotomicSearchOutput<Instance, InstanceBuilder, Solution> dichotomic_search(
                 //std::cout << &instance << std::endl;
                 std::stringstream ss;
                 ss << "waste percentage " << output.waste_percentage;
-                output.solution_pool.add(solution, ss, parameters.info);
-                parameters.new_solution_callback(output);
+                algorithm_formatter.update_solution(solution, ss.str());
                 memory[bin_copies] = true;
             } else {
                 //std::cout << "No solution found" << std::endl;
@@ -252,6 +241,7 @@ DichotomicSearchOutput<Instance, InstanceBuilder, Solution> dichotomic_search(
         }
     }
 
+    algorithm_formatter.end();
     return output;
 }
 

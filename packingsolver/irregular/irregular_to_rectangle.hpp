@@ -22,34 +22,22 @@ namespace packingsolver
 namespace irregular
 {
 
-struct IrregularToRectangleOutput
+struct IrregularToRectangleOutput: packingsolver::Output<Instance, Solution>
 {
     /** Constructor. */
     IrregularToRectangleOutput(const Instance& instance):
-        solution_pool(instance, 1) { }
-
-    /** Solution pool. */
-    SolutionPool<Instance, Solution> solution_pool;
+        packingsolver::Output<Instance, Solution>(instance) { }
 };
 
-using IrregularToRectangleNewSolutionCallback = std::function<void(const IrregularToRectangleOutput&)>;
-
-struct IrregularToRectangleOptionalParameters
+struct IrregularToRectangleParameters: packingsolver::Parameters<Instance, Solution>
 {
     /** Parameters for the rectangle sub-problem. */
-    rectangle::OptimizeOptionalParameters rectangle_parameters;
-
-    /** New solution callback. */
-    IrregularToRectangleNewSolutionCallback new_solution_callback
-        = [](const IrregularToRectangleOutput&) { };
-
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
+    rectangle::OptimizeParameters rectangle_parameters;
 };
 
-IrregularToRectangleOutput irregular_to_rectangle(
+const IrregularToRectangleOutput irregular_to_rectangle(
         const Instance& instance,
-        IrregularToRectangleOptionalParameters parameters = {});
+        const IrregularToRectangleParameters& parameters = {});
 
 }
 }

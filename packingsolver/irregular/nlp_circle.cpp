@@ -1,5 +1,7 @@
 #include "packingsolver/irregular/nlp_circle.hpp"
 
+#include "packingsolver/irregular/algorithm_formatter.hpp"
+
 #if KNITRO_FOUND
 #include "knitrocpp/knitro.hpp"
 #endif
@@ -7,11 +9,14 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
-NlpCircleOutput irregular::nlp_circle(
+const NlpCircleOutput irregular::nlp_circle(
         const Instance& instance,
-        NlpCircleOptionalParameters parameters)
+        const NlpCircleParameters& parameters)
 {
     NlpCircleOutput output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
 
 #if KNITRO_FOUND
 
@@ -288,7 +293,7 @@ NlpCircleOutput irregular::nlp_circle(
                 0.0);
     }
     std::stringstream ss;
-    output.solution_pool.add(solution, ss, parameters.info);
+    algorithm_formatter.update_solution(solution, ss.str());
 
 #endif
 

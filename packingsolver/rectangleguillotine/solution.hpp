@@ -2,8 +2,6 @@
 
 #include "packingsolver/rectangleguillotine/instance.hpp"
 
-#include <sstream>
-
 namespace packingsolver
 {
 namespace rectangleguillotine
@@ -166,16 +164,20 @@ public:
 
     bool operator<(const Solution& solution) const;
 
-    /** Write CSV certificate file. */
-    void write(Info& info) const;
+    /*
+     * Export
+     */
 
-    void algorithm_start(Info& info, Algorithm algorithm) const;
+    /** Write the solution to a file. */
+    void write(const std::string& certificate_path) const;
 
-    void algorithm_end(Info& info) const;
+    /** Export solution characteristics to a JSON structure. */
+    nlohmann::json to_json() const;
 
-    void display(
-            const std::stringstream& algorithm,
-            Info& info) const;
+    /** Write a formatted output of the instance to a stream. */
+    void format(
+            std::ostream& os,
+            int verbosity_level = 1) const;
 
 private:
 

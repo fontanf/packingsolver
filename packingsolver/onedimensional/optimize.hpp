@@ -11,7 +11,7 @@ namespace packingsolver
 namespace onedimensional
 {
 
-struct OptimizeOptionalParameters
+struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
     /** Number of threads. */
     Counter number_of_threads = 0;
@@ -73,31 +73,24 @@ struct OptimizeOptionalParameters
 
 
     /** Parameters for the Sequential Value Correction algorithm. */
-    SequentialValueCorrectionOptionalParameters<Instance, InstanceBuilder, Solution> sequential_value_correction_parameters;
+    SequentialValueCorrectionParameters<Instance, Solution> sequential_value_correction_parameters;
 
     /**
      * Size of the queue for the knapsack sub-problem of the sequential value
      * correction algorithm.
      */
     NodeId sequential_value_correction_queue_size = 1024;
-
-
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
 };
 
-struct Output
+struct Output: packingsolver::Output<Instance, Solution>
 {
     Output(const Instance& instance):
-        solution_pool(instance, 1) { }
-
-    SolutionPool<Instance, Solution> solution_pool;
+        packingsolver::Output<Instance, Solution>(instance) { }
 };
 
-Output optimize(
+const Output optimize(
         const Instance& instance,
-        OptimizeOptionalParameters parameters = {});
+        const OptimizeParameters& parameters = {});
 
 }
 }
-
