@@ -28,6 +28,8 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
     } else {
         algorithm = Algorithm::IrregularToRectangle;
     }
+    if (parameters.algorithm != Algorithm::Auto)
+        algorithm = parameters.algorithm;
 
     if (algorithm == Algorithm::IrregularToRectangle) {
         IrregularToRectangleParameters i2r_parameters
