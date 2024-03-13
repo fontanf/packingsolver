@@ -54,13 +54,13 @@ local_repository(
 )
 
 git_repository(
-    name = "columngenerationsolver_",
+    name = "columngenerationsolver",
     remote = "https://github.com/fontanf/columngenerationsolver.git",
-    commit = "e7e888160c9e4871df335ca11e42a64cac27ec0a",
+    commit = "f5b5eaccfa9dcbbb96e95978cfb232d542b1baba",
 )
 
 local_repository(
-    name = "columngenerationsolver",
+    name = "columngenerationsolver_",
     path = "../../Dev/columngenerationsolver/",
 )
 
