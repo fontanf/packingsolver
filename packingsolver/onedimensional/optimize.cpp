@@ -50,8 +50,6 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
         }
 #endif
     }
-    if (parameters.algorithm != Algorithm::Auto)
-        algorithm = parameters.algorithm;
 
     if (algorithm == Algorithm::TreeSearch) {
 
