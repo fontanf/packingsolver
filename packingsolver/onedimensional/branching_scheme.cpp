@@ -1,10 +1,5 @@
 #include "packingsolver/onedimensional/branching_scheme.hpp"
 
-#include <string>
-#include <fstream>
-#include <iomanip>
-#include <locale>
-
 using namespace packingsolver;
 using namespace packingsolver::onedimensional;
 

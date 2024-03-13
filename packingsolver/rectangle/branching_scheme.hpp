@@ -2,6 +2,8 @@
 
 #include "packingsolver/rectangle/solution.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 #include <sstream>
 
 namespace packingsolver

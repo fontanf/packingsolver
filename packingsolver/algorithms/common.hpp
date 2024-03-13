@@ -2,7 +2,6 @@
 
 #define _USE_MATH_DEFINES
 
-#include "optimizationtools/utils/utils.hpp"
 #include "optimizationtools/utils/output.hpp"
 
 #include <cstdint>

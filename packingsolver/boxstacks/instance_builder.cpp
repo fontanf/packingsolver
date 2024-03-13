@@ -1,5 +1,7 @@
 #include "packingsolver/boxstacks/instance_builder.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 

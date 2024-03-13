@@ -2,6 +2,8 @@
 
 #include "packingsolver/rectangle/instance.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 

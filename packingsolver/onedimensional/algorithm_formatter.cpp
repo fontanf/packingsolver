@@ -1,6 +1,7 @@
 #include "packingsolver/onedimensional/algorithm_formatter.hpp"
 
 #include <iomanip>
+#include <sstream>
 
 using namespace packingsolver;
 using namespace packingsolver::onedimensional;
