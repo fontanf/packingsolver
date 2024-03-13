@@ -409,7 +409,7 @@ public:
     /** Print the instance into a stream. */
     std::ostream& format(
             std::ostream& os,
-            int verbose = 1) const;
+            int verbosity_level = 1) const;
 
 private:
 

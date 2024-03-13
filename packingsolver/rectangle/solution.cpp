@@ -315,42 +315,44 @@ void Solution::format(
             ;
     }
 
-    os
-        << std::endl
-        << std::setw(12) << "Bin"
-        << std::setw(12) << "Item"
-        << std::setw(12) << "Rotate"
-        << std::setw(12) << "X"
-        << std::setw(12) << "y"
-        << std::setw(12) << "Width"
-        << std::setw(12) << "Height"
-        << std::setw(12) << "Weight"
-        << std::endl
-        << std::setw(12) << "---"
-        << std::setw(12) << "----"
-        << std::setw(12) << "------"
-        << std::setw(12) << "-"
-        << std::setw(12) << "-"
-        << std::setw(12) << "-----"
-        << std::setw(12) << "-------"
-        << std::setw(12) << "-------"
-        << std::endl;
-    for (BinPos bin_pos = 0;
-            bin_pos < number_of_different_bins();
-            ++bin_pos) {
-        const SolutionBin& solution_bin = bin(bin_pos);
-        for (const SolutionItem& solution_item: solution_bin.items) {
-            const ItemType& item_type = instance().item_type(solution_item.item_type_id);
-            os
-                << std::setw(12) << bin_pos
-                << std::setw(12) << solution_item.item_type_id
-                << std::setw(12) << solution_item.rotate
-                << std::setw(12) << solution_item.bl_corner.x
-                << std::setw(12) << solution_item.bl_corner.y
-                << std::setw(12) << item_type.rect.x
-                << std::setw(12) << item_type.rect.y
-                << std::setw(12) << item_type.weight
-                << std::endl;
+    if (verbosity_level >= 2) {
+        os
+            << std::right << std::endl
+            << std::setw(12) << "Bin"
+            << std::setw(12) << "Item"
+            << std::setw(12) << "Rotate"
+            << std::setw(12) << "X"
+            << std::setw(12) << "y"
+            << std::setw(12) << "Width"
+            << std::setw(12) << "Height"
+            << std::setw(12) << "Weight"
+            << std::endl
+            << std::setw(12) << "---"
+            << std::setw(12) << "----"
+            << std::setw(12) << "------"
+            << std::setw(12) << "-"
+            << std::setw(12) << "-"
+            << std::setw(12) << "-----"
+            << std::setw(12) << "-------"
+            << std::setw(12) << "-------"
+            << std::endl;
+        for (BinPos bin_pos = 0;
+                bin_pos < number_of_different_bins();
+                ++bin_pos) {
+            const SolutionBin& solution_bin = bin(bin_pos);
+            for (const SolutionItem& solution_item: solution_bin.items) {
+                const ItemType& item_type = instance().item_type(solution_item.item_type_id);
+                os
+                    << std::setw(12) << bin_pos
+                    << std::setw(12) << solution_item.item_type_id
+                    << std::setw(12) << solution_item.rotate
+                    << std::setw(12) << solution_item.bl_corner.x
+                    << std::setw(12) << solution_item.bl_corner.y
+                    << std::setw(12) << item_type.rect.x
+                    << std::setw(12) << item_type.rect.y
+                    << std::setw(12) << item_type.weight
+                    << std::endl;
+            }
         }
     }
 }

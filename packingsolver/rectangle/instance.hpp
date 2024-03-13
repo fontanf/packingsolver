@@ -379,7 +379,7 @@ public:
     /** Print the instance into a stream. */
     std::ostream& format(
             std::ostream& os,
-            int verbose = 1) const;
+            int verbosity_level = 1) const;
 
     /** Write the instance to a file. */
     void write(const std::string& instance_path) const;
