@@ -127,9 +127,6 @@ columngenerationsolver::Model get_model(
         model.objective_sense = optimizationtools::ObjectiveDirection::Maximize;
     }
 
-    model.column_lower_bound = 0;
-    model.column_upper_bound = maximum_item_type_demand;
-
     // Row bounds.
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
@@ -164,14 +161,6 @@ columngenerationsolver::Model get_model(
             model.rows.push_back(row);
         }
     }
-
-    // Dummy column objective coefficient.
-    if (instance.objective() == Objective::VariableSizedBinPacking) {
-        model.dummy_column_objective_coefficient = 10 * maximum_bin_type_cost * maximum_item_type_demand;
-    } else if (instance.objective() == Objective::Knapsack) {
-        model.dummy_column_objective_coefficient = -10 * maximum_item_profit;
-    }
-    //std::cout << "dummy_column_objective_coefficient " << p.dummy_column_objective_coefficient << std::endl;
 
     // Pricing solver.
     model.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
