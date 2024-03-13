@@ -35,9 +35,9 @@ std::ostream& packingsolver::onedimensional::operator<<(
 
 std::ostream& Instance::format(
         std::ostream& os,
-        int verbose) const
+        int verbosity_level) const
 {
-    if (verbose >= 1) {
+    if (verbosity_level >= 1) {
         os
             << "Objective:                " << objective() << std::endl
             << "Number of item types:     " << number_of_item_types() << std::endl
@@ -47,7 +47,7 @@ std::ostream& Instance::format(
             ;
     }
 
-    if (verbose >= 2) {
+    if (verbosity_level >= 2) {
         os
             << std::endl
             << std::setw(12) << "Bin type"
