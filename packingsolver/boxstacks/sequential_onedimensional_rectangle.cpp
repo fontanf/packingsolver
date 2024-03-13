@@ -2,6 +2,9 @@
 
 #include "packingsolver/boxstacks/algorithm_formatter.hpp"
 
+#include "packingsolver/onedimensional/instance_builder.hpp"
+
+#include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/branching_scheme.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"

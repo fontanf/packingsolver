@@ -1,4 +1,5 @@
 #include "packingsolver/irregular/optimize.hpp"
+#include "packingsolver/irregular/instance_builder.hpp"
 
 #include <boost/program_options.hpp>
 

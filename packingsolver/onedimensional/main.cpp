@@ -1,4 +1,5 @@
 #include "packingsolver/onedimensional/optimize.hpp"
+#include "packingsolver/onedimensional/instance_builder.hpp"
 
 #include <boost/program_options.hpp>
 

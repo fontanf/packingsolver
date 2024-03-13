@@ -2,6 +2,8 @@
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 
+#include "packingsolver/rectangle/instance_builder.hpp"
+
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/convex_hull_2.h>
 #include <CGAL/min_quadrilateral_2.h>
