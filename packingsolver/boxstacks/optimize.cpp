@@ -1,6 +1,7 @@
 #include "packingsolver/boxstacks/optimize.hpp"
 
 #include "packingsolver/boxstacks/algorithm_formatter.hpp"
+#include "packingsolver/boxstacks/instance_builder.hpp"
 #include "packingsolver/boxstacks/branching_scheme.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/solution.hpp"
 
 #include "packingsolver/irregular/irregular_to_rectangle.hpp"

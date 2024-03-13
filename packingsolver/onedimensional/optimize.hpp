@@ -1,6 +1,5 @@
 #pragma once
 
-#include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/solution.hpp"
 #include "packingsolver/algorithms/sequential_value_correction.hpp"
 

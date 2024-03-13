@@ -1,6 +1,5 @@
 #pragma once
 
-#include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "packingsolver/rectangleguillotine/solution.hpp"
 #include "packingsolver/algorithms/sequential_value_correction.hpp"
 

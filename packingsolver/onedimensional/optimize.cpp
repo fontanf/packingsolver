@@ -1,6 +1,7 @@
 #include "packingsolver/onedimensional/optimize.hpp"
 
 #include "packingsolver/onedimensional/algorithm_formatter.hpp"
+#include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/branching_scheme.hpp"
 #include "packingsolver/algorithms/vbpp_to_bpp.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"

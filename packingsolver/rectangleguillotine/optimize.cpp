@@ -1,6 +1,7 @@
 #include "packingsolver/rectangleguillotine/optimize.hpp"
 
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
+#include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
 #include "packingsolver/algorithms/iterative_beam_search.hpp"
 #include "packingsolver/algorithms/vbpp_to_bpp.hpp"

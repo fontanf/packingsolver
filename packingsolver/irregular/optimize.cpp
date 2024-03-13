@@ -1,6 +1,7 @@
 #include "packingsolver/irregular/optimize.hpp"
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
+#include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/nlp.hpp"
 #include "packingsolver/irregular/nlp_circle.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"

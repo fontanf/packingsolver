@@ -1,6 +1,7 @@
 #include "packingsolver/rectangle/optimize.hpp"
 
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
+#include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/branching_scheme.hpp"
 #include "packingsolver/algorithms/vbpp_to_bpp.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"

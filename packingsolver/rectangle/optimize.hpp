@@ -1,6 +1,5 @@
 #pragma once
 
-#include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/solution.hpp"
 
 #include "columngenerationsolver/linear_programming_solver.hpp"

@@ -1,4 +1,5 @@
 #include "packingsolver/boxstacks/optimize.hpp"
+#include "packingsolver/boxstacks/instance_builder.hpp"
 
 #include <boost/program_options.hpp>
 

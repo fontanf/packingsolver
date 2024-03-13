@@ -1,6 +1,5 @@
 #pragma once
 
-#include "packingsolver/boxstacks/instance_builder.hpp"
 #include "packingsolver/boxstacks/solution.hpp"
 
 #include "packingsolver/boxstacks/sequential_onedimensional_rectangle.hpp"

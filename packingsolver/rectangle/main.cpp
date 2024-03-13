@@ -1,4 +1,5 @@
 #include "packingsolver/rectangle/optimize.hpp"
+#include "packingsolver/rectangle/instance_builder.hpp"
 
 #include <boost/program_options.hpp>
 
