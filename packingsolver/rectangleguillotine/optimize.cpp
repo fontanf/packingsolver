@@ -133,6 +133,8 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                     return bpp_output.solution_pool;
                 };
             VbppToBppParameters<Instance, Solution> vbpp_to_bpp_parameters;
+            vbpp_to_bpp_parameters.verbosity_level = 0;
+            vbpp_to_bpp_parameters.timer = parameters.timer;
             auto vbpp_to_bpp_output = vbpp_to_bpp<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, bpp_solve, vbpp_to_bpp_parameters);
             std::stringstream ss;
             ss << "VBPP to BPP";
