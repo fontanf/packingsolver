@@ -1,6 +1,7 @@
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
 
 #include <iomanip>
+#include <sstream>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangle;

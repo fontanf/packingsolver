@@ -2,6 +2,8 @@
 
 #include "packingsolver/boxstacks/solution.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 #include <sstream>
 
 namespace packingsolver

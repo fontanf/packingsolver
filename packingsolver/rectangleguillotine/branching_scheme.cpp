@@ -1,9 +1,6 @@
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
 
-#include <string>
-#include <fstream>
-#include <iomanip>
-#include <locale>
+#include <sstream>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;

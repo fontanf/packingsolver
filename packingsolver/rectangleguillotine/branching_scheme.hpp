@@ -2,6 +2,8 @@
 
 #include "packingsolver/rectangleguillotine/solution.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 namespace packingsolver
 {
 namespace rectangleguillotine

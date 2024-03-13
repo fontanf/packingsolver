@@ -39,6 +39,7 @@
 #include "packingsolver/algorithms/common.hpp"
 
 #include <functional>
+#include <sstream>
 
 namespace packingsolver
 {

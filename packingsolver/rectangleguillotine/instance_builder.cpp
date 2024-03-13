@@ -1,5 +1,7 @@
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 

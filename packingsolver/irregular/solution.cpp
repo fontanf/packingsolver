@@ -1,5 +1,7 @@
 #include "packingsolver/irregular/solution.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 #include "nlohmann/json.hpp"
 
 #include <fstream>

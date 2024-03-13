@@ -1,5 +1,7 @@
 #include "packingsolver/onedimensional/solution.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 #include <fstream>
 
 using namespace packingsolver;
