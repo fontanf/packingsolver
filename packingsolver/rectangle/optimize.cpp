@@ -34,7 +34,7 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             algorithm = Algorithm::ColumnGeneration;
         }
 #endif
-    } if (instance.objective() == Objective::BinPacking) {
+    } else if (instance.objective() == Objective::BinPacking) {
 #if defined(CLP_FOUND) || defined(CPLEX_FOUND) || defined(XPRESS_FOUND)
         if (instance.number_of_bin_types() == 1
                 && largest_bin_space(instance) / mean_item_space(instance) < 16) {
@@ -50,8 +50,6 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         }
 #endif
     }
-    if (parameters.algorithm != Algorithm::Auto)
-        algorithm = parameters.algorithm;
 
     if (algorithm == Algorithm::TreeSearch) {
 
