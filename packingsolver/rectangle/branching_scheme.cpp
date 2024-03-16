@@ -973,4 +973,3 @@ std::ostream& packingsolver::rectangle::operator<<(
 
     return os;
 }
-

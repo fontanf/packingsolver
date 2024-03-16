@@ -598,4 +598,3 @@ inline bool BranchingScheme::operator()(
 
 }
 }
-
