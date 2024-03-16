@@ -1,7 +1,7 @@
 /**
- * Dichotomic Search algorithm
+ * Dichotomic search algorithm
  *
- * Algorithm for Variable-sized Bin Packing problems.
+ * Algorithm for variable-sized bin packing problems.
  *
  * The algorithm estimates the waste of the solution and deduces the bins to
  * use to reach this quantity of waste. Then it solves a Bin Packing subproblem
@@ -41,10 +41,23 @@ double mean_item_space(const Instance& instance)
     double space = 0;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
-            ++item_type_id)
+            ++item_type_id) {
         space += instance.item_type(item_type_id).copies * instance.item_type(item_type_id).space();
+    }
     space /= instance.number_of_items();
     return space;
+}
+
+template <typename Instance>
+double mean_item_type_copies(const Instance& instance)
+{
+    ItemPos number_of_copies = 0;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        number_of_copies += instance.item_type(item_type_id).copies;
+    }
+    return (double)number_of_copies / instance.number_of_item_types();
 }
 
 template <typename Instance, typename Solution>

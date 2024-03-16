@@ -19,50 +19,65 @@ using NewSolutionCallback = std::function<void(const Output&)>;
 
 struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
-    /** Number of threads. */
-    Counter number_of_threads = 0;
+    /** New solution callback. */
+    NewSolutionCallback new_solution_callback = [](const Output&) { };
 
-    /** Algorithm. */
-    Algorithm algorithm = Algorithm::Auto;
+    /** Enable anytime mode. */
+    bool anytime = true;
 
-
-    /** Size of the queue in the tree search algorithm. */
-    NodeId tree_search_queue_size = -1;
-
-    /** Guides used in the tree search algorithm. */
-    std::vector<GuideId> tree_search_guides;
+    bool sequential = false;
 
     Solution* fixed_items = nullptr;
-
-
-    /**
-     * Time limit for the VbppToBpp bin packing sub-problem of the column
-     * generation algorithm.
-     */
-    double column_generation_vbpp_to_bpp_time_limit = -1;
-
-    /**
-     * Size of the queue for the VbppToBpp bin packing sub-problem of the
-     * column generation algorithm.
-     */
-    NodeId column_generation_vbpp_to_bpp_queue_size = 256;
-
-    /**
-     * Size of the queue for the pricing knapsack sub-problem of the column
-     * generation algorithm.
-     */
-    NodeId column_generation_pricing_queue_size = 256;
 
     /** Linear programming solver. */
     columngenerationsolver::LinearProgrammingSolver linear_programming_solver
         = columngenerationsolver::LinearProgrammingSolver::CLP;
 
+    /** Guides used in the tree search algorithm. */
+    std::vector<GuideId> tree_search_guides;
+
+    /** Threshold to consider that a bin contains "many" items. */
+    Counter many_items_in_bins_threshold = 16;
+
+    /** Factor to consider that the number of copies of items is "high". */
+    Counter many_item_type_copies_factor = 1;
 
     /**
-     * Size of the queue for the bin packing sub-problem of the dichotomic
-     * search algorithm.
+     * Size of the queue for the pricing knapsack subproblem of the sequential
+     * value correction algorithm.
      */
-    NodeId dichotomic_search_queue_size = 128;
+    NodeId sequential_value_correction_subproblem_queue_size = 1024;
+
+    /** Number of iterations of the sequential value correction algorithm. */
+    Counter sequential_value_correction_number_of_iterations = 32;
+
+    /**
+     * Size of the queue for the pricing knapsack subproblem of the column
+     * generation algorithm.
+     */
+    NodeId column_generation_subproblem_queue_size = 1024;
+
+    /*
+     * Parameters for non-anytime mode
+     */
+
+    /** Size of the queue in the tree search algorithm. */
+    NodeId not_anytime_tree_search_queue_size = 1024;
+
+    /**
+     * Size of the queue in the single knapsack subproblem of the sequential
+     * single knapsack algorithm.
+     */
+    NodeId not_anytime_sequential_single_knapsack_subproblem_queue_size = 1024;
+
+    /** Number of iterations of the sequential value correction algorithm. */
+    Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
+
+    /**
+     * Size of the queue in the bin packing subproblem of the dichotomic search
+     * algorithm.
+     */
+    NodeId not_anytime_dichotomic_search_subproblem_beam_size = 1024;
 };
 
 const Output optimize(
