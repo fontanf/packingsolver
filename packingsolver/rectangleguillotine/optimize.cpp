@@ -155,12 +155,12 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
             };
 
         columngenerationsolver::Model cgs_model = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
-        columngenerationsolver::LimitedDiscrepancySearchParameters lds_parameters;
-        lds_parameters.verbosity_level = 0;
-        lds_parameters.timer = parameters.timer;
+        columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
+        cgslds_parameters.verbosity_level = 0;
+        cgslds_parameters.timer = parameters.timer;
         if (output.solution_pool.best().full())
-            lds_parameters.initial_columns = solution2column(output.solution_pool.best());
-        lds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
+            cgslds_parameters.initial_columns = solution2column(output.solution_pool.best());
+        cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
                 const columngenerationsolver::Output& cgs_output)
         {
             const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
@@ -183,9 +183,9 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                 algorithm_formatter.update_solution(solution, ss.str());
             }
         };
-        lds_parameters.column_generation_parameters.linear_programming_solver
+        cgslds_parameters.column_generation_parameters.linear_programming_solver
             = parameters.linear_programming_solver;
-        columngenerationsolver::limited_discrepancy_search(cgs_model, lds_parameters);
+        columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
 
     } else if (algorithm == Algorithm::DichotomicSearch) {
 

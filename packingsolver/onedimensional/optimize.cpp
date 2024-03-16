@@ -161,16 +161,14 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                 return kp_output.solution_pool;
             };
 
-        columngenerationsolver::Model cgs_parameters = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
+        columngenerationsolver::Model cgs_model = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
+        columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
+        cgslds_parameters.verbosity_level = 0;
+        cgslds_parameters.timer = parameters.timer;
+        cgslds_parameters.continue_until_feasible = true;
         if (output.solution_pool.best().full())
-            cgs_parameters.columns = solution2column(output.solution_pool.best());
-        columngenerationsolver::LimitedDiscrepancySearchParameters lds_parameters;
-        lds_parameters.verbosity_level = 0;
-        lds_parameters.timer = parameters.timer;
-        lds_parameters.continue_until_feasible = true;
-        if (output.solution_pool.best().full())
-            lds_parameters.initial_columns = solution2column(output.solution_pool.best());
-        lds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
+            cgslds_parameters.initial_columns = solution2column(output.solution_pool.best());
+        cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
                 const columngenerationsolver::Output& cgs_output)
         {
             const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
@@ -193,11 +191,11 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                 algorithm_formatter.update_solution(solution, ss.str());
             }
         };
-        lds_parameters.column_generation_parameters.linear_programming_solver
+        cgslds_parameters.column_generation_parameters.linear_programming_solver
             = parameters.linear_programming_solver;
         columngenerationsolver::limited_discrepancy_search(
-                cgs_parameters,
-                lds_parameters);
+                cgs_model,
+                cgslds_parameters);
 
     } else if (algorithm == Algorithm::DichotomicSearch) {
 

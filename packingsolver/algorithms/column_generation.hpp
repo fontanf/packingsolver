@@ -121,7 +121,8 @@ columngenerationsolver::Model get_model(
             maximum_item_profit = instance.item_type(item_type_id).profit;
     }
 
-    if (instance.objective() == Objective::VariableSizedBinPacking) {
+    if (instance.objective() == Objective::VariableSizedBinPacking
+            || instance.objective() == Objective::BinPacking) {
         model.objective_sense = optimizationtools::ObjectiveDirection::Minimize;
     } else if (instance.objective() == Objective::Knapsack) {
         model.objective_sense = optimizationtools::ObjectiveDirection::Maximize;
@@ -138,7 +139,8 @@ columngenerationsolver::Model get_model(
         row.coefficient_upper_bound = 1;
         model.rows.push_back(row);
     }
-    if (instance.objective() == Objective::VariableSizedBinPacking) {
+    if (instance.objective() == Objective::VariableSizedBinPacking
+            || instance.objective() == Objective::BinPacking) {
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
@@ -204,7 +206,8 @@ std::vector<std::shared_ptr<const Column>> solution2column(
         Solution extra_solution(solution.instance());
         extra_solution.append(solution, bin_pos, 1);
         Column column;
-        if (solution.instance().objective() == Objective::VariableSizedBinPacking) {
+        if (solution.instance().objective() == Objective::VariableSizedBinPacking
+                || solution.instance().objective() == Objective::BinPacking) {
             column.objective_coefficient = extra_solution.cost();
         } else if (solution.instance().objective() == Objective::Knapsack) {
             column.objective_coefficient = extra_solution.profit();
@@ -258,7 +261,8 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver<Instanc
                 continue;
 
             Profit profit = 0;
-            if (instance_.objective() == Objective::VariableSizedBinPacking) {
+            if (instance_.objective() == Objective::VariableSizedBinPacking
+                    || instance_.objective() == Objective::BinPacking) {
                 profit = duals[instance_.number_of_bin_types() + item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
                 profit = instance_.item_type(item_type_id).profit
@@ -297,7 +301,8 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver<Instanc
                     kp2vbpp);
             column.extra = std::shared_ptr<void>(new Solution(extra_solution));
 
-            if (instance_.objective() == Objective::VariableSizedBinPacking) {
+            if (instance_.objective() == Objective::VariableSizedBinPacking
+                    || instance_.objective() == Objective::BinPacking) {
                 column.objective_coefficient = extra_solution.cost();
             } else if (instance_.objective() == Objective::Knapsack) {
                 column.objective_coefficient = extra_solution.profit();
