@@ -129,7 +129,6 @@ void AlgorithmFormatter::print_header()
         throw std::logic_error(ss.str());
     }
     }
-    print("");
 }
 
 void AlgorithmFormatter::print(
