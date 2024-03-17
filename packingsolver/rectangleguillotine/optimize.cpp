@@ -127,13 +127,14 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                     svc_parameters.verbosity_level = 0;
                     svc_parameters.timer = parameters.timer;
                     svc_parameters.maximum_number_of_iterations = 1;
-                    svc_parameters.new_solution_callback = [&algorithm_formatter](
+                    svc_parameters.new_solution_callback = [
+                        &algorithm_formatter, &queue_size](
                             const packingsolver::Output<Instance, Solution>& ps_output)
                     {
                         const SequentialValueCorrectionOutput<Instance, Solution>& pssvc_output
                             = static_cast<const SequentialValueCorrectionOutput<Instance, Solution>&>(ps_output);
                         std::stringstream ss;
-                        ss << "iteration " << pssvc_output.number_of_iterations;
+                        ss << "q " << queue_size;
                         algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
                     };
                     sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, kp_solve, svc_parameters);
@@ -247,13 +248,15 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                         DichotomicSearchParameters<Instance, Solution> ds_parameters;
                         ds_parameters.verbosity_level = 0;
                         ds_parameters.timer = parameters.timer;
-                        ds_parameters.new_solution_callback = [&algorithm_formatter](
+                        ds_parameters.new_solution_callback = [
+                            &algorithm_formatter, &queue_size](
                                 const packingsolver::Output<Instance, Solution>& ps_output)
                         {
                             const DichotomicSearchOutput<Instance, Solution>& psds_output
                                 = static_cast<const DichotomicSearchOutput<Instance, Solution>&>(ps_output);
                             std::stringstream ss;
-                            ss << "waste percentage " << psds_output.waste_percentage;
+                            ss << "q " << queue_size
+                                << " w " << psds_output.waste_percentage;
                             algorithm_formatter.update_solution(psds_output.solution_pool.best(), ss.str());
                         };
                         dichotomic_search<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, bpp_solve, ds_parameters);
@@ -305,7 +308,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                     const SequentialValueCorrectionOutput<Instance, Solution>& pssvc_output
                         = static_cast<const SequentialValueCorrectionOutput<Instance, Solution>&>(ps_output);
                     std::stringstream ss;
-                    ss << "iteration " << pssvc_output.number_of_iterations;
+                    ss << "it " << pssvc_output.number_of_iterations;
                     algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
                 };
                 sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, kp_solve, svc_parameters);
@@ -341,7 +344,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                     const SequentialValueCorrectionOutput<Instance, Solution>& pssvc_output
                         = static_cast<const SequentialValueCorrectionOutput<Instance, Solution>&>(ps_output);
                     std::stringstream ss;
-                    ss << "iteration " << pssvc_output.number_of_iterations;
+                    ss << "it " << pssvc_output.number_of_iterations;
                     algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
                 };
                 sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, kp_solve, svc_parameters);
@@ -389,7 +392,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                                     value);
                         }
                         std::stringstream ss;
-                        ss << "discrepancy " << cgslds_output.maximum_discrepancy;
+                        ss << "n " << cgslds_output.number_of_nodes;
                         algorithm_formatter.update_solution(solution, ss.str());
                     }
                 };
