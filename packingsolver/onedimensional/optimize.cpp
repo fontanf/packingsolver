@@ -234,6 +234,7 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
 
                     // Dichotomic search.
 
+                    double waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
                     for (Counter queue_size = 1;;) {
 
                         if (!parameters.anytime)
@@ -254,6 +255,7 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                         DichotomicSearchParameters<Instance, Solution> ds_parameters;
                         ds_parameters.verbosity_level = 0;
                         ds_parameters.timer = parameters.timer;
+                        ds_parameters.initial_waste_percentage_upper_bound = waste_percentage_upper_bound;
                         ds_parameters.new_solution_callback = [
                             &algorithm_formatter, &queue_size](
                                 const packingsolver::Output<Instance, Solution>& ps_output)
@@ -265,7 +267,7 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                                 << " w " << psds_output.waste_percentage;
                             algorithm_formatter.update_solution(psds_output.solution_pool.best(), ss.str());
                         };
-                        dichotomic_search<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, bpp_solve, ds_parameters);
+                        auto ds_output = dichotomic_search<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, bpp_solve, ds_parameters);
 
                         // Check end.
                         if (parameters.timer.needs_to_end())
@@ -277,6 +279,7 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                         queue_size = std::max(
                                 queue_size + 1,
                                 (NodeId)(queue_size * 2));
+                        waste_percentage_upper_bound = ds_output.waste_percentage_upper_bound;
                     }
 
                 }
