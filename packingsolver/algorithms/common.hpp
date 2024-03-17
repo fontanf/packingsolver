@@ -67,18 +67,6 @@ enum class ProblemType
     Irregular,
 };
 
-enum class Algorithm
-{
-    Auto,
-    TreeSearch,
-    ColumnGeneration,
-    DichotomicSearch,
-    SequentialValueCorrection,
-    SequentialOneDimensionalRectangle,
-    IrregularToRectangle,
-    Nlp,
-};
-
 enum class Objective
 {
     Default,
@@ -100,10 +88,6 @@ std::istream& operator>>(
 
 std::istream& operator>>(
         std::istream& in,
-        Algorithm& algorithm);
-
-std::istream& operator>>(
-        std::istream& in,
         Objective& objective);
 
 std::istream& operator>>(
@@ -113,10 +97,6 @@ std::istream& operator>>(
 std::ostream& operator<<(
         std::ostream& os,
         ProblemType problem_type);
-
-std::ostream& operator<<(
-        std::ostream& os,
-        Algorithm algorithm);
 
 std::ostream& operator<<(
         std::ostream& os,

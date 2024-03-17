@@ -45,66 +45,6 @@ std::ostream& packingsolver::operator<<(std::ostream &os, ProblemType problem_ty
     return os;
 }
 
-std::istream& packingsolver::operator>>(std::istream& in, Algorithm& algorithm)
-{
-    std::string token;
-    in >> token;
-    if (token == "auto") {
-        algorithm = Algorithm::Auto;
-    } else if (token == "tree-search" || token == "TS") {
-        algorithm = Algorithm::TreeSearch;
-    } else if (token == "column-generation" || token == "CG") {
-        algorithm = Algorithm::ColumnGeneration;
-    } else if (token == "dichotomic-search" || token == "DS") {
-        algorithm = Algorithm::DichotomicSearch;
-    } else if (token == "sequential-value-correction" || token == "SVC") {
-        algorithm = Algorithm::SequentialValueCorrection;
-    } else if (token == "sequential-onedimensional-rectangle" || token == "SOR") {
-        algorithm = Algorithm::SequentialOneDimensionalRectangle;
-    } else if (token == "irregular-to-rectangle" || token == "I2R") {
-        algorithm = Algorithm::SequentialOneDimensionalRectangle;
-    } else if (token == "nlp" || token == "NLP") {
-        algorithm = Algorithm::Nlp;
-    } else  {
-        in.setstate(std::ios_base::failbit);
-    }
-    return in;
-}
-
-std::ostream& packingsolver::operator<<(
-        std::ostream& os,
-        Algorithm algorithm)
-{
-    switch (algorithm) {
-    case Algorithm::Auto: {
-        os << "Auto";
-        break;
-    } case Algorithm::TreeSearch: {
-        os << "Tree search";
-        break;
-    } case Algorithm::ColumnGeneration: {
-        os << "Column generation";
-        break;
-    } case Algorithm::DichotomicSearch: {
-        os << "Dichotomic search";
-        break;
-    } case Algorithm::SequentialValueCorrection: {
-        os << "Sequential Value Correction";
-        break;
-    } case Algorithm::SequentialOneDimensionalRectangle: {
-        os << "Sequential onedimensional rectangle";
-        break;
-    } case Algorithm::IrregularToRectangle: {
-        os << "Irregular to rectangle";
-        break;
-    } case Algorithm::Nlp: {
-        os << "NLP";
-        break;
-    }
-    }
-    return os;
-}
-
 std::istream& packingsolver::operator>>(std::istream& in, Objective& objective)
 {
     std::string token;

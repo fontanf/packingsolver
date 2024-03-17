@@ -17,12 +17,6 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Number of threads. */
     Counter number_of_threads = 0;
 
-    /** Algorithm for Bin Packing problems. */
-    Algorithm bpp_algorithm = Algorithm::Auto;
-
-    /** Algorithm for Variable-sized Bin Packing problems. */
-    Algorithm vbpp_algorithm = Algorithm::Auto;
-
 
     /** Parameters of the sequential_onedimensional_rectangle algorithm. */
     SequentialOneDimensionalRectangleParameters sequential_onedimensional_rectangle_parameters;

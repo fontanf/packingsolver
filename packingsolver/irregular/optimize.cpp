@@ -23,16 +23,19 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    Algorithm algorithm = Algorithm::IrregularToRectangle;
-    if (parameters.algorithm != Algorithm::Auto) {
-        algorithm = parameters.algorithm;
-    } else {
-        algorithm = Algorithm::IrregularToRectangle;
-    }
-    if (parameters.algorithm != Algorithm::Auto)
-        algorithm = parameters.algorithm;
+    if (instance.number_of_circular_items() == instance.number_of_items()) {
 
-    if (algorithm == Algorithm::IrregularToRectangle) {
+        NlpCircleParameters nlp_parameters;
+        nlp_parameters.verbosity_level = 0;
+        nlp_parameters.timer = parameters.timer;
+        nlp_parameters.output_nl_path = parameters.output_nl_path;
+        auto nlp_output = nlp_circle(instance, nlp_parameters);
+
+        std::stringstream ss;
+        algorithm_formatter.update_solution(nlp_output.solution_pool.best(), ss.str());
+
+    } else {
+
         IrregularToRectangleParameters i2r_parameters
             = parameters.irregular_to_rectangle_parameters;
         i2r_parameters.verbosity_level = 0;
@@ -48,18 +51,7 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
                 instance,
                 i2r_parameters);
 
-    } else if (algorithm == Algorithm::Nlp
-            && instance.number_of_circular_items() == instance.number_of_items()) {
-        NlpCircleParameters nlp_parameters;
-        nlp_parameters.verbosity_level = 0;
-        nlp_parameters.timer = parameters.timer;
-        nlp_parameters.output_nl_path = parameters.output_nl_path;
-        auto nlp_output = nlp_circle(instance, nlp_parameters);
-
-        std::stringstream ss;
-        algorithm_formatter.update_solution(nlp_output.solution_pool.best(), ss.str());
-
-    } else if (algorithm == Algorithm::Nlp) {
+        /*
         NlpParameters nlp_parameters;
         nlp_parameters.verbosity_level = 0;
         nlp_parameters.timer = parameters.timer;
@@ -69,6 +61,8 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
 
         std::stringstream ss;
         algorithm_formatter.update_solution(nlp_output.solution_pool.best(), ss.str());
+        */
+
     }
 
     algorithm_formatter.end();

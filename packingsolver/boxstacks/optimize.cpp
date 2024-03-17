@@ -20,23 +20,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    // Select algorithm.
-    Algorithm algorithm = Algorithm::Auto;
-    if (instance.objective() == Objective::Knapsack
-            && instance.number_of_bins() == 1) {
-        algorithm = Algorithm::TreeSearch;
-    } else if (instance.objective() == Objective::Knapsack
-            || instance.objective() == Objective::BinPacking
-            || instance.objective() == Objective::VariableSizedBinPacking) {
-        algorithm = Algorithm::SequentialValueCorrection;
-    } else {
-        std::stringstream ss;
-        ss << "Problem type \"boxstacks\" does not support objective \""
-            << instance.objective() << "\"";
-        throw std::logic_error(ss.str());
-    }
-
-    if (algorithm == Algorithm::TreeSearch) {
+    if (instance.number_of_bins() == 1) {
 
         auto sor_begin = std::chrono::steady_clock::now();
 
@@ -215,7 +199,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         //        std::cout << "j " << j << std::endl;
         //}
 
-    } else if (algorithm == Algorithm::SequentialValueCorrection) {
+    } else {
 
         SequentialValueCorrectionFunction<Instance, Solution> kp_solve
             = [&parameters, &output](const Instance& kp_instance)
