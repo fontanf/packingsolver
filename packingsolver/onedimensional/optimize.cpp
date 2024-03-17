@@ -354,7 +354,7 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                     ss << "it " << pssvc_output.number_of_iterations;
                     algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
                 };
-                sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, kp_solve, svc_parameters);
+                auto svc_output = sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, kp_solve, svc_parameters);
 
                 // Column generation.
 
@@ -379,8 +379,10 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                 cgslds_parameters.internal_diving = 1;
                 if (!parameters.anytime)
                     cgslds_parameters.automatic_stop = true;
-                if (output.solution_pool.best().full())
-                    cgslds_parameters.initial_columns = solution2column(output.solution_pool.best());
+                for (const Solution& solution: svc_output.all_patterns) {
+                    auto columns = solution2column(solution);
+                    cgslds_parameters.column_pool.push_back(columns[0]);
+                }
                 cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
                         const columngenerationsolver::Output& cgs_output)
                 {

@@ -57,6 +57,9 @@ struct SequentialValueCorrectionOutput: packingsolver::Output<Instance, Solution
 
     /** Number of iterations. */
     Counter number_of_iterations = 0;
+
+    /** List of all patterns generated during the algorithm. */
+    std::vector<Solution> all_patterns;
 };
 
 template <typename Instance, typename Solution>
@@ -205,6 +208,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 if (kp_solution.number_of_different_bins() > 0)
                     solution.append(kp_solution, 0, 1, {bin_type_id}, kp2orig);
                 solutions_cur[bin_type_id] = solution;
+                output.all_patterns.push_back(solution);
             }
 
             // Find best solution.
