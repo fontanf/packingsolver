@@ -150,15 +150,21 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
         knapsacksolver::knapsack::InstanceBuilder kp_instance_builder;
         // Set knapsack capacity.
         //std::cout << "bin_space " << bin_space << std::endl;
+        //std::cout << "bin_min_space " << bin_min_space << std::endl;
         //std::cout << "item_space " << item_space << std::endl;
-        kp_instance_builder.set_capacity(
-                bin_space - bin_min_space - (item_space * (1 + output.waste_percentage)));
+        knapsacksolver::knapsack::Weight kp_capacity = bin_space
+            - bin_min_space
+            - (item_space * (1 + output.waste_percentage));
+        kp_capacity = std::max(kp_capacity, (knapsacksolver::knapsack::Weight)0);
+        kp_instance_builder.set_capacity(kp_capacity);
         // Add knapsack items which are PackingSolver bins.
         std::vector<BinTypeId> kp2ps;
         for (BinTypeId bin_type_id = 0;
                 bin_type_id < instance.number_of_bin_types();
                 ++bin_type_id) {
             const auto& bin_type = instance.bin_type(bin_type_id);
+            if (bin_type.space() > kp_capacity)
+                continue;
             for (BinPos pos = 0; pos < bin_type.copies; ++pos) {
                 kp_instance_builder.add_item(bin_type.space(), bin_type.cost);
                 kp2ps.push_back(bin_type_id);
@@ -209,30 +215,45 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
         if (memory.find(bin_copies) == memory.end()) {
             // Add bins.
             std::vector<BinTypeId> bin_types_bpp2ps;
-            for (BinTypeId i: sorted_bin_types) {
-                if (bin_copies[i] > 0) {
-                    //std::cout << "i " << i << " " << bin_copies[i] << " " << instance.bin_type(i).space() << std::endl;
+            BinPos number_of_bins = 0;
+            for (BinTypeId bin_type_id: sorted_bin_types) {
+                if (bin_copies[bin_type_id] > 0) {
+                    //std::cout << "bin_type_id " << i << " " << bin_copies[i] << " " << instance.bin_type(i).space() << std::endl;
                     bpp_instance_builder.add_bin_type(
-                            instance.bin_type(i),
-                            bin_copies[i]);
-                    bin_types_bpp2ps.push_back(i);
+                            instance.bin_type(bin_type_id),
+                            bin_copies[bin_type_id]);
+                    bin_types_bpp2ps.push_back(bin_type_id);
+                    number_of_bins += bin_copies[bin_type_id];
+                }
+            }
+            for (BinTypeId bin_type_id: sorted_bin_types) {
+                const auto& bin_type = instance.bin_type(bin_type_id);
+                auto copies = bin_type.copies - bin_copies[bin_type_id];
+                if (copies > 0) {
+                    //std::cout << "bin_type_id " << i << " " << bin_copies[i] << " " << instance.bin_type(i).space() << std::endl;
+                    bpp_instance_builder.add_bin_type(
+                            instance.bin_type(bin_type_id),
+                            copies);
+                    bin_types_bpp2ps.push_back(bin_type_id);
                 }
             }
             Instance bpp_instance = bpp_instance_builder.build();
             // Solve PackingSolver Bin Packing instance.
             auto bpp_solution = function(bpp_instance).best();
 
-            if (bpp_solution.number_of_items() == instance.number_of_items()) {
+            // Save solution.
+            Solution solution(instance);
+            //std::cout << bpp_solution.number_of_items() << " " << bpp_solution.number_of_bins() << std::endl;
+            solution.append(bpp_solution, bin_types_bpp2ps, item_types_bpp2ps);
+            //std::cout << solution.number_of_items() << " " << solution.number_of_bins() << std::endl;
+            //std::cout << &instance << std::endl;
+            std::stringstream ss;
+            ss << "waste percentage " << output.waste_percentage;
+            algorithm_formatter.update_solution(solution, ss.str());
+
+            if (bpp_solution.number_of_items() == instance.number_of_items()
+                    && bpp_solution.number_of_bins() <= number_of_bins) {
                 //std::cout << "Solution found" << std::endl;
-                // Save solution.
-                Solution solution(instance);
-                //std::cout << bpp_solution.number_of_items() << " " << bpp_solution.number_of_bins() << std::endl;
-                solution.append(bpp_solution, bin_types_bpp2ps, item_types_bpp2ps);
-                //std::cout << solution.number_of_items() << " " << solution.number_of_bins() << std::endl;
-                //std::cout << &instance << std::endl;
-                std::stringstream ss;
-                ss << "waste percentage " << output.waste_percentage;
-                algorithm_formatter.update_solution(solution, ss.str());
                 memory[bin_copies] = true;
             } else {
                 //std::cout << "No solution found" << std::endl;
@@ -245,6 +266,8 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
             output.waste_percentage_upper_bound = output.waste_percentage;
         } else {
             output.waste_percentage_lower_bound = output.waste_percentage;
+            if (kp_output.solution.number_of_items() == instance.number_of_bins())
+                break;
         }
         //std::cout << "Update waste percentage..." << std::endl;
         if (output.waste_percentage_upper_bound == std::numeric_limits<double>::infinity()) {

@@ -67,12 +67,12 @@ local_repository(
 git_repository(
     name = "knapsacksolver",
     remote = "https://github.com/fontanf/knapsacksolver.git",
-    commit = "b61de0a8e0d25b065dc60916c60a39899823158e",
+    commit = "8cf1ef9a9c2cf2622e514cc8c1fce36eb924b3c1",
 )
 
 local_repository(
     name = "knapsacksolver_",
-    path = "../knapsacksolver/",
+    path = "../../Dev/knapsacksolver/",
 )
 
 http_archive(

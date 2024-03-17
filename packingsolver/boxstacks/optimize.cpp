@@ -261,4 +261,3 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
     algorithm_formatter.end();
     return output;
 }
-
