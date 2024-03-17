@@ -19,10 +19,6 @@ using NewSolutionCallback = std::function<void(const Output&)>;
 
 struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
-    /** Algorithm. */
-    Algorithm algorithm = Algorithm::Auto;
-
-
     /** Parameters of the algorithm 'IrregularToRectangle'. */
     IrregularToRectangleParameters irregular_to_rectangle_parameters;
 
