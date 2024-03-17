@@ -74,7 +74,6 @@ enum class Algorithm
     ColumnGeneration,
     DichotomicSearch,
     SequentialValueCorrection,
-    Vsbpp2Bpp,
     SequentialOneDimensionalRectangle,
     IrregularToRectangle,
     Nlp,
