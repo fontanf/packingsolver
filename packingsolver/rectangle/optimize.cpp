@@ -177,6 +177,8 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             } else {
 
                 if (instance.objective() == Objective::Knapsack
+                        || instance.objective() == Objective::BinPacking
+                        || instance.objective() == Objective::BinPackingWithLeftovers
                         || instance.number_of_bin_types() == 1) {
 
                     // Tree search.
@@ -218,6 +220,7 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                                 BranchingScheme::Parameters branching_scheme_parameters;
                                 branching_scheme_parameters.guide_id = guide_id;
                                 branching_scheme_parameters.direction = direction;
+                                //branching_scheme_parameters.staircase = true;
                                 branching_scheme_parameters.fixed_items = parameters.fixed_items;
                                 branching_schemes.push_back(BranchingScheme(instance, branching_scheme_parameters));
                                 treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
@@ -288,6 +291,8 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                                 return bpp_output.solution_pool;
                             };
                         DichotomicSearchParameters<Instance, Solution> ds_parameters;
+                        ds_parameters.verbosity_level = 0;
+                        ds_parameters.timer = parameters.timer;
                         ds_parameters.new_solution_callback = [&algorithm_formatter](
                                 const packingsolver::Output<Instance, Solution>& ps_output)
                         {
@@ -320,7 +325,11 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             if ((instance.objective() == Objective::BinPacking
                         && instance.number_of_bin_types() > 1)
                     || (instance.objective() == Objective::BinPackingWithLeftovers
-                        && instance.number_of_bin_types() > 1)) {
+                        && instance.number_of_bin_types() > 1)
+#if !defined(CLP_FOUND) && !defined(CPLEX_FOUND) && !defined(XPRESS_FOUND)
+                    || true
+#endif
+                    ) {
 
                 SequentialValueCorrectionFunction<Instance, Solution> kp_solve
                     = [&parameters](const Instance& kp_instance)
@@ -388,7 +397,7 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 // Column generation.
 
                 ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution> pricing_function
-                    = [&parameters](const rectangle::Instance& kp_instance)
+                    = [&parameters](const Instance& kp_instance)
                     {
                         OptimizeParameters kp_parameters;
                         kp_parameters.verbosity_level = 0;
@@ -405,6 +414,7 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
                 cgslds_parameters.verbosity_level = 0;
                 cgslds_parameters.timer = parameters.timer;
+                cgslds_parameters.internal_diving = 1;
                 if (!parameters.anytime)
                     cgslds_parameters.automatic_stop = true;
                 if (output.solution_pool.best().full())

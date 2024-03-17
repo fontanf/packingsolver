@@ -25,8 +25,10 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Enable anytime mode. */
     bool anytime = true;
 
+    /** Force using a single thread. */
     bool sequential = false;
 
+    /** Fixed items. */
     Solution* fixed_items = nullptr;
 
     /** Linear programming solver. */

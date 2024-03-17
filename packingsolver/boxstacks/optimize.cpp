@@ -43,7 +43,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         SequentialOneDimensionalRectangleParameters sor_parameters = parameters.sequential_onedimensional_rectangle_parameters;
         sor_parameters.verbosity_level = 0;
         sor_parameters.timer = parameters.timer;
-        sor_parameters.onedimensional_parameters.number_of_threads = parameters.number_of_threads;
+        sor_parameters.onedimensional_parameters.sequential = (parameters.number_of_threads == 1);
         sor_parameters.onedimensional_parameters.linear_programming_solver = parameters.linear_programming_solver;
         //sor_parameters.info.set_verbosity_level(2);
 
