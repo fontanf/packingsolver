@@ -86,6 +86,9 @@ struct DichotomicSearchParameters: Parameters<Instance, Solution>
 {
     /** Initial waste percentage. */
     double initial_waste_percentage = 0.1;
+
+    /** Initial upper bound on the waste percentage. */
+    double initial_waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
 };
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter>
@@ -137,9 +140,19 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
                     < instance.bin_type(i2).space();
             });
 
-    output.waste_percentage = parameters.initial_waste_percentage;
+    output.waste_percentage_upper_bound = parameters.initial_waste_percentage_upper_bound;
     std::map<std::vector<BinTypeId>, bool> memory;
     while (output.waste_percentage_upper_bound - output.waste_percentage_lower_bound > 0.00001) {
+        //std::cout << "Update waste percentage..." << std::endl;
+        if (output.waste_percentage_upper_bound == std::numeric_limits<double>::infinity()) {
+            if (output.waste_percentage_lower_bound == 0) {
+                output.waste_percentage = parameters.initial_waste_percentage;
+            } else {
+                output.waste_percentage = output.waste_percentage_lower_bound * 2;
+            }
+        } else {
+            output.waste_percentage = (output.waste_percentage_lower_bound + output.waste_percentage_upper_bound) / 2;
+        }
         //std::cout << output.waste_percentage << std::endl;
 
         if (parameters.timer.needs_to_end())
@@ -268,12 +281,6 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
             output.waste_percentage_lower_bound = output.waste_percentage;
             if (kp_output.solution.number_of_items() == instance.number_of_bins())
                 break;
-        }
-        //std::cout << "Update waste percentage..." << std::endl;
-        if (output.waste_percentage_upper_bound == std::numeric_limits<double>::infinity()) {
-            output.waste_percentage = output.waste_percentage_lower_bound * 2;
-        } else {
-            output.waste_percentage = (output.waste_percentage_lower_bound + output.waste_percentage_upper_bound) / 2;
         }
     }
 
