@@ -117,8 +117,8 @@ int main(int argc, char *argv[])
 
     std::string defects_path = (vm.count("defects"))?
         vm["defects"].as<std::string>():
-        (std::ifstream(items_path + "_defects.csv").good())?
-        items_path + "_defects.csv":
+        (std::ifstream(vm["items"].as<std::string>() + "_defects.csv").good())?
+        vm["items"].as<std::string>() + "_defects.csv":
         "";
     if (!defects_path.empty())
         instance_builder.read_defects(defects_path);

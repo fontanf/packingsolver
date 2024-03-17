@@ -77,6 +77,8 @@ int main(int argc, char *argv[])
         ("only-write-at-the-end,e", "Only write output and certificate files at the end")
         ("verbosity-level,v", po::value<int>(), "Verbosity level")
         ("log2stderr,w", "Write log in stderr")
+
+        ("anytime,", po::value<bool>(), "set anytime")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -107,8 +109,8 @@ int main(int argc, char *argv[])
 
     std::string defects_path = (vm.count("defects"))?
         vm["defects"].as<std::string>():
-        (std::ifstream(items_path + "_defects.csv").good())?
-        items_path + "_defects.csv":
+        (std::ifstream(vm["items"].as<std::string>() + "_defects.csv").good())?
+        vm["items"].as<std::string>() + "_defects.csv":
         "";
     if (!defects_path.empty())
         instance_builder.read_defects(defects_path);
@@ -143,6 +145,8 @@ int main(int argc, char *argv[])
 
     OptimizeParameters parameters;
     read_args(parameters, vm);
+    if (vm.count("anytime"))
+        parameters.anytime = vm["anytime"].as<bool>();
     const rectangle::Output output = optimize(instance, parameters);
 
     if (vm.count("certificate"))
