@@ -538,6 +538,9 @@ Instance InstanceBuilder::build()
         instance_.item_profit_ += item_type.copies * item_type.profit;
         // Update item_area_.
         instance_.item_area_ += item_type.copies * item_type.area();
+        // Update total_item_width_ and total_item_height_.
+        instance_.total_item_width_ += item_type.copies * item_type.rect.x;
+        instance_.total_item_height_ += item_type.copies * item_type.rect.y;
         // Update max_efficiency_item_type_.
         if (instance_.max_efficiency_item_type_id_ == -1
                 || instance_.item_type(instance_.max_efficiency_item_type_id_).profit
