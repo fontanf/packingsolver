@@ -101,7 +101,11 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
-        profits[item_type_id] = instance.item_type(item_type_id).profit;
+        if (instance.objective() == Objective::Knapsack) {
+            profits[item_type_id] = instance.item_type(item_type_id).profit;
+        } else {
+            profits[item_type_id] = instance.item_type(item_type_id).space();
+        }
     }
 
     for (output.number_of_iterations = 0;; output.number_of_iterations++) {
@@ -113,7 +117,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
             return output;
 
         Solution solution(instance);
-        std::vector<double> waste_ratio_sums(instance.number_of_items(), 0.0);
+        std::vector<double> item_type_adjusted_space(instance.number_of_item_types(), 0.0);
 
         // For VBPP objective, we store the solutions found for each bin type
         // at each iterations. Thus, at the next iteration, we can check if the
@@ -257,23 +261,27 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
 
             // Update ratio_sums.
             //auto item_space = instance.item_type(0).space();
-            //item_space = 0;
-            Profit item_profit = 0;
+            double item_space = 0;
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
                     ++item_type_id) {
-                //item_space += kp_solution_best.item_copies(item_type_id) * instance.item_type(item_type_id).space();
-                item_profit += kp_solution_best.item_copies(item_type_id)
-                    * instance.item_type(item_type_id).profit;
+                item_space += kp_solution_best.item_copies(item_type_id) * instance.item_type(item_type_id).space();
             }
-            //double waste_ratio = 1.0 - (double)item_space / instance.bin_type(bin_type_id_best).space();
-            double waste_ratio = 1.0 - (double)item_profit / instance.bin_type(bin_type_id_best).cost;
+            Area waste = instance.bin_type(bin_type_id_best).space() - item_space;
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
                     ++item_type_id) {
-                waste_ratio_sums[item_type_id]
-                    += kp_solution_best.item_copies(item_type_id)
-                    * waste_ratio;
+                const auto& item_type = instance.item_type(item_type_id);
+                ItemPos copies = (double)kp_solution_best.item_copies(item_type_id);
+                double ratio = (double)copies * (double)item_type.space() / (double)item_space;
+                //std::cout << "item_type_id " << item_type_id
+                //    << " space " << item_type.space()
+                //    << " ratio " << ratio
+                //    << " waste " << waste;
+                item_type_adjusted_space[item_type_id]
+                    += (double)copies * (double)instance.item_type(item_type_id).space()
+                    + ratio * waste;
+                //std::cout << " adjusted_space " << item_type_adjusted_space[item_type_id] << std::endl;
             }
 
             // Update current solution.
@@ -284,10 +292,13 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         }
 
         if (instance.objective() == Objective::VariableSizedBinPacking
-                || instance.objective() == Objective::BinPacking) {
+                || instance.objective() == Objective::BinPacking
+                || instance.objective() == Objective::BinPackingWithLeftovers) {
             if (solution.number_of_items() != instance.number_of_items()) {
                 throw std::runtime_error(
-                        "solution.number_of_items() != instance.number_of_items()");
+                        "sequential_value_correction:"
+                        " solution.number_of_items(): " + std::to_string(solution.number_of_items())
+                        + "; instance.number_of_items(): " + std::to_string(instance.number_of_items()) + ".");
             }
         }
 
@@ -318,8 +329,23 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
-            double average_waste_ratio = waste_ratio_sums[item_type_id] / solution.item_copies(item_type_id);
-            profits[item_type_id] *= (1 + average_waste_ratio);
+            const auto& item_type = instance.item_type(item_type_id);
+            //std::cout << "item_type_id " << item_type_id
+            //    << " profit " << profits[item_type_id];
+            Profit profit_new = 0.0;
+            if (instance.objective() == Objective::Knapsack) {
+                profit_new
+                    = item_type.profit
+                    / item_type.space()
+                    * item_type_adjusted_space[item_type_id]
+                    / solution.item_copies(item_type_id);
+            } else {
+                profit_new
+                    = item_type_adjusted_space[item_type_id]
+                    / item_type.copies;
+            }
+            profits[item_type_id] = 0.5 * profits[item_type_id] + 0.5 * profit_new;
+            //std::cout << " -> " << profits[item_type_id] << std::endl;
         }
 
     }
