@@ -443,19 +443,20 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         const BinType& bin_type = instance().bin_type(bin_type_id);
 
         // Items.
-        for (ItemPos uncovered_item_pos = 0;
-                uncovered_item_pos < (ItemPos)father->uncovered_items.size();
-                ++uncovered_item_pos) {
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance_.number_of_item_types();
-                    ++item_type_id) {
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
 
-                if (!ok[item_type_id])
-                    continue;
+            if (!ok[item_type_id])
+                continue;
 
-                const ItemType& item_type = instance_.item_type(item_type_id);
-                if (father->item_number_of_copies[item_type_id] == item_type.copies)
-                    continue;
+            const ItemType& item_type = instance_.item_type(item_type_id);
+            if (father->item_number_of_copies[item_type_id] == item_type.copies)
+                continue;
+
+            for (ItemPos uncovered_item_pos = 0;
+                    uncovered_item_pos < (ItemPos)father->uncovered_items.size();
+                    ++uncovered_item_pos) {
 
                 if (ok_1[item_type_id])
                     insertion_item(
@@ -477,20 +478,9 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                             uncovered_item_pos,
                             -1);  // defect_id
             }
-        }
 
-        // Defects.
-        for (const Defect& defect: bin_type.defects) {
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance_.number_of_item_types();
-                    ++item_type_id) {
-
-                if (!ok[item_type_id])
-                    continue;
-
-                const ItemType& item_type = instance_.item_type(item_type_id);
-                if (father->item_number_of_copies[item_type_id] == item_type.copies)
-                    continue;
+            // Defects.
+            for (const Defect& defect: bin_type.defects) {
 
                 if (ok_1[item_type_id])
                     insertion_item(
@@ -564,18 +554,9 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                         new_bin,
                         0,  // uncovered_item_pos
                         -1);  // defect_id
-        }
 
-        // Defects.
-        for (const Defect& defect: bin_type.defects) {
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance_.number_of_item_types();
-                    ++item_type_id) {
-                if (!ok[item_type_id])
-                    continue;
-                const ItemType& item_type = instance_.item_type(item_type_id);
-                if (father->item_number_of_copies[item_type_id] == item_type.copies)
-                    continue;
+            // Defects.
+            for (const Defect& defect: bin_type.defects) {
 
                 if (ok_1[item_type_id])
                     insertion_item(
