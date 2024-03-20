@@ -1,10 +1,7 @@
 #include "packingsolver/boxstacks/instance.hpp"
 
-#include "packingsolver/boxstacks/solution.hpp"
-
 #include <iostream>
 #include <fstream>
-#include <climits>
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
@@ -54,18 +51,18 @@ std::ostream& Instance::format(
 {
     if (verbosity_level >= 1) {
         os
-            << "Objective:                " << objective() << std::endl
-            << "Number of item types:     " << number_of_item_types() << std::endl
-            << "Number of items:          " << number_of_items() << std::endl
-            << "Number of bin types:      " << number_of_bin_types() << std::endl
-            << "Number of bins:           " << number_of_bins() << std::endl
-            << "Number of groups:         " << number_of_groups() << std::endl
-            << "Number of defects:        " << number_of_defects() << std::endl
-            << "Unloading constraint:     " << unloading_constraint() << std::endl
-            << "Item volume:              " << item_volume() << std::endl
-            << "Bin volume:               " << bin_volume() << std::endl
-            << "Item weight:              " << item_weight() << std::endl
-            << "Bin weight:               " << bin_weight() << std::endl
+            << "Objective:             " << objective() << std::endl
+            << "Number of item types:  " << number_of_item_types() << std::endl
+            << "Number of items:       " << number_of_items() << std::endl
+            << "Number of bin types:   " << number_of_bin_types() << std::endl
+            << "Number of bins:        " << number_of_bins() << std::endl
+            << "Number of groups:      " << number_of_groups() << std::endl
+            << "Number of defects:     " << number_of_defects() << std::endl
+            << "Unloading constraint:  " << unloading_constraint() << std::endl
+            << "Item volume:           " << item_volume() << std::endl
+            << "Bin volume:            " << bin_volume() << std::endl
+            << "Item weight:           " << item_weight() << std::endl
+            << "Bin weight:            " << bin_weight() << std::endl
             ;
     }
 

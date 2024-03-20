@@ -1,10 +1,6 @@
 #include "packingsolver/irregular/instance.hpp"
 
-#include "packingsolver/irregular/solution.hpp"
-
 #include <iostream>
-#include <fstream>
-#include <climits>
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
