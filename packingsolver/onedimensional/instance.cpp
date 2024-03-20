@@ -39,11 +39,11 @@ std::ostream& Instance::format(
 {
     if (verbosity_level >= 1) {
         os
-            << "Objective:                " << objective() << std::endl
-            << "Number of item types:     " << number_of_item_types() << std::endl
-            << "Number of items:          " << number_of_items() << std::endl
-            << "Number of bin types:      " << number_of_bin_types() << std::endl
-            << "Number of bins:           " << number_of_bins() << std::endl
+            << "Objective:             " << objective() << std::endl
+            << "Number of item types:  " << number_of_item_types() << std::endl
+            << "Number of items:       " << number_of_items() << std::endl
+            << "Number of bin types:   " << number_of_bin_types() << std::endl
+            << "Number of bins:        " << number_of_bins() << std::endl
             ;
     }
 

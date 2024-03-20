@@ -231,7 +231,7 @@ struct Output: optimizationtools::Output
         };
     }
 
-    virtual int format_width() const { return 30; }
+    virtual int format_width() const { return 11; }
 
     virtual void format(std::ostream& os) const
     {
