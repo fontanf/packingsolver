@@ -19,14 +19,11 @@ using NewSolutionCallback = std::function<void(const Output&)>;
 
 struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
+    /** Optimization mode. */
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
+
     /** New solution callback. */
     NewSolutionCallback new_solution_callback = [](const Output&) { };
-
-    /** Enable anytime mode. */
-    bool anytime = true;
-
-    /** Force using a single thread. */
-    bool sequential = false;
 
     /** Fixed items. */
     Solution* fixed_items = nullptr;
@@ -34,6 +31,21 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Linear programming solver. */
     columngenerationsolver::LinearProgrammingSolver linear_programming_solver
         = columngenerationsolver::LinearProgrammingSolver::CLP;
+
+    /** Use tree search algorithm. */
+    bool use_tree_search = false;
+
+    /** Use sequential single knapsack algorithm. */
+    bool use_sequential_single_knapsack = false;
+
+    /** Use sequential value correction algorithm. */
+    bool use_sequential_value_correction = false;
+
+    /** Use dichotomic search algorithm. */
+    bool use_dichotomic_search = false;
+
+    /** Use column generation algorithm. */
+    bool use_column_generation = false;
 
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
@@ -49,9 +61,6 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
      * value correction algorithm.
      */
     NodeId sequential_value_correction_subproblem_queue_size = 1024;
-
-    /** Number of iterations of the sequential value correction algorithm. */
-    Counter sequential_value_correction_number_of_iterations = 32;
 
     /**
      * Size of the queue for the pricing knapsack subproblem of the column

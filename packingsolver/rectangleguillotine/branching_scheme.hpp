@@ -235,6 +235,9 @@ public:
     /** Get instance. */
     inline const Instance& instance() const { return instance_; }
 
+    /** Get parameters. */
+    inline const Parameters& parameters() const { return parameters_; }
+
     /*
      * Branching scheme methods
      */
@@ -307,8 +310,7 @@ public:
     }
 
     Solution to_solution(
-            const Node& node,
-            const Solution& solution_dummy) const;
+            const Node& node) const;
 
 private:
 
@@ -696,4 +698,3 @@ bool BranchingScheme::operator()(
 
 }
 }
-

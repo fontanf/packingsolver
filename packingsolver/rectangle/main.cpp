@@ -78,7 +78,10 @@ int main(int argc, char *argv[])
         ("verbosity-level,v", po::value<int>(), "Verbosity level")
         ("log2stderr,w", "Write log in stderr")
 
-        ("anytime,", po::value<bool>(), "set anytime")
+        ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
+        ("sequential-value-correction-subproblem-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
+        ("sequential-value-correction-number-of-iterations,", po::value<Counter>(), "set sequential value correction number of iterations")
+        ("column-generation-subproblem-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -145,8 +148,12 @@ int main(int argc, char *argv[])
 
     OptimizeParameters parameters;
     read_args(parameters, vm);
-    if (vm.count("anytime"))
-        parameters.anytime = vm["anytime"].as<bool>();
+    if (vm.count("optimization-mode"))
+        parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
+    if (vm.count("sequential-value-correction-subproblem-queue-size"))
+        parameters.sequential_value_correction_subproblem_queue_size = vm["sequential-value-correction-subproblem-queue-size"].as<NodeId>();
+    if (vm.count("column-generation-subproblem-queue-size"))
+        parameters.column_generation_subproblem_queue_size = vm["column-generation-subproblem-queue-size"].as<NodeId>();
     const rectangle::Output output = optimize(instance, parameters);
 
     if (vm.count("certificate"))

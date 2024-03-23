@@ -110,7 +110,9 @@ void Solution::add_item(
             y_max_ = ye;
         Length xi = instance().bin_type(bin.bin_type_id).rect.x;
         Length yi = instance().bin_type(bin.bin_type_id).rect.y;
-        area_ = bin_area_ - std::max((xi - x_max_) * yi, (yi - y_max_ * xi));
+        area_ = (std::min)(
+                bin_area_ - (xi - x_max_) * yi,
+                bin_area_ - (yi - y_max_) * xi);
     }
 }
 
@@ -297,12 +299,12 @@ void Solution::format(
     if (verbosity_level >= 1) {
         os
             << "Number of items:  " << optimizationtools::Ratio<ItemPos>(number_of_items(), instance().number_of_items()) << std::endl
-            << "Item area:        " << optimizationtools::Ratio<Profit>(item_area(), instance().item_area()) << std::endl
-            << "Item weight:      " << optimizationtools::Ratio<Profit>(item_weight(), instance().item_weight()) << std::endl
+            << "Item area:        " << optimizationtools::Ratio<Area>(item_area(), instance().item_area()) << std::endl
+            << "Item weight:      " << optimizationtools::Ratio<Weight>(item_weight(), instance().item_weight()) << std::endl
             << "Item profit:      " << optimizationtools::Ratio<Profit>(profit(), instance().item_profit()) << std::endl
             << "Number of bins:   " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
-            << "Bin area:         " << optimizationtools::Ratio<BinPos>(bin_area(), instance().bin_area()) << std::endl
-            << "Bin weight:       " << optimizationtools::Ratio<BinPos>(bin_weight(), instance().bin_weight()) << std::endl
+            << "Bin area:         " << optimizationtools::Ratio<Area>(bin_area(), instance().bin_area()) << std::endl
+            << "Bin weight:       " << optimizationtools::Ratio<Weight>(bin_weight(), instance().bin_weight()) << std::endl
             << "Bin cost:         " << cost() << std::endl
             << "Waste:            " << waste() << std::endl
             << "Waste (%):        " << 100 * waste_percentage() << std::endl

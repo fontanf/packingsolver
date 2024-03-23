@@ -58,6 +58,23 @@ inline bool equal(double v1, double v2)
 }
 
 
+enum class OptimizationMode
+{
+    Anytime,
+    NotAnytime,
+    NotAnytimeSequential,
+    // AnytimeSequential doesn't exist.
+};
+
+std::istream& operator>>(
+        std::istream& in,
+        OptimizationMode& optimization_mode);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        OptimizationMode optimization_mode);
+
+
 enum class ProblemType
 {
     RectangleGuillotine,
@@ -66,6 +83,15 @@ enum class ProblemType
     BoxStacks,
     Irregular,
 };
+
+std::istream& operator>>(
+        std::istream& in,
+        ProblemType& problem_type);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        ProblemType problem_type);
+
 
 enum class Objective
 {
@@ -80,15 +106,16 @@ enum class Objective
     SequentialOneDimensionalRectangleSubproblem,
 };
 
-enum class Direction { X, Y, Any };
-
-std::istream& operator>>(
-        std::istream& in,
-        ProblemType& problem_type);
-
 std::istream& operator>>(
         std::istream& in,
         Objective& objective);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        Objective objective);
+
+
+enum class Direction { X, Y, Any };
 
 std::istream& operator>>(
         std::istream& in,
@@ -96,15 +123,8 @@ std::istream& operator>>(
 
 std::ostream& operator<<(
         std::ostream& os,
-        ProblemType problem_type);
-
-std::ostream& operator<<(
-        std::ostream& os,
-        Objective objective);
-
-std::ostream& operator<<(
-        std::ostream& os,
         Direction o);
+
 
 struct AbstractBinType
 {

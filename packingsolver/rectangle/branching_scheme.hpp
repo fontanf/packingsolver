@@ -206,7 +206,6 @@ public:
 
         /** Width or height. */
         Length length = 0;
-
     };
 
     struct Parameters
