@@ -2,7 +2,46 @@
 
 using namespace packingsolver;
 
-std::istream& packingsolver::operator>>(std::istream& in, ProblemType& problem_type)
+std::istream& packingsolver::operator>>(
+        std::istream& in,
+        OptimizationMode& optimization_mode)
+{
+    std::string token;
+    in >> token;
+    if (token == "anytime") {
+        optimization_mode = OptimizationMode::Anytime;
+    } else if (token == "not-anytime") {
+        optimization_mode = OptimizationMode::NotAnytime;
+    } else if (token == "not-anytime-sequential") {
+        optimization_mode = OptimizationMode::NotAnytimeSequential;
+    } else  {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& packingsolver::operator<<(
+        std::ostream &os,
+        OptimizationMode optimization_mode)
+{
+    switch (optimization_mode) {
+    case OptimizationMode::Anytime: {
+        os << "Anytime";
+        break;
+    } case OptimizationMode::NotAnytime: {
+        os << "Not anytime";
+        break;
+    } case OptimizationMode::NotAnytimeSequential: {
+        os << "Not anytime, sequential";
+        break;
+    }
+    }
+    return os;
+}
+
+std::istream& packingsolver::operator>>(
+        std::istream& in,
+        ProblemType& problem_type)
 {
     std::string token;
     in >> token;
@@ -22,7 +61,9 @@ std::istream& packingsolver::operator>>(std::istream& in, ProblemType& problem_t
     return in;
 }
 
-std::ostream& packingsolver::operator<<(std::ostream &os, ProblemType problem_type)
+std::ostream& packingsolver::operator<<(
+        std::ostream &os,
+        ProblemType problem_type)
 {
     switch (problem_type) {
     case ProblemType::RectangleGuillotine: {
@@ -45,7 +86,9 @@ std::ostream& packingsolver::operator<<(std::ostream &os, ProblemType problem_ty
     return os;
 }
 
-std::istream& packingsolver::operator>>(std::istream& in, Objective& objective)
+std::istream& packingsolver::operator>>(
+        std::istream& in,
+        Objective& objective)
 {
     std::string token;
     in >> token;

@@ -51,7 +51,7 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
     auto node_2 = branching_scheme.child(node_1, i1);
 
-    auto solution = branching_scheme.to_solution(*node_2, Solution(instance));
+    auto solution = branching_scheme.to_solution(*node_2);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
@@ -67,10 +67,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
     BranchingScheme::Parameters branching_scheme_parameters;
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-    packingsolver::Output<Instance, Solution> output(instance);
-    packingsolver::Parameters<Instance, Solution> parameters;
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    iterative_beam_search(branching_scheme, algorithm_formatter);
+    auto output = iterative_beam_search(branching_scheme);
     EXPECT_EQ(output.solution_pool.best().waste(), 0);
 }
 
@@ -87,10 +84,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
     BranchingScheme::Parameters branching_scheme_parameters;
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-    packingsolver::Output<Instance, Solution> output(instance);
-    packingsolver::Parameters<Instance, Solution> parameters;
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    iterative_beam_search(branching_scheme, algorithm_formatter);
+    auto output = iterative_beam_search(branching_scheme);
     EXPECT_EQ(output.solution_pool.best().waste(), 210 * 5700);
 }
 
@@ -108,10 +102,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    packingsolver::Output<Instance, Solution> output(instance);
-    packingsolver::Parameters<Instance, Solution> parameters;
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    iterative_beam_search(branching_scheme, algorithm_formatter);
+    auto output = iterative_beam_search(branching_scheme);
     EXPECT_EQ(output.solution_pool.best().waste(), 0);
 }
 
@@ -149,10 +140,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
     BranchingScheme::Parameters branching_scheme_parameters;
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-    packingsolver::Output<Instance, Solution> output(instance);
-    packingsolver::Parameters<Instance, Solution> parameters;
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    iterative_beam_search(branching_scheme, algorithm_formatter);
+    auto output = iterative_beam_search(branching_scheme);
     EXPECT_EQ(output.solution_pool.best().waste(), 3210 * (6000 + 210) - instance.item_area());
 }
 
@@ -188,10 +176,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    packingsolver::Output<Instance, Solution> output(instance);
-    packingsolver::Parameters<Instance, Solution> parameters;
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    iterative_beam_search(branching_scheme, algorithm_formatter);
+    auto output = iterative_beam_search(branching_scheme);
     EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
 }
 
@@ -228,10 +213,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    packingsolver::Output<Instance, Solution> output(instance);
-    packingsolver::Parameters<Instance, Solution> parameters;
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    iterative_beam_search(branching_scheme, algorithm_formatter);
+    auto output = iterative_beam_search(branching_scheme);
     EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
 }
 
@@ -269,10 +251,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    packingsolver::Output<Instance, Solution> output(instance);
-    packingsolver::Parameters<Instance, Solution> parameters;
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    iterative_beam_search(branching_scheme, algorithm_formatter);
+    auto output = iterative_beam_search(branching_scheme);
     EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 6000 - instance.item_area());
 }
 
@@ -311,10 +290,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    packingsolver::Output<Instance, Solution> output(instance);
-    packingsolver::Parameters<Instance, Solution> parameters;
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    iterative_beam_search(branching_scheme, algorithm_formatter);
+    auto output = iterative_beam_search(branching_scheme);
     EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 3000 - instance.item_area());
 }
 
@@ -409,10 +385,7 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
         Instance instance_new = instance_builder_new.build();
 
         BranchingScheme branching_scheme(instance_new);
-        packingsolver::Output<Instance, Solution> output(instance);
-        packingsolver::Parameters<Instance, Solution> parameters;
-        AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-        iterative_beam_search(branching_scheme, algorithm_formatter);
+        auto output = iterative_beam_search(branching_scheme);
         const Solution& solution = output.solution_pool.best();
         std::cout << name << " " << waste << std::endl;
         EXPECT_EQ(solution.waste(), waste);

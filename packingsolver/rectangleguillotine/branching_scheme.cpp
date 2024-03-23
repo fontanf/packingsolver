@@ -1476,8 +1476,7 @@ bool BranchingScheme::BranchingScheme::check(
 */
 
 Solution BranchingScheme::to_solution(
-        const Node& node,
-        const Solution&) const
+        const Node& node) const
 {
     std::vector<const BranchingScheme::Node*> descendents;
     for (const Node* current_node = &node;

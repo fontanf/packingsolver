@@ -19,18 +19,30 @@ using NewSolutionCallback = std::function<void(const Output&)>;
 
 struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
+    /** Optimization mode. */
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
+
     /** New solution callback. */
     NewSolutionCallback new_solution_callback = [](const Output&) { };
-
-    /** Enable anytime mode. */
-    bool anytime = true;
-
-    /** Force using a single thread. */
-    bool sequential = false;
 
     /** Linear programming solver. */
     columngenerationsolver::LinearProgrammingSolver linear_programming_solver
         = columngenerationsolver::LinearProgrammingSolver::CLP;
+
+    /** Use tree search algorithm. */
+    bool use_tree_search = false;
+
+    /** Use sequential single knapsack algorithm. */
+    bool use_sequential_single_knapsack = false;
+
+    /** Use sequential value correction algorithm. */
+    bool use_sequential_value_correction = false;
+
+    /** Use dichotomic search algorithm. */
+    bool use_dichotomic_search = false;
+
+    /** Use column generation algorithm. */
+    bool use_column_generation = false;
 
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
@@ -45,29 +57,26 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
      * Size of the queue for the pricing knapsack subproblem of the sequential
      * value correction algorithm.
      */
-    NodeId sequential_value_correction_subproblem_queue_size = 1024;
-
-    /** Number of iterations of the sequential value correction algorithm. */
-    Counter sequential_value_correction_number_of_iterations = 32;
+    NodeId sequential_value_correction_subproblem_queue_size = 256;
 
     /**
      * Size of the queue for the pricing knapsack subproblem of the column
      * generation algorithm.
      */
-    NodeId column_generation_subproblem_queue_size = 1024;
+    NodeId column_generation_subproblem_queue_size = 256;
 
     /*
      * Parameters for non-anytime mode
      */
 
     /** Size of the queue in the tree search algorithm. */
-    NodeId not_anytime_tree_search_queue_size = 1024;
+    NodeId not_anytime_tree_search_queue_size = 256;
 
     /**
      * Size of the queue in the single knapsack subproblem of the sequential
      * single knapsack algorithm.
      */
-    NodeId not_anytime_sequential_single_knapsack_subproblem_queue_size = 1024;
+    NodeId not_anytime_sequential_single_knapsack_subproblem_queue_size = 256;
 
     /** Number of iterations of the sequential value correction algorithm. */
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
@@ -76,7 +85,7 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
      * Size of the queue in the bin packing subproblem of the dichotomic search
      * algorithm.
      */
-    NodeId not_anytime_dichotomic_search_subproblem_beam_size = 1024;
+    NodeId not_anytime_dichotomic_search_subproblem_beam_size = 256;
 };
 
 const Output optimize(

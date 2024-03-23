@@ -1,5 +1,6 @@
 #include "packingsolver/rectangle/branching_scheme.hpp"
 
+#include <iostream>
 #include <string>
 
 using namespace packingsolver;
@@ -240,7 +241,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     Length xe = insertion.x + xj;
     Length ys = insertion.y;
     Length ye = insertion.y + yj;
-    //Length xi = instance().x(bin_type, o);
+    Length xi = instance().x(bin_type, o);
     Length yi = instance().y(bin_type, o);
 
     // Update uncovered_items.
@@ -376,7 +377,61 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
         if (x > node.xs_max)
             node.guide_area += (x - node.xs_max) * (uncovered_item.ye - uncovered_item.ys);
     }
+
+    if (node.number_of_items == instance().number_of_items()) {
+        node.current_area = instance().previous_bin_area(bin_pos) + node.xe_max * yi;
+    }
+
     node.waste = node.current_area - node.item_area;
+
+    {
+        Area waste = instance().previous_bin_area(bin_pos) + node.xe_max * yi - instance().item_area();
+        if (node.waste < waste)
+            node.waste = waste;
+    }
+
+    // If there are few items left, try to detect if an extra bin will be
+    // required.
+    if (node.number_of_bins < instance().number_of_bins()
+            && instance().item_area() - node.item_area < bin_type.area()) {
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance().number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance().item_type(item_type_id);
+            if (node.item_number_of_copies[item_type_id] == item_type.copies)
+                continue;
+            Length xj = instance().x(item_type, false, o);
+            Length yj = instance().y(item_type, false, o);
+            if (!item_type.oriented) {
+                Length yj = instance().y(item_type, false, o);
+                if (xj > yj)
+                    xj = yj;
+            }
+            int ok = false;
+            for (const UncoveredItem& uncovered_item: node.uncovered_items) {
+                if (uncovered_item.ys + yj <= yi
+                        && uncovered_item.xe + xj <= xi) {
+                    ok = true;
+                    break;;
+                }
+                if (!item_type.oriented
+                        && uncovered_item.ys + xj <= yi
+                        && uncovered_item.xe + yj <= xi) {
+                    ok = true;
+                    break;
+                }
+            }
+            if (!ok) {
+                if (!item_type.oriented && xj > yj)
+                    xj = yj;
+                Area waste = instance().previous_bin_area(bin_pos + 1) + xj * yi - instance().item_area();
+                if (node.waste < waste)
+                    node.waste = waste;
+                break;
+            }
+        }
+    }
+
     if (node.waste < 0) {
         //std::cout
         //    << "current_area " << node.current_area
@@ -516,7 +571,8 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         } else if (parameters_.direction == Direction::Y) {
             new_bin = 2;
         } else {
-            if (bin_type.rect.x >= bin_type.rect.y) {
+            if ((double)instance().total_item_height() / bin_type.rect.y
+                    >= (double)instance().total_item_width() / bin_type.rect.x) {
                 new_bin = 1;
             } else {
                 new_bin = 2;
@@ -868,6 +924,12 @@ Solution BranchingScheme::to_solution(
                 current_node->item_type_id,
                 bl_corner,
                 current_node->rotate);
+        //std::cout << "i " << i
+        //    << " item_type_id " << current_node->item_type_id
+        //    << " bl_corner " << bl_corner
+        //    << " rotate " << current_node->rotate
+        //    << " waste " << current_node->waste
+        //    << std::endl;
     }
     if (node->number_of_bins == 1
             && node->last_bin_direction == Direction::Y
@@ -877,6 +939,17 @@ Solution BranchingScheme::to_solution(
                 + "; solution.y_max(): " + std::to_string(solution.y_max())
                 + ".");
     }
+    //if (node->waste != solution.waste()) {
+    //    std::cout << node->xe_max << std::endl;
+    //    std::cout << node->current_area << std::endl;
+    //    std::cout << node->item_area << std::endl;
+    //    std::cout << solution.x_max() << std::endl;
+    //    std::cout << node->father->waste << std::endl;
+    //    throw std::runtime_error(
+    //            "node->waste: " + std::to_string(node->waste)
+    //            + "; solution.waste(): " + std::to_string(solution.waste())
+    //            + ".\n");
+    //}
     return solution;
 }
 

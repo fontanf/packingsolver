@@ -2,9 +2,7 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
-#include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
-
-#include <set>
+#include "packingsolver/rectangleguillotine/solution.hpp"
 
 namespace packingsolver
 {
@@ -20,8 +18,12 @@ struct IterativeBeamSearchParameters: packingsolver::Parameters<Instance, Soluti
     Counter maximum_number_of_nodes = -1;
 };
 
-struct IterativeBeamSearchOutput
+struct IterativeBeamSearchOutput: packingsolver::Output<Instance, Solution>
 {
+    /** Constructor. */
+    IterativeBeamSearchOutput(const Instance& instance):
+        packingsolver::Output<Instance, Solution>(instance) { }
+
     Counter number_of_nodes = 0;
     Counter queue_size_max = 1;
 };
@@ -29,13 +31,11 @@ struct IterativeBeamSearchOutput
 template <typename BranchingScheme>
 inline IterativeBeamSearchOutput iterative_beam_search(
         const BranchingScheme& branching_scheme,
-        AlgorithmFormatter& algorithm_formatter,
         IterativeBeamSearchParameters parameters = {})
 {
     using Insertion = typename BranchingScheme::Insertion;
-    const auto& solution_pool = algorithm_formatter.output().solution_pool;
 
-    IterativeBeamSearchOutput output;
+    IterativeBeamSearchOutput output(branching_scheme.instance());
     auto node_hasher = branching_scheme.node_hasher();
     NodeSet<BranchingScheme> q1(branching_scheme);
     NodeSet<BranchingScheme> q2(branching_scheme);
@@ -88,7 +88,7 @@ inline IterativeBeamSearchOutput iterative_beam_search(
                 q->erase(q->begin());
 
                 // Bound.
-                if (branching_scheme.bound(*node_cur, solution_pool.worst())) {
+                if (branching_scheme.bound(*node_cur, output.solution_pool.worst())) {
                     continue;
                 }
 
@@ -96,17 +96,15 @@ inline IterativeBeamSearchOutput iterative_beam_search(
                     auto child = branching_scheme.child(node_cur, insertion);
 
                     // Bound.
-                    if (branching_scheme.bound(*child, solution_pool.worst())) {
+                    if (branching_scheme.bound(*child, output.solution_pool.worst())) {
                         continue;
                     }
 
                     // Update best solution.
-                    if (branching_scheme.better(*child, solution_pool.worst())) {
+                    if (branching_scheme.better(*child, output.solution_pool.worst())) {
                         std::stringstream ss;
-                        ss << "IBS (thread " << parameters.thread_id << ") q " << output.queue_size_max;
-                        algorithm_formatter.update_solution(
-                                branching_scheme.to_solution(*child, solution_pool.worst()),
-                                ss.str());
+                        output.solution_pool.add(branching_scheme.to_solution(*child));
+                        parameters.new_solution_callback(output);
                     }
 
                     // Add child to the queue.
