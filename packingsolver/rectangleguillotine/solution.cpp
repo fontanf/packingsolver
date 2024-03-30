@@ -198,7 +198,7 @@ void Solution::write(
                     << n.item_type_id << ","
                     << n.d << ",";
                 if (n.f != -1)
-                    file << n.f;
+                    file << offset + n.f;
                 file << std::endl;
             }
             offset += solution_bin.nodes.size();
