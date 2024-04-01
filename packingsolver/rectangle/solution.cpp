@@ -146,7 +146,7 @@ void Solution::append(
     }
 }
 
-inline double Solution::least_load() const
+double Solution::least_load() const
 {
     if (number_of_bins() == 0)
         return 0;
