@@ -106,6 +106,21 @@ cc_library(
 )
 
 http_archive(
+    name = "osi_darwin",
+    urls = ["https://github.com/coin-or/Osi/releases/download/releases%2F0.108.8/Osi-releases.0.108.8-x86_64-macos106-clang140.tar.gz"],
+    sha256 = "4ddc1ee5cd5088aeb7795bfebc66beec8d7a0a3baec3dd3e8bbbdff17f93cd3f",
+    build_file_content = """
+cc_library(
+    name = "osi",
+    hdrs = glob(["include/coin/Osi*.h*"], exclude_directories = 0),
+    strip_include_prefix = "include/coin/",
+    srcs = ["lib/libOsi.dylib", "lib/libOsiCommonTests.dylib"],
+    visibility = ["//visibility:public"],
+)
+""",
+)
+
+http_archive(
     name = "coinutils_linux",
     urls = ["https://github.com/coin-or/CoinUtils/releases/download/releases%2F2.11.9/CoinUtils-releases.2.11.9-x86_64-ubuntu20-gcc940-static.tar.gz"],
     sha256 = "14d07de1b7961f68e037da6f0c57844fd67d4cc1a4b125642f42cd134b228094",
@@ -131,6 +146,21 @@ cc_library(
     hdrs = glob(["include/coin/Coin*.h*"], exclude_directories = 0),
     strip_include_prefix = "include/coin/",
     srcs = ["lib/libCoinUtils.lib"],
+    visibility = ["//visibility:public"],
+)
+""",
+)
+
+http_archive(
+    name = "coinutils_darwin",
+    urls = ["https://github.com/coin-or/CoinUtils/releases/download/releases%2F2.11.9/CoinUtils-releases.2.11.9-x86_64-macos106-clang140.tar.gz"],
+    sha256 = "3d0bdaf7bb748bfbec059fc8ff6ff17d2354c334710db3cd532af6a9c942f762",
+    build_file_content = """
+cc_library(
+    name = "coinutils",
+    hdrs = glob(["include/coin/Coin*.h*"], exclude_directories = 0),
+    strip_include_prefix = "include/coin/",
+    srcs = ["lib/libCoinUtils.dylib"],
     visibility = ["//visibility:public"],
 )
 """,
@@ -163,6 +193,22 @@ cc_library(
     strip_include_prefix = "include/coin",
     srcs = ["lib/libClp.lib", "lib/libOsiClp.lib"],
     deps = ["@osi_windows//:osi", "@coinutils_windows//:coinutils"],
+    visibility = ["//visibility:public"],
+)
+""",
+)
+
+http_archive(
+    name = "clp_darwin",
+    urls = ["https://github.com/coin-or/Clp/releases/download/releases%2F1.17.8/Clp-releases.1.17.8-x86_64-macos106-clang140.tar.gz"],
+    sha256 = "fe9ce251cd3e0324d64f0e3956d722c73b7568685c25eb7559c327818b39b86b",
+    build_file_content = """
+cc_library(
+    name = "clp",
+    hdrs = glob(["include/coin/*Clp*.h*"], exclude_directories = 0),
+    strip_include_prefix = "include/coin",
+    srcs = ["lib/libClp.dylib", "lib/libOsiClp.dylib"],
+    deps = ["@osi_darwin//:osi", "@coinutils_darwin//:coinutils"],
     visibility = ["//visibility:public"],
 )
 """,

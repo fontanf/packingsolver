@@ -14,6 +14,9 @@ CLP_DEP = select({
             "//conditions:default": []
         }) + select({
             "//packingsolver:clp_linux": ["@clp_linux//:clp"],
+            "//conditions:default": []
+        }) + select({
+            "//packingsolver:clp_darwin": ["@clp_darwin//:clp"],
             "//conditions:default": []})
 
 CPLEX_COPTS = select({
