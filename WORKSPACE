@@ -309,6 +309,13 @@ cc_library(
         strip_include_prefix = "CGAL-5.6/include/",
         deps = [
                 "@boost//:iterator",
+                "@boost//:predef",
+                "@boost//:operators",
+                "@boost//:variant",
+                "@boost//:any",
+                "@boost//:random",
+                "@boost//:algorithm",
+                "@boost//:multiprecision",
         ],
 )
 """,
