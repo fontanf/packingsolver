@@ -36,6 +36,7 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
 
     } else {
 
+        /*
         IrregularToRectangleParameters i2r_parameters
             = parameters.irregular_to_rectangle_parameters;
         i2r_parameters.verbosity_level = 0;
@@ -50,6 +51,7 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
         irregular_to_rectangle(
                 instance,
                 i2r_parameters);
+        */
 
         /*
         NlpParameters nlp_parameters;
