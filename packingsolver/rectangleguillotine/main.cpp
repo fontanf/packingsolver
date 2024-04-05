@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
         ("bin-infinite-copies", "")
         ("bin-unweighted", "")
         ("item-infinite-copies", "")
+        ("item-multiply-copies", po::value<ItemPos>(), "")
         ("unweighted", "")
         ("no-item-rotation", "")
 
@@ -89,6 +90,12 @@ int main(int argc, char *argv[])
         ("log2stderr,w", "Write log in stderr")
 
         ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
+        ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
+        ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
+        ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
+        ("use-column-generation,", po::value<bool>(), "enable column-generation")
+        ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
+        ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -125,6 +132,8 @@ int main(int argc, char *argv[])
     if (!defects_path.empty())
         instance_builder.read_defects(defects_path);
 
+    if (vm.count("item-multiply-copies"))
+        instance_builder.multiply_item_types_copies(vm["item-multiply-copies"].as<ItemPos>());
     if (vm.count("bin-infinite-x"))
         instance_builder.set_bin_types_infinite_x();
     if (vm.count("bin-infinite-y"))
@@ -180,6 +189,20 @@ int main(int argc, char *argv[])
     read_args(parameters, vm);
     if (vm.count("optimization-mode"))
         parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
+
+    if (vm.count("use-tree-search"))
+        parameters.use_tree_search = vm["use-tree-search"].as<bool>();
+    if (vm.count("use-sequential-single-knapsack"))
+        parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
+    if (vm.count("use-sequential-value-correction"))
+        parameters.use_sequential_value_correction = vm["use-sequential-value-correction"].as<bool>();
+    if (vm.count("use-column-generation"))
+        parameters.use_column_generation = vm["use-column-generation"].as<bool>();
+    if (vm.count("use-dichotomic-search"))
+        parameters.use_dichotomic_search = vm["use-dichotomic-search"].as<bool>();
+
+    if (vm.count("not-anytime-sequential-value-correction-number-of-iterations"))
+        parameters.not_anytime_sequential_value_correction_number_of_iterations = vm["not-anytime-sequential-value-correction-number-of-iterations"].as<Counter>();
     const rectangleguillotine::Output output = optimize(instance, parameters);
 
     if (vm.count("certificate"))
