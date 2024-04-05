@@ -2,7 +2,7 @@
 
 #include "packingsolver/irregular/solution.hpp"
 
-#include "packingsolver/irregular/irregular_to_rectangle.hpp"
+//#include "packingsolver/irregular/irregular_to_rectangle.hpp"
 
 namespace packingsolver
 {
@@ -20,7 +20,7 @@ using NewSolutionCallback = std::function<void(const Output&)>;
 struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
     /** Parameters of the algorithm 'IrregularToRectangle'. */
-    IrregularToRectangleParameters irregular_to_rectangle_parameters;
+    //IrregularToRectangleParameters irregular_to_rectangle_parameters;
 
 
     /** Path of the .nl output file. */
