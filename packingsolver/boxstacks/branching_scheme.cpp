@@ -1,7 +1,7 @@
 #include "packingsolver/boxstacks/branching_scheme.hpp"
 
-#include "knapsacksolver/multiplechoicesubsetsum/instance_builder.hpp"
-#include "knapsacksolver/multiplechoicesubsetsum/algorithms/dynamic_programming_bellman.hpp"
+#include "knapsacksolver/multiple_choice_subset_sum/instance_builder.hpp"
+#include "knapsacksolver/multiple_choice_subset_sum/algorithms/dynamic_programming_bellman.hpp"
 
 #include <string>
 #include <cmath>
@@ -68,7 +68,7 @@ BranchingScheme::BranchingScheme(
     // Build Multiple-Choice Subset Sum instance.
     const BinType& bin_type = instance.bin_type(0);
     Direction o = parameters_.direction;
-    knapsacksolver::multiplechoicesubsetsum::InstanceBuilder mcss_instance_builder;
+    knapsacksolver::multiple_choice_subset_sum::InstanceBuilder mcss_instance_builder;
     mcss_instance_builder.set_capacity(instance.x(bin_type, o));
     ItemPos mcss_pos = 0;
     for (ItemTypeId item_type_id = 0;
@@ -85,10 +85,10 @@ BranchingScheme::BranchingScheme(
             mcss_pos++;
         }
     }
-    knapsacksolver::multiplechoicesubsetsum::Instance mcss_instance = mcss_instance_builder.build();
+    knapsacksolver::multiple_choice_subset_sum::Instance mcss_instance = mcss_instance_builder.build();
     //mcss_instance.print(std::cout, 2);
-    auto mscc_output = knapsacksolver::multiplechoicesubsetsum::dynamic_programming_bellman_array(mcss_instance);
-    //auto mscc_output = multiplechoicesubsetsumsolver::dynamic_programming_bellman_word_ram(mcss_instance);
+    auto mscc_output = knapsacksolver::multiple_choice_subset_sum::dynamic_programming_bellman_array(mcss_instance);
+    //auto mscc_output = multiple_choice_subset_sumsolver::dynamic_programming_bellman_word_ram(mcss_instance);
     Length xi = mscc_output.bound;
 
     // Compute is_item_type_selected_.
