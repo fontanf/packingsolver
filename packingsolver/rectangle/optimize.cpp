@@ -212,6 +212,8 @@ void optimize_sequential_value_correction(
     SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
     svc_parameters.verbosity_level = 0;
     svc_parameters.timer = parameters.timer;
+    if (parameters.optimization_mode != OptimizationMode::Anytime)
+        svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
     svc_parameters.new_solution_callback = [&algorithm_formatter](
             const packingsolver::Output<Instance, Solution>& ps_output)
     {

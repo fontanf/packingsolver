@@ -292,6 +292,16 @@ void InstanceBuilder::set_item_types_infinite_copies()
     }
 }
 
+void InstanceBuilder::multiply_item_types_copies(ItemPos factor)
+{
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        item_type.copies *= factor;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Read from files ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
