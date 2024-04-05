@@ -30,7 +30,7 @@ cc_library(
                 "//packingsolver/onedimensional:onedimensional",
                 "//packingsolver/rectangle:rectangle",
                 "@treesearchsolver//treesearchsolver:treesearchsolver",
-                "@knapsacksolver//knapsacksolver/multiplechoicesubsetsum/algorithms:dynamic_programming_bellman",
+                "@knapsacksolver//knapsacksolver/multiple_choice_subset_sum/algorithms:dynamic_programming_bellman",
         ],
         copts = STDCPP + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
         visibility = ["//visibility:public"],
