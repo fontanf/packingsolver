@@ -27,7 +27,6 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         SequentialOneDimensionalRectangleParameters sor_parameters = parameters.sequential_onedimensional_rectangle_parameters;
         sor_parameters.verbosity_level = 0;
         sor_parameters.timer = parameters.timer;
-        sor_parameters.onedimensional_parameters.sequential = (parameters.number_of_threads == 1);
         sor_parameters.onedimensional_parameters.linear_programming_solver = parameters.linear_programming_solver;
         //sor_parameters.info.set_verbosity_level(2);
 
@@ -166,7 +165,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                             << " " << tssibs_output.maximum_size_of_the_queue;
                         algorithm_formatter.update_solution(solution, ss.str());
                     };
-                if (parameters.number_of_threads != 1 && branching_schemes.size() > 1) {
+                if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
                     threads.push_back(std::thread(
                                 treesearchsolver::iterative_beam_search_2<BranchingScheme>,
                                 std::ref(branching_schemes[i]),
@@ -207,7 +206,10 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                 OptimizeParameters kp_parameters;
                 kp_parameters.verbosity_level = 0;
                 kp_parameters.timer = parameters.timer;
-                kp_parameters.number_of_threads = parameters.number_of_threads;
+                kp_parameters.optimization_mode
+                    = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+                    OptimizationMode::NotAnytimeSequential:
+                    OptimizationMode::NotAnytime;
                 kp_parameters.linear_programming_solver = parameters.linear_programming_solver;
                 kp_parameters.tree_search_queue_size = parameters.sequential_value_correction_queue_size;
                 kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;
