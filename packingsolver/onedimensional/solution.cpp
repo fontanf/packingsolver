@@ -212,7 +212,7 @@ void Solution::format(
 
     if (verbosity_level >= 2) {
         os
-            << std::endl
+            << std::right << std::endl
             << std::setw(12) << "Bin"
             << std::setw(12) << "Type"
             << std::setw(12) << "Copies"
