@@ -25,8 +25,6 @@ TEST(RectangleBranchingScheme, Defects1)
      *                   1000                           6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_defect(0, 100, 50, 20, 10);
@@ -66,8 +64,6 @@ TEST(RectangleBranchingScheme, Defects2)
      *                   1000                           6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_defect(0, 100, 600, 20, 10);
@@ -106,8 +102,6 @@ TEST(RectangleBranchingScheme, Defects3)
      * |-------------------|------------------------------|
      *                   1000                           6000
      */
-
-    Info info;
 
     InstanceBuilder instance_builder;
     instance_builder.add_bin_type(6000, 3210);

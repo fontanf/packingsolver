@@ -154,6 +154,8 @@ public:
      */
     void set_item_types_infinite_copies();
 
+    void multiply_item_types_copies(ItemPos factor);
+
     /**
      * For each item type, set its profit to its area.
      *

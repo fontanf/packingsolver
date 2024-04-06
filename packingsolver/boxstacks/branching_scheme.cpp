@@ -1,11 +1,9 @@
 #include "packingsolver/boxstacks/branching_scheme.hpp"
 
-#include "multiplechoicesubsetsumsolver/algorithms/dynamic_programming_bellman.hpp"
+#include "knapsacksolver/multiple_choice_subset_sum/instance_builder.hpp"
+#include "knapsacksolver/multiple_choice_subset_sum/algorithms/dynamic_programming_bellman.hpp"
 
 #include <string>
-#include <fstream>
-#include <iomanip>
-#include <locale>
 #include <cmath>
 
 using namespace packingsolver;
@@ -70,8 +68,8 @@ BranchingScheme::BranchingScheme(
     // Build Multiple-Choice Subset Sum instance.
     const BinType& bin_type = instance.bin_type(0);
     Direction o = parameters_.direction;
-    multiplechoicesubsetsumsolver::Instance mcss_instance;
-    mcss_instance.set_capacity(instance.x(bin_type, o));
+    knapsacksolver::multiple_choice_subset_sum::InstanceBuilder mcss_instance_builder;
+    mcss_instance_builder.set_capacity(instance.x(bin_type, o));
     ItemPos mcss_pos = 0;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
@@ -81,16 +79,17 @@ BranchingScheme::BranchingScheme(
             for (int rotation = 0; rotation < 6; ++rotation) {
                 if (instance.item_type(item_type_id).can_rotate(rotation)) {
                     Length xj = instance.x(item_type, rotation, o);
-                    mcss_instance.add_item(mcss_pos, xj);
+                    mcss_instance_builder.add_item(mcss_pos, xj);
                 }
             }
             mcss_pos++;
         }
     }
+    knapsacksolver::multiple_choice_subset_sum::Instance mcss_instance = mcss_instance_builder.build();
     //mcss_instance.print(std::cout, 2);
-    auto mscc_output = multiplechoicesubsetsumsolver::dynamic_programming_bellman_array(mcss_instance);
-    //auto mscc_output = multiplechoicesubsetsumsolver::dynamic_programming_bellman_word_ram(mcss_instance);
-    Length xi = mscc_output.lower_bound;
+    auto mscc_output = knapsacksolver::multiple_choice_subset_sum::dynamic_programming_bellman_array(mcss_instance);
+    //auto mscc_output = multiple_choice_subset_sumsolver::dynamic_programming_bellman_word_ram(mcss_instance);
+    Length xi = mscc_output.bound;
 
     // Compute is_item_type_selected_.
     std::vector<ItemTypeId> item_types(instance.number_of_item_types());
@@ -1179,7 +1178,7 @@ Solution BranchingScheme::to_solution(
 ////////////////////////////////////////////////////////////////////////////////
 
 std::ostream& packingsolver::boxstacks::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::UncoveredItem& uncovered_item)
 {
     os << "items";
@@ -1217,7 +1216,7 @@ bool BranchingScheme::Insertion::operator==(
 }
 
 std::ostream& packingsolver::boxstacks::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::Insertion& insertion)
 {
     os << "item_type_id " << insertion.item_type_id
@@ -1231,7 +1230,7 @@ std::ostream& packingsolver::boxstacks::operator<<(
 }
 
 std::ostream& packingsolver::boxstacks::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::Node& node)
 {
     os << "number_of_items " << node.number_of_items

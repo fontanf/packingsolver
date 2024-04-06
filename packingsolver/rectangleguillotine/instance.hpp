@@ -7,8 +7,7 @@ namespace packingsolver
 namespace rectangleguillotine
 {
 
-enum class CutType1 { ThreeStagedGuillotine, TwoStagedGuillotine };
-enum class CutType2 { Roadef2018, NonExact, Exact, Homogenous };
+enum class CutType { Roadef2018, NonExact, Exact, Homogenous };
 enum class CutOrientation { Horinzontal, Vertical, Any };
 
 /**
@@ -23,14 +22,25 @@ enum class CutOrientation { Horinzontal, Vertical, Any };
  */
 enum class TrimType { Soft, Hard };
 
-std::istream& operator>>(std::istream& in, CutType1& cut_type_1);
-std::istream& operator>>(std::istream& in, CutType2& cut_type_2);
-std::istream& operator>>(std::istream& in, CutOrientation& o);
+std::istream& operator>>(
+        std::istream& in,
+        CutType& cut_type_2);
 
-std::ostream& operator<<(std::ostream &os, CutType1 cut_type_1);
-std::ostream& operator<<(std::ostream &os, CutType2 cut_type_2);
-std::ostream& operator<<(std::ostream &os, CutOrientation o);
-std::ostream& operator<<(std::ostream &os, TrimType trim_type);
+std::istream& operator>>(
+        std::istream& in,
+        CutOrientation& o);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        CutType cut_type_2);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        CutOrientation o);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        TrimType trim_type);
 
 struct Coord
 {
@@ -41,7 +51,9 @@ struct Coord
     Length y;
 };
 
-std::ostream& operator<<(std::ostream &os, Coord xy);
+std::ostream& operator<<(
+        std::ostream& os,
+        Coord xy);
 
 struct Rectangle
 {
@@ -58,9 +70,15 @@ struct Rectangle
     Length max() const { return std::max(w, h); }
 };
 
-bool rect_intersection(Coord c1, Rectangle r1, Coord c2, Rectangle r2);
+bool rect_intersection(
+        Coord c1,
+        Rectangle r1,
+        Coord c2,
+        Rectangle r2);
 
-std::ostream& operator<<(std::ostream &os, Rectangle r);
+std::ostream& operator<<(
+        std::ostream& os,
+        Rectangle r);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
@@ -68,11 +86,11 @@ std::ostream& operator<<(std::ostream &os, Rectangle r);
 
 struct Parameters
 {
-    /** CutType1. */
-    CutType1 cut_type_1 = CutType1::ThreeStagedGuillotine;
+    /** Number of stages. */
+    Counter number_of_stages = 3;
 
-    /** CutType2. */
-    CutType2 cut_type_2 = CutType2::NonExact;
+    /** Cut type. */
+    CutType cut_type = CutType::NonExact;
 
     /** Orientation of the first stage. */
     CutOrientation first_stage_orientation = CutOrientation::Vertical;
@@ -123,7 +141,9 @@ struct Defect
     Rectangle rect;
 };
 
-std::ostream& operator<<(std::ostream &os, const Defect& defect);
+std::ostream& operator<<(
+        std::ostream& os,
+        const Defect& defect);
 
 /**
  * Bin type structure for a problem of type 'rectangleguillotine'.
@@ -182,7 +202,9 @@ struct BinType
     inline Area space() const { return area(); }
 };
 
-std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const BinType& bin_type);
 
 /**
  * Item type structure for a problem of type 'rectangleguillotine'.
@@ -217,7 +239,9 @@ struct ItemType
     inline Area space() const { return area(); }
 };
 
-std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const ItemType& item_type);
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Instance ///////////////////////////////////
@@ -236,7 +260,7 @@ public:
      */
 
     /** Get the problem type. */
-    inline ProblemType type() const { return ProblemType::RectangleGuillotine; };
+    static inline ProblemType type() { return ProblemType::RectangleGuillotine; };
 
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
@@ -247,9 +271,9 @@ public:
 
     inline const Parameters& parameters() const { return parameters_; }
 
-    inline CutType1 cut_type_1() const { return parameters_.cut_type_1; }
+    inline Counter number_of_stages() const { return parameters_.number_of_stages; }
 
-    inline CutType2 cut_type_2() const { return parameters_.cut_type_2; }
+    inline CutType cut_type() const { return parameters_.cut_type; }
 
     inline CutOrientation first_stage_orientation() const { return parameters_.first_stage_orientation; }
 
@@ -521,12 +545,12 @@ public:
      */
 
     /** Print the instance into a stream. */
-    std::ostream& print(
+    std::ostream& format(
             std::ostream& os,
-            int verbose = 1) const;
+            int verbosity_level = 1) const;
 
     /** Write the instance to a file. */
-    void write(std::string instance_path) const;
+    void write(const std::string& instance_path) const;
 
 private:
 

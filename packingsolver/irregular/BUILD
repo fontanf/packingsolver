@@ -1,10 +1,9 @@
-load("//packingsolver:variables.bzl", "STDCPP")
+load("//packingsolver:variables.bzl", "STDCPP17")
 load("//packingsolver:variables.bzl", "CLP_COPTS")
 load("//packingsolver:variables.bzl", "CPLEX_COPTS")
 load("//packingsolver:variables.bzl", "XPRESS_COPTS")
 load("//packingsolver:variables.bzl", "GUROBI_COPTS")
-load("//packingsolver:variables.bzl", "AMPL_COPTS")
-load("//packingsolver:variables.bzl", "AMPL_DEP")
+load("//packingsolver:variables.bzl", "KNITRO_COPTS", "KNITRO_DEP")
 
 cc_library(
         name = "irregular",
@@ -12,24 +11,30 @@ cc_library(
                 "instance.hpp",
                 "instance_builder.hpp",
                 "solution.hpp",
+                "algorithm_formatter.hpp",
                 "optimize.hpp",
-                "minlp.hpp",
-                "minlp_model.hpp",
+                "irregular_to_rectangle.hpp",
+                "nlp_circle.hpp",
+                "nlp.hpp",
         ],
         srcs = [
                 "instance.cpp",
                 "instance_builder.cpp",
                 "solution.cpp",
+                "algorithm_formatter.cpp",
                 "optimize.cpp",
-                "minlp.cpp",
-                "minlp_model.cpp",
+                #"irregular_to_rectangle.cpp",
+                "nlp_circle.cpp",
+                "nlp.cpp",
         ],
         deps = [
                 "//packingsolver/algorithms:common",
                 "//packingsolver/algorithms:algorithms",
+                "//packingsolver/rectangle:rectangle",
                 "@treesearchsolver//treesearchsolver:treesearchsolver",
-        ] + AMPL_DEP,
-        copts = STDCPP + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + AMPL_COPTS,
+                #"@cgal//:cgal",
+        ] + KNITRO_DEP,
+        copts = STDCPP17 + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + KNITRO_COPTS,
         visibility = ["//visibility:public"],
 )
 
@@ -40,7 +45,7 @@ cc_binary(
                 ":irregular",
                 "@boost//:program_options",
         ],
-        copts = STDCPP + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS + AMPL_COPTS,
+        copts = STDCPP17 + CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
         linkopts = select({
                 "@bazel_tools//src/conditions:windows": [],
                 "//conditions:default":                 ["-lpthread"],

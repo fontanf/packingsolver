@@ -27,6 +27,11 @@ BinTypeId InstanceBuilder::add_bin_type(
     bin_type.id = instance_.bin_types_.size();
     bin_type.shape = shape;
     bin_type.area = shape.compute_area();
+    auto points = shape.compute_min_max();
+    bin_type.x_min = points.first.x;
+    bin_type.x_max = points.second.x;
+    bin_type.y_min = points.first.y;
+    bin_type.y_max = points.second.y;
     bin_type.cost = (cost == -1)? bin_type.area: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
@@ -81,16 +86,8 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.id = instance_.item_types_.size();
     item_type.shapes = shapes;
     item_type.allowed_rotations = allowed_rotations;
-    item_type.x_min = +std::numeric_limits<LengthDbl>::infinity();
-    item_type.x_max = -std::numeric_limits<LengthDbl>::infinity();
-    item_type.y_min = +std::numeric_limits<LengthDbl>::infinity();
-    item_type.y_max = -std::numeric_limits<LengthDbl>::infinity();
     item_type.area = 0;
     for (const auto& item_shape: item_type.shapes) {
-        item_type.x_min = std::min(item_type.x_min, item_shape.shape.compute_x_min());
-        item_type.x_max = std::max(item_type.x_max, item_shape.shape.compute_x_max());
-        item_type.y_min = std::min(item_type.y_min, item_shape.shape.compute_y_min());
-        item_type.y_max = std::max(item_type.y_max, item_shape.shape.compute_y_max());
         item_type.area += item_shape.shape.compute_area();
         for (const Shape& hole: item_shape.holes)
             item_type.area -= hole.compute_area();
@@ -130,6 +127,62 @@ AreaDbl InstanceBuilder::compute_bin_types_area_max() const
 /////////////////////////////// Read from files ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+namespace
+{
+
+template <class basic_json>
+Shape read_shape(basic_json& json_item)
+{
+    Shape shape;
+    if (json_item["type"] == "circle") {
+        ShapeElement element;
+        element.type = ShapeElementType::CircularArc;
+        element.center = {0.0, 0.0};
+        element.start = {json_item["radius"], 0.0};
+        element.end = element.start;
+        shape.elements.push_back(element);
+    } else if (json_item["type"] == "rectangle") {
+        ShapeElement element_1;
+        ShapeElement element_2;
+        ShapeElement element_3;
+        ShapeElement element_4;
+        element_1.type = ShapeElementType::LineSegment;
+        element_2.type = ShapeElementType::LineSegment;
+        element_3.type = ShapeElementType::LineSegment;
+        element_4.type = ShapeElementType::LineSegment;
+        element_1.start = {0.0, 0.0};
+        element_1.end = {json_item["length"], 0.0};
+        element_2.start = {json_item["length"], 0.0};
+        element_2.end = {json_item["length"], json_item["height"]};
+        element_3.start = {json_item["length"], json_item["height"]};
+        element_3.end = {0.0, json_item["height"]};
+        element_4.start = {0.0, json_item["height"]};
+        element_4.end = {0.0, 0.0};
+        shape.elements.push_back(element_1);
+        shape.elements.push_back(element_2);
+        shape.elements.push_back(element_3);
+        shape.elements.push_back(element_4);
+    } else if (json_item["type"] == "polygon") {
+        for (auto it = json_item["vertices"].begin();
+                it != json_item["vertices"].end();
+                ++it) {
+            auto it_next = it + 1;
+            if (it_next == json_item["vertices"].end())
+                it_next = json_item["vertices"].begin();
+            ShapeElement element;
+            element.type = ShapeElementType::LineSegment;
+            element.start = {(*it)["x"], (*it)["y"]};
+            element.end = {(*it_next)["x"], (*it_next)["y"]};
+            shape.elements.push_back(element);
+        }
+    } else {
+        throw std::invalid_argument("");
+    }
+    return shape;
+}
+
+}
+
 void InstanceBuilder::read(
         std::string instance_path)
 {
@@ -144,31 +197,7 @@ void InstanceBuilder::read(
 
     // Read bin types.
     for (const auto& json_item: j["bin_types"]) {
-        Shape shape;
-        if (json_item["type"] == "rectangle") {
-            ShapeElement element_1;
-            ShapeElement element_2;
-            ShapeElement element_3;
-            ShapeElement element_4;
-            element_1.type = ShapeElementType::LineSegment;
-            element_2.type = ShapeElementType::LineSegment;
-            element_3.type = ShapeElementType::LineSegment;
-            element_4.type = ShapeElementType::LineSegment;
-            element_1.start = {0.0, 0.0};
-            element_1.end = {json_item["length"], 0.0};
-            element_2.start = {json_item["length"], 0.0};
-            element_2.end = {json_item["length"], json_item["height"]};
-            element_3.start = {json_item["length"], json_item["height"]};
-            element_3.end = {0.0, json_item["height"]};
-            element_4.start = {0.0, json_item["height"]};
-            element_4.end = {0.0, 0.0};
-            shape.elements.push_back(element_1);
-            shape.elements.push_back(element_2);
-            shape.elements.push_back(element_3);
-            shape.elements.push_back(element_4);
-        } else {
-
-        }
+        Shape shape = read_shape(json_item);
         Profit cost = shape.compute_area();
         BinPos copies = 1;
         BinPos copies_min = 0;
@@ -178,27 +207,18 @@ void InstanceBuilder::read(
     // Read item types.
     for (const auto& json_item: j["item_types"]) {
         std::vector<ItemShape> item_shapes;
-        if (json_item["type"] == "circle") {
-            Shape shape;
-            ShapeElement element;
-            element.type = ShapeElementType::CircularArc;
-            element.center = {0.0, 0.0};
-            element.start = {json_item["radius"], 0.0};
-            element.end = element.start;
-            shape.elements.push_back(element);
-            ItemShape item_shape;
-            item_shape.shape = shape;
-            item_shapes.push_back(item_shape);
-        } else {
-
-        }
+        Shape shape = read_shape(json_item);
+        ItemShape item_shape;
+        item_shape.shape = shape;
+        item_shapes.push_back(item_shape);
         Profit profit = -1;
         BinPos copies = 1;
+        std::vector<std::pair<Angle, Angle>> allowed_rotations = {{0, 0}};
         add_item_type(
                 item_shapes,
                 profit,
                 copies,
-                {});
+                allowed_rotations);
     }
 
 }
@@ -218,10 +238,17 @@ Instance InstanceBuilder::build()
         const ItemType& item_type = instance_.item_type(item_type_id);
         // Update number_of_items_.
         instance_.number_of_items_ += item_type.copies;
+        if (item_type.shape_type() == ShapeType::Square
+                || item_type.shape_type() == ShapeType::Rectangle) {
+            instance_.number_of_rectangular_items_ += item_type.copies;
+        }
+        if (item_type.shape_type() == ShapeType::Circle) {
+            instance_.number_of_circular_items_ += item_type.copies;
+        }
         // Update item_profit_.
-        instance_.item_profit_ += item_type.profit;
+        instance_.item_profit_ += item_type.copies * item_type.profit;
         // Update item_area_.
-        instance_.item_area_ += item_type.area;
+        instance_.item_area_ += item_type.copies * item_type.area;
         // Update max_efficiency_item_type_.
         if (instance_.max_efficiency_item_type_id_ == -1
                 || instance_.item_type(instance_.max_efficiency_item_type_id_).profit

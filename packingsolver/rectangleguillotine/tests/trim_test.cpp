@@ -30,8 +30,6 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimSoft)
      *                   1000                           6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -54,7 +52,7 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimSoft)
         {-1, -1, -1, 500, 30, 500, 3500, 3210, 1, 1},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, BottomTrimHard)
@@ -81,8 +79,6 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimHard)
      *                   1000                           6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -105,7 +101,7 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimHard)
         {-1, -1, -1, 500, 40, 500, 3500, 3210, 1, 1},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, LeftTrimSoft)
@@ -131,8 +127,6 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimSoft)
      *                                                     6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -155,7 +149,7 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimSoft)
         {-1, -1, -1, 30, 500, 30, 3520, 3210, 1, 1},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, LeftTrimHard)
@@ -181,8 +175,6 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimHard)
      *                                                     6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -205,7 +197,7 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimHard)
         {-1, -1, -1, 40, 500, 40, 3520, 3210, 1, 1},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
@@ -229,8 +221,6 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
      *                   1000                           6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -251,7 +241,7 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
         {0, -1, -1, 1000, 3180, 1000, 3500, 3190, 0, 0},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, TopTrimHard)
@@ -275,8 +265,6 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimHard)
      *                   1000                           6000
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -296,7 +284,7 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimHard)
     std::vector<BranchingScheme::Insertion> is {
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
@@ -320,8 +308,6 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
      *                     2980
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -342,7 +328,7 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
         {0, -1, -1, 2970, 500, 2970, 2980, 3210, 0, 0},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
@@ -366,8 +352,6 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
      *                     2980
      */
 
-    Info info;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -387,5 +371,5 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
     std::vector<BranchingScheme::Insertion> is {
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root, info), is);
+    EXPECT_EQ(branching_scheme.insertions(root), is);
 }

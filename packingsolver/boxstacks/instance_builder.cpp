@@ -1,5 +1,7 @@
 #include "packingsolver/boxstacks/instance_builder.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 
@@ -679,11 +681,11 @@ Instance InstanceBuilder::build()
         // Update number_of_items_.
         instance_.number_of_items_ += item_type.copies;
         // Update item_profit_.
-        instance_.item_profit_ += item_type.profit;
+        instance_.item_profit_ += item_type.copies * item_type.profit;
         // Update item_volume_.
-        instance_.item_volume_ += item_type.volume();
+        instance_.item_volume_ += item_type.copies * item_type.volume();
         // Update item_weight_.
-        instance_.item_weight_ += item_type.weight;
+        instance_.item_weight_ += item_type.copies * item_type.weight;
         // Update max_efficiency_item_type_.
         if (instance_.max_efficiency_item_type_id_ == -1
                 || instance_.item_type(instance_.max_efficiency_item_type_id_).profit

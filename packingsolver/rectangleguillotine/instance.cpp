@@ -1,48 +1,26 @@
 #include "packingsolver/rectangleguillotine/instance.hpp"
 
-#include "packingsolver/rectangleguillotine/solution.hpp"
-
 #include <iostream>
 #include <fstream>
-#include <climits>
+#include <iomanip>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 
 std::istream& packingsolver::rectangleguillotine::operator>>(
         std::istream& in,
-        CutType1& cut_type_1)
-{
-    std::string token;
-    in >> token;
-    if (token == "two-staged-guillotine"
-            || token == "TWO_STAGED_GUILLOTINE"
-            || token == "TwoStagedGuillotine") {
-        cut_type_1 = CutType1::TwoStagedGuillotine;
-    } else if (token == "three-staged-guillotine"
-            || token == "THREE_STAGED_GUILLOTINE"
-            || token == "ThreeStagedGuillotine") {
-        cut_type_1 = CutType1::ThreeStagedGuillotine;
-    } else  {
-        in.setstate(std::ios_base::failbit);
-    }
-    return in;
-}
-
-std::istream& packingsolver::rectangleguillotine::operator>>(
-        std::istream& in,
-        CutType2& cut_type_2)
+        CutType& cut_type)
 {
     std::string token;
     in >> token;
     if (token == "roadef2018") {
-        cut_type_2 = CutType2::Roadef2018;
+        cut_type = CutType::Roadef2018;
     } else if (token == "non-exact") {
-        cut_type_2 = CutType2::NonExact;
+        cut_type = CutType::NonExact;
     } else if (token == "exact") {
-        cut_type_2 = CutType2::Exact;
+        cut_type = CutType::Exact;
     } else if (token == "homogenous") {
-        cut_type_2 = CutType2::Homogenous;
+        cut_type = CutType::Homogenous;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -68,36 +46,20 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
-        CutType1 cut_type_1)
+        std::ostream& os,
+        CutType cut_type)
 {
-    switch (cut_type_1) {
-    case CutType1::ThreeStagedGuillotine: {
-        os << "ThreeStagedGuillotine";
-        break;
-    } case CutType1::TwoStagedGuillotine: {
-        os << "TwoStagedGuillotine";
-        break;
-    }
-    }
-    return os;
-}
-
-std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
-        CutType2 cut_type_2)
-{
-    switch (cut_type_2) {
-    case CutType2::Roadef2018: {
+    switch (cut_type) {
+    case CutType::Roadef2018: {
         os << "Roadef2018";
         break;
-    } case CutType2::NonExact: {
+    } case CutType::NonExact: {
         os << "NonExact";
         break;
-    } case CutType2::Exact: {
+    } case CutType::Exact: {
         os << "Exact";
         break;
-    } case CutType2::Homogenous: {
+    } case CutType::Homogenous: {
         os << "Homogenous";
         break;
     }
@@ -106,7 +68,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         CutOrientation o)
 {
     switch (o) {
@@ -125,7 +87,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         TrimType trim_type)
 {
     switch (trim_type) {
@@ -153,7 +115,7 @@ bool rectangleguillotine::rect_intersection(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         Coord xy)
 {
     os << xy.x << " " << xy.y;
@@ -161,7 +123,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         Rectangle r)
 {
     os << r.w << " " << r.h;
@@ -169,7 +131,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const ItemType& item_type)
 {
     os
@@ -185,7 +147,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BinType& bin_type)
 {
     os
@@ -198,7 +160,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const Defect& defect)
 {
     os
@@ -212,7 +174,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     return os;
 }
 
-void Instance::write(std::string instance_path) const
+void Instance::write(
+        const std::string& instance_path) const
 {
     std::string items_path = instance_path + "_items.csv";
     std::string bins_path = instance_path + "_bins.csv";
@@ -283,11 +246,11 @@ void Instance::write(std::string instance_path) const
     }
 }
 
-std::ostream& Instance::print(
+std::ostream& Instance::format(
         std::ostream& os,
-        int verbose) const
+        int verbosity_level) const
 {
-    if (verbose >= 1) {
+    if (verbosity_level >= 1) {
         os
             << "Objective:                " << objective() << std::endl
             << "Number of item types:     " << number_of_item_types() << std::endl
@@ -296,8 +259,8 @@ std::ostream& Instance::print(
             << "Number of bins:           " << number_of_bins() << std::endl
             << "Number of stacks:         " << number_of_stacks() << std::endl
             << "Number of defects:        " << number_of_defects() << std::endl
-            << "Cut type 1:               " << cut_type_1() << std::endl
-            << "Cut type 2:               " << cut_type_2() << std::endl
+            << "Number of stages:         " << number_of_stages() << std::endl
+            << "Cut type:                 " << cut_type() << std::endl
             << "First stage orientation:  " << first_stage_orientation() << std::endl
             << "min1cut:                  " << min1cut() << std::endl
             << "max1cut:                  " << max1cut() << std::endl
@@ -309,7 +272,7 @@ std::ostream& Instance::print(
             << "Cut thickness:            " << cut_thickness() << std::endl;
     }
 
-    if (verbose >= 2) {
+    if (verbosity_level >= 2) {
         os
             << std::endl
             << std::setw(12) << "Bin type"

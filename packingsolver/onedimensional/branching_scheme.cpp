@@ -1,10 +1,5 @@
 #include "packingsolver/onedimensional/branching_scheme.hpp"
 
-#include <string>
-#include <fstream>
-#include <iomanip>
-#include <locale>
-
 using namespace packingsolver;
 using namespace packingsolver::onedimensional;
 
@@ -315,7 +310,7 @@ bool BranchingScheme::Insertion::operator==(
 }
 
 std::ostream& packingsolver::onedimensional::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::Insertion& insertion)
 {
     os << "item_type_id " << insertion.item_type_id
@@ -325,7 +320,7 @@ std::ostream& packingsolver::onedimensional::operator<<(
 }
 
 std::ostream& packingsolver::onedimensional::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::Node& node)
 {
     os << "number_of_items " << node.number_of_items

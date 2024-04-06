@@ -1,10 +1,6 @@
 #include "packingsolver/irregular/instance.hpp"
 
-#include "packingsolver/irregular/solution.hpp"
-
 #include <iostream>
-#include <fstream>
-#include <climits>
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -59,13 +55,32 @@ LengthDbl irregular::cross_product(
     return vector_1.x * vector_2.y - vector_2.x * vector_1.y;
 }
 
+Point irregular::rotate(
+        const Point& point,
+        Angle angle)
+{
+    Point point_out;
+    point_out.x = std::cos(angle) * point.x - std::sin(angle) * point.y;
+    point_out.y = std::sin(angle) * point.x + std::cos(angle) * point.y;
+    return point_out;
+}
+
+Angle irregular::angle(
+        const Point& vector)
+{
+    Angle a = std::atan2(vector.y, vector.x);
+    if (a < 0)
+        a += 2 * M_PI;
+    return a;
+}
+
 Angle irregular::angle(
         const Point& vector_1,
         const Point& vector_2)
 {
     Angle a = std::atan2(
-            cross_product(vector_1, vector_2),
-            dot_product(vector_1, vector_2));
+            cross_product(vector_2, vector_1),
+            dot_product(vector_2, vector_1));
     if (a < 0)
         a += 2 * M_PI;
     return a;
@@ -100,6 +115,17 @@ std::string ShapeElement::to_string() const
     }
     }
     return "";
+}
+
+ShapeElement irregular::rotate(
+        const ShapeElement& element,
+        Angle angle)
+{
+    ShapeElement element_out = element;
+    element_out.start = rotate(element.start, angle);
+    element_out.end = rotate(element.end, angle);
+    element_out.center = rotate(element.center, angle);
+    return element_out;
 }
 
 std::string irregular::element2str(ShapeElementType type)
@@ -229,46 +255,66 @@ AreaDbl Shape::compute_area() const
     return area / 2;
 }
 
-LengthDbl Shape::compute_x_min() const
+std::pair<Point, Point> Shape::compute_min_max(Angle angle) const
 {
-    LengthDbl x_min = elements.front().start.x;
-    for (const ShapeElement& element: elements)
-        x_min = std::min(x_min, element.start.x);
-    return x_min;
+    LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+    for (const ShapeElement& element: elements) {
+        Point point = rotate(element.start, angle);
+        x_min = std::min(x_min, point.x);
+        x_max = std::max(x_max, point.x);
+        y_min = std::min(y_min, point.y);
+        y_max = std::max(y_max, point.y);
+
+        if (element.type == ShapeElementType::CircularArc) {
+            LengthDbl radius = distance(elements.front().center, elements.front().start);
+            Angle starting_angle = irregular::angle(element.start - element.center);
+            Angle ending_angle = irregular::angle(element.end - element.center);
+            if (!element.anticlockwise)
+                std::swap(starting_angle, ending_angle);
+            if (starting_angle <= ending_angle) {
+                if (starting_angle <= M_PI
+                        && M_PI <= ending_angle) {
+                    x_min = std::min(x_min, element.center.x - radius);
+                }
+                if (starting_angle == 0)
+                    x_max = std::max(x_max, element.center.x + radius);
+                if (starting_angle <= 3 * M_PI / 2
+                        && 3 * M_PI / 2 <= ending_angle) {
+                    y_min = std::min(y_min, element.center.y - radius);
+                }
+                if (starting_angle <= M_PI / 2
+                        && M_PI / 2 <= ending_angle) {
+                    y_max = std::max(y_max, element.center.y + radius);
+                }
+            } else {  // starting_angle > ending_angle
+                if (starting_angle <= M_PI
+                        || ending_angle <= M_PI) {
+                    x_min = std::min(x_min, element.center.x - radius);
+                }
+                x_max = std::max(x_max, element.center.x + radius);
+                if (starting_angle <= 3 * M_PI / 4
+                        || ending_angle <= 3 * M_PI / 4) {
+                    y_min = std::min(y_min, element.center.y - radius);
+                }
+                if (starting_angle <= M_PI / 2
+                        || ending_angle <= M_PI / 2) {
+                    y_max = std::max(y_max, element.center.y + radius);
+                }
+            }
+        }
+    }
+    return {{x_min, y_min}, {x_max, y_max}};
 }
 
-LengthDbl Shape::compute_x_max() const
+std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_length(Angle angle) const
 {
-    LengthDbl x_max = elements.front().start.x;
-    for (const ShapeElement& element: elements)
-        x_max = std::max(x_max, element.start.x);
-    return x_max;
-}
-
-LengthDbl Shape::compute_y_min() const
-{
-    LengthDbl y_min = elements.front().start.y;
-    for (const ShapeElement& element: elements)
-        y_min = std::min(y_min, element.start.y);
-    return y_min;
-}
-
-LengthDbl Shape::compute_y_max() const
-{
-    LengthDbl y_max = elements.front().start.y;
-    for (const ShapeElement& element: elements)
-        y_max = std::max(y_max, element.start.y);
-    return y_max;
-}
-
-LengthDbl Shape::compute_length() const
-{
-    return compute_x_max() - compute_x_min();
-}
-
-LengthDbl Shape::compute_width() const
-{
-    return compute_y_max() - compute_y_min();
+    auto points = compute_min_max(angle);
+    LengthDbl width = points.second.x - points.first.x;
+    LengthDbl height = points.second.y - points.first.y;
+    return {width, height};
 }
 
 bool Shape::check() const
@@ -390,6 +436,38 @@ ShapeType ItemType::shape_type() const
     return ShapeType::GeneralShape;
 }
 
+std::pair<Point, Point> ItemType::compute_min_max(Angle angle) const
+{
+    LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+    for (const ItemShape& item_shape: shapes) {
+        auto points = item_shape.shape.compute_min_max(angle);
+        x_min = std::min(x_min, points.first.x);
+        x_max = std::max(x_max, points.second.x);
+        y_min = std::min(y_min, points.first.y);
+        y_max = std::max(y_max, points.second.y);
+    }
+    return {{x_min, y_min}, {x_max, y_max}};
+}
+
+bool ItemType::has_full_continuous_rotations() const
+{
+    if (allowed_rotations.size() != 1)
+        return false;
+    return (allowed_rotations[0].first == 0
+            && allowed_rotations[0].second >= 2 * M_PI);
+}
+
+bool ItemType::has_only_discrete_rotations() const
+{
+    for (const auto& angles: allowed_rotations)
+        if (angles.first != angles.second)
+            return false;
+    return true;
+}
+
 std::string ItemType::to_string(
         Counter indentation) const
 {
@@ -433,31 +511,35 @@ std::string BinType::to_string(
 /////////////////////////////////// Instance ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-bool Instance::can_contain(QualityRule quality_rule, DefectTypeId type) const
+bool Instance::can_contain(
+        QualityRule quality_rule,
+        DefectTypeId type) const
 {
     if (type < 0 || type > (QualityRule)parameters_.quality_rules[quality_rule].size())
         return false;
     return parameters_.quality_rules[quality_rule][type];
 }
 
-std::ostream& Instance::print(
+std::ostream& Instance::format(
         std::ostream& os,
-        int verbose) const
+        int verbosity_level) const
 {
-    if (verbose >= 1) {
+    if (verbosity_level >= 1) {
         os
-            << "Objective:                " << objective() << std::endl
-            << "Number of item types:     " << number_of_item_types() << std::endl
-            << "Number of items:          " << number_of_items() << std::endl
-            << "Number of bin types:      " << number_of_bin_types() << std::endl
-            << "Number of bins:           " << number_of_bins() << std::endl
-            << "Number of defects:        " << number_of_defects() << std::endl
-            << "Item area:                " << item_area() << std::endl
-            << "Bin area:                 " << bin_area() << std::endl
+            << "Objective:                    " << objective() << std::endl
+            << "Number of item types:         " << number_of_item_types() << std::endl
+            << "Number of items:              " << number_of_items() << std::endl
+            << "Number of bin types:          " << number_of_bin_types() << std::endl
+            << "Number of bins:               " << number_of_bins() << std::endl
+            << "Number of defects:            " << number_of_defects() << std::endl
+            << "Number of rectangular items:  " << number_of_rectangular_items_ << std::endl
+            << "Number of circular items:     " << number_of_circular_items_ << std::endl
+            << "Item area:                    " << item_area() << std::endl
+            << "Bin area:                     " << bin_area() << std::endl
             ;
     }
 
-    if (verbose >= 2) {
+    if (verbosity_level >= 2) {
         os
             << std::endl
             << std::setw(12) << "Bin type"
@@ -544,7 +626,7 @@ std::ostream& Instance::print(
         }
     }
 
-    if (verbose >= 3) {
+    if (verbosity_level >= 3) {
         // Item shapes
         os
             << std::endl

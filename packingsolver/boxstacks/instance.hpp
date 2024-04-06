@@ -21,7 +21,9 @@ struct Point
     Length z;
 };
 
-std::ostream& operator<<(std::ostream &os, Point xyz);
+std::ostream& operator<<(
+        std::ostream& os,
+        Point xyz);
 
 struct Box
 {
@@ -41,7 +43,9 @@ struct Box
     Length max() const { return std::max(std::max(x, y), z); }
 };
 
-std::ostream& operator<<(std::ostream &os, Box box);
+std::ostream& operator<<(
+        std::ostream& os,
+        Box box);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
@@ -147,7 +151,9 @@ struct ItemType
     bool can_rotate(int rotation) const { return ((rotations >> rotation) & 1); }
 };
 
-std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const ItemType& item_type);
 
 /**
  * Bin type structure for a problem of type 'boxstacks'.
@@ -198,7 +204,9 @@ struct BinType
 
 };
 
-std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const BinType& bin_type);
 
 struct Parameters
 {
@@ -229,7 +237,7 @@ public:
      */
 
     /** Get the problem type. */
-    inline ProblemType type() const { return ProblemType::BoxStacks; };
+    static inline ProblemType type() { return ProblemType::BoxStacks; };
 
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
@@ -399,21 +407,21 @@ public:
      */
 
     /** Print the instance into a stream. */
-    std::ostream& print(
+    std::ostream& format(
             std::ostream& os,
-            int verbose = 1) const;
+            int verbosity_level = 1) const;
 
     /** Write the instance to a file. */
-    void write(std::string instance_path) const;
+    void write(const std::string& instance_path) const;
 
     /** Write the items to a file. */
-    void write_item_types(std::string instance_path) const;
+    void write_item_types(const std::string& items_path) const;
 
     /** Write the bins to a file. */
-    void write_bin_types(std::string instance_path) const;
+    void write_bin_types(const std::string& bins_path) const;
 
     /** Write the parameters to a file. */
-    void write_parameters(std::string parameters_path) const;
+    void write_parameters(const std::string& parameters_path) const;
 
 private:
 

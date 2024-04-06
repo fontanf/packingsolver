@@ -1,22 +1,21 @@
 #include "packingsolver/boxstacks/instance.hpp"
 
-#include "packingsolver/boxstacks/solution.hpp"
-
 #include <iostream>
 #include <fstream>
-#include <climits>
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 
-std::ostream& boxstacks::operator<<(std::ostream &os, Point xyz)
+std::ostream& boxstacks::operator<<(
+        std::ostream& os,
+        Point xyz)
 {
     os << "x " << xyz.x << " y " << xyz.y << " z " << xyz.z;
     return os;
 }
 
 std::ostream& packingsolver::boxstacks::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const ItemType& item_type)
 {
     os
@@ -33,7 +32,7 @@ std::ostream& packingsolver::boxstacks::operator<<(
 }
 
 std::ostream& packingsolver::boxstacks::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BinType& bin_type)
 {
     os
@@ -46,28 +45,28 @@ std::ostream& packingsolver::boxstacks::operator<<(
     return os;
 }
 
-std::ostream& Instance::print(
+std::ostream& Instance::format(
         std::ostream& os,
-        int verbose) const
+        int verbosity_level) const
 {
-    if (verbose >= 1) {
+    if (verbosity_level >= 1) {
         os
-            << "Objective:                " << objective() << std::endl
-            << "Number of item types:     " << number_of_item_types() << std::endl
-            << "Number of items:          " << number_of_items() << std::endl
-            << "Number of bin types:      " << number_of_bin_types() << std::endl
-            << "Number of bins:           " << number_of_bins() << std::endl
-            << "Number of groups:         " << number_of_groups() << std::endl
-            << "Number of defects:        " << number_of_defects() << std::endl
-            << "Unloading constraint:     " << unloading_constraint() << std::endl
-            << "Item volume:              " << item_volume() << std::endl
-            << "Bin volume:               " << bin_volume() << std::endl
-            << "Item weight:              " << item_weight() << std::endl
-            << "Bin weight:               " << bin_weight() << std::endl
+            << "Objective:             " << objective() << std::endl
+            << "Number of item types:  " << number_of_item_types() << std::endl
+            << "Number of items:       " << number_of_items() << std::endl
+            << "Number of bin types:   " << number_of_bin_types() << std::endl
+            << "Number of bins:        " << number_of_bins() << std::endl
+            << "Number of groups:      " << number_of_groups() << std::endl
+            << "Number of defects:     " << number_of_defects() << std::endl
+            << "Unloading constraint:  " << unloading_constraint() << std::endl
+            << "Item volume:           " << item_volume() << std::endl
+            << "Bin volume:            " << bin_volume() << std::endl
+            << "Item weight:           " << item_weight() << std::endl
+            << "Bin weight:            " << bin_weight() << std::endl
             ;
     }
 
-    if (verbose >= 2) {
+    if (verbosity_level >= 2) {
         os
             << std::endl
             << std::setw(12) << "Bin type"
@@ -124,7 +123,7 @@ std::ostream& Instance::print(
             const BinType& bin_type = this->bin_type(bin_type_id);
             os
                 << std::setw(12) << bin_type_id;
-            bin_type.semi_trailer_truck_data.print(os);
+            bin_type.semi_trailer_truck_data.format(os);
         }
 
         if (number_of_defects() > 0) {
@@ -210,14 +209,16 @@ std::ostream& Instance::print(
     return os;
 }
 
-void Instance::write(std::string instance_path) const
+void Instance::write(
+        const std::string& instance_path) const
 {
     write_item_types(instance_path + "_items.csv");
     write_bin_types(instance_path + "_bins.csv");
     write_parameters(instance_path + "_parameters.csv");
 }
 
-void Instance::write_item_types(std::string items_path) const
+void Instance::write_item_types(
+        const std::string& items_path) const
 {
     std::ofstream file(items_path);
     if (!file.good()) {
@@ -258,7 +259,8 @@ void Instance::write_item_types(std::string items_path) const
     }
 }
 
-void Instance::write_bin_types(std::string bins_path) const
+void Instance::write_bin_types(
+        const std::string& bins_path) const
 {
     std::ofstream file(bins_path);
     if (!file.good()) {
@@ -295,7 +297,8 @@ void Instance::write_bin_types(std::string bins_path) const
     }
 }
 
-void Instance::write_parameters(std::string parameters_path) const
+void Instance::write_parameters(
+        const std::string& parameters_path) const
 {
     std::ofstream file(parameters_path);
     if (!file.good()) {

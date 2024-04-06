@@ -1,9 +1,7 @@
 #include "packingsolver/rectangle/branching_scheme.hpp"
 
+#include <iostream>
 #include <string>
-#include <fstream>
-#include <iomanip>
-#include <locale>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
@@ -323,11 +321,6 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     node.weight_profit = father.item_weight
         + (double)1.0 / item_type.weight / insertion.x;
     node.squared_item_area = father.squared_item_area + item_type.area() * item_type.area();
-    node.item_value = father.item_value + item_type.area() * ((item_type.oriented)?
-        std::max((double)xj / xi, (double)yj / yi):
-        std::max(
-                (double)std::max(xj, yj) / std::max(xi, yi),
-                (double)std::min(xj, yj) / std::min(xi, yi)));
     node.profit = father.profit + item_type.profit;
     if (parameters_.group_guiding_strategy == 0) {
         node.guide_item_area = father.guide_item_area
@@ -384,13 +377,67 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
         if (x > node.xs_max)
             node.guide_area += (x - node.xs_max) * (uncovered_item.ye - uncovered_item.ys);
     }
+
+    if (node.number_of_items == instance().number_of_items()) {
+        node.current_area = instance().previous_bin_area(bin_pos) + node.xe_max * yi;
+    }
+
     node.waste = node.current_area - node.item_area;
+
+    {
+        Area waste = instance().previous_bin_area(bin_pos) + node.xe_max * yi - instance().item_area();
+        if (node.waste < waste)
+            node.waste = waste;
+    }
+
+    // If there are few items left, try to detect if an extra bin will be
+    // required.
+    if (node.number_of_bins < instance().number_of_bins()
+            && instance().item_area() - node.item_area < bin_type.area()) {
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance().number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance().item_type(item_type_id);
+            if (node.item_number_of_copies[item_type_id] == item_type.copies)
+                continue;
+            Length xj = instance().x(item_type, false, o);
+            Length yj = instance().y(item_type, false, o);
+            if (!item_type.oriented) {
+                Length yj = instance().y(item_type, false, o);
+                if (xj > yj)
+                    xj = yj;
+            }
+            int ok = false;
+            for (const UncoveredItem& uncovered_item: node.uncovered_items) {
+                if (uncovered_item.ys + yj <= yi
+                        && uncovered_item.xe + xj <= xi) {
+                    ok = true;
+                    break;;
+                }
+                if (!item_type.oriented
+                        && uncovered_item.ys + xj <= yi
+                        && uncovered_item.xe + yj <= xi) {
+                    ok = true;
+                    break;
+                }
+            }
+            if (!ok) {
+                if (!item_type.oriented && xj > yj)
+                    xj = yj;
+                Area waste = instance().previous_bin_area(bin_pos + 1) + xj * yi - instance().item_area();
+                if (node.waste < waste)
+                    node.waste = waste;
+                break;
+            }
+        }
+    }
+
     if (node.waste < 0) {
-        std::cout
-            << "current_area " << node.current_area
-            << " item_area " << node.item_area
-            << " waste " << node.waste
-            << std::endl;
+        //std::cout
+        //    << "current_area " << node.current_area
+        //    << " item_area " << node.item_area
+        //    << " waste " << node.waste
+        //    << std::endl;
         throw std::runtime_error("waste");
     }
 
@@ -451,19 +498,20 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         const BinType& bin_type = instance().bin_type(bin_type_id);
 
         // Items.
-        for (ItemPos uncovered_item_pos = 0;
-                uncovered_item_pos < (ItemPos)father->uncovered_items.size();
-                ++uncovered_item_pos) {
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance_.number_of_item_types();
-                    ++item_type_id) {
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
 
-                if (!ok[item_type_id])
-                    continue;
+            if (!ok[item_type_id])
+                continue;
 
-                const ItemType& item_type = instance_.item_type(item_type_id);
-                if (father->item_number_of_copies[item_type_id] == item_type.copies)
-                    continue;
+            const ItemType& item_type = instance_.item_type(item_type_id);
+            if (father->item_number_of_copies[item_type_id] == item_type.copies)
+                continue;
+
+            for (ItemPos uncovered_item_pos = 0;
+                    uncovered_item_pos < (ItemPos)father->uncovered_items.size();
+                    ++uncovered_item_pos) {
 
                 if (ok_1[item_type_id])
                     insertion_item(
@@ -485,20 +533,9 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                             uncovered_item_pos,
                             -1);  // defect_id
             }
-        }
 
-        // Defects.
-        for (const Defect& defect: bin_type.defects) {
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance_.number_of_item_types();
-                    ++item_type_id) {
-
-                if (!ok[item_type_id])
-                    continue;
-
-                const ItemType& item_type = instance_.item_type(item_type_id);
-                if (father->item_number_of_copies[item_type_id] == item_type.copies)
-                    continue;
+            // Defects.
+            for (const Defect& defect: bin_type.defects) {
 
                 if (ok_1[item_type_id])
                     insertion_item(
@@ -534,7 +571,8 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         } else if (parameters_.direction == Direction::Y) {
             new_bin = 2;
         } else {
-            if (bin_type.rect.x >= bin_type.rect.y) {
+            if ((double)instance().total_item_height() / bin_type.rect.y
+                    >= (double)instance().total_item_width() / bin_type.rect.x) {
                 new_bin = 1;
             } else {
                 new_bin = 2;
@@ -572,18 +610,9 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                         new_bin,
                         0,  // uncovered_item_pos
                         -1);  // defect_id
-        }
 
-        // Defects.
-        for (const Defect& defect: bin_type.defects) {
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance_.number_of_item_types();
-                    ++item_type_id) {
-                if (!ok[item_type_id])
-                    continue;
-                const ItemType& item_type = instance_.item_type(item_type_id);
-                if (father->item_number_of_copies[item_type_id] == item_type.copies)
-                    continue;
+            // Defects.
+            for (const Defect& defect: bin_type.defects) {
 
                 if (ok_1[item_type_id])
                     insertion_item(
@@ -895,6 +924,12 @@ Solution BranchingScheme::to_solution(
                 current_node->item_type_id,
                 bl_corner,
                 current_node->rotate);
+        //std::cout << "i " << i
+        //    << " item_type_id " << current_node->item_type_id
+        //    << " bl_corner " << bl_corner
+        //    << " rotate " << current_node->rotate
+        //    << " waste " << current_node->waste
+        //    << std::endl;
     }
     if (node->number_of_bins == 1
             && node->last_bin_direction == Direction::Y
@@ -904,6 +939,17 @@ Solution BranchingScheme::to_solution(
                 + "; solution.y_max(): " + std::to_string(solution.y_max())
                 + ".");
     }
+    //if (node->waste != solution.waste()) {
+    //    std::cout << node->xe_max << std::endl;
+    //    std::cout << node->current_area << std::endl;
+    //    std::cout << node->item_area << std::endl;
+    //    std::cout << solution.x_max() << std::endl;
+    //    std::cout << node->father->waste << std::endl;
+    //    throw std::runtime_error(
+    //            "node->waste: " + std::to_string(node->waste)
+    //            + "; solution.waste(): " + std::to_string(solution.waste())
+    //            + ".\n");
+    //}
     return solution;
 }
 
@@ -912,7 +958,7 @@ Solution BranchingScheme::to_solution(
 ////////////////////////////////////////////////////////////////////////////////
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::UncoveredItem& uncovered_item)
 {
     os << "item_type_id " << uncovered_item.item_type_id
@@ -947,7 +993,7 @@ bool BranchingScheme::Insertion::operator==(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::Insertion& insertion)
 {
     os << "item_type_id " << insertion.item_type_id
@@ -960,7 +1006,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BranchingScheme::Node& node)
 {
     os << "number_of_items " << node.number_of_items
@@ -981,4 +1027,3 @@ std::ostream& packingsolver::rectangle::operator<<(
 
     return os;
 }
-

@@ -2,7 +2,7 @@
 
 #include "packingsolver/rectangleguillotine/solution.hpp"
 
-#include <sstream>
+#include "optimizationtools/utils/utils.hpp"
 
 namespace packingsolver
 {
@@ -32,7 +32,7 @@ class BranchingScheme
 public:
 
     /*
-     * Sub-structures.
+     * Sub-structures
      */
 
     struct Insertion
@@ -182,11 +182,12 @@ public:
 
         /** Number of bins used in the partial solution. */
         BinPos number_of_bins = 0;
+
         /**
          * Orientation of the first stage of the last bin of the partial
          * solution.
          * */
-        CutOrientation first_stage_orientation;
+        CutOrientation first_stage_orientation = CutOrientation::Vertical;
 
         /** Number of items in the partial solution. */
         ItemPos number_of_items = 0;
@@ -222,7 +223,7 @@ public:
         CutOrientation first_stage_orientation = CutOrientation::Any;
     };
 
-    /** Constructor */
+    /** Constructor. */
     BranchingScheme(
             const Instance& instance,
             const Parameters& parameters);
@@ -231,19 +232,18 @@ public:
             const Instance& instance):
         BranchingScheme(instance, Parameters()) {  }
 
-    /** Destructor */
-    virtual ~BranchingScheme() { }
-
     /** Get instance. */
     inline const Instance& instance() const { return instance_; }
+
+    /** Get parameters. */
+    inline const Parameters& parameters() const { return parameters_; }
 
     /*
      * Branching scheme methods
      */
 
     std::vector<Insertion> insertions(
-            const std::shared_ptr<Node>& father,
-            Info& info) const;
+            const std::shared_ptr<Node>& father) const;
 
     std::shared_ptr<Node> child(
             const std::shared_ptr<Node>& father,
@@ -270,7 +270,7 @@ public:
             const Solution& solution_best) const;
 
     /*
-     * Dominances.
+     * Dominances
      */
 
     inline bool comparable(
@@ -310,13 +310,12 @@ public:
     }
 
     Solution to_solution(
-            const Node& node,
-            const Solution& solution_dummy) const;
+            const Node& node) const;
 
 private:
 
     /*
-     * Private attributes.
+     * Private attributes
      */
 
     /** Instance. */
@@ -339,7 +338,7 @@ private:
     mutable NodeId node_id_ = 0;
 
     /*
-     * Temporary variables.
+     * Temporary variables
      */
 
     /** Position of the last bin. */
@@ -386,10 +385,10 @@ private:
     inline double waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
 
     /** Get the width of a node. */
-    inline Length width(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+    inline Length width(const Node& node) const { return (instance_.number_of_stages() == 3)? node.x1_curr: node.y2_curr; }
 
     /** Get the height of a node. */
-    inline Length height(const Node& node) const { return (instance_.cut_type_1() == CutType1::ThreeStagedGuillotine)? node.x1_curr: node.y2_curr; }
+    inline Length height(const Node& node) const { return (instance_.number_of_stages() == 3)? node.x1_curr: node.y2_curr; }
 
     /** Get the knapsack upper bound of a node. */
     inline Profit ubkp(const Node& node) const;
@@ -460,7 +459,7 @@ private:
             Length x3) const;
 
     /*
-     * Insertions.
+     * Insertions
      */
 
     /** Insertion of one item. */
@@ -469,8 +468,7 @@ private:
             std::vector<Insertion>& insertions,
             ItemTypeId item_type_id,
             bool rotate,
-            Depth df,
-            Info& info) const;
+            Depth df) const;
 
     /** Insertion of two items. */
     void insertion_2_items(
@@ -480,31 +478,39 @@ private:
             bool rotate1,
             ItemTypeId item_type_id_2,
             bool rotate2,
-            Depth df,
-            Info& info) const;
+            Depth df) const;
 
     /** Insertion of a defect. */
     void insertion_defect(
             const Node& father,
             std::vector<Insertion>& insertions,
             DefectId defect_id,
-            Depth df,
-            Info& info) const;
+            Depth df) const;
 
     /** Update insertion (x1, z1, y2, z2) and add insertion to insertions. */
     void update(
             const Node& father,
             std::vector<Insertion>& insertions,
-            Insertion& insertion,
-            Info& info) const;
+            Insertion& insertion) const;
 
     bool check(const std::vector<SolutionNode>& nodes) const;
 };
 
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Insertion& insertion);
-std::ostream& operator<<(std::ostream &os, const std::vector<BranchingScheme::Insertion>& insertions);
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Front& front);
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Node& node);
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::Insertion& insertion);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const std::vector<BranchingScheme::Insertion>& insertions);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::Front& front);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::Node& node);
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Inlined methods ////////////////////////////////
@@ -692,4 +698,3 @@ bool BranchingScheme::operator()(
 
 }
 }
-

@@ -38,31 +38,35 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
+#include <functional>
+#include <sstream>
+
 namespace packingsolver
 {
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
+template <typename Instance, typename Solution>
 using SequentialValueCorrectionFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-struct SequentialValueCorrectionOutput
+template <typename Instance, typename Solution>
+struct SequentialValueCorrectionOutput: packingsolver::Output<Instance, Solution>
 {
     /** Constructor. */
     SequentialValueCorrectionOutput(const Instance& instance):
-        solution_pool(instance, 1) { }
+        packingsolver::Output<Instance, Solution>(instance) { }
 
-    /** Solution pool. */
-    SolutionPool<Instance, Solution> solution_pool;
 
     /** Number of iterations. */
     Counter number_of_iterations = 0;
+
+    /** List of all patterns generated during the algorithm. */
+    std::vector<Solution> all_patterns;
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-using SequentialValueCorrectionNewSolutionCallback = std::function<void(const SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution>&)>;
+template <typename Instance, typename Solution>
+using SequentialValueCorrectionNewSolutionCallback = std::function<void(const SequentialValueCorrectionOutput<Instance, Solution>&)>;
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-struct SequentialValueCorrectionOptionalParameters
+template <typename Instance, typename Solution>
+struct SequentialValueCorrectionParameters: packingsolver::Parameters<Instance, Solution>
 {
     /** Maximum number of iterations. */
     Counter maximum_number_of_iterations = -1;
@@ -76,28 +80,18 @@ struct SequentialValueCorrectionOptionalParameters
      * iterations manage to pack all items in the first bin only.
      */
     BinPos bin_packing_goal = 2;
-
-    /** New solution callback. */
-    SequentialValueCorrectionNewSolutionCallback<Instance, InstanceBuilder, Solution> new_solution_callback
-        = [](const SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution>&) { };
-
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> dichotomic_search(
+template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter>
+SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         const Instance& instance,
-        const SequentialValueCorrectionFunction<Instance, InstanceBuilder, Solution>& function,
-        SequentialValueCorrectionOptionalParameters<Instance, InstanceBuilder, Solution> parameters = {});
-
-template <typename Instance, typename InstanceBuilder, typename Solution>
-SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_value_correction(
-        const Instance& instance,
-        const SequentialValueCorrectionFunction<Instance, InstanceBuilder, Solution>& function,
-        SequentialValueCorrectionOptionalParameters<Instance, InstanceBuilder, Solution> parameters)
+        const SequentialValueCorrectionFunction<Instance, Solution>& function,
+        const SequentialValueCorrectionParameters<Instance, Solution>& parameters)
 {
-    SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> output(instance);
+    SequentialValueCorrectionOutput<Instance, Solution> output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
 
     if (instance.number_of_item_types() == 0)
         return output;
@@ -107,7 +101,11 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
-        profits[item_type_id] = instance.item_type(item_type_id).profit;
+        if (instance.objective() == Objective::Knapsack) {
+            profits[item_type_id] = instance.item_type(item_type_id).profit;
+        } else {
+            profits[item_type_id] = instance.item_type(item_type_id).space();
+        }
     }
 
     for (output.number_of_iterations = 0;; output.number_of_iterations++) {
@@ -119,7 +117,7 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
             return output;
 
         Solution solution(instance);
-        std::vector<double> waste_ratio_sums(instance.number_of_items(), 0.0);
+        std::vector<double> item_type_adjusted_space(instance.number_of_item_types(), 0.0);
 
         // For VBPP objective, we store the solutions found for each bin type
         // at each iterations. Thus, at the next iteration, we can check if the
@@ -131,7 +129,7 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
         for (;;) {
 
             // Check end.
-            if (parameters.info.needs_to_end())
+            if (parameters.timer.needs_to_end())
                 return output;
 
             // Stop if all items have been packed.
@@ -214,6 +212,7 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
                 if (kp_solution.number_of_different_bins() > 0)
                     solution.append(kp_solution, 0, 1, {bin_type_id}, kp2orig);
                 solutions_cur[bin_type_id] = solution;
+                output.all_patterns.push_back(solution);
             }
 
             // Find best solution.
@@ -262,23 +261,27 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
 
             // Update ratio_sums.
             //auto item_space = instance.item_type(0).space();
-            //item_space = 0;
-            Profit item_profit = 0;
+            double item_space = 0;
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
                     ++item_type_id) {
-                //item_space += kp_solution_best.item_copies(item_type_id) * instance.item_type(item_type_id).space();
-                item_profit += kp_solution_best.item_copies(item_type_id)
-                    * instance.item_type(item_type_id).profit;
+                item_space += kp_solution_best.item_copies(item_type_id) * instance.item_type(item_type_id).space();
             }
-            //double waste_ratio = 1.0 - (double)item_space / instance.bin_type(bin_type_id_best).space();
-            double waste_ratio = 1.0 - (double)item_profit / instance.bin_type(bin_type_id_best).cost;
+            Area waste = instance.bin_type(bin_type_id_best).space() - item_space;
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
                     ++item_type_id) {
-                waste_ratio_sums[item_type_id]
-                    += kp_solution_best.item_copies(item_type_id)
-                    * waste_ratio;
+                const auto& item_type = instance.item_type(item_type_id);
+                ItemPos copies = (double)kp_solution_best.item_copies(item_type_id);
+                double ratio = (double)copies * (double)item_type.space() / (double)item_space;
+                //std::cout << "item_type_id " << item_type_id
+                //    << " space " << item_type.space()
+                //    << " ratio " << ratio
+                //    << " waste " << waste;
+                item_type_adjusted_space[item_type_id]
+                    += (double)copies * (double)instance.item_type(item_type_id).space()
+                    + ratio * waste;
+                //std::cout << " adjusted_space " << item_type_adjusted_space[item_type_id] << std::endl;
             }
 
             // Update current solution.
@@ -289,10 +292,13 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
         }
 
         if (instance.objective() == Objective::VariableSizedBinPacking
-                || instance.objective() == Objective::BinPacking) {
+                || instance.objective() == Objective::BinPacking
+                || instance.objective() == Objective::BinPackingWithLeftovers) {
             if (solution.number_of_items() != instance.number_of_items()) {
                 throw std::runtime_error(
-                        "solution.number_of_items() != instance.number_of_items()");
+                        "sequential_value_correction:"
+                        " solution.number_of_items(): " + std::to_string(solution.number_of_items())
+                        + "; instance.number_of_items(): " + std::to_string(instance.number_of_items()) + ".");
             }
         }
 
@@ -306,7 +312,7 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
         // Update best solution.
         std::stringstream ss;
         ss << "iteration " << output.number_of_iterations;
-        output.solution_pool.add(solution, ss, parameters.info);
+        algorithm_formatter.update_solution(solution, ss.str());
         parameters.new_solution_callback(output);
 
         // Check BinPacking goal.
@@ -323,14 +329,29 @@ SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution> sequential_
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
-            double average_waste_ratio = waste_ratio_sums[item_type_id] / solution.item_copies(item_type_id);
-            profits[item_type_id] *= (1 + average_waste_ratio);
+            const auto& item_type = instance.item_type(item_type_id);
+            //std::cout << "item_type_id " << item_type_id
+            //    << " profit " << profits[item_type_id];
+            Profit profit_new = 0.0;
+            if (instance.objective() == Objective::Knapsack) {
+                profit_new
+                    = item_type.profit
+                    / item_type.space()
+                    * item_type_adjusted_space[item_type_id]
+                    / solution.item_copies(item_type_id);
+            } else {
+                profit_new
+                    = item_type_adjusted_space[item_type_id]
+                    / item_type.copies;
+            }
+            profits[item_type_id] = 0.5 * profits[item_type_id] + 0.5 * profit_new;
+            //std::cout << " -> " << profits[item_type_id] << std::endl;
         }
 
     }
 
+    algorithm_formatter.end();
     return output;
-
 }
 
 }

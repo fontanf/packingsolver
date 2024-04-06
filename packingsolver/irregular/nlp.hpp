@@ -1,7 +1,11 @@
 /**
- * Mixed-integer nonlinear programming
+ * Nonlinear programming based algorithms
  *
  * Algorithm for irregular single Knapsack, Open Dimension problems.
+ * - Problem type: 'irregular'
+ *   - Item types must have a shape of type 'Polygon'
+ *   - Bin types must have a shape of the 'Rectangle'
+ * - Objective: 'OpenDimensionX'
  *
  * Some references from which this implementation is inspired:
  * - "Mathematical model and efficient algorithms for object packing problem"
@@ -18,28 +22,22 @@ namespace packingsolver
 namespace irregular
 {
 
-struct MinlpOutput
+struct NlpOutput: packingsolver::Output<Instance, Solution>
 {
     /** Constructor. */
-    MinlpOutput(const Instance& instance):
-        solution_pool(instance, 1) { }
-
-    /** Solution pool. */
-    SolutionPool<Instance, Solution> solution_pool;
+    NlpOutput(const Instance& instance):
+        packingsolver::Output<Instance, Solution>(instance) { }
 };
 
-struct MinlpOptionalParameters
+struct NlpParameters: packingsolver::Parameters<Instance, Solution>
 {
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
-
     /** Path of the .nl output file. */
     std::string output_nl_path;
 };
 
-MinlpOutput minlp(
+const NlpOutput nlp(
         const Instance& instance,
-        MinlpOptionalParameters parameters = {});
+        const NlpParameters& parameters = {});
 
 }
 }

@@ -2,6 +2,8 @@
 
 #include "packingsolver/boxstacks/solution.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 #include <sstream>
 
 namespace packingsolver
@@ -17,8 +19,8 @@ class BranchingScheme
 
 public:
 
-    /**
-     * Sub-structures.
+    /*
+     * Sub-structures
      */
 
     /**
@@ -245,13 +247,10 @@ public:
         ItemPos maximum_number_of_selected_items = -1;
     };
 
-    /** Constructor */
+    /** Constructor. */
     BranchingScheme(
             const Instance& instance,
             const Parameters& parameters);
-
-    /** Destructor */
-    virtual ~BranchingScheme() { }
 
     /** Get instance. */
     inline const Instance& instance() const { return instance_; }
@@ -259,7 +258,7 @@ public:
     /** Get parameters. */
     inline const Parameters& parameters() const { return parameters_; }
 
-    /**
+    /*
      * Branching scheme methods
      */
 
@@ -303,7 +302,7 @@ public:
     }
 
     /*
-     * Dominances.
+     * Dominances
      */
 
     inline bool comparable(const std::shared_ptr<Node>&) const { return true; }
@@ -375,8 +374,9 @@ public:
         }
         return true;
     }
+
     /*
-     * Outputs.
+     * Outputs
      */
 
     std::string display(const std::shared_ptr<Node>& node) const
@@ -411,7 +411,7 @@ private:
 
     mutable Counter node_id_ = 0;
 
-    /**
+    /*
      * Private methods
      */
 
@@ -449,7 +449,7 @@ private:
     inline Profit ubkp(const Node& node) const;
 
     /*
-     * Insertions.
+     * Insertions
      */
 
     /** Insertion of one item above the previous inserted one. */
@@ -472,9 +472,17 @@ private:
 
 };
 
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::UncoveredItem& uncovered_items);
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Insertion& insertion);
-std::ostream& operator<<(std::ostream &os, const BranchingScheme::Node& node);
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::UncoveredItem& uncovered_items);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::Insertion& insertion);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        const BranchingScheme::Node& node);
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Inlined methods ////////////////////////////////

@@ -23,14 +23,12 @@ namespace packingsolver
 namespace boxstacks
 {
 
-struct SequentialOneDimensionalRectangleOutput
+struct SequentialOneDimensionalRectangleOutput: packingsolver::Output<Instance, Solution>
 {
     /** Constructor. */
     SequentialOneDimensionalRectangleOutput(const Instance& instance):
-        solution_pool(instance, 1) { }
+        packingsolver::Output<Instance, Solution>(instance) { }
 
-    /** Solution pool. */
-    SolutionPool<Instance, Solution> solution_pool;
 
     /**
      * Number of items in the solution found by the algorithm, before the
@@ -57,16 +55,15 @@ struct SequentialOneDimensionalRectangleOutput
     double rectangle_time = 0.0;
 };
 
-struct SequentialOneDimensionalRectangleOptionalParameters
+struct SequentialOneDimensionalRectangleParameters: packingsolver::Parameters<Instance, Solution>
 {
+    bool sequential = true;
+
     /** Parameters for the onedimensional sub-problem. */
-    onedimensional::OptimizeOptionalParameters onedimensional_parameters;
+    onedimensional::OptimizeParameters onedimensional_parameters;
 
     /** Size of the queue in the rectangle subproblem. */
     NodeId rectangle_queue_size = 1024;
-
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
 
     bool move_intra_shift = false;
     bool move_intra_swap = false;
@@ -74,9 +71,9 @@ struct SequentialOneDimensionalRectangleOptionalParameters
     bool move_inter_swap = false;
 };
 
-SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle(
+const SequentialOneDimensionalRectangleOutput sequential_onedimensional_rectangle(
         const Instance& instance,
-        SequentialOneDimensionalRectangleOptionalParameters parameters = {});
+        const SequentialOneDimensionalRectangleParameters& parameters = {});
 
 }
 }
