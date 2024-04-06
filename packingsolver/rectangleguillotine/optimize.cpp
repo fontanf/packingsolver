@@ -427,8 +427,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                     use_dichotomic_search = true;
                 }
             }
-            if (instance.number_of_bin_types() == 1)
-                use_column_generation = true;
+            use_column_generation = true;
         }
     }
 
