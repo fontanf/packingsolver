@@ -36,6 +36,12 @@ jobs:
         mkdir -p "/Users/runner/work/Clp/Clp/dist/lib"
         cp -rf "${GITHUB_WORKSPACE}/bazel-packingsolver/external/clp_darwin/lib/" "/Users/runner/work/Clp/Clp/dist/lib"
       if: matrix.os == 'macos-latest'
+    - name: Run unit tests
+      run: bazel test --define clp=true -- //...
+      if: matrix.os != 'windows-latest'
+    - name: Run unit tests (Windows)
+      run: bazel test --define clp=true  --cxxopt=/MT -- //...
+      if: matrix.os == 'windows-latest'
     - name: Run tests
       run: python3 -u scripts/run_tests.py test_results
     - name: Checkout main branch
