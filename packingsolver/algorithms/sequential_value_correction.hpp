@@ -206,6 +206,8 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
 
                 // Solve Knapsack subproblem instance.
                 SolutionPool<Instance, Solution> kp_solution_pool = function(kp_instance);
+                if (parameters.timer.needs_to_end())
+                    return output;
 
                 auto kp_solution = kp_solution_pool.best();
                 Solution solution(instance);
