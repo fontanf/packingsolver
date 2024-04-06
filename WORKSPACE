@@ -67,7 +67,7 @@ local_repository(
 git_repository(
     name = "knapsacksolver",
     remote = "https://github.com/fontanf/knapsacksolver.git",
-    commit = "5f380e7575819c2a95270f20385fe2b7194a6bb8",
+    commit = "5e355bba6b92fe00b8cb9e39db634944246ec4d2",
 )
 
 local_repository(

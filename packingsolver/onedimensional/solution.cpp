@@ -21,13 +21,16 @@ BinPos Solution::add_bin(
         BinTypeId bin_type_id,
         BinPos copies)
 {
+    const BinType& bin_type = instance().bin_type(bin_type_id);
+
     SolutionBin bin;
     bin.bin_type_id = bin_type_id;
     bin.copies = copies;
     bins_.push_back(bin);
 
     bin_copies_[bin_type_id]++;
-    cost_ += copies * instance().bin_type(bin_type_id).cost;
+    bin_cost_ += copies * bin_type.cost;
+    bin_length_ += copies * bin_type.length;
     number_of_bins_ += copies;
     return bins_.size() - 1;
 }
@@ -42,6 +45,7 @@ void Solution::add_item(
     SolutionBin& bin = bins_[bin_pos];
 
     const ItemType& item_type = instance().item_type(item_type_id);
+    const BinType& bin_type = instance().bin_type(bin.bin_type_id);
 
     SolutionItem item;
     item.item_type_id = item_type_id;
@@ -56,7 +60,10 @@ void Solution::add_item(
     number_of_items_ += bin.copies;
     item_copies_[item.item_type_id] += bin.copies;
     item_length_ += bin.copies * item_type.length;
-    profit_ += bin.copies * item_type.profit;
+    item_profit_ += bin.copies * item_type.profit;
+
+    if (bin_pos == (BinPos)bins_.size() - 1)
+        length_ = bin_length_ - bin_type.length + bin.end;
 }
 
 void Solution::append(
@@ -212,7 +219,7 @@ void Solution::format(
 
     if (verbosity_level >= 2) {
         os
-            << std::endl
+            << std::right << std::endl
             << std::setw(12) << "Bin"
             << std::setw(12) << "Type"
             << std::setw(12) << "Copies"
