@@ -2,6 +2,10 @@ STDCPP = select({
             "@bazel_tools//src/conditions:windows": [''],
             "//conditions:default":                 ["-std=c++11"]})
 
+STDCPP17 = select({
+            "@bazel_tools//src/conditions:windows": ['/std:c++17'],
+            "//conditions:default":                 ["-std=c++17"]})
+
 CLP_COPTS = select({
             "//packingsolver:clp_build": ["-DCLP_FOUND"],
             "//conditions:default": []})
@@ -10,6 +14,9 @@ CLP_DEP = select({
             "//conditions:default": []
         }) + select({
             "//packingsolver:clp_linux": ["@clp_linux//:clp"],
+            "//conditions:default": []
+        }) + select({
+            "//packingsolver:clp_darwin": ["@clp_darwin//:clp"],
             "//conditions:default": []})
 
 CPLEX_COPTS = select({
@@ -36,10 +43,13 @@ XPRESS_DEP = select({
             "//packingsolver:xpress_build": ["@xpress//:xpress"],
             "//conditions:default": []})
 
-AMPL_COPTS = select({
-            "//packingsolver:ampl_build": ["-DAMPL_FOUND"],
+KNITRO_COPTS = select({
+            "//packingsolver:knitro_build": ["-DKNITRO_FOUND"],
             "//conditions:default": []})
-AMPL_DEP = select({
-            "//packingsolver:ampl_build": ["@ampl//:ampl"],
+KNITRO_DEP = select({
+            "//packingsolver:knitro_build": [
+                    "@knitro//:knitro",
+                    "@knitrocpp//knitrocpp:knitrocpp",
+            ],
             "//conditions:default": []})
 

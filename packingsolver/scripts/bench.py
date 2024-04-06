@@ -512,7 +512,7 @@ def get_tests(problem):
                  " --items data/rectangle/" + f +
                  " --bin-infinite-copies"
                  " --objective bin-packing"
-                 " --predefined 3NVO --one2cut"
+                 " --predefined 3NVO --one2cut 1"
                  " --time-limit 10"
                  ) for f in []
                 + datas_rectangle["long2020"]
@@ -1116,23 +1116,24 @@ if __name__ == "__main__":
             output_file = open(output_filepath, "r")
             data = json.load(output_file)
 
-            # Find last solution
-            k = ""
-            if "Solution1" in data.keys():
-                k = 1
-                while "Solution" + str(k + 1) in data.keys():
-                    k += 1
-
             # Write header (only in the first loop)
             if first_loop:
                 first_loop = False
                 results_file.write("Name,Arguments")
-                for key in data["Solution" + str(k)].keys():
-                    results_file.write("," + key)
+                for key in data["IntermediaryOutputs"][-1].keys():
+                    if key == "Solution":
+                        for k2 in data["IntermediaryOutputs"][-1][key].keys():
+                            results_file.write("," + k2)
+                    else:
+                        results_file.write("," + key)
                 results_file.write("\n")
 
             # Write test informations
             results_file.write(f + "," + args)
-            for key, value in data["Solution" + str(k)].items():
-                results_file.write("," + str(value))
+            for key, value in data["IntermediaryOutputs"][-1].items():
+                if key == "Solution":
+                    for k2, v2 in data["IntermediaryOutputs"][-1][key].items():
+                        results_file.write("," + str(v2))
+                else:
+                    results_file.write("," + str(value))
             results_file.write("\n")

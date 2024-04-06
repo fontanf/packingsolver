@@ -1,0 +1,58 @@
+name: Build
+
+on: [push]
+
+jobs:
+
+  build:
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Build Linux
+      run: bazel build --define clp=true -- //...
+      if: matrix.os != 'windows-latest'
+    - name: Build Windows
+      run: bazel build --define clp=true  --cxxopt=/MT -- //...
+      if: matrix.os == 'windows-latest'
+    - name: Copy CLP libraries (Darwin)
+      run: |
+        mkdir -p "/Users/runner/work/Osi/Osi/dist/lib"
+        cp -rf "${GITHUB_WORKSPACE}/bazel-packingsolver/external/osi_darwin/lib/" "/Users/runner/work/Osi/Osi/dist/lib"
+        mkdir -p "/Users/runner/work/CoinUtils/CoinUtils/dist/lib"
+        cp -rf "${GITHUB_WORKSPACE}/bazel-packingsolver/external/coinutils_darwin/lib/" "/Users/runner/work/CoinUtils/CoinUtils/dist/lib"
+        mkdir -p "/Users/runner/work/Clp/Clp/dist/lib"
+        cp -rf "${GITHUB_WORKSPACE}/bazel-packingsolver/external/clp_darwin/lib/" "/Users/runner/work/Clp/Clp/dist/lib"
+      if: matrix.os == 'macos-latest'
+    - name: Run unit tests
+      run: bazel test --define clp=true -- //...
+      if: matrix.os != 'windows-latest'
+    - name: Run tests
+      run: python3 -u scripts/run_tests.py test_results
+    - name: Checkout main branch
+      run: |
+        git remote set-branches origin '*'
+        git fetch --depth 1
+        git checkout master
+    - name: Build Linux
+      run: bazel build --define clp=true -- //...
+      if: matrix.os != 'windows-latest'
+    - name: Build Windows
+      run: bazel build --define clp=true  --cxxopt=/MT -- //...
+      if: matrix.os == 'windows-latest'
+    - name: Run tests
+      run: python3 -u scripts/run_tests.py test_results_ref
+    - name: Process tests
+      run: python3 -u ./bazel-packingsolver/external/optimizationtools/scripts/process_tests.py --ref test_results_ref --new test_results

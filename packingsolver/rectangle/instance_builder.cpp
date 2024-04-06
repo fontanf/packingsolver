@@ -1,5 +1,7 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
 
@@ -197,6 +199,21 @@ ItemTypeId InstanceBuilder::add_item_type(
         bool oriented,
         GroupId group_id)
 {
+    if (x < 0) {
+        throw std::runtime_error(
+                "rectangle::InstanceBuilder::add_item_type."
+                " item type width "
+                + std::to_string(x)
+                + " must be >= 0.");
+    }
+    if (y < 0) {
+        throw std::runtime_error(
+                "rectangle::InstanceBuilder::add_item_type."
+                " item type height "
+                + std::to_string(y)
+                + " must be >= 0.");
+    }
+
     ItemType item_type;
     item_type.id = instance_.item_types_.size();
     item_type.rect.x = x;
@@ -272,6 +289,16 @@ void InstanceBuilder::set_item_types_infinite_copies()
         ItemType& item_type = instance_.item_types_[item_type_id];
         ItemPos c = (bin_types_area_max - 1) / item_type.area() + 1;
         item_type.copies = c;
+    }
+}
+
+void InstanceBuilder::multiply_item_types_copies(ItemPos factor)
+{
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        item_type.copies *= factor;
     }
 }
 
@@ -518,9 +545,12 @@ Instance InstanceBuilder::build()
         // Update number_of_items_.
         instance_.number_of_items_ += item_type.copies;
         // Update item_profit_.
-        instance_.item_profit_ += item_type.profit;
+        instance_.item_profit_ += item_type.copies * item_type.profit;
         // Update item_area_.
-        instance_.item_area_ += item_type.area();
+        instance_.item_area_ += item_type.copies * item_type.area();
+        // Update total_item_width_ and total_item_height_.
+        instance_.total_item_width_ += item_type.copies * item_type.rect.x;
+        instance_.total_item_height_ += item_type.copies * item_type.rect.y;
         // Update max_efficiency_item_type_.
         if (instance_.max_efficiency_item_type_id_ == -1
                 || instance_.item_type(instance_.max_efficiency_item_type_id_).profit

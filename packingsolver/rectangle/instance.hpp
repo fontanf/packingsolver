@@ -17,8 +17,13 @@ enum class UnloadingConstraint
     IncreasingY,
 };
 
-std::istream& operator>>(std::istream& in, UnloadingConstraint& unloading_constraint);
-std::ostream& operator<<(std::ostream &os, UnloadingConstraint unloading_constraint);
+std::istream& operator>>(
+        std::istream& in,
+        UnloadingConstraint& unloading_constraint);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        UnloadingConstraint unloading_constraint);
 
 struct Point
 {
@@ -29,7 +34,9 @@ struct Point
     Length y;
 };
 
-std::ostream& operator<<(std::ostream &os, Point xy);
+std::ostream& operator<<(
+        std::ostream& os,
+        Point xy);
 
 struct Rectangle
 {
@@ -51,7 +58,9 @@ bool rect_intersection(
         Length x1, Length x2, Length y1, Length y2,
         Length x3, Length x4, Length y3, Length y4);
 
-std::ostream& operator<<(std::ostream &os, Rectangle r);
+std::ostream& operator<<(
+        std::ostream& os,
+        Rectangle r);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
@@ -108,7 +117,9 @@ struct ItemType
     inline Area space() const { return area(); }
 };
 
-std::ostream& operator<<(std::ostream &os, const ItemType& item_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const ItemType& item_type);
 
 /**
  * Defect structure for a problem of type 'rectangle'.
@@ -128,7 +139,9 @@ struct Defect
     Rectangle rect;
 };
 
-std::ostream& operator<<(std::ostream &os, const Defect& defect);
+std::ostream& operator<<(
+        std::ostream& os,
+        const Defect& defect);
 
 /**
  * Bin type structure for a problem of type 'rectangle'.
@@ -160,7 +173,7 @@ struct BinType
     std::vector<Defect> defects;
 
     /*
-     * Computed attributes.
+     * Computed attributes
      */
 
     /** Get the area of the bin type. */
@@ -169,7 +182,9 @@ struct BinType
     inline Area space() const { return area(); }
 };
 
-std::ostream& operator<<(std::ostream &os, const BinType& bin_type);
+std::ostream& operator<<(
+        std::ostream& os,
+        const BinType& bin_type);
 
 struct Parameters
 {
@@ -200,7 +215,7 @@ public:
      */
 
     /** Get the problem type. */
-    inline ProblemType type() const { return ProblemType::Rectangle; };
+    static inline ProblemType type() { return ProblemType::Rectangle; };
 
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
@@ -320,6 +335,12 @@ public:
     /** Get the total area of the items. */
     inline Area item_area() const { return item_area_; }
 
+    /** Get the total width of the items. */
+    inline Length total_item_width() const { return total_item_width_; }
+
+    /** Get the total height of the items. */
+    inline Length total_item_height() const { return total_item_height_; }
+
     /** Get the mean area of the items. */
     inline Area mean_area() const { return item_area_ / number_of_items(); }
 
@@ -362,12 +383,12 @@ public:
      */
 
     /** Print the instance into a stream. */
-    std::ostream& print(
+    std::ostream& format(
             std::ostream& os,
-            int verbose = 1) const;
+            int verbosity_level = 1) const;
 
     /** Write the instance to a file. */
-    void write(std::string instance_path) const;
+    void write(const std::string& instance_path) const;
 
 private:
 
@@ -421,6 +442,12 @@ private:
 
     /** Total item area. */
     Area item_area_ = 0;
+
+    /** Total item width. */
+    Length total_item_width_ = 0;
+
+    /** Total item height. */
+    Length total_item_height_ = 0;
 
     /** Total weight of the items. */
     Weight item_weight_ = 0.0;

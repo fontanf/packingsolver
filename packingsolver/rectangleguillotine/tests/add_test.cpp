@@ -24,10 +24,6 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion1)
      *
      */
 
-    Info info = Info()
-        //.set_log2stderr(true)
-        ;
-
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
@@ -91,8 +87,6 @@ TEST(RectangleGuillotineBranchingScheme, ApplyInsertion2)
      *       500
      *
      */
-
-    Info info;
 
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);

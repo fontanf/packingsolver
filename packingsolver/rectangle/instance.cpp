@@ -1,10 +1,6 @@
 #include "packingsolver/rectangle/instance.hpp"
 
-#include "packingsolver/rectangle/solution.hpp"
-
 #include <iostream>
-#include <fstream>
-#include <climits>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
@@ -42,7 +38,7 @@ std::istream& rectangle::operator>>(
 }
 
 std::ostream& rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         UnloadingConstraint unloading_constraint)
 {
     switch (unloading_constraint) {
@@ -86,7 +82,7 @@ bool rectangle::rect_intersection(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         Point xy)
 {
     os << xy.x << " " << xy.y;
@@ -94,7 +90,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         Rectangle r)
 {
     os << r.x << " " << r.y;
@@ -102,7 +98,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const ItemType& item_type)
 {
     os
@@ -118,7 +114,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const BinType& bin_type)
 {
     os
@@ -131,7 +127,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 }
 
 std::ostream& packingsolver::rectangle::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const Defect& defect)
 {
     os
@@ -143,28 +139,30 @@ std::ostream& packingsolver::rectangle::operator<<(
     return os;
 }
 
-std::ostream& Instance::print(
+std::ostream& Instance::format(
         std::ostream& os,
-        int verbose) const
+        int verbosity_level) const
 {
-    if (verbose >= 1) {
+    if (verbosity_level >= 1) {
         os
-            << "Objective:                " << objective() << std::endl
-            << "Number of item types:     " << number_of_item_types() << std::endl
-            << "Number of items:          " << number_of_items() << std::endl
-            << "Number of bin types:      " << number_of_bin_types() << std::endl
-            << "Number of bins:           " << number_of_bins() << std::endl
-            << "Number of groups:         " << number_of_groups() << std::endl
-            << "Number of defects:        " << number_of_defects() << std::endl
-            << "Unloading constraint:     " << unloading_constraint() << std::endl
-            << "Item area:                " << item_area() << std::endl
-            << "Bin area:                 " << bin_area() << std::endl
-            << "Item weight:              " << item_weight() << std::endl
-            << "Bin weight:               " << bin_weight() << std::endl
+            << "Objective:             " << objective() << std::endl
+            << "Number of item types:  " << number_of_item_types() << std::endl
+            << "Number of items:       " << number_of_items() << std::endl
+            << "Number of bin types:   " << number_of_bin_types() << std::endl
+            << "Number of bins:        " << number_of_bins() << std::endl
+            << "Number of groups:      " << number_of_groups() << std::endl
+            << "Number of defects:     " << number_of_defects() << std::endl
+            << "Unloading constraint:  " << unloading_constraint() << std::endl
+            << "Total item area:       " << item_area() << std::endl
+            << "Total item width:      " << total_item_width() << std::endl
+            << "Total item height:     " << total_item_height() << std::endl
+            << "Total bin area:        " << bin_area() << std::endl
+            << "Total item weight:     " << item_weight() << std::endl
+            << "Total bin weight:      " << bin_weight() << std::endl
             ;
     }
 
-    if (verbose >= 2) {
+    if (verbosity_level >= 2) {
         os
             << std::endl
             << std::setw(12) << "Bin type"

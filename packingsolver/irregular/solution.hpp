@@ -2,8 +2,6 @@
 
 #include "packingsolver/irregular/instance.hpp"
 
-#include <sstream>
-
 namespace packingsolver
 {
 namespace irregular
@@ -12,7 +10,7 @@ namespace irregular
 struct SolutionItem
 {
     /** Item type. */
-    ItemTypeId j;
+    ItemTypeId item_type_id;
 
     /** Position of the bottom-left corner of the item. */
     Point bl_corner;
@@ -24,7 +22,7 @@ struct SolutionItem
 struct SolutionBin
 {
     /** Bin type. */
-    BinTypeId i;
+    BinTypeId bin_type_id;
 
     /** Number of copies. */
     BinPos copies;
@@ -53,13 +51,13 @@ public:
 
     /** Add a bin at the end of the solution. */
     BinPos add_bin(
-            BinTypeId i,
+            BinTypeId bin_type_id,
             BinPos copies);
 
     /** Add an item to the solution. */
     void add_item(
-            BinPos i,
-            ItemTypeId j,
+            BinPos bin_pos,
+            ItemTypeId item_type_id,
             Point bl_corner,
             Angle angle);
 
@@ -132,16 +130,20 @@ public:
 
     bool operator<(const Solution& solution) const;
 
-    /** CSV export */
-    void write(Info& info) const;
+    /*
+     * Export
+     */
 
-    void algorithm_start(Info& info, Algorithm algorithm) const;
+    /** Write the solution to a file. */
+    void write(const std::string& certificate_path) const;
 
-    void algorithm_end(Info& info) const;
+    /** Export solution characteristics to a JSON structure. */
+    nlohmann::json to_json() const;
 
-    void display(
-            const std::stringstream& algorithm,
-            Info& info) const;
+    /** Write a formatted output of the instance to a stream. */
+    void format(
+            std::ostream& os,
+            int verbosity_level = 1) const;
 
 private:
 
@@ -191,4 +193,3 @@ std::ostream& operator<<(std::ostream &os, const Solution& solution);
 
 }
 }
-

@@ -2,38 +2,40 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
-#include <set>
+#include "packingsolver/rectangleguillotine/solution.hpp"
 
 namespace packingsolver
 {
+namespace rectangleguillotine
+{
 
-struct IterativeBeamSearchOptionalParameters
+struct IterativeBeamSearchParameters: packingsolver::Parameters<Instance, Solution>
 {
     Counter thread_id = 0;
     double growth_factor = 1.5;
     Counter queue_size_min = 0;
     Counter queue_size_max = 100000000;
     Counter maximum_number_of_nodes = -1;
-
-    optimizationtools::Info info = optimizationtools::Info();
 };
 
-struct IterativeBeamSearchOutput
+struct IterativeBeamSearchOutput: packingsolver::Output<Instance, Solution>
 {
+    /** Constructor. */
+    IterativeBeamSearchOutput(const Instance& instance):
+        packingsolver::Output<Instance, Solution>(instance) { }
+
     Counter number_of_nodes = 0;
     Counter queue_size_max = 1;
 };
 
-template <typename Instance, typename Solution, typename BranchingScheme>
+template <typename BranchingScheme>
 inline IterativeBeamSearchOutput iterative_beam_search(
         const BranchingScheme& branching_scheme,
-        SolutionPool<Instance, Solution>& solution_pool,
-        IterativeBeamSearchOptionalParameters parameters = {})
+        IterativeBeamSearchParameters parameters = {})
 {
     using Insertion = typename BranchingScheme::Insertion;
 
-    FFOT_LOG_FOLD_START(parameters.info, "IBS" << std::endl);
-    IterativeBeamSearchOutput output;
+    IterativeBeamSearchOutput output(branching_scheme.instance());
     auto node_hasher = branching_scheme.node_hasher();
     NodeSet<BranchingScheme> q1(branching_scheme);
     NodeSet<BranchingScheme> q2(branching_scheme);
@@ -69,18 +71,15 @@ inline IterativeBeamSearchOutput iterative_beam_search(
 
             while (!q->empty()) {
                 output.number_of_nodes++;
-                FFOT_LOG_FOLD_START(parameters.info, "number_of_nodes " << output.number_of_nodes << std::endl);
 
                 // Check end.
-                if (parameters.info.needs_to_end()) {
-                    FFOT_LOG_FOLD_END(parameters.info, "");
+                if (parameters.timer.needs_to_end()) {
                     goto ibsend;
                 }
 
                 // Check node limit.
                 if (parameters.maximum_number_of_nodes != -1
                         && output.number_of_nodes > parameters.maximum_number_of_nodes) {
-                    FFOT_LOG_FOLD_END(parameters.info, "");
                     goto ibsend;
                 }
 
@@ -89,25 +88,23 @@ inline IterativeBeamSearchOutput iterative_beam_search(
                 q->erase(q->begin());
 
                 // Bound.
-                if (branching_scheme.bound(*node_cur, solution_pool.worst())) {
-                    FFOT_LOG_FOLD_END(parameters.info, "bound ×");
+                if (branching_scheme.bound(*node_cur, output.solution_pool.worst())) {
                     continue;
                 }
 
-                for (const Insertion& insertion: branching_scheme.insertions(node_cur, parameters.info)) {
+                for (const Insertion& insertion: branching_scheme.insertions(node_cur)) {
                     auto child = branching_scheme.child(node_cur, insertion);
 
                     // Bound.
-                    if (branching_scheme.bound(*child, solution_pool.worst())) {
-                        FFOT_LOG(parameters.info, " bound ×" << std::endl);
+                    if (branching_scheme.bound(*child, output.solution_pool.worst())) {
                         continue;
                     }
 
                     // Update best solution.
-                    if (branching_scheme.better(*child, solution_pool.worst())) {
+                    if (branching_scheme.better(*child, output.solution_pool.worst())) {
                         std::stringstream ss;
-                        ss << "IBS (thread " << parameters.thread_id << ") q " << output.queue_size_max;
-                        solution_pool.add(branching_scheme.to_solution(*child, solution_pool.worst()), ss, parameters.info);
+                        output.solution_pool.add(branching_scheme.to_solution(*child));
+                        parameters.new_solution_callback(output);
                     }
 
                     // Add child to the queue.
@@ -154,14 +151,8 @@ inline IterativeBeamSearchOutput iterative_beam_search(
     }
 ibsend:
 
-    std::stringstream ss;
-    ss << "IBS (thread " << parameters.thread_id << ")";
-    parameters.info.lock();
-    parameters.info.add_to_json(ss.str(), "NumberOfNodes", output.number_of_nodes);
-    parameters.info.unlock();
-    FFOT_LOG_FOLD_END(parameters.info, "");
     return output;
 }
 
 }
-
+}

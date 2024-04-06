@@ -1,6 +1,5 @@
 #pragma once
 
-#include "packingsolver/boxstacks/instance_builder.hpp"
 #include "packingsolver/boxstacks/solution.hpp"
 
 #include "packingsolver/boxstacks/sequential_onedimensional_rectangle.hpp"
@@ -13,20 +12,14 @@ namespace packingsolver
 namespace boxstacks
 {
 
-struct OptimizeOptionalParameters
+struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
-    /** Number of threads. */
-    Counter number_of_threads = 0;
-
-    /** Algorithm for Bin Packing problems. */
-    Algorithm bpp_algorithm = Algorithm::Auto;
-
-    /** Algorithm for Variable-sized Bin Packing problems. */
-    Algorithm vbpp_algorithm = Algorithm::Auto;
+    /** Optimization mode. */
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
 
     /** Parameters of the sequential_onedimensional_rectangle algorithm. */
-    SequentialOneDimensionalRectangleOptionalParameters sequential_onedimensional_rectangle_parameters;
+    SequentialOneDimensionalRectangleParameters sequential_onedimensional_rectangle_parameters;
 
     /** Size of the queue in the tree search algorithm. */
     NodeId tree_search_queue_size = -1;
@@ -36,16 +29,16 @@ struct OptimizeOptionalParameters
 
 
     /**
-     * Time limit for the vbpp2bpp bin packing sub-problem of the column
+     * Time limit for the VbppToBpp bin packing sub-problem of the column
      * generation algorithm.
      */
-    double column_generation_vbpp2bpp_time_limit = -1;
+    double column_generation_vbpp_to_bpp_time_limit = -1;
 
     /**
-     * Size of the queue for the vbpp2bpp bin packing sub-problem of the column
-     * generation algorithm.
+     * Size of the queue for the VbppToBpp bin packing sub-problem of the
+     * column generation algorithm.
      */
-    NodeId column_generation_vbpp2bpp_queue_size = 256;
+    NodeId column_generation_vbpp_to_bpp_queue_size = 256;
 
     /**
      * Size of the queue for the pricing knapsack sub-problem of the column
@@ -66,25 +59,20 @@ struct OptimizeOptionalParameters
 
 
     /** Parameters for the Sequential Value Correction algorithm. */
-    SequentialValueCorrectionOptionalParameters<Instance, InstanceBuilder, Solution> sequential_value_correction_parameters;
+    SequentialValueCorrectionParameters<Instance, Solution> sequential_value_correction_parameters;
 
     /**
      * Size of the queue for the knapsack sub-problem of the sequential value
      * correction algorithm.
      */
     NodeId sequential_value_correction_queue_size = 1024;
-
-
-    /** Info structure. */
-    optimizationtools::Info info = optimizationtools::Info();
 };
 
-struct Output
+struct Output: packingsolver::Output<Instance, Solution>
 {
     Output(const Instance& instance):
-        solution_pool(instance, 1) { }
+        packingsolver::Output<Instance, Solution>(instance) { }
 
-    SolutionPool<Instance, Solution> solution_pool;
 
     /**
      * Number of items in the solution found by the Sequential onedimensional
@@ -147,10 +135,9 @@ struct Output
     Counter number_of_tree_search_better = 0;
 };
 
-Output optimize(
+const Output optimize(
         const Instance& instance,
-        OptimizeOptionalParameters parameters = {});
+        const OptimizeParameters& parameters = {});
 
 }
 }
-

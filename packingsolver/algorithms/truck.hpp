@@ -2,6 +2,9 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
+#include <fstream>
+#include <iomanip>
+
 namespace packingsolver
 {
 
@@ -175,7 +178,7 @@ struct SemiTrailerTruckData
             ;
     }
 
-    void print(std::ostream& os) const
+    void format(std::ostream& os) const
     {
         os
             << std::setw(6) << is

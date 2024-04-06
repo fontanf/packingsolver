@@ -1,9 +1,6 @@
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
 
-#include <string>
-#include <fstream>
-#include <iomanip>
-#include <locale>
+#include <sstream>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
@@ -18,9 +15,9 @@ BranchingScheme::BranchingScheme(
     CutOrientation first_stage_orientation = (instance.first_stage_orientation() != CutOrientation::Any)?
         instance.first_stage_orientation():
         parameters.first_stage_orientation;
-    if (instance.cut_type_1() == CutType1::ThreeStagedGuillotine) {
+    if (instance.number_of_stages() == 3) {
         first_stage_orientation_ = first_stage_orientation;
-    } else if (instance.cut_type_1() == CutType1::TwoStagedGuillotine) {
+    } else if (instance.number_of_stages() == 2) {
         if (first_stage_orientation == CutOrientation::Horinzontal) {
             first_stage_orientation_ = CutOrientation::Vertical;
         } else if (first_stage_orientation == CutOrientation::Vertical) {
@@ -474,7 +471,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     // Update current_area_ and waste_
     node.current_area = instance().previous_bin_area(i);
     if (leaf(node)) {
-        node.current_area += (instance().cut_type_1() == CutType1::ThreeStagedGuillotine)?
+        node.current_area += (instance().number_of_stages() == 3)?
             (node.x1_curr - instance().left_trim(bin_type, o)) * h:
             (node.y2_curr - instance().bottom_trim(bin_type, o)) * w;
     } else {
@@ -488,11 +485,9 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
 }
 
 std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
-        const std::shared_ptr<Node>& pfather,
-        Info& info) const
+        const std::shared_ptr<Node>& pfather) const
 {
     const Node& father = *pfather;
-    FFOT_LOG_FOLD_START(info, "insertions" << std::endl);
 
     if (leaf(father))
         return {};
@@ -521,9 +516,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
     if (father.father == nullptr)
         df_max = -1;
 
-    FFOT_LOG(info, "df_max " << df_max << " df_min " << df_min << std::endl);
     for (Depth df = df_max; df >= df_min; --df) {
-        FFOT_LOG(info, "df " << df << std::endl);
         if (df == -1 && first_stage_orientation_ == CutOrientation::Horinzontal)
             continue;
 
@@ -582,30 +575,26 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                         insertions,
                         item_type_id,
                         !b,  // rotate
-                        df,
-                        info);
+                        df);
                 insertion_1_item(
                         father,
                         insertions,
                         item_type_id,
                         b,  // rotate
-                        df,
-                        info);
+                        df);
             } else {
                 insertion_1_item(
                         father,
                         insertions,
                         item_type_id,
                         false,  // rotate
-                        df,
-                        info);
+                        df);
             }
 
             // Try adding it with a second item
-            if (instance().cut_type_2() == CutType2::Roadef2018) {
+            if (instance().cut_type() == CutType::Roadef2018) {
                 Length wj = instance().width(item_type, false, o);
                 Length wjr = instance().width(item_type, true, o);
-                FFOT_LOG(info, "try adding with a second item" << std::endl);
                 for (StackId s2 = s; s2 < instance().number_of_stacks(); ++s2) {
                     ItemTypeId item_type_id_2 = -1;
                     if (s2 == s) {
@@ -645,8 +634,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                                 false,  // rotate_1
                                 item_type_id_2,
                                 false,  // rotate_2
-                                df,
-                                info);
+                                df);
                     if (!item_type_2.oriented)
                         if (wj == wj2r)
                             insertion_2_items(
@@ -656,8 +644,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                                     false,  // rotate_1
                                     item_type_id_2,
                                     true,  // rotate_2
-                                    df,
-                                    info);
+                                    df);
                     if (!item_type.oriented) {
                         if (wjr == wj2)
                             insertion_2_items(
@@ -667,8 +654,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                                     true,  // rotate_1
                                     item_type_id_2,
                                     false,  // rotate_2
-                                    df,
-                                    info);
+                                    df);
                         if (!item_type_2.oriented)
                             if (wjr == wj2r)
                                 insertion_2_items(
@@ -678,8 +664,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                                         true,  // rotate_1
                                         item_type_id_2,
                                         true,  // rotate_2
-                                        df,
-                                        info);
+                                        df);
                     }
                 }
             }
@@ -693,19 +678,11 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                     ++defect_id) {
                 const Defect& defect = bin_type.defects[defect_id];
                 if (instance().left(defect, o) >= x && instance().bottom(defect, o) >= y)
-                    insertion_defect(father, insertions, defect_id, df, info);
+                    insertion_defect(father, insertions, defect_id, df);
             }
         }
     }
 
-    FFOT_DBG(
-        FFOT_LOG_FOLD_START(info, "insertions" << std::endl);
-        for (const Insertion& insertion: insertions)
-            FFOT_LOG(info, insertion << std::endl);
-        FFOT_LOG_FOLD_END(info, "");
-    );
-
-    FFOT_LOG_FOLD_END(info, "insertions");
     return insertions;
 }
 
@@ -815,11 +792,8 @@ void BranchingScheme::insertion_1_item(
         std::vector<Insertion>& insertions,
         ItemTypeId item_type_id,
         bool rotate,
-        Depth df,
-        Info& info) const
+        Depth df) const
 {
-    FFOT_LOG_FOLD_START(info, "insertion_1_item"
-            << " item_type_id " << item_type_id << " rotate " << rotate << " df " << df << std::endl);
     assert(-2 <= df); assert(df <= 3);
 
     // Check defect intersection
@@ -830,24 +804,16 @@ void BranchingScheme::insertion_1_item(
     const BinType& bin_type = instance().bin_type(bin_type_id);
     Length w = instance().width(bin_type, o) - instance().right_trim(bin_type, o);
     Length h = instance().height(bin_type, o) - instance().top_trim(bin_type, o);
-    FFOT_LOG(info, "x3_prev(df) " << x3_prev(father, df) << " y2_prev(df) " << y2_prev(father, df)
-            << " i " << i
-            << " w " << instance().width(item_type, rotate, o)
-            << " h " << instance().height(item_type, rotate, o)
-            << std::endl);
     if (x > w) {
-        FFOT_LOG_FOLD_END(info, "too wide x " << x << " > w " << w);
         return;
     }
     if (y > h) {
-        FFOT_LOG_FOLD_END(info, "too high y " << y << " > h " << h);
         return;
     }
 
     // Homogenous
-    if (df == 2 && instance().cut_type_2() == CutType2::Homogenous
+    if (df == 2 && instance().cut_type() == CutType::Homogenous
             && father.item_type_id_1 != item_type_id) {
-        FFOT_LOG_FOLD_END(info, "homogenous father.item_type_id_1 " << father.item_type_id_1 << " item_type_id " << item_type_id);
         return;
     }
 
@@ -855,7 +821,6 @@ void BranchingScheme::insertion_1_item(
         item_type_id, -1, df,
         x, y, x,
         x1_max(father, df), y2_max(father, df, x), 0, 0};
-    FFOT_LOG(info, insertion << std::endl);
 
     // Check defect intersection
     DefectId defect_id = instance().item_intersects_defect(
@@ -866,8 +831,8 @@ void BranchingScheme::insertion_1_item(
             bin_type,
             o);
     if (defect_id >= 0) {
-        if (instance().cut_type_2() == CutType2::Roadef2018
-                || instance().cut_type_2() == CutType2::NonExact) {
+        if (instance().cut_type() == CutType::Roadef2018
+                || instance().cut_type() == CutType::NonExact) {
             // Place the item on top of its third-level sub-plate
             insertion.item_type_id_1 = -1;
             insertion.item_type_id_2 = item_type_id;
@@ -878,17 +843,16 @@ void BranchingScheme::insertion_1_item(
             insertion.y2 += min_waste;
             insertion.z2 = 1;
         } else {
-            FFOT_LOG_FOLD_END(info, "intersects defect");
             return;
         }
     }
 
-    // Update insertion.z2 with respect to cut_type_2()
-    if (instance().cut_type_2() == CutType2::Exact
-            || instance().cut_type_2() == CutType2::Homogenous)
+    // Update insertion.z2 with respect to cut_type()
+    if (instance().cut_type() == CutType::Exact
+            || instance().cut_type() == CutType::Homogenous)
         insertion.z2 = 2;
 
-    update(father, insertions, insertion, info);
+    update(father, insertions, insertion);
 }
 
 void BranchingScheme::insertion_2_items(
@@ -898,13 +862,8 @@ void BranchingScheme::insertion_2_items(
         bool rotate1,
         ItemTypeId item_type_id_2,
         bool rotate2,
-        Depth df,
-        Info& info) const
+        Depth df) const
 {
-    FFOT_LOG_FOLD_START(info, "insertion_2_items"
-            << " item_type_id_1 " << item_type_id_1 << " rotate1 " << rotate1
-            << " item_type_id_2 " << item_type_id_2 << " rotate2 " << rotate2
-            << " df " << df << std::endl);
     assert(-2 <= df); assert(df <= 3);
 
     // Check defect intersection
@@ -921,7 +880,6 @@ void BranchingScheme::insertion_2_items(
         + instance().parameters().cut_thickness
         + instance().height(item_type_2, rotate2, o);
     if (x > w || y > h) {
-        FFOT_LOG_FOLD_END(info, "too wide/high");
         return;
     }
     if (instance().item_intersects_defect(
@@ -938,7 +896,6 @@ void BranchingScheme::insertion_2_items(
                 rotate2,
                 bin_type,
                 o) >= 0) {
-        FFOT_LOG_FOLD_END(info, "intersects defect");
         return;
     }
 
@@ -946,20 +903,16 @@ void BranchingScheme::insertion_2_items(
         item_type_id_1, item_type_id_2, df,
         x, y, x,
         x1_max(father, df), y2_max(father, df, x), 0, 2};
-    FFOT_LOG(info, insertion << std::endl);
 
-    update(father, insertions, insertion, info);
+    update(father, insertions, insertion);
 }
 
 void BranchingScheme::insertion_defect(
         const Node& father,
         std::vector<Insertion>& insertions,
         DefectId defect_id,
-        Depth df,
-        Info& info) const
+        Depth df) const
 {
-    FFOT_LOG_FOLD_START(info, "insertion_defect"
-            << " defect " << defect_id << " df " << df << std::endl);
     assert(-2 <= df);
     assert(df <= 3);
 
@@ -981,7 +934,6 @@ void BranchingScheme::insertion_defect(
     Length x = std::max(instance().right(defect, o), x_min);
     Length y = std::max(instance().top(defect, o), y_min);
     if (x > w || y > h) {
-        FFOT_LOG_FOLD_END(info, "too wide/high");
         return;
     }
 
@@ -989,18 +941,15 @@ void BranchingScheme::insertion_defect(
         -1, -1, df,
         x, y, x,
         x1_max(father, df), y2_max(father, df, x), 1, 1};
-    FFOT_LOG(info, insertion << std::endl);
 
-    update(father, insertions, insertion, info);
+    update(father, insertions, insertion);
 }
 
 void BranchingScheme::update(
         const Node& father, 
         std::vector<Insertion>& insertions,
-        Insertion& insertion,
-        Info& info) const
+        Insertion& insertion) const
 {
-    (void)info;
     Length min_waste = instance().min_waste();
     Length cut_thickness = instance().cut_thickness();
     BinTypeId bin_type_id = instance().bin_type_id(i);
@@ -1065,7 +1014,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.x1 if 2-staged
-    if (instance().cut_type_1() == CutType1::TwoStagedGuillotine && insertion.x1 != w) {
+    if (instance().number_of_stages() == 2 && insertion.x1 != w) {
         if (insertion.z1 == 0) {
             if (insertion.x1 + cut_thickness + min_waste > w_physical)
                 return;
@@ -1077,7 +1026,6 @@ void BranchingScheme::update(
 
     // Update insertion.x1 and insertion.z1 with respect to x1_curr() and z1().
     if (insertion.df >= 1) {
-        FFOT_LOG(info, "i.x3 " << insertion.x3 << " x1_curr() " << father.x1_curr << std::endl);
         if (insertion.z1 == 0) {
             if (insertion.x1 + min_waste <= father.x1_curr) {
                 insertion.x1 = father.x1_curr;
@@ -1110,14 +1058,12 @@ void BranchingScheme::update(
 
     // Update insertion.y2 and insertion.z2 with respect to y2_curr() and z1().
     if (insertion.df == 2) {
-        FFOT_LOG(info, "i.y2 " << insertion.y2 << " y2_curr() " << father.y2_curr << std::endl);
         if (insertion.z2 == 0) {
             if (insertion.y2 + min_waste <= father.y2_curr) {
                 insertion.y2 = father.y2_curr;
                 insertion.z2 = father.z2;
             } else if (insertion.y2 < father.y2_curr) { // y_curr() - min_waste < insertion.y4 < y_curr()
                 if (father.z2 == 2) {
-                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
                     insertion.y2 = father.y2_curr + cut_thickness + min_waste;
@@ -1132,7 +1078,6 @@ void BranchingScheme::update(
             } else if (father.y2_curr < insertion.y2
                     && insertion.y2 < father.y2_curr + min_waste) {
                 if (father.z2 == 2) {
-                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
                     insertion.y2 = insertion.y2 + cut_thickness + min_waste;
@@ -1141,7 +1086,6 @@ void BranchingScheme::update(
                 }
             } else { // y2_curr() + min_waste <= insertion.y2
                 if (father.z2 == 2) {
-                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 }
             }
@@ -1152,7 +1096,6 @@ void BranchingScheme::update(
             } else if (father.y2_curr < insertion.y2
                     && insertion.y2 < father.y2_curr + min_waste) {
                 if (father.z2 == 2) {
-                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
                     insertion.y2 = father.y2_curr + cut_thickness + min_waste;
@@ -1160,28 +1103,23 @@ void BranchingScheme::update(
                 }
             } else {
                 if (father.z2 == 2) {
-                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 }
             }
         } else { // insertion.z2 == 2
             if (insertion.y2 < father.y2_curr) {
-                FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                 return;
             } else if (insertion.y2 == father.y2_curr) {
             } else if (father.y2_curr < insertion.y2
                     && insertion.y2 < father.y2_curr + cut_thickness + min_waste) {
                 if (father.z2 == 2) {
-                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else if (father.z2 == 0) {
-                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 } else { // z2() == 1
                 }
             } else { // y2_curr() + min_waste <= insertion.y2
                 if (father.z2 == 2) {
-                    FFOT_LOG_FOLD_END(info, "too high, y2_curr() " << father.y2_curr << " insertion.y2 " << insertion.y2 << " insertion.z2 " << insertion.z2);
                     return;
                 }
             }
@@ -1212,8 +1150,6 @@ void BranchingScheme::update(
     if (insertion.x1 < w
             && min_waste > 1
             && insertion.x1 + cut_thickness > w_physical) {
-        FFOT_LOG(info, insertion << std::endl);
-        FFOT_LOG_FOLD_END(info, "too long insertion.x1 > insertion.x1_max");
         return;
     }
 
@@ -1224,19 +1160,14 @@ void BranchingScheme::update(
             insertion.x1 = w;
             insertion.z1 = 0;
         } else { // insertion.z1 == 0
-            FFOT_LOG(info, insertion << std::endl);
-            FFOT_LOG_FOLD_END(info, "too long w - min_waste < insertion.x1 < w and insertion.z1 == 0");
             return;
         }
     }
 
     // Check max width
     if (insertion.x1 > insertion.x1_max) {
-        FFOT_LOG(info, insertion << std::endl);
-        FFOT_LOG_FOLD_END(info, "too long insertion.x1 > insertion.x1_max");
         return;
     }
-    FFOT_LOG(info, "width OK" << std::endl);
 
     // Update insertion.y2 and insertion.z2 with respect to defect intersections.
     bool y2_fixed = (insertion.z2 == 2 || (insertion.df == 2 && father.z2 == 2));
@@ -1256,7 +1187,6 @@ void BranchingScheme::update(
             if (defect_id != -1) {
                 const Defect& defect = bin_type.defects[defect_id];
                 if (y2_fixed) {
-                    FFOT_LOG_FOLD_END(info, "y2_fixed");
                     return;
                 }
                 insertion.y2 = (insertion.z2 == 0)?
@@ -1286,7 +1216,6 @@ void BranchingScheme::update(
                 if (defect_id >= 0) {
                     const Defect& defect = bin_type.defects[defect_id];
                     if (y2_fixed) {
-                        FFOT_LOG_FOLD_END(info, "y2_fixed");
                         return;
                     }
                     insertion.y2 = (insertion.z2 == 0)?
@@ -1315,7 +1244,6 @@ void BranchingScheme::update(
             if (defect_id >= 0) {
                 const Defect& defect = bin_type.defects[defect_id];
                 if (y2_fixed) {
-                    FFOT_LOG_FOLD_END(info, "y2_fixed");
                     return;
                 }
                 insertion.y2 = (insertion.z2 == 0)?
@@ -1327,7 +1255,6 @@ void BranchingScheme::update(
                 found = true;
             }
         }
-        FFOT_LOG(info, "found " << found << std::endl);
         if (!found)
             break;
     }
@@ -1352,7 +1279,6 @@ void BranchingScheme::update(
                             bin_type,
                             o);
                     if (defect_id >= 0) {
-                        FFOT_LOG_FOLD_END(info, "too high");
                         return;
                     }
                 }
@@ -1372,14 +1298,11 @@ void BranchingScheme::update(
                         bin_type,
                         o);
                 if (defect_id >= 0) {
-                    FFOT_LOG_FOLD_END(info, "too high");
                     return;
                 }
             }
 
         } else { // insertion.z2 == 0 or insertion.z2 == 2
-            FFOT_LOG(info, insertion << std::endl);
-            FFOT_LOG_FOLD_END(info, "too high");
             return;
         }
     }
@@ -1388,18 +1311,13 @@ void BranchingScheme::update(
     if (insertion.y2 < h
             && min_waste > 1
             && insertion.y2 + cut_thickness > h_physical) {
-        FFOT_LOG(info, insertion << std::endl);
-        FFOT_LOG_FOLD_END(info, "too high");
         return;
     }
 
     // Check max height
     if (insertion.y2 > insertion.y2_max) {
-        FFOT_LOG(info, insertion << std::endl);
-        FFOT_LOG_FOLD_END(info, "too high");
         return;
     }
-    FFOT_LOG(info, "height OK" << std::endl);
 
     // Check if 3-cut is cutting through a defect when cutting through a defect
     // is not allowed and cut thickness is non-null.
@@ -1418,12 +1336,9 @@ void BranchingScheme::update(
     // Check dominance
     for (auto it = insertions.begin(); it != insertions.end();) {
         bool b = true;
-        FFOT_LOG(info, "f_i  " << front(father, insertion) << std::endl);
-        FFOT_LOG(info, "f_it " << front(father, *it) << std::endl);
         if (insertion.item_type_id_1 == -1 && insertion.item_type_id_2 == -1
                 && it->item_type_id_1 == -1 && it->item_type_id_2 == -1) {
             if (insertion.df != -1 && insertion.x1 == it->x1 && insertion.y2 == it->y2 && insertion.x3 == it->x3) {
-                FFOT_LOG_FOLD_END(info, "dominated by " << *it);
                 return;
             }
         }
@@ -1431,7 +1346,6 @@ void BranchingScheme::update(
                 && (insertion.item_type_id_1 == -1 || insertion.item_type_id_1 == it->item_type_id_1 || insertion.item_type_id_1 == it->item_type_id_2)
                 && (insertion.item_type_id_2 == -1 || insertion.item_type_id_2 == it->item_type_id_2 || insertion.item_type_id_2 == it->item_type_id_2)) {
             if (dominates(front(father, *it), front(father, insertion))) {
-                FFOT_LOG_FOLD_END(info, "dominated by " << *it);
                 return;
             }
         }
@@ -1439,7 +1353,6 @@ void BranchingScheme::update(
                 && (it->item_type_id_1 == insertion.item_type_id_1 || it->item_type_id_1 == insertion.item_type_id_2)
                 && (it->item_type_id_2 == insertion.item_type_id_2 || it->item_type_id_2 == insertion.item_type_id_1)) {
             if (dominates(front(father, insertion), front(father, *it))) {
-                FFOT_LOG(info, "dominates " << *it << std::endl);
                 if (std::next(it) != insertions.end()) {
                     *it = insertions.back();
                     insertions.pop_back();
@@ -1455,7 +1368,6 @@ void BranchingScheme::update(
     }
 
     insertions.push_back(insertion);
-    FFOT_LOG_FOLD_END(info, "ok");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1564,8 +1476,7 @@ bool BranchingScheme::BranchingScheme::check(
 */
 
 Solution BranchingScheme::to_solution(
-        const Node& node,
-        const Solution&) const
+        const Node& node) const
 {
     std::vector<const BranchingScheme::Node*> descendents;
     for (const Node* current_node = &node;
@@ -1768,7 +1679,7 @@ Solution BranchingScheme::to_solution(
         }
 
         // Create a new first-level sub-plate.
-        if (instance().cut_type_1() == CutType1::TwoStagedGuillotine
+        if (instance().number_of_stages() == 2
                 || current_node->df >= 1) {
         } else if (b1) {
             subplate1_curr = -1;
@@ -1827,8 +1738,8 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            SolutionNodeId s = (instance().cut_type_1() == CutType1::ThreeStagedGuillotine)? subplate1_curr: subplate0_curr;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 2: 1;
+            SolutionNodeId s = (instance().number_of_stages() == 3)? subplate1_curr: subplate0_curr;
+            n.d = (instance().number_of_stages() != 2)? 2: 1;
             n.f = s;
             nodes[s].children.push_back(id);
             if (o == CutOrientation::Vertical) {
@@ -1856,7 +1767,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 3: 2;
+            n.d = (instance().number_of_stages() != 2)? 3: 2;
             n.f = subplate2_curr;
             nodes[subplate2_curr].children.push_back(id);
             if (o == CutOrientation::Vertical) {
@@ -1882,7 +1793,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 4: 3;
+            n.d = (instance().number_of_stages() != 2)? 4: 3;
             n.f = subplate3_curr;
             nodes[subplate3_curr].children.push_back(id);
             if (o == CutOrientation::Vertical) {
@@ -1938,7 +1849,7 @@ Solution BranchingScheme::to_solution(
                 SolutionNode& n = nodes.back();
                 SolutionNodeId id = nodes.size() - 1;
                 n.id = id;
-                n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 4: 3;
+                n.d = (instance().number_of_stages() != 2)? 4: 3;
                 n.f = subplate3_curr;
                 nodes[subplate3_curr].children.push_back(id);
                 n.l = nodes[subplate3_curr].l;
@@ -1963,7 +1874,7 @@ Solution BranchingScheme::to_solution(
                 SolutionNode& n = nodes.back();
                 SolutionNodeId id = nodes.size() - 1;
                 n.id = id;
-                n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 4: 3;
+                n.d = (instance().number_of_stages() != 2)? 4: 3;
                 n.f = subplate3_curr;
                 nodes[subplate3_curr].children.push_back(id);
                 n.r = nodes[subplate3_curr].r;
@@ -1993,7 +1904,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 3: 2;
+            n.d = (instance().number_of_stages() != 2)? 3: 2;
             n.f = subplate2_curr;
             nodes[subplate2_curr].children.push_back(id);
             n.l = nodes[subplate3_curr].r;
@@ -2011,7 +1922,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 3: 2;
+            n.d = (instance().number_of_stages() != 2)? 3: 2;
             n.f = subplate2_curr;
             nodes[subplate2_curr].children.push_back(id);
             n.l = nodes[subplate2_curr].l;
@@ -2023,7 +1934,7 @@ Solution BranchingScheme::to_solution(
         }
 
         // Add waste at the top of the 1-level sub-plate.
-        SolutionNodeId s = (instance().cut_type_1() == CutType1::ThreeStagedGuillotine)? subplate1_curr: subplate0_curr;
+        SolutionNodeId s = (instance().number_of_stages() == 3)? subplate1_curr: subplate0_curr;
         if (df_next <= 0
                 && subplate2_curr != -1
                 && nodes[subplate2_curr].t != nodes[s].t) {
@@ -2032,7 +1943,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 2: 1;
+            n.d = (instance().number_of_stages() != 2)? 2: 1;
             n.f = s;
             nodes[s].children.push_back(id);
             n.l = nodes[s].l;
@@ -2040,7 +1951,7 @@ Solution BranchingScheme::to_solution(
             n.b = nodes[subplate2_curr].t;
             n.t = nodes[s].t;
             // Might be the residual if two-staged.
-            n.item_type_id = (instance().cut_type_1() == CutType1::TwoStagedGuillotine && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
+            n.item_type_id = (instance().number_of_stages() == 2 && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
             //std::cout << n << std::endl;
         }
         if (df_next <= 0
@@ -2051,7 +1962,7 @@ Solution BranchingScheme::to_solution(
             SolutionNode& n = nodes.back();
             SolutionNodeId id = nodes.size() - 1;
             n.id = id;
-            n.d = (instance().cut_type_1() != CutType1::TwoStagedGuillotine)? 2: 1;
+            n.d = (instance().number_of_stages() != 2)? 2: 1;
             n.f = s;
             nodes[s].children.push_back(id);
             n.l = nodes[subplate2_curr].r;
@@ -2059,12 +1970,12 @@ Solution BranchingScheme::to_solution(
             n.b = nodes[s].b;
             n.t = nodes[s].t;
             // Might be the residual if two-staged.
-            n.item_type_id = (instance().cut_type_1() == CutType1::TwoStagedGuillotine && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
+            n.item_type_id = (instance().number_of_stages() == 2 && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
             //std::cout << n << std::endl;
         }
 
         // Add waste to the right of the plate.
-        if (instance().cut_type_1() != CutType1::TwoStagedGuillotine
+        if (instance().number_of_stages() != 2
                 && df_next <= -1
                 && subplate1_curr != -1
                 && nodes[subplate1_curr].r != nodes[subplate0_curr].r) {
@@ -2084,7 +1995,7 @@ Solution BranchingScheme::to_solution(
             n.item_type_id = (node_pos < (SolutionNodeId)descendents.size() - 1)? -1: -3;
             //std::cout << n << std::endl;
         }
-        if (instance().cut_type_1() != CutType1::TwoStagedGuillotine
+        if (instance().number_of_stages() != 2
                 && df_next <= -1
                 && subplate1_curr != -1
                 && nodes[subplate1_curr].t != nodes[subplate0_curr].t) {
@@ -2137,7 +2048,8 @@ bool BranchingScheme::Insertion::operator==(const Insertion& insertion) const
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BranchingScheme::Insertion& insertion)
+        std::ostream& os,
+        const BranchingScheme::Insertion& insertion)
 {
     os << "item_type_id_1 " << insertion.item_type_id_1
         << " item_type_id_2 " << insertion.item_type_id_2
@@ -2154,7 +2066,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         const std::vector<BranchingScheme::Insertion>& insertions)
 {
     std::copy(insertions.begin(), insertions.end(), std::ostream_iterator<BranchingScheme::Insertion>(os, "\n"));
@@ -2174,7 +2086,8 @@ bool BranchingScheme::Front::operator==(const Front& front) const
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BranchingScheme::Front& front)
+        std::ostream& os,
+        const BranchingScheme::Front& front)
 {
     os << "i " << front.i
         << " o " << front.o
@@ -2188,7 +2101,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 }
 
 std::ostream& packingsolver::rectangleguillotine::operator<<(
-        std::ostream &os, const BranchingScheme::Node& node)
+        std::ostream& os,
+        const BranchingScheme::Node& node)
 {
     os << "number_of_items " << node.number_of_items
         << " number_of_bins " << node.number_of_bins

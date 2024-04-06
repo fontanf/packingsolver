@@ -10,6 +10,7 @@ cc_library(
                 "instance.hpp",
                 "instance_builder.hpp",
                 "solution.hpp",
+                "algorithm_formatter.hpp",
                 "optimize.hpp",
                 "branching_scheme.hpp",
         ],
@@ -17,6 +18,7 @@ cc_library(
                 "instance.cpp",
                 "instance_builder.cpp",
                 "solution.cpp",
+                "algorithm_formatter.cpp",
                 "optimize.cpp",
                 "branching_scheme.cpp",
         ],
@@ -46,6 +48,7 @@ cc_binary(
 cc_test(
         name = "test",
         srcs = [
+                "rectangleguillotine_test.cpp",
                 "tests/waste_test.cpp",
                 "tests/add_test.cpp",
                 "tests/insertion_test.cpp",
@@ -57,8 +60,9 @@ cc_test(
         ],
         deps = [
                 ":rectangleguillotine",
-                "@googletest//:gtest_main",
                 "//packingsolver/algorithms:algorithms",
+                "@googletest//:gtest_main",
+                "@boost//:filesystem",
         ],
         copts = STDCPP,
         data = [

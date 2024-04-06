@@ -41,9 +41,9 @@ public:
     /** Set parameters. */
     void set_parameters(const Parameters& parameters) { instance_.parameters_ = parameters; }
 
-    void set_cut_type_1(CutType1 cut_type_1) { instance_.parameters_.cut_type_1 = cut_type_1; }
+    void set_number_of_stages(Counter number_of_stages) { instance_.parameters_.number_of_stages = number_of_stages; }
 
-    void set_cut_type_2(CutType2 cut_type_2) { instance_.parameters_.cut_type_2 = cut_type_2; }
+    void set_cut_type(CutType cut_type) { instance_.parameters_.cut_type = cut_type; }
 
     void set_first_stage_orientation(CutOrientation first_stage_orientation) { instance_.parameters_.first_stage_orientation = first_stage_orientation; }
 
@@ -171,6 +171,8 @@ public:
      * Knapsack Problem.
      */
     void set_item_types_infinite_copies();
+
+    void multiply_item_types_copies(ItemPos factor);
 
     /**
      * For each item type, set its profit to its area.

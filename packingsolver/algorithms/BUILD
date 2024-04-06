@@ -8,11 +8,10 @@ cc_library(
         name = "common",
         hdrs = [
                 "common.hpp",
-                "truck.hpp"
+                "truck.hpp",
         ],
         srcs = ["common.cpp"],
         deps = [
-                "@optimizationtools//optimizationtools/utils:info",
                 "@optimizationtools//optimizationtools/utils:utils",
         ],
         visibility = ["//visibility:public"],
@@ -22,7 +21,6 @@ cc_library(
         name = "algorithms",
         hdrs = [
                 "iterative_beam_search.hpp",
-                "vbpp2bpp.hpp",
                 "column_generation.hpp",
                 "dichotomic_search.hpp",
                 "sequential_value_correction.hpp",
@@ -32,7 +30,7 @@ cc_library(
         deps = [
                 ":common",
                 "@columngenerationsolver//columngenerationsolver:columngenerationsolver",
-                "@knapsacksolver//knapsacksolver/algorithms:dynamic_programming_primal_dual",
+                "@knapsacksolver//knapsacksolver/knapsack/algorithms:dynamic_programming_primal_dual",
         ] + CLP_DEP + CPLEX_DEP + GUROBI_DEP + XPRESS_DEP,
         copts = CLP_COPTS + CPLEX_COPTS + GUROBI_COPTS + XPRESS_COPTS,
         visibility = ["//visibility:public"],

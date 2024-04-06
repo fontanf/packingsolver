@@ -1,5 +1,7 @@
 #include "packingsolver/boxstacks/optimize.hpp"
 
+#include "packingsolver/boxstacks/algorithm_formatter.hpp"
+#include "packingsolver/boxstacks/instance_builder.hpp"
 #include "packingsolver/boxstacks/branching_scheme.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
@@ -9,55 +11,35 @@
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 
-Output packingsolver::boxstacks::optimize(
+const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         const Instance& instance,
-        OptimizeOptionalParameters parameters)
+        const OptimizeParameters& parameters)
 {
     Output output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
 
-    // Select algorithm.
-    Algorithm algorithm = Algorithm::Auto;
-    if (instance.objective() == Objective::Knapsack
-            && instance.number_of_bins() == 1) {
-        algorithm = Algorithm::TreeSearch;
-    } else if (instance.objective() == Objective::Knapsack
-            || instance.objective() == Objective::BinPacking
-            || instance.objective() == Objective::VariableSizedBinPacking) {
-        algorithm = Algorithm::SequentialValueCorrection;
-    } else {
-        std::stringstream ss;
-        ss << "Problem type \"boxstacks\" does not support objective \""
-            << instance.objective() << "\"";
-        throw std::logic_error(ss.str());
-    }
-    std::stringstream ss;
-    parameters.info.add_to_json("Algorithm", "Algorithm", ss.str());
-
-    output.solution_pool.best().algorithm_start(parameters.info, Algorithm::Auto);
-
-    if (algorithm == Algorithm::TreeSearch) {
+    if (instance.number_of_bins() == 1) {
 
         auto sor_begin = std::chrono::steady_clock::now();
 
-        SequentialOneDimensionalRectangleOptionalParameters sor_parameters = parameters.sequential_onedimensional_rectangle_parameters;
-        sor_parameters.onedimensional_parameters.number_of_threads = parameters.number_of_threads;
+        SequentialOneDimensionalRectangleParameters sor_parameters = parameters.sequential_onedimensional_rectangle_parameters;
+        sor_parameters.verbosity_level = 0;
+        sor_parameters.timer = parameters.timer;
         sor_parameters.onedimensional_parameters.linear_programming_solver = parameters.linear_programming_solver;
-        sor_parameters.info = Info(parameters.info, false, "");
         //sor_parameters.info.set_verbosity_level(2);
 
         auto sor_output = sequential_onedimensional_rectangle(instance, sor_parameters);
 
         std::stringstream sor_ss;
         sor_ss << "SOR";
-        output.solution_pool.add(sor_output.solution_pool.best(), sor_ss, parameters.info);
+        algorithm_formatter.update_solution(sor_output.solution_pool.best(), sor_ss.str());
         //std::cout << "dec " << sor_output.solution_pool.best().item_weight() << std::endl;
         //std::cout << output.solution_pool.best().item_weight() << std::endl;
         output.sequential_onedimensional_rectangle_number_of_items = sor_output.maximum_number_of_items;
         output.sequential_onedimensional_rectangle_profit = sor_output.solution_pool.best().profit();
         //std::cout << output.sequential_onedimensional_rectangle_number_of_items << std::endl;
-        parameters.info.lock();
-        parameters.info.add_to_json("Algorithm", "SequentialOneDimensionalRectangleNumberOfItems", output.sequential_onedimensional_rectangle_number_of_items);
-        parameters.info.unlock();
 
         auto sor_end = std::chrono::steady_clock::now();
         std::chrono::duration<double> sor_time_span
@@ -148,20 +130,20 @@ Output packingsolver::boxstacks::optimize(
             }
 
             std::vector<BranchingScheme> branching_schemes;
-            std::vector<treesearchsolver::IterativeBeamSearch2OptionalParameters<BranchingScheme>> ibs_parameterss;
+            std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameterss;
             for (GuideId guide_id: guides) {
                 for (Direction direction: directions) {
                     //std::cout << growth_factor << " " << guide_id << " " << direction << std::endl;
-                    Counter i = branching_schemes.size();
                     BranchingScheme::Parameters branching_scheme_parameters;
                     branching_scheme_parameters.guide_id = guide_id;
                     branching_scheme_parameters.direction = direction;
                     branching_scheme_parameters.maximum_number_of_selected_items = output.sequential_onedimensional_rectangle_number_of_items;
                     branching_schemes.push_back(BranchingScheme(instance, branching_scheme_parameters));
-                    treesearchsolver::IterativeBeamSearch2OptionalParameters<BranchingScheme> ibs_parameters;
+                    treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
+                    ibs_parameters.verbosity_level = 0;
+                    ibs_parameters.timer = parameters.timer;
                     ibs_parameters.minimum_size_of_the_queue = parameters.tree_search_queue_size;
                     ibs_parameters.maximum_size_of_the_queue = parameters.tree_search_queue_size;
-                    ibs_parameters.info = Info(parameters.info, false, "thread" + std::to_string(i + 1));
                     //ibs_parameters.info.set_verbosity_level(1);
                     ibs_parameterss.push_back(ibs_parameters);
                 }
@@ -170,18 +152,20 @@ Output packingsolver::boxstacks::optimize(
             std::vector<std::thread> threads;
             for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
                 ibs_parameterss[i].new_solution_callback
-                    = [&parameters, &output, &branching_schemes, i](
-                            const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& ibs_output)
+                    = [&algorithm_formatter, &branching_schemes, i](
+                            const treesearchsolver::Output<BranchingScheme>& tss_output)
                     {
+                        const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
+                            = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
                         Solution solution = branching_schemes[i].to_solution(
-                                ibs_output.solution_pool.best());
+                                tssibs_output.solution_pool.best());
                         std::stringstream ss;
                         ss << branching_schemes[i].parameters().guide_id
                             << " " << branching_schemes[i].parameters().direction
-                            << " " << ibs_output.maximum_size_of_the_queue;
-                        output.solution_pool.add(solution, ss, parameters.info);
+                            << " " << tssibs_output.maximum_size_of_the_queue;
+                        algorithm_formatter.update_solution(solution, ss.str());
                     };
-                if (parameters.number_of_threads != 1 && branching_schemes.size() > 1) {
+                if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
                     threads.push_back(std::thread(
                                 treesearchsolver::iterative_beam_search_2<BranchingScheme>,
                                 std::ref(branching_schemes[i]),
@@ -214,19 +198,23 @@ Output packingsolver::boxstacks::optimize(
         //        std::cout << "j " << j << std::endl;
         //}
 
-    } else if (algorithm == Algorithm::SequentialValueCorrection) {
+    } else {
 
-        SequentialValueCorrectionFunction<Instance, InstanceBuilder, Solution> kp_solve
+        SequentialValueCorrectionFunction<Instance, Solution> kp_solve
             = [&parameters, &output](const Instance& kp_instance)
             {
-                OptimizeOptionalParameters kp_parameters;
-                kp_parameters.number_of_threads = parameters.number_of_threads;
+                OptimizeParameters kp_parameters;
+                kp_parameters.verbosity_level = 0;
+                kp_parameters.timer = parameters.timer;
+                kp_parameters.optimization_mode
+                    = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+                    OptimizationMode::NotAnytimeSequential:
+                    OptimizationMode::NotAnytime;
                 kp_parameters.linear_programming_solver = parameters.linear_programming_solver;
                 kp_parameters.tree_search_queue_size = parameters.sequential_value_correction_queue_size;
                 kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;
-                kp_parameters.info = Info(parameters.info, false, "");
-                //kp_parameters.info.set_verbosity_level(2);
                 auto kp_output = optimize(kp_instance, kp_parameters);
+
                 // Update output.
                 output.sequential_onedimensional_rectangle_time += kp_output.sequential_onedimensional_rectangle_time;
                 output.sequential_onedimensional_rectangle_rectangle_time += kp_output.sequential_onedimensional_rectangle_rectangle_time;
@@ -240,20 +228,22 @@ Output packingsolver::boxstacks::optimize(
                 output.number_of_tree_search_better += kp_output.number_of_tree_search_better;
                 return kp_output.solution_pool;
             };
-        SequentialValueCorrectionOptionalParameters<Instance, InstanceBuilder, Solution> svq_parameters = parameters.sequential_value_correction_parameters;
-        svq_parameters.new_solution_callback = [&parameters, &output](
-                const SequentialValueCorrectionOutput<Instance, InstanceBuilder, Solution>& o)
+        SequentialValueCorrectionParameters<Instance, Solution> svc_parameters = parameters.sequential_value_correction_parameters;
+        svc_parameters.verbosity_level = 0;
+        svc_parameters.timer = parameters.timer;
+        svc_parameters.new_solution_callback = [&algorithm_formatter](
+                const packingsolver::Output<Instance, Solution>& ps_output)
         {
+            const SequentialValueCorrectionOutput<Instance, Solution>& pssvc_output
+                = static_cast<const SequentialValueCorrectionOutput<Instance, Solution>&>(ps_output);
             std::stringstream ss;
-            ss << "iteration " << o.number_of_iterations;
-            output.solution_pool.add(o.solution_pool.best(), ss, parameters.info);
+            ss << "iteration " << pssvc_output.number_of_iterations;
+            algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
         };
-        svq_parameters.info = Info(parameters.info, false, "");
-        auto svq_output = sequential_value_correction(instance, kp_solve, svq_parameters);
+        auto svc_output = sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, kp_solve, svc_parameters);
 
     }
 
-    output.solution_pool.best().algorithm_end(parameters.info);
+    algorithm_formatter.end();
     return output;
 }
-

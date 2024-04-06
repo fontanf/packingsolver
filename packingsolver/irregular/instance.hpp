@@ -49,6 +49,13 @@ LengthDbl cross_product(
         const Point& vector_1,
         const Point& vector_2);
 
+Point rotate(
+        const Point& point,
+        Angle angle);
+
+Angle angle(
+        const Point& vector);
+
 /**
  * Return the angle between two vectors.
  *
@@ -94,6 +101,10 @@ struct ShapeElement
     std::string to_string() const;
 };
 
+ShapeElement rotate(
+        const ShapeElement& element,
+        Angle angle);
+
 enum class ShapeType
 {
     Circle,
@@ -137,23 +148,11 @@ struct Shape
     /** Compute the area of the shape. */
     AreaDbl compute_area() const;
 
-    /** Compute the smallest x of the shape. */
-    LengthDbl compute_x_min() const;
+    /** Compute the smallest and greatest x and y of the shape. */
+    std::pair<Point, Point> compute_min_max(Angle angle = 0.0) const;
 
-    /** Compute the greatest x of the shape. */
-    LengthDbl compute_x_max() const;
-
-    /** Compute the smallest y of the shape. */
-    LengthDbl compute_y_min() const;
-
-    /** Compute the greatest y of the shape. */
-    LengthDbl compute_y_max() const;
-
-    /** Compute the length of the shape. */
-    LengthDbl compute_length() const;
-
-    /** Compute the width of the shape. */
-    LengthDbl compute_width() const;
+    /** Compute the width and length of the shape. */
+    std::pair<LengthDbl, LengthDbl> compute_width_and_length(Angle angle = 0.0) const;
 
     /* Check if the shape is connected and in anticlockwise direction. */
     bool check() const;
@@ -244,6 +243,18 @@ struct BinType
     /** Area of the bin type. */
     AreaDbl area = 0.0;
 
+    /** Minimum x of the item type. */
+    LengthDbl x_min;
+
+    /** Maximum x of the item type. */
+    LengthDbl x_max;
+
+    /** Minimum y of the item type. */
+    LengthDbl y_min;
+
+    /** Maximum y of the item type. */
+    LengthDbl y_max;
+
     AreaDbl space() const { return area; }
 
     AreaDbl packable_area(QualityRule quality_rule) const { (void)quality_rule; return 0; } // TODO
@@ -283,22 +294,16 @@ struct ItemType
     /** Area of the item type. */
     AreaDbl area = 0;
 
-    /** Minimum x of the item type. */
-    LengthDbl x_min;
-
-    /** Maximum x of the item type. */
-    LengthDbl x_max;
-
-    /** Minimum y of the item type. */
-    LengthDbl y_min;
-
-    /** Maximum y of the item type. */
-    LengthDbl y_max;
-
     AreaDbl space() const { return area; }
 
     /** Return type of shape of the item type. */
     ShapeType shape_type() const;
+
+    std::pair<Point, Point> compute_min_max(Angle angle = 0.0) const;
+
+    bool has_full_continuous_rotations() const;
+
+    bool has_only_discrete_rotations() const;
 
     std::string to_string(Counter indentation) const;
 };
@@ -320,7 +325,7 @@ public:
      */
 
     /** Get the problem type. */
-    inline ProblemType type() const { return ProblemType::Irregular; };
+    static inline ProblemType type() { return ProblemType::Irregular; };
 
     /** Get the objective of the problem. */
     inline Objective objective() const { return objective_; }
@@ -376,6 +381,12 @@ public:
     /** Get the number of items. */
     inline ItemTypeId number_of_items() const { return number_of_items_; }
 
+    /** Get the number rectangular of items. */
+    inline ItemTypeId number_of_rectangular_items() const { return number_of_rectangular_items_; }
+
+    /** Get the number circular of items. */
+    inline ItemTypeId number_of_circular_items() const { return number_of_circular_items_; }
+
     /** Get the total area of the items. */
     inline AreaDbl item_area() const { return item_area_; }
 
@@ -396,9 +407,9 @@ public:
      */
 
     /** Print the instance into a stream. */
-    std::ostream& print(
+    std::ostream& format(
             std::ostream& os,
-            int verbose = 1) const;
+            int verbosity_level = 1) const;
 
 private:
 
@@ -443,6 +454,12 @@ private:
 
     /** Number of items. */
     ItemPos number_of_items_ = 0;
+
+    /** Number of rectangular items. */
+    ItemPos number_of_rectangular_items_ = 0;
+
+    /** Number of circular items. */
+    ItemPos number_of_circular_items_ = 0;
 
     /** Total item area. */
     AreaDbl item_area_ = 0;
