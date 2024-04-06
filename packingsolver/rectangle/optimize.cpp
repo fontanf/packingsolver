@@ -424,6 +424,7 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         if (!use_tree_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
+                && !use_dichotomic_search
                 && !use_column_generation) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
