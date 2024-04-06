@@ -232,6 +232,58 @@ if args.tests is None or "rectangleguillotine-bin-packing-sequential-value-corre
     print()
     print()
 
+if args.tests is None or "rectangleguillotine-bin-packing-with-leftovers-tree-search" in args.tests:
+    print("rectangleguillotine, bin packing with leftovers, tree search")
+    print("------------------------------------------------------------")
+    print()
+
+    data = [
+            (os.path.join("roadef2018", "A3"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A4"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A5"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A6"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A7"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A8"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A9"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A10"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A11"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A12"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A13"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A14"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A15"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A16"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A17"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A18"), " --predefined roadef2018"),
+            (os.path.join("roadef2018", "A19"), " --predefined roadef2018")]
+    for instance, options in data:
+        instance_path = os.path.join(
+                "data",
+                "rectangle",
+                instance)
+        json_output_path = os.path.join(
+                args.directory,
+                "rectangleguillotine",
+                "bin_packing_with_leftovers_tree_search",
+                instance + ".json")
+        if not os.path.exists(os.path.dirname(json_output_path)):
+            os.makedirs(os.path.dirname(json_output_path))
+        command = (
+                rectangleguillotine_main
+                + "  --verbosity-level 1"
+                + "  --items \"" + instance_path + "\""
+                + options
+                + " --objective bin-packing-with-leftovers"
+                + "  --use-tree-search 1"
+                + " --optimization-mode not-anytime"
+                + "  --output \"" + json_output_path + "\"")
+        print(command)
+        status = os.system(command)
+        if status != 0:
+            sys.exit(1)
+        print()
+    print()
+    print()
+
 if args.tests is None or "rectangleguillotine-bin-packing-column-generation" in args.tests:
     print("rectangleguillotine, bin packing, column generation")
     print("---------------------------------------------------")
@@ -643,6 +695,58 @@ if args.tests is None or "rectangle-bin-packing-sequential-value-correction" in 
                 + "  --use-sequential-value-correction 1"
                 + " --optimization-mode not-anytime"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"
+                + "  --output \"" + json_output_path + "\"")
+        print(command)
+        status = os.system(command)
+        if status != 0:
+            sys.exit(1)
+        print()
+    print()
+    print()
+
+if args.tests is None or "rectangle-bin-packing-with-leftovers-tree-search" in args.tests:
+    print("rectangle, bin packing with leftovers, tree search")
+    print("--------------------------------------------------")
+    print()
+
+    data = [
+            (os.path.join("roadef2018", "A3"), ""),
+            (os.path.join("roadef2018", "A4"), ""),
+            (os.path.join("roadef2018", "A5"), ""),
+            (os.path.join("roadef2018", "A6"), ""),
+            (os.path.join("roadef2018", "A7"), ""),
+            (os.path.join("roadef2018", "A8"), ""),
+            (os.path.join("roadef2018", "A9"), ""),
+            (os.path.join("roadef2018", "A10"), ""),
+            (os.path.join("roadef2018", "A11"), ""),
+            (os.path.join("roadef2018", "A12"), ""),
+            (os.path.join("roadef2018", "A13"), ""),
+            (os.path.join("roadef2018", "A14"), ""),
+            (os.path.join("roadef2018", "A15"), ""),
+            (os.path.join("roadef2018", "A16"), ""),
+            (os.path.join("roadef2018", "A17"), ""),
+            (os.path.join("roadef2018", "A18"), ""),
+            (os.path.join("roadef2018", "A19"), "")]
+    for instance, options in data:
+        instance_path = os.path.join(
+                "data",
+                "rectangle",
+                instance)
+        json_output_path = os.path.join(
+                args.directory,
+                "rectangle",
+                "bin_packing_with_leftovers_tree_search",
+                instance + ".json")
+        if not os.path.exists(os.path.dirname(json_output_path)):
+            os.makedirs(os.path.dirname(json_output_path))
+        command = (
+                rectangle_main
+                + "  --verbosity-level 1"
+                + "  --items \"" + instance_path + "\""
+                + options
+                + " --objective bin-packing-with-leftovers"
+                + "  --use-tree-search 1"
+                + " --optimization-mode not-anytime"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
