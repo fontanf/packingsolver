@@ -95,7 +95,7 @@ bool BranchingScheme::bound(
                 return (ubkp(node) <= solution_best.profit());
             return node.waste >= solution_best.waste();
         }
-    } case Objective::BinPacking: {
+    } case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
         if (!solution_best.full())
             return false;
         BinPos bin_pos = -1;
@@ -143,7 +143,7 @@ bool BranchingScheme::better(
         if (solution_best.profit() < node.profit)
             return true;
         return solution_best.waste() > node.waste;
-    } case Objective::BinPacking: {
+    } case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
         if (!leaf(node))
             return false;
         if (!solution_best.full())
