@@ -1098,11 +1098,11 @@ Solution BranchingScheme::to_solution(
     std::reverse(descendents.begin(), descendents.end());
 
     Solution solution(instance());
-    BinPos i = -1;
+    BinPos bin_pos = -1;
     std::map<std::tuple<BinPos, Length, Length>, StackId> coord2stack;
     for (auto current_node: descendents) {
         if (current_node->number_of_bins > solution.number_of_bins())
-            i = solution.add_bin(
+            bin_pos = solution.add_bin(
                     instance().bin_type_id(current_node->number_of_bins - 1),
                     1);
         const ItemType& item_type = instance().item_type(current_node->item_type_id);
@@ -1128,23 +1128,27 @@ Solution BranchingScheme::to_solution(
             StackId stack_id = -1;
             if (current_node->last_bin_direction == Direction::X) {
                 stack_id = solution.add_stack(
-                        i,
+                        bin_pos,
                         current_node->x,
                         current_node->x + xj,
                         current_node->y,
                         current_node->y + yj);
             } else {
                 stack_id = solution.add_stack(
-                        i,
+                        bin_pos,
                         current_node->y,
                         current_node->y + yj,
                         current_node->x,
                         current_node->x + xj);
             }
-            coord2stack[{i, current_node->x, current_node->y}] = stack_id;
+            coord2stack[{bin_pos, current_node->x, current_node->y}] = stack_id;
         }
-        StackId stack_id = coord2stack[{i, current_node->x, current_node->y}];
-        solution.add_item(i, stack_id, current_node->item_type_id, current_node->rotation);
+        StackId stack_id = coord2stack[{bin_pos, current_node->x, current_node->y}];
+        solution.add_item(
+                bin_pos,
+                stack_id,
+                current_node->item_type_id,
+                current_node->rotation);
     }
     if (!solution.feasible()) {
         std::cout.precision(std::numeric_limits<double>::max_digits10);

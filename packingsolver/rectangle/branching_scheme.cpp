@@ -912,15 +912,15 @@ Solution BranchingScheme::to_solution(
     std::reverse(descendents.begin(), descendents.end());
 
     Solution solution(instance());
-    BinPos i = -1;
+    BinPos bin_pos = -1;
     for (auto current_node: descendents) {
         if (current_node->number_of_bins > solution.number_of_bins())
-            i = solution.add_bin(instance().bin_type_id(current_node->number_of_bins - 1), 1);
+            bin_pos = solution.add_bin(instance().bin_type_id(current_node->number_of_bins - 1), 1);
         Point bl_corner = (current_node->last_bin_direction == Direction::X)?
             Point{current_node->x, current_node->y}:
             Point{current_node->y, current_node->x};
         solution.add_item(
-                i,
+                bin_pos,
                 current_node->item_type_id,
                 bl_corner,
                 current_node->rotate);

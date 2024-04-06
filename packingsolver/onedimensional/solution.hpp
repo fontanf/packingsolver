@@ -55,13 +55,13 @@ public:
 
     /** Add a bin at the end of the solution. */
     BinPos add_bin(
-            BinTypeId i,
+            BinTypeId bin_type_id,
             BinPos copies);
 
     /** Add an item to the solution. */
     void add_item(
-            BinPos i,
-            ItemTypeId j);
+            BinPos bin_pos,
+            ItemTypeId item_type_id);
 
     void append(
             const Solution& solution,
@@ -95,10 +95,10 @@ public:
     inline BinPos number_of_different_bins() const { return bins_.size(); }
 
     /** Get the profit of the solution. */
-    inline Profit profit() const { return profit_; }
+    inline Profit profit() const { return item_profit_; }
 
     /** Get the cost of the solution. */
-    inline Profit cost() const { return cost_; }
+    inline Profit cost() const { return bin_cost_; }
 
     /** Get the length of the solution. */
     inline Volume length() const { return length_; }
@@ -175,10 +175,10 @@ private:
     Volume item_length_ = 0;
 
     /** Profit of the solution. */
-    Profit profit_ = 0;
+    Profit item_profit_ = 0;
 
     /** Cost of the solution. */
-    Profit cost_ = 0;
+    Profit bin_cost_ = 0;
 
     /** Number of copies of each bin type in the solution. */
     std::vector<BinPos> bin_copies_;

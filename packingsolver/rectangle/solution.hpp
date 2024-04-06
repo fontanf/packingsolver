@@ -63,13 +63,13 @@ public:
 
     /** Add a bin at the end of the solution. */
     BinPos add_bin(
-            BinTypeId i,
+            BinTypeId bin_type_id,
             BinPos copies);
 
     /** Add an item to the solution. */
     void add_item(
-            BinPos i,
-            ItemTypeId j,
+            BinPos bin_pos,
+            ItemTypeId item_type_id,
             Point bl_corner,
             bool rotate);
 

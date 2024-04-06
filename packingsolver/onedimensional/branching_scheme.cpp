@@ -288,11 +288,11 @@ Solution BranchingScheme::to_solution(
     std::reverse(descendents.begin(), descendents.end());
 
     Solution solution(instance());
-    BinPos i = -1;
+    BinPos bin_pos = -1;
     for (auto current_node: descendents) {
         if (current_node->number_of_bins > solution.number_of_bins())
-            i = solution.add_bin(instance().bin_type_id(current_node->number_of_bins - 1), 1);
-        solution.add_item(i, current_node->item_type_id);
+            bin_pos = solution.add_bin(instance().bin_type_id(current_node->number_of_bins - 1), 1);
+        solution.add_item(bin_pos, current_node->item_type_id);
     }
     return solution;
 }
