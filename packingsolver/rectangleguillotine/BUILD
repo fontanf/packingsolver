@@ -60,8 +60,9 @@ cc_test(
         ],
         deps = [
                 ":rectangleguillotine",
-                "@googletest//:gtest_main",
                 "//packingsolver/algorithms:algorithms",
+                "@googletest//:gtest_main",
+                "@boost//:filesystem",
         ],
         copts = STDCPP,
         data = [

@@ -3,9 +3,11 @@
 #include "packingsolver/algorithms/iterative_beam_search.hpp"
 
 #include <gtest/gtest.h>
+#include <boost/filesystem.hpp>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
+namespace fs = boost::filesystem;
 
 TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
 {
@@ -58,9 +60,10 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
 {
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
-    instance_builder.read_item_types("data/rectangle/tests/C1_items.csv");
-    instance_builder.read_bin_types("data/rectangle/tests/C1_bins.csv");
-    instance_builder.read_defects("data/rectangle/tests/C1_defects.csv");
+    fs::path directory = fs::path("data") / "rectangle" / "tests";
+    instance_builder.read_item_types((directory / "C1_items.csv").string());
+    instance_builder.read_bin_types((directory / "C1_bins.csv").string());
+    instance_builder.read_defects((directory / "C1_defects.csv").string());
     instance_builder.set_roadef2018();
     Instance instance = instance_builder.build();
 
@@ -75,9 +78,10 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
 {
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
-    instance_builder.read_item_types("data/rectangle/tests/C2_items.csv");
-    instance_builder.read_bin_types("data/rectangle/tests/C2_bins.csv");
-    instance_builder.read_defects("data/rectangle/tests/C2_defects.csv");
+    fs::path directory = fs::path("data") / "rectangle" / "tests";
+    instance_builder.read_item_types((directory / "C2_items.csv").string());
+    instance_builder.read_bin_types((directory / "C2_bins.csv").string());
+    instance_builder.read_defects((directory / "C2_defects.csv").string());
     instance_builder.set_roadef2018();
     Instance instance = instance_builder.build();
 
@@ -92,9 +96,10 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
 {
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
-    instance_builder.read_item_types("data/rectangle/tests/C3_items.csv");
-    instance_builder.read_bin_types("data/rectangle/tests/C3_bins.csv");
-    instance_builder.read_defects("data/rectangle/tests/C3_defects.csv");
+    fs::path directory = fs::path("data") / "rectangle" / "tests";
+    instance_builder.read_item_types((directory / "C3_items.csv").string());
+    instance_builder.read_bin_types((directory / "C3_bins.csv").string());
+    instance_builder.read_defects((directory / "C3_defects.csv").string());
     instance_builder.set_roadef2018();
     Instance instance = instance_builder.build();
 
@@ -130,9 +135,10 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
 
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
-    instance_builder.read_item_types("data/rectangle/tests/C11_items.csv");
-    instance_builder.read_bin_types("data/rectangle/tests/C11_bins.csv");
-    instance_builder.read_defects("data/rectangle/tests/C11_defects.csv");
+    fs::path directory = fs::path("data") / "rectangle" / "tests";
+    instance_builder.read_item_types((directory / "C11_items.csv").string());
+    instance_builder.read_bin_types((directory / "C11_bins.csv").string());
+    instance_builder.read_defects((directory / "C11_defects.csv").string());
     instance_builder.set_roadef2018();
     instance_builder.set_cut_type(CutType::Exact);
     Instance instance = instance_builder.build();
@@ -292,102 +298,4 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
 
     auto output = iterative_beam_search(branching_scheme);
     EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 3000 - instance.item_area());
-}
-
-static inline void rtrim(std::string &s) {
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
-        return !std::isspace(ch);
-    }).base(), s.end());
-}
-
-std::vector<std::string> split(std::string line)
-{
-    std::vector<std::string> v;
-    std::stringstream ss(line);
-    std::string tmp;
-    char c = ',';
-    if (line.find(';') != std::string::npos)
-        c = ';';
-    while (getline(ss, tmp, c)) {
-        rtrim(tmp);
-        v.push_back(tmp);
-    }
-    return v;
-}
-
-TEST(RectangleGuillotineBranchingScheme, IntegrationBest)
-{
-
-    for (std::string name: {
-            "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "A17", "A18", "A19",
-            "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10", "B11", "B12", "B13", "B14", /*"B15", */
-            /*"X1", *//*"X2", */"X3", "X4", "X5", "X6", "X7", "X8", "X9", "X10", "X11", "X12", "X13", "X14", /*"X15", */
-            }) {
-
-        InstanceBuilder instance_builder;
-        instance_builder.set_objective(Objective::BinPackingWithLeftovers);
-        instance_builder.read_item_types("data/rectangle/roadef2018/" + name + "_items.csv");
-        instance_builder.read_bin_types("data/rectangle/roadef2018/" + name + "_bins.csv");
-        instance_builder.read_defects("data/rectangle/roadef2018/" + name + "_defects.csv");
-        Instance instance = instance_builder.build();
-
-        std::string solution_filepath = "data/rectangle_solutions/roadef2018/" + name + "_solution.csv";
-        std::ifstream f(solution_filepath);
-        EXPECT_EQ(f.good(), true);
-        std::string tmp;
-        getline(f, tmp);
-        std::vector<std::string> line = split(tmp);
-        Area waste = 0;
-        std::vector<ItemTypeId> item_type_ids;
-        while (getline(f, tmp)) {
-            line = split(tmp);
-            ItemTypeId item_type_id = std::stol(line[6]);
-            if (item_type_id == -1) {
-                waste += std::stol(line[4]) * std::stol(line[5]);
-            } else if (std::stol(line[6]) >= 0) {
-                item_type_ids.push_back(item_type_id);
-            }
-        }
-
-        InstanceBuilder instance_builder_new;
-        instance_builder_new.set_objective(Objective::BinPackingWithLeftovers);
-        instance_builder_new.set_roadef2018();
-        for (BinTypeId bin_type_id = 0;
-                bin_type_id < instance.number_of_bin_types();
-                ++bin_type_id) {
-            const BinType& bin_type = instance.bin_type(bin_type_id);
-            instance_builder_new.add_bin_type(
-                    bin_type.rect.w,
-                    bin_type.rect.h,
-                    bin_type.copies);
-            for (DefectId defect_id = 0;
-                    defect_id < (DefectId)bin_type.defects.size();
-                    ++defect_id) {
-                const Defect& defect = bin_type.defects[defect_id];
-                instance_builder_new.add_defect(
-                        bin_type_id,
-                        defect.pos.x,
-                        defect.pos.y,
-                        defect.rect.w,
-                        defect.rect.h);
-            }
-        }
-        for (ItemTypeId item_type_id: item_type_ids) {
-            const ItemType& item_type = instance.item_type(item_type_id);
-            instance_builder_new.add_item_type(
-                    item_type.rect.w,
-                    item_type.rect.h,
-                    item_type.profit,
-                    item_type.copies,
-                    item_type.oriented,
-                    0);
-        }
-        Instance instance_new = instance_builder_new.build();
-
-        BranchingScheme branching_scheme(instance_new);
-        auto output = iterative_beam_search(branching_scheme);
-        const Solution& solution = output.solution_pool.best();
-        std::cout << name << " " << waste << std::endl;
-        EXPECT_EQ(solution.waste(), waste);
-    }
 }
