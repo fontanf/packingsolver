@@ -14,8 +14,8 @@ namespace boxstacks
 
 struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
-    /** Number of threads. */
-    Counter number_of_threads = 0;
+    /** Optimization mode. */
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
 
     /** Parameters of the sequential_onedimensional_rectangle algorithm. */

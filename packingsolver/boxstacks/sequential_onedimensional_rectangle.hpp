@@ -57,6 +57,8 @@ struct SequentialOneDimensionalRectangleOutput: packingsolver::Output<Instance, 
 
 struct SequentialOneDimensionalRectangleParameters: packingsolver::Parameters<Instance, Solution>
 {
+    bool sequential = true;
+
     /** Parameters for the onedimensional sub-problem. */
     onedimensional::OptimizeParameters onedimensional_parameters;
 

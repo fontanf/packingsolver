@@ -1337,7 +1337,10 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
             onedimensional::OptimizeParameters onedim_parameters = parameters.onedimensional_parameters;
             onedim_parameters.verbosity_level = 0;
             onedim_parameters.timer = parameters.timer;
-            onedim_parameters.anytime = false;
+            onedim_parameters.optimization_mode
+                = (parameters.sequential)?
+                OptimizationMode::NotAnytimeSequential:
+                OptimizationMode::NotAnytime;
             auto onedim_begin = std::chrono::steady_clock::now();
             auto onedim_output = onedimensional::optimize(
                     onedim_instance,
