@@ -103,12 +103,12 @@ public:
 
     /** Add a bin at the end of the solution. */
     BinPos add_bin(
-            BinTypeId i,
+            BinTypeId bin_type_id,
             BinPos copies);
 
     /** Add a stack to the solution. */
     StackId add_stack(
-            BinPos i,
+            BinPos bin_pos,
             Length x_start,
             Length x_end,
             Length y_start,
@@ -116,9 +116,9 @@ public:
 
     /** Add an item to the solution. */
     void add_item(
-            BinPos i,
+            BinPos bin_pos,
             StackId stack_id,
-            ItemTypeId j,
+            ItemTypeId item_type_id,
             int rotation);
 
     /** Destructor. */
