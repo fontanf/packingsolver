@@ -48,6 +48,7 @@ cc_binary(
 cc_test(
         name = "test",
         srcs = [
+                "rectangleguillotine_test.cpp",
                 "tests/waste_test.cpp",
                 "tests/add_test.cpp",
                 "tests/insertion_test.cpp",
