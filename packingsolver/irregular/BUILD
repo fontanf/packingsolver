@@ -59,8 +59,9 @@ cc_test(
         ],
         deps = [
                 ":irregular",
-                "@googletest//:gtest_main",
                 "//packingsolver/algorithms:algorithms",
+                "@googletest//:gtest_main",
+                "@boost//:filesystem",
         ],
         copts = STDCPP17,
         #data = ["//data/irregular:irregular"],

@@ -59,8 +59,9 @@ cc_test(
         ],
         deps = [
                 ":boxstacks",
-                "@googletest//:gtest_main",
                 "//packingsolver/algorithms:algorithms",
+                "@googletest//:gtest_main",
+                "@boost//:filesystem",
         ],
         copts = STDCPP,
         data = ["//data/box:box"],
