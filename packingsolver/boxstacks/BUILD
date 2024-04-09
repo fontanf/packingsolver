@@ -54,6 +54,7 @@ cc_binary(
 cc_test(
         name = "test",
         srcs = [
+                "boxstacks_test.cpp",
                 "tests/branching_scheme_test.cpp",
         ],
         deps = [
