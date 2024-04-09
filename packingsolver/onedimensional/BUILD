@@ -49,6 +49,7 @@ cc_binary(
 cc_test(
         name = "test",
         srcs = [
+                "onedimensional_test.cpp",
         ],
         deps = [
                 ":onedimensional",
@@ -56,7 +57,7 @@ cc_test(
                 "//packingsolver/algorithms:algorithms",
         ],
         copts = STDCPP,
-        data = ["//data/box:box"],
+        #data = ["//data/onedimensional:onedimensional"],
         timeout = "short",
 )
 

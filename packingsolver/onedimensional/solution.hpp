@@ -121,8 +121,8 @@ public:
     /** Get the fraction of waste of the solution including the residual. */
     inline double full_waste_percentage() const { return (bin_length() == 0)? 0.0: (double)full_waste() / bin_length(); }
 
-    /** Get the number of copies of item 'j' in the solution. */
-    inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
+    /** Get the number of copies of an item type in the solution. */
+    inline ItemPos item_copies(ItemTypeId item_type_id) const { return item_copies_[item_type_id]; }
 
     /** Get a bin. */
     const SolutionBin& bin(BinPos i) const { return bins_[i]; }
