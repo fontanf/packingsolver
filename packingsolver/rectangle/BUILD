@@ -49,6 +49,7 @@ cc_binary(
 cc_test(
         name = "test",
         srcs = [
+                "rectangle_test.cpp",
                 "tests/branching_scheme_test.cpp",
                 "tests/branching_scheme_defects_test.cpp",
                 "tests/branching_scheme_unloading_test.cpp",
@@ -56,8 +57,9 @@ cc_test(
         ],
         deps = [
                 ":rectangle",
-                "@googletest//:gtest_main",
                 "//packingsolver/algorithms:algorithms",
+                "@googletest//:gtest_main",
+                "@boost//:filesystem",
         ],
         copts = STDCPP,
         data = ["//data/rectangle:rectangle"],

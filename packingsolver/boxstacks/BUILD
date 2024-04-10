@@ -54,12 +54,14 @@ cc_binary(
 cc_test(
         name = "test",
         srcs = [
+                "boxstacks_test.cpp",
                 "tests/branching_scheme_test.cpp",
         ],
         deps = [
                 ":boxstacks",
-                "@googletest//:gtest_main",
                 "//packingsolver/algorithms:algorithms",
+                "@googletest//:gtest_main",
+                "@boost//:filesystem",
         ],
         copts = STDCPP,
         data = ["//data/box:box"],

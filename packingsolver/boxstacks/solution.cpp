@@ -31,7 +31,7 @@ BinPos Solution::add_bin(
     bin.weight_weighted_sum = std::vector<Weight>(instance().number_of_groups(), 0);
     bins_.push_back(bin);
 
-    bin_copies_[bin_type_id]++;
+    bin_copies_[bin_type_id] += copies;
     bin_volume_ += copies * bin_type.volume();
     bin_weight_ += copies * bin_type.maximum_weight;
     bin_cost_ += copies * bin_type.cost;

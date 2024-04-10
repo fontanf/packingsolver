@@ -33,7 +33,7 @@ BinPos Solution::add_bin(
     bin.copies = copies;
     bins_.push_back(bin);
 
-    bin_copies_[bin_type_id]++;
+    bin_copies_[bin_type_id] += copies;
     number_of_bins_ += copies;
     bin_cost_ += copies * bin_type.cost;
     bin_area_ += copies * bin_type.area;

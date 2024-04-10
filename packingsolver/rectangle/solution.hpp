@@ -92,17 +92,56 @@ public:
     /** Get the instance. */
     inline const Instance& instance() const { return *instance_; }
 
+    /*
+     * Getters: bins
+     */
+
+    /** Get the number of bins in the solution. */
+    inline BinPos number_of_bins() const { return number_of_bins_; }
+
+    /** Get the number of different bins in the solution. */
+    inline BinPos number_of_different_bins() const { return number_of_bins_; }
+
+    /** Get a bin. */
+    const SolutionBin& bin(BinPos bin_pos) const { return bins_[bin_pos]; }
+
+    /** Get the number of copies of a bin type in the solution. */
+    inline BinPos bin_copies(BinTypeId bin_type_id) const { return bin_copies_[bin_type_id]; }
+
+    /** Get the cost of the solution. */
+    inline Profit cost() const { return bin_cost_; }
+
+    /** Get the total area of the bins of the solution. */
+    inline Area bin_area() const { return bin_area_; }
+
+    /** Get the total weight of the bins of the solution. */
+    inline Weight bin_weight() const { return bin_weight_; }
+
+    /*
+     * Getters: items
+     */
+
     /** Get the number of items in the solution. */
     inline ItemPos number_of_items() const { return number_of_items_; }
 
     /** Return 'tree' iff the solution contains all items. */
     inline bool full() const { return number_of_items() == instance().number_of_items(); }
 
-    /** Get the number of bins in the solution. */
-    inline BinPos number_of_bins() const { return number_of_bins_; }
+    /** Get the total area of the items of the solution. */
+    inline Area item_area() const { return item_area_; }
 
-    /** Get the number of different bins in the solution. */
-    inline BinPos number_of_different_bins() const { return bins_.size(); }
+    /** Get the profit of the solution. */
+    inline Profit profit() const { return item_profit_; }
+
+    /** Get the number of copies of item 'j' in the solution. */
+    inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
+
+    /** Get the total weight of the items of the solution. */
+    inline Weight item_weight() const { return item_weight_; }
+
+    /*
+     * Getters: others
+     */
 
     /** Get the maximum x of the solution. */
     inline Length x_max() const { return x_max_; }
@@ -110,26 +149,8 @@ public:
     /** Get the maximum y of the solution. */
     inline Length y_max() const { return y_max_; }
 
-    /** Get the profit of the solution. */
-    inline Profit profit() const { return item_profit_; }
-
-    /** Get the cost of the solution. */
-    inline Profit cost() const { return bin_cost_; }
-
     /** Get the area of the solution. */
     inline Area area() const { return area_; }
-
-    /** Get the total area of the items of the solution. */
-    inline Area item_area() const { return item_area_; }
-
-    /** Get the total weight of the items of the solution. */
-    inline Weight item_weight() const { return item_weight_; }
-
-    /** Get the total area of the bins of the solution. */
-    inline Area bin_area() const { return bin_area_; }
-
-    /** Get the total weight of the bins of the solution. */
-    inline Weight bin_weight() const { return bin_weight_; }
 
     /** Get the area load. */
     inline double area_load() const { return (double)item_area() / instance().bin_area(); }
@@ -148,15 +169,6 @@ public:
 
     /** Get the fraction of waste of the solution including the residual. */
     inline double full_waste_percentage() const { return (bin_area() == 0)? 0: (double)full_waste() / bin_area(); }
-
-    /** Get the number of copies of item 'j' in the solution. */
-    inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
-
-    /** Get a bin. */
-    const SolutionBin& bin(BinPos i) const { return bins_[i]; }
-
-    /** Get the number of copies of bin 'i' in the solution. */
-    inline BinPos bin_copies(BinTypeId i) const { return bin_copies_[i]; }
 
     /** Get the middle axle overweight. */
     inline ItemPos middle_axle_overweight() const { return middle_axle_overweight_; }
