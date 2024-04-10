@@ -99,10 +99,10 @@ public:
     inline BinPos number_of_different_bins() const { return number_of_bins_; }
 
     /** Get a bin. */
-    const SolutionBin& bin(BinPos i) const { return bins_[i]; }
+    const SolutionBin& bin(BinPos bin_pos) const { return bins_[bin_pos]; }
 
-    /** Get the number of copies of bin 'i' in the solution. */
-    inline BinPos bin_copies(BinTypeId i) const { return bin_copies_[i]; }
+    /** Get the number of copies of a bin type in the solution. */
+    inline BinPos bin_copies(BinTypeId bin_type_id) const { return bin_copies_[bin_type_id]; }
 
     /** Get the cost of the solution. */
     inline Profit cost() const { return cost_; }
@@ -123,8 +123,8 @@ public:
     /** Get the profit of the solution. */
     inline Profit profit() const { return profit_; }
 
-    /** Get the number of copies of item 'j' in the solution. */
-    inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
+    /** Get the number of copies of an item type in the solution. */
+    inline ItemPos item_copies(ItemTypeId item_type_id) const { return item_copies_[item_type_id]; }
 
     /*
      * Getters: others

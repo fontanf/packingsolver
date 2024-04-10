@@ -51,3 +51,19 @@ cc_binary(
                 "//conditions:default":                 ["-lpthread"],
         }),
 )
+
+cc_test(
+        name = "test",
+        srcs = [
+                "irregular_test.cpp",
+        ],
+        deps = [
+                ":irregular",
+                "//packingsolver/algorithms:algorithms",
+                "@googletest//:gtest_main",
+                "@boost//:filesystem",
+        ],
+        copts = STDCPP17,
+        #data = ["//data/irregular:irregular"],
+        timeout = "short",
+)

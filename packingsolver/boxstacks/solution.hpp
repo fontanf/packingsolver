@@ -143,32 +143,40 @@ public:
     /** Get the instance. */
     inline const Instance& instance() const { return *instance_; }
 
-    /** Get the number of items in the solution. */
-    inline ItemPos number_of_items() const { return number_of_items_; }
-
-    /** Return 'tree' iff the solution contains all items. */
-    inline bool full() const { return number_of_items() == instance().number_of_items(); }
+    /*
+     * Getters: bins
+     */
 
     /** Get the number of bins in the solution. */
     inline BinPos number_of_bins() const { return number_of_bins_; }
 
     /** Get the number of different bins in the solution. */
-    inline BinPos number_of_different_bins() const { return bins_.size(); }
+    inline BinPos number_of_different_bins() const { return number_of_bins_; }
 
-    /** Get the maximum x of the solution. */
-    inline Length x_max() const { return x_max_; }
+    /** Get a bin. */
+    const SolutionBin& bin(BinPos bin_pos) const { return bins_[bin_pos]; }
 
-    /** Get the maximum y of the solution. */
-    inline Length y_max() const { return y_max_; }
-
-    /** Get the profit of the solution. */
-    inline Profit profit() const { return item_profit_; }
+    /** Get the number of copies of a bin type in the solution. */
+    inline BinPos bin_copies(BinTypeId bin_type_id) const { return bin_copies_[bin_type_id]; }
 
     /** Get the cost of the solution. */
     inline Profit cost() const { return bin_cost_; }
 
-    /** Get the volume of the solution. */
-    inline Volume volume() const { return volume_; }
+    /** Get the total volume of the bins of the solution. */
+    inline Volume bin_volume() const { return bin_volume_; }
+
+    /** Get the total weight of the bins of the solution. */
+    inline Weight bin_weight() const { return bin_weight_; }
+
+    /*
+     * Getters: items
+     */
+
+    /** Get the number of items in the solution. */
+    inline ItemPos number_of_items() const { return number_of_items_; }
+
+    /** Return 'tree' iff the solution contains all items. */
+    inline bool full() const { return number_of_items() == instance().number_of_items(); }
 
     /** Get the total volume of the items of the solution. */
     inline Volume item_volume() const { return item_volume_; }
@@ -176,11 +184,28 @@ public:
     /** Get the total weight of the items of the solution. */
     inline Weight item_weight() const { return item_weight_; }
 
-    /** Get the total volume of the bins of the solution. */
-    inline Volume bin_volume() const { return bin_volume_; }
+    /** Get the profit of the solution. */
+    inline Profit profit() const { return item_profit_; }
 
-    /** Get the total weight of the bins of the solution. */
-    inline Weight bin_weight() const { return bin_weight_; }
+    /** Get the number of copies of item an item type in the solution. */
+    inline ItemPos item_copies(ItemTypeId item_type_id) const { return item_copies_[item_type_id]; }
+
+    /*
+     * Getters: others
+     */
+
+    /** Get the maximum x of the solution. */
+    inline Length x_max() const { return x_max_; }
+
+    /** Get the maximum y of the solution. */
+    inline Length y_max() const { return y_max_; }
+
+    /** Get the volume of the solution. */
+    inline Volume volume() const { return volume_; }
+
+    /*
+     * Getters: computed values
+     */
 
     /** Get the volume load of the solution. */
     inline double volume_load() const { return (double)item_volume() / instance().bin_volume(); }
@@ -208,15 +233,6 @@ public:
 
     /** Get the fraction of waste of the solution including the residual. */
     inline double full_waste_percentage() const { return (bin_volume() == 0)? 0.0: (double)full_waste() / bin_volume(); }
-
-    /** Get the number of copies of item 'j' in the solution. */
-    inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
-
-    /** Get a bin. */
-    const SolutionBin& bin(BinPos i) const { return bins_[i]; }
-
-    /** Get the number of copies of bin 'i' in the solution. */
-    inline BinPos bin_copies(BinTypeId i) const { return bin_copies_[i]; }
 
     Weight compute_weight_constraints_violation() const;
 
