@@ -58,7 +58,7 @@ cc_test(
                 "@boost//:filesystem",
         ],
         copts = STDCPP,
-        #data = ["//data/onedimensional:onedimensional"],
+        data = ["//data/onedimensional:onedimensional"],
         timeout = "short",
 )
 
