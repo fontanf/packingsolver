@@ -1,8 +1,8 @@
 /**
- * Column Generation algorithm
+ * Column generation algorithm
  *
- * Algorithm for Variable-sized Bin Packing, Bin Packing and (Multiple)
- * Knapsack Problems.
+ * Algorithm for variable-sized bin packing, bin packing and (multiple)
+ * knapsack problems.
  *
  * Input:
  * - m bin types with lower bounds lᵢ, upper bounds uᵢ and costs cᵢ (i = 0..m)

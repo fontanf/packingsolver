@@ -1,23 +1,23 @@
 /**
- * Sequential Value Correction algorithm
+ * Sequential value correction algorithm
  *
- * Algorithm for Multiple Knapsack, Bin Packing and Variable-sized Bin Packing
+ * Algorithm for multiple knapsack, bin packing and variable-sized bin packing
  * problems.
  *
- * For Variable-sized Bin Packing, it doesn't handle the minimum number of
+ * For variable-sized bin packing, it doesn't handle the minimum number of
  * copies of each bin type to use.
  *
- * The algorithm solves a Single Knapsack subproblem for each bin until either
+ * The algorithm solves a single knapsack subproblem for each bin until either
  * all items are packed, or there is no bin left.
  * Then, it restarts but increases the profits of the items that where packed
  * in bins with high waste, such that they get packed earlier and hopefully
  * generate less waste.
  *
- * For Variable-sized Bin Packing, this algorithm should require less
+ * For Variable-sized bin packing, this algorithm should require less
  * computational effort to find a good solution than the other algorithms for
  * this objective.
- * For Multiple Knapsck and Bin Packing, it is useful for boxstacks problem
- * type since, in this case, Tree Search might not be applied directly to get a
+ * For multiple knapsck and bin packing, it is useful for boxstacks problem
+ * type since, in this case, tree search might not be applied directly to get a
  * good solution.
  *
  * Some references from which this implementation is inspired:
@@ -109,7 +109,9 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
     }
 
     for (output.number_of_iterations = 0;; output.number_of_iterations++) {
-        //std::cout << "it " << output.number_of_iterations << std::endl;
+        //std::cout << "it " << output.number_of_iterations
+        //    << " / " << parameters.maximum_number_of_iterations
+        //    << std::endl;
 
         // Check maximum number of iterations.
         if (parameters.maximum_number_of_iterations != -1
