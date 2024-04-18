@@ -88,7 +88,7 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
      * Size of the queue in the bin packing subproblem of the dichotomic search
      * algorithm.
      */
-    NodeId not_anytime_dichotomic_search_subproblem_beam_size = 1024;
+    NodeId not_anytime_dichotomic_search_subproblem_queue_size = 1024;
 };
 
 const Output optimize(
