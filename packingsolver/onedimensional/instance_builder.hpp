@@ -23,13 +23,13 @@ public:
      */
 
     /** Read parameters from a file. */
-    void read_parameters(std::string parameters_path);
+    void read_parameters(const std::string& parameters_path);
 
     /** Read bin types from a file. */
-    void read_bin_types(std::string bins_path);
+    void read_bin_types(const std::string& bins_path);
 
     /** Read item types from a file. */
-    void read_item_types(std::string items_path);
+    void read_item_types(const std::string& items_path);
 
     /*
      * Set parameters

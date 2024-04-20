@@ -306,7 +306,8 @@ void InstanceBuilder::multiply_item_types_copies(ItemPos factor)
 /////////////////////////////// Read from files ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void InstanceBuilder::read_parameters(std::string parameters_path)
+void InstanceBuilder::read_parameters(
+        const std::string& parameters_path)
 {
     if (parameters_path.empty())
         return;
@@ -337,7 +338,12 @@ void InstanceBuilder::read_parameters(std::string parameters_path)
             }
         }
 
-        if (name == "UNLOADING_CONSTRAINT") {
+        if (name == "objective") {
+            Objective objective;
+            std::stringstream ss(value);
+            ss >> objective;
+            set_objective(objective);
+        } else if (name == "unloading_constraint") {
             rectangle::UnloadingConstraint unloading_constraint;
             std::stringstream ss(value);
             ss >> unloading_constraint;
@@ -346,7 +352,8 @@ void InstanceBuilder::read_parameters(std::string parameters_path)
     }
 }
 
-void InstanceBuilder::read_bin_types(std::string bins_path)
+void InstanceBuilder::read_bin_types(
+        const std::string& bins_path)
 {
     std::ifstream f(bins_path);
     if (!f.good()) {
@@ -407,7 +414,8 @@ void InstanceBuilder::read_bin_types(std::string bins_path)
     }
 }
 
-void InstanceBuilder::read_defects(std::string defects_path)
+void InstanceBuilder::read_defects(
+        const std::string& defects_path)
 {
     std::ifstream f(defects_path);
     if (defects_path != "" && !f.good()) {
@@ -473,7 +481,8 @@ void InstanceBuilder::read_defects(std::string defects_path)
 
 }
 
-void InstanceBuilder::read_item_types(std::string items_path)
+void InstanceBuilder::read_item_types(
+        const std::string& items_path)
 {
     std::ifstream f(items_path);
     if (!f.good()) {
