@@ -102,21 +102,19 @@ Features:
 
 Compile:
 ```shell
-bazel build -- //...
-# Or, to enable the column generation algorithm on Linux:
-bazel build --define clp=true -- //...
-# Or, to enable the column generation algorithm on Windows:
-bazel build --define clp=true --cxxopt=/MT -- //...
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release --parallel
+cmake --install build --config Release --prefix install
 ```
 
 Execute:
 ```shell
-./bazel-bin/packingsolver/rectangleguillotine/main  --verbosity-level 1 --objective knapsack  --predefined 3NHO  --items data/rectangle/alvarez2002/ATP35_items.csv  --bins data/rectangle/alvarez2002/ATP35_bins.csv  --certificate ATP35_solution.csv  --output ATP35_output.json  --time-limit 1
+./install/bin/packingsolver_rectangleguillotine  --verbosity-level 1 --objective knapsack  --predefined 3NHO  --items data/rectangle/alvarez2002/ATP35_items.csv  --bins data/rectangle/alvarez2002/ATP35_bins.csv  --certificate ATP35_solution.csv  --output ATP35_output.json  --time-limit 1
 ```
 
 Or in short:
 ```shell
-./bazel-bin/packingsolver/rectangleguillotine/main -v 1 -f KP -p 3NHO -i data/rectangle/alvarez2002/ATP35 -c ATP35_solution.csv -o ATP35_output.json -t 1
+./install/bin/packingsolver_rectangleguillotine -v 1 -f KP -p 3NHO -i data/rectangle/alvarez2002/ATP35 -c ATP35_solution.csv -o ATP35_output.json -t 1
 ```
 ```
 ===================================
