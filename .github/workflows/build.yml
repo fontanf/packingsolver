@@ -45,19 +45,21 @@ jobs:
         git remote set-branches origin '*'
         git fetch --depth 1
         git checkout master
-    - name: Build
-      run: |
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-        cmake --build build --config Release --parallel
-        cmake --install build --config Release --prefix install
+    - name: Build Linux
+      run: bazel build --define clp=true -- //...
+      if: matrix.os != 'windows-latest'
+    - name: Build Windows
+      run: bazel build --define clp=true  --cxxopt=/MT -- //...
+      if: matrix.os == 'windows-latest'
     - name: Copy CLP libraries (Darwin)
       run: |
         mkdir -p "/Users/runner/work/Osi/Osi/dist/lib"
-        cp -rf "${GITHUB_WORKSPACE}/build/_deps/mathoptsolverscmake-build/extern/Osi-prefix/src/Osi/lib/" "/Users/runner/work/Osi/Osi/dist/lib"
+        cp -rf "${GITHUB_WORKSPACE}/bazel-packingsolver/external/osi_darwin/lib/" "/Users/runner/work/Osi/Osi/dist/lib"
         mkdir -p "/Users/runner/work/CoinUtils/CoinUtils/dist/lib"
-        cp -rf "${GITHUB_WORKSPACE}/build/_deps/mathoptsolverscmake-build/extern/CoinUtils-prefix/src/CoinUtils/lib/" "/Users/runner/work/CoinUtils/CoinUtils/dist/lib"
+        cp -rf "${GITHUB_WORKSPACE}/bazel-packingsolver/external/coinutils_darwin/lib/" "/Users/runner/work/CoinUtils/CoinUtils/dist/lib"
         mkdir -p "/Users/runner/work/Clp/Clp/dist/lib"
-        cp -rf "${GITHUB_WORKSPACE}/build/_deps/mathoptsolverscmake-build/extern/Clp-prefix/src/Clp/lib/" "/Users/runner/work/Clp/Clp/dist/lib"
+        cp -rf "${GITHUB_WORKSPACE}/bazel-packingsolver/external/clp_darwin/lib/" "/Users/runner/work/Clp/Clp/dist/lib"
+      if: matrix.os == 'macos-latest'
     - name: Run tests
       run: python3 -u scripts/run_tests.py test_results_ref
     - name: Process tests
