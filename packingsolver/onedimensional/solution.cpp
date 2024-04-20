@@ -107,6 +107,89 @@ void Solution::append(
     }
 }
 
+Solution::Solution(
+        const Instance& instance,
+        const std::string& certificate_path):
+    Solution(instance)
+{
+    std::ifstream f(certificate_path);
+    if (!f.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + certificate_path + "\".");
+    }
+
+    std::string tmp;
+    std::vector<std::string> line;
+    std::vector<std::string> labels;
+
+    // read bin file
+    getline(f, tmp);
+    labels = optimizationtools::split(tmp, ',');
+    while (getline(f, tmp)) {
+        line = optimizationtools::split(tmp, ',');
+
+        std::string type;
+        BinTypeId type_id = -1;
+        BinPos copies = -1;
+        BinPos bin_pos = -1;
+        Length x = -1;
+        Length lx = -1;
+
+        for (Counter i = 0; i < (Counter)line.size(); ++i) {
+            if (labels[i] == "TYPE") {
+                type = line[i];
+            } else if (labels[i] == "ID") {
+                type_id = (BinTypeId)std::stol(line[i]);
+            } else if (labels[i] == "COPIES") {
+                copies = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "BIN") {
+                bin_pos = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "X") {
+                x = (Length)std::stod(line[i]);
+            } else if (labels[i] == "LX") {
+                lx = (Length)std::stod(line[i]);
+            }
+        }
+        if (type == "") {
+            throw std::runtime_error(
+                    "Missing \"TYPE\" value in \"" + certificate_path + "\".");
+        }
+        if (type_id == -1) {
+            throw std::runtime_error(
+                    "Missing \"ID\" value in \"" + certificate_path + "\".");
+        }
+        if (copies == -1) {
+            throw std::runtime_error(
+                    "Missing \"COPIES\" value in \"" + certificate_path + "\".");
+        }
+        if (bin_pos == -1) {
+            throw std::runtime_error(
+                    "Missing \"BIN\" value in \"" + certificate_path + "\".");
+        }
+        if (x == -1) {
+            throw std::runtime_error(
+                    "Missing \"X\" value in \"" + certificate_path + "\".");
+        }
+        if (lx == -1) {
+            throw std::runtime_error(
+                    "Missing \"LX\" value in \"" + certificate_path + "\".");
+        }
+
+        if (type == "BIN") {
+            add_bin(
+                    type_id,
+                    copies);
+        } else if (type == "ITEM") {
+            add_item(
+                    bin_pos,
+                    type_id);
+        } else {
+            throw std::runtime_error(
+                    "Wrong \"TYPE\" value in \"" + certificate_path + "\".");
+        }
+    }
+}
+
 bool Solution::operator<(const Solution& solution) const
 {
     switch (instance().objective()) {
