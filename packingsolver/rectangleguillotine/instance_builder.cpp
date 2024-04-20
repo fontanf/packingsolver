@@ -402,7 +402,8 @@ void InstanceBuilder::set_item_types_oriented()
 /////////////////////////////// Read from files ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void InstanceBuilder::read_parameters(std::string parameters_path)
+void InstanceBuilder::read_parameters(
+        const std::string& parameters_path)
 {
     if (parameters_path.empty())
         return;
@@ -466,7 +467,8 @@ void InstanceBuilder::read_parameters(std::string parameters_path)
     }
 }
 
-void InstanceBuilder::read_bin_types(std::string bins_path)
+void InstanceBuilder::read_bin_types(
+        const std::string& bins_path)
 {
     std::ifstream f(bins_path);
     if (!f.good()) {
@@ -555,7 +557,8 @@ void InstanceBuilder::read_bin_types(std::string bins_path)
     }
 }
 
-void InstanceBuilder::read_defects(std::string defects_path)
+void InstanceBuilder::read_defects(
+        const std::string& defects_path)
 {
     if (defects_path.empty())
         return;
@@ -620,7 +623,8 @@ void InstanceBuilder::read_defects(std::string defects_path)
     }
 }
 
-void InstanceBuilder::read_item_types(std::string items_path)
+void InstanceBuilder::read_item_types(
+        const std::string& items_path)
 {
     std::ifstream f(items_path);
     if (!f.good()) {
