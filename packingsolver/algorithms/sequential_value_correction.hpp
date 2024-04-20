@@ -142,21 +142,6 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
             if (solution.number_of_bins() == instance.number_of_bins())
                 break;
 
-            // Find bin types to try.
-            std::vector<BinTypeId> bin_type_ids;
-            if (instance.objective() == Objective::VariableSizedBinPacking) {
-                for (BinTypeId bin_type_id = 0;
-                        bin_type_id < instance.number_of_bin_types();
-                        ++bin_type_id) {
-                    if (solution.bin_copies(bin_type_id)
-                            < instance.bin_type(bin_type_id).copies) {
-                        bin_type_ids.push_back(bin_type_id);
-                    }
-                }
-            } else {
-                bin_type_ids.push_back(instance.bin_type_id(solution.number_of_bins()));
-            }
-
             std::vector<ItemTypeId> kp2orig;
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
@@ -167,11 +152,35 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     kp2orig.push_back(item_type_id);
             }
 
+            double largest_item_space = 0;
+            for (ItemTypeId item_type_id: kp2orig) {
+                if (largest_item_space < instance.item_type(item_type_id).space())
+                    largest_item_space = instance.item_type(item_type_id).space();
+            }
+            //std::cout << "largest_item_space " << largest_item_space << std::endl;
+
+            // Find bin types to try.
+            std::vector<BinTypeId> bin_type_ids;
+            if (instance.objective() == Objective::VariableSizedBinPacking) {
+                for (BinTypeId bin_type_id = 0;
+                        bin_type_id < instance.number_of_bin_types();
+                        ++bin_type_id) {
+                    const auto& bin_type = instance.bin_type(bin_type_id);
+                    if (solution.bin_copies(bin_type_id) == bin_type.copies)
+                        continue;
+                    if (bin_type.space() < largest_item_space)
+                        continue;
+                    bin_type_ids.push_back(bin_type_id);
+                }
+            } else {
+                bin_type_ids.push_back(instance.bin_type_id(solution.number_of_bins()));
+            }
+
             for (BinTypeId bin_type_id: bin_type_ids) {
                 const auto& bin_type = instance.bin_type(bin_type_id);
 
                 if (instance.objective() == Objective::VariableSizedBinPacking
-                        && solution.number_of_items() > 0) {
+                        && solutions_cur[bin_type_id].number_of_items() > 0) {
                     // Check if previous solution is still valid.
                     bool valid = true;
                     for (ItemTypeId item_type_id = 0;
@@ -230,7 +239,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 double ratio = solutions_cur[bin_type_id].profit() / bin_type.cost;
                 //std::cout << "bin_type_id " << bin_type_id
                 //    << " cost " << bin_type.cost
-                //    << " profit " << kp_solution_pool.best().profit()
+                //    << " profit " << solutions_cur[bin_type_id].profit()
                 //    << " ratio " << ratio
                 //    << std::endl;
                 if (ratio_best < ratio) {
@@ -283,8 +292,9 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 //    << " ratio " << ratio
                 //    << " waste " << waste;
                 item_type_adjusted_space[item_type_id]
-                    += (double)copies * (double)instance.item_type(item_type_id).space()
-                    + ratio * waste;
+                    += number_of_copies
+                    * ((double)copies * (double)instance.item_type(item_type_id).space()
+                            + ratio * waste);
                 //std::cout << " adjusted_space " << item_type_adjusted_space[item_type_id] << std::endl;
             }
 
@@ -312,6 +322,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         //        << " new " << solution.number_of_bins()
         //        << std::endl;
         //}
+        //std::cout << solution.cost() << std::endl;
 
         // Update best solution.
         std::stringstream ss;
@@ -335,6 +346,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 ++item_type_id) {
             const auto& item_type = instance.item_type(item_type_id);
             //std::cout << "item_type_id " << item_type_id
+            //    << " adjusted_space " << item_type_adjusted_space[item_type_id]
             //    << " profit " << profits[item_type_id];
             Profit profit_new = 0.0;
             if (instance.objective() == Objective::Knapsack) {
