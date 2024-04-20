@@ -416,7 +416,12 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                 if (instance.number_of_bin_types() == 1) {
                     use_tree_search = true;
                 } else {
-                    use_dichotomic_search = true;
+                    if (mean_number_of_items_in_bins
+                            > parameters.many_items_in_bins_threshold) {
+                        use_dichotomic_search = true;
+                    } else {
+                        use_sequential_value_correction = true;
+                    }
                 }
             }
             use_column_generation = true;
