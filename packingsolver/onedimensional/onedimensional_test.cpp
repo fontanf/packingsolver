@@ -103,12 +103,12 @@ TEST(OneDimensional, Users_2024_04_07)
 
     OptimizeParameters optimize_parameters;
     optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
-    optimize_parameters.use_column_generation = 1;
+    optimize_parameters.use_sequential_value_correction = 1;
     optimize_parameters.verbosity_level = 2;
     Output output = optimize(instance, optimize_parameters);
 
     Solution solution(instance, (directory / "2024-04-07_solution.csv").string());
-    //EXPECT_EQ(!(output.solution_pool.best() < solution), true);
+    EXPECT_EQ(!(output.solution_pool.best() < solution), true);
 }
 
 TEST(OneDimensional, Users_2024_04_09)
