@@ -433,7 +433,12 @@ void InstanceBuilder::read_parameters(std::string parameters_path)
             }
         }
 
-        if (name == "number_of_stages") {
+        if (name == "objective") {
+            Objective objective;
+            std::stringstream ss(value);
+            ss >> objective;
+            set_objective(objective);
+        } else if (name == "number_of_stages") {
             set_number_of_stages(std::stol(value));
         } else if (name == "cut_type") {
             CutType cut_type;

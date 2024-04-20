@@ -337,7 +337,12 @@ void InstanceBuilder::read_parameters(std::string parameters_path)
             }
         }
 
-        if (name == "UNLOADING_CONSTRAINT") {
+        if (name == "objective") {
+            Objective objective;
+            std::stringstream ss(value);
+            ss >> objective;
+            set_objective(objective);
+        } else if (name == "unloading_constraint") {
             rectangle::UnloadingConstraint unloading_constraint;
             std::stringstream ss(value);
             ss >> unloading_constraint;

@@ -93,7 +93,6 @@ int main(int argc, char *argv[])
     }
 
     InstanceBuilder instance_builder;
-    instance_builder.set_objective(vm["objective"].as<Objective>());
 
     std::string items_path = vm["items"].as<std::string>();
     if (!std::ifstream(items_path).good())
@@ -133,11 +132,16 @@ int main(int argc, char *argv[])
 
     std::string parameters_path = (vm.count("parameters"))?
         vm["parameters"].as<std::string>():
-        (std::ifstream(items_path + "_parameters.csv").good())?
-        items_path + "_parameters.csv":
+        (std::ifstream(vm["items"].as<std::string>() + "_parameters.csv").good())?
+        vm["items"].as<std::string>() + "_parameters.csv":
         "";
     if (!parameters_path.empty())
         instance_builder.read_parameters(parameters_path);
+
+    if (vm.count("objective"))
+        instance_builder.set_objective(vm["objective"].as<Objective>());
+    if (vm.count("unloading-constraint"))
+        instance_builder.set_unloading_constraint(vm["unloading-constraint"].as<rectangle::UnloadingConstraint>());
 
     Instance instance = instance_builder.build();
 

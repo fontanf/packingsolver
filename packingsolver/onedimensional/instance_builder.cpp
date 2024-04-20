@@ -265,12 +265,12 @@ void InstanceBuilder::read_parameters(std::string parameters_path)
             }
         }
 
-        //if (name == "unloading-constraint") {
-        //    rectangle::UnloadingConstraint unloading_constraint;
-        //    std::stringstream ss(value);
-        //    ss >> unloading_constraint;
-        //    set_unloading_constraint(unloading_constraint);
-        //}
+        if (name == "objective") {
+            Objective objective;
+            std::stringstream ss(value);
+            ss >> objective;
+            set_objective(objective);
+        }
     }
 }
 
