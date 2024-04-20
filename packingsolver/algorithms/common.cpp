@@ -21,7 +21,7 @@ std::istream& packingsolver::operator>>(
 }
 
 std::ostream& packingsolver::operator<<(
-        std::ostream &os,
+        std::ostream& os,
         OptimizationMode optimization_mode)
 {
     switch (optimization_mode) {
