@@ -174,7 +174,7 @@ public:
     inline const ItemType& item_type(ItemTypeId item_type_id) const { return item_types_[item_type_id]; }
 
     /** Get the number of items. */
-    inline ItemTypeId number_of_items() const { return number_of_items_; }
+    inline ItemPos number_of_items() const { return number_of_items_; }
 
     /** Get the total length of the items. */
     inline Area item_length() const { return item_length_; }
