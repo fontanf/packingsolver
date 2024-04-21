@@ -379,13 +379,13 @@ public:
     inline const ItemType& item_type(ItemTypeId item_type_id) const { return item_types_[item_type_id]; }
 
     /** Get the number of items. */
-    inline ItemTypeId number_of_items() const { return number_of_items_; }
+    inline ItemPos number_of_items() const { return number_of_items_; }
 
     /** Get the number rectangular of items. */
-    inline ItemTypeId number_of_rectangular_items() const { return number_of_rectangular_items_; }
+    inline ItemPos number_of_rectangular_items() const { return number_of_rectangular_items_; }
 
     /** Get the number circular of items. */
-    inline ItemTypeId number_of_circular_items() const { return number_of_circular_items_; }
+    inline ItemPos number_of_circular_items() const { return number_of_circular_items_; }
 
     /** Get the total area of the items. */
     inline AreaDbl item_area() const { return item_area_; }

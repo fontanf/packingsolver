@@ -432,7 +432,7 @@ public:
     inline const ItemType& item_type(ItemTypeId item_type_id) const { return item_types_[item_type_id]; }
 
     /** Get the number of items. */
-    inline ItemTypeId number_of_items() const { return number_of_items_; }
+    inline ItemPos number_of_items() const { return number_of_items_; }
 
     /** Get the number of stacks. */
     inline StackId number_of_stacks() const { return item_type_ids_.size(); }
