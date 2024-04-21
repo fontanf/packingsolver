@@ -212,6 +212,6 @@ Time:              1.00226
 
 Visualize:
 ```
-python3 packingsolver/scripts/visualize_rectangleguillotine.py ATP35_solution.csv
+python3 scripts/visualize_rectangleguillotine.py ATP35_solution.csv
 ```
 

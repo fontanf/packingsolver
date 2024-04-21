@@ -20,10 +20,10 @@ using Seed = int64_t;
 using Counter = int64_t;
 
 using ItemTypeId = int16_t;
-using ItemPos = int16_t;
+using ItemPos = int32_t;
 using GroupId = int16_t;
 using StackabilityId = int64_t;
-using StackId = int16_t;
+using StackId = int32_t;
 using Length = int64_t;
 using Area = int64_t;
 using Volume = int64_t;
