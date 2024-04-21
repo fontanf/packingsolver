@@ -17,10 +17,9 @@ args = parser.parse_args()
 ######################
 
 rectangleguillotine_main = os.path.join(
-        "bazel-bin",
-        "packingsolver",
-        "rectangleguillotine",
-        "main")
+        "install",
+        "bin",
+        "packingsolver_rectangleguillotine")
 
 if args.tests is None or "rectangleguillotine-single-knapsack-tree-search" in args.tests:
     print("rectangleguillotine, single knapsack, tree search")
@@ -489,10 +488,9 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-sequent
 #############
 
 rectangle_main = os.path.join(
-        "bazel-bin",
-        "packingsolver",
-        "rectangle",
-        "main")
+        "install",
+        "bin",
+        "packingsolver_rectangle")
 
 if args.tests is None or "rectangle-single-knapsack-tree-search" in args.tests:
     print("rectangle, single knapsack, tree search")
