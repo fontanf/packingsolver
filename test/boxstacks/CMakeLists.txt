@@ -6,4 +6,5 @@ target_link_libraries(PackingSolver_boxstacks_test
     PackingSolver_algorithms
     Boost::filesystem
     GTest::gtest_main)
-gtest_discover_tests(PackingSolver_boxstacks_test)
+gtest_discover_tests(PackingSolver_boxstacks_test
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
