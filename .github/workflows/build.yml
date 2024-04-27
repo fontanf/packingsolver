@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-13]
         python-version: ["3.8"]
 
     steps:
@@ -26,7 +26,7 @@ jobs:
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release --parallel
         cmake --install build --config Release --prefix install
-      if: matrix.os != 'macos-latest'
+      if: matrix.os != 'macos-13'
     - name: Build (MacOS)
       run: |
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPackingSolver_BUILD_TEST=OFF
@@ -40,7 +40,7 @@ jobs:
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPackingSolver_BUILD_TEST=ON
         cmake --build build --config Release --parallel
         cmake --install build --config Release --prefix install
-      if: matrix.os == 'macos-latest'
+      if: matrix.os == 'macos-13'
     - name: Run unit tests
       working-directory: build/test
       run: ctest --parallel
@@ -56,7 +56,7 @@ jobs:
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release --parallel
         cmake --install build --config Release --prefix install
-      if: matrix.os != 'macos-latest'
+      if: matrix.os != 'macos-13'
     - name: Build (MacOS)
       run: |
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPackingSolver_BUILD_TEST=OFF
@@ -70,7 +70,7 @@ jobs:
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPackingSolver_BUILD_TEST=ON
         cmake --build build --config Release --parallel
         cmake --install build --config Release --prefix install
-      if: matrix.os == 'macos-latest'
+      if: matrix.os == 'macos-13'
     - name: Run tests
       run: python3 -u scripts/run_tests.py test_results_ref
     - name: Process tests
