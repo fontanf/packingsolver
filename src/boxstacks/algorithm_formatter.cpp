@@ -1,6 +1,7 @@
 #include "packingsolver/boxstacks/algorithm_formatter.hpp"
 
 #include <iomanip>
+#include <sstream>
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
