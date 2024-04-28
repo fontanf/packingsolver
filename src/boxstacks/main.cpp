@@ -78,6 +78,8 @@ int main(int argc, char *argv[])
         ("only-write-at-the-end,e", "Only write output and certificate files at the end")
         ("verbosity-level,v", po::value<int>(), "Verbosity level")
         ("log2stderr,w", "Write log in stderr")
+
+        ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -153,6 +155,9 @@ int main(int argc, char *argv[])
 
     OptimizeParameters parameters;
     read_args(parameters, vm);
+    if (vm.count("optimization-mode"))
+        parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
+
     const boxstacks::Output output = optimize(instance, parameters);
 
     if (vm.count("certificate"))

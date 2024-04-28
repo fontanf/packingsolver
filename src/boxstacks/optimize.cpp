@@ -142,8 +142,12 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
                     ibs_parameters.verbosity_level = 0;
                     ibs_parameters.timer = parameters.timer;
-                    ibs_parameters.minimum_size_of_the_queue = parameters.tree_search_queue_size;
-                    ibs_parameters.maximum_size_of_the_queue = parameters.tree_search_queue_size;
+                    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+                        ibs_parameters.minimum_size_of_the_queue
+                            = parameters.not_anytime_tree_search_queue_size;
+                        ibs_parameters.maximum_size_of_the_queue
+                            = parameters.not_anytime_tree_search_queue_size;
+                    }
                     //ibs_parameters.info.set_verbosity_level(1);
                     ibs_parameterss.push_back(ibs_parameters);
                 }
@@ -211,8 +215,9 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     OptimizationMode::NotAnytimeSequential:
                     OptimizationMode::NotAnytime;
                 kp_parameters.linear_programming_solver = parameters.linear_programming_solver;
-                kp_parameters.tree_search_queue_size = parameters.sequential_value_correction_queue_size;
-                kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;
+                kp_parameters.not_anytime_tree_search_queue_size
+                    = parameters.sequential_value_correction_subproblem_queue_size;
+                //kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;
                 auto kp_output = optimize(kp_instance, kp_parameters);
 
                 // Update output.
@@ -228,7 +233,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                 output.number_of_tree_search_better += kp_output.number_of_tree_search_better;
                 return kp_output.solution_pool;
             };
-        SequentialValueCorrectionParameters<Instance, Solution> svc_parameters = parameters.sequential_value_correction_parameters;
+        SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
         svc_parameters.new_solution_callback = [&algorithm_formatter](

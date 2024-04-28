@@ -33,6 +33,7 @@ BinPos Solution::add_bin(
 
     bin_copies_[bin_type_id] += copies;
     bin_volume_ += copies * bin_type.volume();
+    bin_area_ += copies * bin_type.area();
     bin_weight_ += copies * bin_type.maximum_weight;
     bin_cost_ += copies * bin_type.cost;
     number_of_bins_ += copies;
@@ -49,6 +50,12 @@ StackId Solution::add_stack(
         Length y_start,
         Length y_end)
 {
+    if (bin_pos >= number_of_bins()) {
+        throw std::runtime_error(
+                "boxstacks::Solution::add_item");
+    }
+    SolutionBin& bin = bins_[bin_pos];
+
     SolutionStack stack;
     stack.x_start = x_start;
     stack.x_end = x_end;
@@ -56,18 +63,22 @@ StackId Solution::add_stack(
     stack.y_end = y_end;
     stack.weight = std::vector<Weight>(instance().number_of_groups(), 0.0);
     stack.weight_weighted_sum = std::vector<Weight>(instance().number_of_groups(), 0.0);
-    bins_[bin_pos].stacks.push_back(stack);
+    bin.stacks.push_back(stack);
     if (bin_pos == (BinPos)bins_.size() - 1) {
         if (x_max_ < x_end)
             x_max_ = x_end;
         if (y_max_ < y_end)
             y_max_ = y_end;
-        Length xi = instance().bin_type(bins_[bin_pos].bin_type_id).box.x;
-        Length yi = instance().bin_type(bins_[bin_pos].bin_type_id).box.y;
-        Length zi = instance().bin_type(bins_[bin_pos].bin_type_id).box.z;
+        Length xi = instance().bin_type(bin.bin_type_id).box.x;
+        Length yi = instance().bin_type(bin.bin_type_id).box.y;
+        Length zi = instance().bin_type(bin.bin_type_id).box.z;
         volume_ = bin_volume_ - zi * std::max((xi - x_max_) * yi, (yi - y_max_ * xi));
     }
-    return bins_[bin_pos].stacks.size() - 1;
+
+    number_of_stacks_ += bin.copies;
+    stack_area_ += bin.copies * (x_end - x_start) * (y_end - y_start);
+
+    return bin.stacks.size() - 1;
 }
 
 void Solution::add_item(
@@ -467,11 +478,15 @@ nlohmann::json Solution::to_json() const
 {
     return nlohmann::json {
         {"NumberOfItems", number_of_items()},
+        {"NumberOfUnpackedItems", instance().number_of_items() - number_of_items()},
         {"ItemVolume", item_volume()},
         {"ItemWeight", item_weight()},
         {"ItemProfit", profit()},
+        {"NumberOfStacks", number_of_stacks()},
+        {"StackArea", stack_area()},
         {"NumberOfBins", number_of_bins()},
         {"BinVolume", bin_volume()},
+        {"BinArea", bin_area()},
         {"BinWeight", bin_weight()},
         {"BinCost", cost()},
         {"Waste", waste()},
@@ -479,6 +494,7 @@ nlohmann::json Solution::to_json() const
         {"FullWaste", full_waste()},
         {"FullWastePercentage", full_waste_percentage()},
         {"VolumeLoad", volume_load()},
+        {"AreaLoad", area_load()},
         {"WeightLoad", weight_load()},
         {"XMax", x_max()},
         {"YMax", y_max()},
@@ -491,22 +507,26 @@ void Solution::format(
 {
     if (verbosity_level >= 1) {
         os
-            << "Number of items:  " << optimizationtools::Ratio<ItemPos>(number_of_items(), instance().number_of_items()) << std::endl
-            << "Item volume:      " << optimizationtools::Ratio<Profit>(item_volume(), instance().item_volume()) << std::endl
-            << "Item weight:      " << optimizationtools::Ratio<Profit>(item_weight(), instance().item_weight()) << std::endl
-            << "Item profit:      " << optimizationtools::Ratio<Profit>(profit(), instance().item_profit()) << std::endl
-            << "Number of bins:   " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
-            << "Bin volume:       " << optimizationtools::Ratio<BinPos>(bin_volume(), instance().bin_volume()) << std::endl
-            << "Bin weight:       " << optimizationtools::Ratio<BinPos>(bin_weight(), instance().bin_weight()) << std::endl
-            << "Bin cost:         " << cost() << std::endl
-            << "Waste:            " << waste() << std::endl
-            << "Waste (%):        " << 100 * waste_percentage() << std::endl
-            << "Full waste:       " << full_waste() << std::endl
-            << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl
-            << "Volume load:      " << volume_load() << std::endl
-            << "Weight load:      " << weight_load() << std::endl
-            << "X max:            " << x_max() << std::endl
-            << "Y max:            " << y_max() << std::endl
+            << "Number of items:   " << optimizationtools::Ratio<ItemPos>(number_of_items(), instance().number_of_items()) << std::endl
+            << "Item volume:       " << optimizationtools::Ratio<Profit>(item_volume(), instance().item_volume()) << std::endl
+            << "Item weight:       " << optimizationtools::Ratio<Profit>(item_weight(), instance().item_weight()) << std::endl
+            << "Item profit:       " << optimizationtools::Ratio<Profit>(profit(), instance().item_profit()) << std::endl
+            << "Number of stacks:  " << number_of_stacks() << std::endl
+            << "Stack area:        " << stack_area() << std::endl
+            << "Number of bins:    " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
+            << "Bin volume:        " << optimizationtools::Ratio<BinPos>(bin_volume(), instance().bin_volume()) << std::endl
+            << "Bin area:          " << optimizationtools::Ratio<BinPos>(bin_area(), instance().bin_area()) << std::endl
+            << "Bin weight:        " << optimizationtools::Ratio<BinPos>(bin_weight(), instance().bin_weight()) << std::endl
+            << "Bin cost:          " << cost() << std::endl
+            << "Waste:             " << waste() << std::endl
+            << "Waste (%):         " << 100 * waste_percentage() << std::endl
+            << "Full waste:        " << full_waste() << std::endl
+            << "Full waste (%):    " << 100 * full_waste_percentage() << std::endl
+            << "Volume load:       " << volume_load() << std::endl
+            << "Area load:         " << area_load() << std::endl
+            << "Weight load:       " << weight_load() << std::endl
+            << "X max:             " << x_max() << std::endl
+            << "Y max:             " << y_max() << std::endl
             ;
     }
 }

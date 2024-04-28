@@ -87,7 +87,11 @@ BranchingScheme::BranchingScheme(
     }
     knapsacksolver::multiple_choice_subset_sum::Instance mcss_instance = mcss_instance_builder.build();
     //mcss_instance.print(std::cout, 2);
-    auto mscc_output = knapsacksolver::multiple_choice_subset_sum::dynamic_programming_bellman_array(mcss_instance);
+    knapsacksolver::multiple_choice_subset_sum::Parameters mcss_parameters;
+    mcss_parameters.verbosity_level = 0;
+    auto mscc_output = knapsacksolver::multiple_choice_subset_sum::dynamic_programming_bellman_array(
+            mcss_instance,
+            mcss_parameters);
     //auto mscc_output = multiple_choice_subset_sumsolver::dynamic_programming_bellman_word_ram(mcss_instance);
     Length xi = mscc_output.bound;
 

@@ -711,6 +711,7 @@ Instance InstanceBuilder::build()
 
     // Compute bin type attributes.
     instance_.bin_volume_ = 0;
+    instance_.bin_area_ = 0;
     instance_.bin_weight_ = 0;
     Volume previous_bins_volume = 0;
     for (BinTypeId bin_type_id = 0;
@@ -719,6 +720,8 @@ Instance InstanceBuilder::build()
         const BinType& bin_type = instance_.bin_type(bin_type_id);
         // Update bins_volume_.
         instance_.bin_volume_ += bin_type.copies * bin_type.volume();
+        // Update bins_area_.
+        instance_.bin_area_ += bin_type.copies * bin_type.area();
         // Update bin_weight_..
         instance_.bin_weight_ += bin_type.copies * bin_type.maximum_weight;
         // Update previous_bins_volume_ and bin_type_ids_.
