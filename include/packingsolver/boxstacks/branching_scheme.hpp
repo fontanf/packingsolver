@@ -341,35 +341,30 @@ public:
     {
         if (node_1->last_bin_middle_axle_weight > node_2->last_bin_middle_axle_weight)
             return false;
-
-        ItemPos pos_1 = 0;
-        ItemPos pos_2 = 0;
-        ItemPos size_1 = node_1->uncovered_items.size();
-        ItemPos size_2 = node_2->uncovered_items.size();
-        for (;;) {
-            //std::cout << "pos_1 " << pos_1 << " / " << node_1->uncovered_items.size() << std::endl;
-            //std::cout << "pos_2 " << pos_2 << " / " << node_2->uncovered_items.size() << std::endl;
-            if (node_1->uncovered_items[pos_1].xe
-                    > node_2->uncovered_items[pos_2].xe)
+        if (node_1->uncovered_items.size() != node_2->uncovered_items.size())
+            return false;
+        for (ItemPos pos = 0; pos < (ItemPos)node_1->uncovered_items.size(); ++pos) {
+            UncoveredItem& uncovered_item_1 = node_1->uncovered_items[pos];
+            UncoveredItem& uncovered_item_2 = node_2->uncovered_items[pos];
+            if (uncovered_item_1.xs != uncovered_item_2.xs
+                    || uncovered_item_1.ys != uncovered_item_2.ys
+                    || uncovered_item_1.xe != uncovered_item_2.xe
+                    || uncovered_item_1.ye != uncovered_item_2.ye) {
                 return false;
-            if (node_1->uncovered_items[pos_1].ze
-                    > node_2->uncovered_items[pos_2].ze)
+            }
+            if (uncovered_item_1.ze > uncovered_item_2.ze)
                 return false;
-            if (pos_1 == size_1 - 1 && pos_2 == size_2 - 1)
-                return true;
-            if (node_1->uncovered_items[pos_1].ye
-                    == node_2->uncovered_items[pos_2].ye) {
-                pos_1++;
-                pos_2++;
-                assert(pos_1 < size_1);
-                assert(pos_2 < size_2);
-            } else if (node_1->uncovered_items[pos_1].ye
-                    > node_2->uncovered_items[pos_2].ye) {
-                pos_2++;
-                assert(pos_2 < size_2);
-            } else {
-                pos_1++;
-                assert(pos_1 < size_1);
+            if (uncovered_item_1.remaiing_weight < instance().item_weight()
+                    && uncovered_item_1.remaiing_weight < uncovered_item_2.remaiing_weight)
+                return false;
+            if (uncovered_item_1.maximum_number_of_items < instance().number_of_items()
+                    && uncovered_item_1.maximum_number_of_items < uncovered_item_2.maximum_number_of_items)
+                return false;
+            if (!uncovered_item_1.item_type_ids.empty()
+                    && !uncovered_item_2.item_type_ids.empty()
+                    && instance().item_type(uncovered_item_1.item_type_ids.back()).stackability_id
+                    != instance().item_type(uncovered_item_2.item_type_ids.back()).stackability_id) {
+                return false;
             }
         }
         return true;
@@ -397,7 +392,7 @@ private:
     /** Parameters. */
     Parameters parameters_;
 
-    std::vector<ItemTypeId> predecessors_;
+    std::vector<std::vector<ItemTypeId>> predecessors_;
 
     ItemPos number_of_selected_items_ = 0;
 
@@ -469,6 +464,14 @@ private:
             int8_t new_bin,
             ItemPos uncovered_item_pos,
             DefectId defect_id) const;
+
+    /** Insertion of one item in a new stack. */
+    void insertion_item_left(
+            const std::shared_ptr<Node>& father,
+            std::vector<Insertion>& insertions,
+            ItemTypeId item_type_id,
+            int rotation,
+            ItemPos uncovered_item_pos) const;
 
 };
 

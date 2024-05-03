@@ -418,6 +418,9 @@ void InstanceBuilder::read_parameters(
             std::stringstream ss(value);
             ss >> unloading_constraint;
             set_unloading_constraint(unloading_constraint);
+        } if (name == "no-check-weight-constraints") {
+            GroupId group_id = (GroupId)std::stol(value);
+            set_group_weight_constraints(group_id, false);
         }
     }
 }
