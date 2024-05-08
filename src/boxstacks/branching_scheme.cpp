@@ -1205,10 +1205,22 @@ void BranchingScheme::insertion_item_left(
     Length zi = instance().z(bin_type);
     Length ys = father->uncovered_items[uncovered_item_pos].ye;
     Length xs = father->uncovered_items[uncovered_item_pos].xe;
+    Length xe = xs + xj;
     Length ye = ys + yj;
+
     // Check bin y.
     if (ye > yi) {
         //std::cout << "y" << std::endl;
+        return;
+    }
+    // Check bin x.
+    if (xe > xi) {
+        //std::cout << "length" << std::endl;
+        return;
+    }
+    // Check bin z.
+    if (zj > zi) {
+        //std::cout << "height" << std::endl;
         return;
     }
     // Check maximum weight.
@@ -1217,20 +1229,20 @@ void BranchingScheme::insertion_item_left(
         //std::cout << "maximum_weight" << std::endl;
         return;
     }
+
     // Check maximum stack density.
     double stack_density = (double)(item_type.weight) / xj / yj;
     if (stack_density > bin_type.maximum_stack_density * PSTOL) {
         //std::cout << "maximum_stack_density" << std::endl;
         return;
     }
-    // Check intersection with other items.
+
+    // Check intersection with other packed items.
     for (const UncoveredItem& uncovered_item: father->uncovered_items) {
         if (uncovered_item.ye <= ys || uncovered_item.ys >= ye)
             continue;
-        if (xs < uncovered_item.xe) {
-            //std::cout << "intersection " << uncovered_item << std::endl;
+        if (xs < uncovered_item.xe)
             return;
-        }
     }
 
     // Check unloading constraints.
@@ -1259,8 +1271,7 @@ void BranchingScheme::insertion_item_left(
     }
     }
 
-    // Defects
-    // While the item intersects a defect, move it to the right.
+    // Check intersection with defects.
     for (const rectangle::Defect& defect: bin_type.defects) {
         if (instance().x_start(defect, o) >= xs + xj)
             continue;
@@ -1271,19 +1282,6 @@ void BranchingScheme::insertion_item_left(
         if (ys >= instance().y_end(defect, o))
             continue;
         //std::cout << "defect " << defect << std::endl;
-        return;
-    }
-
-    Length xe = xs + xj;
-    // Check bin x.
-    if (xe > xi) {
-        //std::cout << "length" << std::endl;
-        return;
-    }
-
-    // Check bin z.
-    if (zj > zi) {
-        //std::cout << "height" << std::endl;
         return;
     }
 

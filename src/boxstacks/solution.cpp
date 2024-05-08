@@ -281,7 +281,31 @@ Weight Solution::compute_weight_constraints_violation() const
     Weight violation = 0.0;
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& bin = bins_[bin_pos];
-        violation += compute_weight_constraints_violation(
+        violation += compute_middle_axle_weight_constraints_violation(
+                bin.bin_type_id, bin.weight, bin.weight_weighted_sum);
+        violation += compute_rear_axle_weight_constraints_violation(
+                bin.bin_type_id, bin.weight, bin.weight_weighted_sum);
+    }
+    return violation;
+}
+
+Weight Solution::compute_middle_axle_weight_constraints_violation() const
+{
+    Weight violation = 0.0;
+    for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
+        const SolutionBin& bin = bins_[bin_pos];
+        violation += compute_middle_axle_weight_constraints_violation(
+                bin.bin_type_id, bin.weight, bin.weight_weighted_sum);
+    }
+    return violation;
+}
+
+Weight Solution::compute_rear_axle_weight_constraints_violation() const
+{
+    Weight violation = 0.0;
+    for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
+        const SolutionBin& bin = bins_[bin_pos];
+        violation += compute_rear_axle_weight_constraints_violation(
                 bin.bin_type_id, bin.weight, bin.weight_weighted_sum);
     }
     return violation;
@@ -366,18 +390,13 @@ bool Solution::operator<(const Solution& solution) const
     }
 }
 
-Weight Solution::compute_weight_constraints_violation(
+Weight Solution::compute_middle_axle_weight_constraints_violation(
         BinTypeId bin_type_id,
         const std::vector<Weight>& bin_weight,
         const std::vector<Weight>& bin_weight_weighted_sum) const
 {
     const BinType& bin_type = instance().bin_type(bin_type_id);
     Weight violation = 0.0;
-
-    // Maximum weight constraint.
-    Weight w = (bin_weight.size() == 0)? 0: bin_weight.front();
-    if (w > bin_type.maximum_weight * PSTOL)
-        violation += (w - bin_type.maximum_weight);
 
     // Axle weight constraints.
     for (GroupId group_id = 0; group_id < instance().number_of_groups(); ++group_id) {
@@ -387,6 +406,25 @@ Weight Solution::compute_weight_constraints_violation(
                 bin_weight_weighted_sum[group_id], bin_weight[group_id]);
         if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL)
             violation += (group_id + 1) * (axle_weights.first - bin_type.semi_trailer_truck_data.middle_axle_maximum_weight);
+    }
+
+    return violation;
+}
+
+Weight Solution::compute_rear_axle_weight_constraints_violation(
+        BinTypeId bin_type_id,
+        const std::vector<Weight>& bin_weight,
+        const std::vector<Weight>& bin_weight_weighted_sum) const
+{
+    const BinType& bin_type = instance().bin_type(bin_type_id);
+    Weight violation = 0.0;
+
+    // Axle weight constraints.
+    for (GroupId group_id = 0; group_id < instance().number_of_groups(); ++group_id) {
+        if (!instance().check_weight_constraints(group_id))
+            continue;
+        std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
+                bin_weight_weighted_sum[group_id], bin_weight[group_id]);
         if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL)
             violation += (group_id + 1) * (axle_weights.second - bin_type.semi_trailer_truck_data.rear_axle_maximum_weight);
     }

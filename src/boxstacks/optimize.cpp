@@ -29,6 +29,16 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         sor_parameters.timer = parameters.timer;
         sor_parameters.onedimensional_parameters.linear_programming_solver = parameters.linear_programming_solver;
         //sor_parameters.info.set_verbosity_level(2);
+        sor_parameters.new_solution_callback = [
+            &algorithm_formatter](
+                    const packingsolver::Output<Instance, Solution>& ps_output)
+            {
+                const SequentialOneDimensionalRectangleOutput& sor_output
+                    = static_cast<const SequentialOneDimensionalRectangleOutput&>(ps_output);
+                std::stringstream ss;
+                ss << "SOR it " << sor_output.number_of_iterations;
+                algorithm_formatter.update_solution(sor_output.solution_pool.best(), ss.str());
+            };
 
         auto sor_output = sequential_onedimensional_rectangle(instance, sor_parameters);
 

@@ -255,6 +255,20 @@ public:
             const std::vector<Weight>& weight,
             const std::vector<Weight>& weight_weighted_sum) const;
 
+    Weight compute_middle_axle_weight_constraints_violation() const;
+
+    Weight compute_middle_axle_weight_constraints_violation(
+            BinTypeId bin_type_id,
+            const std::vector<Weight>& weight,
+            const std::vector<Weight>& weight_weighted_sum) const;
+
+    Weight compute_rear_axle_weight_constraints_violation() const;
+
+    Weight compute_rear_axle_weight_constraints_violation(
+            BinTypeId bin_type_id,
+            const std::vector<Weight>& weight,
+            const std::vector<Weight>& weight_weighted_sum) const;
+
     /**
      * Return 'true' iff the input stack is feasible.
      *

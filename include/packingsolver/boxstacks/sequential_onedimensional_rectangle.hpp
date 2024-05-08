@@ -30,6 +30,9 @@ struct SequentialOneDimensionalRectangleOutput: packingsolver::Output<Instance, 
         packingsolver::Output<Instance, Solution>(instance) { }
 
 
+    /** Number of iterations. */
+    Counter number_of_iterations = 0;
+
     /**
      * Number of items in the solution found by the algorithm, before the
      * repair step.

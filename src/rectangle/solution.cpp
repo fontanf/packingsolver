@@ -206,8 +206,11 @@ bool Solution::operator<(const Solution& solution) const
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         if (solution.profit() != profit())
             return solution.profit() > profit();
-        return solution.middle_axle_overweight() + solution.rear_axle_overweight()
-            < middle_axle_overweight() + rear_axle_overweight();
+        if (solution.middle_axle_overweight() + solution.rear_axle_overweight()
+                != middle_axle_overweight() + rear_axle_overweight())
+            return solution.middle_axle_overweight() + solution.rear_axle_overweight()
+                < middle_axle_overweight() + rear_axle_overweight();
+        return solution.x_max() < x_max();
     } default: {
         std::stringstream ss;
         ss << "Solution rectangle::Solution does not support objective \""
