@@ -471,7 +471,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                             uncovered_item_pos,
                             -1);  // defect_id
 
-                    if (parameters().fixed_items->number_of_items() > 0) {
+                    if (parameters().fixed_items != nullptr) {
                         BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
                         const BinType& bin_type = instance().bin_type(bin_type_id);
                         Direction o = father->last_bin_direction;
@@ -530,7 +530,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                             uncovered_item_pos,
                             -1);  // defect_id
 
-                    if (parameters().fixed_items->number_of_items() > 0) {
+                    if (parameters().fixed_items != nullptr) {
                         BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
                         const BinType& bin_type = instance().bin_type(bin_type_id);
                         Direction o = father->last_bin_direction;
@@ -790,7 +790,8 @@ void BranchingScheme::insertion_item(
 
     // If there are fixed items, we forbid adding an item before the end of the
     // fixed items.
-    if (xs < parameters().fixed_items->x_max())
+    if (parameters().fixed_items != nullptr
+            && xs < parameters().fixed_items->x_max())
         return;
 
     Insertion insertion;
