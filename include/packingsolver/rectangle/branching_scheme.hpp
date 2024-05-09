@@ -37,6 +37,9 @@ public:
         /** End x-coordinate. */
         Length xe;
 
+        /** End x-coordinate used in dominance check. */
+        Length xe_dominance;
+
         /** Start y-coordinate. */
         Length ys;
 
@@ -352,12 +355,19 @@ public:
             const std::shared_ptr<Node>& node_1,
             const std::shared_ptr<Node>& node_2) const
     {
-        if (instance().objective() == Objective::SequentialOneDimensionalRectangleSubproblem
-                && parameters().guide_id == 8) {
-            if (striclty_greater(
-                        node_1->groups.front().last_bin_middle_axle_weight,
-                        node_2->groups.front().last_bin_middle_axle_weight)) {
-                return false;
+        if (instance().objective() == Objective::SequentialOneDimensionalRectangleSubproblem) {
+            if (parameters().guide_id == 8) {
+                if (striclty_greater(
+                            node_1->groups.front().last_bin_middle_axle_weight,
+                            node_2->groups.front().last_bin_middle_axle_weight)) {
+                    return false;
+                }
+            } else if (parameters().guide_id == 9) {
+                if (striclty_greater(
+                            node_1->groups.front().last_bin_rear_axle_weight,
+                            node_2->groups.front().last_bin_rear_axle_weight)) {
+                    return false;
+                }
             }
         }
 
@@ -366,7 +376,7 @@ public:
         ItemPos pos_1 = node_1->uncovered_items.size() - 1;
         ItemPos pos_2 = node_2->uncovered_items.size() - 1;
         Length x1 = node_1->uncovered_items[pos_1].xe;
-        Length x2 = node_2->uncovered_items[pos_2].xe;
+        Length x2 = node_2->uncovered_items[pos_2].xe_dominance;
         for (;;) {
             if (x1 > x2)
                 return false;
@@ -380,15 +390,23 @@ public:
                     == node_2->uncovered_items[pos_2].ys) {
                 pos_1--;
                 pos_2--;
-                x1 = (parameters_.staircase)? std::max(x1, node_1->uncovered_items[pos_1].xe): node_1->uncovered_items[pos_1].xe;
-                x2 = (parameters_.staircase)? std::max(x2, node_2->uncovered_items[pos_2].xe): node_2->uncovered_items[pos_2].xe;
+                x1 = (parameters_.staircase)?
+                    std::max(x1, node_1->uncovered_items[pos_1].xe_dominance):
+                    node_1->uncovered_items[pos_1].xe_dominance;
+                x2 = (parameters_.staircase)?
+                    std::max(x2, node_2->uncovered_items[pos_2].xe_dominance):
+                    node_2->uncovered_items[pos_2].xe_dominance;
             } else if (node_1->uncovered_items[pos_1].ys
                     < node_2->uncovered_items[pos_2].ys) {
                 pos_2--;
-                x2 = (parameters_.staircase)? std::max(x2, node_2->uncovered_items[pos_2].xe): node_2->uncovered_items[pos_2].xe;
+                x2 = (parameters_.staircase)?
+                    std::max(x2, node_2->uncovered_items[pos_2].xe_dominance):
+                    node_2->uncovered_items[pos_2].xe_dominance;
             } else {
                 pos_1--;
-                x1 = (parameters_.staircase)? std::max(x1, node_1->uncovered_items[pos_1].xe): node_1->uncovered_items[pos_1].xe;
+                x1 = (parameters_.staircase)?
+                    std::max(x1, node_1->uncovered_items[pos_1].xe_dominance):
+                    node_1->uncovered_items[pos_1].xe_dominance;
             }
         }
 

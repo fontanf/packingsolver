@@ -180,21 +180,25 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     Length yi = instance().y(bin_type, o);
 
     // Update uncovered_items.
+    ItemPos new_uncovered_item_pos = -1;
     if (insertion.new_bin > 0) {  // New bin.
         if (ys > 0) {
             UncoveredItem uncovered_item;
             uncovered_item.item_type_id = -1;
             uncovered_item.xs = 0;
             uncovered_item.xe = 0;
+            uncovered_item.xe_dominance = 0;
             uncovered_item.ys = 0;
             uncovered_item.ye = ys;
             node.uncovered_items.push_back(uncovered_item);
         }
         {
+            new_uncovered_item_pos = node.uncovered_items.size();
             UncoveredItem uncovered_item;
             uncovered_item.item_type_id = insertion.item_type_id;
             uncovered_item.xs = xs;
             uncovered_item.xe = xe;
+            uncovered_item.xe_dominance = xe;
             uncovered_item.ys = ys;
             uncovered_item.ye = ye;
             node.uncovered_items.push_back(uncovered_item);
@@ -204,6 +208,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
             uncovered_item.item_type_id = -1;
             uncovered_item.xs = 0;
             uncovered_item.xe = 0;
+            uncovered_item.xe_dominance = 0;
             uncovered_item.ys = ye;
             uncovered_item.ye = yi;
             node.uncovered_items.push_back(uncovered_item);
@@ -220,10 +225,12 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
                     node.uncovered_items.push_back(new_uncovered_item);
                 }
 
+                new_uncovered_item_pos = node.uncovered_items.size();
                 UncoveredItem new_uncovered_item_2;
                 new_uncovered_item_2.item_type_id = insertion.item_type_id;
                 new_uncovered_item_2.xs = xs;
                 new_uncovered_item_2.xe = xe;
+                new_uncovered_item_2.xe_dominance = xe;
                 new_uncovered_item_2.ys = ys;
                 new_uncovered_item_2.ye = ye;
                 node.uncovered_items.push_back(new_uncovered_item_2);
@@ -245,6 +252,31 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
             }
         }
     }
+
+    // Update uncovered_item.xe_dominance.
+    if (yi - node.uncovered_items[new_uncovered_item_pos].ye
+            < instance().smallest_item_height()) {
+        for (ItemPos uncovered_item_pos = new_uncovered_item_pos + 1;
+                uncovered_item_pos < node.uncovered_items.size();
+                ++uncovered_item_pos) {
+            node.uncovered_items[uncovered_item_pos].xe_dominance
+                = (std::max)(
+                        node.uncovered_items[uncovered_item_pos].xe_dominance,
+                        node.uncovered_items[new_uncovered_item_pos].xe_dominance);
+        }
+    }
+    if (node.uncovered_items[new_uncovered_item_pos].ys
+            < instance().smallest_item_height()) {
+        for (ItemPos uncovered_item_pos = new_uncovered_item_pos - 1;
+                uncovered_item_pos >= 0;
+                --uncovered_item_pos) {
+            node.uncovered_items[uncovered_item_pos].xe_dominance
+                = (std::max)(
+                        node.uncovered_items[uncovered_item_pos].xe_dominance,
+                        node.uncovered_items[new_uncovered_item_pos].xe_dominance);
+        }
+    }
+
 
     // Compute item_number_of_copies, number_of_items, items_area,
     // squared_item_area and profit.

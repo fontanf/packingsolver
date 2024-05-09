@@ -341,6 +341,12 @@ public:
     /** Get the total height of the items. */
     inline Length total_item_height() const { return total_item_height_; }
 
+    /** Get the smallest width of the items. */
+    inline Length smallest_item_width() const { return smallest_item_width_; }
+
+    /** Get the smallest height of the items. */
+    inline Length smallest_item_height() const { return smallest_item_height_; }
+
     /** Get the mean area of the items. */
     inline Area mean_area() const { return item_area_ / number_of_items(); }
 
@@ -448,6 +454,12 @@ private:
 
     /** Total item height. */
     Length total_item_height_ = 0;
+
+    /** Smallest item height. */
+    Length smallest_item_height_ = 0;
+
+    /** Smallest item width. */
+    Length smallest_item_width_ = 0;
 
     /** Total weight of the items. */
     Weight item_weight_ = 0.0;
