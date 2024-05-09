@@ -43,8 +43,8 @@ TEST(RectangleBranchingScheme, Insertion1)
     auto child = branching_scheme.child(root, {0, false, 1, 0, 0});
 
     std::vector<BranchingScheme::UncoveredItem> uncovered_items {
-        {0, 0, 1000, 0, 500},
-        {-1, 0, 0, 500, 3210}
+        {0, 0, 1000, 1000, 0, 500},
+        {-1, 0, 0, 0, 500, 3210}
     };
     EXPECT_EQ(child->uncovered_items, uncovered_items);
 }
@@ -92,8 +92,8 @@ TEST(RectangleBranchingScheme, Insertion2)
     auto child_1 = branching_scheme.child(root, {0, false, 1, 0, 0});
 
     std::vector<BranchingScheme::UncoveredItem> uncovered_items_child_1 {
-        {0, 0, 1000, 0, 500},
-        {-1, 0, 0, 500, 3210}
+        {0, 0, 1000, 1000, 0, 500},
+        {-1, 0, 0, 0, 500, 3210}
     };
     EXPECT_EQ(child_1->uncovered_items, uncovered_items_child_1);
 
@@ -114,8 +114,8 @@ TEST(RectangleBranchingScheme, Insertion2)
     //EXPECT_EQ(child_2->waste, 1000 * 500);
 
     std::vector<BranchingScheme::UncoveredItem> uncovered_items_child_2 {
-        {2, 1000, 1250, 0, 1000},
-        {-1, 0, 0, 1000, 3210}
+        {2, 1000, 1250, 1250, 0, 1000},
+        {-1, 0, 0, 0, 1000, 3210}
     };
     EXPECT_EQ(child_2->uncovered_items, uncovered_items_child_2);
 
@@ -133,9 +133,9 @@ TEST(RectangleBranchingScheme, Insertion2)
     //EXPECT_EQ(child_3->waste, 1000 * 500);
 
     std::vector<BranchingScheme::UncoveredItem> uncovered_items_child_3 {
-        {2, 1000, 1250, 0, 1000},
-        {1, 0, 1250, 1000, 2210},
-        {-1, 0, 0, 2210, 3210}
+        {2, 1000, 1250, 1250, 0, 1000},
+        {1, 0, 1250, 1000, 1000, 2210},
+        {-1, 0, 0, 0, 2210, 3210}
     };
     EXPECT_EQ(child_3->uncovered_items, uncovered_items_child_3);
 
@@ -143,4 +143,3 @@ TEST(RectangleBranchingScheme, Insertion2)
     };
     EXPECT_EQ(branching_scheme.insertions(child_3), is_child_3);
 }
-
