@@ -623,7 +623,9 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
         Length x_max = xi;
         bool failed_middle_axle_weight_constraint = false;
         bool failed_rear_axle_weight_constraint = false;
-        for (Counter number_of_stack_to_split = 0; number_of_stack_to_split < 5; ++number_of_stack_to_split) {
+        for (Counter number_of_stack_to_split = 0;
+                number_of_stack_to_split < 7;
+                ++number_of_stack_to_split) {
             std::cout << "number of splitted stacks " << number_of_stack_to_split << std::endl;
 
             Area stack_area = 0;
