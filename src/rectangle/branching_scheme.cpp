@@ -1124,7 +1124,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 {
     os << "item_type_id " << uncovered_item.item_type_id
         << " xs " << uncovered_item.xs
-        << " xe " << uncovered_item.xe
+        << " xe " << uncovered_item.xe << " " << uncovered_item.xe_dominance
         << " ys " << uncovered_item.ys
         << " ye " << uncovered_item.ye
         ;

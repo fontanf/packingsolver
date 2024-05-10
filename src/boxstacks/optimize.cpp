@@ -19,6 +19,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();
+    auto logger = parameters.get_logger();
 
     if (instance.number_of_bins() == 1) {
 
@@ -27,6 +28,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         SequentialOneDimensionalRectangleParameters sor_parameters = parameters.sequential_onedimensional_rectangle_parameters;
         sor_parameters.verbosity_level = 0;
         sor_parameters.timer = parameters.timer;
+        sor_parameters.logger = logger;
         sor_parameters.onedimensional_parameters.linear_programming_solver = parameters.linear_programming_solver;
         //sor_parameters.info.set_verbosity_level(2);
         sor_parameters.new_solution_callback = [

@@ -17,6 +17,8 @@ void read_args(
         parameters.timer.set_time_limit(vm["time-limit"].as<double>());
     if (vm.count("verbosity-level"))
         parameters.verbosity_level = vm["verbosity-level"].as<int>();
+    if (vm.count("log2stderr"))
+        parameters.log_to_stderr = vm["log-to-stderr"].as<bool>();
     if (vm.count("log"))
         parameters.log_path = vm["log"].as<std::string>();
     parameters.log_to_stderr = vm.count("log-to-stderr");
@@ -77,7 +79,7 @@ int main(int argc, char *argv[])
         ("seed,s", po::value<Seed>(), "Seed (not used)")
         ("only-write-at-the-end,e", "Only write output and certificate files at the end")
         ("verbosity-level,v", po::value<int>(), "Verbosity level")
-        ("log2stderr,w", "Write log in stderr")
+        ("log-to-stderr,w", "Write log in stderr")
 
         ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
         ;
