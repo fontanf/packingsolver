@@ -400,11 +400,36 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     }
 
     if (node.waste < 0) {
-        //std::cout
-        //    << "current_area " << node.current_area
-        //    << " item_area " << node.item_area
-        //    << " waste " << node.waste
-        //    << std::endl;
+        instance().format(std::cout, 3);
+        std::cout
+            << "current_area " << node.current_area
+            << " number_of_items " << node.number_of_items
+            << " item_area " << node.item_area
+            << " waste " << node.waste
+            << std::endl;
+        std::cout << "id " << node.id
+            << " number_of_items " << node.number_of_items
+            << " group_score " << node.group_score
+            << " load " << (double)node.item_area / node.guide_area
+            << " last_bin_middle_axle_weight " << node.groups.front().last_bin_middle_axle_weight
+            << std::endl;
+        for (auto it = node.uncovered_items.rbegin(); it != node.uncovered_items.rend(); ++it) {
+            std::cout
+                << " ys " << it->ys
+                << " ye " << it->ye
+                << " xe " << it->xe
+                << " item_type_id " << it->item_type_id
+                << std::endl;
+        }
+        for (auto node_tmp = &node;
+                node_tmp->father != nullptr;
+                node_tmp = node_tmp->father.get()) {
+            std::cout << " item_type_id " << node_tmp->item_type_id
+                << " x " << node_tmp->x
+                << " y " << node_tmp->y
+                << " r " << node_tmp->rotate
+                << std::endl;
+        }
         throw std::runtime_error("waste");
     }
 

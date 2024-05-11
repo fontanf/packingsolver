@@ -332,6 +332,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
     algorithm_formatter.print_header();
 
     const BinType& bin_type = instance.bin_type(0);
+    Length yi = bin_type.box.y;
     Length xi = bin_type.box.x;
     BinPos bin_pos = 0;
 
@@ -375,9 +376,11 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     Solution solution_child = solution;
                     Length xj = instance.x(item_type, rotation, Direction::X);
                     Length yj = instance.y(item_type, rotation, Direction::X);
+                    if (yj > yi)
+                        continue;
                     Length x_start = solution.x_max();
                     Length x_end = x_start + xj;
-                    Length y_start = std::max(Length(0), instance.y(bin_type, Direction::X) / 2 - yj / 2);
+                    Length y_start = std::max(Length(0), yi / 2 - yj / 2);
                     Length y_end = y_start + yj;
                     if (x_end > xi)
                         continue;
@@ -960,8 +963,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
                 }
 
-                if (!failed_middle_axle_weight_constraint
-                        && !failed_rear_axle_weight_constraint
+                if (!failed_middle_axle_weight_constraint_cur
+                        && !failed_rear_axle_weight_constraint_cur
                         && fixed_items_solutions_pos == 0
                         && number_of_stack_to_split == 0) {
                     FFOT_LOG_FOLD_END(parameters.logger, "");

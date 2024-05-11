@@ -630,9 +630,14 @@ inline bool BranchingScheme::operator()(
     } case 8: {
         // Guide for problems where the middle axle weight constraint is critical.
 
+        Area area_to_pack = instance().item_area();
+        if (parameters().fixed_items != nullptr)
+            area_to_pack += parameters().fixed_items->area() - parameters().fixed_items->item_area();
+        BinPos number_of_bins = (area_to_pack - 1) / instance().bin_type(0).area() + 1;
+        Area bin_area = number_of_bins * instance().bin_type(0).area();
+        double load_ref = (double)area_to_pack / bin_area;
         double load_1 = (double)node_1->item_area / node_1->guide_area;
         double load_2 = (double)node_2->item_area / node_2->guide_area;
-        double load_ref = (double)instance().item_area() / instance().bin_area();
         //std::cout << "load_1 " << load_1 << " load_2 " << load_2 << " load_ref " << load_ref << std::endl;
         if (load_1 != load_2) {
             if (load_1 < load_ref && load_2 < load_ref) {
@@ -653,9 +658,14 @@ inline bool BranchingScheme::operator()(
     } case 9: {
         // Guide for problems where the rear axle weight constraint is critical.
 
+        Area area_to_pack = instance().item_area();
+        if (parameters().fixed_items != nullptr)
+            area_to_pack += parameters().fixed_items->area() - parameters().fixed_items->item_area();
+        BinPos number_of_bins = (area_to_pack - 1) / instance().bin_type(0).area() + 1;
+        Area bin_area = number_of_bins * instance().bin_type(0).area();
+        double load_ref = (double)area_to_pack / bin_area;
         double load_1 = (double)node_1->item_area / node_1->guide_area;
         double load_2 = (double)node_2->item_area / node_2->guide_area;
-        double load_ref = (double)instance().item_area() / instance().bin_area() * 0.90;
         //std::cout << "load_1 " << load_1 << " load_2 " << load_2 << " load_ref " << load_ref << std::endl;
         if (load_1 != load_2) {
             if (load_1 < load_ref && load_2 < load_ref) {
