@@ -4,6 +4,8 @@
 #include "packingsolver/boxstacks/instance_builder.hpp"
 #include "packingsolver/boxstacks/branching_scheme.hpp"
 
+#include "packingsolver/algorithms/sequential_value_correction.hpp"
+
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
 #include <thread>
@@ -19,6 +21,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();
+    auto logger = parameters.get_logger();
 
     if (instance.number_of_bins() == 1) {
 
@@ -27,8 +30,19 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         SequentialOneDimensionalRectangleParameters sor_parameters = parameters.sequential_onedimensional_rectangle_parameters;
         sor_parameters.verbosity_level = 0;
         sor_parameters.timer = parameters.timer;
+        sor_parameters.logger = logger;
         sor_parameters.onedimensional_parameters.linear_programming_solver = parameters.linear_programming_solver;
         //sor_parameters.info.set_verbosity_level(2);
+        sor_parameters.new_solution_callback = [
+            &algorithm_formatter](
+                    const packingsolver::Output<Instance, Solution>& ps_output)
+            {
+                const SequentialOneDimensionalRectangleOutput& sor_output
+                    = static_cast<const SequentialOneDimensionalRectangleOutput&>(ps_output);
+                std::stringstream ss;
+                ss << "SOR it " << sor_output.number_of_iterations;
+                algorithm_formatter.update_solution(sor_output.solution_pool.best(), ss.str());
+            };
 
         auto sor_output = sequential_onedimensional_rectangle(instance, sor_parameters);
 
@@ -48,6 +62,8 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         output.sequential_onedimensional_rectangle_onedimensional_time += sor_output.onedimensional_time;
         output.sequential_onedimensional_rectangle_rectangle_time += sor_output.rectangle_time;
         output.number_of_sequential_onedimensional_rectangle_calls++;
+        if (!sor_output.solution_pool.best().full())
+            output.sequential_onedimensional_rectangle_failed = sor_output.failed;
 
         // The boxstacks branching scheme is significantly more expensive than the
         // sequential_onedimensional_rectangle algorithm. Therefore, we only use it
@@ -142,8 +158,12 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
                     ibs_parameters.verbosity_level = 0;
                     ibs_parameters.timer = parameters.timer;
-                    ibs_parameters.minimum_size_of_the_queue = parameters.tree_search_queue_size;
-                    ibs_parameters.maximum_size_of_the_queue = parameters.tree_search_queue_size;
+                    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+                        ibs_parameters.minimum_size_of_the_queue
+                            = parameters.not_anytime_tree_search_queue_size;
+                        ibs_parameters.maximum_size_of_the_queue
+                            = parameters.not_anytime_tree_search_queue_size;
+                    }
                     //ibs_parameters.info.set_verbosity_level(1);
                     ibs_parameterss.push_back(ibs_parameters);
                 }
@@ -211,8 +231,9 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     OptimizationMode::NotAnytimeSequential:
                     OptimizationMode::NotAnytime;
                 kp_parameters.linear_programming_solver = parameters.linear_programming_solver;
-                kp_parameters.tree_search_queue_size = parameters.sequential_value_correction_queue_size;
-                kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;
+                kp_parameters.not_anytime_tree_search_queue_size
+                    = parameters.sequential_value_correction_subproblem_queue_size;
+                //kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;
                 auto kp_output = optimize(kp_instance, kp_parameters);
 
                 // Update output.
@@ -228,7 +249,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                 output.number_of_tree_search_better += kp_output.number_of_tree_search_better;
                 return kp_output.solution_pool;
             };
-        SequentialValueCorrectionParameters<Instance, Solution> svc_parameters = parameters.sequential_value_correction_parameters;
+        SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
         svc_parameters.new_solution_callback = [&algorithm_formatter](

@@ -5,9 +5,214 @@
 
 #include <string>
 #include <cmath>
+#include <unordered_set>
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
+
+struct StackHasher
+{
+    std::hash<ItemTypeId> hasher;
+
+    size_t operator()(const std::vector<ItemTypeId>& stack) const
+    {
+        size_t hash = 0;
+        for (ItemTypeId item_type_id: stack)
+            optimizationtools::hash_combine(hash, hasher(item_type_id));
+        return hash;
+    }
+};
+
+using StackSet = std::unordered_set<std::vector<ItemTypeId>, StackHasher>;
+
+std::vector<StackSet> generate_all_stacks(
+        const Instance& instance)
+{
+    std::vector<StackSet> item_type_stacks(instance.number_of_item_types());
+    Counter number_of_generated_stacks = 0;
+
+    std::vector<std::unordered_map<StackabilityId, std::vector<ItemTypeId>>> stackability_id_item_types(instance.number_of_groups());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        auto it = stackability_id_item_types[item_type.group_id].find(item_type.stackability_id);
+        if (it == stackability_id_item_types[item_type.group_id].end()) {
+            stackability_id_item_types[item_type.group_id].insert({
+                    item_type.stackability_id,
+                    {item_type_id}});
+        } else {
+            it->second.push_back(item_type_id);
+        }
+    }
+
+    for (GroupId group_id = 0; group_id < instance.number_of_groups(); ++group_id) {
+        for (auto it: stackability_id_item_types[group_id]) {
+            const auto& item_types = it.second;
+
+            const BinType& bin_type = instance.bin_type(0);
+            Weight w = bin_type.maximum_stack_density * instance.item_type(item_types[0]).area();
+            Weight stack_maximum_weight = (std::min)(bin_type.maximum_weight, w);
+
+            std::vector<ItemTypeId> node_stack;
+            for (ItemTypeId item_type_id_new: item_types) {
+                node_stack.push_back(-1);
+                node_stack.push_back(item_type_id_new);
+            }
+
+            std::vector<ItemPos> current_stack_item_number_of_copies(instance.number_of_item_types(), 0);
+            std::vector<ItemTypeId> current_stack_item_type_ids;
+            std::vector<Length> current_stack_height = {0};
+            std::vector<Weight> current_stack_weight = {0};
+            std::vector<Weight> current_stack_remaining_weight = {std::numeric_limits<Weight>::infinity()};
+            std::vector<ItemPos> current_stack_maximum_number_of_items = {instance.number_of_items()};
+
+            while (!node_stack.empty()) {
+
+                ItemTypeId item_type_id = node_stack.back();
+                node_stack.pop_back();
+
+                if (item_type_id == -1) {
+                    current_stack_item_number_of_copies[current_stack_item_type_ids.back()]--;
+                    current_stack_item_type_ids.pop_back();
+                    current_stack_height.pop_back();
+                    current_stack_weight.pop_back();
+                    current_stack_remaining_weight.pop_back();
+                    current_stack_maximum_number_of_items.pop_back();
+                } else {
+
+                    // Update current stack.
+                    const ItemType& item_type = instance.item_type(item_type_id);
+                    Length zj = instance.z(item_type, 0) - item_type.nesting_height;
+                    current_stack_item_number_of_copies[item_type_id]++;
+                    current_stack_item_type_ids.push_back(item_type_id);
+                    current_stack_height.push_back(current_stack_height.back() + zj);
+                    current_stack_weight.push_back(current_stack_weight.back() + item_type.weight);
+                    current_stack_maximum_number_of_items.push_back((std::min)(
+                                current_stack_maximum_number_of_items.back(),
+                                item_type.maximum_stackability));
+                    current_stack_remaining_weight.push_back((std::min)(
+                                current_stack_remaining_weight.back() - item_type.weight,
+                                item_type.maximum_weight_above));
+
+                    // Update set of feasible stacks.
+                    for (ItemTypeId item_type_id_tmp: current_stack_item_type_ids) {
+                        item_type_stacks[item_type_id_tmp].insert(current_stack_item_type_ids);
+                    }
+
+                    // Initialize node_stack with stacks of one item.
+                    number_of_generated_stacks++;
+                    if (number_of_generated_stacks > 1e3) {
+                        return {};
+                    }
+
+                    //for (ItemTypeId item_type_id: current_stack_item_type_ids)
+                    //    std::cout << " " << item_type_id;
+                    //std::cout << std::endl;
+
+                    // Generate children.
+                    for (ItemTypeId item_type_id: item_types) {
+                        // Check feasibility.
+                        if (current_stack_item_number_of_copies[item_type_id]
+                                == instance.item_type(item_type_id).copies) {
+                            continue;
+                        }
+
+                        const ItemType& item_type = instance.item_type(item_type_id);
+                        Length zj = instance.z(item_type, 0) - item_type.nesting_height;
+                        Length zi = instance.z(bin_type);
+
+                        // Check bin z.
+                        if (current_stack_height.back() + zj > zi) {
+                            continue;
+                        }
+
+                        // Check maximum weight.
+                        Weight weight = current_stack_weight.back() + item_type.weight;
+                        if (weight > stack_maximum_weight * PSTOL) {
+                            continue;
+                        }
+
+                        // Check maximum stackability.
+                        ItemPos last_stack_maximum_number_of_items = (std::min)(
+                                current_stack_maximum_number_of_items.back(),
+                                item_type.maximum_stackability);
+                        if ((ItemPos)current_stack_item_type_ids.size() + 1
+                                > last_stack_maximum_number_of_items) {
+                            continue;
+                        }
+
+                        // Check maximum weight above.
+                        if (item_type.weight > current_stack_remaining_weight.back()) {
+                            continue;
+                        }
+
+                        // Update node stack.
+                        //std::cout << "add " << item_type_id << std::endl;
+                        node_stack.push_back(-1);
+                        node_stack.push_back(item_type_id);
+                    }
+                }
+
+            }
+        }
+    }
+
+    //for (ItemTypeId item_type_id = 0;
+    //        item_type_id < instance.number_of_item_types();
+    //        ++item_type_id) {
+    //    std::cout << "item_type_id: " << item_type_id << " size " << item_type_stacks[item_type_id].size() << std::endl;
+    //    for (const std::vector<ItemTypeId>& stack: item_type_stacks[item_type_id]) {
+    //        for (ItemTypeId item_type_id: stack)
+    //            std::cout << " " << item_type_id;
+    //        std::cout << std::endl;
+    //    }
+    //}
+
+    return item_type_stacks;
+}
+
+bool may_dominate(
+        const Instance& instance,
+        const std::vector<StackSet>& item_type_stacks,
+        ItemTypeId item_type_id_1,
+        ItemTypeId item_type_id_2)
+{
+    //std::cout << "may_dominate " << item_type_id_1 << " " << item_type_id_2 << std::endl;
+    const ItemType& item_type_1 = instance.item_type(item_type_id_1);
+    const ItemType& item_type_2 = instance.item_type(item_type_id_2);
+    for (const std::vector<ItemTypeId>& stack_2: item_type_stacks[item_type_id_2]) {
+
+        ItemPos c = 1;
+        for (ItemTypeId item_type_id_tmp: stack_2)
+            if (item_type_id_tmp == item_type_id_1)
+                ++c;
+
+        for (; c <= item_type_1.copies; ++c) {
+            auto stack_1 = stack_2;
+            ItemPos cc = 0;
+            for (ItemPos pos = 0; pos < (ItemPos)stack_2.size(); ++pos) {
+                if (stack_2[pos] == item_type_id_2) {
+                    stack_1[pos] = item_type_id_1;
+                    cc++;
+                    if (cc == c)
+                        break;
+                }
+            }
+            if (cc != c)
+                break;
+            //for (ItemTypeId item_type_id: stack_1)
+            //    std::cout << " " << item_type_id;
+            //std::cout << std::endl;
+            if (item_type_stacks[item_type_id_1].find(stack_1)
+                    == item_type_stacks[item_type_id_1].end()) {
+                //std::cout << "false" << std::endl;
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// BranchingScheme ////////////////////////////////
@@ -18,50 +223,50 @@ BranchingScheme::BranchingScheme(
         const Parameters& parameters):
     instance_(instance),
     parameters_(parameters),
-    predecessors_(instance.number_of_item_types(), -1)
+    predecessors_(instance.number_of_item_types())
 {
     // Compute dominated items.
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        ItemTypeId item_type_id_pred = -1;
-        for (ItemTypeId item_type_id_2 = 0;
-                item_type_id_2 < instance.number_of_item_types();
-                ++item_type_id_2) {
-            if (item_type_id_2 == item_type_id)
-                continue;
-            const ItemType& item_type_2 = instance.item_type(item_type_id_2);
+    std::vector<StackSet> item_type_stacks = generate_all_stacks(instance);
+    if (!item_type_stacks.empty()) {
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance.item_type(item_type_id);
+            for (ItemTypeId item_type_id_2 = 0;
+                    item_type_id_2 < instance.number_of_item_types();
+                    ++item_type_id_2) {
+                if (item_type_id_2 == item_type_id)
+                    continue;
+                const ItemType& item_type_2 = instance.item_type(item_type_id_2);
 
-            bool dominated = false;
-            dominated |= (item_type.box.x == item_type_2.box.x
-                    && item_type.box.y == item_type_2.box.y
-                    && item_type.box.z == item_type_2.box.z
-                    && item_type.rotations == item_type_2.rotations
-                    && item_type.stackability_id == item_type_2.stackability_id
-                    && item_type.group_id == item_type_2.group_id
-                    && item_type.nesting_height == item_type_2.nesting_height
-                    && item_type.maximum_stackability == item_type_2.maximum_stackability
-                    && item_type.maximum_weight_above == item_type_2.maximum_weight_above
-                    && item_type.weight >= item_type_2.weight
-                    && (item_type.weight > item_type_2.weight
-                        || item_type_id_2 < item_type_id)
-                    );
-            if (dominated) {
-                if (item_type_id_pred == -1
-                        || (item_type_2.weight > instance.item_type(item_type_id_pred).weight)
-                        || (item_type_2.weight == instance.item_type(item_type_id_pred).weight
-                            && item_type_id_2 > item_type_id_pred)) {
-                    item_type_id_pred = item_type_id_2;
+                // Check if item_type dominates item_type_2.
+                if (item_type_2.group_id != item_type.group_id)
+                    continue;
+                if (item_type_2.stackability_id != item_type.stackability_id)
+                    continue;
+                if (!((item_type_2.box.x == item_type.box.x
+                                && item_type_2.box.y == item_type.box.y)
+                            || (item_type_2.box.x == item_type.box.y
+                                && item_type_2.box.y == item_type.box.x))) {
+                    continue;
                 }
+                if (!may_dominate(instance, item_type_stacks, item_type_id, item_type_id_2)) {
+                    continue;
+                }
+                if (!may_dominate(instance, item_type_stacks, item_type_id_2, item_type_id)) {
+                    continue;
+                }
+                if (item_type.weight > item_type_2.weight)
+                    continue;
+                if (item_type.weight == item_type_2.weight
+                        && item_type_id > item_type_id_2) {
+                    continue;
+                }
+                //std::cout << item_type_id << " dominates " << item_type_id_2 << std::endl;
+
+                predecessors_[item_type_id_2].push_back(item_type_id);
             }
         }
-
-        //if (item_type_id_pred != -1) {
-        //    std::cout << "j      " << instance.item_type(j) << std::endl;
-        //    std::cout << "item_type_id_pred " << instance.item_type(item_type_id_pred) << std::endl;
-        //}
-        predecessors_[item_type_id] = item_type_id_pred;
     }
 
     // Lift length.
@@ -87,7 +292,11 @@ BranchingScheme::BranchingScheme(
     }
     knapsacksolver::multiple_choice_subset_sum::Instance mcss_instance = mcss_instance_builder.build();
     //mcss_instance.print(std::cout, 2);
-    auto mscc_output = knapsacksolver::multiple_choice_subset_sum::dynamic_programming_bellman_array(mcss_instance);
+    knapsacksolver::multiple_choice_subset_sum::Parameters mcss_parameters;
+    mcss_parameters.verbosity_level = 0;
+    auto mscc_output = knapsacksolver::multiple_choice_subset_sum::dynamic_programming_bellman_array(
+            mcss_instance,
+            mcss_parameters);
     //auto mscc_output = multiple_choice_subset_sumsolver::dynamic_programming_bellman_word_ram(mcss_instance);
     Length xi = mscc_output.bound;
 
@@ -514,19 +723,33 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
 {
     auto is = insertions(father);
     std::vector<std::shared_ptr<Node>> cs;
-    for (const Insertion& insertion: is)
+    for (const Insertion& insertion: is) {
         cs.push_back(child(father, insertion));
+        //Solution solution = to_solution(cs.back());
+        //solution.write("solution_" + std::to_string(father->id) + "_" + std::to_string(cs.back()->id) + "_.csv");
+    }
+
     return cs;
 }
 
 std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         const std::shared_ptr<Node>& father) const
 {
-    //std::cout << "insertions" << std::endl;
+    //std::cout << "insertions " << *father;
     if (leaf(father))
         return {};
 
     std::vector<Insertion> insertions;
+
+    std::vector<bool> ok(instance_.number_of_item_types(), true);
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        for (ItemTypeId item_type_id_pred: predecessors_[item_type_id])
+            if (father->item_number_of_copies[item_type_id_pred]
+                    != instance_.item_type(item_type_id_pred).copies)
+                ok[item_type_id] = false;
+    }
 
     if (father->number_of_bins > 0) {
         BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
@@ -541,11 +764,10 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance_.number_of_item_types();
                     ++item_type_id) {
-                ItemTypeId item_type_id_pred = predecessors_[item_type_id];
-                if (item_type_id_pred != -1
-                        && father->item_number_of_copies[item_type_id_pred]
-                        != instance_.item_type(item_type_id_pred).copies)
+
+                if (!ok[item_type_id])
                     continue;
+
                 const ItemType& item_type = instance_.item_type(item_type_id);
                 if (father->item_number_of_copies[item_type_id] == item_type.copies)
                     continue;
@@ -569,24 +791,31 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance_.number_of_item_types();
                     ++item_type_id) {
-                ItemTypeId item_type_id_pred = predecessors_[item_type_id];
-                if (item_type_id_pred != -1
-                        && father->item_number_of_copies[item_type_id_pred]
-                        != instance_.item_type(item_type_id_pred).copies)
+
+                if (!ok[item_type_id])
                     continue;
+
                 const ItemType& item_type = instance_.item_type(item_type_id);
                 if (father->item_number_of_copies[item_type_id] == item_type.copies)
                     continue;
-                for (int rotation = 0; rotation < 6; ++rotation)
-                    if (instance().item_type(item_type_id).can_rotate(rotation))
-                        insertion_item(
-                                father,
-                                insertions,
-                                item_type_id,
-                                rotation,
-                                0,  // new_bin
-                                uncovered_item_pos,
-                                -1);  // defect_id
+                for (int rotation = 0; rotation < 6; ++rotation) {
+                    if (!instance().item_type(item_type_id).can_rotate(rotation))
+                        continue;
+                    insertion_item(
+                            father,
+                            insertions,
+                            item_type_id,
+                            rotation,
+                            0,  // new_bin
+                            uncovered_item_pos,
+                            -1);  // defect_id
+                    insertion_item_left(
+                            father,
+                            insertions,
+                            item_type_id,
+                            rotation,
+                            uncovered_item_pos);
+                }
             }
         }
 
@@ -596,28 +825,27 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             Length xs = instance().x_start(defect, father->last_bin_direction);
             Length ys = instance().y_start(defect, father->last_bin_direction);
             Length ye = instance().y_end(defect, father->last_bin_direction);
-            bool ok = true;
+            bool ok2 = true;
             for (const UncoveredItem& uncovered_item: father->uncovered_items) {
                 if (uncovered_item.ye < ys)
                     continue;
                 if (uncovered_item.ys > ye)
                     continue;
                 if (uncovered_item.xe > xs) {
-                    ok = false;
+                    ok2 = false;
                     break;
                 }
             }
-            if (!ok)
+            if (!ok2)
                 continue;
 
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance_.number_of_item_types();
                     ++item_type_id) {
-                ItemTypeId item_type_id_pred = predecessors_[item_type_id];
-                if (item_type_id_pred != -1
-                        && father->item_number_of_copies[item_type_id_pred]
-                        != instance_.item_type(item_type_id_pred).copies)
+
+                if (!ok[item_type_id])
                     continue;
+
                 const ItemType& item_type = instance_.item_type(item_type_id);
                 if (father->item_number_of_copies[item_type_id] == item_type.copies)
                     continue;
@@ -659,11 +887,10 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                 item_type_id < instance_.number_of_item_types();
                 ++item_type_id) {
             //std::cout << "item_type_id " << item_type_id << std::endl;
-            ItemTypeId item_type_id_pred = predecessors_[item_type_id];
-            if (item_type_id_pred != -1
-                    && father->item_number_of_copies[item_type_id_pred]
-                    != instance_.item_type(item_type_id_pred).copies)
+
+            if (!ok[item_type_id])
                 continue;
+
             const ItemType& item_type = instance_.item_type(item_type_id);
             if (father->item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
@@ -684,11 +911,10 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance_.number_of_item_types();
                     ++item_type_id) {
-                ItemTypeId item_type_id_pred = predecessors_[item_type_id];
-                if (item_type_id_pred != -1
-                        && father->item_number_of_copies[item_type_id_pred]
-                        != instance_.item_type(item_type_id_pred).copies)
+
+                if (!ok[item_type_id])
                     continue;
+
                 const ItemType& item_type = instance_.item_type(item_type_id);
                 if (father->item_number_of_copies[item_type_id] == item_type.copies)
                     continue;
@@ -809,7 +1035,6 @@ void BranchingScheme::insertion_item(
         ItemPos uncovered_item_pos,
         DefectId defect_id) const
 {
-    //std::cout << "insertion_item " << item_type_id << std::endl;
     const ItemType& item_type = instance_.item_type(item_type_id);
     BinTypeId bin_type_id = (new_bin == 0)?
         instance().bin_type_id(father->number_of_bins - 1):
@@ -958,6 +1183,147 @@ void BranchingScheme::insertion_item(
     insertion.uncovered_item_pos = -1;
     insertion.new_bin = new_bin;
     insertions.push_back(insertion);
+}
+
+void BranchingScheme::insertion_item_left(
+        const std::shared_ptr<Node>& father,
+        std::vector<Insertion>& insertions,
+        ItemTypeId item_type_id,
+        int rotation,
+        ItemPos uncovered_item_pos) const
+{
+    //std::cout << "insertion_item_left " << uncovered_item_pos << std::endl;
+    const ItemType& item_type = instance_.item_type(item_type_id);
+    BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+    const BinType& bin_type = instance().bin_type(bin_type_id);
+    Direction o = father->last_bin_direction;
+    Length xj = instance().x(item_type, rotation, o);
+    Length yj = instance().y(item_type, rotation, o);
+    Length zj = instance().z(item_type, rotation);
+    Length xi = instance().x(bin_type, o);
+    Length yi = instance().y(bin_type, o);
+    Length zi = instance().z(bin_type);
+    Length ys = father->uncovered_items[uncovered_item_pos].ye;
+    Length xs = father->uncovered_items[uncovered_item_pos].xe;
+    Length xe = xs + xj;
+    Length ye = ys + yj;
+
+    // Check bin y.
+    if (ye > yi) {
+        //std::cout << "y" << std::endl;
+        return;
+    }
+    // Check bin x.
+    if (xe > xi) {
+        //std::cout << "length" << std::endl;
+        return;
+    }
+    // Check bin z.
+    if (zj > zi) {
+        //std::cout << "height" << std::endl;
+        return;
+    }
+    // Check maximum weight.
+    double last_bin_weight = father->groups.front().last_bin_weight + item_type.weight;
+    if (last_bin_weight > bin_type.maximum_weight * PSTOL) {
+        //std::cout << "maximum_weight" << std::endl;
+        return;
+    }
+
+    // Check maximum stack density.
+    double stack_density = (double)(item_type.weight) / xj / yj;
+    if (stack_density > bin_type.maximum_stack_density * PSTOL) {
+        //std::cout << "maximum_stack_density" << std::endl;
+        return;
+    }
+
+    // Check intersection with other packed items.
+    for (const UncoveredItem& uncovered_item: father->uncovered_items) {
+        if (uncovered_item.ye <= ys || uncovered_item.ys >= ye)
+            continue;
+        if (xs < uncovered_item.xe)
+            return;
+    }
+
+    // Check unloading constraints.
+    switch (instance().unloading_constraint()) {
+    case rectangle::UnloadingConstraint::None: {
+        break;
+    } case rectangle::UnloadingConstraint::OnlyXMovements: case rectangle::UnloadingConstraint::OnlyYMovements: {
+        // Check if an item from the uncovered item with higher group is not
+        // blocked by the new item.
+        for (const UncoveredItem& uncovered_item: father->uncovered_items) {
+            if (uncovered_item.ye <= ys || uncovered_item.ys >= ye)
+                continue;
+            const ItemType& item_type_pred = instance().item_type(uncovered_item.item_type_ids.back());
+            if (item_type.group_id > item_type_pred.group_id)
+                return;
+        }
+        break;
+    } case rectangle::UnloadingConstraint::IncreasingX: case rectangle::UnloadingConstraint::IncreasingY: {
+        for (GroupId group = item_type.group_id + 1; group < instance().number_of_groups(); ++group)
+            if (xs < father->groups[group].x_max)
+                return;
+        for (GroupId group = 0; group < item_type.group_id; ++group)
+            if (xs > father->groups[group].x_min)
+                return;
+        break;
+    }
+    }
+
+    // Check intersection with defects.
+    for (const rectangle::Defect& defect: bin_type.defects) {
+        if (instance().x_start(defect, o) >= xs + xj)
+            continue;
+        if (xs >= instance().x_end(defect, o))
+            continue;
+        if (instance().y_start(defect, o) >= ye)
+            continue;
+        if (ys >= instance().y_end(defect, o))
+            continue;
+        //std::cout << "defect " << defect << std::endl;
+        return;
+    }
+
+    if (uncovered_item_pos > 0) {
+        if (xe <= father->uncovered_items[uncovered_item_pos - 1].xs) {
+            //std::cout << "toto" << std::endl;
+            return;
+        }
+    }
+
+    // Check weight constraints.
+    for (GroupId group_id = 0; group_id <= item_type.group_id; ++group_id) {
+        if (!instance().check_weight_constraints(group_id))
+            continue;
+        if (father->groups[group_id].number_of_items + 1 == instance().group(group_id).number_of_items) {
+            double last_bin_weight = father->groups[group_id].last_bin_weight + item_type.weight;
+            double last_bin_weight_weighted_sum
+                = father->groups[group_id].last_bin_weight_weighted_sum
+                + ((double)xs + (double)(xe - xs) / 2) * item_type.weight;
+            std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
+                    last_bin_weight_weighted_sum, last_bin_weight);
+            if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL) {
+                //std::cout << "rear_axle_weight" << std::endl;
+                return;
+            }
+            if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL) {
+                //std::cout << "middle_axle_weight" << std::endl;
+                return;
+            }
+        }
+    }
+
+    Insertion insertion;
+    insertion.item_type_id = item_type_id;
+    insertion.rotation = rotation;
+    insertion.x = xs;
+    insertion.y = ys;
+    insertion.z = 0;
+    insertion.uncovered_item_pos = -1;
+    insertion.new_bin = 0;
+    insertions.push_back(insertion);
+    //std::cout << "success" << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1150,30 +1516,30 @@ Solution BranchingScheme::to_solution(
                 current_node->item_type_id,
                 current_node->rotation);
     }
-    if (!solution.feasible()) {
-        std::cout.precision(std::numeric_limits<double>::max_digits10);
-        for (GroupId group_id = 0; group_id < instance().number_of_groups(); ++group_id) {
-            const BinType& bin_type = instance().bin_type(solution.bin(0).bin_type_id);
-            auto axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
-                    solution.bin(0).weight_weighted_sum[group_id],
-                    solution.bin(0).weight[group_id]);
-            std::cout << " group_id " << group_id << std::endl;
-            std::cout << "wws node " << node->groups[group_id].last_bin_weight_weighted_sum
-                << " sol " << solution.bin(0).weight_weighted_sum[group_id]
-                << std::endl;
-            std::cout << "weight node " << node->groups[group_id].last_bin_weight
-                << " sol " << solution.bin(0).weight[group_id]
-                << " / " << bin_type.maximum_weight
-                << std::endl;
-            std::cout << "middle " << axle_weights.first
-                << " / " << bin_type.semi_trailer_truck_data.middle_axle_maximum_weight
-                << std::endl;
-            std::cout << "rear " << axle_weights.second
-                << " / " << bin_type.semi_trailer_truck_data.rear_axle_maximum_weight
-                << std::endl;
-        }
-        //throw std::runtime_error("to_solution: infeasible solution");
-    }
+    //if (!solution.feasible()) {
+    //    std::cout.precision(std::numeric_limits<double>::max_digits10);
+    //    for (GroupId group_id = 0; group_id < instance().number_of_groups(); ++group_id) {
+    //        const BinType& bin_type = instance().bin_type(solution.bin(0).bin_type_id);
+    //        auto axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
+    //                solution.bin(0).weight_weighted_sum[group_id],
+    //                solution.bin(0).weight[group_id]);
+    //        std::cout << " group_id " << group_id << std::endl;
+    //        std::cout << "wws node " << node->groups[group_id].last_bin_weight_weighted_sum
+    //            << " sol " << solution.bin(0).weight_weighted_sum[group_id]
+    //            << std::endl;
+    //        std::cout << "weight node " << node->groups[group_id].last_bin_weight
+    //            << " sol " << solution.bin(0).weight[group_id]
+    //            << " / " << bin_type.maximum_weight
+    //            << std::endl;
+    //        std::cout << "middle " << axle_weights.first
+    //            << " / " << bin_type.semi_trailer_truck_data.middle_axle_maximum_weight
+    //            << std::endl;
+    //        std::cout << "rear " << axle_weights.second
+    //            << " / " << bin_type.semi_trailer_truck_data.rear_axle_maximum_weight
+    //            << std::endl;
+    //    }
+    //    //throw std::runtime_error("to_solution: infeasible solution");
+    //}
     return solution;
 }
 
@@ -1225,7 +1591,7 @@ std::ostream& packingsolver::boxstacks::operator<<(
 {
     os << "item_type_id " << insertion.item_type_id
         << " rotation " << insertion.rotation
-        << " new_bin " << insertion.new_bin
+        << " new_bin " << (int)insertion.new_bin
         << " x " << insertion.x
         << " y " << insertion.y
         << " z " << insertion.z
@@ -1237,7 +1603,8 @@ std::ostream& packingsolver::boxstacks::operator<<(
         std::ostream& os,
         const BranchingScheme::Node& node)
 {
-    os << "number_of_items " << node.number_of_items
+    os << "id " << node.id
+        << " number_of_items " << node.number_of_items
         << " number_of_bins " << node.number_of_bins
         << std::endl;
     os << "item_volume " << node.item_volume
@@ -1246,6 +1613,7 @@ std::ostream& packingsolver::boxstacks::operator<<(
     os << "waste " << node.waste
         << " profit " << node.profit
         << std::endl;
+    os << "item_type_id " << node.item_type_id << std::endl;
 
     // item_number_of_copies
     os << "item_number_of_copies" << std::flush;

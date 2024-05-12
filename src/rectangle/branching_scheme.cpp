@@ -10,6 +10,24 @@ using namespace packingsolver::rectangle;
 /////////////////////////////// BranchingScheme ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+bool BranchingScheme::dominates(
+        ItemTypeId item_type_id_1,
+        ItemTypeId item_type_id_2)
+{
+    const ItemType& item_type_1 = instance().item_type(item_type_id_1);
+    const ItemType& item_type_2 = instance().item_type(item_type_id_2);
+    if (parameters_.predecessor_strategy == 0) {
+        return item_type_1.profit >= item_type_2.profit;
+    } else if (parameters_.predecessor_strategy == 1) {
+        return item_type_1.weight <= item_type_2.weight;
+    } else if (parameters_.predecessor_strategy == 2) {
+        return item_type_1.weight >= item_type_2.weight;
+    } else {
+        throw std::invalid_argument("");
+        return false;
+    }
+}
+
 BranchingScheme::BranchingScheme(
         const Instance& instance,
         const Parameters& parameters):
@@ -20,6 +38,7 @@ BranchingScheme::BranchingScheme(
     predecessors_2_(instance.number_of_item_types())
 {
     // Compute predecessors.
+    //instance.format(std::cout, 3);
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -31,126 +50,42 @@ BranchingScheme::BranchingScheme(
                 continue;
             const ItemType& item_type_2 = instance.item_type(item_type_id_2);
 
-            bool dominated = false;
-            if (parameters_.predecessor_strategy == 0) {
-                dominated |= (item_type.rect.x == item_type_2.rect.x
-                        && item_type.rect.y == item_type_2.rect.y
-                        && item_type.oriented == item_type_2.oriented
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.profit <= item_type_2.profit
-                        && (item_type.profit < item_type_2.profit
-                            || item_type_id_2 < item_type_id));
-                dominated |= (item_type.rect.x == item_type_2.rect.y
-                        && item_type.rect.y == item_type_2.rect.x
-                        && item_type.oriented == false
-                        && item_type_2.oriented == false
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.profit <= item_type_2.profit
-                        && (item_type.profit < item_type_2.profit
-                            || item_type_id_2 < item_type_id));
-            } else if (parameters_.predecessor_strategy == 1) {
-                dominated |= (item_type.rect.x == item_type_2.rect.x
-                        && item_type.rect.y == item_type_2.rect.y
-                        && item_type.oriented == item_type_2.oriented
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.profit <= item_type_2.profit
-                        && item_type.weight >= item_type_2.weight
-                        && (item_type.profit < item_type_2.profit
-                            || item_type.weight > item_type_2.weight
-                            || item_type_id_2 < item_type_id));
-                dominated |= (item_type.rect.x == item_type_2.rect.y
-                        && item_type.rect.y == item_type_2.rect.x
-                        && item_type.oriented == false
-                        && item_type_2.oriented == false
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.profit <= item_type_2.profit
-                        && item_type.weight >= item_type_2.weight
-                        && (item_type.profit < item_type_2.profit
-                            || item_type.weight > item_type_2.weight
-                            || item_type_id_2 < item_type_id));
-            } else if (parameters_.predecessor_strategy == 2) {
-                dominated |= (item_type.rect.x == item_type_2.rect.x
-                        && item_type.rect.y == item_type_2.rect.y
-                        && item_type.oriented == item_type_2.oriented
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.weight == item_type_2.weight
-                        && item_type.profit <= item_type_2.profit
-                        && (item_type.profit < item_type_2.profit
-                            || item_type_id_2 < item_type_id));
-                dominated |= (item_type.rect.x == item_type_2.rect.y
-                        && item_type.rect.y == item_type_2.rect.x
-                        && item_type.oriented == false
-                        && item_type_2.oriented == false
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.weight == item_type_2.weight
-                        && item_type.profit <= item_type_2.profit
-                        && (item_type.profit < item_type_2.profit
-                            || item_type_id_2 < item_type_id));
+            if (item_type.group_id != item_type_2.group_id)
+                continue;
+
+            if (!dominates(item_type_id_2, item_type_id))
+                continue;
+            if (item_type_id < item_type_id_2
+                    && dominates(item_type_id, item_type_id_2)) {
+                continue;
             }
-            if (dominated)
+
+            if ((item_type.rect.x == item_type_2.rect.x
+                        && item_type.rect.y == item_type_2.rect.y
+                        && item_type.oriented == item_type_2.oriented)
+                    || (item_type.rect.x == item_type_2.rect.y
+                        && item_type.rect.y == item_type_2.rect.x
+                        && item_type.oriented == false
+                        && item_type_2.oriented == false)) {
                 predecessors_[item_type_id].push_back(item_type_id_2);
-
-            bool dominated_1 = false;
-            if (parameters_.predecessor_strategy == 0) {
-                dominated_1 = (
-                        item_type.rect.x == item_type_2.rect.x
-                        && item_type.rect.y == item_type_2.rect.y
-                        && item_type.oriented == false
-                        && item_type_2.oriented == true
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.profit <= item_type_2.profit);
-            } else if (parameters_.predecessor_strategy == 1) {
-                dominated_1 = (
-                        item_type.rect.x == item_type_2.rect.x
-                        && item_type.rect.y == item_type_2.rect.y
-                        && item_type.oriented == false
-                        && item_type_2.oriented == true
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.weight >= item_type_2.weight
-                        && item_type.profit <= item_type_2.profit);
-            } else if (parameters_.predecessor_strategy == 2) {
-                dominated_1 = (
-                        item_type.rect.x == item_type_2.rect.x
-                        && item_type.rect.y == item_type_2.rect.y
-                        && item_type.oriented == false
-                        && item_type_2.oriented == true
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.weight == item_type_2.weight
-                        && item_type.profit <= item_type_2.profit);
+                //std::cout << "0 " << item_type_id_2 << " -> " << item_type_id << std::endl;
             }
-            if (dominated_1)
+
+            if (item_type.rect.x == item_type_2.rect.x
+                    && item_type.rect.y == item_type_2.rect.y
+                    && item_type.oriented == false
+                    && item_type_2.oriented == true) {
                 predecessors_1_[item_type_id].push_back(item_type_id_2);
-
-            bool dominated_2 = false;
-            if (parameters_.predecessor_strategy == 0) {
-                dominated_2 = (
-                        item_type.rect.x == item_type_2.rect.y
-                        && item_type.rect.y == item_type_2.rect.x
-                        && item_type.oriented == false
-                        && item_type_2.oriented == true
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.profit <= item_type_2.profit);
-            } else if (parameters_.predecessor_strategy == 1) {
-                dominated_2 = (
-                        item_type.rect.x == item_type_2.rect.y
-                        && item_type.rect.y == item_type_2.rect.x
-                        && item_type.oriented == false
-                        && item_type_2.oriented == true
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.weight >= item_type_2.weight
-                        && item_type.profit <= item_type_2.profit);
-            } else if (parameters_.predecessor_strategy == 2) {
-                dominated_2 = (
-                        item_type.rect.x == item_type_2.rect.y
-                        && item_type.rect.y == item_type_2.rect.x
-                        && item_type.oriented == false
-                        && item_type_2.oriented == true
-                        && item_type.group_id == item_type_2.group_id
-                        && item_type.weight == item_type_2.weight
-                        && item_type.profit <= item_type_2.profit);
+                //std::cout << "1 " << item_type_id_2 << " -> " << item_type_id << std::endl;
             }
-            if (dominated_2)
+
+            if (item_type.rect.x == item_type_2.rect.y
+                    && item_type.rect.y == item_type_2.rect.x
+                    && item_type.oriented == false
+                    && item_type_2.oriented == true) {
                 predecessors_2_[item_type_id].push_back(item_type_id_2);
+                //std::cout << "2 " << item_type_id_2 << " -> " << item_type_id << std::endl;
+            }
         }
     }
 
@@ -245,21 +180,25 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     Length yi = instance().y(bin_type, o);
 
     // Update uncovered_items.
+    ItemPos new_uncovered_item_pos = -1;
     if (insertion.new_bin > 0) {  // New bin.
         if (ys > 0) {
             UncoveredItem uncovered_item;
             uncovered_item.item_type_id = -1;
             uncovered_item.xs = 0;
             uncovered_item.xe = 0;
+            uncovered_item.xe_dominance = 0;
             uncovered_item.ys = 0;
             uncovered_item.ye = ys;
             node.uncovered_items.push_back(uncovered_item);
         }
         {
+            new_uncovered_item_pos = node.uncovered_items.size();
             UncoveredItem uncovered_item;
             uncovered_item.item_type_id = insertion.item_type_id;
             uncovered_item.xs = xs;
             uncovered_item.xe = xe;
+            uncovered_item.xe_dominance = xe;
             uncovered_item.ys = ys;
             uncovered_item.ye = ye;
             node.uncovered_items.push_back(uncovered_item);
@@ -269,6 +208,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
             uncovered_item.item_type_id = -1;
             uncovered_item.xs = 0;
             uncovered_item.xe = 0;
+            uncovered_item.xe_dominance = 0;
             uncovered_item.ys = ye;
             uncovered_item.ye = yi;
             node.uncovered_items.push_back(uncovered_item);
@@ -285,10 +225,12 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
                     node.uncovered_items.push_back(new_uncovered_item);
                 }
 
+                new_uncovered_item_pos = node.uncovered_items.size();
                 UncoveredItem new_uncovered_item_2;
                 new_uncovered_item_2.item_type_id = insertion.item_type_id;
                 new_uncovered_item_2.xs = xs;
                 new_uncovered_item_2.xe = xe;
+                new_uncovered_item_2.xe_dominance = xe;
                 new_uncovered_item_2.ys = ys;
                 new_uncovered_item_2.ye = ye;
                 node.uncovered_items.push_back(new_uncovered_item_2);
@@ -310,6 +252,31 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
             }
         }
     }
+
+    // Update uncovered_item.xe_dominance.
+    if (yi - node.uncovered_items[new_uncovered_item_pos].ye
+            < instance().smallest_item_height()) {
+        for (ItemPos uncovered_item_pos = new_uncovered_item_pos + 1;
+                uncovered_item_pos < node.uncovered_items.size();
+                ++uncovered_item_pos) {
+            node.uncovered_items[uncovered_item_pos].xe_dominance
+                = (std::max)(
+                        node.uncovered_items[uncovered_item_pos].xe_dominance,
+                        node.uncovered_items[new_uncovered_item_pos].xe_dominance);
+        }
+    }
+    if (node.uncovered_items[new_uncovered_item_pos].ys
+            < instance().smallest_item_height()) {
+        for (ItemPos uncovered_item_pos = new_uncovered_item_pos - 1;
+                uncovered_item_pos >= 0;
+                --uncovered_item_pos) {
+            node.uncovered_items[uncovered_item_pos].xe_dominance
+                = (std::max)(
+                        node.uncovered_items[uncovered_item_pos].xe_dominance,
+                        node.uncovered_items[new_uncovered_item_pos].xe_dominance);
+        }
+    }
+
 
     // Compute item_number_of_copies, number_of_items, items_area,
     // squared_item_area and profit.
@@ -433,11 +400,36 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     }
 
     if (node.waste < 0) {
-        //std::cout
-        //    << "current_area " << node.current_area
-        //    << " item_area " << node.item_area
-        //    << " waste " << node.waste
-        //    << std::endl;
+        instance().format(std::cout, 3);
+        std::cout
+            << "current_area " << node.current_area
+            << " number_of_items " << node.number_of_items
+            << " item_area " << node.item_area
+            << " waste " << node.waste
+            << std::endl;
+        std::cout << "id " << node.id
+            << " number_of_items " << node.number_of_items
+            << " group_score " << node.group_score
+            << " load " << (double)node.item_area / node.guide_area
+            << " last_bin_middle_axle_weight " << node.groups.front().last_bin_middle_axle_weight
+            << std::endl;
+        for (auto it = node.uncovered_items.rbegin(); it != node.uncovered_items.rend(); ++it) {
+            std::cout
+                << " ys " << it->ys
+                << " ye " << it->ye
+                << " xe " << it->xe
+                << " item_type_id " << it->item_type_id
+                << std::endl;
+        }
+        for (auto node_tmp = &node;
+                node_tmp->father != nullptr;
+                node_tmp = node_tmp->father.get()) {
+            std::cout << " item_type_id " << node_tmp->item_type_id
+                << " x " << node_tmp->x
+                << " y " << node_tmp->y
+                << " r " << node_tmp->rotate
+                << std::endl;
+        }
         throw std::runtime_error("waste");
     }
 
@@ -467,6 +459,19 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
 std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         const std::shared_ptr<Node>& father) const
 {
+    //std::cout << "id " << father->id
+    //    << " number_of_items " << father->number_of_items
+    //    << " group_score " << father->group_score
+    //    << " load " << (double)father->item_area / father->guide_area
+    //    << " last_bin_middle_axle_weight " << father->groups.front().last_bin_middle_axle_weight
+    //    << std::endl;
+    //for (auto it = father->uncovered_items.rbegin(); it != father->uncovered_items.rend(); ++it) {
+    //    std::cout << " ys " << it->ys << " ye " << it->ye << " xe " << it->xe << " item_type_id " << it->item_type_id << std::endl;
+    //}
+    //for (auto node = father; node->father != nullptr; node = node->father) {
+    //    std::cout << " item_type_id " << node->item_type_id << " x " << node->x << " y " << node->y << " r " << node->rotate << std::endl;
+    //}
+
     if (leaf(father))
         return {};
 
@@ -513,7 +518,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                     uncovered_item_pos < (ItemPos)father->uncovered_items.size();
                     ++uncovered_item_pos) {
 
-                if (ok_1[item_type_id])
+                if (ok_1[item_type_id]) {
                     insertion_item(
                             father,
                             insertions,
@@ -523,7 +528,56 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                             uncovered_item_pos,
                             -1);  // defect_id
 
-                if (!item_type.oriented && ok_2[item_type_id])
+                    if (parameters().fixed_items != nullptr) {
+                        BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+                        const BinType& bin_type = instance().bin_type(bin_type_id);
+                        Direction o = father->last_bin_direction;
+                        bool rotate = false;
+                        Length yj = instance().y(item_type, rotate, o);
+                        //if (uncovered_item_pos > 0)
+                        //    std::cout << "xs " << father->uncovered_items[uncovered_item_pos - 1].xs
+                        //        << " xe " << father->uncovered_items[uncovered_item_pos - 1].xe
+                        //        << " ye " << father->uncovered_items[uncovered_item_pos - 1].ys
+                        //        << " ye " << father->uncovered_items[uncovered_item_pos - 1].ye
+                        //        << std::endl;
+                        //std::cout << "xs " << father->uncovered_items[uncovered_item_pos].xs
+                        //    << " xe " << father->uncovered_items[uncovered_item_pos].xe
+                        //    << " ye " << father->uncovered_items[uncovered_item_pos].ys
+                        //    << " ye " << father->uncovered_items[uncovered_item_pos].ye
+                        //    << std::endl;
+                        //if (uncovered_item_pos + 1 < father->uncovered_items.size())
+                        //    std::cout << "xs " << father->uncovered_items[uncovered_item_pos + 1].xs
+                        //        << " xe " << father->uncovered_items[uncovered_item_pos + 1].xe
+                        //        << " ye " << father->uncovered_items[uncovered_item_pos + 1].ys
+                        //        << " ye " << father->uncovered_items[uncovered_item_pos + 1].ye
+                        //        << std::endl;
+                        if (uncovered_item_pos + 1 < father->uncovered_items.size()
+                                && father->uncovered_items[uncovered_item_pos + 1].xe
+                                < parameters().fixed_items->x_max()) {
+                            insertion_item_fixed(
+                                    father,
+                                    insertions,
+                                    item_type_id,
+                                    rotate,
+                                    father->uncovered_items[uncovered_item_pos].xe,
+                                    father->uncovered_items[uncovered_item_pos].ye);
+                        }
+                        if (uncovered_item_pos > 0
+                                && father->uncovered_items[uncovered_item_pos - 1].xe
+                                < parameters().fixed_items->x_max()) {
+                            insertion_item_fixed(
+                                    father,
+                                    insertions,
+                                    item_type_id,
+                                    rotate,
+                                    father->uncovered_items[uncovered_item_pos].xe,
+                                    father->uncovered_items[uncovered_item_pos].ys - yj);
+                        }
+                    }
+
+                }
+
+                if (!item_type.oriented && ok_2[item_type_id]) {
                     insertion_item(
                             father,
                             insertions,
@@ -532,6 +586,38 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                             0,  // new_bin
                             uncovered_item_pos,
                             -1);  // defect_id
+
+                    if (parameters().fixed_items != nullptr) {
+                        BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+                        const BinType& bin_type = instance().bin_type(bin_type_id);
+                        Direction o = father->last_bin_direction;
+                        bool rotate = true;
+                        Length yj = instance().y(item_type, rotate, o);
+                        if (uncovered_item_pos + 1 < father->uncovered_items.size()
+                                && father->uncovered_items[uncovered_item_pos + 1].xe
+                                < parameters().fixed_items->x_max()) {
+                            insertion_item_fixed(
+                                    father,
+                                    insertions,
+                                    item_type_id,
+                                    rotate,
+                                    father->uncovered_items[uncovered_item_pos].xe,
+                                    father->uncovered_items[uncovered_item_pos].ye);
+                        }
+                        if (uncovered_item_pos > 0
+                                && father->uncovered_items[uncovered_item_pos - 1].xe
+                                < parameters().fixed_items->x_max()) {
+                            insertion_item_fixed(
+                                    father,
+                                    insertions,
+                                    item_type_id,
+                                    rotate,
+                                    father->uncovered_items[uncovered_item_pos].xe,
+                                    father->uncovered_items[uncovered_item_pos].ys - yj);
+                        }
+                    }
+
+                }
             }
 
             // Defects.
@@ -759,6 +845,12 @@ void BranchingScheme::insertion_item(
             return;
     }
 
+    // If there are fixed items, we forbid adding an item before the end of the
+    // fixed items.
+    if (parameters().fixed_items != nullptr
+            && xs < parameters().fixed_items->x_max())
+        return;
+
     Insertion insertion;
     insertion.item_type_id = item_type_id;
     insertion.rotate = rotate;
@@ -766,6 +858,104 @@ void BranchingScheme::insertion_item(
     insertion.y = ys;
     insertion.new_bin = new_bin;
     insertions.push_back(insertion);
+}
+
+void BranchingScheme::insertion_item_fixed(
+        const std::shared_ptr<Node>& father,
+        std::vector<Insertion>& insertions,
+        ItemTypeId item_type_id,
+        bool rotate,
+        Length xs,
+        Length ys) const
+{
+    const ItemType& item_type = instance_.item_type(item_type_id);
+    BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+    const BinType& bin_type = instance().bin_type(bin_type_id);
+    Direction o = father->last_bin_direction;
+    Length xj = instance().x(item_type, rotate, o);
+    Length yj = instance().y(item_type, rotate, o);
+    Length xi = instance().x(bin_type, o);
+    Length yi = instance().y(bin_type, o);
+    Length xe = xs + xj;
+    Length ye = ys + yj;
+
+    //std::cout << "insertion_item_fixed " << item_type_id
+    //    << " xs " << xs
+    //    << " ys " << ys
+    //    << std::endl;
+
+    // Check bin y.
+    if (ys < 0)
+        return;
+    if (ye > yi)
+        return;
+    // Check bin x.
+    if (xe > xi)
+        return;
+    // Check maximum weight.
+    double last_bin_weight = father->groups.front().last_bin_weight + item_type.weight;
+    if (last_bin_weight > bin_type.maximum_weight * PSTOL)
+        return;
+
+    // Check intersections with other packed items.
+    for (const UncoveredItem& uncovered_item: father->uncovered_items) {
+        if (uncovered_item.ye <= ys || uncovered_item.ys >= ye)
+            continue;
+        if (xs < uncovered_item.xe) {
+            //std::cout << "xe " << xe << std::endl;
+            return;
+        }
+    }
+
+    // Check unloading constraints.
+    switch (instance().unloading_constraint()) {
+    case UnloadingConstraint::None: {
+        break;
+    } case UnloadingConstraint::OnlyXMovements: case::UnloadingConstraint::OnlyYMovements: {
+        // Check if an item from the uncovered item with higher group is not
+        // blocked by the new item.
+        for (const UncoveredItem& uncovered_item: father->uncovered_items) {
+            if (uncovered_item.ye <= ys || uncovered_item.ys >= ye)
+                continue;
+            if (uncovered_item.item_type_id == -1)
+                continue;
+            const ItemType& item_type_pred = instance().item_type(uncovered_item.item_type_id);
+            if (item_type.group_id > item_type_pred.group_id)
+                return;
+        }
+        break;
+    } case UnloadingConstraint::IncreasingX: case UnloadingConstraint::IncreasingY: {
+        for (GroupId group = item_type.group_id + 1; group < instance().number_of_groups(); ++group)
+            if (xs < father->groups[group].x_max)
+                return;
+        for (GroupId group = 0; group < item_type.group_id; ++group)
+            if (xs > father->groups[group].x_min)
+                return;
+        break;
+    }
+    }
+
+    // Check intersection with defects.
+    for (const Defect& defect: bin_type.defects) {
+        if (instance().x_start(defect, o) >= xs + xj)
+            continue;
+        if (xs >= instance().x_end(defect, o))
+            continue;
+        if (instance().y_start(defect, o) >= ye)
+            continue;
+        if (ys >= instance().y_end(defect, o))
+            continue;
+        return;
+    }
+
+    Insertion insertion;
+    insertion.item_type_id = item_type_id;
+    insertion.rotate = rotate;
+    insertion.x = xs;
+    insertion.y = ys;
+    insertion.new_bin = 0;
+    insertions.push_back(insertion);
+    //std::cout << "ok" << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -881,10 +1071,6 @@ bool BranchingScheme::bound(
         return (std::max(node_1->xe_max, node_1->waste + instance_.item_area() - 1)
                 / (instance().x(instance_.bin_type(0), Direction::X) + 1)) >= node_2->xe_max;
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
-        if (leaf(node_2)
-                && node_2->middle_axle_overweight == 0
-                && node_2->rear_axle_overweight == 0)
-            return true;
         return false;
     } default: {
         std::stringstream ss;
@@ -963,7 +1149,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 {
     os << "item_type_id " << uncovered_item.item_type_id
         << " xs " << uncovered_item.xs
-        << " xe " << uncovered_item.xe
+        << " xe " << uncovered_item.xe << " " << uncovered_item.xe_dominance
         << " ys " << uncovered_item.ys
         << " ye " << uncovered_item.ye
         ;

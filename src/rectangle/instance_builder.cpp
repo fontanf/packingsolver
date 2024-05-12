@@ -547,6 +547,8 @@ Instance InstanceBuilder::build()
     // Compute item type attributes.
     Area bin_types_area_max = compute_bin_types_area_max();
     instance_.all_item_types_infinite_copies_ = true;
+    instance_.smallest_item_width_ = std::numeric_limits<Length>::max();
+    instance_.smallest_item_height_ = std::numeric_limits<Length>::max();
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
@@ -560,6 +562,13 @@ Instance InstanceBuilder::build()
         // Update total_item_width_ and total_item_height_.
         instance_.total_item_width_ += item_type.copies * item_type.rect.x;
         instance_.total_item_height_ += item_type.copies * item_type.rect.y;
+        // Update smallest_item_width_ and smallest_item_height_.
+        instance_.smallest_item_width_ = std::min(instance_.smallest_item_width_, item_type.rect.x);
+        instance_.smallest_item_height_ = std::min(instance_.smallest_item_height_, item_type.rect.y);
+        if (!item_type.oriented) {
+            instance_.smallest_item_width_ = std::min(instance_.smallest_item_width_, item_type.rect.y);
+            instance_.smallest_item_height_ = std::min(instance_.smallest_item_height_, item_type.rect.x);
+        }
         // Update max_efficiency_item_type_.
         if (instance_.max_efficiency_item_type_id_ == -1
                 || instance_.item_type(instance_.max_efficiency_item_type_id_).profit

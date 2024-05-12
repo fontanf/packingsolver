@@ -204,6 +204,23 @@ std::ostream& Instance::format(
                 << std::setw(10) << item_type.stackability_id
                 << std::endl;
         }
+
+        os
+            << std::endl
+            << std::setw(10) << "Group"
+            << std::setw(30) << "Check weight constraints"
+            << std::endl
+            << std::setw(10) << "-----"
+            << std::setw(30) << "------------------------"
+            << std::endl;
+        for (GroupId group_id = 0;
+                group_id < number_of_groups();
+                ++group_id) {
+            os
+                << std::setw(10) << group_id
+                << std::setw(30) << check_weight_constraints(group_id)
+                << std::endl;
+        }
     }
 
     return os;
@@ -309,4 +326,11 @@ void Instance::write_parameters(
         << "NAME,VALUE" << std::endl
         << "unloading-constraint," << parameters_.unloading_constraint << std::endl
         ;
+    for (GroupId group_id = 0;
+            group_id < number_of_groups();
+            ++group_id) {
+        if (!check_weight_constraints(group_id)) {
+            file << "no-check-weight-constraints," << group_id << std::endl;
+        }
+    }
 }
