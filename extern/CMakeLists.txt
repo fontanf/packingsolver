@@ -1,6 +1,27 @@
 # Enable FetchContent.
 include(FetchContent)
 
+# Fetch boost.
+set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options dynamic_bitset)
+set(BOOST_ENABLE_CMAKE ON)
+include(FetchContent)
+FetchContent_Declare(
+    Boost
+    GIT_REPOSITORY https://github.com/boostorg/boost.git
+    GIT_TAG boost-1.84.0
+    GIT_SHALLOW TRUE
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(Boost)
+
+# Fetch fontanf/treesearchsolver.
+FetchContent_Declare(
+    treesearchsolver
+    GIT_REPOSITORY https://github.com/fontanf/treesearchsolver.git
+    GIT_TAG 85a4559c4f9a0166f21be97b7e439f1a23172368
+    #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../treesearchsolver/"
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(treesearchsolver)
+
 # Fetch fontanf/columngenerationsolver.
 FetchContent_Declare(
     columngenerationsolver
