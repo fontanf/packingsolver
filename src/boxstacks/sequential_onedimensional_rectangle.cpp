@@ -436,11 +436,11 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
 
         // Part of solution which is fixed.
         Solution fixed_items = fixed_items_solutions[fixed_items_solutions_pos];
-    FFOT_LOG_FOLD_START(
-            parameters.logger,
-            "iteration " << output.number_of_iterations << std::endl
-            << "fixed_items.number_of_items() " << fixed_items.number_of_items() << std::endl
-            << "fixed_items.x_max() " << fixed_items.x_max() << std::endl);
+        FFOT_LOG_FOLD_START(
+                parameters.logger,
+                "iteration " << output.number_of_iterations << std::endl
+                << "fixed_items.number_of_items() " << fixed_items.number_of_items() << std::endl
+                << "fixed_items.x_max() " << fixed_items.x_max() << std::endl);
 
         // Compute the number of copies of each item type to pack, considering
         // the part of the solution which is already fixed.
@@ -638,10 +638,10 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
         Length x_max = xi;
         bool failed_middle_axle_weight_constraint = false;
         bool failed_rear_axle_weight_constraint = false;
-        for (Counter number_of_stack_to_split = 0;
-                number_of_stack_to_split < 7;
-                ++number_of_stack_to_split) {
-            FFOT_LOG(parameters.logger, "number of splitted stacks " << number_of_stack_to_split << std::endl);
+        for (output.number_of_stack_splits = 0;
+                output.number_of_stack_splits < 7;
+                ++output.number_of_stack_splits) {
+            FFOT_LOG(parameters.logger, "number of splitted stacks " << output.number_of_stack_splits << std::endl);
 
             Area stack_area = 0;
             for (BinPos bin_pos = 0; bin_pos < fixed_items.number_of_different_bins(); ++bin_pos) {
@@ -966,7 +966,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                 if (!failed_middle_axle_weight_constraint_cur
                         && !failed_rear_axle_weight_constraint_cur
                         && fixed_items_solutions_pos == 0
-                        && number_of_stack_to_split == 0) {
+                        && output.number_of_stack_splits == 0) {
                     FFOT_LOG_FOLD_END(parameters.logger, "");
                     FFOT_LOG_FOLD_END(parameters.logger, "");
                     algorithm_formatter.end();

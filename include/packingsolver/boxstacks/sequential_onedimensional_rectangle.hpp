@@ -16,7 +16,6 @@
 #include "packingsolver/boxstacks/solution.hpp"
 
 #include "packingsolver/onedimensional/optimize.hpp"
-#include "packingsolver/rectangle/optimize.hpp"
 
 namespace packingsolver
 {
@@ -32,6 +31,9 @@ struct SequentialOneDimensionalRectangleOutput: packingsolver::Output<Instance, 
 
     /** Number of iterations. */
     Counter number_of_iterations = 0;
+
+    /** Number of stack splits. */
+    Counter number_of_stack_splits = 0;
 
     /**
      * Number of items in the solution found by the algorithm, before the

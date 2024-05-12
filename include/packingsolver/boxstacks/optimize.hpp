@@ -3,7 +3,6 @@
 #include "packingsolver/boxstacks/solution.hpp"
 
 #include "packingsolver/boxstacks/sequential_onedimensional_rectangle.hpp"
-#include "packingsolver/algorithms/sequential_value_correction.hpp"
 
 #include "columngenerationsolver/linear_programming_solver.hpp"
 
@@ -44,6 +43,8 @@ struct Output: packingsolver::Output<Instance, Solution>
      * rectangle algorithm.
      */
     double sequential_onedimensional_rectangle_rectangle_time = 0.0;
+
+    bool sequential_onedimensional_rectangle_failed = false;
 
     /** Time spent in the 'boxstacks' branching scheme. */
     double tree_search_time = 0.0;

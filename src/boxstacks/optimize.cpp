@@ -4,6 +4,8 @@
 #include "packingsolver/boxstacks/instance_builder.hpp"
 #include "packingsolver/boxstacks/branching_scheme.hpp"
 
+#include "packingsolver/algorithms/sequential_value_correction.hpp"
+
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
 #include <thread>
@@ -60,6 +62,8 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         output.sequential_onedimensional_rectangle_onedimensional_time += sor_output.onedimensional_time;
         output.sequential_onedimensional_rectangle_rectangle_time += sor_output.rectangle_time;
         output.number_of_sequential_onedimensional_rectangle_calls++;
+        if (!sor_output.solution_pool.best().full())
+            output.sequential_onedimensional_rectangle_failed = sor_output.failed;
 
         // The boxstacks branching scheme is significantly more expensive than the
         // sequential_onedimensional_rectangle algorithm. Therefore, we only use it
