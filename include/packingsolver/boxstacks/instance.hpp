@@ -146,9 +146,11 @@ struct ItemType
     /** Get the volume of the item type. */
     inline Volume volume() const { return box.volume(); }
 
+    inline Area area() const { return box.x * box.y; }
+
     inline Volume space() const { return volume(); }
 
-    bool can_rotate(int rotation) const { return ((rotations >> rotation) & 1); }
+    inline bool can_rotate(int rotation) const { return ((rotations >> rotation) & 1); }
 };
 
 std::ostream& operator<<(
@@ -195,7 +197,8 @@ struct BinType
      * Computed attributes
      */
 
-    Area area() const { return box.x * box.y; }
+    /** Get the floor area of the bin type. */
+    inline Area area() const { return box.x * box.y; }
 
     /** Get the volume of the bin type. */
     inline Volume volume() const { return box.volume(); }
@@ -272,6 +275,9 @@ public:
 
     /** Get the total volume of the bins. */
     inline Volume bin_volume() const { return bin_volume_; }
+
+    /** Get the total floor area of the bins. */
+    inline Area bin_area() const { return bin_area_; }
 
     /** Get the total weight of the bins. */
     inline Weight bin_weight() const { return bin_weight_; }
@@ -460,6 +466,9 @@ private:
 
     /** Total bin volume. */
     Volume bin_volume_ = 0;
+
+    /** Total bin floor area. */
+    Area bin_area_ = 0;
 
     /** Total weight of the bins. */
     Weight bin_weight_ = 0.0;

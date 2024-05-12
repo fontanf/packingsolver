@@ -37,6 +37,9 @@ public:
         /** End x-coordinate. */
         Length xe;
 
+        /** End x-coordinate used in dominance check. */
+        Length xe_dominance;
+
         /** Start y-coordinate. */
         Length ys;
 
@@ -227,19 +230,16 @@ public:
          * - 0: higher profit
          *      higher or lower weight
          *      everything else identical
-         *      => This strategy is designed for the case where the maximum
-         *      weight and axle weight constraints are not active.
-         * - 1: higher profit
-         *      lower weight
+         *      => This strategy is designed for the case where the axle weight
+         *      constraints are not active.
+         * - 1: lower weight
          *      everything else is identical
-         *      => This strategy is designed for the case where the maximum
-         *      weight constraint is active, but not the axle weight
-         *      constraints.
-         * - 2: higher profit
-         *      equal weight
+         *      => This strategy is designed for the case where the middle axle
+         *      weight constraint is active. constraints.
+         * - 2: higher weight
          *      everything else is identical
-         *      => This strategy is designed for the case where the maximum
-         *      weight and axle weight constraints are active.
+         *      => This strategy is designed for the case where the rear axle
+         *      weight constraints is active.
          */
         int predecessor_strategy = 0;
 
@@ -355,30 +355,58 @@ public:
             const std::shared_ptr<Node>& node_1,
             const std::shared_ptr<Node>& node_2) const
     {
+        if (instance().objective() == Objective::SequentialOneDimensionalRectangleSubproblem) {
+            if (parameters().guide_id == 8) {
+                if (striclty_greater(
+                            node_1->groups.front().last_bin_middle_axle_weight,
+                            node_2->groups.front().last_bin_middle_axle_weight)) {
+                    return false;
+                }
+            } else if (parameters().guide_id == 9) {
+                if (striclty_greater(
+                            node_1->groups.front().last_bin_rear_axle_weight,
+                            node_2->groups.front().last_bin_rear_axle_weight)) {
+                    return false;
+                }
+            }
+        }
+
         //if (unbounded_knapsck_ && node_1->profit < node_2->profit)
         //    return false;
         ItemPos pos_1 = node_1->uncovered_items.size() - 1;
         ItemPos pos_2 = node_2->uncovered_items.size() - 1;
         Length x1 = node_1->uncovered_items[pos_1].xe;
-        Length x2 = node_2->uncovered_items[pos_2].xe;
+        Length x2 = node_2->uncovered_items[pos_2].xe_dominance;
         for (;;) {
             if (x1 > x2)
                 return false;
+            // TODO handle groups.
+            //if (instance().item_type(node_1->uncovered_items[pos_1].item_type_id).group_id
+            //        < instance().item_type(node_2->uncovered_items[pos_2].item_type_id).group_id)
+            //    return false;
             if (pos_1 == 0 && pos_2 == 0)
                 return true;
             if (node_1->uncovered_items[pos_1].ys
                     == node_2->uncovered_items[pos_2].ys) {
                 pos_1--;
                 pos_2--;
-                x1 = (parameters_.staircase)? std::max(x1, node_1->uncovered_items[pos_1].xe): node_1->uncovered_items[pos_1].xe;
-                x2 = (parameters_.staircase)? std::max(x2, node_2->uncovered_items[pos_2].xe): node_2->uncovered_items[pos_2].xe;
+                x1 = (parameters_.staircase)?
+                    std::max(x1, node_1->uncovered_items[pos_1].xe_dominance):
+                    node_1->uncovered_items[pos_1].xe_dominance;
+                x2 = (parameters_.staircase)?
+                    std::max(x2, node_2->uncovered_items[pos_2].xe_dominance):
+                    node_2->uncovered_items[pos_2].xe_dominance;
             } else if (node_1->uncovered_items[pos_1].ys
                     < node_2->uncovered_items[pos_2].ys) {
                 pos_2--;
-                x2 = (parameters_.staircase)? std::max(x2, node_2->uncovered_items[pos_2].xe): node_2->uncovered_items[pos_2].xe;
+                x2 = (parameters_.staircase)?
+                    std::max(x2, node_2->uncovered_items[pos_2].xe_dominance):
+                    node_2->uncovered_items[pos_2].xe_dominance;
             } else {
                 pos_1--;
-                x1 = (parameters_.staircase)? std::max(x1, node_1->uncovered_items[pos_1].xe): node_1->uncovered_items[pos_1].xe;
+                x1 = (parameters_.staircase)?
+                    std::max(x1, node_1->uncovered_items[pos_1].xe_dominance):
+                    node_1->uncovered_items[pos_1].xe_dominance;
             }
         }
 
@@ -463,6 +491,31 @@ private:
             int8_t new_bin,
             ItemPos uncovered_item_pos,
             DefectId k) const;
+
+    /**
+     * Try inserting an item at a fixed position.
+     *
+     * This insertion has been designed for the ROADEF/EURO 2022 challenge truck
+     * loading problem. In this problem, sparse packings may be required. The
+     * support constraint is defined in such a way that if a left corner of an
+     * item touches a right corner of another item, then it is considered to be
+     * supported.
+     */
+    void insertion_item_fixed(
+            const std::shared_ptr<Node>& father,
+            std::vector<Insertion>& insertions,
+            ItemTypeId item_type_id,
+            bool rotate,
+            Length xs,
+            Length ys) const;
+
+    /**
+     * Check if an item type dominates another item type depending on the
+     * selected predecessor strategy.
+     */
+    bool dominates(
+            ItemTypeId item_type_id_1,
+            ItemTypeId item_type_id_2);
 
 };
 
@@ -575,20 +628,59 @@ inline bool BranchingScheme::operator()(
     } case 7: {
         break;
     } case 8: {
-        double guide_1 = (double)node_1->groups.front().last_bin_middle_axle_weight
-            / node_1->guide_area;
-        double guide_2 = (double)node_2->groups.front().last_bin_middle_axle_weight
-            / node_2->guide_area;
+        // Guide for problems where the middle axle weight constraint is critical.
+
+        Area area_to_pack = instance().item_area();
+        if (parameters().fixed_items != nullptr)
+            area_to_pack += parameters().fixed_items->area() - parameters().fixed_items->item_area();
+        BinPos number_of_bins = (area_to_pack - 1) / instance().bin_type(0).area() + 1;
+        Area bin_area = number_of_bins * instance().bin_type(0).area();
+        double load_ref = (double)area_to_pack / bin_area;
+        double load_1 = (double)node_1->item_area / node_1->guide_area;
+        double load_2 = (double)node_2->item_area / node_2->guide_area;
+        //std::cout << "load_1 " << load_1 << " load_2 " << load_2 << " load_ref " << load_ref << std::endl;
+        if (load_1 != load_2) {
+            if (load_1 < load_ref && load_2 < load_ref) {
+                return load_1 > load_2;
+            } else if (load_1 < load_ref) {
+                return false;
+            } else if (load_2 < load_ref) {
+                return true;
+            }
+        }
+
+        double guide_1 = (double)node_1->groups.front().last_bin_middle_axle_weight;
+        double guide_2 = (double)node_2->groups.front().last_bin_middle_axle_weight;
+        //std::cout << "guide " << guide_1 << " " << guide_2 << std::endl;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
     } case 9: {
-        double guide_1 = (double)node_1->guide_area
-            / node_1->weight_profit;
-        double guide_2 = (double)node_2->guide_area
-            / node_2->weight_profit;
+        // Guide for problems where the rear axle weight constraint is critical.
+
+        Area area_to_pack = instance().item_area();
+        if (parameters().fixed_items != nullptr)
+            area_to_pack += parameters().fixed_items->area() - parameters().fixed_items->item_area();
+        BinPos number_of_bins = (area_to_pack - 1) / instance().bin_type(0).area() + 1;
+        Area bin_area = number_of_bins * instance().bin_type(0).area();
+        double load_ref = (double)area_to_pack / bin_area;
+        double load_1 = (double)node_1->item_area / node_1->guide_area;
+        double load_2 = (double)node_2->item_area / node_2->guide_area;
+        //std::cout << "load_1 " << load_1 << " load_2 " << load_2 << " load_ref " << load_ref << std::endl;
+        if (load_1 != load_2) {
+            if (load_1 < load_ref && load_2 < load_ref) {
+                return load_1 > load_2;
+            } else if (load_1 < load_ref) {
+                return false;
+            } else if (load_2 < load_ref) {
+                return true;
+            }
+        }
+
+        double guide_1 = (double)node_1->groups.front().last_bin_weight;
+        double guide_2 = (double)node_2->groups.front().last_bin_weight;
         if (guide_1 != guide_2)
-            return guide_1 < guide_2;
+            return guide_1 > guide_2;
         break;
     }
     }

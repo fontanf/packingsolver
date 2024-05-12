@@ -2,8 +2,6 @@
 
 #include "packingsolver/boxstacks/instance.hpp"
 
-#include <sstream>
-
 namespace packingsolver
 {
 namespace boxstacks
@@ -165,8 +163,21 @@ public:
     /** Get the total volume of the bins of the solution. */
     inline Volume bin_volume() const { return bin_volume_; }
 
+    /** Get the total floor area of the bins of the solution. */
+    inline Area bin_area() const { return bin_area_; }
+
     /** Get the total weight of the bins of the solution. */
     inline Weight bin_weight() const { return bin_weight_; }
+
+    /*
+     * Getters: stacks
+     */
+
+    /** Get the number of stacks in the solution. */
+    inline ItemPos number_of_stacks() const { return number_of_stacks_; }
+
+    /** Get the total area of the stacks of the solution. */
+    inline Area stack_area() const { return stack_area_; }
 
     /*
      * Getters: items
@@ -210,6 +221,9 @@ public:
     /** Get the volume load of the solution. */
     inline double volume_load() const { return (double)item_volume() / instance().bin_volume(); }
 
+    /** Get the area load of the solution. */
+    inline double area_load() const { return (double)stack_area() / instance().bin_area(); }
+
     /** Get the weight load of the solution. */
     inline double weight_load() const { return (double)item_weight() / instance().bin_weight(); }
 
@@ -237,6 +251,20 @@ public:
     Weight compute_weight_constraints_violation() const;
 
     Weight compute_weight_constraints_violation(
+            BinTypeId bin_type_id,
+            const std::vector<Weight>& weight,
+            const std::vector<Weight>& weight_weighted_sum) const;
+
+    Weight compute_middle_axle_weight_constraints_violation() const;
+
+    Weight compute_middle_axle_weight_constraints_violation(
+            BinTypeId bin_type_id,
+            const std::vector<Weight>& weight,
+            const std::vector<Weight>& weight_weighted_sum) const;
+
+    Weight compute_rear_axle_weight_constraints_violation() const;
+
+    Weight compute_rear_axle_weight_constraints_violation(
             BinTypeId bin_type_id,
             const std::vector<Weight>& weight,
             const std::vector<Weight>& weight_weighted_sum) const;
@@ -292,6 +320,9 @@ private:
     /** Number of bins. */
     BinPos number_of_bins_ = 0;
 
+    /** Number of stacks. */
+    BinPos number_of_stacks_ = 0;
+
     /** Number of items. */
     BinPos number_of_items_ = 0;
 
@@ -300,6 +331,12 @@ private:
 
     /** Total volume of the bins of the solution. */
     Volume bin_volume_ = 0;
+
+    /** Total floor area of the bins of the solution. */
+    Area bin_area_ = 0;
+
+    /** Total area of the stacks of the solution. */
+    Area stack_area_ = 0;
 
     /** Total weight of the bins of the solution. */
     Volume bin_weight_ = 0;

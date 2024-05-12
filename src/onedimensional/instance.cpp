@@ -80,6 +80,26 @@ std::ostream& Instance::format(
 
         os
             << std::endl
+            << std::setw(12) << "Bin type"
+            << std::setw(12) << "Eligibility"
+            << std::endl
+            << std::setw(12) << "--------"
+            << std::setw(12) << "-----------"
+            << std::endl;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = this->bin_type(bin_type_id);
+            for (EligibilityId eligibility_id: bin_type.eligibility_ids) {
+                os
+                    << std::setw(12) << bin_type_id
+                    << std::setw(12) << eligibility_id
+                    << std::endl;
+            }
+        }
+
+        os
+            << std::endl
             << std::setw(12) << "Item type"
             << std::setw(12) << "Length"
             << std::setw(12) << "Weight"
@@ -87,6 +107,7 @@ std::ostream& Instance::format(
             << std::setw(12) << "MaxStck"
             << std::setw(12) << "Profit"
             << std::setw(12) << "Copies"
+            << std::setw(12) << "Eligibility"
             << std::endl
             << std::setw(12) << "---------"
             << std::setw(12) << "------"
@@ -95,6 +116,7 @@ std::ostream& Instance::format(
             << std::setw(12) << "-------"
             << std::setw(12) << "------"
             << std::setw(12) << "------"
+            << std::setw(12) << "-----------"
             << std::endl;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < number_of_item_types();
@@ -108,6 +130,7 @@ std::ostream& Instance::format(
                 << std::setw(12) << item_type.maximum_stackability
                 << std::setw(12) << item_type.profit
                 << std::setw(12) << item_type.copies
+                << std::setw(12) << item_type.eligibility_id
                 << std::endl;
         }
     }

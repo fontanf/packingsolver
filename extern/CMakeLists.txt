@@ -1,6 +1,15 @@
 # Enable FetchContent.
 include(FetchContent)
 
+# Fetch fontanf/optimizationtools.
+FetchContent_Declare(
+    optimizationtools
+    GIT_REPOSITORY https://github.com/fontanf/optimizationtools.git
+    GIT_TAG e96ddbe225c006911855a6c1ec31aa44fdacde2b
+    #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../optimizationtools/"
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(optimizationtools)
+
 # Fetch boost.
 set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options dynamic_bitset)
 set(BOOST_ENABLE_CMAKE ON)

@@ -3,7 +3,6 @@
 #include "packingsolver/boxstacks/solution.hpp"
 
 #include "packingsolver/boxstacks/sequential_onedimensional_rectangle.hpp"
-#include "packingsolver/algorithms/sequential_value_correction.hpp"
 
 #include "columngenerationsolver/linear_programming_solver.hpp"
 
@@ -11,62 +10,6 @@ namespace packingsolver
 {
 namespace boxstacks
 {
-
-struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
-{
-    /** Optimization mode. */
-    OptimizationMode optimization_mode = OptimizationMode::Anytime;
-
-
-    /** Parameters of the sequential_onedimensional_rectangle algorithm. */
-    SequentialOneDimensionalRectangleParameters sequential_onedimensional_rectangle_parameters;
-
-    /** Size of the queue in the tree search algorithm. */
-    NodeId tree_search_queue_size = -1;
-
-    /** Guides used in the tree search algorithm. */
-    std::vector<GuideId> tree_search_guides;
-
-
-    /**
-     * Time limit for the VbppToBpp bin packing sub-problem of the column
-     * generation algorithm.
-     */
-    double column_generation_vbpp_to_bpp_time_limit = -1;
-
-    /**
-     * Size of the queue for the VbppToBpp bin packing sub-problem of the
-     * column generation algorithm.
-     */
-    NodeId column_generation_vbpp_to_bpp_queue_size = 256;
-
-    /**
-     * Size of the queue for the pricing knapsack sub-problem of the column
-     * generation algorithm.
-     */
-    NodeId column_generation_pricing_queue_size = 256;
-
-    /** Linear programming solver. */
-    columngenerationsolver::LinearProgrammingSolver linear_programming_solver
-        = columngenerationsolver::LinearProgrammingSolver::CLP;
-
-
-    /**
-     * Size of the queue for the bin packing sub-problem of the dichotomic
-     * search algorithm.
-     */
-    NodeId dichotomic_search_queue_size = 32;
-
-
-    /** Parameters for the Sequential Value Correction algorithm. */
-    SequentialValueCorrectionParameters<Instance, Solution> sequential_value_correction_parameters;
-
-    /**
-     * Size of the queue for the knapsack sub-problem of the sequential value
-     * correction algorithm.
-     */
-    NodeId sequential_value_correction_queue_size = 1024;
-};
 
 struct Output: packingsolver::Output<Instance, Solution>
 {
@@ -101,6 +44,8 @@ struct Output: packingsolver::Output<Instance, Solution>
      */
     double sequential_onedimensional_rectangle_rectangle_time = 0.0;
 
+    bool sequential_onedimensional_rectangle_failed = false;
+
     /** Time spent in the 'boxstacks' branching scheme. */
     double tree_search_time = 0.0;
 
@@ -133,6 +78,61 @@ struct Output: packingsolver::Output<Instance, Solution>
      * the Sequential onedimensional rectangle algorithm.
      */
     Counter number_of_tree_search_better = 0;
+};
+
+using NewSolutionCallback = std::function<void(const Output&)>;
+
+struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
+{
+    /** Optimization mode. */
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
+
+    /** New solution callback. */
+    NewSolutionCallback new_solution_callback = [](const Output&) { };
+
+    /** Linear programming solver. */
+    columngenerationsolver::LinearProgrammingSolver linear_programming_solver
+        = columngenerationsolver::LinearProgrammingSolver::CLP;
+
+    /** Use tree search algorithm. */
+    bool use_tree_search = false;
+
+    /** Use sequential single knapsack algorithm. */
+    bool use_sequential_single_knapsack = false;
+
+    /** Parameters of the sequential_onedimensional_rectangle algorithm. */
+    SequentialOneDimensionalRectangleParameters sequential_onedimensional_rectangle_parameters;
+
+    /** Guides used in the tree search algorithm. */
+    std::vector<GuideId> tree_search_guides;
+
+    /**
+     * Size of the queue for the pricing knapsack subproblem of the sequential
+     * value correction algorithm.
+     */
+    NodeId sequential_value_correction_subproblem_queue_size = 512;
+
+    /**
+     * Size of the queue for the pricing knapsack subproblem of the column
+     * generation algorithm.
+     */
+    NodeId column_generation_subproblem_queue_size = 512;
+
+    /*
+     * Parameters for non-anytime mode
+     */
+
+    /** Size of the queue in the tree search algorithm. */
+    NodeId not_anytime_tree_search_queue_size = 512;
+
+    /**
+     * Size of the queue in the single knapsack subproblem of the sequential
+     * single knapsack algorithm.
+     */
+    NodeId not_anytime_sequential_single_knapsack_subproblem_queue_size = 512;
+
+    /** Number of iterations of the sequential value correction algorithm. */
+    Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
 };
 
 const Output optimize(
