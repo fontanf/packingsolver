@@ -305,17 +305,6 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     number_of_copies);
         }
 
-        if (instance.objective() == Objective::VariableSizedBinPacking
-                || instance.objective() == Objective::BinPacking
-                || instance.objective() == Objective::BinPackingWithLeftovers) {
-            if (solution.number_of_items() != instance.number_of_items()) {
-                throw std::runtime_error(
-                        "sequential_value_correction:"
-                        " solution.number_of_items(): " + std::to_string(solution.number_of_items())
-                        + "; instance.number_of_items(): " + std::to_string(instance.number_of_items()) + ".");
-            }
-        }
-
         //if (output.number_of_iterations > 0) {
         //    std::cout << "it " << output.number_of_iterations
         //        << " old " << output.solution_pool.best().number_of_bins()
