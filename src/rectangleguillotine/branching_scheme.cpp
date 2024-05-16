@@ -1504,12 +1504,16 @@ Solution BranchingScheme::to_solution(
         Depth df_next = (node_pos < (SolutionNodeId)descendents.size() - 1)?
             descendents[node_pos + 1]->df: -1;
 
-        // Create a new bi
+        // Create a new bin
         if (current_node->df <= -1) {
+            CutOrientation cut_orientation = (
+                    (instance().number_of_stages() == 3 && current_node->first_stage_orientation == CutOrientation::Vertical)
+                    || (instance().number_of_stages() == 2 && current_node->first_stage_orientation == CutOrientation::Horinzontal))?
+                    CutOrientation::Vertical: CutOrientation::Horinzontal;
             solution_builder.add_bin(
                     bin_type_id,
                     1,
-                    current_node->first_stage_orientation);
+                    cut_orientation);
         }
 
         // Create a new first-level sub-plate.
