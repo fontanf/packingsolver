@@ -1,3 +1,4 @@
+find_package(Threads)
 add_library(PackingSolver_rectangle)
 target_sources(PackingSolver_rectangle PRIVATE
     instance.cpp
@@ -10,7 +11,8 @@ target_include_directories(PackingSolver_rectangle PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(PackingSolver_rectangle PUBLIC
     PackingSolver_algorithms
-    TreeSearchSolver::treesearchsolver)
+    TreeSearchSolver::treesearchsolver
+    Threads::Threads)
 add_library(PackingSolver::rectangle ALIAS PackingSolver_rectangle)
 
 add_executable(PackingSolver_rectangle_main)
