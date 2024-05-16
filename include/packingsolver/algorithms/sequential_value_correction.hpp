@@ -162,15 +162,33 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
             // Find bin types to try.
             std::vector<BinTypeId> bin_type_ids;
             if (instance.objective() == Objective::VariableSizedBinPacking) {
+                // Start with mandatory bins (bin types with copies_min > 0).
+                BinTypeId smallest_mandaotry_bin_type_id = -1;
                 for (BinTypeId bin_type_id = 0;
                         bin_type_id < instance.number_of_bin_types();
                         ++bin_type_id) {
                     const auto& bin_type = instance.bin_type(bin_type_id);
-                    if (solution.bin_copies(bin_type_id) == bin_type.copies)
+                    if (solution.bin_copies(bin_type_id) >= bin_type.copies_min)
                         continue;
-                    if (bin_type.space() < largest_item_space)
-                        continue;
-                    bin_type_ids.push_back(bin_type_id);
+                    if (smallest_mandaotry_bin_type_id == -1
+                            || bin_type.space() < instance.bin_type(smallest_mandaotry_bin_type_id).space()) {
+                        smallest_mandaotry_bin_type_id = bin_type_id;
+                    }
+                }
+
+                if (smallest_mandaotry_bin_type_id != -1) {
+                    bin_type_ids.push_back(smallest_mandaotry_bin_type_id);
+                } else {
+                    for (BinTypeId bin_type_id = 0;
+                            bin_type_id < instance.number_of_bin_types();
+                            ++bin_type_id) {
+                        const auto& bin_type = instance.bin_type(bin_type_id);
+                        if (solution.bin_copies(bin_type_id) == bin_type.copies)
+                            continue;
+                        if (bin_type.space() < largest_item_space)
+                            continue;
+                        bin_type_ids.push_back(bin_type_id);
+                    }
                 }
             } else {
                 bin_type_ids.push_back(instance.bin_type_id(solution.number_of_bins()));
@@ -303,17 +321,6 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     kp_solution_best,
                     0,
                     number_of_copies);
-        }
-
-        if (instance.objective() == Objective::VariableSizedBinPacking
-                || instance.objective() == Objective::BinPacking
-                || instance.objective() == Objective::BinPackingWithLeftovers) {
-            if (solution.number_of_items() != instance.number_of_items()) {
-                throw std::runtime_error(
-                        "sequential_value_correction:"
-                        " solution.number_of_items(): " + std::to_string(solution.number_of_items())
-                        + "; instance.number_of_items(): " + std::to_string(instance.number_of_items()) + ".");
-            }
         }
 
         //if (output.number_of_iterations > 0) {

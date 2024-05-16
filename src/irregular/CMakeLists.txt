@@ -1,3 +1,4 @@
+find_package(Threads)
 add_library(PackingSolver_irregular)
 target_sources(PackingSolver_irregular PRIVATE
     instance.cpp
@@ -11,7 +12,8 @@ target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(PackingSolver_irregular PUBLIC
     PackingSolver_algorithms
-    TreeSearchSolver::treesearchsolver)
+    TreeSearchSolver::treesearchsolver
+    Threads::Threads)
 if (PackingSolver_USE_KNITRO)
     target_link_libraries(PackingSolver_irregular PUBLIC
         KnitroCpp::knitrocpp)
