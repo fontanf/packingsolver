@@ -1,3 +1,4 @@
+find_package(Threads)
 add_library(PackingSolver_onedimensional)
 target_sources(PackingSolver_onedimensional PRIVATE
     instance.cpp
@@ -10,7 +11,8 @@ target_include_directories(PackingSolver_onedimensional PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(PackingSolver_onedimensional PUBLIC
     PackingSolver_algorithms
-    TreeSearchSolver::treesearchsolver)
+    TreeSearchSolver::treesearchsolver
+    Threads::Threads)
 add_library(PackingSolver::onedimensional ALIAS PackingSolver_onedimensional)
 
 add_executable(PackingSolver_onedimensional_main)

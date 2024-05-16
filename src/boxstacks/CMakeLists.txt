@@ -1,3 +1,4 @@
+find_package(Threads)
 add_library(PackingSolver_boxstacks)
 target_sources(PackingSolver_boxstacks PRIVATE
     instance.cpp
@@ -13,7 +14,8 @@ target_link_libraries(PackingSolver_boxstacks PUBLIC
     PackingSolver_algorithms
     PackingSolver_rectangle
     PackingSolver_onedimensional
-    KnapsackSolver::multiple_choice_subset_sum::dynamic_programming_bellman)
+    KnapsackSolver::multiple_choice_subset_sum::dynamic_programming_bellman
+    Threads::Threads)
 add_library(PackingSolver::boxstacks ALIAS PackingSolver_boxstacks)
 
 add_executable(PackingSolver_boxstacks_main)
