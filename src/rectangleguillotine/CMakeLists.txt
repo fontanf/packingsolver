@@ -1,3 +1,4 @@
+find_package(Threads)
 add_library(PackingSolver_rectangleguillotine)
 target_sources(PackingSolver_rectangleguillotine PRIVATE
     instance.cpp
@@ -9,7 +10,8 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
 target_include_directories(PackingSolver_rectangleguillotine PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(PackingSolver_rectangleguillotine PUBLIC
-    PackingSolver_algorithms)
+    PackingSolver_algorithms
+    Threads::Threads)
 add_library(PackingSolver::rectangleguillotine ALIAS PackingSolver_rectangleguillotine)
 
 add_executable(PackingSolver_rectangleguillotine_main)
