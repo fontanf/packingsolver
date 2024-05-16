@@ -96,7 +96,7 @@ public:
     inline BinPos number_of_bins() const { return number_of_bins_; }
 
     /** Get the number of different bins in the solution. */
-    inline BinPos number_of_different_bins() const { return number_of_bins_; }
+    inline BinPos number_of_different_bins() const { return bins_.size(); }
 
     /** Get a bin. */
     const SolutionBin& bin(BinPos bin_pos) const { return bins_[bin_pos]; }
