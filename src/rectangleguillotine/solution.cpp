@@ -54,22 +54,38 @@ void Solution::update_indicators(
     area_ += bin.copies * bin_type.area();
     full_area_ += bin.copies * bin_type.area();
 
+    width_ = 0;
+    height_ = 0;
     for (const SolutionNode& node: bin.nodes) {
         if (node.item_type_id >= 0) {
             number_of_items_ += bin.copies;
             item_area_ += bin.copies * instance().item_type(node.item_type_id).area();
             profit_ += bin.copies * instance().item_type(node.item_type_id).profit;
             item_copies_[node.item_type_id] += bin.copies;
+
+            // Check the size of nodes containing items.
+            // TODO
         }
+
         // Subtract residual area.
         if (node.item_type_id == -3)
             area_ -= (node.t - node.b) * (node.r - node.l);
+
         // Update width_ and height_.
         if (node.r < bin_type.rect.w && width_ < node.r)
             width_ = node.r;
         if (node.t < bin_type.rect.h && height_ < node.t)
             height_ = node.t;
+
+        // Check min waste constraint.
+        // TODO
+
+        // Check consecutive cuts constraints.
+        // TODO
     }
+
+    // Check stack order.
+    // TODO
 }
 
 void Solution::append(
@@ -81,8 +97,10 @@ void Solution::append(
 {
     if (solution.number_of_different_bins() > 0) {
         SolutionNode& node = bins_.back().nodes.back();
-        if (node.item_type_id == -3)
+        if (node.item_type_id == -3) {
             node.item_type_id = -1;
+            area_ -= (node.t - node.b) * (node.r - node.l);
+        }
     }
     BinTypeId bin_type_id = (bin_type_ids.empty())?
         solution.bins_[bin_pos].bin_type_id:
@@ -237,5 +255,49 @@ void Solution::format(
             //<< "X max:            " << x_max() << std::endl
             //<< "Y max:            " << y_max() << std::endl
             ;
+    }
+    if (verbosity_level >= 2) {
+        os
+            << std::right << std::endl
+            << std::setw(12) << "Bin"
+            << std::setw(12) << "Node"
+            << std::setw(12) << "Parent"
+            << std::setw(12) << "Depth"
+            << std::setw(12) << "Left"
+            << std::setw(12) << "Right"
+            << std::setw(12) << "Bottom"
+            << std::setw(12) << "Top"
+            << std::setw(12) << "Item"
+            << std::endl
+            << std::setw(12) << "---"
+            << std::setw(12) << "----"
+            << std::setw(12) << "------"
+            << std::setw(12) << "-----"
+            << std::setw(12) << "----"
+            << std::setw(12) << "-----"
+            << std::setw(12) << "------"
+            << std::setw(12) << "---"
+            << std::setw(12) << "----"
+            << std::endl;
+        for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
+            const SolutionBin& solution_bin = bins_[bin_pos];
+            for (SolutionNodeId node_id = 0;
+                    node_id < (SolutionNodeId)solution_bin.nodes.size();
+                    ++node_id) {
+                const SolutionNode& node = solution_bin.nodes[node_id];
+                //const BinType& bin_type = instance().bin_type(bin(bin_pos).i);
+                os
+                    << std::setw(12) << bin_pos
+                    << std::setw(12) << node_id
+                    << std::setw(12) << node.f
+                    << std::setw(12) << node.d
+                    << std::setw(12) << node.l
+                    << std::setw(12) << node.r
+                    << std::setw(12) << node.b
+                    << std::setw(12) << node.t
+                    << std::setw(12) << node.item_type_id
+                    << std::endl;
+            }
+        }
     }
 }

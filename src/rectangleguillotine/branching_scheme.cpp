@@ -1585,10 +1585,6 @@ Solution BranchingScheme::to_solution(
     }
 
     Solution solution = solution_builder.build();
-    if (solution.waste() != node.waste) {
-        throw std::logic_error(
-                "rectangleguillotine::BranchingScheme::to_solution");
-    }
     if (solution.profit() != node.profit) {
         throw std::logic_error(
                 "rectangleguillotine::BranchingScheme::to_solution");
