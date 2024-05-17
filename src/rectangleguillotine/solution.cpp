@@ -95,7 +95,7 @@ void Solution::append(
         const std::vector<BinTypeId>& bin_type_ids,
         const std::vector<ItemTypeId>& item_type_ids)
 {
-    if (solution.number_of_different_bins() > 0) {
+    if (number_of_different_bins() > 0) {
         SolutionNode& node = bins_.back().nodes.back();
         if (node.item_type_id == -3) {
             node.item_type_id = -1;
