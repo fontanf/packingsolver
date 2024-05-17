@@ -4,6 +4,7 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     instance.cpp
     instance_builder.cpp
     solution.cpp
+    solution_builder.cpp
     algorithm_formatter.cpp
     optimize.cpp
     branching_scheme.cpp)

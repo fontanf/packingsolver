@@ -1,5 +1,7 @@
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
 
+#include "packingsolver/rectangleguillotine/solution_builder.hpp"
+
 #include <sstream>
 
 using namespace packingsolver;
@@ -1486,13 +1488,7 @@ Solution BranchingScheme::to_solution(
     }
     std::reverse(descendents.begin(), descendents.end());
 
-    Solution solution(instance());
-    std::vector<SolutionNode> nodes;
-
-    SolutionNodeId subplate0_curr = -1;
-    SolutionNodeId subplate1_curr = -1;
-    SolutionNodeId subplate2_curr = -1;
-    SolutionNodeId subplate3_curr = -1;
+    SolutionBuilder solution_builder(instance());
     Length subplate1_curr_x1 = -1;
     Length subplate2_curr_y2 = -1;
     for (SolutionNodeId node_pos = 0;
@@ -1500,231 +1496,47 @@ Solution BranchingScheme::to_solution(
             ++node_pos) {
 
         const Node* current_node = descendents[node_pos];
+        //std::cout << *current_node << std::endl;
         BinPos i = current_node->number_of_bins - 1;
         BinTypeId bin_type_id = instance().bin_type_id(i);
         const BinType& bin_type = instance().bin_type(bin_type_id);
-        CutOrientation o = current_node->first_stage_orientation;
         bool has_item = (current_node->item_type_id_1 != -1 || current_node->item_type_id_2 != -1);
         Depth df_next = (node_pos < (SolutionNodeId)descendents.size() - 1)?
             descendents[node_pos + 1]->df: -1;
-        //std::cout << ">>> node"
-        //    << " o " << o
-        //    << " df " << current_node->df
-        //    << " x1p " << current_node->x1_prev
-        //    << " x1c " << current_node->x1_curr
-        //    << " y2p " << current_node->y2_prev
-        //    << " y2c " << current_node->y2_curr
-        //    << " x3c " << current_node->x3_curr
-        //    << " z1 " << current_node->z1
-        //    << " z2 " << current_node->z2
-        //    << " j1 " << current_node->item_type_id_1
-        //    << " j2 " << current_node->item_type_id_2
-        //    << std::endl;
 
-        // We don't want sub-plates with children containing only waste.
-        bool b1 = (current_node->df <= -1) && (df_next <= -1) && (!has_item);
-        bool b2 = (current_node->df <= 0) && (df_next <= 0) && (!has_item);
-        bool b3 = (current_node->df <= 1) && (df_next <= 1) && (!has_item);
-
-        // Create a new bin.
+        // Create a new bin
         if (current_node->df <= -1) {
-            //std::cout << "Create a new bin..." << std::endl;
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            n.d = 0;
-            n.f = -1;
-            n.l = 0;
-            n.r = bin_type.rect.w;
-            n.b = 0;
-            n.t = bin_type.rect.h;
-            n.item_type_id = (b1)? -1: -2;
-            subplate0_curr = id;
-            NodeId father_id = id;
-
-            // Trims.
-            if (bin_type.left_trim > 0
-                    || bin_type.right_trim > 0
-                    || bin_type.bottom_trim > 0
-                    || bin_type.top_trim > 0) {
-
-                if (bin_type.left_trim != 0 && bin_type.bottom_trim != 0) {
-                    nodes.push_back(SolutionNode());
-                    SolutionNode& n = nodes.back();
-                    SolutionNodeId id = nodes.size() - 1;
-                    n.id = id;
-                    n.d = -1;
-                    n.f = father_id;
-                    n.l = 0;
-                    n.r = bin_type.left_trim;
-                    n.b = 0;
-                    n.t = bin_type.bottom_trim;
-                    n.item_type_id = -1;
-                }
-
-                if (bin_type.left_trim != 0 && bin_type.top_trim != 0) {
-                    nodes.push_back(SolutionNode());
-                    SolutionNode& n = nodes.back();
-                    SolutionNodeId id = nodes.size() - 1;
-                    n.id = id;
-                    n.d = -1;
-                    n.f = father_id;
-                    n.l = 0;
-                    n.r = bin_type.left_trim;
-                    n.b = bin_type.rect.h - bin_type.top_trim;
-                    n.t = bin_type.rect.h;
-                    n.item_type_id = -1;
-                }
-
-                if (bin_type.right_trim != 0 && bin_type.bottom_trim != 0) {
-                    nodes.push_back(SolutionNode());
-                    SolutionNode& n = nodes.back();
-                    SolutionNodeId id = nodes.size() - 1;
-                    n.id = id;
-                    n.d = -1;
-                    n.f = father_id;
-                    n.l = bin_type.rect.w - bin_type.right_trim;
-                    n.r = bin_type.rect.w;
-                    n.b = 0;
-                    n.t = bin_type.bottom_trim;
-                    n.item_type_id = -1;
-                }
-
-                if (bin_type.right_trim != 0 && bin_type.top_trim != 0) {
-                    nodes.push_back(SolutionNode());
-                    SolutionNode& n = nodes.back();
-                    SolutionNodeId id = nodes.size() - 1;
-                    n.id = id;
-                    n.d = -1;
-                    n.f = father_id;
-                    n.l = bin_type.rect.w - bin_type.right_trim;
-                    n.r = bin_type.rect.w;
-                    n.b = bin_type.rect.h - bin_type.top_trim;
-                    n.t = bin_type.rect.h;
-                    n.item_type_id = -1;
-                }
-
-                if (bin_type.left_trim != 0) {
-                    nodes.push_back(SolutionNode());
-                    SolutionNode& n = nodes.back();
-                    SolutionNodeId id = nodes.size() - 1;
-                    n.id = id;
-                    n.d = -1;
-                    n.f = father_id;
-                    n.l = 0;
-                    n.r = bin_type.left_trim;
-                    n.b = bin_type.bottom_trim;
-                    n.t = bin_type.rect.h - bin_type.top_trim;
-                    n.item_type_id = -1;
-                }
-
-                if (bin_type.bottom_trim != 0) {
-                    nodes.push_back(SolutionNode());
-                    SolutionNode& n = nodes.back();
-                    SolutionNodeId id = nodes.size() - 1;
-                    n.id = id;
-                    n.d = -1;
-                    n.f = father_id;
-                    n.l = bin_type.left_trim;
-                    n.r = bin_type.rect.w - bin_type.right_trim;
-                    n.b = 0;
-                    n.t = bin_type.bottom_trim;
-                    n.item_type_id = -1;
-                }
-
-                if (bin_type.right_trim != 0) {
-                    nodes.push_back(SolutionNode());
-                    SolutionNode& n = nodes.back();
-                    SolutionNodeId id = nodes.size() - 1;
-                    n.id = id;
-                    n.d = -1;
-                    n.f = father_id;
-                    n.l = bin_type.rect.w - bin_type.right_trim;
-                    n.r = bin_type.rect.w;
-                    n.b = bin_type.bottom_trim;
-                    n.t = bin_type.rect.h - bin_type.top_trim;
-                    n.item_type_id = -1;
-                }
-
-                if (bin_type.top_trim != 0) {
-                    nodes.push_back(SolutionNode());
-                    SolutionNode& n = nodes.back();
-                    SolutionNodeId id = nodes.size() - 1;
-                    n.id = id;
-                    n.d = -1;
-                    n.f = father_id;
-                    n.l = bin_type.left_trim;
-                    n.r = bin_type.rect.w - bin_type.right_trim;
-                    n.b = bin_type.rect.h - bin_type.top_trim;
-                    n.t = bin_type.rect.h;
-                    n.item_type_id = -1;
-                }
-
-                nodes.push_back(SolutionNode());
-                SolutionNode& n = nodes.back();
-                SolutionNodeId id = nodes.size() - 1;
-                n.id = id;
-                n.d = -1;
-                n.f = father_id;
-                n.l = bin_type.left_trim;
-                n.r = bin_type.rect.w - bin_type.right_trim;
-                n.b = bin_type.bottom_trim;
-                n.t = bin_type.rect.h - bin_type.top_trim;
-                n.item_type_id = (b1)? -1: -2;
-                subplate0_curr = id;
-            }
-
-            //std::cout << n << std::endl;
+            CutOrientation cut_orientation = (
+                    (instance().number_of_stages() == 3 && current_node->first_stage_orientation == CutOrientation::Vertical)
+                    || (instance().number_of_stages() == 2 && current_node->first_stage_orientation == CutOrientation::Horinzontal))?
+                    CutOrientation::Vertical: CutOrientation::Horinzontal;
+            solution_builder.add_bin(
+                    bin_type_id,
+                    1,
+                    cut_orientation);
         }
 
         // Create a new first-level sub-plate.
-        if (instance().number_of_stages() == 2
-                || current_node->df >= 1) {
-        } else if (b1) {
-            subplate1_curr = -1;
-        } else {
-            //std::cout << "Create a new first-level sub-plate..." << std::endl;
-            // Find subplate1_curr_x1.
-            subplate1_curr_x1 = current_node->x1_curr;
-            for (SolutionNodeId node_pos_2 = node_pos + 1;
-                    node_pos_2 < (SolutionNodeId)descendents.size()
-                    && descendents[node_pos_2]->df >= 1;
-                    node_pos_2++) {
-                subplate1_curr_x1 = descendents[node_pos_2]->x1_curr;
+        if ((current_node->df <= -1) && (df_next <= -1) && (!has_item))
+            continue;
+        if (current_node->df < 1) {
+            if (instance().number_of_stages() == 3) {
+                subplate1_curr_x1 = current_node->x1_curr;
+                for (SolutionNodeId node_pos_2 = node_pos + 1;
+                        node_pos_2 < (SolutionNodeId)descendents.size()
+                        && descendents[node_pos_2]->df >= 1;
+                        node_pos_2++) {
+                    subplate1_curr_x1 = descendents[node_pos_2]->x1_curr;
+                }
+                solution_builder.add_node(1, subplate1_curr_x1);
             }
-            //std::cout << "subplate1_curr_x1 " << subplate1_curr_x1 << std::endl;
-
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            n.d = 1;
-            n.f = subplate0_curr;
-            if (o == CutOrientation::Vertical) {
-                n.l = current_node->x1_prev;
-                n.r = subplate1_curr_x1;
-                n.b = nodes[subplate0_curr].b;
-                n.t = nodes[subplate0_curr].t;
-            } else {
-                n.l = nodes[subplate0_curr].l;
-                n.r = nodes[subplate0_curr].r;
-                n.b = current_node->x1_prev;
-                n.t = subplate1_curr_x1;
-            }
-            n.item_type_id = (b2)? -1: -2;
-            nodes[subplate0_curr].children.push_back(id);
-            subplate1_curr = id;
-            //std::cout << n << std::endl;
         }
 
         // Create a new second-level sub-plate.
-        if (current_node->df >= 2) {
-        } else if (b2) {
-            subplate2_curr = -1;
-        } else {
-            //std::cout << "Create a new second-level sub-plate..." << std::endl;
-            // Find subplate1_curr_y2.
+        if ((current_node->df <= 0) && (df_next <= 0) && (!has_item))
+            continue;
+        if (current_node->df < 2) {
+            Depth d = (instance().number_of_stages() != 2)? 2: 1;
             subplate2_curr_y2 = current_node->y2_curr;
             for (SolutionNodeId node_pos_2 = node_pos + 1;
                     node_pos_2 < (SolutionNodeId)descendents.size()
@@ -1732,299 +1544,51 @@ Solution BranchingScheme::to_solution(
                     node_pos_2++) {
                 subplate2_curr_y2 = descendents[node_pos_2]->y2_curr;
             }
-            //std::cout << "subplate2_curr_y2 " << subplate2_curr_y2 << std::endl;
-
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            SolutionNodeId s = (instance().number_of_stages() == 3)? subplate1_curr: subplate0_curr;
-            n.d = (instance().number_of_stages() != 2)? 2: 1;
-            n.f = s;
-            nodes[s].children.push_back(id);
-            if (o == CutOrientation::Vertical) {
-                n.l = nodes[s].l;
-                n.r = nodes[s].r;
-                n.b = current_node->y2_prev;
-                n.t = subplate2_curr_y2;
-            } else {
-                n.l = current_node->y2_prev;
-                n.r = subplate2_curr_y2;
-                n.b = nodes[s].b;
-                n.t = nodes[s].t;
-            }
-            n.item_type_id = (b3)? -1: -2;
-            subplate2_curr = id;
-            //std::cout << n << std::endl;
+            solution_builder.add_node(d, subplate2_curr_y2);
         }
 
         // Create a new third-level sub-plate.
-        if (b3) {
-            subplate3_curr = -1;
-        } else {
-            //std::cout << "Create a new third-level sub-plate..." << std::endl;
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            n.d = (instance().number_of_stages() != 2)? 3: 2;
-            n.f = subplate2_curr;
-            nodes[subplate2_curr].children.push_back(id);
-            if (o == CutOrientation::Vertical) {
-                n.l = x3_prev(*current_node->father, current_node->df);
-                n.r = current_node->x3_curr;
-                n.b = nodes[subplate2_curr].b;
-                n.t = nodes[subplate2_curr].t;
-            } else {
-                n.l = nodes[subplate2_curr].l;
-                n.r = nodes[subplate2_curr].r;
-                n.b = x3_prev(*current_node->father, current_node->df);
-                n.t = current_node->x3_curr;
-            }
-            n.item_type_id = (has_item)? -2: -1;
-            subplate3_curr = id;
-            //std::cout << n << std::endl;
-        }
+        if ((current_node->df <= 1) && (df_next <= 1) && (!has_item))
+            continue;
+        Depth d = (instance().number_of_stages() != 2)? 3: 2;
+        solution_builder.add_node(d, current_node->x3_curr);
 
         // Create a new fourth-level sub-plate.
-        if (has_item) {
-            //std::cout << "Create a new fourth-level sub-plate..." << std::endl;
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            n.d = (instance().number_of_stages() != 2)? 4: 3;
-            n.f = subplate3_curr;
-            nodes[subplate3_curr].children.push_back(id);
-            if (o == CutOrientation::Vertical) {
-                Length w_tmp = nodes[subplate3_curr].r - nodes[subplate3_curr].l;
-
-                n.l = nodes[subplate3_curr].l;
-                n.r = nodes[subplate3_curr].r;
-                n.b = nodes[subplate3_curr].b;
-                if (current_node->item_type_id_1 != -1) {
-                    //std::cout << instance().item_type(current_node->item_type_id_1) << std::endl;
-                    Length hj = (w_tmp == instance().item_type(current_node->item_type_id_1).rect.w)?
-                        instance().item_type(current_node->item_type_id_1).rect.h:
-                        instance().item_type(current_node->item_type_id_1).rect.w;
-                    n.t = nodes[subplate3_curr].b + hj;
-                } else if (current_node->item_type_id_2 != -1) {
-                    Length hj = (w_tmp == instance().item_type(current_node->item_type_id_2).rect.w)?
-                        instance().item_type(current_node->item_type_id_2).rect.h:
-                        instance().item_type(current_node->item_type_id_2).rect.w;
-                    n.t = nodes[subplate3_curr].t - hj;
-                } else {
-                    n.t = nodes[subplate3_curr].t;
-                }
-            } else {
-                Length h_tmp = nodes[subplate3_curr].t - nodes[subplate3_curr].b;
-
-                n.l = nodes[subplate3_curr].l;
-                if (current_node->item_type_id_1 != -1) {
-                    //std::cout << instance().item_type(current_node->item_type_id_1) << std::endl;
-                    Length wj = (h_tmp == instance().item_type(current_node->item_type_id_1).rect.h)?
-                        instance().item_type(current_node->item_type_id_1).rect.w:
-                        instance().item_type(current_node->item_type_id_1).rect.h;
-                    n.r = nodes[subplate3_curr].l + wj;
-                } else if (current_node->item_type_id_2 != -1) {
-                    Length wj = (h_tmp == instance().item_type(current_node->item_type_id_2).rect.h)?
-                        instance().item_type(current_node->item_type_id_2).rect.w:
-                        instance().item_type(current_node->item_type_id_2).rect.h;
-                    n.r = nodes[subplate3_curr].r - wj;
-                } else {
-                    n.r = nodes[subplate3_curr].r;
-                }
-                n.b = nodes[subplate3_curr].b;
-                n.t = nodes[subplate3_curr].t;
-            }
-            n.item_type_id = (current_node->item_type_id_1 != -1)? current_node->item_type_id_1: -1;
-            //std::cout << n << std::endl;
-
-            // Add an additional fourth-level sub-plate if necessary.
-            Length t = nodes.back().t;
-            Length r = nodes.back().r;
-            if (t != nodes[subplate3_curr].t) {
-                //std::cout << "Create an additional fourth-level sub-plate..." << std::endl;
-                nodes.push_back(SolutionNode());
-                SolutionNode& n = nodes.back();
-                SolutionNodeId id = nodes.size() - 1;
-                n.id = id;
-                n.d = (instance().number_of_stages() != 2)? 4: 3;
-                n.f = subplate3_curr;
-                nodes[subplate3_curr].children.push_back(id);
-                n.l = nodes[subplate3_curr].l;
-                n.r = nodes[subplate3_curr].r;
-                n.t = nodes[subplate3_curr].t;
-                if (current_node->item_type_id_2 == -1) {
-                    n.b = t;
-                    n.item_type_id = -1;
-                } else {
-                    Length w_tmp = nodes[subplate3_curr].r - nodes[subplate3_curr].l;
-                    Length hj = (w_tmp == instance().item_type(current_node->item_type_id_2).rect.w)?
-                        instance().item_type(current_node->item_type_id_2).rect.h:
-                        instance().item_type(current_node->item_type_id_2).rect.w;
-                    n.b = n.t - hj;
-                    n.item_type_id = current_node->item_type_id_2;
-                }
-                //std::cout << n << std::endl;
-            }
-            if (r != nodes[subplate3_curr].r) {
-                //std::cout << "Create an additional fourth-level sub-plate..." << std::endl;
-                nodes.push_back(SolutionNode());
-                SolutionNode& n = nodes.back();
-                SolutionNodeId id = nodes.size() - 1;
-                n.id = id;
-                n.d = (instance().number_of_stages() != 2)? 4: 3;
-                n.f = subplate3_curr;
-                nodes[subplate3_curr].children.push_back(id);
-                n.r = nodes[subplate3_curr].r;
-                n.b = nodes[subplate3_curr].b;
-                n.t = nodes[subplate3_curr].t;
-                if (current_node->item_type_id_2 == -1) {
-                    n.l = r;
-                    n.item_type_id = -1;
-                } else {
-                    Length h_tmp = nodes[subplate3_curr].t - nodes[subplate3_curr].b;
-                    Length wj = (h_tmp == instance().item_type(current_node->item_type_id_1).rect.h)?
-                        instance().item_type(current_node->item_type_id_1).rect.w:
-                        instance().item_type(current_node->item_type_id_1).rect.h;
-                    n.l = n.r - wj;
-                    n.item_type_id = current_node->item_type_id_2;
-                }
-                //std::cout << n << std::endl;
-            }
+        if (!has_item)
+            continue;
+        //std::cout << *current_node << std::endl;
+        d = (instance().number_of_stages() != 2)? 4: 3;
+        Length cut_position = -1;
+        Length w_tmp = current_node->x3_curr - x3_prev(*current_node->father, current_node->df);
+        if (current_node->item_type_id_1 != -1) {
+            //std::cout << instance().item_type(current_node->item_type_id_1) << std::endl;
+            cut_position = current_node->y2_prev + (
+                    (w_tmp == instance().item_type(current_node->item_type_id_1).rect.w)?
+                    instance().item_type(current_node->item_type_id_1).rect.h:
+                    instance().item_type(current_node->item_type_id_1).rect.w);
+        } else if (current_node->item_type_id_2 != -1) {
+            cut_position = subplate2_curr_y2 - (
+                    (w_tmp == instance().item_type(current_node->item_type_id_2).rect.w)?
+                    instance().item_type(current_node->item_type_id_2).rect.h:
+                    instance().item_type(current_node->item_type_id_2).rect.w);
         }
+        solution_builder.add_node(d, cut_position);
+        if (current_node->item_type_id_1 != -1)
+            solution_builder.set_last_node_item(current_node->item_type_id_1);
 
-        // Add waste to the right of the 2-level sub-plate.
-        if (df_next <= 1
-                && subplate3_curr != -1
-                && nodes[subplate3_curr].r != nodes[subplate2_curr].r) {
-            //std::cout << "Add waste to the right of the second-level sub-plate..." << std::endl;
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            n.d = (instance().number_of_stages() != 2)? 3: 2;
-            n.f = subplate2_curr;
-            nodes[subplate2_curr].children.push_back(id);
-            n.l = nodes[subplate3_curr].r;
-            n.r = nodes[subplate2_curr].r;
-            n.b = nodes[subplate2_curr].b;
-            n.t = nodes[subplate2_curr].t;
-            n.item_type_id = -1;
-            //std::cout << n << std::endl;
+        // Add an additional fourth-level sub-plate if necessary.
+        if (current_node->item_type_id_2 != -1) {
+            //std::cout << "subplate2_curr_y2 " << subplate2_curr_y2 << std::endl;
+            solution_builder.add_node(d, subplate2_curr_y2);
+            solution_builder.set_last_node_item(current_node->item_type_id_2);
         }
-        if (df_next <= 1
-                && subplate3_curr != -1
-                && nodes[subplate3_curr].t != nodes[subplate2_curr].t) {
-            //std::cout << "Add waste to the right of the second-level sub-plate..." << std::endl;
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            n.d = (instance().number_of_stages() != 2)? 3: 2;
-            n.f = subplate2_curr;
-            nodes[subplate2_curr].children.push_back(id);
-            n.l = nodes[subplate2_curr].l;
-            n.r = nodes[subplate2_curr].r;
-            n.b = nodes[subplate3_curr].t;
-            n.t = nodes[subplate2_curr].t;
-            n.item_type_id = -1;
-            //std::cout << n << std::endl;
-        }
-
-        // Add waste at the top of the 1-level sub-plate.
-        SolutionNodeId s = (instance().number_of_stages() == 3)? subplate1_curr: subplate0_curr;
-        if (df_next <= 0
-                && subplate2_curr != -1
-                && nodes[subplate2_curr].t != nodes[s].t) {
-            //std::cout << "Add waste at the top of the first-level sub-plate..." << std::endl;
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            n.d = (instance().number_of_stages() != 2)? 2: 1;
-            n.f = s;
-            nodes[s].children.push_back(id);
-            n.l = nodes[s].l;
-            n.r = nodes[s].r;
-            n.b = nodes[subplate2_curr].t;
-            n.t = nodes[s].t;
-            // Might be the residual if two-staged.
-            n.item_type_id = (instance().number_of_stages() == 2 && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
-            //std::cout << n << std::endl;
-        }
-        if (df_next <= 0
-                && subplate2_curr != -1
-                && nodes[subplate2_curr].r != nodes[s].r) {
-            //std::cout << "Add waste at the top of the first-level sub-plate..." << std::endl;
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            n.d = (instance().number_of_stages() != 2)? 2: 1;
-            n.f = s;
-            nodes[s].children.push_back(id);
-            n.l = nodes[subplate2_curr].r;
-            n.r = nodes[s].r;
-            n.b = nodes[s].b;
-            n.t = nodes[s].t;
-            // Might be the residual if two-staged.
-            n.item_type_id = (instance().number_of_stages() == 2 && node_pos == (SolutionNodeId)descendents.size() - 1)? -3: -1;
-            //std::cout << n << std::endl;
-        }
-
-        // Add waste to the right of the plate.
-        if (instance().number_of_stages() != 2
-                && df_next <= -1
-                && subplate1_curr != -1
-                && nodes[subplate1_curr].r != nodes[subplate0_curr].r) {
-            //std::cout << "Add waste to the right of the plate..." << std::endl;
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            n.d = 1;
-            n.f = subplate0_curr;
-            nodes[subplate0_curr].children.push_back(id);
-            n.l = nodes[subplate1_curr].r;
-            n.r = nodes[subplate0_curr].r;
-            n.b = nodes[subplate0_curr].b;
-            n.t = nodes[subplate0_curr].t;
-            // Might be the residual.
-            n.item_type_id = (node_pos < (SolutionNodeId)descendents.size() - 1)? -1: -3;
-            //std::cout << n << std::endl;
-        }
-        if (instance().number_of_stages() != 2
-                && df_next <= -1
-                && subplate1_curr != -1
-                && nodes[subplate1_curr].t != nodes[subplate0_curr].t) {
-            //std::cout << "Add waste to the right of the plate..." << std::endl;
-            nodes.push_back(SolutionNode());
-            SolutionNode& n = nodes.back();
-            SolutionNodeId id = nodes.size() - 1;
-            n.id = id;
-            n.d = 1;
-            n.f = subplate0_curr;
-            nodes[subplate0_curr].children.push_back(id);
-            n.l = nodes[subplate0_curr].l;
-            n.r = nodes[subplate0_curr].r;
-            n.b = nodes[subplate1_curr].t;
-            n.t = nodes[subplate0_curr].t;
-            // Might be the residual.
-            n.item_type_id = (node_pos < (SolutionNodeId)descendents.size() - 1)? -1: -3;
-            //std::cout << n << std::endl;
-        }
-
-        // If the next node is a new bin or this is the last node, add the bin
-        // to the solution.
-        if (df_next < 0) {
-            solution.add_bin(bin_type.id, nodes);
-            nodes.clear();
-        }
-
     }
 
+    Solution solution = solution_builder.build();
+    if (solution.profit() != node.profit) {
+        throw std::logic_error(
+                "rectangleguillotine::BranchingScheme::to_solution");
+    }
     return solution;
 }
 
