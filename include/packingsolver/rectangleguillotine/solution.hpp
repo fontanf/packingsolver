@@ -21,8 +21,6 @@ using SolutionNodeId = int64_t;
 
 struct SolutionNode
 {
-    SolutionNodeId id;
-
     SolutionNodeId f;
 
     Depth d;
@@ -41,6 +39,9 @@ struct SolutionBin
 
     /** Number of copies. */
     BinPos copies;
+
+    /** First cut orientation. */
+    CutOrientation first_cut_orientation;
 
     /** Nodes. */
     std::vector<SolutionNode> nodes;
@@ -64,10 +65,6 @@ public:
         bin_copies_(instance.number_of_bin_types(), 0),
         item_copies_(instance.number_of_item_types(), 0)
     { }
-
-    BinPos add_bin(
-            BinTypeId bin_type_id,
-            const std::vector<SolutionNode>& nodes);
 
     void append(
             const Solution& solution,
@@ -185,9 +182,8 @@ private:
      * Private methods
      */
 
-    void add_node(
-            BinPos bin_pos,
-            const SolutionNode& node);
+    void update_indicators(
+            BinPos bin_pos);
 
     /*
      * Private attributes
@@ -243,6 +239,8 @@ private:
 
     /** Height of the solution. */
     Length height_ = 0;
+
+    friend class SolutionBuilder;
 
 };
 

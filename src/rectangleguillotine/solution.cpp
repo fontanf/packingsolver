@@ -11,9 +11,11 @@ using namespace packingsolver::rectangleguillotine;
 ///////////////////////////////////// Node /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-std::ostream& print(std::ostream& os,
+std::ostream& print(
+        std::ostream& os,
         const std::vector<SolutionNode>& res,
-        SolutionNodeId id, std::string tab)
+        SolutionNodeId id,
+        std::string tab)
 {
     os << tab << res[id] << std::endl;
     for (SolutionNodeId c: res[id].children)
@@ -26,7 +28,6 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         const SolutionNode& node)
 {
     os
-        << "id " << node.id
         << " f " << node.f
         << " d " << node.d
         << " l " << node.l
@@ -41,51 +42,50 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 /////////////////////////////////// Solution ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-BinPos Solution::add_bin(
-        BinTypeId bin_type_id,
-        const std::vector<SolutionNode>& nodes)
+void Solution::update_indicators(
+        BinPos bin_pos)
 {
-    BinPos bin_pos = bins_.size();
-    SolutionBin solution_bin;
-    solution_bin.bin_type_id = bin_type_id;
-    solution_bin.copies = 1;
-    bins_.push_back(solution_bin);
+    const SolutionBin& bin = bins_[bin_pos];
 
-    number_of_bins_++;
-    bin_copies_[bin_type_id]++;
-    const BinType& bin_type = instance().bin_type(bin_type_id);
-    cost_ += bin_type.cost;
-    area_ += bin_type.area();
-    full_area_ += bin_type.area();
+    number_of_bins_ += bin.copies;
+    bin_copies_[bin.bin_type_id] += bin.copies;
+    const BinType& bin_type = instance().bin_type(bin.bin_type_id);
+    cost_ += bin.copies * bin_type.cost;
+    area_ += bin.copies * bin_type.area();
+    full_area_ += bin.copies * bin_type.area();
 
-    for (const SolutionNode& node: nodes)
-        add_node(bin_pos, node);
+    width_ = 0;
+    height_ = 0;
+    for (const SolutionNode& node: bin.nodes) {
+        if (node.item_type_id >= 0) {
+            number_of_items_ += bin.copies;
+            item_area_ += bin.copies * instance().item_type(node.item_type_id).area();
+            profit_ += bin.copies * instance().item_type(node.item_type_id).profit;
+            item_copies_[node.item_type_id] += bin.copies;
 
-    return bin_pos;
-}
+            // Check the size of nodes containing items.
+            // TODO
+        }
 
-void Solution::add_node(
-        BinPos bin_pos,
-        const SolutionNode& node)
-{
-    BinTypeId bin_type_id = bins_[bin_pos].bin_type_id;
-    const BinType& bin_type = instance().bin_type(bin_type_id);
+        // Subtract residual area.
+        if (node.item_type_id == -3)
+            area_ -= (node.t - node.b) * (node.r - node.l);
 
-    bins_[bin_pos].nodes.push_back(node);
-    if (node.d >= 0)
-    if (node.item_type_id >= 0) {
-        number_of_items_++;
-        item_area_ += instance().item_type(node.item_type_id).area();
-        profit_ += instance().item_type(node.item_type_id).profit;
-        item_copies_[node.item_type_id]++;
+        // Update width_ and height_.
+        if (node.r < bin_type.rect.w && width_ < node.r)
+            width_ = node.r;
+        if (node.t < bin_type.rect.h && height_ < node.t)
+            height_ = node.t;
+
+        // Check min waste constraint.
+        // TODO
+
+        // Check consecutive cuts constraints.
+        // TODO
     }
-    if (node.item_type_id == -3) // Subtract residual area
-        area_ -= (node.t - node.b) * (node.r - node.l);
-    // Update width_ and height_
-    if (node.r < bin_type.rect.w && width_ < node.r)
-        width_ = node.r;
-    if (node.t < bin_type.rect.h && height_ < node.t)
-        height_ = node.t;
+
+    // Check stack order.
+    // TODO
 }
 
 void Solution::append(
@@ -95,21 +95,28 @@ void Solution::append(
         const std::vector<BinTypeId>& bin_type_ids,
         const std::vector<ItemTypeId>& item_type_ids)
 {
+    if (number_of_different_bins() > 0) {
+        SolutionNode& node = bins_.back().nodes.back();
+        if (node.item_type_id == -3) {
+            node.item_type_id = -1;
+            area_ -= (node.t - node.b) * (node.r - node.l);
+        }
+    }
     BinTypeId bin_type_id = (bin_type_ids.empty())?
         solution.bins_[bin_pos].bin_type_id:
         bin_type_ids[solution.bins_[bin_pos].bin_type_id];
-    for (BinPos copie = 0; copie < copies; ++copie) {
-        BinPos i_pos = add_bin(bin_type_id, {});
-        for (SolutionNode node: solution.bin(bin_pos).nodes) {
-            if (node.item_type_id >= 0)
-                node.item_type_id = (item_type_ids.empty())?
-                    node.item_type_id:
-                    item_type_ids[node.item_type_id];
-            if (node.item_type_id == -3)
-                node.item_type_id = -1;
-            add_node(i_pos, node);
-        }
+    SolutionBin bin;
+    bin.bin_type_id = bin_type_id;
+    bin.copies = copies;
+    for (SolutionNode node: solution.bin(bin_pos).nodes) {
+        if (node.item_type_id >= 0)
+            node.item_type_id = (item_type_ids.empty())?
+                node.item_type_id:
+                item_type_ids[node.item_type_id];
+        bin.nodes.push_back(node);
     }
+    bins_.push_back(bin);
+    update_indicators(bins_.size() - 1);
 }
 
 void Solution::append(
@@ -117,8 +124,8 @@ void Solution::append(
         const std::vector<BinTypeId>& bin_type_ids,
         const std::vector<ItemTypeId>& item_type_ids)
 {
-    for (BinPos i = 0; i < solution.number_of_bins(); ++i)
-        append(solution, i, 1, bin_type_ids, item_type_ids);
+    for (BinPos bin_pos = 0; bin_pos < solution.number_of_bins(); ++bin_pos)
+        append(solution, bin_pos, 1, bin_type_ids, item_type_ids);
 }
 
 bool Solution::operator<(const Solution& solution) const
@@ -187,10 +194,13 @@ void Solution::write(
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& solution_bin = bins_[bin_pos];
         for (BinPos copie = 0; copie < solution_bin.copies; ++copie) {
-            for (const SolutionNode& n: solution_bin.nodes) {
+            for (SolutionNodeId node_id = 0;
+                    node_id < (SolutionNodeId)solution_bin.nodes.size();
+                    ++node_id) {
+                const SolutionNode& n = solution_bin.nodes[node_id];
                 file
                     << bin_pos << ","
-                    << offset + n.id << ","
+                    << offset + node_id << ","
                     << n.l << ","
                     << n.b << ","
                     << n.r - n.l << ","
@@ -245,5 +255,49 @@ void Solution::format(
             //<< "X max:            " << x_max() << std::endl
             //<< "Y max:            " << y_max() << std::endl
             ;
+    }
+    if (verbosity_level >= 2) {
+        os
+            << std::right << std::endl
+            << std::setw(12) << "Bin"
+            << std::setw(12) << "Node"
+            << std::setw(12) << "Parent"
+            << std::setw(12) << "Depth"
+            << std::setw(12) << "Left"
+            << std::setw(12) << "Right"
+            << std::setw(12) << "Bottom"
+            << std::setw(12) << "Top"
+            << std::setw(12) << "Item"
+            << std::endl
+            << std::setw(12) << "---"
+            << std::setw(12) << "----"
+            << std::setw(12) << "------"
+            << std::setw(12) << "-----"
+            << std::setw(12) << "----"
+            << std::setw(12) << "-----"
+            << std::setw(12) << "------"
+            << std::setw(12) << "---"
+            << std::setw(12) << "----"
+            << std::endl;
+        for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
+            const SolutionBin& solution_bin = bins_[bin_pos];
+            for (SolutionNodeId node_id = 0;
+                    node_id < (SolutionNodeId)solution_bin.nodes.size();
+                    ++node_id) {
+                const SolutionNode& node = solution_bin.nodes[node_id];
+                //const BinType& bin_type = instance().bin_type(bin(bin_pos).i);
+                os
+                    << std::setw(12) << bin_pos
+                    << std::setw(12) << node_id
+                    << std::setw(12) << node.f
+                    << std::setw(12) << node.d
+                    << std::setw(12) << node.l
+                    << std::setw(12) << node.r
+                    << std::setw(12) << node.b
+                    << std::setw(12) << node.t
+                    << std::setw(12) << node.item_type_id
+                    << std::endl;
+            }
+        }
     }
 }
