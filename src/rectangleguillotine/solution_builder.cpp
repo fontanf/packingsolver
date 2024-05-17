@@ -322,9 +322,9 @@ Solution SolutionBuilder::build()
     }
     // Set residual.
     if (solution_.number_of_different_bins() > 0) {
-        SolutionBin& bin = solution_.bins_.back();
-        if (bin.nodes.back().item_type_id == -1)
-            bin.nodes.back().item_type_id = -3;
+        SolutionNode& node = solution_.bins_.back().nodes.back();
+        if (node.item_type_id == -1 && node.d == 1)
+            node.item_type_id = -3;
     }
 
     // Compute indicators.
