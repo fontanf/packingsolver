@@ -26,7 +26,7 @@ FetchContent_MakeAvailable(Boost)
 FetchContent_Declare(
     treesearchsolver
     GIT_REPOSITORY https://github.com/fontanf/treesearchsolver.git
-    GIT_TAG 85a4559c4f9a0166f21be97b7e439f1a23172368
+    GIT_TAG 7d75ba2950c6866d2fdf6d7ac145ee971ae97ce3
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../treesearchsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(treesearchsolver)

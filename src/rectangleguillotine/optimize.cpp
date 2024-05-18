@@ -3,10 +3,11 @@
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
-#include "packingsolver/algorithms/iterative_beam_search.hpp"
 #include "packingsolver/algorithms/dichotomic_search.hpp"
 #include "packingsolver/algorithms/sequential_value_correction.hpp"
 #include "packingsolver/algorithms/column_generation.hpp"
+
+#include "treesearchsolver/iterative_beam_search_2.hpp"
 
 #include <thread>
 
@@ -46,7 +47,7 @@ void optimize_tree_search(
         growth_factors = {1.5};
 
     std::vector<BranchingScheme> branching_schemes;
-    std::vector<IterativeBeamSearchParameters> ibs_parameterss;
+    std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameterss;
     std::vector<rectangleguillotine::Output> outputs;
     for (double growth_factor: growth_factors) {
         for (GuideId guide_id: guides) {
@@ -56,14 +57,14 @@ void optimize_tree_search(
                 branching_scheme_parameters.guide_id = guide_id;
                 branching_scheme_parameters.first_stage_orientation = first_stage_orientation;
                 branching_schemes.push_back(BranchingScheme(instance, branching_scheme_parameters));
-                IterativeBeamSearchParameters ibs_parameters;
+                treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
                 ibs_parameters.verbosity_level = 0;
                 ibs_parameters.timer = parameters.timer;
                 ibs_parameters.growth_factor = growth_factor;
                 if (parameters.optimization_mode != OptimizationMode::Anytime) {
-                    ibs_parameters.queue_size_min
+                    ibs_parameters.minimum_size_of_the_queue
                         = parameters.not_anytime_tree_search_queue_size;
-                    ibs_parameters.queue_size_max
+                    ibs_parameters.maximum_size_of_the_queue
                         = parameters.not_anytime_tree_search_queue_size + 1;
                 }
                 ibs_parameterss.push_back(ibs_parameters);
@@ -77,35 +78,37 @@ void optimize_tree_search(
         if (parameters.optimization_mode == OptimizationMode::Anytime) {
             ibs_parameterss[i].new_solution_callback
                 = [&algorithm_formatter, &branching_schemes, i](
-                        const packingsolver::Output<Instance, Solution>& tss_output)
+                        const treesearchsolver::Output<BranchingScheme>& tss_output)
                 {
-                    const IterativeBeamSearchOutput& tssibs_output
-                        = static_cast<const IterativeBeamSearchOutput&>(tss_output);
-                    const Solution& solution = tssibs_output.solution_pool.best();
+                    const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
+                        = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
+                    Solution solution = branching_schemes[i].to_solution(
+                            tssibs_output.solution_pool.best());
                     std::stringstream ss;
                     ss << "TS g " << branching_schemes[i].parameters().guide_id
                         << " d " << branching_schemes[i].parameters().first_stage_orientation
-                        << " q " << tssibs_output.queue_size_max;
+                        << " q " << tssibs_output.maximum_size_of_the_queue;
                     algorithm_formatter.update_solution(solution, ss.str());
                 };
         } else {
             ibs_parameterss[i].new_solution_callback
-                = [&outputs, i](
-                        const packingsolver::Output<Instance, Solution>& tss_output)
+                = [&outputs, &branching_schemes, i](
+                        const treesearchsolver::Output<BranchingScheme>& tss_output)
                 {
-                    const IterativeBeamSearchOutput& tssibs_output
-                        = static_cast<const IterativeBeamSearchOutput&>(tss_output);
-                    const Solution& solution = tssibs_output.solution_pool.best();
+                    const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
+                        = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
+                    Solution solution = branching_schemes[i].to_solution(
+                            tssibs_output.solution_pool.best());
                     outputs[i].solution_pool.add(solution);
                 };
         }
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             threads.push_back(std::thread(
-                        iterative_beam_search<BranchingScheme>,
+                        treesearchsolver::iterative_beam_search_2<BranchingScheme>,
                         std::ref(branching_schemes[i]),
                         ibs_parameterss[i]));
         } else {
-            iterative_beam_search<BranchingScheme>(
+            treesearchsolver::iterative_beam_search_2<BranchingScheme>(
                     branching_schemes[i],
                     ibs_parameterss[i]);
         }

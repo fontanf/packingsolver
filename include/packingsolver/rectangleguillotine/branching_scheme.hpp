@@ -4,6 +4,8 @@
 
 #include "optimizationtools/utils/utils.hpp"
 
+#include "treesearchsolver/common.hpp"
+
 namespace packingsolver
 {
 namespace rectangleguillotine
@@ -242,32 +244,57 @@ public:
      * Branching scheme methods
      */
 
-    std::vector<Insertion> insertions(
+    const std::vector<Insertion>& insertions(
             const std::shared_ptr<Node>& father) const;
 
-    std::shared_ptr<Node> child(
+    Node child_tmp(
             const std::shared_ptr<Node>& father,
             const Insertion& insertion) const;
 
+    std::shared_ptr<Node> child(
+            const std::shared_ptr<Node>& father,
+            const Insertion& insertion) const
+    {
+        return std::shared_ptr<Node>(new Node(child_tmp(father, insertion)));
+    }
+
     const std::shared_ptr<Node> root() const;
+
+    std::vector<std::shared_ptr<Node>> children(
+            const std::shared_ptr<Node>& father) const;
 
     inline bool operator()(
             const std::shared_ptr<Node>& node_1,
             const std::shared_ptr<Node>& node_2) const;
 
-    inline bool leaf(
-            const Node& node) const
+    inline treesearchsolver::Depth depth(
+            const std::shared_ptr<Node>& node) const
     {
-        return node.number_of_items == instance_.number_of_items();
+        return node->number_of_items;
+    }
+
+    inline bool leaf(
+            const std::shared_ptr<Node>& node) const
+    {
+        return node->number_of_items == instance_.number_of_items();
     }
 
     bool bound(
-            const Node&,
-            const Solution& solution_best) const;
+            const std::shared_ptr<Node>& node_1,
+            const std::shared_ptr<Node>& node_2) const;
 
     bool better(
-            const Node& node,
-            const Solution& solution_best) const;
+            const std::shared_ptr<Node>& node_1,
+            const std::shared_ptr<Node>& node_2) const;
+
+    bool equals(
+            const std::shared_ptr<Node>& node_1,
+            const std::shared_ptr<Node>& node_2) const
+    {
+        (void)node_1;
+        (void)node_2;
+        return false;
+    }
 
     /*
      * Dominances
@@ -302,15 +329,27 @@ public:
 
     inline NodeHasher node_hasher() const { return NodeHasher(); }
 
-    bool dominates(
+    inline bool dominates(
             const std::shared_ptr<Node>& node_1,
             const std::shared_ptr<Node>& node_2) const
     {
         return dominates(front(*node_1), front(*node_2));
     }
 
+    /*
+     * Outputs
+     */
+
+    std::string display(const std::shared_ptr<Node>& node) const
+    {
+        std::stringstream ss;
+        //ss << node->waste;
+        ss << node->profit;
+        return ss.str();
+    }
+
     Solution to_solution(
-            const Node& node) const;
+            const std::shared_ptr<Node>& node) const;
 
 private:
 
@@ -347,6 +386,8 @@ private:
     /** Orientation of the last bin. */
     mutable CutOrientation o = CutOrientation::Vertical;
 
+    mutable std::vector<Insertion> insertions_;
+
     /*
      * Private methods
      */
@@ -359,6 +400,8 @@ private:
     Front front(const Node&) const;
 
     bool dominates(const Front& f1, const Front& f2) const;
+
+    inline bool full(const Node& node) const { return node.number_of_items == instance_.number_of_items(); }
 
     /** Get the percentage of item inserted into a node. */
     inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
@@ -465,7 +508,6 @@ private:
     /** Insertion of one item. */
     void insertion_1_item(
             const Node& father,
-            std::vector<Insertion>& insertions,
             ItemTypeId item_type_id,
             bool rotate,
             Depth df) const;
@@ -473,7 +515,6 @@ private:
     /** Insertion of two items. */
     void insertion_2_items(
             const Node& father,
-            std::vector<Insertion>& insertions,
             ItemTypeId item_type_id_1,
             bool rotate1,
             ItemTypeId item_type_id_2,
@@ -483,14 +524,12 @@ private:
     /** Insertion of a defect. */
     void insertion_defect(
             const Node& father,
-            std::vector<Insertion>& insertions,
             DefectId defect_id,
             Depth df) const;
 
     /** Update insertion (x1, z1, y2, z2) and add insertion to insertions. */
     void update(
             const Node& father,
-            std::vector<Insertion>& insertions,
             Insertion& insertion) const;
 
     bool check(const std::vector<SolutionNode>& nodes) const;
@@ -515,6 +554,47 @@ std::ostream& operator<<(
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Inlined methods ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+inline bool BranchingScheme::dominates(
+        const Front& f1,
+        const Front& f2) const
+{
+    if (f1.i < f2.i)
+        return true;
+    if (f1.i == f2.i && f1.o == f2.o) {
+        if (f1.x1_curr <= f2.x1_prev)
+            return true;
+        if (f1.x1_prev <= f2.x1_prev
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_curr <= f2.y2_prev)
+            return true;
+        BinTypeId bin_type_id = instance().bin_type_id(f1.i);
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        Length h = instance().height(bin_type, f1.o);
+        if (f1.y2_curr != h
+                && f1.x1_prev <= f2.x1_prev
+                && f1.x3_curr <= f2.x3_curr
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_prev <= f2.y2_prev
+                && f1.y2_curr <= f2.y2_curr)
+            return true;
+        if (f2.y2_curr == h
+                && f1.x1_prev >= f2.x1_prev
+                && f1.x3_curr <= f2.x3_curr
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_prev <= f2.y2_prev
+                && f1.y2_curr <= f2.y2_curr)
+            return true;
+        if (f1.y2_curr != h
+                && f2.y2_curr == h
+                && f1.x3_curr <= f2.x3_curr
+                && f1.x1_curr <= f2.x1_curr
+                && f1.y2_prev <= f2.y2_prev
+                && f1.y2_curr <= f2.y2_curr)
+            return true;
+    }
+    return false;
+}
 
 inline Profit BranchingScheme::ubkp(const Node& node) const
 {
