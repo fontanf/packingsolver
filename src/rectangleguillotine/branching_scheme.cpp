@@ -81,7 +81,7 @@ const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
     node.id = node_id_;
     node_id_++;
     node.pos_stack = std::vector<ItemPos>(instance().number_of_stacks(), 0);
-    return std::shared_ptr<Node>(new BranchingScheme::Node(node));
+    return std::make_shared<Node>(node);
 }
 
 bool BranchingScheme::bound(
@@ -450,7 +450,7 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
     insertions(father);
     std::vector<std::shared_ptr<Node>> cs(insertions_.size());
     for (Counter i = 0; i < (Counter)insertions_.size(); ++i)
-        cs[i] = std::shared_ptr<Node>(new Node(child_tmp(father, insertions_[i])));
+        cs[i] = std::make_shared<Node>(child_tmp(father, insertions_[i]));
     return cs;
 }
 
