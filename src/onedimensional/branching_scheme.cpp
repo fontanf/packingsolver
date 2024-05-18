@@ -19,13 +19,12 @@ BranchingScheme::BranchingScheme(
 /////////////////////////////////// children ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
+BranchingScheme::Node BranchingScheme::child_tmp(
         const std::shared_ptr<Node>& pfather,
         const Insertion& insertion) const
 {
     const Node& father = *pfather;
-    auto pnode = std::shared_ptr<Node>(new BranchingScheme::Node());
-    Node& node = static_cast<Node&>(*pnode);
+    Node node;
     const ItemType& item_type = instance().item_type(insertion.item_type_id);
 
     node.father = pfather;
@@ -70,28 +69,26 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     node.current_length = instance_.previous_bin_length(i) + node.last_bin_length;
     node.waste = node.current_length - node.item_length;
 
-    pnode->id = node_id_++;
-    return pnode;
+    node.id = node_id_++;
+    return node;
 }
 
 std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
         const std::shared_ptr<Node>& father) const
 {
-    auto is = insertions(father);
-    std::vector<std::shared_ptr<Node>> cs;
-    for (const Insertion& insertion: is)
-        cs.push_back(child(father, insertion));
+    insertions(father);
+    std::vector<std::shared_ptr<Node>> cs(insertions_.size());
+    for (Counter i = 0; i < (Counter)insertions_.size(); ++i)
+        cs[i] = std::make_shared<Node>(child_tmp(father, insertions_[i]));
     return cs;
 }
 
-std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
+const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         const std::shared_ptr<Node>& father) const
 {
     //std::cout << "insertions" << std::endl;
-    if (leaf(father))
-        return {};
 
-    std::vector<Insertion> insertions;
+    insertions_.clear();
 
     // Insert an item in the same bin.
     if (father->number_of_bins > 0) {
@@ -101,28 +98,27 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             const ItemType& item_type = instance_.item_type(item_type_id);
             if (father->item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
-            insertion_item_same_bin(father, insertions, item_type_id);
+            insertion_item_same_bin(father, item_type_id);
         }
     }
 
     // Insert in a new bin.
-    if (insertions.empty() && father->number_of_bins < instance().number_of_bins()) {
+    if (insertions_.empty() && father->number_of_bins < instance().number_of_bins()) {
         BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins);
         const BinType& bin_type = instance().bin_type(bin_type_id);
         for (ItemTypeId item_type_id: bin_type.item_type_ids) {
             const ItemType& item_type = instance_.item_type(item_type_id);
             if (father->item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
-            insertion_item_new_bin(father, insertions, item_type_id);
+            insertion_item_new_bin(father, item_type_id);
         }
     }
 
-    return insertions;
+    return insertions_;
 }
 
 void BranchingScheme::insertion_item_same_bin(
         const std::shared_ptr<Node>& father,
-        std::vector<Insertion>& insertions,
         ItemTypeId item_type_id) const
 {
     const ItemType& item_type = instance_.item_type(item_type_id);
@@ -148,12 +144,11 @@ void BranchingScheme::insertion_item_same_bin(
     Insertion insertion;
     insertion.item_type_id = item_type_id;
     insertion.new_bin = false;
-    insertions.push_back(insertion);
+    insertions_.push_back(insertion);
 }
 
 void BranchingScheme::insertion_item_new_bin(
         const std::shared_ptr<Node>& father,
-        std::vector<Insertion>& insertions,
         ItemTypeId item_type_id) const
 {
     //std::cout << "insertion_item " << item_type_id << std::endl;
@@ -170,7 +165,7 @@ void BranchingScheme::insertion_item_new_bin(
     Insertion insertion;
     insertion.item_type_id = item_type_id;
     insertion.new_bin = true;
-    insertions.push_back(insertion);
+    insertions_.push_back(insertion);
 }
 
 bool BranchingScheme::dominates(
@@ -191,7 +186,7 @@ const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
     BranchingScheme::Node node;
     node.item_number_of_copies = std::vector<ItemPos>(instance_.number_of_item_types(), 0);
     node.id = node_id_++;
-    return std::shared_ptr<Node>(new BranchingScheme::Node(node));
+    return std::make_shared<Node>(node);
 }
 
 bool BranchingScheme::better(

@@ -138,13 +138,12 @@ BranchingScheme::BranchingScheme(
 /////////////////////////////////// children ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
+BranchingScheme::Node BranchingScheme::child_tmp(
         const std::shared_ptr<Node>& pfather,
         const Insertion& insertion) const
 {
     const Node& father = *pfather;
-    auto pnode = std::shared_ptr<Node>(new BranchingScheme::Node());
-    Node& node = static_cast<Node&>(*pnode);
+    Node node;
 
     const ItemType& item_type = instance().item_type(insertion.item_type_id);
     node.father = pfather;
@@ -442,21 +441,21 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     }
     node.groups[item_type.group_id].number_of_items++;
 
-    pnode->id = node_id_++;
-    return pnode;
+    node.id = node_id_++;
+    return node;
 }
 
 std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
         const std::shared_ptr<Node>& father) const
 {
-    auto is = insertions(father);
-    std::vector<std::shared_ptr<Node>> cs;
-    for (const Insertion& insertion: is)
-        cs.push_back(child(father, insertion));
+    insertions(father);
+    std::vector<std::shared_ptr<Node>> cs(insertions_.size());
+    for (Counter i = 0; i < (Counter)insertions_.size(); ++i)
+        cs[i] = std::make_shared<Node>(child_tmp(father, insertions_[i]));
     return cs;
 }
 
-std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
+const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         const std::shared_ptr<Node>& father) const
 {
     //std::cout << "id " << father->id
@@ -472,10 +471,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
     //    std::cout << " item_type_id " << node->item_type_id << " x " << node->x << " y " << node->y << " r " << node->rotate << std::endl;
     //}
 
-    if (leaf(father))
-        return {};
-
-    std::vector<Insertion> insertions;
+    insertions_.clear();
 
     std::vector<bool> ok(instance_.number_of_item_types(), true);
     std::vector<bool> ok_1(instance_.number_of_item_types(), true);
@@ -521,7 +517,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                 if (ok_1[item_type_id]) {
                     insertion_item(
                             father,
-                            insertions,
                             item_type_id,
                             false,  // rotate
                             0,  // new_bin
@@ -556,7 +551,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                                 < parameters().fixed_items->x_max()) {
                             insertion_item_fixed(
                                     father,
-                                    insertions,
                                     item_type_id,
                                     rotate,
                                     father->uncovered_items[uncovered_item_pos].xe,
@@ -567,7 +561,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                                 < parameters().fixed_items->x_max()) {
                             insertion_item_fixed(
                                     father,
-                                    insertions,
                                     item_type_id,
                                     rotate,
                                     father->uncovered_items[uncovered_item_pos].xe,
@@ -580,7 +573,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                 if (!item_type.oriented && ok_2[item_type_id]) {
                     insertion_item(
                             father,
-                            insertions,
                             item_type_id,
                             true,  // rotate
                             0,  // new_bin
@@ -598,7 +590,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                                 < parameters().fixed_items->x_max()) {
                             insertion_item_fixed(
                                     father,
-                                    insertions,
                                     item_type_id,
                                     rotate,
                                     father->uncovered_items[uncovered_item_pos].xe,
@@ -609,7 +600,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                                 < parameters().fixed_items->x_max()) {
                             insertion_item_fixed(
                                     father,
-                                    insertions,
                                     item_type_id,
                                     rotate,
                                     father->uncovered_items[uncovered_item_pos].xe,
@@ -626,7 +616,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                 if (ok_1[item_type_id])
                     insertion_item(
                             father,
-                            insertions,
                             item_type_id,
                             false,  // rotate
                             0,  // new_bin
@@ -636,7 +625,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                 if (!item_type.oriented && ok_2[item_type_id])
                     insertion_item(
                             father,
-                            insertions,
                             item_type_id,
                             true,  // rotate
                             0,  // new_bin
@@ -647,7 +635,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
     }
 
     // Insert in a new bin.
-    if (insertions.empty() && father->number_of_bins < instance().number_of_bins()) {
+    if (insertions_.empty() && father->number_of_bins < instance().number_of_bins()) {
         BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins);
         const BinType& bin_type = instance().bin_type(bin_type_id);
 
@@ -680,7 +668,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             if (ok_1[item_type_id])
                 insertion_item(
                         father,
-                        insertions,
                         item_type_id,
                         false,
                         new_bin,
@@ -690,7 +677,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
             if (!item_type.oriented && ok_2[item_type_id])
                 insertion_item(
                         father,
-                        insertions,
                         item_type_id,
                         true,  // rotate
                         new_bin,
@@ -703,7 +689,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                 if (ok_1[item_type_id])
                     insertion_item(
                             father,
-                            insertions,
                             item_type_id,
                             false,  // rotate
                             new_bin,
@@ -713,7 +698,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                 if (!item_type.oriented && ok_2[item_type_id])
                     insertion_item(
                             father,
-                            insertions,
                             item_type_id,
                             true,  // rotate
                             new_bin,
@@ -723,12 +707,11 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
         }
     }
 
-    return insertions;
+    return insertions_;
 }
 
 void BranchingScheme::insertion_item(
         const std::shared_ptr<Node>& father,
-        std::vector<Insertion>& insertions,
         ItemTypeId item_type_id,
         bool rotate,
         int8_t new_bin,
@@ -857,12 +840,11 @@ void BranchingScheme::insertion_item(
     insertion.x = xs;
     insertion.y = ys;
     insertion.new_bin = new_bin;
-    insertions.push_back(insertion);
+    insertions_.push_back(insertion);
 }
 
 void BranchingScheme::insertion_item_fixed(
         const std::shared_ptr<Node>& father,
-        std::vector<Insertion>& insertions,
         ItemTypeId item_type_id,
         bool rotate,
         Length xs,
@@ -954,7 +936,7 @@ void BranchingScheme::insertion_item_fixed(
     insertion.x = xs;
     insertion.y = ys;
     insertion.new_bin = 0;
-    insertions.push_back(insertion);
+    insertions_.push_back(insertion);
     //std::cout << "ok" << std::endl;
 }
 
@@ -965,7 +947,7 @@ void BranchingScheme::insertion_item_fixed(
 const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
 {
     if (root_ != nullptr)
-        return std::shared_ptr<Node>(new BranchingScheme::Node(*root_));
+        return std::make_shared<Node>(*root_);
 
     BranchingScheme::Node node;
     node.item_number_of_copies = std::vector<ItemPos>(instance_.number_of_item_types(), 0);
@@ -974,7 +956,7 @@ const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
         node.groups[group_id].x_min = std::numeric_limits<Length>::max();
     }
     node.id = node_id_++;
-    return std::shared_ptr<Node>(new BranchingScheme::Node(node));
+    return std::make_shared<Node>(node);
 }
 
 bool BranchingScheme::better(
