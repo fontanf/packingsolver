@@ -1,6 +1,7 @@
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "packingsolver/rectangleguillotine/branching_scheme.hpp"
-#include "packingsolver/algorithms/iterative_beam_search.hpp"
+
+#include "treesearchsolver/iterative_beam_search_2.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -40,7 +41,8 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     instance_builder.add_defect(0, 3100, 600, 2, 2);
     Instance instance = instance_builder.build();
 
-    BranchingScheme branching_scheme(instance);
+    BranchingScheme::Parameters branching_scheme_parameters;
+    BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -2, 3210, 3000, 3210, 3210, 6000, 0, 0};
@@ -53,7 +55,7 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
     auto node_2 = branching_scheme.child(node_1, i1);
 
-    auto solution = branching_scheme.to_solution(*node_2);
+    auto solution = branching_scheme.to_solution(node_2);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
@@ -70,8 +72,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
     BranchingScheme::Parameters branching_scheme_parameters;
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-    auto output = iterative_beam_search(branching_scheme);
-    EXPECT_EQ(output.solution_pool.best().waste(), 0);
+    auto output = treesearchsolver::iterative_beam_search_2(branching_scheme);
+    EXPECT_EQ(branching_scheme.to_solution(output.solution_pool.best()).waste(), 0);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
@@ -88,8 +90,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
     BranchingScheme::Parameters branching_scheme_parameters;
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-    auto output = iterative_beam_search(branching_scheme);
-    EXPECT_EQ(output.solution_pool.best().waste(), 210 * 5700);
+    auto output = treesearchsolver::iterative_beam_search_2(branching_scheme);
+    EXPECT_EQ(branching_scheme.to_solution(output.solution_pool.best()).waste(), 210 * 5700);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
@@ -107,8 +109,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     SolutionPool<Instance, Solution> solution_pool(instance, 1);
-    auto output = iterative_beam_search(branching_scheme);
-    EXPECT_EQ(output.solution_pool.best().waste(), 0);
+    auto output = treesearchsolver::iterative_beam_search_2(branching_scheme);
+    EXPECT_EQ(branching_scheme.to_solution(output.solution_pool.best()).waste(), 0);
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
@@ -146,8 +148,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
     BranchingScheme::Parameters branching_scheme_parameters;
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-    auto output = iterative_beam_search(branching_scheme);
-    EXPECT_EQ(output.solution_pool.best().waste(), 3210 * (6000 + 210) - instance.item_area());
+    auto output = treesearchsolver::iterative_beam_search_2(branching_scheme);
+    EXPECT_EQ(branching_scheme.to_solution(output.solution_pool.best()).waste(), 3210 * (6000 + 210) - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
@@ -182,8 +184,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect1)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    auto output = iterative_beam_search(branching_scheme);
-    EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
+    auto output = treesearchsolver::iterative_beam_search_2(branching_scheme);
+    EXPECT_EQ(branching_scheme.to_solution(output.solution_pool.best()).waste(), 3210 * 1500 - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
@@ -219,8 +221,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect2)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    auto output = iterative_beam_search(branching_scheme);
-    EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 1500 - instance.item_area());
+    auto output = treesearchsolver::iterative_beam_search_2(branching_scheme);
+    EXPECT_EQ(branching_scheme.to_solution(output.solution_pool.best()).waste(), 3210 * 1500 - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
@@ -257,8 +259,8 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect3)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    auto output = iterative_beam_search(branching_scheme);
-    EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 6000 - instance.item_area());
+    auto output = treesearchsolver::iterative_beam_search_2(branching_scheme);
+    EXPECT_EQ(branching_scheme.to_solution(output.solution_pool.best()).waste(), 3210 * 6000 - instance.item_area());
 }
 
 TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
@@ -296,6 +298,6 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationDefect4)
     branching_scheme_parameters.guide_id = 6;
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
 
-    auto output = iterative_beam_search(branching_scheme);
-    EXPECT_EQ(output.solution_pool.best().waste(), 3210 * 3000 - instance.item_area());
+    auto output = treesearchsolver::iterative_beam_search_2(branching_scheme);
+    EXPECT_EQ(branching_scheme.to_solution(output.solution_pool.best()).waste(), 3210 * 3000 - instance.item_area());
 }

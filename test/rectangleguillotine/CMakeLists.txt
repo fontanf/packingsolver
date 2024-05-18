@@ -12,6 +12,7 @@ target_sources(PackingSolver_rectangleguillotine_test PRIVATE
 target_link_libraries(PackingSolver_rectangleguillotine_test
     PackingSolver_rectangleguillotine
     PackingSolver_algorithms
+    TreeSearchSolver::treesearchsolver
     Boost::filesystem
     GTest::gtest_main)
 gtest_discover_tests(PackingSolver_rectangleguillotine_test
