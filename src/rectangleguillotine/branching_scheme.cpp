@@ -85,23 +85,23 @@ const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
 }
 
 bool BranchingScheme::bound(
-        const Node& node,
-        const Solution& solution_best) const
+        const std::shared_ptr<Node>& node_1,
+        const std::shared_ptr<Node>& node_2) const
 {
-    switch (solution_best.instance().objective()) {
+    switch (instance().objective()) {
     case Objective::Default: {
-        if (!solution_best.full()) {
-            return (ubkp(node) <= solution_best.profit());
+        if (!leaf(node_2)) {
+            return (ubkp(*node_1) <= node_2->profit);
         } else {
-            if (ubkp(node) != solution_best.profit())
-                return (ubkp(node) <= solution_best.profit());
-            return node.waste >= solution_best.waste();
+            if (ubkp(*node_1) != node_2->profit)
+                return (ubkp(*node_1) <= node_2->profit);
+            return node_1->waste >= node_2->waste;
         }
     } case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
-        if (!solution_best.full())
+        if (!leaf(node_2))
             return false;
         BinPos bin_pos = -1;
-        Area a = instance().item_area() + node.waste;
+        Area a = instance().item_area() + node_1->waste;
         while (a > 0) {
             bin_pos++;
             if (bin_pos >= instance().number_of_bins())
@@ -109,21 +109,21 @@ bool BranchingScheme::bound(
             BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
             a -= instance().bin_type(bin_type_id).area();
         }
-        return (bin_pos + 1 >= solution_best.number_of_bins());
+        return (bin_pos + 1 >= node_2->number_of_bins);
     } case Objective::BinPackingWithLeftovers: {
-        if (!solution_best.full())
+        if (!leaf(node_2))
             return false;
-        return node.waste >= solution_best.waste();
+        return node_1->waste >= node_2->waste;
     } case Objective::Knapsack: {
-        return ubkp(node) <= solution_best.profit();
+        return ubkp(*node_1) <= node_2->profit;
     } case Objective::OpenDimensionX: {
-        if (!solution_best.full())
+        if (!leaf(node_2))
             return false;
-        return std::max(width(node), (node.waste + instance().item_area() - 1) / instance().height(instance().bin_type(0), CutOrientation::Vertical) + 1) >= solution_best.width();
+        return std::max(width(*node_1), (node_1->waste + instance().item_area() - 1) / instance().height(instance().bin_type(0), CutOrientation::Vertical) + 1) >= width(*node_2);
     } case Objective::OpenDimensionY: {
-        if (!solution_best.full())
+        if (!leaf(node_2))
             return false;
-        return std::max(height(node), (node.waste + instance().item_area() - 1) / instance().height(instance().bin_type(0), CutOrientation::Horinzontal) + 1) >= solution_best.height();
+        return std::max(height(*node_1), (node_1->waste + instance().item_area() - 1) / instance().height(instance().bin_type(0), CutOrientation::Horinzontal) + 1) >= height(*node_2);
     } default: {
         std::stringstream ss;
         ss << "Branching scheme 'rectangleguillotine::BranchingScheme'"
@@ -135,42 +135,42 @@ bool BranchingScheme::bound(
 }
 
 bool BranchingScheme::better(
-        const Node& node,
-        const Solution& solution_best) const
+        const std::shared_ptr<Node>& node_1,
+        const std::shared_ptr<Node>& node_2) const
 {
     switch (instance().objective()) {
     case Objective::Default: {
-        if (solution_best.profit() > node.profit)
+        if (node_2->profit > node_1->profit)
             return false;
-        if (solution_best.profit() < node.profit)
+        if (node_2->profit < node_1->profit)
             return true;
-        return solution_best.waste() > node.waste;
+        return node_2->waste > node_1->waste;
     } case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
-        if (!leaf(node))
+        if (!leaf(node_1))
             return false;
-        if (!solution_best.full())
+        if (!leaf(node_2))
             return true;
-        return solution_best.number_of_bins() > node.number_of_bins;
+        return node_2->number_of_bins > node_1->number_of_bins;
     } case Objective::BinPackingWithLeftovers: {
-        if (!leaf(node))
+        if (!leaf(node_1))
             return false;
-        if (!solution_best.full())
+        if (!leaf(node_2))
             return true;
-        return solution_best.waste() > node.waste;
+        return node_2->waste > node_1->waste;
     } case Objective::OpenDimensionX: {
-        if (!leaf(node))
+        if (!leaf(node_1))
             return false;
-        if (!solution_best.full())
+        if (!leaf(node_2))
             return true;
-        return solution_best.width() > width(node);
+        return width(*node_2) > width(*node_1);
     } case Objective::OpenDimensionY: {
-        if (!leaf(node))
+        if (!leaf(node_1))
             return false;
-        if (!solution_best.full())
+        if (!leaf(node_2))
             return true;
-        return solution_best.height() > height(node);
+        return height(*node_2) > height(*node_1);
     } case Objective::Knapsack: {
-        return solution_best.profit() < node.profit;
+        return node_2->profit < node_1->profit;
     } default: {
         std::stringstream ss;
         ss << "Branching scheme 'rectangleguillotine::BranchingScheme'"
@@ -179,47 +179,6 @@ bool BranchingScheme::better(
         return false;
     }
     }
-}
-
-bool BranchingScheme::dominates(
-        const Front& f1,
-        const Front& f2) const
-{
-    if (f1.i < f2.i)
-        return true;
-    if (f1.i == f2.i && f1.o == f2.o) {
-        if (f1.x1_curr <= f2.x1_prev)
-            return true;
-        if (f1.x1_prev <= f2.x1_prev
-                && f1.x1_curr <= f2.x1_curr
-                && f1.y2_curr <= f2.y2_prev)
-            return true;
-        BinTypeId bin_type_id = instance().bin_type_id(f1.i);
-        const BinType& bin_type = instance().bin_type(bin_type_id);
-        Length h = instance().height(bin_type, f1.o);
-        if (f1.y2_curr != h
-                && f1.x1_prev <= f2.x1_prev
-                && f1.x3_curr <= f2.x3_curr
-                && f1.x1_curr <= f2.x1_curr
-                && f1.y2_prev <= f2.y2_prev
-                && f1.y2_curr <= f2.y2_curr)
-            return true;
-        if (f2.y2_curr == h
-                && f1.x1_prev >= f2.x1_prev
-                && f1.x3_curr <= f2.x3_curr
-                && f1.x1_curr <= f2.x1_curr
-                && f1.y2_prev <= f2.y2_prev
-                && f1.y2_curr <= f2.y2_curr)
-            return true;
-        if (f1.y2_curr != h
-                && f2.y2_curr == h
-                && f1.x3_curr <= f2.x3_curr
-                && f1.x1_curr <= f2.x1_curr
-                && f1.y2_prev <= f2.y2_prev
-                && f1.y2_curr <= f2.y2_curr)
-            return true;
-    }
-    return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -359,14 +318,13 @@ BranchingScheme::Front BranchingScheme::front(
     }
 }
 
-std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
+BranchingScheme::Node BranchingScheme::child_tmp(
         const std::shared_ptr<Node>& pfather,
         const Insertion& insertion) const
 {
     const Node& father = *pfather;
     assert(insertion.df <= -1 || insertion.x1 >= father.x1_curr);
-    auto pnode = std::shared_ptr<Node>(new BranchingScheme::Node());
-    Node& node = *pnode;
+    Node node;
 
     node.id = node_id_;
     node_id_++;
@@ -472,7 +430,7 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
 
     // Update current_area_ and waste_
     node.current_area = instance().previous_bin_area(i);
-    if (leaf(node)) {
+    if (full(node)) {
         node.current_area += (instance().number_of_stages() == 3)?
             (node.x1_curr - instance().left_trim(bin_type, o)) * h:
             (node.y2_curr - instance().bottom_trim(bin_type, o)) * w;
@@ -483,18 +441,24 @@ std::shared_ptr<BranchingScheme::Node> BranchingScheme::child(
     }
     node.waste = node.current_area - node.item_area;
     assert(node.waste >= 0);
-    return pnode;
+    return node;
 }
 
-std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
+std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
+        const std::shared_ptr<Node>& father) const
+{
+    insertions(father);
+    std::vector<std::shared_ptr<Node>> cs(insertions_.size());
+    for (Counter i = 0; i < (Counter)insertions_.size(); ++i)
+        cs[i] = std::shared_ptr<Node>(new Node(child_tmp(father, insertions_[i])));
+    return cs;
+}
+
+const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         const std::shared_ptr<Node>& pfather) const
 {
     const Node& father = *pfather;
-
-    if (leaf(father))
-        return {};
-
-    std::vector<Insertion> insertions;
+    insertions_.clear();
 
     // Compute df_min
     Depth df_min = -2;
@@ -535,7 +499,7 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
 
         // Simple dominance rule
         bool stop = false;
-        for (const Insertion& insertion: insertions) {
+        for (const Insertion& insertion: insertions_) {
             if (insertion.item_type_id_1 == -1 && insertion.item_type_id_2 == -1)
                 continue;
             if (df == 1
@@ -574,20 +538,17 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                 bool b = item_type.rect.w > item_type.rect.h;
                 insertion_1_item(
                         father,
-                        insertions,
                         item_type_id,
                         !b,  // rotate
                         df);
                 insertion_1_item(
                         father,
-                        insertions,
                         item_type_id,
                         b,  // rotate
                         df);
             } else {
                 insertion_1_item(
                         father,
-                        insertions,
                         item_type_id,
                         false,  // rotate
                         df);
@@ -631,7 +592,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                     if (wj == wj2)
                         insertion_2_items(
                                 father,
-                                insertions,
                                 item_type_id,
                                 false,  // rotate_1
                                 item_type_id_2,
@@ -641,7 +601,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                         if (wj == wj2r)
                             insertion_2_items(
                                     father,
-                                    insertions,
                                     item_type_id,
                                     false,  // rotate_1
                                     item_type_id_2,
@@ -651,7 +610,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                         if (wjr == wj2)
                             insertion_2_items(
                                     father,
-                                    insertions,
                                     item_type_id,
                                     true,  // rotate_1
                                     item_type_id_2,
@@ -661,7 +619,6 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                             if (wjr == wj2r)
                                 insertion_2_items(
                                         father,
-                                        insertions,
                                         item_type_id,
                                         true,  // rotate_1
                                         item_type_id_2,
@@ -680,12 +637,11 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
                     ++defect_id) {
                 const Defect& defect = bin_type.defects[defect_id];
                 if (instance().left(defect, o) >= x && instance().bottom(defect, o) >= y)
-                    insertion_defect(father, insertions, defect_id, df);
+                    insertion_defect(father, defect_id, df);
             }
         }
     }
-
-    return insertions;
+    return insertions_;
 }
 
 Area BranchingScheme::waste(
@@ -791,7 +747,6 @@ BranchingScheme::Front BranchingScheme::front(
 
 void BranchingScheme::insertion_1_item(
         const Node& father,
-        std::vector<Insertion>& insertions,
         ItemTypeId item_type_id,
         bool rotate,
         Depth df) const
@@ -854,12 +809,11 @@ void BranchingScheme::insertion_1_item(
             || instance().cut_type() == CutType::Homogenous)
         insertion.z2 = 2;
 
-    update(father, insertions, insertion);
+    update(father, insertion);
 }
 
 void BranchingScheme::insertion_2_items(
         const Node& father,
-        std::vector<Insertion>& insertions,
         ItemTypeId item_type_id_1,
         bool rotate1,
         ItemTypeId item_type_id_2,
@@ -906,12 +860,11 @@ void BranchingScheme::insertion_2_items(
         x, y, x,
         x1_max(father, df), y2_max(father, df, x), 0, 2};
 
-    update(father, insertions, insertion);
+    update(father, insertion);
 }
 
 void BranchingScheme::insertion_defect(
         const Node& father,
-        std::vector<Insertion>& insertions,
         DefectId defect_id,
         Depth df) const
 {
@@ -944,12 +897,11 @@ void BranchingScheme::insertion_defect(
         x, y, x,
         x1_max(father, df), y2_max(father, df, x), 1, 1};
 
-    update(father, insertions, insertion);
+    update(father, insertion);
 }
 
 void BranchingScheme::update(
         const Node& father, 
-        std::vector<Insertion>& insertions,
         Insertion& insertion) const
 {
     Length min_waste = instance().min_waste();
@@ -1336,7 +1288,7 @@ void BranchingScheme::update(
     }
 
     // Check dominance
-    for (auto it = insertions.begin(); it != insertions.end();) {
+    for (auto it = insertions_.begin(); it != insertions_.end();) {
         bool b = true;
         if (insertion.item_type_id_1 == -1 && insertion.item_type_id_2 == -1
                 && it->item_type_id_1 == -1 && it->item_type_id_2 == -1) {
@@ -1355,12 +1307,12 @@ void BranchingScheme::update(
                 && (it->item_type_id_1 == insertion.item_type_id_1 || it->item_type_id_1 == insertion.item_type_id_2)
                 && (it->item_type_id_2 == insertion.item_type_id_2 || it->item_type_id_2 == insertion.item_type_id_1)) {
             if (dominates(front(father, insertion), front(father, *it))) {
-                if (std::next(it) != insertions.end()) {
-                    *it = insertions.back();
-                    insertions.pop_back();
+                if (std::next(it) != insertions_.end()) {
+                    *it = insertions_.back();
+                    insertions_.pop_back();
                     b = false;
                 } else {
-                    insertions.pop_back();
+                    insertions_.pop_back();
                     break;
                 }
             }
@@ -1369,7 +1321,7 @@ void BranchingScheme::update(
             ++it;
     }
 
-    insertions.push_back(insertion);
+    insertions_.push_back(insertion);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1478,10 +1430,10 @@ bool BranchingScheme::BranchingScheme::check(
 */
 
 Solution BranchingScheme::to_solution(
-        const Node& node) const
+        const std::shared_ptr<Node>& node) const
 {
     std::vector<const BranchingScheme::Node*> descendents;
-    for (const Node* current_node = &node;
+    for (const Node* current_node = node.get();
             current_node->father != nullptr;
             current_node = current_node->father.get()) {
         descendents.push_back(current_node);
@@ -1585,7 +1537,7 @@ Solution BranchingScheme::to_solution(
     }
 
     Solution solution = solution_builder.build();
-    if (solution.profit() != node.profit) {
+    if (solution.profit() != node->profit) {
         throw std::logic_error(
                 "rectangleguillotine::BranchingScheme::to_solution");
     }

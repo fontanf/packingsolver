@@ -12,6 +12,7 @@ target_include_directories(PackingSolver_rectangleguillotine PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(PackingSolver_rectangleguillotine PUBLIC
     PackingSolver_algorithms
+    TreeSearchSolver::treesearchsolver
     Threads::Threads)
 add_library(PackingSolver::rectangleguillotine ALIAS PackingSolver_rectangleguillotine)
 
