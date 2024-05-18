@@ -66,16 +66,16 @@ if args.tests is None or "rectangleguillotine-strip-packing-tree-search" in args
     print()
 
     data = [
-            (os.path.join("berkey1987", "Class_01.2bp_40_1"), " --bin-infinite-y"),
-            (os.path.join("berkey1987", "Class_02.2bp_40_1"), " --bin-infinite-y"),
-            (os.path.join("berkey1987", "Class_03.2bp_40_1"), " --bin-infinite-y"),
-            (os.path.join("berkey1987", "Class_04.2bp_40_1"), " --bin-infinite-y"),
-            (os.path.join("berkey1987", "Class_05.2bp_40_1"), " --bin-infinite-y"),
-            (os.path.join("berkey1987", "Class_06.2bp_40_1"), " --bin-infinite-y"),
-            (os.path.join("martello1998", "Class_07.2bp_40_1"), " --bin-infinite-y"),
-            (os.path.join("martello1998", "Class_08.2bp_40_1"), " --bin-infinite-y"),
-            (os.path.join("martello1998", "Class_09.2bp_40_1"), " --bin-infinite-y"),
-            (os.path.join("martello1998", "Class_10.2bp_40_1"), " --bin-infinite-y")]
+            (os.path.join("berkey1987", "Class_01.2bp_40_1"), " --bin-infinite-x"),
+            (os.path.join("berkey1987", "Class_02.2bp_40_1"), " --bin-infinite-x"),
+            (os.path.join("berkey1987", "Class_03.2bp_40_1"), " --bin-infinite-x"),
+            (os.path.join("berkey1987", "Class_04.2bp_40_1"), " --bin-infinite-x"),
+            (os.path.join("berkey1987", "Class_05.2bp_40_1"), " --bin-infinite-x"),
+            (os.path.join("berkey1987", "Class_06.2bp_40_1"), " --bin-infinite-x"),
+            (os.path.join("martello1998", "Class_07.2bp_40_1"), " --bin-infinite-x"),
+            (os.path.join("martello1998", "Class_08.2bp_40_1"), " --bin-infinite-x"),
+            (os.path.join("martello1998", "Class_09.2bp_40_1"), " --bin-infinite-x"),
+            (os.path.join("martello1998", "Class_10.2bp_40_1"), " --bin-infinite-x")]
     for instance, options in data:
         instance_path = os.path.join(
                 "data",
@@ -93,7 +93,7 @@ if args.tests is None or "rectangleguillotine-strip-packing-tree-search" in args
                 + "  --verbosity-level 1"
                 + "  --items \"" + instance_path + "\""
                 + options
-                + " --objective open-dimension-y"
+                + " --objective open-dimension-x"
                 + "  --use-tree-search 1"
                 + " --optimization-mode not-anytime"
                 + "  --output \"" + json_output_path + "\"")
