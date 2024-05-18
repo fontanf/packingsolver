@@ -127,12 +127,19 @@ public:
      * Branching scheme methods
      */
 
-    std::vector<Insertion> insertions(
+    const std::vector<Insertion>& insertions(
             const std::shared_ptr<Node>& father) const;
+
+    Node child_tmp(
+            const std::shared_ptr<Node>& father,
+            const Insertion& insertion) const;
 
     std::shared_ptr<Node> child(
             const std::shared_ptr<Node>& father,
-            const Insertion& insertion) const;
+            const Insertion& insertion) const
+    {
+        return std::shared_ptr<Node>(new Node(child_tmp(father, insertion)));
+    }
 
     const std::shared_ptr<Node> root() const;
 
@@ -228,6 +235,8 @@ private:
 
     mutable Counter node_id_ = 0;
 
+    mutable std::vector<Insertion> insertions_;
+
     /*
      * Private methods
      */
@@ -266,13 +275,11 @@ private:
     /** Insertion of one item in the same bin. */
     void insertion_item_same_bin(
             const std::shared_ptr<Node>& father,
-            std::vector<Insertion>& insertions,
             ItemTypeId item_type_id) const;
 
     /** Insertion of an item in a new bin. */
     void insertion_item_new_bin(
             const std::shared_ptr<Node>& father,
-            std::vector<Insertion>& insertions,
             ItemTypeId item_type_id) const;
 
 };
