@@ -7,7 +7,8 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     solution_builder.cpp
     algorithm_formatter.cpp
     optimize.cpp
-    branching_scheme.cpp)
+    branching_scheme.cpp
+    branching_scheme_n.cpp)
 target_include_directories(PackingSolver_rectangleguillotine PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(PackingSolver_rectangleguillotine PUBLIC

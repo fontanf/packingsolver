@@ -154,6 +154,7 @@ void SolutionBuilder::add_bin(
 void SolutionBuilder::set_last_node_item(
         ItemTypeId item_type_id)
 {
+    //std::cout << "set_last_node_item item_type_id " << item_type_id << std::endl;
     if (solution_.bins_.empty()) {
         throw std::logic_error(
                 "rectangleguillotine::SolutionBuilder::set_last_node_item: "
@@ -166,9 +167,10 @@ void SolutionBuilder::set_last_node_item(
 
 void SolutionBuilder::add_node(
         Depth depth,
-        Length cut_position)
+        Length cut_position,
+        bool is_size)
 {
-    //std::cout << "add_node depth " << depth << " cut_position " << cut_position << std::endl;
+    //std::cout << "add_node depth " << depth << " cut_position " << cut_position << " is_size " << is_size << std::endl;
     if (solution_.bins_.empty()) {
         throw std::logic_error(
                 "rectangleguillotine::SolutionBuilder::add_node: "
@@ -243,7 +245,7 @@ void SolutionBuilder::add_node(
             || (bin.first_cut_orientation == CutOrientation::Horinzontal
                 && depth % 2 == 0)) {
         child.l = (parent.children.empty())? parent.l: bin.nodes[parent.children.back()].r;
-        child.r = cut_position;
+        child.r = (!is_size)? cut_position: child.l + cut_position;
         child.b = parent.b;
         child.t = parent.t;
         if (child.r <= child.l) {
@@ -252,6 +254,7 @@ void SolutionBuilder::add_node(
                     "'cut_position' is too small");
         }
         if (child.r > parent.r) {
+            //std::cout << "child.r " << child.r << " parent.r " << parent.r << std::endl;
             throw std::logic_error(
                     "rectangleguillotine::SolutionBuilder::add_last_node_child: "
                     "'cut_position' is too large.");
@@ -260,13 +263,14 @@ void SolutionBuilder::add_node(
         child.l = parent.l;
         child.r = parent.r;
         child.b = (parent.children.empty())? parent.b: bin.nodes[parent.children.back()].t;
-        child.t = cut_position;
+        child.t = (!is_size)? cut_position: child.b + cut_position;
         if (child.t <= child.b) {
             throw std::logic_error(
                     "rectangleguillotine::SolutionBuilder::add_last_node_child: "
                     "'cut_position' is too small.");
         }
         if (child.t > parent.t) {
+            //std::cout << "child.t " << child.t << " parent.t " << parent.t << std::endl;
             throw std::logic_error(
                     "rectangleguillotine::SolutionBuilder::add_last_node_child: "
                     "'cut_position' is too large.");
