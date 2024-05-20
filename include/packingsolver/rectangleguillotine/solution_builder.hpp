@@ -35,7 +35,8 @@ public:
      */
     void add_node(
             Depth depth,
-            Length cut_position);
+            Length cut_position,
+            bool is_size = false);
 
     /** Set the item of the last node. */
     void set_last_node_item(
