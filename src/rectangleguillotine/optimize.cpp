@@ -140,15 +140,8 @@ void optimize_tree_search_n(
         guides = {0, 2, 3};
     }
 
-    std::vector<CutOrientation> first_stage_orientations = {instance.first_stage_orientation()};
-    if (instance.number_of_bins() == 1
-            && instance.bin_type(0).rect.w != instance.bin_type(0).rect.h
-            && instance.first_stage_orientation() == CutOrientation::Any) {
-        first_stage_orientations = {CutOrientation::Vertical, CutOrientation::Horinzontal};
-    }
-
     std::vector<double> growth_factors = {1.5};
-    if (guides.size() * first_stage_orientations.size() * 2 <= 4)
+    if (guides.size() * 2 <= 4)
         growth_factors = {1.33, 1.5};
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         growth_factors = {1.5};
@@ -158,25 +151,22 @@ void optimize_tree_search_n(
     std::vector<rectangleguillotine::Output> outputs;
     for (double growth_factor: growth_factors) {
         for (GuideId guide_id: guides) {
-            for (CutOrientation first_stage_orientation: first_stage_orientations) {
-                //std::cout << growth_factor << " " << guide_id << " " << first_stage_orientation << std::endl;
-                BranchingSchemeN::Parameters branching_scheme_parameters;
-                branching_scheme_parameters.guide_id = guide_id;
-                branching_scheme_parameters.first_stage_orientation = first_stage_orientation;
-                branching_schemes.push_back(BranchingSchemeN(instance, branching_scheme_parameters));
-                treesearchsolver::IterativeBeamSearch2Parameters<BranchingSchemeN> ibs_parameters;
-                ibs_parameters.verbosity_level = 0;
-                ibs_parameters.timer = parameters.timer;
-                ibs_parameters.growth_factor = growth_factor;
-                if (parameters.optimization_mode != OptimizationMode::Anytime) {
-                    ibs_parameters.minimum_size_of_the_queue
-                        = parameters.not_anytime_tree_search_queue_size;
-                    ibs_parameters.maximum_size_of_the_queue
-                        = parameters.not_anytime_tree_search_queue_size + 1;
-                }
-                ibs_parameterss.push_back(ibs_parameters);
-                outputs.push_back(rectangleguillotine::Output(instance));
+            //std::cout << growth_factor << " " << guide_id << " " << first_stage_orientation << std::endl;
+            BranchingSchemeN::Parameters branching_scheme_parameters;
+            branching_scheme_parameters.guide_id = guide_id;
+            branching_schemes.push_back(BranchingSchemeN(instance, branching_scheme_parameters));
+            treesearchsolver::IterativeBeamSearch2Parameters<BranchingSchemeN> ibs_parameters;
+            ibs_parameters.verbosity_level = 0;
+            ibs_parameters.timer = parameters.timer;
+            ibs_parameters.growth_factor = growth_factor;
+            if (parameters.optimization_mode != OptimizationMode::Anytime) {
+                ibs_parameters.minimum_size_of_the_queue
+                    = parameters.not_anytime_tree_search_queue_size;
+                ibs_parameters.maximum_size_of_the_queue
+                    = parameters.not_anytime_tree_search_queue_size + 1;
             }
+            ibs_parameterss.push_back(ibs_parameters);
+            outputs.push_back(rectangleguillotine::Output(instance));
         }
     }
 
@@ -224,8 +214,7 @@ void optimize_tree_search_n(
     if (parameters.optimization_mode != OptimizationMode::Anytime) {
         for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
             std::stringstream ss;
-            ss << "TS g " << branching_schemes[i].parameters().guide_id
-                << " d " << branching_schemes[i].parameters().first_stage_orientation;
+            ss << "TS g " << branching_schemes[i].parameters().guide_id;
             algorithm_formatter.update_solution(outputs[i].solution_pool.best(), ss.str());
         }
     }
