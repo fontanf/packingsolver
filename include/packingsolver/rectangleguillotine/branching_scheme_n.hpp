@@ -263,16 +263,16 @@ private:
     inline bool full(const Node& subplate) const { return subplate.number_of_items == instance_.number_of_items(); }
 
     /** Get the area of a node. */
-    inline bool area(const Node& node) const { return node.subplate->width * node.subplate->height; }
+    inline Area area(const Node& node) const { return (node.parent == nullptr)? 0.0: node.subplate->width * node.subplate->height; }
 
     /** Get the mean item area of a node; */
-    inline double mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
+    inline double mean_item_area(const Node& node) const { return (node.parent == nullptr)? 0.0: (double)node.item_area / node.number_of_items; }
 
     /** Get the waste of a node. */
-    inline bool waste(const Node& node) const { return area(node) - node.item_area; }
+    inline Area waste(const Node& node) const { return area(node) - node.item_area; }
 
     /** Get the waste percentage of a node. */
-    inline double waste_percentage(const Node& node) const { return (double)waste(node) / area(node); }
+    inline double waste_percentage(const Node& node) const { return (node.parent == nullptr)? 0.0: (double)waste(node) / area(node); }
 
     bool add_subplate_to_pool(
             const std::shared_ptr<Subplate>& subplate,

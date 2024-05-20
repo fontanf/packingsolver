@@ -17,6 +17,9 @@ BranchingSchemeN::BranchingSchemeN(
 
 const std::shared_ptr<BranchingSchemeN::Node> BranchingSchemeN::root() const
 {
+    //std::cout << std::endl;
+    //std::cout << "root" << std::endl;
+    //std::cout << std::endl;
     subplate_pool_.clear();
     Node root;
     root.item_number_of_copies = std::vector<ItemPos>(instance().number_of_item_types(), 0);
@@ -28,9 +31,21 @@ std::vector<std::shared_ptr<BranchingSchemeN::Node>> BranchingSchemeN::children(
         const std::shared_ptr<Node>& parent) const
 {
     //std::cout << "children node " << parent->id
+    //    << " width " << ((parent->subplate == nullptr)? 0: parent->subplate->width)
+    //    << " height " << ((parent->subplate == nullptr)? 0: parent->subplate->height)
     //    << " # items " << parent->number_of_items
     //    << " profit " << parent->item_profit
+    //    << " item_area " << parent->item_area
+    //    << " area " << area(*parent)
+    //    << " waste_percentage " << waste_percentage(*parent)
     //    << std::endl;
+    //for (ItemTypeId item_type_id = 0;
+    //        item_type_id < instance().number_of_item_types();
+    //        ++item_type_id) {
+    //    if (parent->item_number_of_copies[item_type_id] > 0)
+    //        std::cout << "  " << item_type_id << " " << parent->item_number_of_copies[item_type_id];
+    //}
+    //std::cout << std::endl;
 
     std::vector<std::shared_ptr<BranchingSchemeN::Node>> children;
     const BinType& bin_type = instance().bin_type(0);
@@ -193,9 +208,9 @@ std::vector<std::shared_ptr<BranchingSchemeN::Node>> BranchingSchemeN::children(
                         }
                     }
                 }
-                for (ItemTypeId item_type_id: modified)
-                    item_number_of_copies[item_type_id] = parent->item_number_of_copies[item_type_id];
             }
+            for (ItemTypeId item_type_id: modified)
+                item_number_of_copies[item_type_id] = parent->item_number_of_copies[item_type_id];
         }
     }
 
@@ -399,6 +414,10 @@ Solution BranchingSchemeN::to_solution(
     Solution solution = solution_builder.build();
     //solution.format(std::cout, 2);
     //std::cout << "to_solution end" << std::endl;
+    if (solution.profit() != node->item_profit) {
+        throw std::logic_error(
+                "rectangleguillotine::BranchingSchemeN::to_solution");
+    }
     return solution;
 }
 
