@@ -11,6 +11,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(optimizationtools)
 
 # Fetch fontanf/mathoptsolverscmake.
+MATHOPTSOLVERSCMAKE_USE_CLP ON
 FetchContent_Declare(
     mathoptsolverscmake
     GIT_REPOSITORY https://github.com/fontanf/mathoptsolverscmake.git
@@ -41,6 +42,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(treesearchsolver)
 
 # Fetch fontanf/columngenerationsolver.
+set(COLUMNGENERATIONSOLVER_USE_CLP ON)
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
