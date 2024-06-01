@@ -10,6 +10,15 @@ FetchContent_Declare(
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(optimizationtools)
 
+# Fetch fontanf/mathoptsolverscmake.
+FetchContent_Declare(
+    mathoptsolverscmake
+    GIT_REPOSITORY https://github.com/fontanf/mathoptsolverscmake.git
+    GIT_TAG b33091ebecf04a9dda3f5ee7275c5c747acc50ca
+    #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../mathoptsolverscmake/"
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(mathoptsolverscmake)
+
 # Fetch boost.
 set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options dynamic_bitset)
 set(BOOST_ENABLE_CMAKE ON)

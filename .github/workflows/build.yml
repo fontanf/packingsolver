@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13]
+        os: [ubuntu-latest, windows-latest, macos-13, macos-latest]
         python-version: ["3.8"]
 
     steps:
@@ -21,26 +21,15 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install CLP (MacOS)
+      run: |
+        brew install clp
+      if: matrix.os == 'macos-13' or matrix.os == 'macos-latest'
     - name: Build
       run: |
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release --parallel
         cmake --install build --config Release --prefix install
-      if: matrix.os != 'macos-13'
-    - name: Build (MacOS)
-      run: |
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPackingSolver_BUILD_TEST=OFF
-        cmake --build build --config Release --parallel
-        mkdir -p "/Users/runner/work/Osi/Osi/dist/lib"
-        cp -rf "${GITHUB_WORKSPACE}/build/_deps/mathoptsolverscmake-build/extern/Osi-prefix/src/Osi/lib/" "/Users/runner/work/Osi/Osi/dist/lib"
-        mkdir -p "/Users/runner/work/CoinUtils/CoinUtils/dist/lib"
-        cp -rf "${GITHUB_WORKSPACE}/build/_deps/mathoptsolverscmake-build/extern/CoinUtils-prefix/src/CoinUtils/lib/" "/Users/runner/work/CoinUtils/CoinUtils/dist/lib"
-        mkdir -p "/Users/runner/work/Clp/Clp/dist/lib"
-        cp -rf "${GITHUB_WORKSPACE}/build/_deps/mathoptsolverscmake-build/extern/Clp-prefix/src/Clp/lib/" "/Users/runner/work/Clp/Clp/dist/lib"
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPackingSolver_BUILD_TEST=ON
-        cmake --build build --config Release --parallel
-        cmake --install build --config Release --prefix install
-      if: matrix.os == 'macos-13'
     - name: Run unit tests
       working-directory: build/test
       run: ctest --parallel
@@ -56,21 +45,6 @@ jobs:
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release --parallel
         cmake --install build --config Release --prefix install
-      if: matrix.os != 'macos-13'
-    - name: Build (MacOS)
-      run: |
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPackingSolver_BUILD_TEST=OFF
-        cmake --build build --config Release --parallel
-        mkdir -p "/Users/runner/work/Osi/Osi/dist/lib"
-        cp -rf "${GITHUB_WORKSPACE}/build/_deps/mathoptsolverscmake-build/extern/Osi-prefix/src/Osi/lib/" "/Users/runner/work/Osi/Osi/dist/lib"
-        mkdir -p "/Users/runner/work/CoinUtils/CoinUtils/dist/lib"
-        cp -rf "${GITHUB_WORKSPACE}/build/_deps/mathoptsolverscmake-build/extern/CoinUtils-prefix/src/CoinUtils/lib/" "/Users/runner/work/CoinUtils/CoinUtils/dist/lib"
-        mkdir -p "/Users/runner/work/Clp/Clp/dist/lib"
-        cp -rf "${GITHUB_WORKSPACE}/build/_deps/mathoptsolverscmake-build/extern/Clp-prefix/src/Clp/lib/" "/Users/runner/work/Clp/Clp/dist/lib"
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPackingSolver_BUILD_TEST=ON
-        cmake --build build --config Release --parallel
-        cmake --install build --config Release --prefix install
-      if: matrix.os == 'macos-13'
     - name: Run tests
       run: python3 -u scripts/run_tests.py test_results_ref
     - name: Process tests
