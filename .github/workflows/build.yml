@@ -24,13 +24,14 @@ jobs:
     - name: Install CLP (MacOS)
       run: |
         brew install clp
+        ls -l /usr/local/include/clp/
+        ls -lR /usr/local/include/clp/
       if: ${{ (matrix.os == 'macos-13') || (matrix.os == 'macos-latest') }}
     - name: Build
       run: |
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config Release --parallel
         cmake --install build --config Release --prefix install
-        ls -l /usr/local/include/clp/
     - name: Run unit tests
       working-directory: build/test
       run: ctest --parallel
