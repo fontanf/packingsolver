@@ -10,6 +10,16 @@ FetchContent_Declare(
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(optimizationtools)
 
+# Fetch fontanf/mathoptsolverscmake.
+set(MATHOPTSOLVERSCMAKE_USE_CLP ON)
+FetchContent_Declare(
+    mathoptsolverscmake
+    GIT_REPOSITORY https://github.com/fontanf/mathoptsolverscmake.git
+    GIT_TAG d3fbac53a440e9b140af6f5dd4adeb1d7de35b0b
+    #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../mathoptsolverscmake/"
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(mathoptsolverscmake)
+
 # Fetch boost.
 set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options dynamic_bitset)
 set(BOOST_ENABLE_CMAKE ON)
@@ -32,6 +42,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(treesearchsolver)
 
 # Fetch fontanf/columngenerationsolver.
+set(COLUMNGENERATIONSOLVER_USE_CLP ON)
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
