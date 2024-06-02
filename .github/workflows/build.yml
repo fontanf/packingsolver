@@ -24,8 +24,6 @@ jobs:
     - name: Install CLP (MacOS)
       run: |
         brew install clp
-        ls -l /usr/local/include/clp/
-        ls -lR /usr/local/include/clp/
       if: ${{ (matrix.os == 'macos-13') || (matrix.os == 'macos-latest') }}
     - name: Build
       run: |
