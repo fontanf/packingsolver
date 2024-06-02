@@ -100,6 +100,12 @@ Features:
 
 ## Usage
 
+For macOS, CLP needs to be installed manually with [Homebrew](https://brew.sh/):
+```sh
+brew install clp
+```
+For Windows and Linux, CLP is downloaded automatically when building.
+
 Compile:
 ```shell
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
