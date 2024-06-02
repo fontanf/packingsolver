@@ -15,7 +15,7 @@ set(MATHOPTSOLVERSCMAKE_USE_CLP ON)
 FetchContent_Declare(
     mathoptsolverscmake
     GIT_REPOSITORY https://github.com/fontanf/mathoptsolverscmake.git
-    GIT_TAG ecf75440a9a4813ce3e565e99bc0cfe127247927
+    GIT_TAG 8b47bd9d421faaaf6bbc77ea9255626d0a7198d8
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../mathoptsolverscmake/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(mathoptsolverscmake)
