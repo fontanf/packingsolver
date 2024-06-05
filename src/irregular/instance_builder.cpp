@@ -175,6 +175,22 @@ Shape read_shape(basic_json& json_item)
             element.end = {(*it_next)["x"], (*it_next)["y"]};
             shape.elements.push_back(element);
         }
+    } else if (json_item["type"] == "general") {
+        for (auto it = json_item["elements"].begin();
+                it != json_item["elements"].end();
+                ++it) {
+            auto json_element = *it;
+            ShapeElement element;
+            element.type = str2element(json_element["type"]);
+            element.start.x = json_element["start"]["x"];
+            element.start.y = json_element["start"]["y"];
+            element.end.x = json_element["end"]["x"];
+            element.end.y = json_element["end"]["y"];
+            element.center.x = json_element["center"]["x"];
+            element.center.y = json_element["center"]["y"];
+            element.anticlockwise = json_element["anticlockwise"];
+            shape.elements.push_back(element);
+        }
     } else {
         throw std::invalid_argument("");
     }
@@ -198,21 +214,76 @@ void InstanceBuilder::read(
     // Read bin types.
     for (const auto& json_item: j["bin_types"]) {
         Shape shape = read_shape(json_item);
+
         Profit cost = shape.compute_area();
+        if (json_item.contains("cost"))
+            cost = json_item["cost"];
+
         BinPos copies = 1;
+        if (json_item.contains("copies"))
+            copies = json_item["copies"];
+
         BinPos copies_min = 0;
+        if (json_item.contains("copies_min"))
+            copies_min = json_item["copies_min"];
+
         add_bin_type(shape, cost, copies, copies_min);
     }
 
     // Read item types.
     for (const auto& json_item: j["item_types"]) {
         std::vector<ItemShape> item_shapes;
-        Shape shape = read_shape(json_item);
-        ItemShape item_shape;
-        item_shape.shape = shape;
-        item_shapes.push_back(item_shape);
+        if (json_item.contains("shapes")) {
+            // Multiple item shape.
+            for (auto it_shape = json_item["shapes"].begin();
+                    it_shape != json_item["shapes"].end();
+                    ++it_shape) {
+                auto json_shape = *it_shape;
+
+                ItemShape item_shape;
+                item_shape.shape = read_shape(json_shape);
+
+                // Read holes.
+                if (json_shape.contains("holes")) {
+                    for (auto it_hole = json_shape["holes"].begin();
+                            it_hole != json_shape["holes"].end();
+                            ++it_hole) {
+                        auto json_hole = *it_shape;
+                        Shape shape = read_shape(json_hole);
+                        item_shape.holes.push_back(shape);
+                    }
+                }
+
+                item_shapes.push_back(item_shape);
+            }
+
+        } else {
+            // Single item shape.
+            ItemShape item_shape;
+            item_shape.shape = read_shape(json_item);
+
+            // Read holes.
+            if (json_item.contains("holes")) {
+                for (auto it_hole = json_item["holes"].begin();
+                        it_hole != json_item["holes"].end();
+                        ++it_hole) {
+                    auto json_hole = *it_hole;
+                    Shape shape = read_shape(json_hole);
+                    item_shape.holes.push_back(shape);
+                }
+            }
+
+            item_shapes.push_back(item_shape);
+        }
+
         Profit profit = -1;
-        BinPos copies = 1;
+        if (json_item.contains("profit"))
+            profit = json_item["profit"];
+
+        ItemPos copies = 1;
+        if (json_item.contains("copies"))
+            copies = json_item["copies"];
+
         std::vector<std::pair<Angle, Angle>> allowed_rotations = {{0, 0}};
         add_item_type(
                 item_shapes,
