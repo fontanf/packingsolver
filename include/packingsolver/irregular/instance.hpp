@@ -72,6 +72,7 @@ enum class ShapeElementType
 };
 
 std::string element2str(ShapeElementType type);
+ShapeElementType str2element(const std::string& str);
 
 char element2char(ShapeElementType type);
 
