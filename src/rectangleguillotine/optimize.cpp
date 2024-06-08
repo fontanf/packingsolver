@@ -37,7 +37,7 @@ void optimize_tree_search(
     if (instance.number_of_bins() == 1
             && instance.bin_type(0).rect.w != instance.bin_type(0).rect.h
             && instance.first_stage_orientation() == CutOrientation::Any) {
-        first_stage_orientations = {CutOrientation::Vertical, CutOrientation::Horinzontal};
+        first_stage_orientations = {CutOrientation::Vertical, CutOrientation::Horizontal};
     }
 
     std::vector<double> growth_factors = {1.5};

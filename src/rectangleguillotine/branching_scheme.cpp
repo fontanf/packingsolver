@@ -20,10 +20,10 @@ BranchingScheme::BranchingScheme(
     if (instance.number_of_stages() == 3) {
         first_stage_orientation_ = first_stage_orientation;
     } else if (instance.number_of_stages() == 2) {
-        if (first_stage_orientation == CutOrientation::Horinzontal) {
+        if (first_stage_orientation == CutOrientation::Horizontal) {
             first_stage_orientation_ = CutOrientation::Vertical;
         } else if (first_stage_orientation == CutOrientation::Vertical) {
-            first_stage_orientation_ = CutOrientation::Horinzontal;
+            first_stage_orientation_ = CutOrientation::Horizontal;
         }
     }
 
@@ -123,7 +123,7 @@ bool BranchingScheme::bound(
     } case Objective::OpenDimensionY: {
         if (!leaf(node_2))
             return false;
-        return std::max(height(*node_1), (node_1->waste + instance().item_area() - 1) / instance().height(instance().bin_type(0), CutOrientation::Horinzontal) + 1) >= height(*node_2);
+        return std::max(height(*node_1), (node_1->waste + instance().item_area() - 1) / instance().height(instance().bin_type(0), CutOrientation::Horizontal) + 1) >= height(*node_2);
     } default: {
         std::stringstream ss;
         ss << "Branching scheme 'rectangleguillotine::BranchingScheme'"
@@ -192,7 +192,7 @@ Length BranchingScheme::x1_prev(const Node& node, Depth df) const
         BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance().left_trim(
                 instance().bin_type(bin_type_id),
-                CutOrientation::Horinzontal);
+                CutOrientation::Horizontal);
     } case -1: {
         BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance().left_trim(
@@ -218,7 +218,7 @@ Length BranchingScheme::x3_prev(const Node& node, Depth df) const
         BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance().left_trim(
                 instance().bin_type(bin_type_id),
-                CutOrientation::Horinzontal);
+                CutOrientation::Horizontal);
     } case -1: {
         BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance().left_trim(
@@ -244,7 +244,7 @@ Length BranchingScheme::y2_prev(const Node& node, Depth df) const
         BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance().bottom_trim(
                 instance().bin_type(bin_type_id),
-                CutOrientation::Horinzontal);
+                CutOrientation::Horizontal);
     } case -1: {
         BinTypeId bin_type_id = instance().bin_type_id(node.number_of_bins);
         return instance().bottom_trim(
@@ -281,7 +281,7 @@ CutOrientation BranchingScheme::last_bin_orientation(const Node& node, Depth df)
     case -1: {
         return CutOrientation::Vertical;
     } case -2: {
-        return CutOrientation::Horinzontal;
+        return CutOrientation::Horizontal;
     } default: {
         return node.first_stage_orientation;
     }
@@ -344,7 +344,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     if (insertion.df < 0) {
         node.number_of_bins = father.number_of_bins + 1;
         node.first_stage_orientation = (insertion.df == -1)?
-            CutOrientation::Vertical: CutOrientation::Horinzontal;
+            CutOrientation::Vertical: CutOrientation::Horizontal;
     } else {
         node.number_of_bins = father.number_of_bins;
         node.first_stage_orientation = father.first_stage_orientation;
@@ -483,12 +483,12 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         df_max = -1;
 
     for (Depth df = df_max; df >= df_min; --df) {
-        if (df == -1 && first_stage_orientation_ == CutOrientation::Horinzontal)
+        if (df == -1 && first_stage_orientation_ == CutOrientation::Horizontal)
             continue;
 
         if (df == -2) {
             i = father.number_of_bins;
-            o = CutOrientation::Horinzontal;
+            o = CutOrientation::Horizontal;
         } else if (df == -1) {
             i = father.number_of_bins;
             o = CutOrientation::Vertical;
@@ -1460,8 +1460,8 @@ Solution BranchingScheme::to_solution(
         if (current_node->df <= -1) {
             CutOrientation cut_orientation = (
                     (instance().number_of_stages() == 3 && current_node->first_stage_orientation == CutOrientation::Vertical)
-                    || (instance().number_of_stages() == 2 && current_node->first_stage_orientation == CutOrientation::Horinzontal))?
-                    CutOrientation::Vertical: CutOrientation::Horinzontal;
+                    || (instance().number_of_stages() == 2 && current_node->first_stage_orientation == CutOrientation::Horizontal))?
+                    CutOrientation::Vertical: CutOrientation::Horizontal;
             solution_builder.add_bin(
                     bin_type_id,
                     1,
