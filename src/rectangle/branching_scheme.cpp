@@ -1,4 +1,4 @@
-#include "packingsolver/rectangle/branching_scheme.hpp"
+#include "rectangle/branching_scheme.hpp"
 
 #include <iostream>
 #include <string>

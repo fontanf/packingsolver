@@ -2,9 +2,10 @@
 
 #include "packingsolver/boxstacks/algorithm_formatter.hpp"
 #include "packingsolver/boxstacks/instance_builder.hpp"
-#include "packingsolver/boxstacks/branching_scheme.hpp"
+#include "boxstacks/branching_scheme.hpp"
+#include "boxstacks/sequential_onedimensional_rectangle.hpp"
 
-#include "packingsolver/algorithms/sequential_value_correction.hpp"
+#include "algorithms/sequential_value_correction.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
@@ -27,7 +28,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
 
         auto sor_begin = std::chrono::steady_clock::now();
 
-        SequentialOneDimensionalRectangleParameters sor_parameters = parameters.sequential_onedimensional_rectangle_parameters;
+        SequentialOneDimensionalRectangleParameters sor_parameters;
         sor_parameters.verbosity_level = 0;
         sor_parameters.timer = parameters.timer;
         sor_parameters.logger = logger;
