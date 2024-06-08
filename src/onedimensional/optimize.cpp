@@ -2,10 +2,10 @@
 
 #include "packingsolver/onedimensional/algorithm_formatter.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
-#include "packingsolver/onedimensional/branching_scheme.hpp"
-#include "packingsolver/algorithms/dichotomic_search.hpp"
-#include "packingsolver/algorithms/sequential_value_correction.hpp"
-#include "packingsolver/algorithms/column_generation.hpp"
+#include "onedimensional/branching_scheme.hpp"
+#include "algorithms/dichotomic_search.hpp"
+#include "algorithms/sequential_value_correction.hpp"
+#include "algorithms/column_generation.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 

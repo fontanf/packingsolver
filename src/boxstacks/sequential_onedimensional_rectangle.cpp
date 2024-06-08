@@ -1,11 +1,11 @@
-#include "packingsolver/boxstacks/sequential_onedimensional_rectangle.hpp"
+#include "boxstacks/sequential_onedimensional_rectangle.hpp"
 
 #include "packingsolver/boxstacks/algorithm_formatter.hpp"
 
 #include "packingsolver/onedimensional/instance_builder.hpp"
 
 #include "packingsolver/rectangle/instance_builder.hpp"
-#include "packingsolver/rectangle/branching_scheme.hpp"
+#include "rectangle/branching_scheme.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
@@ -1111,7 +1111,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
             if (fixed_items_solutions_pos < fixed_items_solutions_pos_lower_bound)
                 fixed_items_solutions_pos = fixed_items_solutions_pos_lower_bound;
         } else if (failed_rear_axle_weight_constraint) {
-            throw std::runtime_error("failed_rear_axle_weight_constraint");
+            break;
+            //throw std::runtime_error("failed_rear_axle_weight_constraint");
         } else {
             fixed_items_solutions_pos_upper_bound = fixed_items_solutions_pos - 1;
             fixed_items_solutions_pos = fixed_items_solutions_pos_upper_bound;

@@ -1,4 +1,4 @@
-#include "packingsolver/rectangleguillotine/branching_scheme.hpp"
+#include "rectangleguillotine/branching_scheme.hpp"
 
 #include "packingsolver/rectangleguillotine/solution_builder.hpp"
 
