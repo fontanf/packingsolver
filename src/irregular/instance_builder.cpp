@@ -151,10 +151,10 @@ Shape read_shape(basic_json& json_item)
         element_3.type = ShapeElementType::LineSegment;
         element_4.type = ShapeElementType::LineSegment;
         element_1.start = {0.0, 0.0};
-        element_1.end = {json_item["length"], 0.0};
-        element_2.start = {json_item["length"], 0.0};
-        element_2.end = {json_item["length"], json_item["height"]};
-        element_3.start = {json_item["length"], json_item["height"]};
+        element_1.end = {json_item["width"], 0.0};
+        element_2.start = {json_item["width"], 0.0};
+        element_2.end = {json_item["width"], json_item["height"]};
+        element_3.start = {json_item["width"], json_item["height"]};
         element_3.end = {0.0, json_item["height"]};
         element_4.start = {0.0, json_item["height"]};
         element_4.end = {0.0, 0.0};
@@ -186,9 +186,11 @@ Shape read_shape(basic_json& json_item)
             element.start.y = json_element["start"]["y"];
             element.end.x = json_element["end"]["x"];
             element.end.y = json_element["end"]["y"];
-            element.center.x = json_element["center"]["x"];
-            element.center.y = json_element["center"]["y"];
-            element.anticlockwise = json_element["anticlockwise"];
+            if (element.type == ShapeElementType::CircularArc) {
+                element.center.x = json_element["center"]["x"];
+                element.center.y = json_element["center"]["y"];
+                element.anticlockwise = json_element["anticlockwise"];
+            }
             shape.elements.push_back(element);
         }
     } else {

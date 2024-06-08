@@ -117,6 +117,32 @@ void Solution::append(
     }
 }
 
+Solution::Solution(
+        const Instance& instance,
+        const std::string& certificate_path):
+    Solution(instance)
+{
+    std::ifstream file(certificate_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + certificate_path + "\".");
+    }
+
+    nlohmann ::json j;
+    file >> j;
+
+    for (const auto& json_bin: j["bins"]) {
+        BinPos bin_pos = add_bin(json_bin["id"], json_bin["copies"]);
+        for (const auto& json_item: json_bin["items"]) {
+            add_item(
+                    bin_pos,
+                    json_item["id"],
+                    {json_item["x"], json_item["y"]},
+                    json_item["angle"]);
+        }
+    }
+}
+
 bool Solution::operator<(const Solution& solution) const
 {
     switch (instance().objective()) {
@@ -249,6 +275,9 @@ void Solution::write(
             const SolutionItem& item = bin.items[item_pos];
             const ItemType& item_type = instance().item_type(item.item_type_id);
             json["bins"][bin_pos]["items"][item_pos]["id"] = item.item_type_id;
+            json["bins"][bin_pos]["items"][item_pos]["x"] = item.bl_corner.x;
+            json["bins"][bin_pos]["items"][item_pos]["y"] = item.bl_corner.y;
+            json["bins"][bin_pos]["items"][item_pos]["angle"] = item.angle;
             for (Counter item_shape_pos = 0;
                     item_shape_pos < (Counter)item_type.shapes.size();
                     ++item_shape_pos) {

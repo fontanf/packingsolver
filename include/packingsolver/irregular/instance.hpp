@@ -370,6 +370,20 @@ public:
     inline DefectId number_of_defects() const { return number_of_defects_; }
 
     /*
+     * Getters: bin type dimensions
+     */
+
+    /** Get the x of a bin type depending on its orientation. */
+    inline Length x_max(
+            const BinType& bin_type,
+            Direction o) const;
+
+    /** Get the y of a bin type depending on its orientation. */
+    inline Length y_max(
+            const BinType& bin_type,
+            Direction o) const;
+
+    /*
      * Getters: item types
      */
 
@@ -477,6 +491,24 @@ private:
     friend class InstanceBuilder;
 
 };
+
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// Inlined methods ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+Length Instance::x_max(
+        const BinType& bin_type,
+        Direction o) const
+{
+    return (o == Direction::X)? bin_type.x_max: bin_type.y_max;
+}
+
+Length Instance::y_max(
+        const BinType& bin_type,
+        Direction o) const
+{
+    return (o == Direction::X)? bin_type.y_max: bin_type.x_max;
+}
 
 }
 }

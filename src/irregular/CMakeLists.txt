@@ -6,8 +6,9 @@ target_sources(PackingSolver_irregular PRIVATE
     solution.cpp
     algorithm_formatter.cpp
     optimize.cpp
-    nlp_circle.cpp
-    nlp.cpp)
+    covering_with_rectangles.cpp
+    clustering.cpp
+    branching_scheme.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_irregular PRIVATE

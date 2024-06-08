@@ -63,6 +63,17 @@ int main(int argc, char *argv[])
         ("only-write-at-the-end,e", "Only write output and certificate files at the end")
         ("verbosity-level,v", po::value<int>(), "Verbosity level")
         ("log2stderr,w", "Write log in stderr")
+
+        ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
+        ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
+        ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
+        ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
+        ("use-column-generation,", po::value<bool>(), "enable column-generation")
+        ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
+        ("sequential-value-correction-subproblem-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
+        ("sequential-value-correction-number-of-iterations,", po::value<Counter>(), "set sequential value correction number of iterations")
+        ("column-generation-subproblem-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
+        ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -86,6 +97,26 @@ int main(int argc, char *argv[])
 
     OptimizeParameters parameters;
     read_args(parameters, vm);
+    if (vm.count("optimization-mode"))
+        parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
+
+    if (vm.count("use-tree-search"))
+        parameters.use_tree_search = vm["use-tree-search"].as<bool>();
+    if (vm.count("use-sequential-single-knapsack"))
+        parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
+    if (vm.count("use-sequential-value-correction"))
+        parameters.use_sequential_value_correction = vm["use-sequential-value-correction"].as<bool>();
+    if (vm.count("use-column-generation"))
+        parameters.use_column_generation = vm["use-column-generation"].as<bool>();
+    if (vm.count("use-dichotomic-search"))
+        parameters.use_dichotomic_search = vm["use-dichotomic-search"].as<bool>();
+
+    if (vm.count("sequential-value-correction-subproblem-queue-size"))
+        parameters.sequential_value_correction_subproblem_queue_size = vm["sequential-value-correction-subproblem-queue-size"].as<NodeId>();
+    if (vm.count("column-generation-subproblem-queue-size"))
+        parameters.column_generation_subproblem_queue_size = vm["column-generation-subproblem-queue-size"].as<NodeId>();
+    if (vm.count("not-anytime-sequential-value-correction-number-of-iterations"))
+        parameters.not_anytime_sequential_value_correction_number_of_iterations = vm["not-anytime-sequential-value-correction-number-of-iterations"].as<Counter>();
     const irregular::Output output = optimize(instance, parameters);
 
     if (vm.count("certificate"))
