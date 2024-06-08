@@ -1,6 +1,6 @@
 #include "rectangleguillotine/branching_scheme.hpp"
 
-#include "packingsolver/rectangleguillotine/solution_builder.hpp"
+#include "rectangleguillotine/solution_builder.hpp"
 
 #include <sstream>
 

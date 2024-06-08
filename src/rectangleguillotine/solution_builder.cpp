@@ -1,4 +1,4 @@
-#include "packingsolver/rectangleguillotine/solution_builder.hpp"
+#include "rectangleguillotine/solution_builder.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
