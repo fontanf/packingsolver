@@ -749,7 +749,7 @@ void BranchingScheme::insertion_item(
     if (last_bin_weight > bin_type.maximum_weight * PSTOL)
         return;
 
-    // Compute xl.
+    // Compute xs.
     Length xs = 0;
     if (new_bin == 0) {
         for (const UncoveredItem& uncovered_item: father->uncovered_items) {

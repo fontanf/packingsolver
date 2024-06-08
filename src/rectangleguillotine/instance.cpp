@@ -34,7 +34,7 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
     std::string token;
     in >> token;
     if (token == "horizontal") {
-        o = CutOrientation::Horinzontal;
+        o = CutOrientation::Horizontal;
     } else if (token == "vertical") {
         o = CutOrientation::Vertical;
     } else if (token == "any") {
@@ -75,8 +75,8 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
     case CutOrientation::Vertical: {
         os << "Vertical";
         break;
-    } case CutOrientation::Horinzontal: {
-        os << "Horinzontal";
+    } case CutOrientation::Horizontal: {
+        os << "Horizontal";
         break;
     } case CutOrientation::Any: {
         os << "Any";

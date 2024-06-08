@@ -240,7 +240,7 @@ void SolutionBuilder::add_node(
     child.d = parent.d + 1;
     if ((bin.first_cut_orientation == CutOrientation::Vertical
                 && depth % 2 == 1)
-            || (bin.first_cut_orientation == CutOrientation::Horinzontal
+            || (bin.first_cut_orientation == CutOrientation::Horizontal
                 && depth % 2 == 0)) {
         child.l = (parent.children.empty())? parent.l: bin.nodes[parent.children.back()].r;
         child.r = cut_position;
