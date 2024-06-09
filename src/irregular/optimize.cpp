@@ -4,7 +4,7 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/nlp.hpp"
 #include "packingsolver/irregular/nlp_circle.hpp"
-#include "packingsolver/algorithms/column_generation.hpp"
+#include "algorithms/column_generation.hpp"
 
 #include "treesearchsolver/iterative_beam_search.hpp"
 #include "treesearchsolver/anytime_column_search.hpp"

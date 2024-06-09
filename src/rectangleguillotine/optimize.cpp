@@ -2,10 +2,10 @@
 
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
-#include "packingsolver/rectangleguillotine/branching_scheme.hpp"
-#include "packingsolver/algorithms/dichotomic_search.hpp"
-#include "packingsolver/algorithms/sequential_value_correction.hpp"
-#include "packingsolver/algorithms/column_generation.hpp"
+#include "rectangleguillotine/branching_scheme.hpp"
+#include "algorithms/dichotomic_search.hpp"
+#include "algorithms/sequential_value_correction.hpp"
+#include "algorithms/column_generation.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
@@ -37,7 +37,7 @@ void optimize_tree_search(
     if (instance.number_of_bins() == 1
             && instance.bin_type(0).rect.w != instance.bin_type(0).rect.h
             && instance.first_stage_orientation() == CutOrientation::Any) {
-        first_stage_orientations = {CutOrientation::Vertical, CutOrientation::Horinzontal};
+        first_stage_orientations = {CutOrientation::Vertical, CutOrientation::Horizontal};
     }
 
     std::vector<double> growth_factors = {1.5};

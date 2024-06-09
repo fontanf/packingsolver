@@ -8,7 +8,7 @@ namespace rectangleguillotine
 {
 
 enum class CutType { Roadef2018, NonExact, Exact, Homogenous };
-enum class CutOrientation { Horinzontal, Vertical, Any };
+enum class CutOrientation { Horizontal, Vertical, Any };
 
 /**
  * Trims are borders of a bin which are not used to pack item.

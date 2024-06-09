@@ -9,6 +9,8 @@ target_sources(PackingSolver_onedimensional PRIVATE
     branching_scheme.cpp)
 target_include_directories(PackingSolver_onedimensional PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(PackingSolver_onedimensional PRIVATE
+    ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_onedimensional PUBLIC
     PackingSolver_algorithms
     TreeSearchSolver::treesearchsolver

@@ -2,8 +2,6 @@
 
 #include "packingsolver/boxstacks/solution.hpp"
 
-#include "packingsolver/boxstacks/sequential_onedimensional_rectangle.hpp"
-
 #include "columngenerationsolver/linear_programming_solver.hpp"
 
 namespace packingsolver
@@ -99,9 +97,6 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 
     /** Use sequential single knapsack algorithm. */
     bool use_sequential_single_knapsack = false;
-
-    /** Parameters of the sequential_onedimensional_rectangle algorithm. */
-    SequentialOneDimensionalRectangleParameters sequential_onedimensional_rectangle_parameters;
 
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;

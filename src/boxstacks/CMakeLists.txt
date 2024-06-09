@@ -10,6 +10,8 @@ target_sources(PackingSolver_boxstacks PRIVATE
     branching_scheme.cpp)
 target_include_directories(PackingSolver_boxstacks PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(PackingSolver_boxstacks PRIVATE
+    ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_boxstacks PUBLIC
     PackingSolver_algorithms
     PackingSolver_rectangle

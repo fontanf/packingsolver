@@ -2,10 +2,10 @@
 
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
-#include "packingsolver/rectangle/branching_scheme.hpp"
-#include "packingsolver/algorithms/dichotomic_search.hpp"
-#include "packingsolver/algorithms/sequential_value_correction.hpp"
-#include "packingsolver/algorithms/column_generation.hpp"
+#include "rectangle/branching_scheme.hpp"
+#include "algorithms/dichotomic_search.hpp"
+#include "algorithms/sequential_value_correction.hpp"
+#include "algorithms/column_generation.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 

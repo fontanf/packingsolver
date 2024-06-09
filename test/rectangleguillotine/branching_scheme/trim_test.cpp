@@ -1,5 +1,5 @@
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
-#include "packingsolver/rectangleguillotine/branching_scheme.hpp"
+#include "rectangleguillotine/branching_scheme.hpp"
 
 #include <gtest/gtest.h>
 

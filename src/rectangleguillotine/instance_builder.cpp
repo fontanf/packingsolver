@@ -53,7 +53,7 @@ void InstanceBuilder::set_predefined(std::string str)
         set_first_stage_orientation(rectangleguillotine::CutOrientation::Vertical);
         break;
     } case 'H': {
-        set_first_stage_orientation(rectangleguillotine::CutOrientation::Horinzontal);
+        set_first_stage_orientation(rectangleguillotine::CutOrientation::Horizontal);
         break;
     } case 'A': {
         set_first_stage_orientation(rectangleguillotine::CutOrientation::Any);
