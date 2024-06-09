@@ -1,4 +1,4 @@
-#include "packingsolver/boxstacks/branching_scheme.hpp"
+#include "boxstacks/branching_scheme.hpp"
 
 #include "knapsacksolver/multiple_choice_subset_sum/instance_builder.hpp"
 #include "knapsacksolver/multiple_choice_subset_sum/algorithms/dynamic_programming_bellman.hpp"

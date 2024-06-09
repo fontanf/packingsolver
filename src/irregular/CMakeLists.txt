@@ -10,6 +10,8 @@ target_sources(PackingSolver_irregular PRIVATE
     nlp.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(PackingSolver_irregular PRIVATE
+    ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_irregular PUBLIC
     PackingSolver_algorithms
     TreeSearchSolver::treesearchsolver

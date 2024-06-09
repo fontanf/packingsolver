@@ -10,6 +10,8 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     branching_scheme.cpp)
 target_include_directories(PackingSolver_rectangleguillotine PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(PackingSolver_rectangleguillotine PRIVATE
+    ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_rectangleguillotine PUBLIC
     PackingSolver_algorithms
     TreeSearchSolver::treesearchsolver
