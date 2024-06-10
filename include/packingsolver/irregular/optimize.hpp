@@ -2,7 +2,7 @@
 
 #include "packingsolver/irregular/solution.hpp"
 
-//#include "packingsolver/irregular/irregular_to_rectangle.hpp"
+#include "columngenerationsolver/linear_programming_solver.hpp"
 
 namespace packingsolver
 {
@@ -19,12 +19,73 @@ using NewSolutionCallback = std::function<void(const Output&)>;
 
 struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
-    /** Parameters of the algorithm 'IrregularToRectangle'. */
-    //IrregularToRectangleParameters irregular_to_rectangle_parameters;
+    /** Optimization mode. */
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
+    /** New solution callback. */
+    NewSolutionCallback new_solution_callback = [](const Output&) { };
 
-    /** Path of the .nl output file. */
-    std::string output_nl_path;
+    /** Linear programming solver. */
+    columngenerationsolver::LinearProgrammingSolver linear_programming_solver
+        = columngenerationsolver::LinearProgrammingSolver::CLP;
+
+    /** Use tree search algorithm. */
+    bool use_tree_search = false;
+
+    /** Use sequential single knapsack algorithm. */
+    bool use_sequential_single_knapsack = false;
+
+    /** Use sequential value correction algorithm. */
+    bool use_sequential_value_correction = false;
+
+    /** Use dichotomic search algorithm. */
+    bool use_dichotomic_search = false;
+
+    /** Use column generation algorithm. */
+    bool use_column_generation = false;
+
+    /** Guides used in the tree search algorithm. */
+    std::vector<GuideId> tree_search_guides;
+
+    /** Threshold to consider that a bin contains "many" items. */
+    Counter many_items_in_bins_threshold = 16;
+
+    /** Factor to consider that the number of copies of items is "high". */
+    Counter many_item_type_copies_factor = 1;
+
+    /**
+     * Size of the queue for the pricing knapsack subproblem of the sequential
+     * value correction algorithm.
+     */
+    NodeId sequential_value_correction_subproblem_queue_size = 512;
+
+    /**
+     * Size of the queue for the pricing knapsack subproblem of the column
+     * generation algorithm.
+     */
+    NodeId column_generation_subproblem_queue_size = 512;
+
+    /*
+     * Parameters for non-anytime mode
+     */
+
+    /** Size of the queue in the tree search algorithm. */
+    NodeId not_anytime_tree_search_queue_size = 512;
+
+    /**
+     * Size of the queue in the single knapsack subproblem of the sequential
+     * single knapsack algorithm.
+     */
+    NodeId not_anytime_sequential_single_knapsack_subproblem_queue_size = 512;
+
+    /** Number of iterations of the sequential value correction algorithm. */
+    Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
+
+    /**
+     * Size of the queue in the bin packing subproblem of the dichotomic search
+     * algorithm.
+     */
+    NodeId not_anytime_dichotomic_search_subproblem_queue_size = 512;
 };
 
 const Output optimize(

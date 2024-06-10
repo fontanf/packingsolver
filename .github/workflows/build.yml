@@ -32,7 +32,7 @@ jobs:
         cmake --install build --config Release --prefix install
     - name: Run unit tests
       working-directory: build/test
-      run: ctest --parallel
+      run: ctest --output-on-failure --parallel
     - name: Run tests
       run: python3 -u scripts/run_tests.py test_results
     - name: Checkout main branch
