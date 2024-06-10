@@ -139,14 +139,14 @@ BranchingScheme::BranchingScheme(
 ////////////////////////////////////////////////////////////////////////////////
 
 BranchingScheme::Node BranchingScheme::child_tmp(
-        const std::shared_ptr<Node>& pfather,
+        const std::shared_ptr<Node>& pparent,
         const Insertion& insertion) const
 {
-    const Node& father = *pfather;
+    const Node& parent = *pparent;
     Node node;
 
     const ItemType& item_type = instance().item_type(insertion.item_type_id);
-    node.father = pfather;
+    node.parent = pparent;
 
     node.item_type_id = insertion.item_type_id;
     node.rotate = insertion.rotate;
@@ -155,13 +155,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Update number_of_bins and last_bin_direction.
     if (insertion.new_bin > 0) {  // New bin.
-        node.number_of_bins = father.number_of_bins + 1;
+        node.number_of_bins = parent.number_of_bins + 1;
         node.last_bin_direction = (insertion.new_bin == 1)?
             Direction::X:
             Direction::Y;
     } else {  // Same bin.
-        node.number_of_bins = father.number_of_bins;
-        node.last_bin_direction = father.last_bin_direction;
+        node.number_of_bins = parent.number_of_bins;
+        node.last_bin_direction = parent.last_bin_direction;
     }
 
     BinPos bin_pos = node.number_of_bins - 1;
@@ -213,7 +213,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             node.uncovered_items.push_back(uncovered_item);
         }
     } else {  // Same bin.
-        for (const UncoveredItem& uncovered_item: father.uncovered_items) {
+        for (const UncoveredItem& uncovered_item: parent.uncovered_items) {
             if (uncovered_item.ye <= ys) {
                 UncoveredItem new_uncovered_item = uncovered_item;
                 node.uncovered_items.push_back(new_uncovered_item);
@@ -279,26 +279,26 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Compute item_number_of_copies, number_of_items, items_area,
     // squared_item_area and profit.
-    node.item_number_of_copies = father.item_number_of_copies;
+    node.item_number_of_copies = parent.item_number_of_copies;
     node.item_number_of_copies[insertion.item_type_id]++;
-    node.number_of_items = father.number_of_items + 1;
-    node.item_area = father.item_area + item_type.area();
-    node.item_weight = father.item_weight + item_type.weight;
-    node.weight_profit = father.item_weight
+    node.number_of_items = parent.number_of_items + 1;
+    node.item_area = parent.item_area + item_type.area();
+    node.item_weight = parent.item_weight + item_type.weight;
+    node.weight_profit = parent.item_weight
         + (double)1.0 / item_type.weight / insertion.x;
-    node.squared_item_area = father.squared_item_area + item_type.area() * item_type.area();
-    node.profit = father.profit + item_type.profit;
+    node.squared_item_area = parent.squared_item_area + item_type.area() * item_type.area();
+    node.profit = parent.profit + item_type.profit;
     if (parameters_.group_guiding_strategy == 0) {
-        node.guide_item_area = father.guide_item_area
+        node.guide_item_area = parent.guide_item_area
             + item_type.area() * (item_type.group_id + 1);
-        node.guide_profit = father.guide_profit
+        node.guide_profit = parent.guide_profit
             + item_type.profit * (item_type.group_id + 1);
     } else if (parameters_.group_guiding_strategy == 1) {
-        node.guide_item_area = father.guide_item_area + item_type.area();
-        node.guide_profit = father.guide_profit + item_type.profit;
+        node.guide_item_area = parent.guide_item_area + item_type.area();
+        node.guide_profit = parent.guide_profit + item_type.profit;
     }
-    node.group_score = father.group_score + (item_type.group_id + 1);
-    node.groups = father.groups;
+    node.group_score = parent.group_score + (item_type.group_id + 1);
+    node.groups = parent.groups;
 
     if (insertion.new_bin != 0) {
         for (GroupId group_id = 0; group_id < instance().number_of_groups(); ++group_id) {
@@ -329,7 +329,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Compute current_area, guide_area and width using uncovered_items.
     node.xs_max = (insertion.new_bin == 0)?
-        std::max(father.xs_max, insertion.x):
+        std::max(parent.xs_max, insertion.x):
         insertion.x;
     node.current_area = instance_.previous_bin_area(bin_pos);
     node.guide_area = instance_.previous_bin_area(bin_pos) + node.xs_max * yi;
@@ -421,8 +421,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 << std::endl;
         }
         for (auto node_tmp = &node;
-                node_tmp->father != nullptr;
-                node_tmp = node_tmp->father.get()) {
+                node_tmp->parent != nullptr;
+                node_tmp = node_tmp->parent.get()) {
             std::cout << " item_type_id " << node_tmp->item_type_id
                 << " x " << node_tmp->x
                 << " y " << node_tmp->y
@@ -446,28 +446,28 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 }
 
 std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
-        const std::shared_ptr<Node>& father) const
+        const std::shared_ptr<Node>& parent) const
 {
-    insertions(father);
+    insertions(parent);
     std::vector<std::shared_ptr<Node>> cs(insertions_.size());
     for (Counter i = 0; i < (Counter)insertions_.size(); ++i)
-        cs[i] = std::make_shared<Node>(child_tmp(father, insertions_[i]));
+        cs[i] = std::make_shared<Node>(child_tmp(parent, insertions_[i]));
     return cs;
 }
 
 const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
-        const std::shared_ptr<Node>& father) const
+        const std::shared_ptr<Node>& parent) const
 {
-    //std::cout << "id " << father->id
-    //    << " number_of_items " << father->number_of_items
-    //    << " group_score " << father->group_score
-    //    << " load " << (double)father->item_area / father->guide_area
-    //    << " last_bin_middle_axle_weight " << father->groups.front().last_bin_middle_axle_weight
+    //std::cout << "id " << parent->id
+    //    << " number_of_items " << parent->number_of_items
+    //    << " group_score " << parent->group_score
+    //    << " load " << (double)parent->item_area / parent->guide_area
+    //    << " last_bin_middle_axle_weight " << parent->groups.front().last_bin_middle_axle_weight
     //    << std::endl;
-    //for (auto it = father->uncovered_items.rbegin(); it != father->uncovered_items.rend(); ++it) {
+    //for (auto it = parent->uncovered_items.rbegin(); it != parent->uncovered_items.rend(); ++it) {
     //    std::cout << " ys " << it->ys << " ye " << it->ye << " xe " << it->xe << " item_type_id " << it->item_type_id << std::endl;
     //}
-    //for (auto node = father; node->father != nullptr; node = node->father) {
+    //for (auto node = parent; node->parent != nullptr; node = node->parent) {
     //    std::cout << " item_type_id " << node->item_type_id << " x " << node->x << " y " << node->y << " r " << node->rotate << std::endl;
     //}
 
@@ -480,22 +480,22 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
         for (ItemTypeId item_type_id_pred: predecessors_[item_type_id])
-            if (father->item_number_of_copies[item_type_id_pred]
+            if (parent->item_number_of_copies[item_type_id_pred]
                     != instance_.item_type(item_type_id_pred).copies)
                 ok[item_type_id] = false;
         for (ItemTypeId item_type_id_pred: predecessors_1_[item_type_id])
-            if (father->item_number_of_copies[item_type_id_pred]
+            if (parent->item_number_of_copies[item_type_id_pred]
                     != instance_.item_type(item_type_id_pred).copies)
                 ok_1[item_type_id] = false;
         for (ItemTypeId item_type_id_pred: predecessors_2_[item_type_id])
-            if (father->item_number_of_copies[item_type_id_pred]
+            if (parent->item_number_of_copies[item_type_id_pred]
                     != instance_.item_type(item_type_id_pred).copies)
                 ok_2[item_type_id] = false;
     }
 
     // Insert in the current bin.
-    if (father->number_of_bins > 0) {
-        BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+    if (parent->number_of_bins > 0) {
+        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
         const BinType& bin_type = instance().bin_type(bin_type_id);
 
         // Items.
@@ -507,16 +507,16 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                 continue;
 
             const ItemType& item_type = instance_.item_type(item_type_id);
-            if (father->item_number_of_copies[item_type_id] == item_type.copies)
+            if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
 
             for (ItemPos uncovered_item_pos = 0;
-                    uncovered_item_pos < (ItemPos)father->uncovered_items.size();
+                    uncovered_item_pos < (ItemPos)parent->uncovered_items.size();
                     ++uncovered_item_pos) {
 
                 if (ok_1[item_type_id]) {
                     insertion_item(
-                            father,
+                            parent,
                             item_type_id,
                             false,  // rotate
                             0,  // new_bin
@@ -524,47 +524,47 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             -1);  // defect_id
 
                     if (parameters().fixed_items != nullptr) {
-                        BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+                        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
                         const BinType& bin_type = instance().bin_type(bin_type_id);
-                        Direction o = father->last_bin_direction;
+                        Direction o = parent->last_bin_direction;
                         bool rotate = false;
                         Length yj = instance().y(item_type, rotate, o);
                         //if (uncovered_item_pos > 0)
-                        //    std::cout << "xs " << father->uncovered_items[uncovered_item_pos - 1].xs
-                        //        << " xe " << father->uncovered_items[uncovered_item_pos - 1].xe
-                        //        << " ye " << father->uncovered_items[uncovered_item_pos - 1].ys
-                        //        << " ye " << father->uncovered_items[uncovered_item_pos - 1].ye
+                        //    std::cout << "xs " << parent->uncovered_items[uncovered_item_pos - 1].xs
+                        //        << " xe " << parent->uncovered_items[uncovered_item_pos - 1].xe
+                        //        << " ye " << parent->uncovered_items[uncovered_item_pos - 1].ys
+                        //        << " ye " << parent->uncovered_items[uncovered_item_pos - 1].ye
                         //        << std::endl;
-                        //std::cout << "xs " << father->uncovered_items[uncovered_item_pos].xs
-                        //    << " xe " << father->uncovered_items[uncovered_item_pos].xe
-                        //    << " ye " << father->uncovered_items[uncovered_item_pos].ys
-                        //    << " ye " << father->uncovered_items[uncovered_item_pos].ye
+                        //std::cout << "xs " << parent->uncovered_items[uncovered_item_pos].xs
+                        //    << " xe " << parent->uncovered_items[uncovered_item_pos].xe
+                        //    << " ye " << parent->uncovered_items[uncovered_item_pos].ys
+                        //    << " ye " << parent->uncovered_items[uncovered_item_pos].ye
                         //    << std::endl;
-                        //if (uncovered_item_pos + 1 < father->uncovered_items.size())
-                        //    std::cout << "xs " << father->uncovered_items[uncovered_item_pos + 1].xs
-                        //        << " xe " << father->uncovered_items[uncovered_item_pos + 1].xe
-                        //        << " ye " << father->uncovered_items[uncovered_item_pos + 1].ys
-                        //        << " ye " << father->uncovered_items[uncovered_item_pos + 1].ye
+                        //if (uncovered_item_pos + 1 < parent->uncovered_items.size())
+                        //    std::cout << "xs " << parent->uncovered_items[uncovered_item_pos + 1].xs
+                        //        << " xe " << parent->uncovered_items[uncovered_item_pos + 1].xe
+                        //        << " ye " << parent->uncovered_items[uncovered_item_pos + 1].ys
+                        //        << " ye " << parent->uncovered_items[uncovered_item_pos + 1].ye
                         //        << std::endl;
-                        if (uncovered_item_pos + 1 < father->uncovered_items.size()
-                                && father->uncovered_items[uncovered_item_pos + 1].xe
+                        if (uncovered_item_pos + 1 < parent->uncovered_items.size()
+                                && parent->uncovered_items[uncovered_item_pos + 1].xe
                                 < parameters().fixed_items->x_max()) {
                             insertion_item_fixed(
-                                    father,
+                                    parent,
                                     item_type_id,
                                     rotate,
-                                    father->uncovered_items[uncovered_item_pos].xe,
-                                    father->uncovered_items[uncovered_item_pos].ye);
+                                    parent->uncovered_items[uncovered_item_pos].xe,
+                                    parent->uncovered_items[uncovered_item_pos].ye);
                         }
                         if (uncovered_item_pos > 0
-                                && father->uncovered_items[uncovered_item_pos - 1].xe
+                                && parent->uncovered_items[uncovered_item_pos - 1].xe
                                 < parameters().fixed_items->x_max()) {
                             insertion_item_fixed(
-                                    father,
+                                    parent,
                                     item_type_id,
                                     rotate,
-                                    father->uncovered_items[uncovered_item_pos].xe,
-                                    father->uncovered_items[uncovered_item_pos].ys - yj);
+                                    parent->uncovered_items[uncovered_item_pos].xe,
+                                    parent->uncovered_items[uncovered_item_pos].ys - yj);
                         }
                     }
 
@@ -572,7 +572,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 
                 if (!item_type.oriented && ok_2[item_type_id]) {
                     insertion_item(
-                            father,
+                            parent,
                             item_type_id,
                             true,  // rotate
                             0,  // new_bin
@@ -580,30 +580,30 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             -1);  // defect_id
 
                     if (parameters().fixed_items != nullptr) {
-                        BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+                        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
                         const BinType& bin_type = instance().bin_type(bin_type_id);
-                        Direction o = father->last_bin_direction;
+                        Direction o = parent->last_bin_direction;
                         bool rotate = true;
                         Length yj = instance().y(item_type, rotate, o);
-                        if (uncovered_item_pos + 1 < father->uncovered_items.size()
-                                && father->uncovered_items[uncovered_item_pos + 1].xe
+                        if (uncovered_item_pos + 1 < parent->uncovered_items.size()
+                                && parent->uncovered_items[uncovered_item_pos + 1].xe
                                 < parameters().fixed_items->x_max()) {
                             insertion_item_fixed(
-                                    father,
+                                    parent,
                                     item_type_id,
                                     rotate,
-                                    father->uncovered_items[uncovered_item_pos].xe,
-                                    father->uncovered_items[uncovered_item_pos].ye);
+                                    parent->uncovered_items[uncovered_item_pos].xe,
+                                    parent->uncovered_items[uncovered_item_pos].ye);
                         }
                         if (uncovered_item_pos > 0
-                                && father->uncovered_items[uncovered_item_pos - 1].xe
+                                && parent->uncovered_items[uncovered_item_pos - 1].xe
                                 < parameters().fixed_items->x_max()) {
                             insertion_item_fixed(
-                                    father,
+                                    parent,
                                     item_type_id,
                                     rotate,
-                                    father->uncovered_items[uncovered_item_pos].xe,
-                                    father->uncovered_items[uncovered_item_pos].ys - yj);
+                                    parent->uncovered_items[uncovered_item_pos].xe,
+                                    parent->uncovered_items[uncovered_item_pos].ys - yj);
                         }
                     }
 
@@ -615,7 +615,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 
                 if (ok_1[item_type_id])
                     insertion_item(
-                            father,
+                            parent,
                             item_type_id,
                             false,  // rotate
                             0,  // new_bin
@@ -624,7 +624,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 
                 if (!item_type.oriented && ok_2[item_type_id])
                     insertion_item(
-                            father,
+                            parent,
                             item_type_id,
                             true,  // rotate
                             0,  // new_bin
@@ -635,8 +635,8 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
     }
 
     // Insert in a new bin.
-    if (insertions_.empty() && father->number_of_bins < instance().number_of_bins()) {
-        BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins);
+    if (insertions_.empty() && parent->number_of_bins < instance().number_of_bins()) {
+        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins);
         const BinType& bin_type = instance().bin_type(bin_type_id);
 
         int new_bin = 0;
@@ -662,12 +662,12 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                 continue;
 
             const ItemType& item_type = instance_.item_type(item_type_id);
-            if (father->item_number_of_copies[item_type_id] == item_type.copies)
+            if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
 
             if (ok_1[item_type_id])
                 insertion_item(
-                        father,
+                        parent,
                         item_type_id,
                         false,
                         new_bin,
@@ -676,7 +676,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 
             if (!item_type.oriented && ok_2[item_type_id])
                 insertion_item(
-                        father,
+                        parent,
                         item_type_id,
                         true,  // rotate
                         new_bin,
@@ -688,7 +688,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 
                 if (ok_1[item_type_id])
                     insertion_item(
-                            father,
+                            parent,
                             item_type_id,
                             false,  // rotate
                             new_bin,
@@ -697,7 +697,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 
                 if (!item_type.oriented && ok_2[item_type_id])
                     insertion_item(
-                            father,
+                            parent,
                             item_type_id,
                             true,  // rotate
                             new_bin,
@@ -711,7 +711,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 }
 
 void BranchingScheme::insertion_item(
-        const std::shared_ptr<Node>& father,
+        const std::shared_ptr<Node>& parent,
         ItemTypeId item_type_id,
         bool rotate,
         int8_t new_bin,
@@ -720,11 +720,11 @@ void BranchingScheme::insertion_item(
 {
     const ItemType& item_type = instance_.item_type(item_type_id);
     BinTypeId bin_type_id = (new_bin == 0)?
-        instance().bin_type_id(father->number_of_bins - 1):
-        instance().bin_type_id(father->number_of_bins);
+        instance().bin_type_id(parent->number_of_bins - 1):
+        instance().bin_type_id(parent->number_of_bins);
     const BinType& bin_type = instance().bin_type(bin_type_id);
     Direction o = (new_bin == 0)?
-        father->last_bin_direction:
+        parent->last_bin_direction:
         ((new_bin == 1)? Direction::X: Direction::Y);
     Length xj = instance().x(item_type, rotate, o);
     Length yj = instance().y(item_type, rotate, o);
@@ -732,7 +732,7 @@ void BranchingScheme::insertion_item(
     Length yi = instance().y(bin_type, o);
     Length ys;
     if (uncovered_item_pos > 0) {
-        ys = father->uncovered_items[uncovered_item_pos].ys;
+        ys = parent->uncovered_items[uncovered_item_pos].ys;
     } else if (defect_id != -1) {
         ys = instance().y_end(bin_type.defects[defect_id], o);
     } else {  // new bin.
@@ -744,7 +744,7 @@ void BranchingScheme::insertion_item(
         return;
     // Check maximum weight.
     double last_bin_weight = (new_bin == 0)?
-        father->groups.front().last_bin_weight + item_type.weight:
+        parent->groups.front().last_bin_weight + item_type.weight:
         item_type.weight;
     if (last_bin_weight > bin_type.maximum_weight * PSTOL)
         return;
@@ -752,7 +752,7 @@ void BranchingScheme::insertion_item(
     // Compute xs.
     Length xs = 0;
     if (new_bin == 0) {
-        for (const UncoveredItem& uncovered_item: father->uncovered_items) {
+        for (const UncoveredItem& uncovered_item: parent->uncovered_items) {
             if (uncovered_item.ye <= ys || uncovered_item.ys >= ye)
                 continue;
             if (xs < uncovered_item.xe)
@@ -767,7 +767,7 @@ void BranchingScheme::insertion_item(
     } case UnloadingConstraint::OnlyXMovements: case::UnloadingConstraint::OnlyYMovements: {
         // Check if an item from the uncovered item with higher group is not
         // blocked by the new item.
-        for (const UncoveredItem& uncovered_item: father->uncovered_items) {
+        for (const UncoveredItem& uncovered_item: parent->uncovered_items) {
             if (uncovered_item.ye <= ys || uncovered_item.ys >= ye)
                 continue;
             if (uncovered_item.item_type_id == -1)
@@ -779,10 +779,10 @@ void BranchingScheme::insertion_item(
         break;
     } case UnloadingConstraint::IncreasingX: case UnloadingConstraint::IncreasingY: {
         for (GroupId group = item_type.group_id + 1; group < instance().number_of_groups(); ++group)
-            if (xs < father->groups[group].x_max)
+            if (xs < parent->groups[group].x_max)
                 return;
         for (GroupId group = 0; group < item_type.group_id; ++group)
-            if (xs > father->groups[group].x_min)
+            if (xs > parent->groups[group].x_min)
                 return;
         break;
     }
@@ -814,12 +814,12 @@ void BranchingScheme::insertion_item(
         return;
 
     if (parameters_.staircase && new_bin == 0 && uncovered_item_pos != -1)
-        for (const UncoveredItem& uncovered_item: father->uncovered_items)
+        for (const UncoveredItem& uncovered_item: parent->uncovered_items)
             if (uncovered_item.ys > ye && uncovered_item.xe > xs)
                 return;
 
     if (uncovered_item_pos > 0) {
-        if (xe <= father->uncovered_items[uncovered_item_pos - 1].xs)
+        if (xe <= parent->uncovered_items[uncovered_item_pos - 1].xs)
             return;
     } else if (defect_id != -1) {
         if (xe <= instance().x_start(bin_type.defects[defect_id], o))
@@ -844,16 +844,16 @@ void BranchingScheme::insertion_item(
 }
 
 void BranchingScheme::insertion_item_fixed(
-        const std::shared_ptr<Node>& father,
+        const std::shared_ptr<Node>& parent,
         ItemTypeId item_type_id,
         bool rotate,
         Length xs,
         Length ys) const
 {
     const ItemType& item_type = instance_.item_type(item_type_id);
-    BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+    BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
     const BinType& bin_type = instance().bin_type(bin_type_id);
-    Direction o = father->last_bin_direction;
+    Direction o = parent->last_bin_direction;
     Length xj = instance().x(item_type, rotate, o);
     Length yj = instance().y(item_type, rotate, o);
     Length xi = instance().x(bin_type, o);
@@ -875,12 +875,12 @@ void BranchingScheme::insertion_item_fixed(
     if (xe > xi)
         return;
     // Check maximum weight.
-    double last_bin_weight = father->groups.front().last_bin_weight + item_type.weight;
+    double last_bin_weight = parent->groups.front().last_bin_weight + item_type.weight;
     if (last_bin_weight > bin_type.maximum_weight * PSTOL)
         return;
 
     // Check intersections with other packed items.
-    for (const UncoveredItem& uncovered_item: father->uncovered_items) {
+    for (const UncoveredItem& uncovered_item: parent->uncovered_items) {
         if (uncovered_item.ye <= ys || uncovered_item.ys >= ye)
             continue;
         if (xs < uncovered_item.xe) {
@@ -896,7 +896,7 @@ void BranchingScheme::insertion_item_fixed(
     } case UnloadingConstraint::OnlyXMovements: case::UnloadingConstraint::OnlyYMovements: {
         // Check if an item from the uncovered item with higher group is not
         // blocked by the new item.
-        for (const UncoveredItem& uncovered_item: father->uncovered_items) {
+        for (const UncoveredItem& uncovered_item: parent->uncovered_items) {
             if (uncovered_item.ye <= ys || uncovered_item.ys >= ye)
                 continue;
             if (uncovered_item.item_type_id == -1)
@@ -908,10 +908,10 @@ void BranchingScheme::insertion_item_fixed(
         break;
     } case UnloadingConstraint::IncreasingX: case UnloadingConstraint::IncreasingY: {
         for (GroupId group = item_type.group_id + 1; group < instance().number_of_groups(); ++group)
-            if (xs < father->groups[group].x_max)
+            if (xs < parent->groups[group].x_max)
                 return;
         for (GroupId group = 0; group < item_type.group_id; ++group)
-            if (xs > father->groups[group].x_min)
+            if (xs > parent->groups[group].x_min)
                 return;
         break;
     }
@@ -1073,8 +1073,8 @@ Solution BranchingScheme::to_solution(
 {
     std::vector<std::shared_ptr<Node>> descendents;
     for (std::shared_ptr<Node> current_node = node;
-            current_node->father != nullptr;
-            current_node = current_node->father) {
+            current_node->parent != nullptr;
+            current_node = current_node->parent) {
         descendents.push_back(current_node);
     }
     std::reverse(descendents.begin(), descendents.end());
@@ -1112,7 +1112,7 @@ Solution BranchingScheme::to_solution(
     //    std::cout << node->current_area << std::endl;
     //    std::cout << node->item_area << std::endl;
     //    std::cout << solution.x_max() << std::endl;
-    //    std::cout << node->father->waste << std::endl;
+    //    std::cout << node->parent->waste << std::endl;
     //    throw std::runtime_error(
     //            "node->waste: " + std::to_string(node->waste)
     //            + "; solution.waste(): " + std::to_string(solution.waste())
