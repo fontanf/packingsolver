@@ -38,3 +38,19 @@ TEST(Irregular, BinCopies)
     EXPECT_EQ(solution.number_of_bins(), 2);
     EXPECT_EQ(solution.bin_copies(0), 2);
 }
+
+TEST(Irregular, Tests_rectangle_non_guillotine)
+{
+    InstanceBuilder instance_builder;
+    fs::path directory = fs::path("data") / "irregular" / "tests";
+    instance_builder.read((directory / "rectangles_non_guillotine.json").string());
+    Instance instance = instance_builder.build();
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.use_column_generation = 1;
+    Output output = optimize(instance, optimize_parameters);
+
+    Solution solution(instance, (directory / "rectangles_non_guillotine_solution.json").string());
+    EXPECT_EQ(!(output.solution_pool.best() < solution), true);
+}

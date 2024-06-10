@@ -128,6 +128,24 @@ ShapeElement irregular::rotate(
     return element_out;
 }
 
+ShapeElementType irregular::str2element(const std::string& str)
+{
+    if (str == "LineSegment"
+            || str == "line_segment"
+            || str == "L"
+            || str == "l") {
+        return ShapeElementType::LineSegment;
+    } else if (str == "CircularArc"
+            || str == "circular_arc"
+            || str == "C"
+            || str == "c") {
+        return ShapeElementType::CircularArc;
+    } else {
+        throw std::invalid_argument("");
+        return ShapeElementType::LineSegment;
+    }
+}
+
 std::string irregular::element2str(ShapeElementType type)
 {
     switch (type) {

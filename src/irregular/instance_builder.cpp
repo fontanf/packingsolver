@@ -1,5 +1,7 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 
+#include <sstream>
+
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
@@ -151,10 +153,10 @@ Shape read_shape(basic_json& json_item)
         element_3.type = ShapeElementType::LineSegment;
         element_4.type = ShapeElementType::LineSegment;
         element_1.start = {0.0, 0.0};
-        element_1.end = {json_item["length"], 0.0};
-        element_2.start = {json_item["length"], 0.0};
-        element_2.end = {json_item["length"], json_item["height"]};
-        element_3.start = {json_item["length"], json_item["height"]};
+        element_1.end = {json_item["width"], 0.0};
+        element_2.start = {json_item["width"], 0.0};
+        element_2.end = {json_item["width"], json_item["height"]};
+        element_3.start = {json_item["width"], json_item["height"]};
         element_3.end = {0.0, json_item["height"]};
         element_4.start = {0.0, json_item["height"]};
         element_4.end = {0.0, 0.0};
@@ -173,6 +175,24 @@ Shape read_shape(basic_json& json_item)
             element.type = ShapeElementType::LineSegment;
             element.start = {(*it)["x"], (*it)["y"]};
             element.end = {(*it_next)["x"], (*it_next)["y"]};
+            shape.elements.push_back(element);
+        }
+    } else if (json_item["type"] == "general") {
+        for (auto it = json_item["elements"].begin();
+                it != json_item["elements"].end();
+                ++it) {
+            auto json_element = *it;
+            ShapeElement element;
+            element.type = str2element(json_element["type"]);
+            element.start.x = json_element["start"]["x"];
+            element.start.y = json_element["start"]["y"];
+            element.end.x = json_element["end"]["x"];
+            element.end.y = json_element["end"]["y"];
+            if (element.type == ShapeElementType::CircularArc) {
+                element.center.x = json_element["center"]["x"];
+                element.center.y = json_element["center"]["y"];
+                element.anticlockwise = json_element["anticlockwise"];
+            }
             shape.elements.push_back(element);
         }
     } else {
@@ -195,24 +215,87 @@ void InstanceBuilder::read(
     nlohmann ::json j;
     file >> j;
 
+    if (j.contains("objective")) {
+        std::stringstream objective_ss;
+        objective_ss << std::string(j["objective"]);
+        Objective objective;
+        objective_ss >> objective;
+        set_objective(objective);
+    }
+
     // Read bin types.
     for (const auto& json_item: j["bin_types"]) {
         Shape shape = read_shape(json_item);
+
         Profit cost = shape.compute_area();
+        if (json_item.contains("cost"))
+            cost = json_item["cost"];
+
         BinPos copies = 1;
+        if (json_item.contains("copies"))
+            copies = json_item["copies"];
+
         BinPos copies_min = 0;
+        if (json_item.contains("copies_min"))
+            copies_min = json_item["copies_min"];
+
         add_bin_type(shape, cost, copies, copies_min);
     }
 
     // Read item types.
     for (const auto& json_item: j["item_types"]) {
         std::vector<ItemShape> item_shapes;
-        Shape shape = read_shape(json_item);
-        ItemShape item_shape;
-        item_shape.shape = shape;
-        item_shapes.push_back(item_shape);
+        if (json_item.contains("shapes")) {
+            // Multiple item shape.
+            for (auto it_shape = json_item["shapes"].begin();
+                    it_shape != json_item["shapes"].end();
+                    ++it_shape) {
+                auto json_shape = *it_shape;
+
+                ItemShape item_shape;
+                item_shape.shape = read_shape(json_shape);
+
+                // Read holes.
+                if (json_shape.contains("holes")) {
+                    for (auto it_hole = json_shape["holes"].begin();
+                            it_hole != json_shape["holes"].end();
+                            ++it_hole) {
+                        auto json_hole = *it_shape;
+                        Shape shape = read_shape(json_hole);
+                        item_shape.holes.push_back(shape);
+                    }
+                }
+
+                item_shapes.push_back(item_shape);
+            }
+
+        } else {
+            // Single item shape.
+            ItemShape item_shape;
+            item_shape.shape = read_shape(json_item);
+
+            // Read holes.
+            if (json_item.contains("holes")) {
+                for (auto it_hole = json_item["holes"].begin();
+                        it_hole != json_item["holes"].end();
+                        ++it_hole) {
+                    auto json_hole = *it_hole;
+                    Shape shape = read_shape(json_hole);
+                    item_shape.holes.push_back(shape);
+                }
+            }
+
+            item_shapes.push_back(item_shape);
+        }
+
         Profit profit = -1;
-        BinPos copies = 1;
+        if (json_item.contains("profit"))
+            profit = json_item["profit"];
+
+        ItemPos copies = 1;
+        if (json_item.contains("copies"))
+            copies = json_item["copies"];
+
         std::vector<std::pair<Angle, Angle>> allowed_rotations = {{0, 0}};
         add_item_type(
                 item_shapes,
