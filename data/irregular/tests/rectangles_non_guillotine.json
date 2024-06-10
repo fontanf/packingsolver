@@ -1,4 +1,5 @@
 {
+    "objective": "knapsack",
     "bin_types": [
         {
             "type": "rectangle",

@@ -213,6 +213,14 @@ void InstanceBuilder::read(
     nlohmann ::json j;
     file >> j;
 
+    if (j.contains("objective")) {
+        std::stringstream objective_ss;
+        objective_ss << std::string(j["objective"]);
+        Objective objective;
+        objective_ss >> objective;
+        set_objective(objective);
+    }
+
     // Read bin types.
     for (const auto& json_item: j["bin_types"]) {
         Shape shape = read_shape(json_item);
