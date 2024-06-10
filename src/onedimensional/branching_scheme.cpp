@@ -20,20 +20,20 @@ BranchingScheme::BranchingScheme(
 ////////////////////////////////////////////////////////////////////////////////
 
 BranchingScheme::Node BranchingScheme::child_tmp(
-        const std::shared_ptr<Node>& pfather,
+        const std::shared_ptr<Node>& pparent,
         const Insertion& insertion) const
 {
-    const Node& father = *pfather;
+    const Node& parent = *pparent;
     Node node;
     const ItemType& item_type = instance().item_type(insertion.item_type_id);
 
-    node.father = pfather;
+    node.parent = pparent;
 
     node.item_type_id = insertion.item_type_id;
 
     // Update number_of_bins and last_bin_direction.
     if (insertion.new_bin) {  // New bin.
-        node.number_of_bins = father.number_of_bins + 1;
+        node.number_of_bins = parent.number_of_bins + 1;
         node.last_bin_length = item_type.length;
         node.last_bin_weight = item_type.weight;
         node.last_bin_number_of_items = 1;
@@ -41,16 +41,16 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_maximum_number_of_items = item_type.maximum_stackability;
         node.last_bin_remaiing_weight = item_type.maximum_weight_after;
     } else {  // Same bin.
-        node.number_of_bins = father.number_of_bins;
-        node.last_bin_length = father.last_bin_length + item_type.length - item_type.nesting_length;
-        node.last_bin_weight = father.last_bin_weight + item_type.weight;
-        node.last_bin_number_of_items = father.last_bin_number_of_items + 1;
-        node.last_bin_weight = father.last_bin_weight + item_type.weight;
+        node.number_of_bins = parent.number_of_bins;
+        node.last_bin_length = parent.last_bin_length + item_type.length - item_type.nesting_length;
+        node.last_bin_weight = parent.last_bin_weight + item_type.weight;
+        node.last_bin_number_of_items = parent.last_bin_number_of_items + 1;
+        node.last_bin_weight = parent.last_bin_weight + item_type.weight;
         node.last_bin_maximum_number_of_items = std::min(
-                father.last_bin_maximum_number_of_items,
+                parent.last_bin_maximum_number_of_items,
                 item_type.maximum_stackability);
         node.last_bin_remaiing_weight = std::min(
-                father.last_bin_remaiing_weight - item_type.weight,
+                parent.last_bin_remaiing_weight - item_type.weight,
                 item_type.maximum_weight_after);
     }
 
@@ -58,12 +58,12 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Compute item_number_of_copies, number_of_items, items_area,
     // squared_item_length and profit.
-    node.item_number_of_copies = father.item_number_of_copies;
+    node.item_number_of_copies = parent.item_number_of_copies;
     node.item_number_of_copies[insertion.item_type_id]++;
-    node.number_of_items = father.number_of_items + 1;
-    node.item_length = father.item_length + item_type.length;
-    node.squared_item_length = father.squared_item_length + item_type.length * item_type.length;
-    node.profit = father.profit + item_type.profit;
+    node.number_of_items = parent.number_of_items + 1;
+    node.item_length = parent.item_length + item_type.length;
+    node.squared_item_length = parent.squared_item_length + item_type.length * item_type.length;
+    node.profit = parent.profit + item_type.profit;
 
     // Compute current_length, guide_length and width using uncovered_items.
     node.current_length = instance_.previous_bin_length(i) + node.last_bin_length;
@@ -74,43 +74,43 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 }
 
 std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
-        const std::shared_ptr<Node>& father) const
+        const std::shared_ptr<Node>& parent) const
 {
-    insertions(father);
+    insertions(parent);
     std::vector<std::shared_ptr<Node>> cs(insertions_.size());
     for (Counter i = 0; i < (Counter)insertions_.size(); ++i)
-        cs[i] = std::make_shared<Node>(child_tmp(father, insertions_[i]));
+        cs[i] = std::make_shared<Node>(child_tmp(parent, insertions_[i]));
     return cs;
 }
 
 const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
-        const std::shared_ptr<Node>& father) const
+        const std::shared_ptr<Node>& parent) const
 {
     //std::cout << "insertions" << std::endl;
 
     insertions_.clear();
 
     // Insert an item in the same bin.
-    if (father->number_of_bins > 0) {
-        BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+    if (parent->number_of_bins > 0) {
+        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
         const BinType& bin_type = instance().bin_type(bin_type_id);
         for (ItemTypeId item_type_id: bin_type.item_type_ids) {
             const ItemType& item_type = instance_.item_type(item_type_id);
-            if (father->item_number_of_copies[item_type_id] == item_type.copies)
+            if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
-            insertion_item_same_bin(father, item_type_id);
+            insertion_item_same_bin(parent, item_type_id);
         }
     }
 
     // Insert in a new bin.
-    if (insertions_.empty() && father->number_of_bins < instance().number_of_bins()) {
-        BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins);
+    if (insertions_.empty() && parent->number_of_bins < instance().number_of_bins()) {
+        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins);
         const BinType& bin_type = instance().bin_type(bin_type_id);
         for (ItemTypeId item_type_id: bin_type.item_type_ids) {
             const ItemType& item_type = instance_.item_type(item_type_id);
-            if (father->item_number_of_copies[item_type_id] == item_type.copies)
+            if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
-            insertion_item_new_bin(father, item_type_id);
+            insertion_item_new_bin(parent, item_type_id);
         }
     }
 
@@ -118,27 +118,27 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 }
 
 void BranchingScheme::insertion_item_same_bin(
-        const std::shared_ptr<Node>& father,
+        const std::shared_ptr<Node>& parent,
         ItemTypeId item_type_id) const
 {
     const ItemType& item_type = instance_.item_type(item_type_id);
-    BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+    BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
     const BinType& bin_type = instance().bin_type(bin_type_id);
 
     // Check bin length.
-    if (father->last_bin_length + item_type.length - item_type.nesting_length > bin_type.length)
+    if (parent->last_bin_length + item_type.length - item_type.nesting_length > bin_type.length)
         return;
     // Check maximum weight.
-    if (father->last_bin_weight + item_type.weight > bin_type.maximum_weight * PSTOL)
+    if (parent->last_bin_weight + item_type.weight > bin_type.maximum_weight * PSTOL)
         return;
     // Check maximum stackability.
     ItemPos last_bin_maximum_number_of_items = std::min(
-            father->last_bin_maximum_number_of_items,
+            parent->last_bin_maximum_number_of_items,
             item_type.maximum_stackability);
-    if (father->last_bin_number_of_items + 1 > last_bin_maximum_number_of_items)
+    if (parent->last_bin_number_of_items + 1 > last_bin_maximum_number_of_items)
         return;
     // Check maximum weight above.
-    if (item_type.weight > father->last_bin_remaiing_weight * PSTOL)
+    if (item_type.weight > parent->last_bin_remaiing_weight * PSTOL)
         return;
 
     Insertion insertion;
@@ -148,12 +148,12 @@ void BranchingScheme::insertion_item_same_bin(
 }
 
 void BranchingScheme::insertion_item_new_bin(
-        const std::shared_ptr<Node>& father,
+        const std::shared_ptr<Node>& parent,
         ItemTypeId item_type_id) const
 {
     //std::cout << "insertion_item " << item_type_id << std::endl;
     const ItemType& item_type = instance_.item_type(item_type_id);
-    BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins);
+    BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins);
     const BinType& bin_type = instance().bin_type(bin_type_id);
     // Check bin length.
     if (item_type.length > bin_type.length)
@@ -276,8 +276,8 @@ Solution BranchingScheme::to_solution(
 {
     std::vector<std::shared_ptr<Node>> descendents;
     for (std::shared_ptr<Node> current_node = node;
-            current_node->father != nullptr;
-            current_node = current_node->father) {
+            current_node->parent != nullptr;
+            current_node = current_node->parent) {
         descendents.push_back(current_node);
     }
     std::reverse(descendents.begin(), descendents.end());
