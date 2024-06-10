@@ -135,13 +135,13 @@ BranchingScheme::BranchingScheme(
 ////////////////////////////////////////////////////////////////////////////////
 
 BranchingScheme::Node BranchingScheme::child_tmp(
-        const std::shared_ptr<Node>& pfather,
+        const std::shared_ptr<Node>& pparent,
         const Insertion& insertion) const
 {
-    const Node& father = *pfather;
+    const Node& parent = *pparent;
     Node node;
 
-    node.father = pfather;
+    node.parent = pparent;
 
     node.rectangle_set_id = insertion.rectangle_set_id;
     node.x = insertion.x;
@@ -149,13 +149,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Update number_of_bins and last_bin_direction.
     if (insertion.new_bin > 0) {  // New bin.
-        node.number_of_bins = father.number_of_bins + 1;
+        node.number_of_bins = parent.number_of_bins + 1;
         node.last_bin_direction = (insertion.new_bin == 1)?
             Direction::X:
             Direction::Y;
     } else {  // Same bin.
-        node.number_of_bins = father.number_of_bins;
-        node.last_bin_direction = father.last_bin_direction;
+        node.number_of_bins = parent.number_of_bins;
+        node.last_bin_direction = parent.last_bin_direction;
     }
 
     const RectangleSet& rectangle_set = (node.last_bin_direction == Direction::X)?
@@ -214,7 +214,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             node.uncovered_rectangles.push_back(uncovered_rectangle);
         }
     } else {  // Same bin.
-        for (const UncoveredRectangle& uncovered_rectangle: father.uncovered_rectangles) {
+        for (const UncoveredRectangle& uncovered_rectangle: parent.uncovered_rectangles) {
             if (uncovered_rectangle.ye <= ys) {
                 UncoveredRectangle new_uncovered_rectangle = uncovered_rectangle;
                 node.uncovered_rectangles.push_back(new_uncovered_rectangle);
@@ -254,23 +254,23 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         }
 
         // Update extra rectangles.
-        node.extra_rectangles = father.extra_rectangles;
+        node.extra_rectangles = parent.extra_rectangles;
     }
 
     // Compute item_number_of_copies, number_of_items, items_area,
     // squared_item_area and profit.
-    node.item_number_of_copies = father.item_number_of_copies;
+    node.item_number_of_copies = parent.item_number_of_copies;
     for (const RectangleSetItem& rectangle_set_item: rectangle_set.items) {
         const ItemType& item_type = instance().item_type(rectangle_set_item.item_type_id);
         node.item_number_of_copies[rectangle_set_item.item_type_id]++;
-        node.number_of_items = father.number_of_items + 1;
-        node.item_area = father.item_area + item_type.area;
-        node.profit = father.profit + item_type.profit;
+        node.number_of_items = parent.number_of_items + 1;
+        node.item_area = parent.item_area + item_type.area;
+        node.profit = parent.profit + item_type.profit;
     }
 
     // Compute current_area, guide_area and width using uncovered_rectangles.
     node.xs_max = (insertion.new_bin == 0)?
-        std::max(father.xs_max, insertion.x):
+        std::max(parent.xs_max, insertion.x):
         insertion.x;
     node.current_area = instance_.previous_bin_area(bin_pos);
     node.guide_area = instance_.previous_bin_area(bin_pos) + node.xs_max * yi;
@@ -313,12 +313,12 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 }
 
 std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
-        const std::shared_ptr<Node>& father) const
+        const std::shared_ptr<Node>& parent) const
 {
-    insertions(father);
+    insertions(parent);
     std::vector<std::shared_ptr<Node>> cs(insertions_.size());
     for (Counter i = 0; i < (Counter)insertions_.size(); ++i) {
-        cs[i] = std::make_shared<Node>(child_tmp(father, insertions_[i]));
+        cs[i] = std::make_shared<Node>(child_tmp(parent, insertions_[i]));
         //std::cout << cs[i]->id
         //    << " rid " << cs[i]->rectangle_set_id
         //    << " x " << cs[i]->x
@@ -329,24 +329,24 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
 }
 
 const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
-        const std::shared_ptr<Node>& father) const
+        const std::shared_ptr<Node>& parent) const
 {
     insertions_.clear();
     //std::cout << "insertions"
-    //    << " id " << father->id
-    //    << " rs " << father->rectangle_set_id
-    //    << " x " << father->x
-    //    << " y " << father->y
-    //    << " n " << father->number_of_items
-    //    << " item_area " << father->item_area
-    //    << " guide_area " << father->guide_area
+    //    << " id " << parent->id
+    //    << " rs " << parent->rectangle_set_id
+    //    << " x " << parent->x
+    //    << " y " << parent->y
+    //    << " n " << parent->number_of_items
+    //    << " item_area " << parent->item_area
+    //    << " guide_area " << parent->guide_area
     //    << std::endl;
 
     // Check number of items for each rectangle set.
-    const std::vector<RectangleSet>& rectangle_sets = (father->last_bin_direction == Direction::X)?
+    const std::vector<RectangleSet>& rectangle_sets = (parent->last_bin_direction == Direction::X)?
         rectangle_sets_x_:
         rectangle_sets_y_;
-    const std::vector<ItemTypeRectangles>& item_types_rectangles = (father->last_bin_direction == Direction::X)?
+    const std::vector<ItemTypeRectangles>& item_types_rectangles = (parent->last_bin_direction == Direction::X)?
         item_types_rectangles_x_:
         item_types_rectangles_y_;
     std::vector<RectangleSetId> valid_rectangle_set_ids;
@@ -359,7 +359,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         for (const auto& p: rectangle_set.item_types) {
             ItemTypeId item_type_id = p.first;
             ItemPos copies = p.second;
-            if (father->item_number_of_copies[item_type_id] + copies
+            if (parent->item_number_of_copies[item_type_id] + copies
                     > instance().item_type(item_type_id).copies) {
                 ok = false;
                 break;
@@ -370,8 +370,8 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
     }
 
     // Insert in the current bin.
-    if (father->number_of_bins > 0) {
-        BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins - 1);
+    if (parent->number_of_bins > 0) {
+        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
         const BinType& bin_type = instance().bin_type(bin_type_id);
 
         // Loop through rectangle sets.
@@ -393,10 +393,10 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             ++item_shape_rectangle_pos) {
 
                         for (ItemPos uncovered_rectangle_pos = 0;
-                                uncovered_rectangle_pos < (ItemPos)father->uncovered_rectangles.size();
+                                uncovered_rectangle_pos < (ItemPos)parent->uncovered_rectangles.size();
                                 ++uncovered_rectangle_pos) {
                             insertion_rectangle_set(
-                                    father,
+                                    parent,
                                     rectangle_set_id,
                                     item_pos,
                                     item_shape_pos,
@@ -409,10 +409,10 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 
                         // Extra rectangles.
                         for (ItemPos extra_rectangle_pos = 0;
-                                extra_rectangle_pos < (ItemPos)father->extra_rectangles.size();
+                                extra_rectangle_pos < (ItemPos)parent->extra_rectangles.size();
                                 ++extra_rectangle_pos) {
                             insertion_rectangle_set(
-                                    father,
+                                    parent,
                                     rectangle_set_id,
                                     item_pos,
                                     item_shape_pos,
@@ -426,7 +426,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                         // Defects.
                         for (const Defect& defect: bin_type.defects) {
                             insertion_rectangle_set(
-                                    father,
+                                    parent,
                                     rectangle_set_id,
                                     item_pos,
                                     item_shape_pos,
@@ -444,8 +444,8 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
     }
 
     // Insert in a new bin.
-    if (insertions_.empty() && father->number_of_bins < instance().number_of_bins()) {
-        BinTypeId bin_type_id = instance().bin_type_id(father->number_of_bins);
+    if (insertions_.empty() && parent->number_of_bins < instance().number_of_bins()) {
+        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins);
         const BinType& bin_type = instance().bin_type(bin_type_id);
 
         int new_bin = 0;
@@ -483,7 +483,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             ++item_shape_rectangle_pos) {
 
                         insertion_rectangle_set(
-                                father,
+                                parent,
                                 rectangle_set_id,
                                 item_pos,
                                 item_shape_pos,
@@ -498,7 +498,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                         for (const Defect& defect: bin_type.defects) {
 
                             insertion_rectangle_set(
-                                    father,
+                                    parent,
                                     rectangle_set_id,
                                     item_pos,
                                     item_shape_pos,
@@ -518,7 +518,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 }
 
 void BranchingScheme::insertion_rectangle_set(
-        const std::shared_ptr<Node>& father,
+        const std::shared_ptr<Node>& parent,
         RectangleSetId rectangle_set_id,
         ItemPos item_pos,
         ItemShapePos item_shape_pos,
@@ -538,11 +538,11 @@ void BranchingScheme::insertion_rectangle_set(
     //    << " d " << defect_id
     //    << std::endl;
     BinTypeId bin_type_id = (new_bin == 0)?
-        instance().bin_type_id(father->number_of_bins - 1):
-        instance().bin_type_id(father->number_of_bins);
+        instance().bin_type_id(parent->number_of_bins - 1):
+        instance().bin_type_id(parent->number_of_bins);
     const BinType& bin_type = instance().bin_type(bin_type_id);
     Direction o = (new_bin == 0)?
-        father->last_bin_direction:
+        parent->last_bin_direction:
         ((new_bin == 1)? Direction::X: Direction::Y);
 
     const std::vector<RectangleSet>& rectangle_sets = (o == Direction::X)?
@@ -561,11 +561,11 @@ void BranchingScheme::insertion_rectangle_set(
     LengthDbl yi = instance().y_max(bin_type, o);
     LengthDbl ys;
     if (uncovered_rectangle_pos > 0) {
-        ys = father->uncovered_rectangles[uncovered_rectangle_pos].ys;
+        ys = parent->uncovered_rectangles[uncovered_rectangle_pos].ys;
     //} else if (defect_id != -1) {
     //    ys = instance().y_end(bin_type.defects[defect_id], o);
     } else if (extra_rectangle_pos != -1) {  // new bin.
-        ys = father->extra_rectangles[extra_rectangle_pos].ys;
+        ys = parent->extra_rectangles[extra_rectangle_pos].ys;
     } else {  // new bin.
         ys = 0;
     }
@@ -609,7 +609,7 @@ void BranchingScheme::insertion_rectangle_set(
                     LengthDbl ys_cur = ys + rectangle_set_item.bottom_left.y + item_shape_rectangle.bottom_left.y;
                     LengthDbl ye_cur = ys + rectangle_set_item.bottom_left.y + item_shape_rectangle.top_right.y;
 
-                    for (const UncoveredRectangle& uncovered_rectangle: father->uncovered_rectangles) {
+                    for (const UncoveredRectangle& uncovered_rectangle: parent->uncovered_rectangles) {
                         if (uncovered_rectangle.ye <= ys_cur || uncovered_rectangle.ys >= ye_cur)
                             continue;
                         LengthDbl xs_cur = xs + rectangle_set_item.bottom_left.x + item_shape_rectangle.bottom_left.x;
@@ -649,7 +649,7 @@ void BranchingScheme::insertion_rectangle_set(
                     LengthDbl ye_cur = ys + rectangle_set_item.bottom_left.y + item_shape_rectangle.top_right.y;
 
                     // Extra rectangles.
-                    for (const UncoveredRectangle& extra_rectangle: father->extra_rectangles) {
+                    for (const UncoveredRectangle& extra_rectangle: parent->extra_rectangles) {
                         LengthDbl xs_cur = xs + rectangle_set_item.bottom_left.x + item_shape_rectangle.bottom_left.x;
                         LengthDbl xe_cur = xs + rectangle_set_item.bottom_left.x + item_shape_rectangle.top_right.x;
                         if (ys_cur >= extra_rectangle.ye)
@@ -698,19 +698,19 @@ void BranchingScheme::insertion_rectangle_set(
     }
 
     if (parameters_.staircase && new_bin == 0 && uncovered_rectangle_pos != -1)
-        for (const UncoveredRectangle& uncovered_rectangle: father->uncovered_rectangles)
+        for (const UncoveredRectangle& uncovered_rectangle: parent->uncovered_rectangles)
             if (uncovered_rectangle.ys > ye && uncovered_rectangle.xe > xs)
                 return;
 
     if (uncovered_rectangle_pos > 0) {
-        if (xe <= father->uncovered_rectangles[uncovered_rectangle_pos - 1].xs) {
-            //std::cout << "urp " << xe << " / " << father->uncovered_rectangles[uncovered_rectangle_pos - 1].xs << std::endl;
+        if (xe <= parent->uncovered_rectangles[uncovered_rectangle_pos - 1].xs) {
+            //std::cout << "urp " << xe << " / " << parent->uncovered_rectangles[uncovered_rectangle_pos - 1].xs << std::endl;
             return;
         }
     } else if (extra_rectangle_pos != -1) {
-        if (xe <= father->extra_rectangles[extra_rectangle_pos].xs)
+        if (xe <= parent->extra_rectangles[extra_rectangle_pos].xs)
             return;
-        if (xs >= father->extra_rectangles[extra_rectangle_pos].xe)
+        if (xs >= parent->extra_rectangles[extra_rectangle_pos].xe)
             return;
     //} else if (defect_id != -1) {
     //    if (xe <= instance().x_start(bin_type.defects[defect_id], o))
@@ -853,8 +853,8 @@ Solution BranchingScheme::to_solution(
     //std::cout << "to_solution" << std::endl;
     std::vector<std::shared_ptr<Node>> descendents;
     for (std::shared_ptr<Node> current_node = node;
-            current_node->father != nullptr;
-            current_node = current_node->father) {
+            current_node->parent != nullptr;
+            current_node = current_node->parent) {
         descendents.push_back(current_node);
     }
     std::reverse(descendents.begin(), descendents.end());

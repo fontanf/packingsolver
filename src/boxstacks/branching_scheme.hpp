@@ -145,10 +145,10 @@ public:
         NodeId id = -1;
 
         /**
-         * Pointer to the father of the node,
+         * Pointer to the parent of the node,
          * 'nullptr' if the node is the root.
          */
-        std::shared_ptr<Node> father = nullptr;
+        std::shared_ptr<Node> parent = nullptr;
 
         /** Last inserted item type. */
         ItemTypeId item_type_id;
@@ -263,23 +263,23 @@ public:
      */
 
     const std::vector<Insertion>& insertions(
-            const std::shared_ptr<Node>& father) const;
+            const std::shared_ptr<Node>& parent) const;
 
     Node child_tmp(
-            const std::shared_ptr<Node>& father,
+            const std::shared_ptr<Node>& parent,
             const Insertion& insertion) const;
 
     std::shared_ptr<Node> child(
-            const std::shared_ptr<Node>& father,
+            const std::shared_ptr<Node>& parent,
             const Insertion& insertion) const
     {
-        return std::shared_ptr<Node>(new Node(child_tmp(father, insertion)));
+        return std::shared_ptr<Node>(new Node(child_tmp(parent, insertion)));
     }
 
     const std::shared_ptr<Node> root() const;
 
     std::vector<std::shared_ptr<Node>> children(
-            const std::shared_ptr<Node>& father) const;
+            const std::shared_ptr<Node>& parent) const;
 
     inline bool operator()(
             const std::shared_ptr<Node>& node_1,
@@ -458,14 +458,14 @@ private:
 
     /** Insertion of one item above the previous inserted one. */
     void insertion_item_above(
-            const std::shared_ptr<Node>& father,
+            const std::shared_ptr<Node>& parent,
             ItemTypeId item_type_id,
             int rotation,
             ItemPos uncovered_item_pos) const;
 
     /** Insertion of one item in a new stack. */
     void insertion_item(
-            const std::shared_ptr<Node>& father,
+            const std::shared_ptr<Node>& parent,
             ItemTypeId item_type_id,
             int rotation,
             int8_t new_bin,
@@ -474,7 +474,7 @@ private:
 
     /** Insertion of one item in a new stack. */
     void insertion_item_left(
-            const std::shared_ptr<Node>& father,
+            const std::shared_ptr<Node>& parent,
             ItemTypeId item_type_id,
             int rotation,
             ItemPos uncovered_item_pos) const;

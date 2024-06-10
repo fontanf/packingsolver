@@ -46,7 +46,7 @@ public:
         ItemTypeId item_type_id_2;
 
         /**
-         * Depth of the father in the tree representation of the solution:
+         * Depth of the parent in the tree representation of the solution:
          * * 2: same second-level sub-plate
          * * 1: same first-level sub-plate, new second-level sub-plate
          * * 0: same bin, new first-level sub-plate
@@ -127,10 +127,10 @@ public:
         NodeId id = -1;
 
         /**
-         * Pointer to the father of the node,
+         * Pointer to the parent of the node,
          * 'nullptr' if the node is the root.
          */
-        std::shared_ptr<Node> father = nullptr;
+        std::shared_ptr<Node> parent = nullptr;
 
         /**
          * Type of the last item added to the partial solution at the bottom of
@@ -245,23 +245,23 @@ public:
      */
 
     const std::vector<Insertion>& insertions(
-            const std::shared_ptr<Node>& father) const;
+            const std::shared_ptr<Node>& parent) const;
 
     Node child_tmp(
-            const std::shared_ptr<Node>& father,
+            const std::shared_ptr<Node>& parent,
             const Insertion& insertion) const;
 
     std::shared_ptr<Node> child(
-            const std::shared_ptr<Node>& father,
+            const std::shared_ptr<Node>& parent,
             const Insertion& insertion) const
     {
-        return std::shared_ptr<Node>(new Node(child_tmp(father, insertion)));
+        return std::shared_ptr<Node>(new Node(child_tmp(parent, insertion)));
     }
 
     const std::shared_ptr<Node> root() const;
 
     std::vector<std::shared_ptr<Node>> children(
-            const std::shared_ptr<Node>& father) const;
+            const std::shared_ptr<Node>& parent) const;
 
     inline bool operator()(
             const std::shared_ptr<Node>& node_1,
@@ -507,14 +507,14 @@ private:
 
     /** Insertion of one item. */
     void insertion_1_item(
-            const Node& father,
+            const Node& parent,
             ItemTypeId item_type_id,
             bool rotate,
             Depth df) const;
 
     /** Insertion of two items. */
     void insertion_2_items(
-            const Node& father,
+            const Node& parent,
             ItemTypeId item_type_id_1,
             bool rotate1,
             ItemTypeId item_type_id_2,
@@ -523,13 +523,13 @@ private:
 
     /** Insertion of a defect. */
     void insertion_defect(
-            const Node& father,
+            const Node& parent,
             DefectId defect_id,
             Depth df) const;
 
     /** Update insertion (x1, z1, y2, z2) and add insertion to insertions. */
     void update(
-            const Node& father,
+            const Node& parent,
             Insertion& insertion) const;
 
     bool check(const std::vector<SolutionNode>& nodes) const;
