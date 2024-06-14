@@ -137,7 +137,7 @@ void SolutionBuilder::add_bin(
         }
 
         SolutionNode node;
-        node.d = -1;
+        node.d = 0;
         node.f = 0;
         node.l = bin_type.left_trim;
         node.r = bin_type.rect.w - bin_type.right_trim;
