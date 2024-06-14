@@ -137,7 +137,7 @@ void SolutionBuilder::add_bin(
         }
 
         SolutionNode node;
-        node.d = -1;
+        node.d = 0;
         node.f = 0;
         node.l = bin_type.left_trim;
         node.r = bin_type.rect.w - bin_type.right_trim;
@@ -159,8 +159,21 @@ void SolutionBuilder::set_last_node_item(
                 "rectangleguillotine::SolutionBuilder::set_last_node_item: "
                 "at least one bin must have been added to the solution.");
     }
+
+    const ItemType& item_type = solution_.instance().item_type(item_type_id);
     SolutionBin& bin = solution_.bins_.back();
     SolutionNode& node = bin.nodes.back();
+
+    // Check node dimensions.
+    bool ok = (
+            (node.r - node.l == item_type.rect.w && node.t - node.b == item_type.rect.h)
+            || (node.r - node.l == item_type.rect.h && node.t - node.b == item_type.rect.w));
+    if (!ok) {
+        throw std::logic_error(
+                "rectangleguillotine::SolutionBuilder::set_last_node_item: "
+                "wrong item dimensions.");
+    }
+
     node.item_type_id = item_type_id;
 }
 
@@ -168,6 +181,7 @@ void SolutionBuilder::add_node(
         Depth depth,
         Length cut_position)
 {
+    Length cut_thickness = solution_.instance().parameters().cut_thickness;
     //std::cout << "add_node depth " << depth << " cut_position " << cut_position << std::endl;
     if (solution_.bins_.empty()) {
         throw std::logic_error(
@@ -242,7 +256,7 @@ void SolutionBuilder::add_node(
                 && depth % 2 == 1)
             || (bin.first_cut_orientation == CutOrientation::Horizontal
                 && depth % 2 == 0)) {
-        child.l = (parent.children.empty())? parent.l: bin.nodes[parent.children.back()].r;
+        child.l = (parent.children.empty())? parent.l: bin.nodes[parent.children.back()].r + cut_thickness;
         child.r = cut_position;
         child.b = parent.b;
         child.t = parent.t;
@@ -259,7 +273,7 @@ void SolutionBuilder::add_node(
     } else {
         child.l = parent.l;
         child.r = parent.r;
-        child.b = (parent.children.empty())? parent.b: bin.nodes[parent.children.back()].t;
+        child.b = (parent.children.empty())? parent.b: bin.nodes[parent.children.back()].t + cut_thickness;
         child.t = cut_position;
         if (child.t <= child.b) {
             throw std::logic_error(
