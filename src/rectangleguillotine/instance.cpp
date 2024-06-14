@@ -180,9 +180,11 @@ void Instance::write(
     std::string items_path = instance_path + "_items.csv";
     std::string bins_path = instance_path + "_bins.csv";
     std::string defects_path = instance_path + "_defects.csv";
+    std::string parameters_path = instance_path + "_parameters.csv";
     std::ofstream f_items(items_path);
     std::ofstream f_bins(bins_path);
     std::ofstream f_defects(defects_path);
+    std::ofstream f_parameters(parameters_path);
     if (!f_items.good()) {
         throw std::runtime_error(
                 "Unable to open file \"" + items_path + "\".");
@@ -195,14 +197,27 @@ void Instance::write(
         throw std::runtime_error(
                 "Unable to open file \"" + defects_path + "\".");
     }
+    if (!f_parameters.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + parameters_path + "\".");
+    }
 
     // Export items.
-    f_items << "ID,WIDTH,HEIGHT,PROFIT,COPIES,ORIENTED,STACK_ID" << std::endl;
+    f_items <<
+        "ID,"
+        "WIDTH,"
+        "HEIGHT,"
+        "PROFIT,"
+        "COPIES,"
+        "ORIENTED,"
+        "STACK_ID,"
+        << std::endl;
     for (ItemTypeId item_type_id = 0;
             item_type_id < number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = this->item_type(item_type_id);
-        f_items << item_type_id << ","
+        f_items
+            << item_type_id << ","
             << item_type.rect.w << ","
             << item_type.rect.h << ","
             << item_type.profit << ","
@@ -212,7 +227,22 @@ void Instance::write(
     }
 
     // Export bins.
-    f_bins << "ID,WIDTH,HEIGHT" << std::endl;
+    f_bins <<
+        "ID,"
+        "WIDTH,"
+        "HEIGHT,"
+        "COST,"
+        "COPIES,"
+        "COPIES_MIN,"
+        "BOTTOM_TRIM,"
+        "TOP_TRIM,"
+        "LEFT_TRIM,"
+        "RIGHT_TRIM,"
+        "BOTTOM_TRIM_TYPE,"
+        "TOP_TRIM_TYPE,"
+        "LEFT_TRIM_TYPE,"
+        "RIGHT_TRIM_TYPE,"
+        << std::endl;
     for (BinTypeId bin_type_id = 0;
             bin_type_id < number_of_bin_types();
             ++bin_type_id) {
@@ -220,7 +250,18 @@ void Instance::write(
         f_bins
             << bin_type_id << ","
             << bin_type.rect.w << ","
-            << bin_type.rect.h << std::endl;
+            << bin_type.rect.h << ","
+            << bin_type.cost << ","
+            << bin_type.copies << ","
+            << bin_type.copies_min << ","
+            << bin_type.bottom_trim << ","
+            << bin_type.top_trim << ","
+            << bin_type.left_trim << ","
+            << bin_type.right_trim << ","
+            << bin_type.bottom_trim_type << ","
+            << bin_type.top_trim_type << ","
+            << bin_type.left_trim_type << ","
+            << bin_type.right_trim_type << std::endl;
     }
 
     // Export defects.
@@ -244,6 +285,19 @@ void Instance::write(
             }
         }
     }
+
+    // Export parameters.
+    f_parameters << "NAME,VALUE" << std::endl
+        << "objective," << objective()
+        << "number_of_stages," << parameters().number_of_stages
+        << "cut_type," << parameters().cut_type
+        << "first_stage_orientation," << parameters().first_stage_orientation
+        << "min1cut," << parameters().min1cut
+        << "max1cut," << parameters().max1cut
+        << "min2cut," << parameters().min2cut
+        << "min_waste," << parameters().min_waste
+        << "cut_thickness," << parameters().cut_thickness
+        ;
 }
 
 std::ostream& Instance::format(
