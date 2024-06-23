@@ -13,13 +13,13 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "roadef2018") {
+    if (token == "roadef2018" || token == "Roadef2018") {
         cut_type = CutType::Roadef2018;
-    } else if (token == "non-exact") {
+    } else if (token == "non-exact" || token == "NonExact") {
         cut_type = CutType::NonExact;
-    } else if (token == "exact") {
+    } else if (token == "exact" || token == "Exact") {
         cut_type = CutType::Exact;
-    } else if (token == "homogenous") {
+    } else if (token == "homogenous" || token == "Homogenous") {
         cut_type = CutType::Homogenous;
     } else  {
         in.setstate(std::ios_base::failbit);
@@ -33,12 +33,28 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "horizontal") {
+    if (token == "horizontal" || token == "Horizontal") {
         o = CutOrientation::Horizontal;
-    } else if (token == "vertical") {
+    } else if (token == "vertical" || token == "Vertical") {
         o = CutOrientation::Vertical;
-    } else if (token == "any") {
+    } else if (token == "any" || token == "Any") {
         o = CutOrientation::Any;
+    } else  {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::istream& packingsolver::rectangleguillotine::operator>>(
+        std::istream& in,
+        TrimType& trim_type)
+{
+    std::string token;
+    in >> token;
+    if (token == "s" || token == "H" || token == "hard" || token == "Hard" || token == "0") {
+        trim_type = TrimType::Hard;
+    } else if (token == "s" || token == "S" || token == "soft" || token == "Soft" || token == "1") {
+        trim_type = TrimType::Soft;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
