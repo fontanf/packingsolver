@@ -234,6 +234,16 @@ void InstanceBuilder::add_bin_type(
             bin_type.cost,
             copies,
             copies_min);
+    add_trims(
+            bin_type_id,
+            bin_type.left_trim,
+            bin_type.left_trim_type,
+            bin_type.right_trim,
+            bin_type.right_trim_type,
+            bin_type.bottom_trim,
+            bin_type.bottom_trim_type,
+            bin_type.top_trim,
+            bin_type.top_trim_type);
     for (const Defect& defect: bin_type.defects) {
         add_defect(
                 bin_type_id,
