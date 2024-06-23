@@ -74,6 +74,37 @@ void InstanceBuilder::add_bin_type(
     }
 }
 
+ItemPos InstanceBuilder::compute_number_of_items() const
+{
+    ItemPos number_of_items = 0;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance_.item_type(item_type_id);
+        number_of_items += item_type.copies;
+    }
+    return number_of_items;
+}
+
+void InstanceBuilder::set_bin_types_infinite_copies()
+{
+    ItemPos number_of_items = compute_number_of_items();
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance_.number_of_bin_types();
+            ++bin_type_id) {
+        instance_.bin_types_[bin_type_id].copies = number_of_items;
+    }
+}
+
+void InstanceBuilder::set_bin_types_unweighted()
+{
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance_.number_of_bin_types();
+            ++bin_type_id) {
+        instance_.bin_types_[bin_type_id].cost = instance_.bin_types_[bin_type_id].area;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Item types //////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,6 +141,15 @@ void InstanceBuilder::add_item_type(
             profit,
             copies,
             item_type.allowed_rotations);
+}
+
+void InstanceBuilder::set_item_types_unweighted()
+{
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        instance_.item_types_[item_type_id].profit = instance_.item_types_[item_type_id].area;
+    }
 }
 
 AreaDbl InstanceBuilder::compute_bin_types_area_max() const
