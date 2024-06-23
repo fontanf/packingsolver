@@ -26,6 +26,11 @@ PackingSolver solves the following problem types:
 
 ![Example](img/onedimensional.png?raw=true "Example onedimensional")
 
+* `irregular`
+  * Items: two-dimensional polygons
+
+![Example](img/irregular.png?raw=true "Example irregular")
+
 ## Problem type `rectangleguillotine`
 
 Features:
@@ -97,6 +102,19 @@ Features:
 * Bin types
   * Maximum weight
 * Item type / Bin type eligibility
+
+## Problem type `irregular`
+
+Features:
+* Objectives:
+  * Knapsack
+  * Open dimension X
+  * Open dimension Y
+  * Bin packing
+  * Bin packing with leftovers
+  * Variable-sized bin packing
+* Item types
+  * Discrete rotations
 
 ## Usage
 
