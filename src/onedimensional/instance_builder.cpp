@@ -43,7 +43,7 @@ BinTypeId InstanceBuilder::add_bin_type(
     BinType bin_type;
     bin_type.id = instance_.bin_types_.size();
     bin_type.length = length;
-    bin_type.cost = cost;
+    bin_type.cost = (cost == -1)? length: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
     instance_.bin_types_.push_back(bin_type);
