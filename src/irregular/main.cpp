@@ -55,6 +55,9 @@ int main(int argc, char *argv[])
 
         ("objective,f", po::value<Objective>(), "Objective")
 
+        ("bin-unweighted", "")
+        ("unweighted", "")
+
         ("output,o", po::value<std::string>(), "Output path")
         ("certificate,c", po::value<std::string>(), "Certificate path")
         ("log,l", po::value<std::string>(), "Log path")
@@ -92,6 +95,11 @@ int main(int argc, char *argv[])
     instance_builder.set_objective(vm["objective"].as<Objective>());
 
     instance_builder.read(vm["input"].as<std::string>());
+
+    if (vm.count("unweighted"))
+        instance_builder.set_item_types_unweighted();
+    if (vm.count("bin-unweighted"))
+        instance_builder.set_bin_types_unweighted();
 
     Instance instance = instance_builder.build();
 

@@ -64,6 +64,23 @@ public:
             BinPos copies,
             BinPos copies_min = 0);
 
+    /**
+     * Foe each bin type, set an infinite number of copies.
+     *
+     * This method should be used after reading bin files of Bin Packing
+     * Problems where the number of bin types is not given. By default, the
+     * number of bins would be set to 1.
+     */
+    void set_bin_types_infinite_copies();
+
+    /**
+     * For each bin type, set its cost to its area.
+     *
+     * This method is used to transform a Variable-sized Bin Packing Problem
+     * into an Unweighted Variable-sized Bin Packing Problem.
+     */
+    void set_bin_types_unweighted();
+
     /*
      * Set item types
      */
@@ -84,6 +101,14 @@ public:
             const ItemType& item_type,
             Profit profit,
             ItemPos copies);
+
+    /**
+     * For each item type, set its profit to its area.
+     *
+     * This method is used to transform a Knapsack Problem into an Unweighted
+     * Knapsack Problem.
+     */
+    void set_item_types_unweighted();
 
     /*
      * Build
