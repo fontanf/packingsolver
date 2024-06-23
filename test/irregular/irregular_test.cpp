@@ -47,7 +47,7 @@ TEST(Irregular, Tests_rectangle_non_guillotine)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 
