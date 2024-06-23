@@ -657,7 +657,7 @@ Length Instance::left_trim(
 {
     return (o == CutOrientation::Vertical)?
         bin_type.left_trim:
-        bin_type.top_trim;
+        bin_type.bottom_trim;
 }
 
 Length Instance::right_trim(
@@ -666,7 +666,7 @@ Length Instance::right_trim(
 {
     return (o == CutOrientation::Vertical)?
         bin_type.right_trim:
-        bin_type.bottom_trim;
+        bin_type.top_trim;
 }
 
 TrimType Instance::bottom_trim_type(
@@ -693,7 +693,7 @@ TrimType Instance::left_trim_type(
 {
     return (o == CutOrientation::Vertical)?
         bin_type.left_trim_type:
-        bin_type.top_trim_type;
+        bin_type.bottom_trim_type;
 }
 
 TrimType Instance::right_trim_type(
@@ -702,7 +702,7 @@ TrimType Instance::right_trim_type(
 {
     return (o == CutOrientation::Vertical)?
         bin_type.right_trim_type:
-        bin_type.bottom_trim_type;
+        bin_type.top_trim_type;
 }
 
 Length Instance::left(
@@ -831,4 +831,3 @@ DefectId Instance::x_intersects_defect(
 
 }
 }
-
