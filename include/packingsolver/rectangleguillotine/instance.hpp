@@ -30,6 +30,10 @@ std::istream& operator>>(
         std::istream& in,
         CutOrientation& o);
 
+std::istream& operator>>(
+        std::istream& in,
+        TrimType& trim_type);
+
 std::ostream& operator<<(
         std::ostream& os,
         CutType cut_type_2);
