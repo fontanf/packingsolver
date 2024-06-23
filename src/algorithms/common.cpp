@@ -8,11 +8,14 @@ std::istream& packingsolver::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "anytime") {
+    if (token == "anytime"
+            || token == "Anytime") {
         optimization_mode = OptimizationMode::Anytime;
-    } else if (token == "not-anytime") {
+    } else if (token == "not-anytime"
+            || token == "NotAnytime") {
         optimization_mode = OptimizationMode::NotAnytime;
-    } else if (token == "not-anytime-sequential") {
+    } else if (token == "not-anytime-sequential"
+            || token == "NotAnytimeSequential") {
         optimization_mode = OptimizationMode::NotAnytimeSequential;
     } else  {
         in.setstate(std::ios_base::failbit);
@@ -45,15 +48,25 @@ std::istream& packingsolver::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "rectangleguillotine" || token == "RG") {
+    if (token == "rectangleguillotine"
+            || token == "RectangleGuillotine"
+            || token == "RG") {
         problem_type = ProblemType::RectangleGuillotine;
-    } else if (token == "rectangle" || token == "R") {
+    } else if (token == "rectangle"
+            || token == "Rectangle"
+            || token == "R") {
         problem_type = ProblemType::Rectangle;
-    } else if (token == "onedimensional" || token == "1") {
+    } else if (token == "onedimensional"
+            || token == "OneDimensional"
+            || token == "1") {
         problem_type = ProblemType::OneDimensional;
-    } else if (token == "boxstacks" || token == "BS") {
+    } else if (token == "boxstacks"
+            || token == "BoxStacks"
+            || token == "BS") {
         problem_type = ProblemType::BoxStacks;
-    } else if (token == "irregular" || token == "I") {
+    } else if (token == "irregular"
+            || token == "Irregular"
+            || token == "I") {
         problem_type = ProblemType::Irregular;
     } else  {
         in.setstate(std::ios_base::failbit);
@@ -92,21 +105,36 @@ std::istream& packingsolver::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "default") {
+    if (token == "default"
+            || token == "Default") {
         objective = Objective::Default;
-    } else if (token == "bin-packing" || token == "BPP") {
+    } else if (token == "bin-packing"
+            || token == "BinPacking"
+            || token == "BPP") {
         objective = Objective::BinPacking;
-    } else if (token == "bin-packing-with-leftovers" || token == "BPPL") {
+    } else if (token == "bin-packing-with-leftovers"
+            || token == "BinPackingWithLeftovers"
+            || token == "BPPL") {
         objective = Objective::BinPackingWithLeftovers;
-    } else if (token == "open-dimension-x" || token == "ODX") {
+    } else if (token == "open-dimension-x"
+            || token == "OpenDimensionX"
+            || token == "ODX") {
         objective = Objective::OpenDimensionX;
-    } else if (token == "open-dimension-y" || token == "ODY") {
+    } else if (token == "open-dimension-y"
+            || token == "OpenDimensionY"
+            || token == "ODY") {
         objective = Objective::OpenDimensionY;
-    } else if (token == "knapsack" || token == "KP") {
+    } else if (token == "knapsack"
+            || token == "Knapsack"
+            || token == "KP") {
         objective = Objective::Knapsack;
-    } else if (token == "variable-sized-bin-packing" || token == "VBPP") {
+    } else if (token == "variable-sized-bin-packing"
+            || token == "VariableSizedBinPacking"
+            || token == "VBPP") {
         objective = Objective::VariableSizedBinPacking;
-    } else if (token == "sequential-onedimensional-rectangle-subproblem" || token == "BDRS") {
+    } else if (token == "sequential-onedimensional-rectangle-subproblem"
+            || token == "SequentialOneDimensionalRectangleSubproblem"
+            || token == "BDRS") {
         objective = Objective::SequentialOneDimensionalRectangleSubproblem;
     } else  {
         in.setstate(std::ios_base::failbit);
@@ -157,11 +185,14 @@ std::istream& packingsolver::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "x") {
+    if (token == "x"
+            || token == "X") {
         o = Direction::X;
-    } else if (token == "y") {
+    } else if (token == "y"
+            || token == "Y") {
         o = Direction::Y;
-    } else if (token == "any") {
+    } else if (token == "any"
+            || token == "Any") {
         o = Direction::Any;
     } else  {
         in.setstate(std::ios_base::failbit);
