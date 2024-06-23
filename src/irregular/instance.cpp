@@ -55,13 +55,12 @@ LengthDbl irregular::cross_product(
     return vector_1.x * vector_2.y - vector_2.x * vector_1.y;
 }
 
-Point irregular::rotate(
-        const Point& point,
-        Angle angle)
+Point Point::rotate(
+        Angle angle) const
 {
     Point point_out;
-    point_out.x = std::cos(angle) * point.x - std::sin(angle) * point.y;
-    point_out.y = std::sin(angle) * point.x + std::cos(angle) * point.y;
+    point_out.x = std::cos(angle) * x - std::sin(angle) * y;
+    point_out.y = std::sin(angle) * x + std::cos(angle) * y;
     return point_out;
 }
 
@@ -117,14 +116,13 @@ std::string ShapeElement::to_string() const
     return "";
 }
 
-ShapeElement irregular::rotate(
-        const ShapeElement& element,
-        Angle angle)
+ShapeElement ShapeElement::rotate(
+        Angle angle) const
 {
-    ShapeElement element_out = element;
-    element_out.start = rotate(element.start, angle);
-    element_out.end = rotate(element.end, angle);
-    element_out.center = rotate(element.center, angle);
+    ShapeElement element_out = *this;
+    element_out.start = start.rotate(angle);
+    element_out.end = end.rotate(angle);
+    element_out.center = center.rotate(angle);
     return element_out;
 }
 
@@ -280,7 +278,7 @@ std::pair<Point, Point> Shape::compute_min_max(Angle angle) const
     LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
     for (const ShapeElement& element: elements) {
-        Point point = rotate(element.start, angle);
+        Point point = element.start.rotate(angle);
         x_min = std::min(x_min, point.x);
         x_max = std::max(x_max, point.x);
         y_min = std::min(y_min, point.y);
@@ -325,6 +323,33 @@ std::pair<Point, Point> Shape::compute_min_max(Angle angle) const
         }
     }
     return {{x_min, y_min}, {x_max, y_max}};
+}
+
+Shape Shape::rotate(Angle angle) const
+{
+    Shape shape;
+    for (const ShapeElement& element: elements) {
+        ShapeElement element_new = element.rotate(angle);
+        shape.elements.push_back(element_new);
+    }
+    return shape;
+}
+
+Shape Shape::identity_line_axial_symmetry() const
+{
+    Shape shape;
+    for (auto it = shape.elements.rbegin(); it != shape.elements.rend(); ++it) {
+        const ShapeElement& element = *it;
+        ShapeElement element_new = element;
+        element_new.start.x = element.start.y;
+        element_new.start.y = element.start.x;
+        element_new.end.x = element.end.y;
+        element_new.end.y = element.end.x;
+        element_new.center.x = element.center.y;
+        element_new.center.y = element.center.x;
+        shape.elements.push_back(element_new);
+    }
+    return shape;
 }
 
 std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_length(Angle angle) const

@@ -9,6 +9,7 @@ namespace irregular
 
 using LengthDbl = double;
 using AreaDbl = double;
+using ElementPos = int64_t;
 
 /**
  * Structure for a point.
@@ -20,6 +21,8 @@ struct Point
 
     /** y-coordiante. */
     LengthDbl y;
+
+    Point rotate(Angle angle) const;
 
     bool operator==(const Point& point) const { return x == point.x && y == point.y; }
 
@@ -48,10 +51,6 @@ LengthDbl dot_product(
 LengthDbl cross_product(
         const Point& vector_1,
         const Point& vector_2);
-
-Point rotate(
-        const Point& point,
-        Angle angle);
 
 Angle angle(
         const Point& vector);
@@ -99,12 +98,10 @@ struct ShapeElement
     /** Length of the element. */
     LengthDbl length() const;
 
+    ShapeElement rotate(Angle angle) const;
+
     std::string to_string() const;
 };
-
-ShapeElement rotate(
-        const ShapeElement& element,
-        Angle angle);
 
 enum class ShapeType
 {
@@ -157,6 +154,10 @@ struct Shape
 
     /* Check if the shape is connected and in anticlockwise direction. */
     bool check() const;
+
+    Shape rotate(Angle angle) const;
+
+    Shape identity_line_axial_symmetry() const;
 
     std::string to_string(Counter indentation) const;
 };
@@ -364,7 +365,7 @@ public:
     inline AreaDbl previous_bin_area(BinPos bin_pos) const { return previous_bins_area_[bin_pos]; }
 
     /** Get the total area of the bins. */
-    inline Area bin_area() const { return bin_area_; }
+    inline AreaDbl bin_area() const { return bin_area_; }
 
     /** Get the number of defects. */
     inline DefectId number_of_defects() const { return number_of_defects_; }
@@ -374,12 +375,12 @@ public:
      */
 
     /** Get the x of a bin type depending on its orientation. */
-    inline Length x_max(
+    inline LengthDbl x_max(
             const BinType& bin_type,
             Direction o) const;
 
     /** Get the y of a bin type depending on its orientation. */
-    inline Length y_max(
+    inline LengthDbl y_max(
             const BinType& bin_type,
             Direction o) const;
 
@@ -496,14 +497,14 @@ private:
 /////////////////////////////// Inlined methods ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-Length Instance::x_max(
+LengthDbl Instance::x_max(
         const BinType& bin_type,
         Direction o) const
 {
     return (o == Direction::X)? bin_type.x_max: bin_type.y_max;
 }
 
-Length Instance::y_max(
+LengthDbl Instance::y_max(
         const BinType& bin_type,
         Direction o) const
 {
