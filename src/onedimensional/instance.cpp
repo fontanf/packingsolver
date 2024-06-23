@@ -138,3 +138,75 @@ std::ostream& Instance::format(
     return os;
 }
 
+void Instance::write(
+        const std::string& instance_path) const
+{
+    std::string items_path = instance_path + "_items.csv";
+    std::string bins_path = instance_path + "_bins.csv";
+    std::string parameters_path = instance_path + "_parameters.csv";
+    std::ofstream f_items(items_path);
+    std::ofstream f_bins(bins_path);
+    std::ofstream f_parameters(parameters_path);
+    if (!f_items.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + items_path + "\".");
+    }
+    if (!f_bins.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + bins_path + "\".");
+    }
+    if (!f_parameters.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + parameters_path + "\".");
+    }
+
+    // Export items.
+    f_items <<
+        "ID,"
+        "LENGTH,"
+        "PROFIT,"
+        "COPIES,"
+        "WEIGHT,"
+        "NESTING_LENGTH,"
+        "MAXIMUM_STACKABILITY,"
+        "MAXIMUM_WEIGHT_AFTER" << std::endl;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = this->item_type(item_type_id);
+        f_items
+            << item_type_id << ","
+            << item_type.length << ","
+            << item_type.profit << ","
+            << item_type.copies << ","
+            << item_type.weight << ","
+            << item_type.nesting_length << ","
+            << item_type.maximum_stackability << ","
+            << item_type.maximum_weight_after << std::endl;
+    }
+
+    // Export bins.
+    f_bins <<
+        "ID,"
+        "LENGTH,"
+        "COST,"
+        "COPIES,"
+        "COPIES_MIN,"
+        "MAXIMUM_WEIGHT" << std::endl;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        f_bins
+            << bin_type_id << ","
+            << bin_type.length << ","
+            << bin_type.cost << ","
+            << bin_type.copies << ","
+            << bin_type.copies_min << ","
+            << bin_type.maximum_weight << std::endl;
+    }
+
+    // Export parameters.
+    f_parameters << "NAME,VALUE" << std::endl
+        << "objective," << objective() << std::endl;
+}
