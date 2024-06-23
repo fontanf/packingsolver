@@ -210,8 +210,7 @@ void Instance::write(
         "PROFIT,"
         "COPIES,"
         "ORIENTED,"
-        "STACK_ID,"
-        << std::endl;
+        "STACK_ID" << std::endl;
     for (ItemTypeId item_type_id = 0;
             item_type_id < number_of_item_types();
             ++item_type_id) {
@@ -241,8 +240,7 @@ void Instance::write(
         "BOTTOM_TRIM_TYPE,"
         "TOP_TRIM_TYPE,"
         "LEFT_TRIM_TYPE,"
-        "RIGHT_TRIM_TYPE,"
-        << std::endl;
+        "RIGHT_TRIM_TYPE" << std::endl;
     for (BinTypeId bin_type_id = 0;
             bin_type_id < number_of_bin_types();
             ++bin_type_id) {
@@ -288,16 +286,15 @@ void Instance::write(
 
     // Export parameters.
     f_parameters << "NAME,VALUE" << std::endl
-        << "objective," << objective()
-        << "number_of_stages," << parameters().number_of_stages
-        << "cut_type," << parameters().cut_type
-        << "first_stage_orientation," << parameters().first_stage_orientation
-        << "min1cut," << parameters().min1cut
-        << "max1cut," << parameters().max1cut
-        << "min2cut," << parameters().min2cut
-        << "min_waste," << parameters().min_waste
-        << "cut_thickness," << parameters().cut_thickness
-        ;
+        << "objective," << objective() << std::endl
+        << "number_of_stages," << parameters().number_of_stages << std::endl
+        << "cut_type," << parameters().cut_type << std::endl
+        << "first_stage_orientation," << parameters().first_stage_orientation << std::endl
+        << "min1cut," << parameters().min1cut << std::endl
+        << "max1cut," << parameters().max1cut << std::endl
+        << "min2cut," << parameters().min2cut << std::endl
+        << "min_waste," << parameters().min_waste << std::endl
+        << "cut_thickness," << parameters().cut_thickness << std::endl;
 }
 
 std::ostream& Instance::format(
