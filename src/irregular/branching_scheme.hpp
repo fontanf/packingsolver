@@ -1,7 +1,7 @@
 #pragma once
 
 #include "packingsolver/irregular/solution.hpp"
-#include "irregular/covering_with_rectangles.hpp"
+#include "irregular/trapezoid.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
 
@@ -13,33 +13,16 @@ namespace irregular
 {
 
 using ItemShapePos = int64_t;
-using ItemShapeRectanglePos = int64_t;
-using RectangleSetId = int64_t;
+using ItemShapeTrapezoidPos = int64_t;
+using TrapezoidSetId = int64_t;
 
-struct ItemShapeRectangles
-{
-    std::vector<ShapeRectangle> rectangles;
-};
-
-struct ItemTypeRectangles
-{
-    std::vector<ItemShapeRectangles> shapes;
-};
-
-struct RectangleSetItem
+struct TrapezoidSet
 {
     ItemTypeId item_type_id;
 
-    Point bottom_left;
-
     Angle angle;
-};
 
-struct RectangleSet
-{
-    std::vector<RectangleSetItem> items;
-
-    std::vector<std::pair<ItemTypeId, ItemPos>> item_types;
+    std::vector<std::vector<GeneralizedTrapezoid>> shapes;
 
     LengthDbl x_min;
 
@@ -65,42 +48,45 @@ public:
     /**
      * Structure that stores a point of the skyline.
      */
-    struct UncoveredRectangle
+    struct UncoveredTrapezoid
     {
+        UncoveredTrapezoid(
+                const GeneralizedTrapezoid& trapezoid):
+            trapezoid(trapezoid) { }
+
+        UncoveredTrapezoid(
+                ItemTypeId item_type_id,
+                ItemShapePos item_shape_pos,
+                ItemShapeTrapezoidPos item_shape_trapezoid_pos,
+                const GeneralizedTrapezoid& trapezoid):
+            item_type_id(item_type_id),
+            item_shape_pos(item_shape_pos),
+            item_shape_trapezoid_pos(item_shape_trapezoid_pos),
+            trapezoid(trapezoid) { }
+
         /** Item type. */
-        ItemTypeId item_type_id;
+        ItemTypeId item_type_id = -1;
 
         /** Item shape. */
-        ItemShapePos item_shape_pos;
+        ItemShapePos item_shape_pos = -1;
 
         /** Item shape rectangle. */
-        ItemShapeRectanglePos item_shape_rectangle_pos;
+        ItemShapeTrapezoidPos item_shape_trapezoid_pos = -1;
 
-        /** Start x-coordiante. */
-        LengthDbl xs;
+        /** Trapezoid. */
+        GeneralizedTrapezoid trapezoid;
 
-        /** End x-coordinate. */
-        LengthDbl xe;
-
-        /** Start y-coordinate. */
-        LengthDbl ys;
-
-        /** End y-coordinate. */
-        LengthDbl ye;
-
-        bool operator==(const UncoveredRectangle& uncovered_rectangle) const;
+        bool operator==(const UncoveredTrapezoid& uncovered_trapezoid) const;
     };
 
     struct Insertion
     {
         /** Id of the inserted rectangle set. */
-        RectangleSetId rectangle_set_id;
-
-        ItemPos item_pos;
+        TrapezoidSetId trapezoid_set_id;
 
         ItemShapePos item_shape_pos;
 
-        RectanglePos item_shape_rectangle_pos;
+        TrapezoidPos item_shape_trapezoid_pos;
 
         /**
          * - < 0: the item is inserted in the last bin
@@ -134,7 +120,7 @@ public:
         std::shared_ptr<Node> parent = nullptr;
 
         /** Last inserted rectangle set. */
-        RectangleSetId rectangle_set_id;
+        TrapezoidSetId trapezoid_set_id;
 
         /** x-coordinates of the bottom-left corner of the last inserted item. */
         LengthDbl x;
@@ -146,10 +132,10 @@ public:
         Direction last_bin_direction = Direction::X;
 
         /** Uncovered rectangles. */
-        std::vector<UncoveredRectangle> uncovered_rectangles;
+        std::vector<UncoveredTrapezoid> uncovered_trapezoids;
 
         /** Extra rectangles. */
-        std::vector<UncoveredRectangle> extra_rectangles;
+        std::vector<UncoveredTrapezoid> extra_trapezoids;
 
         /** For each item type, number of copies in the node. */
         std::vector<ItemPos> item_number_of_copies;
@@ -192,12 +178,6 @@ public:
 
         /** Direction. */
         Direction direction = Direction::X;
-
-        /**
-         * If 'false' follow a "skyline" scheme.
-         * If "true", follow a "staircase" scheme.
-         */
-        bool staircase = false;
     };
 
     /** Constructor. */
@@ -301,39 +281,54 @@ public:
             const std::shared_ptr<Node>& node_1,
             const std::shared_ptr<Node>& node_2) const
     {
-        //if (unbounded_knapsck_ && node_1->profit < node_2->profit)
-        //    return false;
-        ItemPos pos_1 = node_1->uncovered_rectangles.size() - 1;
-        ItemPos pos_2 = node_2->uncovered_rectangles.size() - 1;
-        LengthDbl x1 = node_1->uncovered_rectangles[pos_1].xe;
-        LengthDbl x2 = node_2->uncovered_rectangles[pos_2].xe;
+        // Check uncovered rectangles.
+        ItemPos pos_1 = node_1->uncovered_trapezoids.size() - 1;
+        ItemPos pos_2 = node_2->uncovered_trapezoids.size() - 1;
         for (;;) {
-            if (x1 > x2)
+            const GeneralizedTrapezoid& trapezoid_1 = node_1->uncovered_trapezoids[pos_1].trapezoid;
+            const GeneralizedTrapezoid& trapezoid_2 = node_2->uncovered_trapezoids[pos_2].trapezoid;
+            Length yb = std::max(trapezoid_1.y_bottom(), trapezoid_2.y_bottom());
+            Length yt = std::min(trapezoid_1.y_top(), trapezoid_2.y_top());
+            Length x1br = trapezoid_1.x_right(yb);
+            Length x1tr = trapezoid_1.x_right(yt);
+            Length x2br = trapezoid_2.x_right(yb);
+            Length x2tr = trapezoid_2.x_right(yt);
+            if (striclty_greater(x1br, x2br))
+                return false;
+            if (striclty_greater(x1tr, x2tr))
                 return false;
             if (pos_1 == 0 && pos_2 == 0)
                 return true;
-            if (node_1->uncovered_rectangles[pos_1].ys
-                    == node_2->uncovered_rectangles[pos_2].ys) {
+            if (trapezoid_1.y_bottom() == trapezoid_2.y_bottom()) {
                 pos_1--;
                 pos_2--;
-                x1 = (parameters_.staircase)?
-                    std::max(x1, node_1->uncovered_rectangles[pos_1].xe):
-                    node_1->uncovered_rectangles[pos_1].xe;
-                x2 = (parameters_.staircase)?
-                    std::max(x2, node_2->uncovered_rectangles[pos_2].xe):
-                    node_2->uncovered_rectangles[pos_2].xe;
-            } else if (node_1->uncovered_rectangles[pos_1].ys
-                    < node_2->uncovered_rectangles[pos_2].ys) {
+            } else if (trapezoid_1.y_bottom() < trapezoid_2.y_bottom()) {
                 pos_2--;
-                x2 = (parameters_.staircase)?
-                    std::max(x2, node_2->uncovered_rectangles[pos_2].xe):
-                    node_2->uncovered_rectangles[pos_2].xe;
             } else {
                 pos_1--;
-                x1 = (parameters_.staircase)?
-                    std::max(x1, node_1->uncovered_rectangles[pos_1].xe):
-                    node_1->uncovered_rectangles[pos_1].xe;
             }
+        }
+
+        // Check extra rectangles.
+        if (node_1->extra_trapezoids.size() != node_2->extra_trapezoids.size())
+            return false;
+        for (ItemPos extra_trapezoid_pos = 0;
+                extra_trapezoid_pos < (ItemPos)node_1->extra_trapezoids.size();
+                ++extra_trapezoid_pos) {
+            const GeneralizedTrapezoid& trapezoid_1 = node_1->uncovered_trapezoids[extra_trapezoid_pos].trapezoid;
+            const GeneralizedTrapezoid& trapezoid_2 = node_2->uncovered_trapezoids[extra_trapezoid_pos].trapezoid;
+            if (!equal(trapezoid_1.y_bottom(), trapezoid_2.y_bottom()))
+                    return false;
+            if (!equal(trapezoid_1.y_top(), trapezoid_2.y_top()))
+                    return false;
+            if (!equal(trapezoid_1.x_bottom_left(), trapezoid_2.x_bottom_left()))
+                    return false;
+            if (!equal(trapezoid_1.x_bottom_right(), trapezoid_2.x_bottom_right()))
+                    return false;
+            if (!equal(trapezoid_1.x_top_left(), trapezoid_2.x_top_left()))
+                    return false;
+            if (!equal(trapezoid_1.x_top_right(), trapezoid_2.x_top_right()))
+                    return false;
         }
 
         return true;
@@ -362,17 +357,11 @@ private:
     /** Parameters. */
     Parameters parameters_;
 
-    /** Item types rectangles in X direction. */
-    std::vector<ItemTypeRectangles> item_types_rectangles_x_;
+    /** Trapezoid sets in x direction. */
+    std::vector<TrapezoidSet> trapezoid_sets_x_;
 
-    /** Item types rectangles in y direction. */
-    std::vector<ItemTypeRectangles> item_types_rectangles_y_;
-
-    /** Rectangle sets in x direction. */
-    std::vector<RectangleSet> rectangle_sets_x_;
-
-    /** Rectangle sets in y direction. */
-    std::vector<RectangleSet> rectangle_sets_y_;
+    /** Trapezoid sets in y direction. */
+    std::vector<TrapezoidSet> trapezoid_sets_y_;
 
     mutable Counter node_id_ = 0;
 
@@ -407,22 +396,21 @@ private:
     inline double area_load(const Node& node) const { return (double)node.item_area / instance().bin_area(); }
 
     /** Insertion of one item. */
-    void insertion_rectangle_set(
+    void insertion_trapezoid_set(
             const std::shared_ptr<Node>& parent,
-            RectangleSetId rectangle_set_id,
-            ItemPos item_pos,
+            TrapezoidSetId trapezoid_set_id,
             ItemShapePos item_shape_pos,
-            RectanglePos item_shape_rectangle_pos,
+            TrapezoidPos item_shape_trapezoid_pos,
             int8_t new_bin,
-            ItemPos uncovered_rectangle_pos,
-            ItemPos extra_rectangle_pos,
+            ItemPos uncovered_trapezoid_pos,
+            ItemPos extra_trapezoid_pos,
             DefectId k) const;
 
 };
 
 std::ostream& operator<<(
         std::ostream& os,
-        const BranchingScheme::UncoveredRectangle& uncovered_rectangles);
+        const BranchingScheme::UncoveredTrapezoid& uncovered_trapezoids);
 
 std::ostream& operator<<(
         std::ostream& os,

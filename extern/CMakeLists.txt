@@ -56,8 +56,8 @@ if (PackingSolver_USE_KNITRO)
     FetchContent_Declare(
         knitrocpp
         GIT_REPOSITORY https://github.com/fontanf/knitrocpp.git
-        GIT_TAG 6c63e3f3931329e2c1a2c22ce465fe8667516a36)
-    #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../knitrocpp/"
-    FetchContent_MakeAvailable(knitrocpp
-    EXCLUDE_FROM_ALL)
+        GIT_TAG 6c63e3f3931329e2c1a2c22ce465fe8667516a36
+        #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../knitrocpp/"
+        EXCLUDE_FROM_ALL)
+    FetchContent_MakeAvailable(knitrocpp)
 endif()

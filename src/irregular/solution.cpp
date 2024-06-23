@@ -286,7 +286,7 @@ void Solution::write(
                         element_pos < (Counter)item_shape.shape.elements.size();
                         ++element_pos) {
                     const ShapeElement& element_orig = item_shape.shape.elements[element_pos];
-                    ShapeElement element = rotate(element_orig, item.angle);
+                    ShapeElement element = element_orig.rotate(item.angle);
                     json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["type"] = element2str(element.type);
                     json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["xs"] = element.start.x + item.bl_corner.x;
                     json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["ys"] = element.start.y + item.bl_corner.y;
@@ -306,7 +306,7 @@ void Solution::write(
                             element_pos < (Counter)hole.elements.size();
                             ++element_pos) {
                         const ShapeElement& element_orig = hole.elements[element_pos];
-                        ShapeElement element = rotate(element_orig, item.angle);
+                        ShapeElement element = element_orig.rotate(item.angle);
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["type"] = element2str(element.type);
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["xs"] = element.start.x + item.bl_corner.x;
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["ys"] = element.start.y + item.bl_corner.y;
