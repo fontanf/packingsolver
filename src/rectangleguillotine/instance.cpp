@@ -13,13 +13,13 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "roadef2018") {
+    if (token == "roadef2018" || token == "Roadef2018") {
         cut_type = CutType::Roadef2018;
-    } else if (token == "non-exact") {
+    } else if (token == "non-exact" || token == "NonExact") {
         cut_type = CutType::NonExact;
-    } else if (token == "exact") {
+    } else if (token == "exact" || token == "Exact") {
         cut_type = CutType::Exact;
-    } else if (token == "homogenous") {
+    } else if (token == "homogenous" || token == "Homogenous") {
         cut_type = CutType::Homogenous;
     } else  {
         in.setstate(std::ios_base::failbit);
@@ -33,12 +33,28 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "horizontal") {
+    if (token == "horizontal" || token == "Horizontal") {
         o = CutOrientation::Horizontal;
-    } else if (token == "vertical") {
+    } else if (token == "vertical" || token == "Vertical") {
         o = CutOrientation::Vertical;
-    } else if (token == "any") {
+    } else if (token == "any" || token == "Any") {
         o = CutOrientation::Any;
+    } else  {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::istream& packingsolver::rectangleguillotine::operator>>(
+        std::istream& in,
+        TrimType& trim_type)
+{
+    std::string token;
+    in >> token;
+    if (token == "s" || token == "H" || token == "hard" || token == "Hard" || token == "0") {
+        trim_type = TrimType::Hard;
+    } else if (token == "s" || token == "S" || token == "soft" || token == "Soft" || token == "1") {
+        trim_type = TrimType::Soft;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -210,8 +226,7 @@ void Instance::write(
         "PROFIT,"
         "COPIES,"
         "ORIENTED,"
-        "STACK_ID,"
-        << std::endl;
+        "STACK_ID" << std::endl;
     for (ItemTypeId item_type_id = 0;
             item_type_id < number_of_item_types();
             ++item_type_id) {
@@ -241,8 +256,7 @@ void Instance::write(
         "BOTTOM_TRIM_TYPE,"
         "TOP_TRIM_TYPE,"
         "LEFT_TRIM_TYPE,"
-        "RIGHT_TRIM_TYPE,"
-        << std::endl;
+        "RIGHT_TRIM_TYPE" << std::endl;
     for (BinTypeId bin_type_id = 0;
             bin_type_id < number_of_bin_types();
             ++bin_type_id) {
@@ -288,16 +302,15 @@ void Instance::write(
 
     // Export parameters.
     f_parameters << "NAME,VALUE" << std::endl
-        << "objective," << objective()
-        << "number_of_stages," << parameters().number_of_stages
-        << "cut_type," << parameters().cut_type
-        << "first_stage_orientation," << parameters().first_stage_orientation
-        << "min1cut," << parameters().min1cut
-        << "max1cut," << parameters().max1cut
-        << "min2cut," << parameters().min2cut
-        << "min_waste," << parameters().min_waste
-        << "cut_thickness," << parameters().cut_thickness
-        ;
+        << "objective," << objective() << std::endl
+        << "number_of_stages," << parameters().number_of_stages << std::endl
+        << "cut_type," << parameters().cut_type << std::endl
+        << "first_stage_orientation," << parameters().first_stage_orientation << std::endl
+        << "min1cut," << parameters().min1cut << std::endl
+        << "max1cut," << parameters().max1cut << std::endl
+        << "min2cut," << parameters().min2cut << std::endl
+        << "min_waste," << parameters().min_waste << std::endl
+        << "cut_thickness," << parameters().cut_thickness << std::endl;
 }
 
 std::ostream& Instance::format(

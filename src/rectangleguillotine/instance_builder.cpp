@@ -234,6 +234,16 @@ void InstanceBuilder::add_bin_type(
             bin_type.cost,
             copies,
             copies_min);
+    add_trims(
+            bin_type_id,
+            bin_type.left_trim,
+            bin_type.left_trim_type,
+            bin_type.right_trim,
+            bin_type.right_trim_type,
+            bin_type.bottom_trim,
+            bin_type.bottom_trim_type,
+            bin_type.top_trim,
+            bin_type.top_trim_type);
     for (const Defect& defect: bin_type.defects) {
         add_defect(
                 bin_type_id,
@@ -511,21 +521,25 @@ void InstanceBuilder::read_bin_types(
             } else if (labels[i] == "COPIES_MIN") {
                 copies_min = (BinPos)std::stol(line[i]);
             } else if (labels[i] == "BOTTOM_TRIM") {
-                bottom_trim = (BinPos)std::stol(line[i]);
+                bottom_trim = (Length)std::stol(line[i]);
             } else if (labels[i] == "TOP_TRIM") {
-                top_trim = (BinPos)std::stol(line[i]);
+                top_trim = (Length)std::stol(line[i]);
             } else if (labels[i] == "LEFT_TRIM") {
-                left_trim = (BinPos)std::stol(line[i]);
+                left_trim = (Length)std::stol(line[i]);
             } else if (labels[i] == "RIGHT_TRIM") {
-                right_trim = (BinPos)std::stol(line[i]);
+                right_trim = (Length)std::stol(line[i]);
             } else if (labels[i] == "BOTTOM_TRIM_TYPE") {
-                bottom_trim_type = (TrimType)std::stol(line[i]);
+                std::stringstream ss(line[i]);
+                ss >> bottom_trim_type;
             } else if (labels[i] == "TOP_TRIM_TYPE") {
-                top_trim_type = (TrimType)std::stol(line[i]);
+                std::stringstream ss(line[i]);
+                ss >> top_trim_type;
             } else if (labels[i] == "LEFT_TRIM_TYPE") {
-                left_trim_type = (TrimType)std::stol(line[i]);
+                std::stringstream ss(line[i]);
+                ss >> left_trim_type;
             } else if (labels[i] == "RIGHT_TRIM_TYPE") {
-                right_trim_type = (TrimType)std::stol(line[i]);
+                std::stringstream ss(line[i]);
+                ss >> right_trim_type;
             }
         }
 
