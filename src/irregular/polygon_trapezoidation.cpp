@@ -45,7 +45,7 @@ inline std::ostream& operator<<(
     return os;
 }
 
-Length x(
+LengthDbl x(
         const Point& bottom,
         const Point& top,
         LengthDbl y)
