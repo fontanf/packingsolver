@@ -81,13 +81,12 @@ public:
 
     bool operator==(const GeneralizedTrapezoid& trapezoid) const
     {
-        return ((y_bottom() == trapezoid.y_bottom())
-                && (y_top() == trapezoid.y_top())
-                && (x_bottom_left() == trapezoid.x_bottom_left())
-                && (x_bottom_right() == trapezoid.x_bottom_right())
-                && (x_top_left() == trapezoid.x_top_left())
-                && (x_top_right() == trapezoid.x_top_right())
-               );
+        return (y_bottom() == trapezoid.y_bottom()
+                && y_top() == trapezoid.y_top()
+                && equal(x_bottom_left(), trapezoid.x_bottom_left())
+                && equal(x_bottom_right(), trapezoid.x_bottom_right())
+                && equal(x_top_left(), trapezoid.x_top_left())
+                && equal(x_top_right(), trapezoid.x_top_right()));
     }
 
     /*
@@ -177,26 +176,28 @@ public:
     inline bool intersect(
             const GeneralizedTrapezoid& trapezoid) const
     {
-        if (y_bottom() >= trapezoid.y_top())
+        if (!striclty_lesser(y_bottom(), trapezoid.y_top()))
             return false;
-        if (y_top() <= trapezoid.y_bottom())
-            return false;
-
-        Length yb = std::max(y_bottom(), trapezoid.y_bottom());
-        Length yt = std::min(y_top(), trapezoid.y_top());
-
-        Length x1br = x_right(yb);
-        Length x1tr = x_right(yt);
-        Length x2bl = trapezoid.x_left(yb);
-        Length x2tl = trapezoid.x_left(yt);
-        if (x1br <= x2bl && x1tr <= x2tl)
+        if (!striclty_greater(y_top(), trapezoid.y_bottom()))
             return false;
 
-        Length x1bl = x_left(yb);
-        Length x1tl = x_left(yt);
-        Length x2br = trapezoid.x_right(yb);
-        Length x2tr = trapezoid.x_right(yt);
-        if (x1bl >= x2br && x1tl >= x2tr)
+        LengthDbl yb = std::max(y_bottom(), trapezoid.y_bottom());
+        LengthDbl yt = std::min(y_top(), trapezoid.y_top());
+
+        LengthDbl x1br = x_right(yb);
+        LengthDbl x1tr = x_right(yt);
+        LengthDbl x2bl = trapezoid.x_left(yb);
+        LengthDbl x2tl = trapezoid.x_left(yt);
+        if (!striclty_greater(x1br, x2bl)
+                && !striclty_greater(x1tr, x2tl))
+            return false;
+
+        LengthDbl x1bl = x_left(yb);
+        LengthDbl x1tl = x_left(yt);
+        LengthDbl x2br = trapezoid.x_right(yb);
+        LengthDbl x2tr = trapezoid.x_right(yt);
+        if (!striclty_lesser(x1bl, x2br)
+                && !striclty_lesser(x1tl, x2tr))
             return false;
 
         return true;
@@ -209,22 +210,23 @@ public:
     inline LengthDbl compute_right_shift(
             const GeneralizedTrapezoid& trapezoid) const
     {
-        if (y_bottom() >= trapezoid.y_top())
+        if (!striclty_lesser(y_bottom(), trapezoid.y_top()))
             return 0.0;
-        if (y_top() <= trapezoid.y_bottom())
+        if (!striclty_greater(y_top(), trapezoid.y_bottom()))
             return 0.0;
 
-        Length yb = std::max(y_bottom(), trapezoid.y_bottom());
-        Length yt = std::min(y_top(), trapezoid.y_top());
+        LengthDbl yb = std::max(y_bottom(), trapezoid.y_bottom());
+        LengthDbl yt = std::min(y_top(), trapezoid.y_top());
         //std::cout << "yb " << yb << " yt " << yt << std::endl;
 
-        Length x1bl = x_left(yb);
-        Length x1tl = x_left(yt);
-        Length x2br = trapezoid.x_right(yb);
-        Length x2tr = trapezoid.x_right(yt);
+        LengthDbl x1bl = x_left(yb);
+        LengthDbl x1tl = x_left(yt);
+        LengthDbl x2br = trapezoid.x_right(yb);
+        LengthDbl x2tr = trapezoid.x_right(yt);
         //std::cout << "x1bl " << x1bl << " x1tl " << x1tl << std::endl;
         //std::cout << "x2br " << x2br << " x2tr " << x2tr << std::endl;
-        if (x1bl >= x2br && x1tl >= x2tr)
+        if (!striclty_lesser(x1bl, x2br)
+                && !striclty_lesser(x1tl, x2tr))
             return 0.0;
 
         return std::max(x2br - x1bl, x2tr - x1tl);
@@ -237,26 +239,28 @@ public:
     inline LengthDbl compute_right_shift_if_intersects(
             const GeneralizedTrapezoid& trapezoid) const
     {
-        if (y_bottom() >= trapezoid.y_top())
+        if (!striclty_lesser(y_bottom(), trapezoid.y_top()))
             return 0.0;
-        if (y_top() <= trapezoid.y_bottom())
-            return 0.0;
-
-        Length yb = std::max(y_bottom(), trapezoid.y_bottom());
-        Length yt = std::min(y_top(), trapezoid.y_top());
-
-        Length x1br = x_right(yb);
-        Length x1tr = x_right(yt);
-        Length x2bl = trapezoid.x_left(yb);
-        Length x2tl = trapezoid.x_left(yt);
-        if (x1br <= x2bl && x1tr <= x2tl)
+        if (!striclty_greater(y_top(), trapezoid.y_bottom()))
             return 0.0;
 
-        Length x1bl = x_left(yb);
-        Length x1tl = x_left(yt);
-        Length x2br = trapezoid.x_right(yb);
-        Length x2tr = trapezoid.x_right(yt);
-        if (x1bl >= x2br && x1tl >= x2tr)
+        LengthDbl yb = std::max(y_bottom(), trapezoid.y_bottom());
+        LengthDbl yt = std::min(y_top(), trapezoid.y_top());
+
+        LengthDbl x1br = x_right(yb);
+        LengthDbl x1tr = x_right(yt);
+        LengthDbl x2bl = trapezoid.x_left(yb);
+        LengthDbl x2tl = trapezoid.x_left(yt);
+        if (!striclty_greater(x1br, x2bl)
+                && !striclty_greater(x1tr, x2tl))
+            return 0.0;
+
+        LengthDbl x1bl = x_left(yb);
+        LengthDbl x1tl = x_left(yt);
+        LengthDbl x2br = trapezoid.x_right(yb);
+        LengthDbl x2tr = trapezoid.x_right(yt);
+        if (!striclty_lesser(x1bl, x2br)
+                && !striclty_lesser(x1tl, x2tr))
             return 0.0;
 
         return std::max(x2br - x1bl, x2tr - x1tl);
