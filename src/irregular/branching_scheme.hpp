@@ -287,12 +287,12 @@ public:
         for (;;) {
             const GeneralizedTrapezoid& trapezoid_1 = node_1->uncovered_trapezoids[pos_1].trapezoid;
             const GeneralizedTrapezoid& trapezoid_2 = node_2->uncovered_trapezoids[pos_2].trapezoid;
-            Length yb = std::max(trapezoid_1.y_bottom(), trapezoid_2.y_bottom());
-            Length yt = std::min(trapezoid_1.y_top(), trapezoid_2.y_top());
-            Length x1br = trapezoid_1.x_right(yb);
-            Length x1tr = trapezoid_1.x_right(yt);
-            Length x2br = trapezoid_2.x_right(yb);
-            Length x2tr = trapezoid_2.x_right(yt);
+            LengthDbl yb = std::max(trapezoid_1.y_bottom(), trapezoid_2.y_bottom());
+            LengthDbl yt = std::min(trapezoid_1.y_top(), trapezoid_2.y_top());
+            LengthDbl x1br = trapezoid_1.x_right(yb);
+            LengthDbl x1tr = trapezoid_1.x_right(yt);
+            LengthDbl x2br = trapezoid_2.x_right(yb);
+            LengthDbl x2tr = trapezoid_2.x_right(yt);
             if (striclty_greater(x1br, x2br))
                 return false;
             if (striclty_greater(x1tr, x2tr))
