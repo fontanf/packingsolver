@@ -24,6 +24,8 @@ TEST(IrregularPolygonTrapezoidation, Triangle1)
 {
     Shape shape = build_polygon_shape({{0, 0}, {3, 0}, {1, 3}});
     std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+    //    std::cout << trapezoid << std::endl;
 
     EXPECT_EQ(trapezoids.size(), 1);
     GeneralizedTrapezoid trapezoid_1(0, 3, 0, 3, 1, 1);
@@ -201,4 +203,31 @@ TEST(IrregularPolygonTrapezoidation, W)
     EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_3), trapezoids.end());
     GeneralizedTrapezoid trapezoid_4(0, 1, 0, 5, 0, 5);
     EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_4), trapezoids.end());
+}
+
+TEST(IrregularPolygonTrapezoidation, Shape1)
+{
+    Shape shape = build_polygon_shape({
+            {185.355, 114.645},
+            {150.0, 79.289},
+            {79.289, 150.0},
+            {114.645, 185.355},
+            {0.0, 300.0},
+            {0.0, 0.0},
+            {300.0, 0.0}});
+    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+        std::cout << trapezoid << std::endl;
+
+    EXPECT_EQ(trapezoids.size(), 5);
+    GeneralizedTrapezoid trapezoid_1(185.355, 300, 0, 114.645, 0, 0);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_1), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_2(150, 185.355, 0, 79.289, 0, 114.645);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_2), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_3(79.289, 150, 0, 150, 0, 79.289);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_3), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_4(79.289, 114.645, 150, 220.711, 185.355, 185.355);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_4), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_5(0, 79.289, 0, 300, 0, 220.711);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_5), trapezoids.end());
 }

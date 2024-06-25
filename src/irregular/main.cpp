@@ -103,6 +103,8 @@ int main(int argc, char *argv[])
 
     Instance instance = instance_builder.build();
 
+    //instance.write(vm["input"].as<std::string>() + "_tmp.json");
+
     OptimizeParameters parameters;
     read_args(parameters, vm);
     if (vm.count("optimization-mode"))

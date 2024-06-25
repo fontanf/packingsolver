@@ -265,14 +265,14 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 if (uncovered_trapezoid.trapezoid.y_top() <= extra_trapezoid.trapezoid.y_bottom())
                     continue;
                 //std::cout << "uncovered_trapezoid " << uncovered_trapezoid << std::endl;
-                Length yb = std::max(
+                LengthDbl yb = std::max(
                         extra_trapezoid.trapezoid.y_bottom(),
                         uncovered_trapezoid.trapezoid.y_bottom());
-                Length yt = std::min(
+                LengthDbl yt = std::min(
                         extra_trapezoid.trapezoid.y_top(),
                         uncovered_trapezoid.trapezoid.y_top());
-                Length x_extra = extra_trapezoid.trapezoid.x_right(yb);
-                Length x_uncov = uncovered_trapezoid.trapezoid.x_right(yb);
+                LengthDbl x_extra = extra_trapezoid.trapezoid.x_right(yb);
+                LengthDbl x_uncov = uncovered_trapezoid.trapezoid.x_right(yb);
                 //std::cout << "yb " << yb << " yt " << yt << std::endl;
                 //std::cout << "x_extra " << x_extra << " x_uncov " << x_uncov << std::endl;
                 if (!striclty_greater(x_extra, x_uncov)) {
@@ -310,6 +310,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                     item_shape_pos,
                     item_shape_trapezoid_pos,
                     trapezoid);
+            //std::cout << "add extra_trapezoid " << item_shape_trapezoids[item_shape_trapezoid_pos] << std::endl;
+            //std::cout << "shifted " << extra_trapezoid << std::endl;
             node.extra_trapezoids.push_back(extra_trapezoid);
         }
     }
@@ -621,8 +623,8 @@ void BranchingScheme::insertion_trapezoid_set(
         ys = parent->uncovered_trapezoids[uncovered_trapezoid_pos].trapezoid.y_bottom();
     //} else if (defect_id != -1) {
     //    ys = instance().y_end(bin_type.defects[defect_id], o);
-    } else if (extra_trapezoid_pos != -1) {  // new bin.
-        ys = parent->extra_trapezoids[extra_trapezoid_pos].trapezoid.y_bottom();
+    } else if (extra_trapezoid_pos != -1) {
+        ys = parent->extra_trapezoids[extra_trapezoid_pos].trapezoid.y_top();
     } else {  // new bin.
         ys = 0;
     }
@@ -662,6 +664,8 @@ void BranchingScheme::insertion_trapezoid_set(
                 for (const UncoveredTrapezoid& uncovered_trapezoid: parent->uncovered_trapezoids) {
                     LengthDbl l = item_shape_trapezoid.compute_right_shift(uncovered_trapezoid.trapezoid);
                     if (l > 0.0) {
+                        //std::cout << "uncovered_trapezoid " << uncovered_trapezoid << std::endl;
+                        //std::cout << "xs " << xs << " -> " << xs + l << std::endl;
                         xs += l;
                         item_shape_trapezoid.shift_right(l);
                     }
@@ -692,6 +696,8 @@ void BranchingScheme::insertion_trapezoid_set(
                 for (const UncoveredTrapezoid& extra_trapezoid: parent->extra_trapezoids) {
                     LengthDbl l = item_shape_trapezoid.compute_right_shift_if_intersects(extra_trapezoid.trapezoid);
                     if (l > 0.0) {
+                        //std::cout << "extra_trapezoid " << extra_trapezoid << std::endl;
+                        //std::cout << "xs " << xs << " -> " << xs + l << std::endl;
                         xs += l;
                         item_shape_trapezoid.shift_right(l);
                         stop = false;
@@ -731,15 +737,27 @@ void BranchingScheme::insertion_trapezoid_set(
     }
 
     if (uncovered_trapezoid_pos > 0) {
-        if (xe <= parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_top_left()) {
-            //std::cout << "utp " << xe << " / " << parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].xs << std::endl;
+        if (!striclty_greater(
+                    item_shape_trapezoid.x_max() + xs,
+                    parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_min())) {
+            return;
+        }
+        if (!striclty_lesser(
+                    item_shape_trapezoid.x_min() + xs,
+                    parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_max())) {
             return;
         }
     } else if (extra_trapezoid_pos != -1) {
-        if (xe <= parent->extra_trapezoids[extra_trapezoid_pos].trapezoid.x_top_left())
+        if (!striclty_greater(
+                    item_shape_trapezoid.x_max() + xs,
+                    parent->extra_trapezoids[extra_trapezoid_pos].trapezoid.x_min())) {
             return;
-        if (xs >= parent->extra_trapezoids[extra_trapezoid_pos].trapezoid.x_top_right())
+        }
+        if (!striclty_lesser(
+                    item_shape_trapezoid.x_min() + xs,
+                    parent->extra_trapezoids[extra_trapezoid_pos].trapezoid.x_max())) {
             return;
+        }
     //} else if (defect_id != -1) {
     //    if (xe <= instance().x_start(bin_type.defects[defect_id], o))
     //        return;
@@ -755,6 +773,7 @@ void BranchingScheme::insertion_trapezoid_set(
     insertion.y = ys;
     insertion.new_bin = new_bin;
     insertions_.push_back(insertion);
+    //std::cout << "xs " << xs << std::endl;
     //std::cout << "ok" << std::endl;
 }
 
