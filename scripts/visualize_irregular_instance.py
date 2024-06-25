@@ -159,7 +159,7 @@ for i in range(0, n):
 # Plot.
 fig.update_layout(
         autosize=True,
-        height=m*1000)
+        height=(m + n)*1000)
 fig.update_xaxes(
         rangeslider=dict(visible=False))
 fig.update_yaxes(

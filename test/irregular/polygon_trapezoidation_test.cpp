@@ -24,6 +24,8 @@ TEST(IrregularPolygonTrapezoidation, Triangle1)
 {
     Shape shape = build_polygon_shape({{0, 0}, {3, 0}, {1, 3}});
     std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+    //    std::cout << trapezoid << std::endl;
 
     EXPECT_EQ(trapezoids.size(), 1);
     GeneralizedTrapezoid trapezoid_1(0, 3, 0, 3, 1, 1);
