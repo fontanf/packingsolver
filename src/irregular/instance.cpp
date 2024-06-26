@@ -339,13 +339,13 @@ Shape Shape::rotate(Angle angle) const
 Shape Shape::identity_line_axial_symmetry() const
 {
     Shape shape;
-    for (auto it = shape.elements.rbegin(); it != shape.elements.rend(); ++it) {
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
         const ShapeElement& element = *it;
         ShapeElement element_new = element;
-        element_new.start.x = element.start.y;
-        element_new.start.y = element.start.x;
-        element_new.end.x = element.end.y;
-        element_new.end.y = element.end.x;
+        element_new.start.x = element.end.y;
+        element_new.start.y = element.end.x;
+        element_new.end.x = element.start.y;
+        element_new.end.y = element.start.x;
         element_new.center.x = element.center.y;
         element_new.center.y = element.center.x;
         shape.elements.push_back(element_new);

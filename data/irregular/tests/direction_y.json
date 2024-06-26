@@ -1,0 +1,22 @@
+{
+    "objective": "open-dimension-y",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 100,
+            "height": 1000
+        }
+    ],
+    "item_types": [
+        { 
+            "type": "rectangle",
+            "width": 30,
+            "height": 100
+        },
+        { 
+            "type": "rectangle",
+            "width": 20,
+            "height": 100
+        }
+    ]
+}

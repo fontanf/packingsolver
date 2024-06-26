@@ -249,14 +249,16 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             // Update trapezoids.
             LengthDbl x_left = x(open_trapezoid.bottom_left, open_trapezoid.top_left, vertex.y);
             LengthDbl x_right = x(open_trapezoid.bottom_right, open_trapezoid.top_right, vertex.y);
-            GeneralizedTrapezoid trapezoid(
-                    vertex.y,
-                    open_trapezoid.top_left.y,
-                    x_left,
-                    x_right,
-                    open_trapezoid.top_left.x,
-                    open_trapezoid.top_right.x);
-            trapezoids.push_back(trapezoid);
+            if (vertex.y != open_trapezoid.top_left.y) {
+                GeneralizedTrapezoid trapezoid(
+                        vertex.y,
+                        open_trapezoid.top_left.y,
+                        x_left,
+                        x_right,
+                        open_trapezoid.top_left.x,
+                        open_trapezoid.top_right.x);
+                trapezoids.push_back(trapezoid);
+            }
 
             // Update open_trapezoids.
 
@@ -288,24 +290,28 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
 
             // Update trapezoids.
             LengthDbl x_left = x(open_trapezoid_1.bottom_left, open_trapezoid_1.top_left, vertex.y);
-            GeneralizedTrapezoid trapezoid_1(
-                    vertex.y,
-                    open_trapezoid_1.top_left.y,
-                    x_left,
-                    vertex.x,
-                    open_trapezoid_1.top_left.x,
-                    open_trapezoid_1.top_right.x);
-            trapezoids.push_back(trapezoid_1);
+            if (vertex.y != open_trapezoid_1.top_left.y) {
+                GeneralizedTrapezoid trapezoid_1(
+                        vertex.y,
+                        open_trapezoid_1.top_left.y,
+                        x_left,
+                        vertex.x,
+                        open_trapezoid_1.top_left.x,
+                        open_trapezoid_1.top_right.x);
+                trapezoids.push_back(trapezoid_1);
+            }
 
             LengthDbl x_right = x(open_trapezoid_2.bottom_right, open_trapezoid_2.top_right, vertex.y);
-            GeneralizedTrapezoid trapezoid_2(
-                    vertex.y,
-                    open_trapezoid_2.top_left.y,
-                    vertex.x,
-                    x_right,
-                    open_trapezoid_2.top_left.x,
-                    open_trapezoid_2.top_right.x);
-            trapezoids.push_back(trapezoid_2);
+            if (vertex.y != open_trapezoid_2.top_left.y) {
+                GeneralizedTrapezoid trapezoid_2(
+                        vertex.y,
+                        open_trapezoid_2.top_left.y,
+                        vertex.x,
+                        x_right,
+                        open_trapezoid_2.top_left.x,
+                        open_trapezoid_2.top_right.x);
+                trapezoids.push_back(trapezoid_2);
+            }
 
             // Update open_trapezoids.
 
