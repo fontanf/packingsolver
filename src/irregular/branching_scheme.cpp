@@ -60,8 +60,10 @@ BranchingScheme::BranchingScheme(
             trapezoid_set_y.item_type_id = item_type_id;
             trapezoid_set_y.angle = angle_range.first;
             for (const ItemShape& item_shape: item_type.shapes) {
-                trapezoid_set_y.shapes.push_back(
-                        polygon_trapezoidation(item_shape.shape.identity_line_axial_symmetry().rotate(angle_range.first)));
+                auto shape = item_shape.shape.identity_line_axial_symmetry();
+                auto rotated_shape = shape.rotate(angle_range.first);
+                auto trapezoids = polygon_trapezoidation(rotated_shape);
+                trapezoid_set_y.shapes.push_back(trapezoids);
             }
             trapezoid_set_y.x_min = std::numeric_limits<LengthDbl>::infinity();
             trapezoid_set_y.x_max = -std::numeric_limits<LengthDbl>::infinity();
