@@ -92,10 +92,11 @@ int main(int argc, char *argv[])
     }
 
     InstanceBuilder instance_builder;
-    instance_builder.set_objective(vm["objective"].as<Objective>());
 
     instance_builder.read(vm["input"].as<std::string>());
 
+    if (vm.count("objective"))
+        instance_builder.set_objective(vm["objective"].as<Objective>());
     if (vm.count("unweighted"))
         instance_builder.set_item_types_unweighted();
     if (vm.count("bin-unweighted"))
