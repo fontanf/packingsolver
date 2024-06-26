@@ -1,6 +1,7 @@
 #include "irregular/branching_scheme.hpp"
 
 #include "irregular/polygon_trapezoidation.hpp"
+#include "irregular/shape.hpp"
 
 #include <iostream>
 
@@ -29,8 +30,10 @@ BranchingScheme::BranchingScheme(
             trapezoid_set_x.item_type_id = item_type_id;
             trapezoid_set_x.angle = angle_range.first;
             for (const ItemShape& item_shape: item_type.shapes) {
-                Shape rotated_shape = item_shape.shape.rotate(angle_range.first);
-                auto trapezoids = polygon_trapezoidation(rotated_shape);
+                Shape cleaned_shape = clean_shape(item_shape.shape);
+                Shape rotated_shape = cleaned_shape.rotate(angle_range.first);
+                Shape cleaned_y_shape = clean_shape_y(rotated_shape);
+                auto trapezoids = polygon_trapezoidation(cleaned_y_shape);
                 trapezoid_set_x.shapes.push_back(trapezoids);
             }
             trapezoid_set_x.x_min = std::numeric_limits<LengthDbl>::infinity();
@@ -60,9 +63,11 @@ BranchingScheme::BranchingScheme(
             trapezoid_set_y.item_type_id = item_type_id;
             trapezoid_set_y.angle = angle_range.first;
             for (const ItemShape& item_shape: item_type.shapes) {
-                auto shape = item_shape.shape.identity_line_axial_symmetry();
-                auto rotated_shape = shape.rotate(angle_range.first);
-                auto trapezoids = polygon_trapezoidation(rotated_shape);
+                Shape cleaned_shape = clean_shape(item_shape.shape);
+                Shape sym_shape = cleaned_shape.identity_line_axial_symmetry();
+                Shape rotated_shape = sym_shape.rotate(angle_range.first);
+                Shape cleaned_y_shape = clean_shape_y(rotated_shape);
+                auto trapezoids = polygon_trapezoidation(cleaned_y_shape);
                 trapezoid_set_y.shapes.push_back(trapezoids);
             }
             trapezoid_set_y.x_min = std::numeric_limits<LengthDbl>::infinity();
