@@ -428,14 +428,16 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             // Update trapezoids.
             LengthDbl x_left = x(open_trapezoid.bottom_left, open_trapezoid.top_left, vertex.y);
             LengthDbl x_right = x(open_trapezoid.bottom_right, open_trapezoid.top_right, vertex.y);
-            GeneralizedTrapezoid trapezoid(
-                    vertex.y,
-                    open_trapezoid.top_left.y,
-                    x_left,
-                    x_right,
-                    open_trapezoid.top_left.x,
-                    open_trapezoid.top_right.x);
-            trapezoids.push_back(trapezoid);
+            if (vertex.y != open_trapezoid.top_left.y) {
+                GeneralizedTrapezoid trapezoid(
+                        vertex.y,
+                        open_trapezoid.top_left.y,
+                        x_left,
+                        x_right,
+                        open_trapezoid.top_left.x,
+                        open_trapezoid.top_right.x);
+                trapezoids.push_back(trapezoid);
+            }
 
             // Update open_trapezoids.
 

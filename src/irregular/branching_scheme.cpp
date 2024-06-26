@@ -1,6 +1,7 @@
 #include "irregular/branching_scheme.hpp"
 
 #include "irregular/polygon_trapezoidation.hpp"
+#include "irregular/shape.hpp"
 
 #include <iostream>
 
@@ -29,8 +30,10 @@ BranchingScheme::BranchingScheme(
             trapezoid_set_x.item_type_id = item_type_id;
             trapezoid_set_x.angle = angle_range.first;
             for (const ItemShape& item_shape: item_type.shapes) {
-                Shape rotated_shape = item_shape.shape.rotate(angle_range.first);
-                auto trapezoids = polygon_trapezoidation(rotated_shape);
+                Shape cleaned_shape = clean_shape(item_shape.shape);
+                Shape rotated_shape = cleaned_shape.rotate(angle_range.first);
+                Shape cleaned_y_shape = clean_shape_y(rotated_shape);
+                auto trapezoids = polygon_trapezoidation(cleaned_y_shape);
                 trapezoid_set_x.shapes.push_back(trapezoids);
             }
             trapezoid_set_x.x_min = std::numeric_limits<LengthDbl>::infinity();
@@ -60,9 +63,11 @@ BranchingScheme::BranchingScheme(
             trapezoid_set_y.item_type_id = item_type_id;
             trapezoid_set_y.angle = angle_range.first;
             for (const ItemShape& item_shape: item_type.shapes) {
-                auto shape = item_shape.shape.identity_line_axial_symmetry();
-                auto rotated_shape = shape.rotate(angle_range.first);
-                auto trapezoids = polygon_trapezoidation(rotated_shape);
+                Shape cleaned_shape = clean_shape(item_shape.shape);
+                Shape sym_shape = cleaned_shape.identity_line_axial_symmetry();
+                Shape rotated_shape = sym_shape.rotate(angle_range.first);
+                Shape cleaned_y_shape = clean_shape_y(rotated_shape);
+                auto trapezoids = polygon_trapezoidation(cleaned_y_shape);
                 trapezoid_set_y.shapes.push_back(trapezoids);
             }
             trapezoid_set_y.x_min = std::numeric_limits<LengthDbl>::infinity();
@@ -260,6 +265,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         // Don't add extra rectangles which are behind the skyline.
         //std::cout << "check previous extra trapezoids:" << std::endl;
         for (const UncoveredTrapezoid& extra_trapezoid: parent.extra_trapezoids) {
+            //std::cout << "extra_trapezoid " << extra_trapezoid << std::endl;
             LengthDbl covered_length = 0.0;
             for (const UncoveredTrapezoid& uncovered_trapezoid: node.uncovered_trapezoids) {
                 if (uncovered_trapezoid.trapezoid.y_bottom() >= extra_trapezoid.trapezoid.y_top())
@@ -273,21 +279,23 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 LengthDbl yt = std::min(
                         extra_trapezoid.trapezoid.y_top(),
                         uncovered_trapezoid.trapezoid.y_top());
-                LengthDbl x_extra = extra_trapezoid.trapezoid.x_right(yb);
-                LengthDbl x_uncov = uncovered_trapezoid.trapezoid.x_right(yb);
-                //std::cout << "yb " << yb << " yt " << yt << std::endl;
+                LengthDbl y = (yb + yt) / 2;
+                LengthDbl x_extra = extra_trapezoid.trapezoid.x_right(y);
+                LengthDbl x_uncov = uncovered_trapezoid.trapezoid.x_right(y);
+                //std::cout << "yb " << yb << " yt " << yt << " y " << y << std::endl;
                 //std::cout << "x_extra " << x_extra << " x_uncov " << x_uncov << std::endl;
                 if (!striclty_greater(x_extra, x_uncov)) {
                     //std::cout << "covers" << std::endl;
                     covered_length += (yt - yb);
                 }
             }
-            //std::cout << "extra_trapezoid " << extra_trapezoid
-            //    << " length " << extra_trapezoid.trapezoid.height()
+            //std::cout << "length " << extra_trapezoid.trapezoid.height()
             //    << " covered " << covered_length
             //    << std::endl;
-            if (striclty_lesser(covered_length, extra_trapezoid.trapezoid.height()))
+            if (striclty_lesser(covered_length, extra_trapezoid.trapezoid.height())) {
+                //std::cout << "add " << extra_trapezoid << std::endl;
                 node.extra_trapezoids.push_back(extra_trapezoid);
+            }
         }
     }
 
@@ -392,8 +400,23 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     if (node.waste < -PSTOL) {
         Solution solution = to_solution(std::make_shared<Node>(node));
         solution.write("solution_irregular.json");
+        for (Node* current_node = &node;
+                current_node->parent != nullptr;
+                current_node = current_node->parent.get()) {
+            std::cout << current_node->trapezoid_set_id
+                << " x " << current_node->x
+                << " y " << current_node->y
+                << std::endl;
+        }
+        std::cout << "uncovered_trapezoids" << std::endl;
+        for (const UncoveredTrapezoid& uncovered_trapezoid: node.uncovered_trapezoids)
+            std::cout << uncovered_trapezoid << std::endl;
+        std::cout << "extra_trapezoids" << std::endl;
+        for (const UncoveredTrapezoid& extra_trapezoid: node.extra_trapezoids)
+            std::cout << extra_trapezoid << std::endl;
         throw std::runtime_error(
                 "waste: " + std::to_string(node.waste)
+                + "; number_of_items: " + std::to_string(node.number_of_items)
                 + "; current_area: " + std::to_string(node.current_area)
                 + "; item_area: " + std::to_string(node.item_area));
     }
