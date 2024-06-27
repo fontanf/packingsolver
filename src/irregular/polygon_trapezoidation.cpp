@@ -215,6 +215,7 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             open_trapezoid.bottom_left = get_vertex(shape, element_pos + 1);
             open_trapezoid.bottom_right = get_vertex(shape, element_pos - 1);
             ElementPos open_trapezoid_pos = open_trapezoids.size();
+
             open_trapezoids.push_back(open_trapezoid);
 
         } else if (vertices[element_pos].flag == VertexTypeFlag::LocalMinimumConvex) {
@@ -267,15 +268,15 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             new_open_trapezoid_1.top_right = vertex;
             new_open_trapezoid_1.bottom_left = open_trapezoid.bottom_left;
             new_open_trapezoid_1.bottom_right = get_vertex(shape, element_pos - 1);
-            open_trapezoids.push_back(new_open_trapezoid_1);
 
             OpenTrapezoid new_open_trapezoid_2;
             new_open_trapezoid_2.top_left = vertex;
             new_open_trapezoid_2.top_right = {x_right, vertex.y};
             new_open_trapezoid_2.bottom_left = get_vertex(shape, element_pos + 1);
             new_open_trapezoid_2.bottom_right = open_trapezoid.bottom_right;
-            open_trapezoids.push_back(new_open_trapezoid_2);
 
+            open_trapezoids.push_back(new_open_trapezoid_1);
+            open_trapezoids.push_back(new_open_trapezoid_2);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
 
@@ -320,8 +321,8 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             new_open_trapezoid.top_right = {x_right, vertex.y};
             new_open_trapezoid.bottom_left = open_trapezoid_1.bottom_left;
             new_open_trapezoid.bottom_right = open_trapezoid_2.bottom_right;
-            open_trapezoids.push_back(new_open_trapezoid);
 
+            open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[p.first] = open_trapezoids.back();
             open_trapezoids.pop_back();
             open_trapezoids[p.second] = open_trapezoids.back();
@@ -387,6 +388,7 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             open_trapezoid.top_right = get_vertex(shape, element_pos - 1);
             open_trapezoid.bottom_left = get_vertex(shape, element_pos + 1);
             open_trapezoid.bottom_right = get_vertex(shape, element_pos - 2);
+
             open_trapezoids.push_back(open_trapezoid);
 
             vertex_pos++;
@@ -446,15 +448,15 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             new_open_trapezoid_1.top_right = vertex;
             new_open_trapezoid_1.bottom_left = open_trapezoid.bottom_left;
             new_open_trapezoid_1.bottom_right = get_vertex(shape, element_pos - 1);
-            open_trapezoids.push_back(new_open_trapezoid_1);
 
             OpenTrapezoid new_open_trapezoid_2;
             new_open_trapezoid_2.top_left = get_vertex(shape, element_pos + 1);
             new_open_trapezoid_2.top_right = {x_right, vertex.y};
             new_open_trapezoid_2.bottom_left = get_vertex(shape, element_pos + 2);
             new_open_trapezoid_2.bottom_right = open_trapezoid.bottom_right;
-            open_trapezoids.push_back(new_open_trapezoid_2);
 
+            open_trapezoids.push_back(new_open_trapezoid_1);
+            open_trapezoids.push_back(new_open_trapezoid_2);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
 
@@ -504,8 +506,8 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             new_open_trapezoid.top_right = {x_right, vertex.y};
             new_open_trapezoid.bottom_left = open_trapezoid_1.bottom_left;
             new_open_trapezoid.bottom_right = open_trapezoid_2.bottom_right;
-            open_trapezoids.push_back(new_open_trapezoid);
 
+            open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_1_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
             open_trapezoids[open_trapezoid_2_pos] = open_trapezoids.back();
@@ -540,8 +542,8 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             new_open_trapezoid.top_right = {x_right, vertex.y};
             new_open_trapezoid.bottom_left = get_vertex(shape, element_pos + 1);
             new_open_trapezoid.bottom_right = open_trapezoid.bottom_right;
-            open_trapezoids.push_back(new_open_trapezoid);
 
+            open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
 
@@ -574,8 +576,8 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             new_open_trapezoid.top_right = {x_right, vertex.y};
             new_open_trapezoid.bottom_left = get_vertex(shape, element_pos + 2);
             new_open_trapezoid.bottom_right = open_trapezoid.bottom_right;
-            open_trapezoids.push_back(new_open_trapezoid);
 
+            open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
 
@@ -610,8 +612,8 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             new_open_trapezoid.top_right = vertex;
             new_open_trapezoid.bottom_left = open_trapezoid.bottom_left;
             new_open_trapezoid.bottom_right = get_vertex(shape, element_pos - 1);
-            open_trapezoids.push_back(new_open_trapezoid);
 
+            open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
 
@@ -646,8 +648,8 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             new_open_trapezoid.top_right = get_vertex(shape, element_pos - 1);
             new_open_trapezoid.bottom_left = open_trapezoid.bottom_left;
             new_open_trapezoid.bottom_right = get_vertex(shape, element_pos - 2);
-            open_trapezoids.push_back(new_open_trapezoid);
 
+            open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
             open_trapezoids.pop_back();
 
