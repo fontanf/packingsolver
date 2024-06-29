@@ -8,7 +8,8 @@ namespace irregular
 {
 
 std::vector<GeneralizedTrapezoid> polygon_trapezoidation(
-        const Shape& shape);
+        const Shape& shape,
+        const std::vector<Shape>& holes = {});
 
 }
 }

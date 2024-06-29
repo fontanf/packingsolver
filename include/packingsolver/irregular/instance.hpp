@@ -10,6 +10,7 @@ namespace irregular
 using LengthDbl = double;
 using AreaDbl = double;
 using ElementPos = int64_t;
+using ShapePos = int64_t;
 
 /**
  * Structure for a point.
@@ -219,9 +220,6 @@ struct Defect
  */
 struct BinType
 {
-    /** Id of the bin type. */
-    BinTypeId id;
-
     /** Cost of the bin type. */
     Profit cost;
 
@@ -268,9 +266,6 @@ struct BinType
  */
 struct ItemType
 {
-    /** Id of the item type. */
-    ItemTypeId id;
-
     /** Profit of the item type. */
     Profit profit;
 

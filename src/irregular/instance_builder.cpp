@@ -26,7 +26,6 @@ BinTypeId InstanceBuilder::add_bin_type(
     }
 
     BinType bin_type;
-    bin_type.id = instance_.bin_types_.size();
     bin_type.shape = shape;
     bin_type.area = shape.compute_area();
     auto points = shape.compute_min_max();
@@ -38,7 +37,7 @@ BinTypeId InstanceBuilder::add_bin_type(
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
     instance_.bin_types_.push_back(bin_type);
-    return bin_type.id;
+    return instance_.bin_types_.size() - 1;
 }
 
 void InstanceBuilder::add_defect(
@@ -115,7 +114,6 @@ ItemTypeId InstanceBuilder::add_item_type(
         const std::vector<std::pair<Angle, Angle>>& allowed_rotations)
 {
     ItemType item_type;
-    item_type.id = instance_.item_types_.size();
     item_type.shapes = shapes;
     item_type.allowed_rotations = allowed_rotations;
     item_type.area = 0;
@@ -127,7 +125,7 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.profit = (profit != -1)? profit: item_type.area;
     item_type.copies = copies;
     instance_.item_types_.push_back(item_type);
-    return item_type.id;
+    return instance_.item_types_.size() - 1;
 }
 
 void InstanceBuilder::add_item_type(

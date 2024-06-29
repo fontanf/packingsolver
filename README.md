@@ -114,10 +114,10 @@ Features:
   * Bin packing with leftovers
   * Variable-sized bin packing
 * Item types
-  * Polygonal shape
+  * Polygonal shape (possibly non-convex, possibly with holes)
   * Discrete rotations
 * Bin types
-  * Polygonal shape
+  * Polygonal shape (possibly non-convex)
   * May contain different quality areas
 
 ## Usage
