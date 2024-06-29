@@ -92,8 +92,8 @@ TEST(IrregularPolygonTrapezoidation, Trapezoid3)
 {
     Shape shape = build_polygon_shape({{5, 0}, {2, 3}, {1, 3}, {0, 1}});
     std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
-    //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
-    //    std::cout << trapezoid << std::endl;
+    for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+        std::cout << trapezoid << std::endl;
 
     EXPECT_EQ(trapezoids.size(), 2);
     GeneralizedTrapezoid trapezoid_1(1, 3, 0, 4, 1, 2);
@@ -230,4 +230,103 @@ TEST(IrregularPolygonTrapezoidation, Shape1)
     EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_4), trapezoids.end());
     GeneralizedTrapezoid trapezoid_5(0, 79.289, 0, 300, 0, 220.711);
     EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_5), trapezoids.end());
+}
+
+TEST(IrregularPolygonTrapezoidation, SquareRing)
+{
+    Shape shape = build_polygon_shape({
+            {0, 0},
+            {3, 0},
+            {3, 3},
+            {0, 3}});
+    std::vector<Shape> holes = {build_polygon_shape({
+            {1, 1},
+            {2, 1},
+            {2, 2},
+            {1, 2}})};
+    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape, holes);
+    for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+        std::cout << trapezoid << std::endl;
+
+    EXPECT_EQ(trapezoids.size(), 4);
+    GeneralizedTrapezoid trapezoid_1(2, 3, 0, 3, 0, 3);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_1), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_2(1, 2, 0, 1, 0, 1);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_2), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_3(1, 2, 2, 3, 2, 3);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_3), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_4(0, 1, 0, 3, 0, 3);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_4), trapezoids.end());
+}
+
+TEST(IrregularPolygonTrapezoidation, DiamondHole)
+{
+    Shape shape = build_polygon_shape({
+            {1, 0},
+            {3, 0},
+            {4, 1},
+            {4, 3},
+            {3, 4},
+            {1, 4},
+            {0, 3},
+            {0, 1}});
+    std::vector<Shape> holes = {build_polygon_shape({
+            {2, 1},
+            {3, 2},
+            {2, 3},
+            {1, 2}})};
+    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape, holes);
+    for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+        std::cout << trapezoid << std::endl;
+
+    EXPECT_EQ(trapezoids.size(), 6);
+    GeneralizedTrapezoid trapezoid_1(3, 4, 0, 4, 1, 3);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_1), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_2(2, 3, 0, 1, 0, 2);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_2), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_3(2, 3, 3, 4, 2, 4);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_3), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_4(1, 2, 0, 2, 0, 1);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_4), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_5(1, 2, 2, 4, 3, 4);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_5), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_6(0, 1, 1, 3, 0, 4);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_6), trapezoids.end());
+}
+
+TEST(IrregularPolygonTrapezoidation, ButterflyHole)
+{
+    Shape shape = build_polygon_shape({
+            {1, 0},
+            {3, 0},
+            {4, 1},
+            {4, 3},
+            {3, 4},
+            {1, 4},
+            {0, 3},
+            {0, 1}});
+    std::vector<Shape> holes = {build_polygon_shape({
+            {1, 1},
+            {2, 1.5},
+            {3, 1},
+            {3, 3},
+            {2, 2.5},
+            {1, 3}})};
+    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape, holes);
+    for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+        std::cout << trapezoid << std::endl;
+
+    EXPECT_EQ(trapezoids.size(), 6);
+    GeneralizedTrapezoid trapezoid_1(3, 4, 0, 4, 1, 3);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_1), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_2(2.5, 3, 2, 2, 1, 3);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_2), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_3(1, 3, 0, 1, 0, 1);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_3), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_4(1, 1.5, 1, 3, 2, 2);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_4), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_5(1, 3, 3, 4, 3, 4);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_5), trapezoids.end());
+    GeneralizedTrapezoid trapezoid_6(0, 1, 1, 3, 0, 4);
+    EXPECT_NE(std::find(trapezoids.begin(), trapezoids.end(), trapezoid_6), trapezoids.end());
 }

@@ -10,6 +10,7 @@ namespace irregular
 using LengthDbl = double;
 using AreaDbl = double;
 using ElementPos = int64_t;
+using ShapePos = int64_t;
 
 /**
  * Structure for a point.
