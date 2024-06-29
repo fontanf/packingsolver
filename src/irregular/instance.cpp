@@ -353,6 +353,25 @@ Shape Shape::identity_line_axial_symmetry() const
     return shape;
 }
 
+Shape Shape::reverse() const
+{
+    Shape shape;
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
+        const ShapeElement& element = *it;
+        ShapeElement element_new;
+        element_new.type = element.type;
+        element_new.start.x = element.end.x;
+        element_new.start.y = element.end.y;
+        element_new.end.x = element.start.x;
+        element_new.end.y = element.start.y;
+        element_new.center.x = element.center.x;
+        element_new.center.y = element.center.y;
+        element_new.anticlockwise = !element.anticlockwise;
+        shape.elements.push_back(element_new);
+    }
+    return shape;
+}
+
 std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_length(Angle angle) const
 {
     auto points = compute_min_max(angle);
@@ -418,7 +437,7 @@ std::string Defect::to_string(
         Counter indentation) const
 {
     std::string indent = std::string(indentation, ' ');
-    std::string s = "defect: " + std::to_string(id) + "\n";
+    std::string s = "defect:\n";
     s += "- type: " + std::to_string(type) + "\n";
     s += "- shape: " + shape.to_string(indentation + 2);
     return s;
@@ -632,7 +651,7 @@ std::ostream& Instance::format(
                     const Defect& defect = bin_type.defects[defect_id];
                     os
                         << std::setw(12) << bin_type_id
-                        << std::setw(12) << defect.id
+                        << std::setw(12) << defect_id
                         << std::setw(12) << defect.type
                         << std::endl;
                 }

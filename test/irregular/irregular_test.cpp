@@ -84,3 +84,18 @@ TEST(Irregular, Users_2024_06_25)
     Solution solution(instance, (directory / "2024-06-25_solution.json").string());
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
 }
+
+TEST(Irregular, Tests_non_rectangular_bin)
+{
+    InstanceBuilder instance_builder;
+    fs::path directory = fs::path("data") / "irregular" / "tests";
+    instance_builder.read((directory / "non_rectangular_bin.json").string());
+    Instance instance = instance_builder.build();
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    Output output = optimize(instance, optimize_parameters);
+
+    Solution solution(instance, (directory / "non_rectangular_bin_solution.json").string());
+    EXPECT_EQ(!(output.solution_pool.best() < solution), true);
+}
