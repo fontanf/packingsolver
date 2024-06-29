@@ -48,7 +48,6 @@ void InstanceBuilder::add_defect(
         const std::vector<Shape>& holes)
 {
     Defect defect;
-    defect.id = instance_.bin_types_[bin_type_id].defects.size();
     defect.type = type;
     defect.shape = shape;
     defect.holes = holes;

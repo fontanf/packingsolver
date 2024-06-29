@@ -64,6 +64,12 @@ public:
             item_shape_trapezoid_pos(item_shape_trapezoid_pos),
             trapezoid(trapezoid) { }
 
+        UncoveredTrapezoid(
+                DefectId defect_id,
+                const GeneralizedTrapezoid& trapezoid):
+            defect_id(defect_id),
+            trapezoid(trapezoid) { }
+
         /** Item type. */
         ItemTypeId item_type_id = -1;
 
@@ -73,33 +79,50 @@ public:
         /** Item shape rectangle. */
         ItemShapeTrapezoidPos item_shape_trapezoid_pos = -1;
 
+        /** Defect id. */
+        DefectId defect_id = -1;
+
         /** Trapezoid. */
         GeneralizedTrapezoid trapezoid;
 
         bool operator==(const UncoveredTrapezoid& uncovered_trapezoid) const;
     };
 
+    /**
+     * Bin type structure used in the branching scheme.
+     */
+    struct BranchingSchemeBinType
+    {
+        /** Trapezoids of the defects. */
+        std::vector<UncoveredTrapezoid> defects;
+
+        LengthDbl x_min;
+        LengthDbl x_max;
+        LengthDbl y_min;
+        LengthDbl y_max;
+    };
+
     struct Insertion
     {
         /** Id of the inserted rectangle set. */
-        TrapezoidSetId trapezoid_set_id;
+        TrapezoidSetId trapezoid_set_id = -1;
 
-        ItemShapePos item_shape_pos;
+        ItemShapePos item_shape_pos = -1;
 
-        TrapezoidPos item_shape_trapezoid_pos;
+        TrapezoidPos item_shape_trapezoid_pos = -1;
 
         /**
          * - < 0: the item is inserted in the last bin
          * - 0: the item is inserted in a new bin with horizontal direction
          * - 1: the item is inserted in a new bin with vertical direction
          */
-        int8_t new_bin;
+        int8_t new_bin = -1;
 
         /** x-coordinate of the point of interest. */
-        LengthDbl x;
+        LengthDbl x = 0.0;
 
         /** y-coordinate of the point of interest. */
-        LengthDbl y;
+        LengthDbl y = 0.0;
 
         bool operator==(const Insertion& insertion) const;
         bool operator!=(const Insertion& insertion) const { return !(*this == insertion); }
@@ -120,13 +143,13 @@ public:
         std::shared_ptr<Node> parent = nullptr;
 
         /** Last inserted rectangle set. */
-        TrapezoidSetId trapezoid_set_id;
+        TrapezoidSetId trapezoid_set_id = -1;
 
         /** x-coordinates of the bottom-left corner of the last inserted item. */
-        LengthDbl x;
+        LengthDbl x = 0.0;
 
         /** y-coordinates of the bottom-left corner of the last inserted item. */
-        LengthDbl y;
+        LengthDbl y = 0.0;
 
         /** Last bin direction. */
         Direction last_bin_direction = Direction::X;
@@ -357,6 +380,12 @@ private:
     /** Parameters. */
     Parameters parameters_;
 
+    /** Bin types for X direction. */
+    std::vector<BranchingSchemeBinType> bin_types_x_;
+
+    /** Bin types for Y direction. */
+    std::vector<BranchingSchemeBinType> bin_types_y_;
+
     /** Trapezoid sets in x direction. */
     std::vector<TrapezoidSet> trapezoid_sets_x_;
 
@@ -403,8 +432,7 @@ private:
             TrapezoidPos item_shape_trapezoid_pos,
             int8_t new_bin,
             ItemPos uncovered_trapezoid_pos,
-            ItemPos extra_trapezoid_pos,
-            DefectId k) const;
+            ItemPos extra_trapezoid_pos) const;
 
 };
 

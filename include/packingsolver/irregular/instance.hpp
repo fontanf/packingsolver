@@ -159,6 +159,8 @@ struct Shape
 
     Shape identity_line_axial_symmetry() const;
 
+    Shape reverse() const;
+
     std::string to_string(Counter indentation) const;
 };
 
@@ -200,9 +202,6 @@ struct Parameters
  */
 struct Defect
 {
-    /** Id of the defect. */
-    DefectId id;
-
     /** Shape. */
     Shape shape;
 
@@ -343,7 +342,7 @@ public:
      * Return 'true' iff quality_rule 'quality_rule' can contain a defect of
      * type 'type'.
      */
-    inline bool can_contain(QualityRule quality_rule, DefectTypeId type) const;
+    bool can_contain(QualityRule quality_rule, DefectTypeId type) const;
 
     /*
      * Getters: bin types
