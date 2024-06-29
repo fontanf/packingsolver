@@ -535,7 +535,7 @@ std::string ItemType::to_string(
         Counter indentation) const
 {
     std::string indent = std::string(indentation, ' ');
-    std::string s = "item type: " + std::to_string(id) + "\n";
+    std::string s = "item type:\n";
     if (shapes.size() == 1) {
         s += indent +  "- shape: " + shapes.front().to_string(indentation + 2) + "\n";
     } else if (shapes.size() >= 2) {
@@ -561,7 +561,7 @@ std::string BinType::to_string(
         Counter indentation) const
 {
     std::string indent = std::string(indentation, ' ');
-    std::string s = "bin type: " + std::to_string(id) + "\n";
+    std::string s = "bin type:\n";
     s += indent + "- shape: " + shape.to_string(indentation + 2) + "\n";
     s += indent + "- copies: " + std::to_string(copies) + "\n";
     s += indent + "- defects:" + "\n";
