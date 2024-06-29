@@ -266,6 +266,222 @@ public:
         return std::max(x2br - x1bl, x2tr - x1tl);
     }
 
+    inline std::pair<LengthDbl, LengthDbl> compute_top_right_shift(
+            const GeneralizedTrapezoid& trapezoid,
+            double a) const
+    {
+        LengthDbl x_shift = 0.0;
+        LengthDbl y_shift = 0.0;
+
+        for (const Point& p: std::array<Point, 4>{
+                Point{x_bottom_left(), y_bottom()},
+                Point{x_bottom_right(), y_bottom()},
+                Point{x_top_left(), y_top()},
+                Point{x_top_right(), y_top()}}) {
+            //std::cout << "p1 " << p.to_string() << std::endl;
+            LengthDbl b = p.y - p.x * a;
+
+            // Bottom side of second trapezoid.
+            {
+                LengthDbl x = (trapezoid.y_bottom() - b) / a;
+                if (!striclty_lesser(x, trapezoid.x_bottom_left())
+                        && !striclty_greater(x, trapezoid.x_bottom_right())) {
+                    //std::cout << "bottom"
+                    //    << " x_shift " << x - p.x
+                    //    << " y_shift " << trapezoid.y_bottom() - p.y
+                    //    << std::endl;
+                    x_shift = std::max(x_shift, x - p.x);
+                    y_shift = std::max(y_shift, trapezoid.y_bottom() - p.y);
+                }
+            }
+
+            // Top side of second trapezoid.
+            {
+                LengthDbl x = (trapezoid.y_top() - b) / a;
+                if (!striclty_lesser(x, trapezoid.x_top_left())
+                        && !striclty_greater(x, trapezoid.x_top_right())) {
+                    //std::cout << "top"
+                    //    << " x_shift " << x - p.x
+                    //    << " y_shift " << trapezoid.y_top() - p.y
+                    //    << std::endl;
+                    x_shift = std::max(x_shift, x - p.x);
+                    y_shift = std::max(y_shift, trapezoid.y_top() - p.y);
+                }
+            }
+
+            // Left side of second trapezoid.
+            {
+                double a_left = 1.0 / trapezoid.a_left_;
+                LengthDbl b_left = trapezoid.y_bottom() - a_left * trapezoid.x_bottom_left();
+                if (!equal(a, a_left)) {
+                    LengthDbl x = (b_left - b) / (a - a_left);
+                    LengthDbl y = a * x + b;
+                    if (!striclty_lesser(y, trapezoid.y_bottom())
+                            && !striclty_greater(y, trapezoid.y_top())) {
+                        //std::cout << "left 1 "
+                        //    << " x_shift " << x - p.x
+                        //    << " y_shift " << y - p.y
+                        //    << std::endl;
+                        x_shift = std::max(x_shift, x - p.x);
+                        y_shift = std::max(y_shift, y - p.y);
+                    }
+                } else if (equal(b, b_left)) {
+                    LengthDbl x = trapezoid.x_top_left();
+                    LengthDbl y = trapezoid.y_top();
+                    if (!striclty_lesser(y, trapezoid.y_bottom())
+                            && !striclty_greater(y, trapezoid.y_top())) {
+                        //std::cout << "left 2 "
+                        //    << " x_shift " << x - p.x
+                        //    << " y_shift " << y - p.y
+                        //    << std::endl;
+                        x_shift = std::max(x_shift, x - p.x);
+                        y_shift = std::max(y_shift, y - p.y);
+                    }
+                }
+            }
+
+            // Right side of second trapezoid.
+            {
+                double a_right = 1.0 / trapezoid.a_right_;
+                LengthDbl b_right = trapezoid.y_bottom() - a_right * trapezoid.x_bottom_right();
+                if (!equal(a, a_right)) {
+                    LengthDbl x = (b_right - b) / (a - a_right);
+                    LengthDbl y = a * x + b;
+                    //std::cout << "right 1 "
+                    //    << " b " << b
+                    //    << " b_right " << b_right
+                    //    << " a " << a
+                    //    << " a_right " << a_right
+                    //    << " x " << x
+                    //    << " y " << y
+                    //    << std::endl;
+                    if (!striclty_lesser(y, trapezoid.y_bottom())
+                            && !striclty_greater(y, trapezoid.y_top())) {
+                        //std::cout << "right 1 "
+                        //    << " x_shift " << x - p.x
+                        //    << " y_shift " << y - p.y
+                        //    << std::endl;
+                        x_shift = std::max(x_shift, x - p.x);
+                        y_shift = std::max(y_shift, y - p.y);
+                    }
+                } else if (equal(b, b_right)) {
+                    LengthDbl x = trapezoid.x_top_right();
+                    LengthDbl y = trapezoid.y_top();
+                    if (!striclty_lesser(y, trapezoid.y_bottom())
+                            && !striclty_greater(y, trapezoid.y_top())) {
+                        //std::cout << "right 2 "
+                        //    << " x_shift " << x - p.x
+                        //    << " y_shift " << y - p.y
+                        //    << std::endl;
+                        x_shift = std::max(x_shift, x - p.x);
+                        y_shift = std::max(y_shift, y - p.y);
+                    }
+                }
+            }
+        }
+
+        for (const Point& p: std::array<Point, 4>{
+                Point{trapezoid.x_bottom_left(), trapezoid.y_bottom()},
+                Point{trapezoid.x_bottom_right(), trapezoid.y_bottom()},
+                Point{trapezoid.x_top_left(), trapezoid.y_top()},
+                Point{trapezoid.x_top_right(), trapezoid.y_top()}}) {
+            //std::cout << "p2 " << p.to_string() << std::endl;
+            LengthDbl b = p.y - p.x * a;
+
+            // Bottom side of second trapezoid.
+            {
+                LengthDbl x = (y_bottom() - b) / a;
+                if (!striclty_lesser(x, x_bottom_left())
+                        && !striclty_greater(x, x_bottom_right())) {
+                    //std::cout << "bottom"
+                    //    << " x_shift " << x - p.x
+                    //    << " y_shift " << y_bottom() - p.y
+                    //    << std::endl;
+                    x_shift = std::max(x_shift, x - p.x);
+                    y_shift = std::max(y_shift, y_bottom() - p.y);
+                }
+            }
+
+            // Top side of second trapezoid.
+            {
+                LengthDbl x = (y_top() - b) / a;
+                if (!striclty_lesser(x, x_top_left())
+                        && !striclty_greater(x, x_top_right())) {
+                    //std::cout << "top"
+                    //    << " x_shift " << x - p.x
+                    //    << " y_shift " << y_top() - p.y
+                    //    << std::endl;
+                    x_shift = std::max(x_shift, x - p.x);
+                    y_shift = std::max(y_shift, y_top() - p.y);
+                }
+            }
+
+            // Left side of second trapezoid.
+            {
+                double a_left = 1.0 / a_left_;
+                LengthDbl b_left = y_bottom() - a_left * x_bottom_left();
+                if (!equal(a, a_left)) {
+                    LengthDbl x = (b_left - b) / (a - a_left);
+                    LengthDbl y = a * x + b;
+                    if (!striclty_lesser(y, y_bottom())
+                            && !striclty_greater(y, y_top())) {
+                        //std::cout << "left 1 "
+                        //    << " x_shift " << x - p.x
+                        //    << " y_shift " << y - p.y
+                        //    << std::endl;
+                        x_shift = std::max(x_shift, x - p.x);
+                        y_shift = std::max(y_shift, y - p.y);
+                    }
+                } else if (equal(b, b_left)) {
+                    LengthDbl x = x_top_left();
+                    LengthDbl y = y_top();
+                    if (!striclty_lesser(y, y_bottom())
+                            && !striclty_greater(y, y_top())) {
+                        //std::cout << "left 2 "
+                        //    << " x_shift " << x - p.x
+                        //    << " y_shift " << y - p.y
+                        //    << std::endl;
+                        x_shift = std::max(x_shift, x - p.x);
+                        y_shift = std::max(y_shift, y - p.y);
+                    }
+                }
+            }
+
+            // Right side of second trapezoid.
+            {
+                double a_right = 1.0 / a_right_;
+                LengthDbl b_right = y_bottom() - a_right * x_bottom_right();
+                if (!equal(a, a_right)) {
+                    LengthDbl x = (b_right - b) / (a - a_right);
+                    LengthDbl y = a * x + b;
+                    if (!striclty_lesser(y, y_bottom())
+                            && !striclty_greater(y, y_top())) {
+                        //std::cout << "right 1 "
+                        //    << " x_shift " << x - p.x
+                        //    << " y_shift " << y - p.y
+                        //    << std::endl;
+                        x_shift = std::max(x_shift, x - p.x);
+                        y_shift = std::max(y_shift, y - p.y);
+                    }
+                } else if (equal(b, b_right)) {
+                    LengthDbl x = x_top_right();
+                    LengthDbl y = y_top();
+                    if (!striclty_lesser(y, y_bottom())
+                            && !striclty_greater(y, y_top())) {
+                        //std::cout << "right 2 "
+                        //    << " x_shift " << x - p.x
+                        //    << " y_shift " << y - p.y
+                        //    << std::endl;
+                        x_shift = std::max(x_shift, x - p.x);
+                        y_shift = std::max(y_shift, y - p.y);
+                    }
+                }
+            }
+        }
+
+        return {x_shift, y_shift};
+    }
+
 private:
 
     /** x-coordinate of the bottom. */
