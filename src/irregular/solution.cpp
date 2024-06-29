@@ -77,14 +77,13 @@ void Solution::add_item(
     item.angle = angle;
     bin.items.push_back(item);
 
-    item_copies_[item_type_id]++;
-    item_area_ += item_type.area;
-    item_profit_ += item_type.profit;
+    item_area_ += bin.copies * item_type.area;
+    item_profit_ += bin.copies * item_type.profit;
     auto points = item_type.compute_min_max(angle);
     x_max_ = std::max(x_max_, bl_corner.x + points.second.x);
     y_max_ = std::max(y_max_, bl_corner.y + points.second.y);
     number_of_items_ += bin.copies;
-    item_copies_[item.item_type_id] += bin.copies;
+    item_copies_[item_type_id] += bin.copies;
 }
 
 void Solution::append(
