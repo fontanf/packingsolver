@@ -1,0 +1,37 @@
+{
+    "objective": "open-dimension-x",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 500,
+            "height": 300
+        }
+    ],
+    "item_types": [
+        { 
+            "type": "polygon",
+            "vertices": [
+                {"x": 0, "y": 0},
+                {"x": 400, "y": 0},
+                {"x": 400, "y": 300},
+                {"x": 0, "y": 300}
+            ],
+            "holes": [
+                {
+                    "type": "polygon",
+                    "vertices": [
+                        {"x": 100, "y": 100},
+                        {"x": 300, "y": 100},
+                        {"x": 300, "y": 200},
+                        {"x": 100, "y": 200}
+                    ]
+                }
+            ]
+        },
+        { 
+            "type": "rectangle",
+            "width": 200,
+            "height": 100
+        }
+    ]
+}

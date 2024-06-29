@@ -11,6 +11,7 @@ def shape_path(path_x, path_y, shape, is_hole=False):
     # How to draw a filled circle segment?
     # https://community.plotly.com/t/how-to-draw-a-filled-circle-segment/59583
     # https://stackoverflow.com/questions/70965145/can-plotly-for-python-plot-a-polygon-with-one-or-multiple-holes-in-it
+    print(shape)
     for element in (shape if not is_hole else reversed(shape)):
         t = element["type"]
         xs = element["xs"]
@@ -22,6 +23,9 @@ def shape_path(path_x, path_y, shape, is_hole=False):
             yc = element["yc"]
             anticlockwise = 1 if element["anticlockwise"] else 0
             rc = math.sqrt((xc - xs)**2 + (yc - ys)**2)
+
+        if is_hole:
+            xs, ys, xe, ye = xe, ye, xs, ys
 
         if len(path_x) == 0 or path_x[-1] is None:
             path_x.append(xs)

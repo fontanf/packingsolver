@@ -186,9 +186,18 @@ BranchingScheme::BranchingScheme(
             //std::cout << "defect_id " << defect_id << std::endl;
             const Defect& defect = bin_type.defects[defect_id];
             Shape cleaned_shape = clean_shape(defect.shape);
+            std::vector<Shape> cleaned_holes;
+            for (const Shape& hole: defect.holes)
+                cleaned_holes.push_back(clean_shape(hole));
             {
                 Shape cleaned_y_shape = clean_shape_y(cleaned_shape);
-                auto trapezoids = polygon_trapezoidation(cleaned_y_shape);
+                std::vector<Shape> cleaned_y_holes;
+                for (const Shape& hole: cleaned_holes)
+                    cleaned_y_holes.push_back(clean_shape_y(hole));
+
+                auto trapezoids = polygon_trapezoidation(
+                        cleaned_y_shape,
+                        cleaned_y_holes);
                 for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                     UncoveredTrapezoid defect(defect_id, trapezoid);
                     bin_types_x_[bin_type_id].defects.push_back(defect);
@@ -196,8 +205,18 @@ BranchingScheme::BranchingScheme(
             }
             {
                 Shape sym_shape = cleaned_shape.identity_line_axial_symmetry();
+                std::vector<Shape> sym_holes;
+                for (const Shape& hole: cleaned_holes)
+                    sym_holes.push_back(hole.identity_line_axial_symmetry());
+
                 Shape cleaned_y_shape = clean_shape_y(sym_shape);
-                auto trapezoids = polygon_trapezoidation(cleaned_y_shape);
+                std::vector<Shape> cleaned_y_holes;
+                for (const Shape& hole: sym_holes)
+                    cleaned_y_holes.push_back(clean_shape_y(hole));
+
+                auto trapezoids = polygon_trapezoidation(
+                        cleaned_y_shape,
+                        cleaned_y_holes);
                 for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                     UncoveredTrapezoid defect(defect_id, trapezoid);
                     bin_types_y_[bin_type_id].defects.push_back(defect);
@@ -219,9 +238,23 @@ BranchingScheme::BranchingScheme(
             trapezoid_set_x.angle = angle_range.first;
             for (const ItemShape& item_shape: item_type.shapes) {
                 Shape cleaned_shape = clean_shape(item_shape.shape);
+                std::vector<Shape> cleaned_holes;
+                for (const Shape& hole: item_shape.holes)
+                    cleaned_holes.push_back(clean_shape(hole));
+
                 Shape rotated_shape = cleaned_shape.rotate(angle_range.first);
+                std::vector<Shape> rotated_holes;
+                for (const Shape& hole: cleaned_holes)
+                    rotated_holes.push_back(hole.rotate(angle_range.first));
+
                 Shape cleaned_y_shape = clean_shape_y(rotated_shape);
-                auto trapezoids = polygon_trapezoidation(cleaned_y_shape);
+                std::vector<Shape> cleaned_y_holes;
+                for (const Shape& hole: rotated_holes)
+                    cleaned_y_holes.push_back(clean_shape_y(hole));
+
+                auto trapezoids = polygon_trapezoidation(
+                        cleaned_y_shape,
+                        cleaned_y_holes);
                 trapezoid_set_x.shapes.push_back(trapezoids);
             }
             trapezoid_set_x.x_min = std::numeric_limits<LengthDbl>::infinity();
@@ -252,10 +285,28 @@ BranchingScheme::BranchingScheme(
             trapezoid_set_y.angle = angle_range.first;
             for (const ItemShape& item_shape: item_type.shapes) {
                 Shape cleaned_shape = clean_shape(item_shape.shape);
+                std::vector<Shape> cleaned_holes;
+                for (const Shape& hole: item_shape.holes)
+                    cleaned_holes.push_back(clean_shape(hole));
+
                 Shape sym_shape = cleaned_shape.identity_line_axial_symmetry();
+                std::vector<Shape> sym_holes;
+                for (const Shape& hole: cleaned_holes)
+                    sym_holes.push_back(hole.identity_line_axial_symmetry());
+
                 Shape rotated_shape = sym_shape.rotate(angle_range.first);
+                std::vector<Shape> rotated_holes;
+                for (const Shape& hole: sym_holes)
+                    rotated_holes.push_back(hole.rotate(angle_range.first));
+
                 Shape cleaned_y_shape = clean_shape_y(rotated_shape);
-                auto trapezoids = polygon_trapezoidation(cleaned_y_shape);
+                std::vector<Shape> cleaned_y_holes;
+                for (const Shape& hole: rotated_holes)
+                    cleaned_y_holes.push_back(clean_shape_y(hole));
+
+                auto trapezoids = polygon_trapezoidation(
+                        cleaned_y_shape,
+                        cleaned_y_holes);
                 trapezoid_set_y.shapes.push_back(trapezoids);
             }
             trapezoid_set_y.x_min = std::numeric_limits<LengthDbl>::infinity();
