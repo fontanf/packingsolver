@@ -5,6 +5,9 @@ project(PackingSolver LANGUAGES CXX)
 option(PackingSolver_BUILD_TEST "Build the unit tests" ON)
 option(PackingSolver_USE_KNITRO "Use Knitro" OFF)
 
+# Avoid FetchContent warning.
+cmake_policy(SET CMP0135 NEW)
+
 # Require C++14.
 set(CMAKE_CXX_STANDARD 14)
 

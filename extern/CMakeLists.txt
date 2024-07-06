@@ -5,7 +5,7 @@ include(FetchContent)
 FetchContent_Declare(
     optimizationtools
     GIT_REPOSITORY https://github.com/fontanf/optimizationtools.git
-    GIT_TAG e96ddbe225c006911855a6c1ec31aa44fdacde2b
+    GIT_TAG 66f61a3e02c746c57584a5d5257e1b1455d4a9ae
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../optimizationtools/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(optimizationtools)
@@ -15,7 +15,7 @@ set(MATHOPTSOLVERSCMAKE_USE_CLP ON)
 FetchContent_Declare(
     mathoptsolverscmake
     GIT_REPOSITORY https://github.com/fontanf/mathoptsolverscmake.git
-    GIT_TAG 3c2b5a9d608a42dd44ff9054a7f26790c51a4e74
+    GIT_TAG 80cd13a843e2c10684abbfe76cf9aae0d71ff79d
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../mathoptsolverscmake/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(mathoptsolverscmake)
@@ -26,9 +26,7 @@ set(BOOST_ENABLE_CMAKE ON)
 include(FetchContent)
 FetchContent_Declare(
     Boost
-    GIT_REPOSITORY https://github.com/boostorg/boost.git
-    GIT_TAG boost-1.84.0
-    GIT_SHALLOW TRUE
+    URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(Boost)
 
@@ -36,7 +34,7 @@ FetchContent_MakeAvailable(Boost)
 FetchContent_Declare(
     treesearchsolver
     GIT_REPOSITORY https://github.com/fontanf/treesearchsolver.git
-    GIT_TAG 7d75ba2950c6866d2fdf6d7ac145ee971ae97ce3
+    GIT_TAG 8e2d5190d4005a753a815641b1e3f8753a9d7095
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../treesearchsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(treesearchsolver)
@@ -46,7 +44,7 @@ set(COLUMNGENERATIONSOLVER_USE_CLP ON)
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
-    GIT_TAG a8c5ff13ae64e6106cbc2c9eb19a3ae6023cbff5
+    GIT_TAG 8f9ac25f724ffe13d239728974752567afd2a586
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../columngenerationsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(columngenerationsolver)
