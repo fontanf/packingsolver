@@ -297,7 +297,7 @@ void InstanceBuilder::read(
                     for (auto it_hole = json_shape["holes"].begin();
                             it_hole != json_shape["holes"].end();
                             ++it_hole) {
-                        auto json_hole = *it_shape;
+                        auto json_hole = *it_hole;
                         Shape shape = read_shape(json_hole);
                         item_shape.holes.push_back(shape);
                     }
