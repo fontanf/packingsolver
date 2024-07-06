@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.15.0)
 
 project(PackingSolver LANGUAGES CXX)
 
-option(PackingSolver_BUILD_TEST "Build the unit tests" ON)
-option(PackingSolver_USE_KNITRO "Use Knitro" OFF)
+option(PACKINGSOLVER_BUILD_TEST "Build the unit tests" ON)
+option(PACKINGSOLVER_USE_KNITRO "Use Knitro" OFF)
 
 # Avoid FetchContent warning.
 cmake_policy(SET CMP0135 NEW)
@@ -20,6 +20,6 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # Add sub-directories.
 add_subdirectory(extern)
 add_subdirectory(src)
-if(PackingSolver_BUILD_TEST)
+if(PACKINGSOLVER_BUILD_TEST)
     add_subdirectory(test)
 endif()
