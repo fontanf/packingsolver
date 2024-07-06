@@ -50,7 +50,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(columngenerationsolver)
 
 # Fetch fontanf/knitrocpp.
-if (PackingSolver_USE_KNITRO)
+if (PACKINGSOLVER_USE_KNITRO)
     FetchContent_Declare(
         knitrocpp
         GIT_REPOSITORY https://github.com/fontanf/knitrocpp.git
