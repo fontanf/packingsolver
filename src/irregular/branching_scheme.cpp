@@ -49,8 +49,9 @@ BranchingScheme::BranchingScheme(
             }
         }
         // 0: left; 1: bottom; 2: right; 3: top.
-        int start_border = 0;
-        LengthDbl start_coordinate = bin_type.shape.elements[element_0_pos].start.y;
+        const ShapeElement& element_0 = bin_type.shape.elements[element_0_pos];
+        int start_border = (element_0.start.y == bin_type.y_min)? 1: 0;
+        LengthDbl start_coordinate = element_0.start.y;
         for (ElementPos element_pos = 0;
                 element_pos < bin_type.shape.elements.size();
                 ++element_pos) {
