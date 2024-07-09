@@ -76,7 +76,10 @@ int main(int argc, char *argv[])
         ("sequential-value-correction-subproblem-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
         ("sequential-value-correction-number-of-iterations,", po::value<Counter>(), "set sequential value correction number of iterations")
         ("column-generation-subproblem-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
+        ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
+        ("not-anytime-sequential-single-knapsack-subproblem-queue-size,", po::value<Counter>(), "")
         ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
+        ("not-anytime-dichotomic-search-subproblem-queue-size,", po::value<Counter>(), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -126,8 +129,14 @@ int main(int argc, char *argv[])
         parameters.sequential_value_correction_subproblem_queue_size = vm["sequential-value-correction-subproblem-queue-size"].as<NodeId>();
     if (vm.count("column-generation-subproblem-queue-size"))
         parameters.column_generation_subproblem_queue_size = vm["column-generation-subproblem-queue-size"].as<NodeId>();
+    if (vm.count("not-anytime-tree-search-queue-size"))
+        parameters.not_anytime_tree_search_queue_size = vm["not-anytime-tree-search-queue-size"].as<Counter>();
+    if (vm.count("not-anytime-sequential-single-knapsack-subproblem-queue-size"))
+        parameters.not_anytime_sequential_single_knapsack_subproblem_queue_size = vm["not-anytime-sequential-single-knapsack-subproblem-queue-size"].as<Counter>();
     if (vm.count("not-anytime-sequential-value-correction-number-of-iterations"))
         parameters.not_anytime_sequential_value_correction_number_of_iterations = vm["not-anytime-sequential-value-correction-number-of-iterations"].as<Counter>();
+    if (vm.count("not-anytime-dichotomic-search-subproblem-queue-size"))
+        parameters.not_anytime_dichotomic_search_subproblem_queue_size = vm["not-anytime-dichotomic-search-subproblem-queue-size"].as<Counter>();
     const irregular::Output output = optimize(instance, parameters);
 
     if (vm.count("certificate"))
