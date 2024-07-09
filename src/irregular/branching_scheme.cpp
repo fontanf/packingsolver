@@ -404,16 +404,19 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     LengthDbl ys = insertion.y + shape_trapezoid.y_bottom();
     LengthDbl ye = insertion.y + shape_trapezoid.y_top();
-    LengthDbl xi = instance().x_max(bin_type, o);
-    LengthDbl yi = instance().y_max(bin_type, o);
     //std::cout << "ys " << ys << " ye " << ye << std::endl;
 
     // Update uncovered_trapezoids.
     ItemPos new_uncovered_trapezoid_pos = -1;
     if (insertion.new_bin > 0) {  // New bin.
-        if (ys > 0) {
-            UncoveredTrapezoid uncovered_trapezoid(
-                    GeneralizedTrapezoid(0, ys, 0, 0, 0, 0));
+        if (ys > bb_bin_type.y_min) {
+            UncoveredTrapezoid uncovered_trapezoid(GeneralizedTrapezoid(
+                        bb_bin_type.y_min,
+                        ys,
+                        bb_bin_type.x_min,
+                        bb_bin_type.x_min,
+                        bb_bin_type.x_min,
+                        bb_bin_type.x_min));
             node.uncovered_trapezoids.push_back(uncovered_trapezoid);
         }
         {
@@ -428,9 +431,14 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                     trapezoid);
             node.uncovered_trapezoids.push_back(uncovered_trapezoid);
         }
-        if (ye < yi) {
-            UncoveredTrapezoid uncovered_trapezoid(
-                    GeneralizedTrapezoid(ye, yi, 0, 0, 0, 0));
+        if (ye < bb_bin_type.y_max) {
+            UncoveredTrapezoid uncovered_trapezoid(GeneralizedTrapezoid(
+                        ye,
+                        bb_bin_type.y_max,
+                        bb_bin_type.x_min,
+                        bb_bin_type.x_min,
+                        bb_bin_type.x_min,
+                        bb_bin_type.x_min));
             node.uncovered_trapezoids.push_back(uncovered_trapezoid);
         }
 
@@ -509,7 +517,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             }
         }
         //std::cout << "uncovered_trapezoids:" << std::endl;
-        //for (const UncoveredTrapezoid& uncovered_trapezoid: parent.uncovered_trapezoids)
+        //for (const UncoveredTrapezoid& uncovered_trapezoid: node.uncovered_trapezoids)
         //    std::cout << "* " << uncovered_trapezoid << std::endl;
 
         // Update extra rectangles.
@@ -612,11 +620,11 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         std::max(parent.xs_max, insertion.x):
         insertion.x;
     node.current_area = instance_.previous_bin_area(bin_pos);
-    node.guide_area = instance_.previous_bin_area(bin_pos) + node.xs_max * yi;
+    node.guide_area = instance_.previous_bin_area(bin_pos) + node.xs_max * (bb_bin_type.y_max - bb_bin_type.y_min);
     for (auto it = node.uncovered_trapezoids.rbegin(); it != node.uncovered_trapezoids.rend(); ++it) {
         const GeneralizedTrapezoid& trapezoid = it->trapezoid;
-        node.current_area += trapezoid.area(0.0);
         //std::cout << trapezoid << std::endl;
+        node.current_area += trapezoid.area(bb_bin_type.x_min);
         //std::cout << "* " << trapezoid.area() << " " << trapezoid.area(0.0) << std::endl;
         //std::cout << "current_area: " << node.current_area << std::endl;
         if (node.xe_max < trapezoid.x_max())
@@ -637,13 +645,14 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     }
 
     if (node.number_of_items == instance().number_of_items()) {
-        node.current_area = instance().previous_bin_area(bin_pos) + node.xe_max * yi;
+        node.current_area = (instance().previous_bin_area(bin_pos) + node.xe_max - bb_bin_type.x_min)
+            * (bb_bin_type.y_max - bb_bin_type.y_min);
     }
 
     node.waste = node.current_area - node.item_area;
 
     {
-        AreaDbl waste = instance().previous_bin_area(bin_pos) + node.xe_max * yi - instance().item_area();
+        AreaDbl waste = instance().previous_bin_area(bin_pos) + node.xe_max * (bb_bin_type.y_max - bb_bin_type.y_min) - instance().item_area();
         if (node.waste < waste)
             node.waste = waste;
     }
@@ -899,7 +908,7 @@ void BranchingScheme::insertion_trapezoid_set(
     } else if (extra_trapezoid_pos != -1) {
         ys = extra_trapezoids[extra_trapezoid_pos].trapezoid.y_top();
     } else {  // new bin.
-        ys = 0;
+        ys = bb_bin_type.y_min;
     }
     ys -= item_shape_trapezoid.y_bottom();
     LengthDbl ye = ys + trapezoid_set.y_max;
