@@ -686,9 +686,7 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
     for (Counter i = 0; i < (Counter)insertions_.size(); ++i) {
         cs[i] = std::make_shared<Node>(child_tmp(parent, insertions_[i]));
         //std::cout << cs[i]->id
-        //    << " rid " << cs[i]->trapezoid_set_id
-        //    << " x " << cs[i]->x
-        //    << " y " << cs[i]->y
+        //    << " insertion " << insertions_[i]
         //    << std::endl;
     }
     return cs;
@@ -935,6 +933,20 @@ void BranchingScheme::insertion_trapezoid_set(
     }
     //std::cout << "ys " << ys << " xs " << xs << std::endl;
 
+    if (uncovered_trapezoid_pos > 0) {
+        if (!striclty_lesser(
+                    xs + item_shape_trapezoid.x_min(),
+                    parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_max())) {
+            return;
+        }
+    } else if (extra_trapezoid_pos != -1) {
+        if (!striclty_lesser(
+                    xs + item_shape_trapezoid.x_min(),
+                    extra_trapezoids[extra_trapezoid_pos].trapezoid.x_max())) {
+            return;
+        }
+    }
+
     if (new_bin == 0) {
 
         // Loop through rectangles of the rectangle set.
@@ -1048,8 +1060,7 @@ void BranchingScheme::insertion_trapezoid_set(
     insertion.y = ys;
     insertion.new_bin = new_bin;
     insertions_.push_back(insertion);
-    //std::cout << "xs " << xs << std::endl;
-    //std::cout << "ok" << std::endl;
+    //std::cout << "y " << insertion.y << " x " << insertion.x << " -> ok" << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
