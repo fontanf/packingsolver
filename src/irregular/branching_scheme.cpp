@@ -367,7 +367,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         const Insertion& insertion) const
 {
     //std::cout << std::endl;
-    //std::cout << "child_tmp " << insertion << std::endl;
+    //std::cout << "child_tmp"
+    //    << " parent " << pparent->id
+    //    << " insertion " << insertion << std::endl;
     const Node& parent = *pparent;
     Node node;
 
@@ -826,7 +828,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             new_bin,
                             0,  // uncovered_trapezoid_pos
                             -1);  // extra_trapezoid_pos
-                                  //
+
                     // Extra rectangles.
                     for (ItemPos extra_trapezoid_pos = 0;
                             extra_trapezoid_pos < (ItemPos)bb_bin_type.defects.size();
@@ -844,10 +846,6 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             }
         }
     }
-
-    //std::cout << "insertions:" << std::endl;
-    //for (const Insertion& insertion: insertions_)
-    //    std::cout << insertion << std::endl;
 
     return insertions_;
 }
@@ -868,6 +866,7 @@ void BranchingScheme::insertion_trapezoid_set(
     //    << " utp " << uncovered_trapezoid_pos
     //    << " etp " << extra_trapezoid_pos
     //    << std::endl;
+
     BinTypeId bin_type_id = (new_bin == 0)?
         instance().bin_type_id(parent->number_of_bins - 1):
         instance().bin_type_id(parent->number_of_bins);
@@ -1245,7 +1244,7 @@ std::ostream& packingsolver::irregular::operator<<(
         const BranchingScheme::UncoveredTrapezoid& uncovered_trapezoid)
 {
     os << "item_type_id " << uncovered_trapezoid.item_type_id
-        << " defect_it " << uncovered_trapezoid.defect_id
+        << " defect_id " << uncovered_trapezoid.defect_id
         << " yb " << uncovered_trapezoid.trapezoid.y_bottom()
         << " yt " << uncovered_trapezoid.trapezoid.y_top()
         << " xbl " << uncovered_trapezoid.trapezoid.x_bottom_left()
