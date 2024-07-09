@@ -50,6 +50,12 @@ LengthDbl x(
         const Point& top,
         LengthDbl y)
 {
+    if (bottom.y == top.y) {
+        if (bottom.x != top.x) {
+            throw std::runtime_error("x");
+        }
+        return bottom.x;
+    }
     if (y == bottom.y)
         return bottom.x;
     if (y == top.y)
