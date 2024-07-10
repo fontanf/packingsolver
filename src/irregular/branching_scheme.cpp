@@ -956,9 +956,10 @@ void BranchingScheme::insertion_trapezoid_set(
         }
     }
 
+    // Handle intersections with skyline.
     if (new_bin == 0) {
 
-        // Loop through rectangles of the rectangle set.
+        // Loop through trapezoids of the trapezoid set.
         for (ItemShapePos item_shape_cur_pos = 0;
                 item_shape_cur_pos < (ItemShapePos)trapezoid_set.shapes.size();
                 ++item_shape_cur_pos) {
@@ -970,6 +971,7 @@ void BranchingScheme::insertion_trapezoid_set(
                 item_shape_trapezoid_cur.shift_right(xs);
                 item_shape_trapezoid_cur.shift_top(ys);
 
+                // Skyline.
                 for (const UncoveredTrapezoid& uncovered_trapezoid: parent->uncovered_trapezoids) {
                     LengthDbl l = item_shape_trapezoid_cur.compute_right_shift(uncovered_trapezoid.trapezoid);
                     if (l > 0.0) {
@@ -998,12 +1000,11 @@ void BranchingScheme::insertion_trapezoid_set(
         }
     }
 
-    // Extra rectangles.
-
+    // Handle intersections with extra trapezoids.
     for (;;) {
         bool stop = true;
 
-        // Loop through rectangles of the rectangle set.
+        // Loop through trapezoids of the trapezoid set.
         for (ItemShapePos item_shape_cur_pos = 0;
                 item_shape_cur_pos < (ItemShapePos)trapezoid_set.shapes.size();
                 ++item_shape_cur_pos) {
@@ -1016,7 +1017,7 @@ void BranchingScheme::insertion_trapezoid_set(
                 item_shape_trapezoid_cur.shift_right(xs);
                 item_shape_trapezoid_cur.shift_top(ys);
 
-                // Extra rectangles.
+                // Extra trapezoids.
                 for (const UncoveredTrapezoid& extra_trapezoid: extra_trapezoids) {
                     LengthDbl l = item_shape_trapezoid_cur.compute_right_shift_if_intersects(extra_trapezoid.trapezoid);
                     if (extra_trapezoid.defect_id != -1) {
