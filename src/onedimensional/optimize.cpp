@@ -335,14 +335,14 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
     if (instance.number_of_bins() <= 1) {
-        use_tree_search = 1;
-        use_sequential_single_knapsack = 0;
-        use_sequential_value_correction = 0;
-        use_dichotomic_search = 0;
-        use_column_generation = 0;
+        use_tree_search = true;
+        use_sequential_single_knapsack = false;
+        use_sequential_value_correction = false;
+        use_dichotomic_search = false;
+        use_column_generation = false;
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
-        use_dichotomic_search = 0;
+        use_dichotomic_search = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -366,8 +366,8 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
         if (instance.number_of_bin_types() > 1)
-            use_column_generation = 0;
-        use_dichotomic_search = 0;
+            use_column_generation = false;
+        use_dichotomic_search = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
