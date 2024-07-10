@@ -39,11 +39,25 @@ TEST(Irregular, BinCopies)
     EXPECT_EQ(solution.bin_copies(0), 2);
 }
 
-TEST(Irregular, Tests_rectangle_non_guillotine)
+struct TestParams
 {
+    fs::path instance_path;
+    fs::path certificate_path;
+};
+
+inline std::ostream& operator<<(std::ostream& os, const TestParams& test_params)
+{
+    os << test_params.instance_path;
+    return os;
+}
+
+class AlgorithmTest: public testing::TestWithParam<TestParams> { };
+
+TEST_P(AlgorithmTest, Algorithm)
+{
+    TestParams test_params = GetParam();
     InstanceBuilder instance_builder;
-    fs::path directory = fs::path("data") / "irregular" / "tests";
-    instance_builder.read((directory / "rectangles_non_guillotine.json").string());
+    instance_builder.read(test_params.instance_path.string());
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
@@ -51,66 +65,28 @@ TEST(Irregular, Tests_rectangle_non_guillotine)
     optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, (directory / "rectangles_non_guillotine_solution.json").string());
+    Solution solution(instance, test_params.certificate_path.string());
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
+    EXPECT_EQ(!(solution < output.solution_pool.best()), true);
 }
 
-TEST(Irregular, Tests_direction_y)
-{
-    InstanceBuilder instance_builder;
-    fs::path directory = fs::path("data") / "irregular" / "tests";
-    instance_builder.read((directory / "direction_y.json").string());
-    Instance instance = instance_builder.build();
-
-    OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
-    Output output = optimize(instance, optimize_parameters);
-
-    Solution solution(instance, (directory / "direction_y_solution.json").string());
-    EXPECT_EQ(!(output.solution_pool.best() < solution), true);
-}
-
-TEST(Irregular, Users_2024_06_25)
-{
-    InstanceBuilder instance_builder;
-    fs::path directory = fs::path("data") / "irregular" / "users";
-    instance_builder.read((directory / "2024-06-25.json").string());
-    Instance instance = instance_builder.build();
-
-    OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
-    Output output = optimize(instance, optimize_parameters);
-
-    Solution solution(instance, (directory / "2024-06-25_solution.json").string());
-    EXPECT_EQ(!(output.solution_pool.best() < solution), true);
-}
-
-TEST(Irregular, Tests_non_rectangular_bin)
-{
-    InstanceBuilder instance_builder;
-    fs::path directory = fs::path("data") / "irregular" / "tests";
-    instance_builder.read((directory / "non_rectangular_bin.json").string());
-    Instance instance = instance_builder.build();
-
-    OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
-    Output output = optimize(instance, optimize_parameters);
-
-    Solution solution(instance, (directory / "non_rectangular_bin_solution.json").string());
-    EXPECT_EQ(!(output.solution_pool.best() < solution), true);
-}
-
-TEST(Irregular, Tests_polygon_with_holes)
-{
-    InstanceBuilder instance_builder;
-    fs::path directory = fs::path("data") / "irregular" / "tests";
-    instance_builder.read((directory / "polygon_with_hole.json").string());
-    Instance instance = instance_builder.build();
-
-    OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
-    Output output = optimize(instance, optimize_parameters);
-
-    Solution solution(instance, (directory / "polygon_with_hole_solution.json").string());
-    EXPECT_EQ(!(output.solution_pool.best() < solution), true);
-}
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        AlgorithmTest,
+        testing::ValuesIn(std::vector<TestParams>{
+            {
+                fs::path("data") / "irregular" / "tests" / "rectangles_non_guillotine.json",
+                fs::path("data") / "irregular" / "tests" / "rectangles_non_guillotine_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "tests" / "direction_y.json",
+                fs::path("data") / "irregular" / "tests" / "direction_y_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "users" / "2024-06-25.json",
+                fs::path("data") / "irregular" / "users" / "2024-06-25_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "tests" / "non_rectangular_bin.json",
+                fs::path("data") / "irregular" / "tests" / "non_rectangular_bin_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "tests" / "polygon_with_hole.json",
+                fs::path("data") / "irregular" / "tests" / "polygon_with_hole_solution.json"
+            }}));
