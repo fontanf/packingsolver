@@ -25,6 +25,7 @@ item_ids = []
 with open(args.csvpath, newline='') as csvfile:
     csvreader = csv.DictReader(csvfile, delimiter=',')
     for row in csvreader:
+        parent = row["PARENT"]
         i = int(row["PLATE_ID"])
         t = int(row["TYPE"])
         depth = int(row["CUT"])
@@ -35,7 +36,7 @@ with open(args.csvpath, newline='') as csvfile:
         x2 = x1 + w
         y2 = y1 + h
 
-        if depth == 0:  # Bin.
+        if not parent:  # Bin.
             bins_x.append([])
             bins_y.append([])
             trims_x.append([])
