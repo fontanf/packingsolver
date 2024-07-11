@@ -1289,7 +1289,7 @@ std::ostream& packingsolver::irregular::operator<<(
     os << "trapezoid_set_id " << insertion.trapezoid_set_id
         << " item_shape_pos " << insertion.item_shape_pos
         << " item_shape_trapezoid_pos " << insertion.item_shape_trapezoid_pos
-        << " new_bin " << insertion.new_bin
+        << " new_bin " << (int)insertion.new_bin
         << " x " << insertion.x
         << " y " << insertion.y
         ;
