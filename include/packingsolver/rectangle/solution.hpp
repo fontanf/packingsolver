@@ -150,6 +150,9 @@ public:
     inline Length y_max() const { return y_max_; }
 
     /** Get the area of the solution. */
+    inline Profit leftover_value() const { return leftover_value_; }
+
+    /** Get the area of the solution. */
     inline Area area() const { return area_; }
 
     /** Get the area load. */
@@ -224,6 +227,9 @@ private:
 
     /** Total area of the solution. */
     Area area_ = 0;
+
+    /** Value of the leftover. */
+    Profit leftover_value_ = 0.0;
 
     /** Total area of the bins of the solution. */
     Area bin_area_ = 0;

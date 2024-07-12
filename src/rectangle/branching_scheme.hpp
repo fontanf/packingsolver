@@ -180,6 +180,9 @@ public:
         /** Waste. */
         Area waste = 0;
 
+        /** Leftover value. */
+        Profit leftover_value = 0;
+
         /** Area used in the guides. */
         Area guide_area = 0;
 

@@ -62,6 +62,7 @@ void Solution::add_item(
 
     SolutionBin& bin = bins_[bin_pos];
 
+    const BinType& bin_type = instance().bin_type(bin.bin_type_id);
     const ItemType& item_type = instance().item_type(item_type_id);
 
     if (rotate && item_type.oriented) {
@@ -78,7 +79,6 @@ void Solution::add_item(
     bin.items.push_back(item);
 
     Direction o = Direction::X;
-    const BinType& bin_type = instance().bin_type(bin.bin_type_id);
     Length xe = bl_corner.x + instance().x(item_type, rotate, o);
     Length ye = bl_corner.y + instance().y(item_type, rotate, o);
 
@@ -108,11 +108,8 @@ void Solution::add_item(
             x_max_ = xe;
         if (y_max_ < ye)
             y_max_ = ye;
-        Length xi = instance().bin_type(bin.bin_type_id).rect.x;
-        Length yi = instance().bin_type(bin.bin_type_id).rect.y;
-        area_ = (std::min)(
-                bin_area_ - (xi - x_max_) * yi,
-                bin_area_ - (yi - y_max_) * xi);
+        area_ = bin_area_ - bin_type.area() + (x_max_ * y_max_);
+        leftover_value_ = bin_area_ - area_;
     }
 }
 
@@ -182,7 +179,9 @@ bool Solution::operator<(const Solution& solution) const
             return false;
         if (!full())
             return true;
-        return solution.waste() < waste();
+        if (solution.number_of_bins() != number_of_bins())
+            return solution.number_of_bins() < number_of_bins();
+        return solution.leftover_value() > leftover_value();
     } case Objective::OpenDimensionX: {
         if (!solution.full())
             return false;

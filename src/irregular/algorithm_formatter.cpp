@@ -63,13 +63,13 @@ void AlgorithmFormatter::print_header()
     } case Objective::BinPackingWithLeftovers: {
         *os_
                 << std::setw(12) << "Time"
-                << std::setw(12) << "Waste"
-                << std::setw(12) << "Waste (%)"
+                << std::setw(12) << "# bins"
+                << std::setw(12) << "Leftover"
                 << std::setw(32) << "Comment"
                 << std::endl
                 << std::setw(12) << "----"
-                << std::setw(12) << "-----"
-                << std::setw(12) << "---------"
+                << std::setw(12) << "------"
+                << std::setw(12) << "--------"
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
@@ -140,16 +140,7 @@ void AlgorithmFormatter::print(
     std::streamsize precision = std::cout.precision();
 
     switch (instance_.objective()) {
-    case Objective::Default: {
-        *os_
-                << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
-                << std::setw(12) << output_.solution_pool.best().profit()
-                << std::setw(6) << output_.solution_pool.best().full()
-                << std::setw(12) << output_.solution_pool.best().waste()
-                << std::setw(32) << s
-                << std::endl;
-        break;
-    } case Objective::BinPacking: {
+    case Objective::BinPacking: {
         *os_
                 << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
                 << std::setw(8) << output_.solution_pool.best().number_of_bins()
@@ -160,8 +151,8 @@ void AlgorithmFormatter::print(
     } case Objective::BinPackingWithLeftovers: {
         *os_
                 << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
-                << std::setw(12) << output_.solution_pool.best().waste()
-                << std::setw(12) << std::fixed << std::setprecision(2) << 100 * output_.solution_pool.best().waste_percentage() << std::defaultfloat << std::setprecision(precision)
+                << std::setw(12) << output_.solution_pool.best().number_of_bins()
+                << std::setw(12) << output_.solution_pool.best().leftover_value()
                 << std::setw(32) << s
                 << std::endl;
         break;
