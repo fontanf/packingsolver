@@ -402,5 +402,20 @@ Instance InstanceBuilder::build()
         instance_.number_of_defects_ += bin_type.defects.size();
     }
 
+    if (instance_.objective() == Objective::OpenDimensionX
+            && instance_.number_of_bins() != 1) {
+        throw std::invalid_argument(
+                "irregular::InstanceBuilder::build."
+                " The instance has objective OpenDimensionX and contains " + std::to_string(instance_.number_of_bins()) + " bins;"
+                " an instance with objective OpenDimensionX must contain exactly one bin.");
+    }
+    if (instance_.objective() == Objective::OpenDimensionY
+            && instance_.number_of_bins() != 1) {
+        throw std::invalid_argument(
+                "irregular::InstanceBuilder::build."
+                " The instance has objective OpenDimensionY and contains " + std::to_string(instance_.number_of_bins()) + " bins;"
+                " an instance with objective OpenDimensionY must contain exactly one bin.");
+    }
+
     return std::move(instance_);
 }
