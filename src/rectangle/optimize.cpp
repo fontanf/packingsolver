@@ -57,7 +57,7 @@ void optimize_tree_search(
         growth_factors = {1.5};
 
     std::vector<BranchingScheme> branching_schemes;
-    std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameterss;
+    std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
     std::vector<rectangle::Output> outputs;
     for (double growth_factor: growth_factors) {
         for (GuideId guide_id: guides) {
@@ -78,7 +78,7 @@ void optimize_tree_search(
                     ibs_parameters.maximum_size_of_the_queue
                         = parameters.not_anytime_tree_search_queue_size;
                 }
-                ibs_parameterss.push_back(ibs_parameters);
+                ibs_parameters_list.push_back(ibs_parameters);
                 outputs.push_back(rectangle::Output(instance));
             }
         }
@@ -87,7 +87,7 @@ void optimize_tree_search(
     std::vector<std::thread> threads;
     for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
         if (parameters.optimization_mode == OptimizationMode::Anytime) {
-            ibs_parameterss[i].new_solution_callback
+            ibs_parameters_list[i].new_solution_callback
                 = [&algorithm_formatter, &branching_schemes, i](
                         const treesearchsolver::Output<BranchingScheme>& tss_output)
                 {
@@ -102,7 +102,7 @@ void optimize_tree_search(
                     algorithm_formatter.update_solution(solution, ss.str());
                 };
         } else {
-            ibs_parameterss[i].new_solution_callback
+            ibs_parameters_list[i].new_solution_callback
                 = [&outputs, &branching_schemes, i](
                         const treesearchsolver::Output<BranchingScheme>& tss_output)
                 {
@@ -117,11 +117,11 @@ void optimize_tree_search(
             threads.push_back(std::thread(
                         treesearchsolver::iterative_beam_search_2<BranchingScheme>,
                         std::ref(branching_schemes[i]),
-                        ibs_parameterss[i]));
+                        ibs_parameters_list[i]));
         } else {
             treesearchsolver::iterative_beam_search_2<BranchingScheme>(
                     branching_schemes[i],
-                    ibs_parameterss[i]);
+                    ibs_parameters_list[i]);
         }
     }
     for (Counter i = 0; i < (Counter)threads.size(); ++i)
