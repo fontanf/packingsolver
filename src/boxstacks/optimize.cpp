@@ -147,7 +147,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
             }
 
             std::vector<BranchingScheme> branching_schemes;
-            std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameterss;
+            std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
             for (GuideId guide_id: guides) {
                 for (Direction direction: directions) {
                     //std::cout << growth_factor << " " << guide_id << " " << direction << std::endl;
@@ -166,13 +166,13 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                             = parameters.not_anytime_tree_search_queue_size;
                     }
                     //ibs_parameters.info.set_verbosity_level(1);
-                    ibs_parameterss.push_back(ibs_parameters);
+                    ibs_parameters_list.push_back(ibs_parameters);
                 }
             }
 
             std::vector<std::thread> threads;
             for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
-                ibs_parameterss[i].new_solution_callback
+                ibs_parameters_list[i].new_solution_callback
                     = [&algorithm_formatter, &branching_schemes, i](
                             const treesearchsolver::Output<BranchingScheme>& tss_output)
                     {
@@ -190,11 +190,11 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     threads.push_back(std::thread(
                                 treesearchsolver::iterative_beam_search_2<BranchingScheme>,
                                 std::ref(branching_schemes[i]),
-                                ibs_parameterss[i]));
+                                ibs_parameters_list[i]));
                 } else {
                     treesearchsolver::iterative_beam_search_2<BranchingScheme>(
                             branching_schemes[i],
-                            ibs_parameterss[i]);
+                            ibs_parameters_list[i]);
                 }
             }
             for (Counter i = 0; i < (Counter)threads.size(); ++i)
