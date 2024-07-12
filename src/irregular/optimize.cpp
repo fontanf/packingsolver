@@ -76,6 +76,7 @@ void optimize_tree_search(
     }
 
     std::vector<std::thread> threads;
+    std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
         if (parameters.optimization_mode == OptimizationMode::Anytime) {
             ibs_parameterss[i].new_solution_callback
@@ -105,8 +106,10 @@ void optimize_tree_search(
                 };
         }
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
-                        treesearchsolver::iterative_beam_search_2<BranchingScheme>,
+                        wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>,
+                        std::ref(exception_ptr_list.front()),
                         std::ref(branching_schemes[i]),
                         ibs_parameterss[i]));
         } else {
@@ -117,6 +120,9 @@ void optimize_tree_search(
     }
     for (Counter i = 0; i < (Counter)threads.size(); ++i)
         threads[i].join();
+    for (const std::exception_ptr& exception_ptr: exception_ptr_list)
+        if (exception_ptr)
+            std::rethrow_exception(exception_ptr);
     if (parameters.optimization_mode != OptimizationMode::Anytime) {
         for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
             std::stringstream ss;
@@ -445,44 +451,63 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
 
     // Run selected algorithms.
     if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+        std::forward_list<std::exception_ptr> exception_ptr_list;
         std::vector<std::thread> threads;
         // Tree search.
-        if (use_tree_search)
+        if (use_tree_search) {
+            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
-                        optimize_tree_search,
+                        wrapper<decltype(&optimize_tree_search), optimize_tree_search>,
+                        std::ref(exception_ptr_list.front()),
                         std::ref(instance),
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
+        }
         // Sequential single knapsack.
-        if (use_sequential_single_knapsack)
+        if (use_sequential_single_knapsack) {
+            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
-                        optimize_sequential_single_knapsack,
+                        wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>,
+                        std::ref(exception_ptr_list.front()),
                         std::ref(instance),
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
+        }
         // Sequential value correction.
-        if (use_sequential_value_correction)
+        if (use_sequential_value_correction) {
+            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
-                        optimize_sequential_value_correction,
+                        wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>,
+                        std::ref(exception_ptr_list.front()),
                         std::ref(instance),
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
+        }
         // Dichotomic search.
-        if (use_dichotomic_search)
+        if (use_dichotomic_search) {
+            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
-                        optimize_dichotomic_search,
+                        wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>,
+                        std::ref(exception_ptr_list.front()),
                         std::ref(instance),
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
+        }
         // Column generation.
-        if (use_column_generation)
+        if (use_column_generation) {
+            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
-                        optimize_column_generation,
+                        wrapper<decltype(&optimize_column_generation), optimize_column_generation>,
+                        std::ref(exception_ptr_list.front()),
                         std::ref(instance),
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
+        }
         for (Counter i = 0; i < (Counter)threads.size(); ++i)
             threads[i].join();
+        for (std::exception_ptr exception_ptr: exception_ptr_list)
+            if (exception_ptr)
+                std::rethrow_exception(exception_ptr);
     } else {
         // Tree search.
         if (use_tree_search)
