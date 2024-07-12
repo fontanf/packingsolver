@@ -137,13 +137,7 @@ public:
     inline LengthDbl y_max() const { return y_max_; }
 
     /** Get the area of the solution. */
-    inline Area area() const { return area_; }
-
-    /** Get the waste of the solution. */
-    inline Area waste() const { return area_ - item_area_; }
-
-    /** Get the fraction of waste of the solution. */
-    inline double waste_percentage() const { return (double)waste() / area(); }
+    inline Profit leftover_value() const { return leftover_value_; }
 
     /** Get the waste of the solution including the residual. */
     inline Area full_waste() const { return bin_area() - item_area(); }
@@ -182,8 +176,8 @@ private:
     /** Number of items. */
     ItemPos number_of_items_ = 0;
 
-    /** Total area of the solution. */
-    Area area_ = 0;
+    /** Value of the leftover. */
+    Profit leftover_value_ = 0.0;
 
     /** Total area of the bins of the solution. */
     Area bin_area_ = 0;

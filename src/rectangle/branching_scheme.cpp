@@ -432,6 +432,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         throw std::runtime_error("waste");
     }
 
+    node.leftover_value = bin_type.area() - node.xe_max * node.uncovered_items[node.uncovered_items.size() - 2].ye;
+
     if (instance().unloading_constraint() == rectangle::UnloadingConstraint::IncreasingX
             || instance().unloading_constraint() == rectangle::UnloadingConstraint::IncreasingY) {
         if (node.groups[item_type.group_id].x_min > insertion.x)
@@ -981,7 +983,9 @@ bool BranchingScheme::better(
             return false;
         if (!leaf(node_2))
             return true;
-        return node_2->waste > node_1->waste;
+        if (node_2->number_of_bins != node_1->number_of_bins)
+            return node_2->number_of_bins > node_1->number_of_bins;
+        return node_2->leftover_value < node_1->leftover_value;
     } case Objective::OpenDimensionX: {
         if (!leaf(node_1))
             return false;
@@ -1042,7 +1046,13 @@ bool BranchingScheme::bound(
     } case Objective::BinPackingWithLeftovers: {
         if (!leaf(node_2))
             return false;
-        return node_1->waste >= node_2->waste;
+        if (node_1->number_of_bins > node_2->number_of_bins) {
+            return true;
+        } else if (node_1->number_of_bins < node_2->number_of_bins) {
+            return false;
+        } else {
+            return (node_1->leftover_value <= node_2->leftover_value);
+        }
     } case Objective::Knapsack: {
         if (leaf(node_2))
             return true;
