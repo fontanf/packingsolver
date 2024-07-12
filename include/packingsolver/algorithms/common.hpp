@@ -275,4 +275,23 @@ struct Parameters: optimizationtools::Parameters
     NewSolutionCallback<Instance, Solution> new_solution_callback = [](const Output<Instance, Solution>&) { };
 };
 
+template<class F, F f> struct wrapper_impl;
+template<class R, class... Args, R(*f)(Args...)>
+struct wrapper_impl<R(*)(Args...), f>
+{
+    static void wrap(
+            std::exception_ptr& exception_ptr,
+            Args... args)
+    {
+        try {
+            f(args...);
+        } catch (...) {
+            exception_ptr = std::current_exception();
+        }
+    }
+};
+
+template<class F, F f>
+constexpr auto wrapper = wrapper_impl<F, f>::wrap;
+
 }
