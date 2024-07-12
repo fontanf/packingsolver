@@ -56,6 +56,7 @@ void Solution::add_item(
 
     SolutionBin& bin = bins_[bin_pos];
 
+    const BinType& bin_type = instance().bin_type(bin.bin_type_id);
     const ItemType& item_type = instance().item_type(item_type_id);
 
     // Check angle.
@@ -79,11 +80,16 @@ void Solution::add_item(
 
     item_area_ += bin.copies * item_type.area;
     item_profit_ += bin.copies * item_type.profit;
-    auto points = item_type.compute_min_max(angle);
-    x_max_ = std::max(x_max_, bl_corner.x + points.second.x);
-    y_max_ = std::max(y_max_, bl_corner.y + points.second.y);
     number_of_items_ += bin.copies;
     item_copies_[item_type_id] += bin.copies;
+
+    if (bin_pos == (BinPos)bins_.size() - 1) {
+        auto points = item_type.compute_min_max(angle);
+        x_max_ = std::max(x_max_, bl_corner.x + points.second.x);
+        y_max_ = std::max(y_max_, bl_corner.y + points.second.y);
+        leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
+            - (x_max_ - bin_type.x_min) * (y_max_ - bin_type.y_min);
+    }
 }
 
 void Solution::append(
@@ -145,13 +151,7 @@ Solution::Solution(
 bool Solution::operator<(const Solution& solution) const
 {
     switch (instance().objective()) {
-    case Objective::Default: {
-        if (solution.profit() < profit())
-            return false;
-        if (solution.profit() > profit())
-            return true;
-        return solution.waste() < waste();
-    } case Objective::BinPacking: {
+    case Objective::BinPacking: {
         if (!solution.full())
             return false;
         if (!full())
@@ -162,7 +162,9 @@ bool Solution::operator<(const Solution& solution) const
             return false;
         if (!full())
             return true;
-        return solution.waste() < waste();
+        if (solution.number_of_bins() != number_of_bins())
+            return solution.number_of_bins() < number_of_bins();
+        return solution.leftover_value() > leftover_value();
     } case Objective::OpenDimensionX: {
         if (!solution.full())
             return false;
@@ -334,11 +336,8 @@ nlohmann::json Solution::to_json() const
         {"NumberOfBins", number_of_bins()},
         {"BinArea", bin_area()},
         {"BinCost", cost()},
-        {"Waste", waste()},
-        {"WastePercentage", waste_percentage()},
         {"FullWaste", full_waste()},
         {"FullWastePercentage", full_waste_percentage()},
-        //{"AreaLoad", area_load()},
         {"XMax", x_max()},
         {"YMax", y_max()},
     };
@@ -356,11 +355,8 @@ void Solution::format(
             << "Number of bins:   " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
             << "Bin area:         " << optimizationtools::Ratio<BinPos>(bin_area(), instance().bin_area()) << std::endl
             << "Bin cost:         " << cost() << std::endl
-            << "Waste:            " << waste() << std::endl
-            << "Waste (%):        " << 100 * waste_percentage() << std::endl
             << "Full waste:       " << full_waste() << std::endl
             << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl
-            //<< "Area load:        " << area_load() << std::endl
             << "X max:            " << x_max() << std::endl
             << "Y max:            " << y_max() << std::endl
             ;
