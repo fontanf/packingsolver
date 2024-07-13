@@ -27,10 +27,8 @@ void optimize_tree_search(
         guides = parameters.tree_search_guides;
     } else if (instance.objective() == Objective::Knapsack) {
         guides = {4, 5};
-    } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-        guides = {0, 1};
     } else {
-        guides = {0, 2};
+        guides = {0, 1};
     }
 
     std::vector<Direction> directions;
@@ -523,6 +521,70 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                     instance,
                     parameters,
                     algorithm_formatter);
+    }
+
+    if (instance.objective() == Objective::BinPackingWithLeftovers
+            && parameters.optimization_mode != OptimizationMode::Anytime
+            && parameters.tree_search_guides != std::vector<GuideId>({2, 3})) {
+        const Solution& solution_best = output.solution_pool.best();
+
+        InstanceBuilder last_bin_instance_builder;
+        last_bin_instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+        last_bin_instance_builder.set_parameters(instance.parameters());
+
+        // Add bin types.
+        const SolutionBin& last_bin = solution_best.bin(solution_best.number_of_bins() - 1);
+        last_bin_instance_builder.add_bin_type(instance.bin_type(last_bin.bin_type_id), 1);
+
+        // Add item types.
+        std::vector<ItemPos> last_bin_item_copies(instance.number_of_item_types(), 0);
+        for (const SolutionItem& solution_item: last_bin.items)
+            last_bin_item_copies[solution_item.item_type_id]++;
+
+        std::vector<ItemTypeId> last_bin_to_orig;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance.item_type(item_type_id);
+            if (last_bin_item_copies[item_type_id] > 0) {
+                last_bin_instance_builder.add_item_type(
+                        item_type,
+                        item_type.profit,
+                        last_bin_item_copies[item_type_id]);
+                last_bin_to_orig.push_back(item_type_id);
+            }
+        }
+
+        // Build instance.
+        Instance last_bin_instance = last_bin_instance_builder.build();
+
+        // Solve instance.
+        OptimizeParameters last_bin_parameters = parameters;
+        last_bin_parameters.verbosity_level = 0;
+        last_bin_parameters.tree_search_guides = {2, 3};
+        auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
+
+        // Retrieve solution.
+        Solution solution(instance);
+        // Add first bins from current best solution.
+        for (BinPos bin_pos = 0;
+                bin_pos < solution_best.number_of_different_bins() - 2;
+                ++bin_pos) {
+            const SolutionBin& solution_bin = solution_best.bin(bin_pos);
+            solution.append(solution_best, bin_pos, solution_bin.copies);
+        }
+        // Add last optimized bin.
+        solution.append(
+                last_bin_output.solution_pool.best(),
+                0,
+                1,
+                {last_bin.bin_type_id},
+                last_bin_to_orig);
+
+        // Update best solution.
+        std::stringstream ss;
+        ss << "post-process";
+        algorithm_formatter.update_solution(solution, ss.str());
     }
 
     algorithm_formatter.end();
