@@ -5,7 +5,7 @@ include(FetchContent)
 FetchContent_Declare(
     optimizationtools
     GIT_REPOSITORY https://github.com/fontanf/optimizationtools.git
-    GIT_TAG a00cdd490eda141b869a6dad6f661e55d33fab38
+    GIT_TAG a0973a7dfa64b9d305f75879c80d252e714ce2cf
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../optimizationtools/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(optimizationtools)
