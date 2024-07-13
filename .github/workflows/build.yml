@@ -37,6 +37,7 @@ jobs:
       run: python3 -u scripts/run_tests.py test_results
     - name: Checkout main branch
       run: |
+        cp ./build/_deps/optimizationtools-src/scripts/process_tests.py ./process_tests.py
         git remote set-branches origin '*'
         git fetch --depth 1
         git checkout master
@@ -48,4 +49,4 @@ jobs:
     - name: Run tests
       run: python3 -u scripts/run_tests.py test_results_ref
     - name: Process tests
-      run: python3 -u ./build/_deps/optimizationtools-src/scripts/process_tests.py --ref test_results_ref --new test_results
+      run: python3 -u ./process_tests.py --ref test_results_ref --new test_results

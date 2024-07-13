@@ -340,6 +340,7 @@ nlohmann::json Solution::to_json() const
         {"FullWastePercentage", full_waste_percentage()},
         {"XMax", x_max()},
         {"YMax", y_max()},
+        {"LeftoverValue", leftover_value()},
     };
 }
 
@@ -359,6 +360,7 @@ void Solution::format(
             << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl
             << "X max:            " << x_max() << std::endl
             << "Y max:            " << y_max() << std::endl
+            << "Leftover value:   " << leftover_value() << std::endl
             ;
     }
 }

@@ -584,22 +584,28 @@ inline bool BranchingScheme::operator()(
             return guide_1 < guide_2;
         break;
     } case 2: {
-        if (node_1->guide_area == 0)
-            return node_2->guide_area != 0;
-        if (node_2->guide_area == 0)
-            return false;
         if (node_1->number_of_items == 0)
             return node_2->number_of_items != 0;
         if (node_2->number_of_items == 0)
             return true;
-        double guide_1 = (double)node_1->guide_area
-            / node_1->guide_item_area
-            / mean_item_area(*node_1)
-            * (0.1 + waste_percentage(*node_1));
-        double guide_2 = (double)node_2->guide_area
-            / node_2->guide_item_area
-            / mean_item_area(*node_2)
-            * (0.1 + waste_percentage(*node_2));
+        double ye_max_1 = node_1->uncovered_items[node_1->uncovered_items.size() - 2].ye;
+        double ye_max_2 = node_2->uncovered_items[node_2->uncovered_items.size() - 2].ye;
+        double guide_1 = (double)(node_1->xe_max * ye_max_1) / node_1->item_area;
+        double guide_2 = (double)(node_2->xe_max * ye_max_2) / node_2->item_area;
+        if (guide_1 != guide_2)
+            return guide_1 < guide_2;
+        break;
+    } case 3: {
+        if (node_1->number_of_items == 0)
+            return node_2->number_of_items != 0;
+        if (node_2->number_of_items == 0)
+            return true;
+        double ye_max_1 = node_1->uncovered_items[node_1->uncovered_items.size() - 2].ye;
+        double ye_max_2 = node_2->uncovered_items[node_2->uncovered_items.size() - 2].ye;
+        double guide_1 = (double)(node_1->xe_max * ye_max_1) / node_1->item_area
+            / mean_item_area(*node_1);
+        double guide_2 = (double)(node_2->xe_max * ye_max_2) / node_2->item_area
+            / mean_item_area(*node_2);
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;

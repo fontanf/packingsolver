@@ -624,7 +624,6 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         insertion.x;
     node.current_area = instance_.previous_bin_area(bin_pos);
     node.guide_area = instance_.previous_bin_area(bin_pos) + node.xs_max * (bb_bin_type.y_max - bb_bin_type.y_min);
-    LengthDbl ye_max = 0.0;
     for (auto it = node.uncovered_trapezoids.rbegin(); it != node.uncovered_trapezoids.rend(); ++it) {
         const GeneralizedTrapezoid& trapezoid = it->trapezoid;
         //std::cout << trapezoid << std::endl;
@@ -634,8 +633,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         if (node.xe_max < trapezoid.x_max())
             node.xe_max = trapezoid.x_max();
         if (trapezoid.x_max() != bb_bin_type.x_min
-                && ye_max < trapezoid.y_top())
-            ye_max = trapezoid.y_top();
+                && node.ye_max < trapezoid.y_top())
+            node.ye_max = trapezoid.y_top();
         if (trapezoid.x_max() > node.xs_max)
             node.guide_area += trapezoid.area(node.xs_max);
     }
@@ -648,8 +647,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         if (extra_trapezoid.item_type_id != -1) {
             if (node.xe_max < trapezoid.x_max())
                 node.xe_max = trapezoid.x_max();
-            if (ye_max < trapezoid.y_top())
-                ye_max = trapezoid.y_top();
+            if (node.ye_max < trapezoid.y_top())
+                node.ye_max = trapezoid.y_top();
         }
         if (trapezoid.x_max() > node.xs_max)
             node.guide_area += trapezoid.area(node.xs_max);
@@ -695,7 +694,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.waste = 0.0;
 
     node.leftover_value = (bb_bin_type.x_max - bb_bin_type.x_min) * (bb_bin_type.y_max - bb_bin_type.y_min)
-        - (node.xe_max - bb_bin_type.x_min) * (ye_max - bb_bin_type.y_min);
+        - (node.xe_max - bb_bin_type.x_min) * (node.ye_max - bb_bin_type.y_min);
 
     node.id = node_id_++;
     return node;
@@ -1251,6 +1250,27 @@ Solution BranchingScheme::to_solution(
                 trapezoid_set.item_type_id,
                 bl_corner,
                 trapezoid_set.angle);
+    }
+
+    if (node->last_bin_direction == Direction::X) {
+        if (!equal(node->xe_max, solution.x_max())) {
+            throw std::runtime_error(
+                    "irregular::BranchingScheme::to_solution.");
+        }
+        if (!equal(node->ye_max, solution.y_max())) {
+            throw std::runtime_error(
+                    "irregular::BranchingScheme::to_solution.");
+        }
+    }
+    if (node->last_bin_direction == Direction::Y) {
+        if (!equal(node->ye_max, solution.x_max())) {
+            throw std::runtime_error(
+                    "irregular::BranchingScheme::to_solution.");
+        }
+        if (!equal(node->xe_max, solution.y_max())) {
+            throw std::runtime_error(
+                    "irregular::BranchingScheme::to_solution.");
+        }
     }
     return solution;
 }

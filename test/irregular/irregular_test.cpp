@@ -62,7 +62,6 @@ TEST_P(AlgorithmTest, Algorithm)
 
     OptimizeParameters optimize_parameters;
     optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
-    optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 
     Solution solution(instance, test_params.certificate_path.string());
@@ -89,4 +88,7 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 fs::path("data") / "irregular" / "tests" / "polygon_with_hole.json",
                 fs::path("data") / "irregular" / "tests" / "polygon_with_hole_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "users" / "2024-07-01.json",
+                fs::path("data") / "irregular" / "users" / "2024-07-01_solution.json"
             }}));

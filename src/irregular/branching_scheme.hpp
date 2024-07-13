@@ -187,6 +187,9 @@ public:
         /** Maximum xe of all items in the last bin. */
         LengthDbl xe_max = 0;
 
+        /** Maximum ye of all items in the last bin. */
+        LengthDbl ye_max = 0;
+
         /** Maximum xs of all items in the last bin. */
         LengthDbl xs_max = 0;
 
@@ -489,22 +492,24 @@ inline bool BranchingScheme::operator()(
             return guide_1 < guide_2;
         break;
     } case 2: {
-        if (node_1->guide_area == 0)
-            return node_2->guide_area != 0;
-        if (node_2->guide_area == 0)
-            return false;
         if (node_1->number_of_items == 0)
             return node_2->number_of_items != 0;
         if (node_2->number_of_items == 0)
             return true;
-        double guide_1 = (double)node_1->guide_area
-            / node_1->item_area
-            / mean_item_area(*node_1)
-            * (0.1 + waste_percentage(*node_1));
-        double guide_2 = (double)node_2->guide_area
-            / node_2->item_area
-            / mean_item_area(*node_2)
-            * (0.1 + waste_percentage(*node_2));
+        double guide_1 = (double)(node_1->xe_max * node_1->ye_max) / node_1->item_area;
+        double guide_2 = (double)(node_2->xe_max * node_2->ye_max) / node_2->item_area;
+        if (guide_1 != guide_2)
+            return guide_1 < guide_2;
+        break;
+    } case 3: {
+        if (node_1->number_of_items == 0)
+            return node_2->number_of_items != 0;
+        if (node_2->number_of_items == 0)
+            return true;
+        double guide_1 = (double)(node_1->xe_max * node_1->ye_max) / node_1->item_area
+            / mean_item_area(*node_1);
+        double guide_2 = (double)(node_2->xe_max * node_2->ye_max) / node_2->item_area
+            / mean_item_area(*node_2);
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
@@ -535,10 +540,6 @@ inline bool BranchingScheme::operator()(
             / mean_item_area(*node_2);
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
-        break;
-    } case 6: {
-        if (node_1->waste != node_2->waste)
-            return node_1->waste < node_2->waste;
         break;
     }
     }

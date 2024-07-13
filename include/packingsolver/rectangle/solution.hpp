@@ -85,6 +85,11 @@ public:
             const std::vector<BinTypeId>& bin_type_ids,
             const std::vector<ItemTypeId>& item_type_ids);
 
+    /** Read a solution from a file. */
+    Solution(
+            const Instance& instance,
+            const std::string& certificate_path);
+
     /*
      * Getters
      */
