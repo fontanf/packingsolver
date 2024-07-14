@@ -115,7 +115,8 @@ ItemTypeId InstanceBuilder::add_item_type(
 {
     ItemType item_type;
     item_type.shapes = shapes;
-    item_type.allowed_rotations = allowed_rotations;
+    item_type.allowed_rotations = (!allowed_rotations.empty())?
+        allowed_rotations: std::vector<std::pair<Angle, Angle>>{{0, 0}};
     item_type.area = 0;
     for (const auto& item_shape: item_type.shapes) {
         item_type.area += item_shape.shape.compute_area();
@@ -333,7 +334,17 @@ void InstanceBuilder::read(
         if (json_item.contains("copies"))
             copies = json_item["copies"];
 
-        std::vector<std::pair<Angle, Angle>> allowed_rotations = {{0, 0}};
+        // Read allowed rotations.
+        std::vector<std::pair<Angle, Angle>> allowed_rotations;
+        if (json_item.contains("allowed_rotations")) {
+            for (auto it = json_item["allowed_rotations"].begin();
+                    it != json_item["allowed_rotations"].end();
+                    ++it) {
+                auto json_angles = *it;
+                allowed_rotations.push_back({json_angles["start"], json_angles["end"]});
+            }
+        }
+
         add_item_type(
                 item_shapes,
                 profit,
