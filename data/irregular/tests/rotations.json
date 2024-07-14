@@ -1,0 +1,28 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 400,
+            "height": 300
+        }
+    ],
+    "item_types": [
+        { 
+            "copies": 2,
+            "type": "polygon",
+            "vertices": [
+                {"x": 0, "y": 0},
+                {"x": 400, "y": 0},
+                {"x": 400, "y": 200},
+                {"x": 200, "y": 200},
+                {"x": 200, "y": 100},
+                {"x": 0, "y": 100}
+            ],
+            "allowed_rotations": [
+                {"start": 0, "end": 0},
+                {"start": 3.14159265359, "end": 3.14159265359}
+            ]
+        }
+    ]
+}
