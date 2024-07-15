@@ -541,10 +541,12 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
                     algorithm_formatter);
     }
 
+    const Solution& solution_best = output.solution_pool.best();
     if (instance.objective() == Objective::BinPackingWithLeftovers
             && parameters.optimization_mode != OptimizationMode::Anytime
-            && parameters.tree_search_guides != std::vector<GuideId>({2, 3})) {
-        const Solution& solution_best = output.solution_pool.best();
+            && parameters.tree_search_guides != std::vector<GuideId>({2, 3})
+            && solution_best.number_of_bins() > 0
+            && solution_best.bin(solution_best.number_of_different_bins() - 1).copies == 1) {
 
         InstanceBuilder last_bin_instance_builder;
         last_bin_instance_builder.set_objective(Objective::BinPackingWithLeftovers);
