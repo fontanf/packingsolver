@@ -409,6 +409,17 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     LengthDbl ye = insertion.y + shape_trapezoid.y_top();
     //std::cout << "ys " << ys << " ye " << ye << std::endl;
 
+    // Reserve for uncovered_trapezoids and extra_trapezoids.
+    node.uncovered_trapezoids.reserve(parent.uncovered_trapezoids.size() + 3);
+    ItemPos p = -1;
+    for (ItemShapePos item_shape_pos = 0;
+            item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
+            ++item_shape_pos) {
+        const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
+        p += item_shape_trapezoids.size();
+    }
+    node.extra_trapezoids.reserve(parent.extra_trapezoids.size() + p);
+
     // Update uncovered_trapezoids.
     ItemPos new_uncovered_trapezoid_pos = -1;
     if (insertion.new_bin > 0) {  // New bin.
