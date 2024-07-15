@@ -1255,21 +1255,33 @@ Solution BranchingScheme::to_solution(
     if (node->last_bin_direction == Direction::X) {
         if (!equal(node->xe_max, solution.x_max())) {
             throw std::runtime_error(
-                    "irregular::BranchingScheme::to_solution.");
+                    "irregular::BranchingScheme::to_solution."
+                    " node->xe_max: " + std::to_string(node->xe_max)
+                    + "; solution.x_max(): " + std::to_string(solution.x_max())
+                    + ".");
         }
         if (!equal(node->ye_max, solution.y_max())) {
             throw std::runtime_error(
-                    "irregular::BranchingScheme::to_solution.");
+                    "irregular::BranchingScheme::to_solution."
+                    " node->ye_max: " + std::to_string(node->ye_max)
+                    + "; solution.y_max(): " + std::to_string(solution.y_max())
+                    + ".");
         }
     }
     if (node->last_bin_direction == Direction::Y) {
         if (!equal(node->ye_max, solution.x_max())) {
             throw std::runtime_error(
-                    "irregular::BranchingScheme::to_solution.");
+                    "irregular::BranchingScheme::to_solution."
+                    " node->ye_max: " + std::to_string(node->ye_max)
+                    + "; solution.x_max(): " + std::to_string(solution.x_max())
+                    + ".");
         }
         if (!equal(node->xe_max, solution.y_max())) {
             throw std::runtime_error(
-                    "irregular::BranchingScheme::to_solution.");
+                    "irregular::BranchingScheme::to_solution."
+                    " node->xe_max: " + std::to_string(node->xe_max)
+                    + "; solution.y_max(): " + std::to_string(solution.y_max())
+                    + ".");
         }
     }
     return solution;
