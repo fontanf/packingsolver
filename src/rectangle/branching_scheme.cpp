@@ -331,6 +331,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.xs_max = (insertion.new_bin == 0)?
         std::max(parent.xs_max, insertion.x):
         insertion.x;
+    node.ye_max = (insertion.new_bin == 0)? parent.ye_max: 0;
     node.current_area = instance_.previous_bin_area(bin_pos);
     node.guide_area = instance_.previous_bin_area(bin_pos) + node.xs_max * yi;
     Length x = 0;
@@ -340,6 +341,10 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.current_area += x * (uncovered_item.ye - uncovered_item.ys);
         if (node.xe_max < x)
             node.xe_max = x;
+        if (uncovered_item.xe > 0) {
+            if (node.ye_max < uncovered_item.ye)
+                node.ye_max = uncovered_item.ye;
+        }
         if (x > node.xs_max)
             node.guide_area += (x - node.xs_max) * (uncovered_item.ye - uncovered_item.ys);
     }
@@ -432,7 +437,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         throw std::runtime_error("waste");
     }
 
-    node.leftover_value = bin_type.area() - node.xe_max * node.uncovered_items[node.uncovered_items.size() - 2].ye;
+    node.leftover_value = bin_type.area() - node.xe_max * node.ye_max;
 
     if (instance().unloading_constraint() == rectangle::UnloadingConstraint::IncreasingX
             || instance().unloading_constraint() == rectangle::UnloadingConstraint::IncreasingY) {
