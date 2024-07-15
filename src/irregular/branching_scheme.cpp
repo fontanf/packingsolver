@@ -942,26 +942,26 @@ void BranchingScheme::insertion_trapezoid_set(
     if (uncovered_trapezoid_pos > 0) {
         xs = (std::max)(
                 xs,
-                parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_min()
-                - item_shape_trapezoid.x_max());
+                parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_top_left()
+                - item_shape_trapezoid.x_bottom_right());
     } else if (extra_trapezoid_pos != -1) {
         xs = (std::max)(
                 xs,
-                extra_trapezoids[extra_trapezoid_pos].trapezoid.x_min()
-                - item_shape_trapezoid.x_max());
+                extra_trapezoids[extra_trapezoid_pos].trapezoid.x_top_left()
+                - item_shape_trapezoid.x_bottom_right());
     }
     //std::cout << "ys " << ys << " xs " << xs << std::endl;
 
     if (uncovered_trapezoid_pos > 0) {
         if (!striclty_lesser(
-                    xs + item_shape_trapezoid.x_min(),
-                    parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_max())) {
+                    xs + item_shape_trapezoid.x_bottom_left(),
+                    parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_top_right())) {
             return;
         }
     } else if (extra_trapezoid_pos != -1) {
         if (!striclty_lesser(
-                    xs + item_shape_trapezoid.x_min(),
-                    extra_trapezoids[extra_trapezoid_pos].trapezoid.x_max())) {
+                    xs + item_shape_trapezoid.x_bottom_left(),
+                    extra_trapezoids[extra_trapezoid_pos].trapezoid.x_top_right())) {
             return;
         }
     }
@@ -992,14 +992,14 @@ void BranchingScheme::insertion_trapezoid_set(
 
                         if (uncovered_trapezoid_pos > 0) {
                             if (!striclty_lesser(
-                                        xs + item_shape_trapezoid.x_min(),
-                                        parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_max())) {
+                                        xs + item_shape_trapezoid.x_bottom_left(),
+                                        parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_top_right())) {
                                 return;
                             }
                         } else if (extra_trapezoid_pos != -1) {
                             if (!striclty_lesser(
-                                        xs + item_shape_trapezoid.x_min(),
-                                        extra_trapezoids[extra_trapezoid_pos].trapezoid.x_max())) {
+                                        xs + item_shape_trapezoid.x_bottom_left(),
+                                        extra_trapezoids[extra_trapezoid_pos].trapezoid.x_top_right())) {
                                 return;
                             }
                         }
@@ -1046,14 +1046,14 @@ void BranchingScheme::insertion_trapezoid_set(
 
                         if (uncovered_trapezoid_pos > 0) {
                             if (!striclty_lesser(
-                                        xs + item_shape_trapezoid.x_min(),
-                                        parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_max())) {
+                                        xs + item_shape_trapezoid.x_bottom_left(),
+                                        parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_top_right())) {
                                 return;
                             }
                         } else if (extra_trapezoid_pos != -1) {
                             if (!striclty_lesser(
-                                        xs + item_shape_trapezoid.x_min(),
-                                        extra_trapezoids[extra_trapezoid_pos].trapezoid.x_max())) {
+                                        xs + item_shape_trapezoid.x_bottom_left(),
+                                        extra_trapezoids[extra_trapezoid_pos].trapezoid.x_top_right())) {
                                 return;
                             }
                         }
