@@ -124,6 +124,10 @@ public:
         /** y-coordinate of the point of interest. */
         LengthDbl y = 0.0;
 
+        LengthDbl ys = 0.0;
+
+        LengthDbl ye = 0.0;
+
         bool operator==(const Insertion& insertion) const;
         bool operator!=(const Insertion& insertion) const { return !(*this == insertion); }
     };
@@ -150,6 +154,10 @@ public:
 
         /** y-coordinates of the bottom-left corner of the last inserted item. */
         LengthDbl y = 0.0;
+
+        LengthDbl ys = 0.0;
+
+        LengthDbl ye = 0.0;
 
         /** Last bin direction. */
         Direction last_bin_direction = Direction::X;
@@ -198,6 +206,9 @@ public:
 
         /** Width or height. */
         LengthDbl length = 0;
+
+        /** Insertions. */
+        mutable std::vector<Insertion> children_insertions;
     };
 
     struct Parameters
@@ -224,7 +235,7 @@ public:
      * Branching scheme methods
      */
 
-    const std::vector<Insertion>& insertions(
+    void insertions(
             const std::shared_ptr<Node>& parent) const;
 
     Node child_tmp(
@@ -399,8 +410,6 @@ private:
     std::vector<TrapezoidSet> trapezoid_sets_y_;
 
     mutable Counter node_id_ = 0;
-
-    mutable std::vector<Insertion> insertions_;
 
     /*
      * Private methods

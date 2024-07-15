@@ -378,6 +378,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.trapezoid_set_id = insertion.trapezoid_set_id;
     node.x = insertion.x;
     node.y = insertion.y;
+    node.ys = insertion.ys;
+    node.ye = insertion.ye;
 
     // Update number_of_bins and last_bin_direction.
     if (insertion.new_bin > 0) {  // New bin.
@@ -408,6 +410,17 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     LengthDbl ys = insertion.y + shape_trapezoid.y_bottom();
     LengthDbl ye = insertion.y + shape_trapezoid.y_top();
     //std::cout << "ys " << ys << " ye " << ye << std::endl;
+
+    // Reserve for uncovered_trapezoids and extra_trapezoids.
+    node.uncovered_trapezoids.reserve(parent.uncovered_trapezoids.size() + 3);
+    ItemPos p = -1;
+    for (ItemShapePos item_shape_pos = 0;
+            item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
+            ++item_shape_pos) {
+        const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
+        p += item_shape_trapezoids.size();
+    }
+    node.extra_trapezoids.reserve(parent.extra_trapezoids.size() + p);
 
     // Update uncovered_trapezoids.
     ItemPos new_uncovered_trapezoid_pos = -1;
@@ -704,30 +717,47 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
         const std::shared_ptr<Node>& parent) const
 {
     insertions(parent);
-    std::vector<std::shared_ptr<Node>> cs(insertions_.size());
-    for (Counter i = 0; i < (Counter)insertions_.size(); ++i) {
-        cs[i] = std::make_shared<Node>(child_tmp(parent, insertions_[i]));
+    std::vector<std::shared_ptr<Node>> cs(parent->children_insertions.size());
+    for (Counter i = 0; i < (Counter)parent->children_insertions.size(); ++i) {
+        cs[i] = std::make_shared<Node>(child_tmp(parent, parent->children_insertions[i]));
         //std::cout << cs[i]->id
-        //    << " insertion " << insertions_[i]
+        //    << " insertion " << parent->children_insertions[i]
         //    << std::endl;
     }
     return cs;
 }
 
-const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
+void BranchingScheme::insertions(
         const std::shared_ptr<Node>& parent) const
 {
-    insertions_.clear();
     //std::cout << std::endl;
     //std::cout << "insertions"
     //    << " id " << parent->id
     //    << " ts " << parent->trapezoid_set_id
     //    << " x " << parent->x
     //    << " y " << parent->y
+    //    << " ys " << parent->ys
+    //    << " ye " << parent->ye
     //    << " n " << parent->number_of_items
     //    << " item_area " << parent->item_area
     //    << " guide_area " << parent->guide_area
     //    << std::endl;
+
+    // Add all previous insertions which are still valid.
+    if (parent->parent != nullptr) {
+        for (const Insertion& insertion: parent->parent->children_insertions) {
+            if (!striclty_lesser(insertion.ys, parent->ye)
+                    || !striclty_greater(insertion.ye, parent->ys)) {
+                ItemTypeId item_type_id = trapezoid_sets_x_[insertion.trapezoid_set_id].item_type_id;
+                const ItemType& item_type = instance().item_type(item_type_id);
+                if (parent->item_number_of_copies[item_type_id] == item_type.copies)
+                    continue;
+                //std::cout << "copy " << insertion << std::endl;
+                parent->children_insertions.push_back(insertion);
+                parent->children_insertions.back().new_bin = 0;
+            }
+        }
+    }
 
     // Check number of items for each rectangle set.
     std::vector<TrapezoidSetId> valid_trapezoid_set_ids;
@@ -795,7 +825,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
     }
 
     // Insert in a new bin.
-    if (insertions_.empty() && parent->number_of_bins < instance().number_of_bins()) {
+    if (parent->children_insertions.empty() && parent->number_of_bins < instance().number_of_bins()) {
         BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins);
         const BinType& bin_type = instance().bin_type(bin_type_id);
 
@@ -856,8 +886,6 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             }
         }
     }
-
-    return insertions_;
 }
 
 void BranchingScheme::insertion_trapezoid_set(
@@ -921,14 +949,22 @@ void BranchingScheme::insertion_trapezoid_set(
         ys = bb_bin_type.y_min;
     }
     ys -= item_shape_trapezoid.y_bottom();
-    LengthDbl ye = ys + trapezoid_set.y_max;
+
+    if (parent->parent != nullptr) {
+        if (striclty_greater(ys + trapezoid_set.y_min, parent->ye)
+                || !striclty_greater(ys + trapezoid_set.y_max, parent->ys)) {
+            //std::cout << "skip ys " << ys << std::endl;
+            return;
+        }
+    }
+
     // Check bin top.
-    if (striclty_greater(ye, bb_bin_type.y_max)) {
+    if (striclty_greater(ys + trapezoid_set.y_max, bb_bin_type.y_max)) {
         //std::cout << "too high " << ye << " / " << yi << std::endl;
         return;
     }
     // Check bin bottom.
-    if (striclty_lesser(ys, bb_bin_type.y_min - trapezoid_set.y_min)) {
+    if (striclty_lesser(ys + trapezoid_set.y_min, bb_bin_type.y_min)) {
         //std::cout << "too low"
         //    << " utp " << uncovered_trapezoid_pos
         //    << " rsiy " << trapezoid_set_item.bottom_left.y
@@ -942,26 +978,29 @@ void BranchingScheme::insertion_trapezoid_set(
     if (uncovered_trapezoid_pos > 0) {
         xs = (std::max)(
                 xs,
-                parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_min()
-                - item_shape_trapezoid.x_max());
+                parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_top_left()
+                - item_shape_trapezoid.x_bottom_right());
     } else if (extra_trapezoid_pos != -1) {
         xs = (std::max)(
                 xs,
-                extra_trapezoids[extra_trapezoid_pos].trapezoid.x_min()
-                - item_shape_trapezoid.x_max());
+                extra_trapezoids[extra_trapezoid_pos].trapezoid.x_top_left()
+                - item_shape_trapezoid.x_bottom_right());
     }
-    //std::cout << "ys " << ys << " xs " << xs << std::endl;
+    //std::cout << "ys " << ys << " xs " << xs
+    //    << " ys " << ys + trapezoid_set.y_min
+    //    << " ye " << ys + trapezoid_set.y_max
+    //    << std::endl;
 
     if (uncovered_trapezoid_pos > 0) {
         if (!striclty_lesser(
-                    xs + item_shape_trapezoid.x_min(),
-                    parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_max())) {
+                    xs + item_shape_trapezoid.x_bottom_left(),
+                    parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_top_right())) {
             return;
         }
     } else if (extra_trapezoid_pos != -1) {
         if (!striclty_lesser(
-                    xs + item_shape_trapezoid.x_min(),
-                    extra_trapezoids[extra_trapezoid_pos].trapezoid.x_max())) {
+                    xs + item_shape_trapezoid.x_bottom_left(),
+                    extra_trapezoids[extra_trapezoid_pos].trapezoid.x_top_right())) {
             return;
         }
     }
@@ -992,14 +1031,14 @@ void BranchingScheme::insertion_trapezoid_set(
 
                         if (uncovered_trapezoid_pos > 0) {
                             if (!striclty_lesser(
-                                        xs + item_shape_trapezoid.x_min(),
-                                        parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_max())) {
+                                        xs + item_shape_trapezoid.x_bottom_left(),
+                                        parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_top_right())) {
                                 return;
                             }
                         } else if (extra_trapezoid_pos != -1) {
                             if (!striclty_lesser(
-                                        xs + item_shape_trapezoid.x_min(),
-                                        extra_trapezoids[extra_trapezoid_pos].trapezoid.x_max())) {
+                                        xs + item_shape_trapezoid.x_bottom_left(),
+                                        extra_trapezoids[extra_trapezoid_pos].trapezoid.x_top_right())) {
                                 return;
                             }
                         }
@@ -1046,14 +1085,14 @@ void BranchingScheme::insertion_trapezoid_set(
 
                         if (uncovered_trapezoid_pos > 0) {
                             if (!striclty_lesser(
-                                        xs + item_shape_trapezoid.x_min(),
-                                        parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_max())) {
+                                        xs + item_shape_trapezoid.x_bottom_left(),
+                                        parent->uncovered_trapezoids[uncovered_trapezoid_pos - 1].trapezoid.x_top_right())) {
                                 return;
                             }
                         } else if (extra_trapezoid_pos != -1) {
                             if (!striclty_lesser(
-                                        xs + item_shape_trapezoid.x_min(),
-                                        extra_trapezoids[extra_trapezoid_pos].trapezoid.x_max())) {
+                                        xs + item_shape_trapezoid.x_bottom_left(),
+                                        extra_trapezoids[extra_trapezoid_pos].trapezoid.x_top_right())) {
                                 return;
                             }
                         }
@@ -1078,8 +1117,10 @@ void BranchingScheme::insertion_trapezoid_set(
     insertion.item_shape_trapezoid_pos = item_shape_trapezoid_pos;
     insertion.x = xs;
     insertion.y = ys;
+    insertion.ys = ys + trapezoid_set.y_min;
+    insertion.ye = ys + trapezoid_set.y_max;
     insertion.new_bin = new_bin;
-    insertions_.push_back(insertion);
+    parent->children_insertions.push_back(insertion);
     //std::cout << "y " << insertion.y << " x " << insertion.x << " -> ok" << std::endl;
 }
 
@@ -1343,6 +1384,8 @@ std::ostream& packingsolver::irregular::operator<<(
         << " new_bin " << (int)insertion.new_bin
         << " x " << insertion.x
         << " y " << insertion.y
+        << " ys " << insertion.ys
+        << " ye " << insertion.ye
         ;
     return os;
 }
