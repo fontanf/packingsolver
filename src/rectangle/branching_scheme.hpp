@@ -189,6 +189,9 @@ public:
         /** Maximum xe of all items in the last bin. */
         Length xe_max = 0;
 
+        /** Maximum ye of all items in the last bin. */
+        Length ye_max = 0;
+
         /** Maximum xs of all items in the last bin. */
         Length xs_max = 0;
 
