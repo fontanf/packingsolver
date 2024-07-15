@@ -37,6 +37,9 @@ BinPos Solution::add_bin(
     number_of_bins_ += copies;
     bin_cost_ += copies * bin_type.cost;
     bin_area_ += copies * bin_type.area;
+    x_max_ = 0;
+    y_max_ = 0;
+
     return bins_.size() - 1;
 }
 
