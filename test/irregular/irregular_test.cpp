@@ -94,4 +94,7 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 fs::path("data") / "irregular" / "tests" / "rotations.json",
                 fs::path("data") / "irregular" / "tests" / "rotations_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "tests" / "multiple_bins.json",
+                fs::path("data") / "irregular" / "tests" / "multiple_bins_solution.json"
             }}));
