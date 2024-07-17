@@ -411,6 +411,8 @@ private:
 
     mutable Counter node_id_ = 0;
 
+    mutable std::vector<GeneralizedTrapezoid> uncovered_trapezoids_cur_;
+
     /*
      * Private methods
      */
@@ -438,6 +440,64 @@ private:
 
     /** Get the area load of a node. */
     inline double area_load(const Node& node) const { return (double)node.item_area / instance().bin_area(); }
+
+    enum class State
+    {
+        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
+        // Only if item_shape_trapezoid.right_side_increasing_not_vertical()
+        // Only if item_shape_trapezoid.a_right() < supporting_trapezoid.a_right()
+        ItemShapeTrapezoidRightSupportingTrapezoidBottomLeft,
+
+        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
+        // Only if item_shape_trapezoid.right_side_increasing_not_vertical()
+        // Only if item_shape_trapezoid.a_right() >= supporting_trapezoid.a_right()
+        ItemShapeTrapezoidTopRightSupportingTrapezoidLeft,
+
+        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
+        //
+        // Only if !item_shape_trapezoid.right_side_increasing_not_vertical()
+        // or
+        // if item_shape_trapezoid.right_side_increasing_not_vertical()
+        //   and item_shape_trapezoid.a_right() < supporting_trapezoid.a_right()
+        ItemShapeTrapezoidBottomRightSupportingTrapezoidLeft,
+
+        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
+        // Only if item_shape_trapezoid.right_side_increasing_not_vertical()
+        // Only if item_shape_trapezoid.a_right() > supporting_trapezoid.a_right()
+        ItemShapeTrapezoidRightSupportingTrapezoidTopLeft,
+
+        ItemShapeTrapezoidBottomRightSupportingTrapezoidTop,
+
+        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
+        ItemShapeTrapezoidLeftSupportingTrapezoidTopRight,
+
+        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
+        ItemShapeTrapezoidTopLeftSupportingTrapezoidRight,
+
+        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
+        ItemShapeTrapezoidBottomLeftSupportingTrapezoidRight,
+
+        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
+        ItemShapeTrapezoidLeftSupportingTrapezoidBottomRight,
+
+        Infeasible,
+    };
+
+    void init_position(
+            const GeneralizedTrapezoid& item_shape_trapezoid,
+            const GeneralizedTrapezoid& supporting_trapezoid,
+            State& state,
+            LengthDbl& xs,
+            LengthDbl& ys) const;
+
+    bool update_position(
+            const GeneralizedTrapezoid& item_shape_trapezoid,
+            const GeneralizedTrapezoid& supporting_trapezoid,
+            const GeneralizedTrapezoid& trapezoid_to_avoid,
+            GeneralizedTrapezoid& current_trapezoid,
+            State& state,
+            LengthDbl& xs,
+            LengthDbl& ys) const;
 
     /** Insertion of one item. */
     void insertion_trapezoid_set(
