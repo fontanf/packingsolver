@@ -1,0 +1,45 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 40,
+                    "y": 20
+                },
+                {
+                    "x": 40,
+                    "y": 40
+                },
+                {
+                    "x": 10,
+                    "y": 40
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        { 
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 15,
+                    "y": 0
+                },
+                {
+                    "x": 35,
+                    "y": 10
+                },
+                {
+                    "x": 0,
+                    "y": 10
+                }
+            ]
+        }
+    ]
+}
