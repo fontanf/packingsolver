@@ -41,7 +41,7 @@ Shape irregular::clean_shape(
             double y3 = element.end.y;
             double v = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2);
             if (equal(v, 0)) {
-                useless[v] = 1;
+                useless[element_pos] = 1;
                 element_prev.end = element.end;
             }
         }
