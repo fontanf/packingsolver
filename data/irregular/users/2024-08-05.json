@@ -1,0 +1,105 @@
+{
+  "objective": "bin-packing-with-leftovers",
+  "bin_types": [
+    {
+      "copies": 2,
+      "type": "rectangle",
+      "width": 2000.0,
+      "height": 1000.0
+    }
+  ],
+  "item_types": [
+    {
+      "copies": 1,
+      "shapes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 300.0,
+              "y": 300.0
+            },
+            {
+              "x": 0.0,
+              "y": 300.0
+            },
+            {
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "x": 300.0,
+              "y": 0.0
+            }
+          ],
+          "holes": [
+            {
+              "type": "polygon",
+              "vertices": [
+                {
+                  "x": 50.0,
+                  "y": 50.0
+                },
+                {
+                  "x": 250.0,
+                  "y": 50.0
+                },
+                {
+                  "x": 250.0,
+                  "y": 250.0
+                },
+                {
+                  "x": 50.0,
+                  "y": 250.0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "allowed_rotations": [
+        {
+          "start": 0,
+          "end": 0
+        },
+        {
+          "start": 3.14159265359,
+          "end": 3.14159265359
+        }
+      ]
+    },
+    {
+      "copies": 2,
+      "shapes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 200.0,
+              "y": 200.0
+            },
+            {
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "x": 200.0,
+              "y": 0.0
+            }
+          ],
+          "holes": []
+        }
+      ],
+      "allowed_rotations": [
+        {
+          "start": 0,
+          "end": 0
+        },
+        {
+          "start": 3.14159265359,
+          "end": 3.14159265359
+        }
+      ]
+    }
+  ]
+}

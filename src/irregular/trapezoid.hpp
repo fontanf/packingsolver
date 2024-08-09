@@ -193,14 +193,18 @@ public:
 
     AreaDbl area(LengthDbl x_left) const
     {
-        if (x_left > x_bottom_right()) {
-            if (x_left > x_top_right()) {
+        if (striclty_greater(x_left, x_bottom_right())) {
+            if (striclty_greater(x_left, x_top_right())) {
                 throw std::invalid_argument(
-                        "GeneralizedTrapezoid::area");
+                        "GeneralizedTrapezoid::area(LengthDbl)."
+                        " x_left: " + std::to_string(x_left)
+                        + "; x_top_right: " + std::to_string(x_top_right())
+                        + "; x_bottom_right: " + std::to_string(x_bottom_right())
+                        + ".");
             }
             double k = (x_top_right() - x_bottom_right()) / (x_top_right() - x_left);
             return (x_top_right() - x_bottom_right()) * height() / 2.0 / k / k;
-        } else if (x_left > x_top_right()) {
+        } else if (striclty_greater(x_left, x_top_right())) {
             double k = (x_bottom_right() - x_top_right()) / (x_bottom_right() - x_left);
             return (x_bottom_right() - x_top_right()) * height() / 2.0 / k / k;
         }
