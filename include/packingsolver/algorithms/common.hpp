@@ -41,20 +41,17 @@ using GuideId = int16_t;
 
 inline bool striclty_lesser(double v1, double v2)
 {
-    //return v1 * PSTOL < v2;
-    return v2 - v1 > 1e-9 * (std::max)(std::abs(v1), std::abs(v2));
+    return v2 - v1 > 1e-9 * (std::max)((std::max)(1e-5, std::abs(v1)), std::abs(v2));
 }
 
 inline bool striclty_greater(double v1, double v2)
 {
-    //return v1 > v2 * PSTOL;
-    return v1 - v2 > 1e-9 * (std::max)(std::abs(v1), std::abs(v2));
+    return v1 - v2 > 1e-9 * (std::max)((std::max)(1e-5, std::abs(v1)), std::abs(v2));
 }
 
 inline bool equal(double v1, double v2)
 {
-    //return (v1 * PSTOL >= v2) && (v1 <= v2 * PSTOL);
-    return std::abs(v1 - v2) <= 1e-9 * (std::max)(std::abs(v1), std::abs(v2));
+    return std::abs(v1 - v2) <= 1e-9 * (std::max)((std::max)(1e-5, std::abs(v1)), std::abs(v2));
 }
 
 

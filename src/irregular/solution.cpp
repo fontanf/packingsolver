@@ -167,27 +167,27 @@ bool Solution::operator<(const Solution& solution) const
             return true;
         if (solution.number_of_bins() != number_of_bins())
             return solution.number_of_bins() < number_of_bins();
-        return solution.leftover_value() > leftover_value();
+        return striclty_greater(solution.leftover_value(), leftover_value());
     } case Objective::OpenDimensionX: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return solution.x_max() < x_max();
+        return striclty_lesser(solution.x_max(), x_max());
     } case Objective::OpenDimensionY: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return solution.y_max() < y_max();
+        return striclty_lesser(solution.y_max(), y_max());
     } case Objective::Knapsack: {
-        return solution.profit() > profit();
+        return striclty_greater(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return solution.cost() < cost();
+        return striclty_lesser(solution.cost(), cost());
     } default: {
         std::stringstream ss;
         ss << "Solution irregular::Solution does not support objective \""
