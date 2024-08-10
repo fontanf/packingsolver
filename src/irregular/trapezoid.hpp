@@ -170,11 +170,11 @@ public:
     /** Get the x-coordinate of a point on the left side of the trapezoid. */
     inline LengthDbl x_left(LengthDbl y) const
     {
-        if (y == y_bottom())
+        if (equal(y, y_bottom()))
             return x_bottom_left();
-        if (y == y_top())
+        if (equal(y, y_top()))
             return x_top_left();
-        if (x_bottom_left() == x_top_left())
+        if (equal(x_bottom_left(), x_top_left()))
             return x_bottom_left();
         return x_bottom_left() + (y - y_bottom()) * a_left_;
     }
@@ -182,11 +182,11 @@ public:
     /** Get the x-coordinate of a point on the right side of the trapezoid. */
     inline LengthDbl x_right(LengthDbl y) const
     {
-        if (y == y_bottom())
+        if (equal(y, y_bottom()))
             return x_bottom_right();
-        if (y == y_top())
+        if (equal(y, y_top()))
             return x_top_right();
-        if (x_bottom_right() == x_top_right())
+        if (equal(x_bottom_right(), x_top_right()))
             return x_bottom_right();
         return x_bottom_right() + (y - y_bottom()) * a_right_;
     }
