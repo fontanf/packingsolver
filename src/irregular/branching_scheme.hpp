@@ -338,7 +338,7 @@ public:
             if (striclty_greater(x1tr, x2tr))
                 return false;
             if (pos_1 == 0 && pos_2 == 0)
-                return true;
+                break;
             if (trapezoid_1.y_bottom() == trapezoid_2.y_bottom()) {
                 pos_1--;
                 pos_2--;
@@ -358,17 +358,17 @@ public:
             const GeneralizedTrapezoid& trapezoid_1 = node_1->uncovered_trapezoids[extra_trapezoid_pos].trapezoid;
             const GeneralizedTrapezoid& trapezoid_2 = node_2->uncovered_trapezoids[extra_trapezoid_pos].trapezoid;
             if (!equal(trapezoid_1.y_bottom(), trapezoid_2.y_bottom()))
-                    return false;
+                return false;
             if (!equal(trapezoid_1.y_top(), trapezoid_2.y_top()))
-                    return false;
+                return false;
             if (!equal(trapezoid_1.x_bottom_left(), trapezoid_2.x_bottom_left()))
-                    return false;
+                return false;
             if (!equal(trapezoid_1.x_bottom_right(), trapezoid_2.x_bottom_right()))
-                    return false;
+                return false;
             if (!equal(trapezoid_1.x_top_left(), trapezoid_2.x_top_left()))
-                    return false;
+                return false;
             if (!equal(trapezoid_1.x_top_right(), trapezoid_2.x_top_right()))
-                    return false;
+                return false;
         }
 
         return true;
