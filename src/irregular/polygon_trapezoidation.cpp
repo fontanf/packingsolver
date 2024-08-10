@@ -164,66 +164,69 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
         const Shape& current_shape = (shape_pos == (ShapePos)holes.size())? shape: holes[shape_pos];
         vertices.push_back(std::vector<Vertex>(current_shape.elements.size()));
 
-        ElementPos element_pos_prev = current_shape.elements.size() - 1;
-        for (ElementPos element_pos = 0;
-                element_pos < current_shape.elements.size();
-                ++element_pos) {
-            const ShapeElement& element = current_shape.elements[element_pos];
+        ElementPos element_pos_prev = current_shape.elements.size() - 2;
+        ElementPos element_pos_cur = current_shape.elements.size() - 1;
+        for (ElementPos element_pos_next = 0;
+                element_pos_next < current_shape.elements.size();
+                ++element_pos_next) {
             const ShapeElement& element_prev = current_shape.elements[element_pos_prev];
+            const ShapeElement& element_cur = current_shape.elements[element_pos_cur];
+            const ShapeElement& element_next = current_shape.elements[element_pos_next];
 
             // Convexity.
             // The convexity can be determined easily by investigating the sign of the
             // cross product of the edges meeting at the considered vertex.
             double v = cross_product(
-                    element_prev.end - element_prev.start,
-                    element.end - element.start);
+                    element_cur.start - element_prev.start,
+                    element_next.start - element_cur.start);
             bool is_convex = (v >= 0);
             if (shape_pos != holes.size())
                 is_convex = !is_convex;
 
             // Local extreme of the vertices.
-            if (element_prev.start.y < element.start.y
-                    && element.start.y < element.end.y) {
-                vertices[shape_pos][element_pos].flag = VertexTypeFlag::Inflection;
-            } else if (element_prev.start.y > element.start.y
-                    && element.start.y > element.end.y) {
-                vertices[shape_pos][element_pos].flag = VertexTypeFlag::Inflection;
-            } else if (element.start.y < element_prev.start.y
-                    && element.start.y < element.end.y) {
-                vertices[shape_pos][element_pos].flag = (is_convex)?
+            if (element_prev.start.y < element_cur.start.y
+                    && element_cur.start.y < element_next.start.y) {
+                vertices[shape_pos][element_pos_cur].flag = VertexTypeFlag::Inflection;
+            } else if (element_prev.start.y > element_cur.start.y
+                    && element_cur.start.y > element_next.start.y) {
+                vertices[shape_pos][element_pos_cur].flag = VertexTypeFlag::Inflection;
+            } else if (element_cur.start.y < element_prev.start.y
+                    && element_cur.start.y < element_next.start.y) {
+                vertices[shape_pos][element_pos_cur].flag = (is_convex)?
                     VertexTypeFlag::LocalMinimumConvex:
                     VertexTypeFlag::LocalMinimumConcave;
-            } else if (element.start.y > element_prev.start.y
-                    && element.start.y > element.end.y) {
-                vertices[shape_pos][element_pos].flag = (is_convex)?
+            } else if (element_cur.start.y > element_prev.start.y
+                    && element_cur.start.y > element_next.start.y) {
+                vertices[shape_pos][element_pos_cur].flag = (is_convex)?
                     VertexTypeFlag::LocalMaximumConvex:
                     VertexTypeFlag::LocalMaximumConcave;
-            } else if (element.start.y == element_prev.start.y
-                    && element.start.y < element.end.y) {
-                vertices[shape_pos][element_pos].flag = (is_convex)?
+            } else if (element_cur.start.y == element_prev.start.y
+                    && element_cur.start.y < element_next.start.y) {
+                vertices[shape_pos][element_pos_cur].flag = (is_convex)?
                     VertexTypeFlag::HorizontalLocalMinimumConvex:
                     VertexTypeFlag::HorizontalLocalMinimumConcave;
-            } else if (element.start.y < element_prev.start.y
-                    && element.start.y == element.end.y) {
-                vertices[shape_pos][element_pos].flag = (is_convex)?
+            } else if (element_cur.start.y < element_prev.start.y
+                    && element_cur.start.y == element_next.start.y) {
+                vertices[shape_pos][element_pos_cur].flag = (is_convex)?
                     VertexTypeFlag::HorizontalLocalMinimumConvex:
                     VertexTypeFlag::HorizontalLocalMinimumConcave;
-            } else if (element.start.y == element_prev.start.y
-                    && element.start.y > element.end.y) {
-                vertices[shape_pos][element_pos].flag = (is_convex)?
+            } else if (element_cur.start.y == element_prev.start.y
+                    && element_cur.start.y > element_next.start.y) {
+                vertices[shape_pos][element_pos_cur].flag = (is_convex)?
                     VertexTypeFlag::HorizontalLocalMaximumConvex:
                     VertexTypeFlag::HorizontalLocalMaximumConcave;
-            } else if (element.start.y > element_prev.start.y
-                    && element.start.y == element.end.y) {
-                vertices[shape_pos][element_pos].flag = (is_convex)?
+            } else if (element_cur.start.y > element_prev.start.y
+                    && element_cur.start.y == element_next.start.y) {
+                vertices[shape_pos][element_pos_cur].flag = (is_convex)?
                     VertexTypeFlag::HorizontalLocalMaximumConvex:
                     VertexTypeFlag::HorizontalLocalMaximumConcave;
-            } else if (element.start.y == element_prev.start.y
-                    && element.start.y == element.end.y) {
-                vertices[shape_pos][element_pos].flag = VertexTypeFlag::StrictlyHorizontal;
+            } else if (element_cur.start.y == element_prev.start.y
+                    && element_cur.start.y == element_next.start.y) {
+                vertices[shape_pos][element_pos_cur].flag = VertexTypeFlag::StrictlyHorizontal;
             }
 
-            element_pos_prev = element_pos;
+            element_pos_prev = element_pos_cur;
+            element_pos_cur = element_pos_next;
         }
     }
 
