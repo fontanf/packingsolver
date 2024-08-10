@@ -443,6 +443,13 @@ private:
     /** Get the area load of a node. */
     inline double area_load(const Node& node) const { return (double)node.item_area / instance().bin_area(); }
 
+    std::vector<UncoveredTrapezoid> add_trapezoid_to_skyline(
+            const std::vector<UncoveredTrapezoid>& uncovered_trapezoids,
+            ItemTypeId item_type_id,
+            ItemShapePos item_shape_pos,
+            ItemShapeTrapezoidPos item_shape_trapezoid_pos,
+            const GeneralizedTrapezoid& trapezoid) const;
+
     enum class State
     {
         // Only if supporting_trapezoid.left_side_increasing_not_vertical()
