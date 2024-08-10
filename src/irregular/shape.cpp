@@ -25,27 +25,30 @@ Shape irregular::clean_shape(
     // Remove vertices aligned with their previous and next vertices.
     shape_tmp_2.elements.clear();
     std::vector<uint8_t> useless(shape.elements.size(), false);
-    ElementPos element_prev_pos = shape_tmp_1.elements.size() - 1;
-    for (ElementPos element_pos = 0;
-            element_pos < (ElementPos)shape_tmp_1.elements.size();
-            ++element_pos) {
-        const ShapeElement& element = shape_tmp_1.elements[element_pos];
+    ElementPos element_prev_pos = shape_tmp_1.elements.size() - 2;
+    ElementPos element_cur_pos = shape_tmp_1.elements.size() - 1;
+    for (ElementPos element_next_pos = 0;
+            element_next_pos < (ElementPos)shape_tmp_1.elements.size();
+            ++element_next_pos) {
         ShapeElement& element_prev = shape_tmp_1.elements[element_prev_pos];
+        const ShapeElement& element = shape_tmp_1.elements[element_cur_pos];
+        const ShapeElement& element_next = shape_tmp_1.elements[element_next_pos];
         if (element.type == ShapeElementType::LineSegment
                 && element_prev.type == ShapeElementType::LineSegment) {
             double x1 = element_prev.start.x;
             double y1 = element_prev.start.y;
             double x2 = element.start.x;
             double y2 = element.start.y;
-            double x3 = element.end.x;
-            double y3 = element.end.y;
+            double x3 = element_next.start.x;
+            double y3 = element_next.start.y;
             double v = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2);
             if (equal(v, 0)) {
-                useless[element_pos] = 1;
+                useless[element_cur_pos] = 1;
                 element_prev.end = element.end;
             }
         }
-        element_prev_pos = element_pos;
+        element_prev_pos = element_cur_pos;
+        element_cur_pos = element_next_pos;
     }
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)shape_tmp_1.elements.size();
