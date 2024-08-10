@@ -339,10 +339,12 @@ public:
                 return false;
             if (pos_1 == 0 && pos_2 == 0)
                 break;
-            if (trapezoid_1.y_bottom() == trapezoid_2.y_bottom()) {
+            if (equal(trapezoid_1.y_bottom(), trapezoid_2.y_bottom())) {
+                if (pos_1 == 0 || pos_2 == 0)
+                    break;
                 pos_1--;
                 pos_2--;
-            } else if (trapezoid_1.y_bottom() < trapezoid_2.y_bottom()) {
+            } else if (striclty_lesser(trapezoid_1.y_bottom(), trapezoid_2.y_bottom())) {
                 pos_2--;
             } else {
                 pos_1--;
@@ -355,8 +357,8 @@ public:
         for (ItemPos extra_trapezoid_pos = 0;
                 extra_trapezoid_pos < (ItemPos)node_1->extra_trapezoids.size();
                 ++extra_trapezoid_pos) {
-            const GeneralizedTrapezoid& trapezoid_1 = node_1->uncovered_trapezoids[extra_trapezoid_pos].trapezoid;
-            const GeneralizedTrapezoid& trapezoid_2 = node_2->uncovered_trapezoids[extra_trapezoid_pos].trapezoid;
+            const GeneralizedTrapezoid& trapezoid_1 = node_1->extra_trapezoids[extra_trapezoid_pos].trapezoid;
+            const GeneralizedTrapezoid& trapezoid_2 = node_2->extra_trapezoids[extra_trapezoid_pos].trapezoid;
             if (!equal(trapezoid_1.y_bottom(), trapezoid_2.y_bottom()))
                 return false;
             if (!equal(trapezoid_1.y_top(), trapezoid_2.y_top()))
