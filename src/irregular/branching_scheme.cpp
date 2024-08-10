@@ -295,6 +295,15 @@ BranchingScheme::BranchingScheme(
                 auto trapezoids = polygon_trapezoidation(
                         cleaned_y_shape,
                         cleaned_y_holes);
+                std::sort(
+                        trapezoids.begin(),
+                        trapezoids.end(),
+                        [](
+                            const GeneralizedTrapezoid& trapezoid_1,
+                            const GeneralizedTrapezoid& trapezoid_2)
+                        {
+                            return trapezoid_1.x_min() < trapezoid_2.x_min();
+                        });
                 trapezoid_set_x.shapes.push_back(trapezoids);
             }
             trapezoid_set_x.x_min = std::numeric_limits<LengthDbl>::infinity();
@@ -347,6 +356,15 @@ BranchingScheme::BranchingScheme(
                 auto trapezoids = polygon_trapezoidation(
                         cleaned_y_shape,
                         cleaned_y_holes);
+                std::sort(
+                        trapezoids.begin(),
+                        trapezoids.end(),
+                        [](
+                            const GeneralizedTrapezoid& trapezoid_1,
+                            const GeneralizedTrapezoid& trapezoid_2)
+                        {
+                            return trapezoid_1.x_min() < trapezoid_2.x_min();
+                        });
                 trapezoid_set_y.shapes.push_back(trapezoids);
             }
             trapezoid_set_y.x_min = std::numeric_limits<LengthDbl>::infinity();
@@ -406,6 +424,94 @@ BranchingScheme::BranchingScheme(
 /////////////////////////////////// children ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_to_skyline(
+        const std::vector<UncoveredTrapezoid>& uncovered_trapezoids,
+        ItemTypeId item_type_id,
+        ItemShapePos item_shape_pos,
+        ItemShapeTrapezoidPos item_shape_trapezoid_pos,
+        const GeneralizedTrapezoid& new_trapezoid) const
+{
+    //std::cout << "uncovered_trapezoids_cur:" << std::endl;
+    //for (const UncoveredTrapezoid& uncovered_trapezoid: uncovered_trapezoids)
+    //    std::cout << "* " << uncovered_trapezoid << std::endl;
+
+    std::vector<UncoveredTrapezoid> new_uncovered_trapezoids;
+
+    // Reserve for uncovered_trapezoids and extra_trapezoids.
+    new_uncovered_trapezoids.reserve(uncovered_trapezoids.size() + 3);
+    LengthDbl ys = new_trapezoid.y_bottom();
+    LengthDbl ye = new_trapezoid.y_top();
+
+    // Update uncovered_trapezoids.
+    for (const BranchingScheme::UncoveredTrapezoid& uncovered_trapezoid: uncovered_trapezoids) {
+        if (!striclty_greater(uncovered_trapezoid.trapezoid.y_top(), ys)) {
+            UncoveredTrapezoid new_uncovered_trapezoid = uncovered_trapezoid;
+            new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+        } else if (!striclty_greater(uncovered_trapezoid.trapezoid.y_bottom(), ys)) {
+            if (striclty_lesser(uncovered_trapezoid.trapezoid.y_bottom(), ys)) {
+                UncoveredTrapezoid new_uncovered_trapezoid(
+                        uncovered_trapezoid.item_type_id,
+                        uncovered_trapezoid.item_shape_pos,
+                        uncovered_trapezoid.item_shape_trapezoid_pos,
+                        GeneralizedTrapezoid(
+                            uncovered_trapezoid.trapezoid.y_bottom(),
+                            ys,
+                            uncovered_trapezoid.trapezoid.x_bottom_left(),
+                            uncovered_trapezoid.trapezoid.x_bottom_right(),
+                            uncovered_trapezoid.trapezoid.x_left(ys),
+                            uncovered_trapezoid.trapezoid.x_right(ys)));
+                new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+            }
+
+            UncoveredTrapezoid new_uncovered_trapezoid(
+                    item_type_id,
+                    item_shape_pos,
+                    item_shape_trapezoid_pos,
+                    new_trapezoid);
+            new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+
+            if (striclty_greater(uncovered_trapezoid.trapezoid.y_top(), ye)) {
+                UncoveredTrapezoid new_uncovered_trapezoid(
+                        uncovered_trapezoid.item_type_id,
+                        uncovered_trapezoid.item_shape_pos,
+                        uncovered_trapezoid.item_shape_trapezoid_pos,
+                        GeneralizedTrapezoid(
+                            ye,
+                            uncovered_trapezoid.trapezoid.y_top(),
+                            uncovered_trapezoid.trapezoid.x_left(ye),
+                            uncovered_trapezoid.trapezoid.x_right(ye),
+                            uncovered_trapezoid.trapezoid.x_top_left(),
+                            uncovered_trapezoid.trapezoid.x_top_right()));
+                new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+            }
+        } else if (!striclty_lesser(uncovered_trapezoid.trapezoid.y_bottom(), ye)) {
+            UncoveredTrapezoid new_uncovered_trapezoid = uncovered_trapezoid;
+            new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+        } else {
+            if (striclty_greater(uncovered_trapezoid.trapezoid.y_top(), ye)) {
+                UncoveredTrapezoid new_uncovered_trapezoid(
+                        uncovered_trapezoid.item_type_id,
+                        uncovered_trapezoid.item_shape_pos,
+                        uncovered_trapezoid.item_shape_trapezoid_pos,
+                        GeneralizedTrapezoid(
+                            ye,
+                            uncovered_trapezoid.trapezoid.y_top(),
+                            uncovered_trapezoid.trapezoid.x_left(ye),
+                            uncovered_trapezoid.trapezoid.x_right(ye),
+                            uncovered_trapezoid.trapezoid.x_top_left(),
+                            uncovered_trapezoid.trapezoid.x_top_right()));
+                new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+            }
+        }
+    }
+
+    //std::cout << "uncovered_trapezoids:" << std::endl;
+    //for (const UncoveredTrapezoid& uncovered_trapezoid: new_uncovered_trapezoids)
+    //    std::cout << "* " << uncovered_trapezoid << std::endl;
+
+    return new_uncovered_trapezoids;
+}
+
 BranchingScheme::Node BranchingScheme::child_tmp(
         const std::shared_ptr<Node>& pparent,
         const Insertion& insertion) const
@@ -451,12 +557,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         bin_types_x_[bin_type_id]:
         bin_types_y_[bin_type_id];
 
-    LengthDbl ys = insertion.y + shape_trapezoid.y_bottom();
-    LengthDbl ye = insertion.y + shape_trapezoid.y_top();
-    //std::cout << "ys " << ys << " ye " << ye << std::endl;
-
     // Reserve for uncovered_trapezoids and extra_trapezoids.
-    node.uncovered_trapezoids.reserve(parent.uncovered_trapezoids.size() + 3);
     ItemPos p = -1;
     for (ItemShapePos item_shape_pos = 0;
             item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
@@ -467,40 +568,15 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.extra_trapezoids.reserve(parent.extra_trapezoids.size() + p);
 
     // Update uncovered_trapezoids.
-    ItemPos new_uncovered_trapezoid_pos = -1;
     if (insertion.new_bin > 0) {  // New bin.
-        if (ys > bb_bin_type.y_min) {
-            UncoveredTrapezoid uncovered_trapezoid(GeneralizedTrapezoid(
-                        bb_bin_type.y_min,
-                        ys,
-                        bb_bin_type.x_min,
-                        bb_bin_type.x_min,
-                        bb_bin_type.x_min,
-                        bb_bin_type.x_min));
-            node.uncovered_trapezoids.push_back(uncovered_trapezoid);
-        }
-        {
-            new_uncovered_trapezoid_pos = node.uncovered_trapezoids.size();
-            GeneralizedTrapezoid trapezoid = shape_trapezoid;
-            trapezoid.shift_top(insertion.y);
-            trapezoid.shift_right(insertion.x);
-            UncoveredTrapezoid uncovered_trapezoid(
-                    trapezoid_set.item_type_id,
-                    insertion.item_shape_pos,
-                    insertion.item_shape_trapezoid_pos,
-                    trapezoid);
-            node.uncovered_trapezoids.push_back(uncovered_trapezoid);
-        }
-        if (ye < bb_bin_type.y_max) {
-            UncoveredTrapezoid uncovered_trapezoid(GeneralizedTrapezoid(
-                        ye,
-                        bb_bin_type.y_max,
-                        bb_bin_type.x_min,
-                        bb_bin_type.x_min,
-                        bb_bin_type.x_min,
-                        bb_bin_type.x_min));
-            node.uncovered_trapezoids.push_back(uncovered_trapezoid);
-        }
+        UncoveredTrapezoid uncovered_trapezoid(GeneralizedTrapezoid(
+                    bb_bin_type.y_min,
+                    bb_bin_type.y_max,
+                    bb_bin_type.x_min,
+                    bb_bin_type.x_min,
+                    bb_bin_type.x_min,
+                    bb_bin_type.x_min));
+        node.uncovered_trapezoids.push_back(uncovered_trapezoid);
 
         // Add extra trapezoids from defects.
         for (DefectId defect_id = 0;
@@ -511,76 +587,84 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         }
 
     } else {  // Same bin.
-        for (const UncoveredTrapezoid& uncovered_trapezoid: parent.uncovered_trapezoids) {
-            if (uncovered_trapezoid.trapezoid.y_top() <= ys) {
-                UncoveredTrapezoid new_uncovered_trapezoid = uncovered_trapezoid;
-                node.uncovered_trapezoids.push_back(new_uncovered_trapezoid);
-            } else if (uncovered_trapezoid.trapezoid.y_bottom() <= ys) {
-                if (uncovered_trapezoid.trapezoid.y_bottom() < ys) {
-                    UncoveredTrapezoid new_uncovered_trapezoid(
-                            uncovered_trapezoid.item_type_id,
-                            uncovered_trapezoid.item_shape_pos,
-                            uncovered_trapezoid.item_shape_trapezoid_pos,
-                            GeneralizedTrapezoid(
-                                uncovered_trapezoid.trapezoid.y_bottom(),
-                                ys,
-                                uncovered_trapezoid.trapezoid.x_bottom_left(),
-                                uncovered_trapezoid.trapezoid.x_bottom_right(),
-                                uncovered_trapezoid.trapezoid.x_left(ys),
-                                uncovered_trapezoid.trapezoid.x_right(ys)));
-                    node.uncovered_trapezoids.push_back(new_uncovered_trapezoid);
-                }
 
-                new_uncovered_trapezoid_pos = node.uncovered_trapezoids.size();
-                GeneralizedTrapezoid trapezoid = shape_trapezoid;
-                trapezoid.shift_top(insertion.y);
-                trapezoid.shift_right(insertion.x);
-                UncoveredTrapezoid new_uncovered_trapezoid(
+        node.uncovered_trapezoids = parent.uncovered_trapezoids;
+
+    }
+
+    // Add trapezoids of inserted trapezoid set to uncovered and extra
+    // trapezoids.
+    for (ItemShapePos item_shape_pos = 0;
+            item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
+            ++item_shape_pos) {
+        const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
+        for (TrapezoidPos item_shape_trapezoid_pos = 0;
+                item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
+                ++item_shape_trapezoid_pos) {
+            GeneralizedTrapezoid trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
+            //std::cout << "trapezoid " << trapezoid << std::endl;
+            trapezoid.shift_right(insertion.x);
+            trapezoid.shift_top(insertion.y);
+            //std::cout << "shifted trapezoid " << trapezoid << std::endl;
+
+            // Add the item to the skyline.
+            if (item_shape_pos == insertion.item_shape_pos
+                    && item_shape_trapezoid_pos == insertion.item_shape_trapezoid_pos) {
+                node.uncovered_trapezoids = add_trapezoid_to_skyline(
+                        node.uncovered_trapezoids,
                         trapezoid_set.item_type_id,
-                        insertion.item_shape_pos,
-                        insertion.item_shape_trapezoid_pos,
+                        item_shape_pos,
+                        item_shape_trapezoid_pos,
                         trapezoid);
-                node.uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+                continue;
+            }
 
-                if (uncovered_trapezoid.trapezoid.y_top() > ye) {
-                    UncoveredTrapezoid new_uncovered_trapezoid(
-                            uncovered_trapezoid.item_type_id,
-                            uncovered_trapezoid.item_shape_pos,
-                            uncovered_trapezoid.item_shape_trapezoid_pos,
-                            GeneralizedTrapezoid(
-                                ye,
-                                uncovered_trapezoid.trapezoid.y_top(),
-                                uncovered_trapezoid.trapezoid.x_left(ye),
-                                uncovered_trapezoid.trapezoid.x_right(ye),
-                                uncovered_trapezoid.trapezoid.x_top_left(),
-                                uncovered_trapezoid.trapezoid.x_top_right()));
-                    node.uncovered_trapezoids.push_back(new_uncovered_trapezoid);
-                }
-            } else if (uncovered_trapezoid.trapezoid.y_bottom() >= ye) {
-                UncoveredTrapezoid new_uncovered_trapezoid = uncovered_trapezoid;
-                node.uncovered_trapezoids.push_back(new_uncovered_trapezoid);
-            } else {
-                if (uncovered_trapezoid.trapezoid.y_top() > ye) {
-                    UncoveredTrapezoid new_uncovered_trapezoid(
-                            uncovered_trapezoid.item_type_id,
-                            uncovered_trapezoid.item_shape_pos,
-                            uncovered_trapezoid.item_shape_trapezoid_pos,
-                            GeneralizedTrapezoid(
-                                ye,
-                                uncovered_trapezoid.trapezoid.y_top(),
-                                uncovered_trapezoid.trapezoid.x_left(ye),
-                                uncovered_trapezoid.trapezoid.x_right(ye),
-                                uncovered_trapezoid.trapezoid.x_top_left(),
-                                uncovered_trapezoid.trapezoid.x_top_right()));
-                    node.uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+            LengthDbl touching_height = 0;
+            for (const UncoveredTrapezoid& uncovered_trapezoid: node.uncovered_trapezoids) {
+                if (uncovered_trapezoid.trapezoid.y_bottom() >= trapezoid.y_top())
+                    continue;
+                if (uncovered_trapezoid.trapezoid.y_top() <= trapezoid.y_bottom())
+                    continue;
+                //std::cout << "uncovered_trapezoid " << uncovered_trapezoid << std::endl;
+                LengthDbl yb = std::max(
+                        trapezoid.y_bottom(),
+                        uncovered_trapezoid.trapezoid.y_bottom());
+                LengthDbl yt = std::min(
+                        trapezoid.y_top(),
+                        uncovered_trapezoid.trapezoid.y_top());
+                LengthDbl xb_t = trapezoid.x_left(yb);
+                LengthDbl xt_t = trapezoid.x_left(yt);
+                LengthDbl xb_ut = uncovered_trapezoid.trapezoid.x_right(yb);
+                LengthDbl xt_ut = uncovered_trapezoid.trapezoid.x_right(yt);
+                if (equal(xb_t, xb_ut) && equal(xt_t, xt_ut)) {
+                    touching_height += (yt - yb);
                 }
             }
-        }
-        //std::cout << "uncovered_trapezoids:" << std::endl;
-        //for (const UncoveredTrapezoid& uncovered_trapezoid: node.uncovered_trapezoids)
-        //    std::cout << "* " << uncovered_trapezoid << std::endl;
+            if (equal(touching_height, trapezoid.height())) {
+                node.uncovered_trapezoids = add_trapezoid_to_skyline(
+                        node.uncovered_trapezoids,
+                        trapezoid_set.item_type_id,
+                        item_shape_pos,
+                        item_shape_trapezoid_pos,
+                        trapezoid);
+                continue;
+            }
 
-        // Update extra rectangles.
+            // Otherwise, add the trapezoid to the extra trapezoids.
+            UncoveredTrapezoid extra_trapezoid(
+                    trapezoid_set.item_type_id,
+                    item_shape_pos,
+                    item_shape_trapezoid_pos,
+                    trapezoid);
+            //std::cout << "add extra_trapezoid " << item_shape_trapezoids[item_shape_trapezoid_pos] << std::endl;
+            //std::cout << "shifted " << extra_trapezoid << std::endl;
+            node.extra_trapezoids.push_back(extra_trapezoid);
+        }
+    }
+
+    // Update extra rectangles.
+    if (insertion.new_bin == 0) {
+
         // Don't add extra rectangles which are behind the skyline.
         //std::cout << "check previous extra trapezoids:" << std::endl;
         for (const UncoveredTrapezoid& extra_trapezoid: parent.extra_trapezoids) {
@@ -623,32 +707,6 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         }
     }
 
-    // Add extra rectangles.
-    for (ItemShapePos item_shape_pos = 0;
-            item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
-            ++item_shape_pos) {
-        const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
-        for (TrapezoidPos item_shape_trapezoid_pos = 0;
-                item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
-                ++item_shape_trapezoid_pos) {
-            // Skip the rectangle added to the uncovered items.
-            if (item_shape_pos == insertion.item_shape_pos
-                    && item_shape_trapezoid_pos == insertion.item_shape_trapezoid_pos) {
-                continue;
-            }
-            GeneralizedTrapezoid trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
-            trapezoid.shift_right(insertion.x);
-            trapezoid.shift_top(insertion.y);
-            UncoveredTrapezoid extra_trapezoid(
-                    trapezoid_set.item_type_id,
-                    item_shape_pos,
-                    item_shape_trapezoid_pos,
-                    trapezoid);
-            //std::cout << "add extra_trapezoid " << item_shape_trapezoids[item_shape_trapezoid_pos] << std::endl;
-            //std::cout << "shifted " << extra_trapezoid << std::endl;
-            node.extra_trapezoids.push_back(extra_trapezoid);
-        }
-    }
     // Sort extra_trapezoids.
     std::sort(
             node.extra_trapezoids.begin(),
@@ -734,8 +792,6 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     }
 
     if (node.waste < -PSTOL) {
-        Solution solution = to_solution(std::make_shared<Node>(node));
-        solution.write("solution_irregular.json");
         for (Node* current_node = &node;
                 current_node->parent != nullptr;
                 current_node = current_node->parent.get()) {
@@ -750,6 +806,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         std::cout << "extra_trapezoids" << std::endl;
         for (const UncoveredTrapezoid& extra_trapezoid: node.extra_trapezoids)
             std::cout << extra_trapezoid << std::endl;
+        Solution solution = to_solution(std::make_shared<Node>(node));
+        solution.write("solution_irregular.json");
         throw std::runtime_error(
                 "waste: " + std::to_string(node.waste)
                 + "; number_of_items: " + std::to_string(node.number_of_items)
