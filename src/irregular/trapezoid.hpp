@@ -64,10 +64,10 @@ public:
         x_min_ = std::min(x_bottom_left(), x_top_left());
         x_max_ = std::max(x_bottom_right(), x_top_right());
 
-        left_side_increasing_not_vertical_ = striclty_greater(x_top_left(), x_bottom_left());
-        left_side_decreasing_not_vertical_ = striclty_greater(x_bottom_left(), x_top_left());
-        right_side_increasing_not_vertical_ = striclty_greater(x_top_right(), x_bottom_right());
-        right_side_decreasing_not_vertical_ = striclty_greater(x_bottom_right(), x_top_right());
+        left_side_increasing_not_vertical_ = (a_left() > 1e-2);
+        left_side_decreasing_not_vertical_ = (a_left() < -1e-2);
+        right_side_increasing_not_vertical_ = (a_right() > 1e-2);
+        right_side_decreasing_not_vertical_ = (a_right() < -1e-2);
     }
 
     void shift_top(LengthDbl l)
