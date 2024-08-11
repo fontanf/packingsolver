@@ -590,6 +590,7 @@ def convert_cgshop2024():
             with open("data/irregular_raw/" + path, "r") as f:
                 data = json.load(f)
                 dic = {
+                    "objective": "knapsack",
                     "bin_types": [
                         {
                             "type": "polygon",

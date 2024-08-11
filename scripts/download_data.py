@@ -54,7 +54,7 @@ if args.data is None or "cgshop2024" in args.data:
     shutil.move("cgshop2024", dir_path)
 
     # cgshop2024_packingsolver
-    download("1ly3HH5qrnWHHtwwhnVS5hZdnKq0yCcmh")
+    download("1I7tPh8u2-uXs1YVyytnIzSjoW8KcITrD")
     dir_path = pathlib.Path("data") / "irregular" / "cgshop2024"
     if dir_path.exists():
         shutil.rmtree(dir_path)
