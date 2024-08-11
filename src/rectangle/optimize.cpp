@@ -42,7 +42,7 @@ void optimize_tree_search(
     } else if (instance.unloading_constraint() == UnloadingConstraint::IncreasingY
             || instance.unloading_constraint() == UnloadingConstraint::OnlyYMovements) {
         directions = {Direction::Y};
-    } else if (instance.number_of_bins() == 1) {
+    } else if (instance.number_of_bin_types() == 1) {
         directions = {Direction::X, Direction::Y};
     } else {
         directions = {Direction::Any};
