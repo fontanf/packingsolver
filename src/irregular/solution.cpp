@@ -102,6 +102,16 @@ void Solution::append(
         const std::vector<BinTypeId>& bin_type_ids,
         const std::vector<ItemTypeId>& item_type_ids)
 {
+    // Check bin_pos.
+    if (bin_pos >= solution.number_of_different_bins()) {
+        throw std::invalid_argument(
+                "irregular::Solution::append."
+                " bin_pos: " + std::to_string(bin_pos)
+                + "; solution.number_of_different_bins(): "
+                + std::to_string(solution.number_of_different_bins())
+                + ".");
+    }
+
     BinTypeId bin_type_id = (bin_type_ids.empty())?
         solution.bins_[bin_pos].bin_type_id:
         bin_type_ids[solution.bins_[bin_pos].bin_type_id];
