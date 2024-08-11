@@ -139,9 +139,8 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
             } else if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingY
                     || instance.unloading_constraint() == rectangle::UnloadingConstraint::OnlyYMovements) {
                 directions = {Direction::Y};
-                //} else if (instance.number_of_bins() == 1
-                //        && instance.bin_type(0).rect.x != instance.bin_type(0).rect.y) {
-                //    directions = {Direction::X, Direction::Y};
+            } else if (instance.number_of_bin_types() == 1) {
+                directions = {Direction::X, Direction::Y};
             } else {
                 directions = {Direction::Any};
             }

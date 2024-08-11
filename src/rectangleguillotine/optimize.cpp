@@ -34,8 +34,7 @@ void optimize_tree_search(
     }
 
     std::vector<CutOrientation> first_stage_orientations = {instance.first_stage_orientation()};
-    if (instance.number_of_bins() == 1
-            && instance.bin_type(0).rect.w != instance.bin_type(0).rect.h
+    if (instance.number_of_bin_types() == 1
             && instance.first_stage_orientation() == CutOrientation::Any) {
         first_stage_orientations = {CutOrientation::Vertical, CutOrientation::Horizontal};
     }
