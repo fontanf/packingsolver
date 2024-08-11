@@ -584,27 +584,31 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
         last_bin_parameters.tree_search_guides = {2, 3};
         auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
 
-        // Retrieve solution.
-        Solution solution(instance);
-        // Add first bins from current best solution.
-        for (BinPos bin_pos = 0;
-                bin_pos < solution_best.number_of_different_bins() - 2;
-                ++bin_pos) {
-            const SolutionBin& solution_bin = solution_best.bin(bin_pos);
-            solution.append(solution_best, bin_pos, solution_bin.copies);
-        }
-        // Add last optimized bin.
-        solution.append(
-                last_bin_output.solution_pool.best(),
-                0,
-                1,
-                {last_bin.bin_type_id},
-                last_bin_to_orig);
+        if (last_bin_output.solution_pool.best().full()) {
 
-        // Update best solution.
-        std::stringstream ss;
-        ss << "post-process";
-        algorithm_formatter.update_solution(solution, ss.str());
+            // Retrieve solution.
+            Solution solution(instance);
+            // Add first bins from current best solution.
+            for (BinPos bin_pos = 0;
+                    bin_pos < solution_best.number_of_different_bins() - 2;
+                    ++bin_pos) {
+                const SolutionBin& solution_bin = solution_best.bin(bin_pos);
+                solution.append(solution_best, bin_pos, solution_bin.copies);
+            }
+            // Add last optimized bin.
+            solution.append(
+                    last_bin_output.solution_pool.best(),
+                    0,
+                    1,
+                    {last_bin.bin_type_id},
+                    last_bin_to_orig);
+
+            // Update best solution.
+            std::stringstream ss;
+            ss << "post-process";
+            algorithm_formatter.update_solution(solution, ss.str());
+
+        }
     }
 
     algorithm_formatter.end();
