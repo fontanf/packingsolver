@@ -533,8 +533,8 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             new_open_trapezoid_2.top_left = vertex_next;
             new_open_trapezoid_2.top_right = {x_right, vertex.y};
             new_open_trapezoid_2.bottom_left = (shape_pos_next == holes.size())?
-                get_vertex(current_shape_next, element_pos + 1):
-                get_vertex(current_shape_next, element_pos - 1);
+                get_vertex(current_shape_next, element_pos_next + 1):
+                get_vertex(current_shape_next, element_pos_next - 1);
             new_open_trapezoid_2.bottom_right = open_trapezoid.bottom_right;
 
             open_trapezoids.push_back(new_open_trapezoid_1);
