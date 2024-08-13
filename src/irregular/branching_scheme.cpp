@@ -609,7 +609,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
             // Add the item to the skyline.
             if (item_shape_pos == insertion.item_shape_pos
-                    && item_shape_trapezoid_pos == insertion.item_shape_trapezoid_pos) {
+                    && item_shape_trapezoid_pos == insertion.item_shape_trapezoid_pos
+                    //&& !trapezoid.left_side_increasing_not_vertical()
+                    ) {
                 node.uncovered_trapezoids = add_trapezoid_to_skyline(
                         node.uncovered_trapezoids,
                         trapezoid_set.item_type_id,
@@ -1321,7 +1323,7 @@ inline bool BranchingScheme::update_position(
                 ys += lx / supporting_trapezoid.a_right();
                 return true;
             } else if (item_shape_trapezoid.left_side_decreasing_not_vertical()
-                    && striclty_lesser(item_shape_trapezoid.a_right(), supporting_trapezoid.a_left())) {
+                    && striclty_greater(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
                 state = State::ItemShapeTrapezoidLeftSupportingTrapezoidBottomRight;
                 current_trapezoid.shift_right(supporting_trapezoid.x_bottom_right() - item_shape_trapezoid.x_bottom_left() - xs);
                 current_trapezoid.shift_top(supporting_trapezoid.y_bottom() - item_shape_trapezoid.y_bottom() - ys);
