@@ -380,6 +380,13 @@ Instance InstanceBuilder::build()
         instance_.item_profit_ += item_type.copies * item_type.profit;
         // Update item_area_.
         instance_.item_area_ += item_type.copies * item_type.area;
+        // Update smallest_item_area_ and largest_item_area_.
+        instance_.smallest_item_area_ = (std::min)(
+                instance_.smallest_item_area_,
+                item_type.area);
+        instance_.largest_item_area_ = (std::max)(
+                instance_.largest_item_area_,
+                item_type.area);
         // Update max_efficiency_item_type_.
         if (instance_.max_efficiency_item_type_id_ == -1
                 || instance_.item_type(instance_.max_efficiency_item_type_id_).profit
