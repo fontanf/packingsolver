@@ -42,7 +42,15 @@ Shape irregular::clean_shape(
             double x3 = element_next.start.x;
             double y3 = element_next.start.y;
             double v = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2);
-            if (equal(v, 0)) {
+            //std::cout << "element_prev  " << element_prev.to_string() << std::endl;
+            //std::cout << "element       " << element.to_string() << std::endl;
+            //std::cout << "element_next  " << element_next.to_string() << std::endl;
+            //std::cout << "v " << v << std::endl;
+            if (equal(v, 0)
+                    || (equal(element_prev.start.y, element.start.y)
+                        && equal(element.start.y, element_next.start.y))
+                    || (equal(element_prev.start.x, element.start.x)
+                        && equal(element.start.x, element_next.start.x))) {
                 useless[element_cur_pos] = 1;
                 element_prev.end = element.end;
             }
@@ -60,20 +68,14 @@ Shape irregular::clean_shape(
     }
     std::swap(shape_tmp_1, shape_tmp_2);
 
-    return shape_tmp_1;
-}
-
-Shape irregular::clean_shape_y(const Shape& shape)
-{
-    Shape new_shape = shape;
     for (;;) {
         bool found = false;
-        ElementPos element_prev_pos = new_shape.elements.size() - 1;
+        ElementPos element_prev_pos = shape_tmp_1.elements.size() - 1;
         for (ElementPos element_pos = 0;
-                element_pos < (ElementPos)new_shape.elements.size();
+                element_pos < (ElementPos)shape_tmp_1.elements.size();
                 ++element_pos) {
-            ShapeElement& element = new_shape.elements[element_pos];
-            const ShapeElement& element_prev = new_shape.elements[element_prev_pos];
+            ShapeElement& element = shape_tmp_1.elements[element_pos];
+            const ShapeElement& element_prev = shape_tmp_1.elements[element_prev_pos];
             if (equal(element.start.y, element_prev.start.y)
                     && element.start.y != element_prev.start.y) {
                 element.start.y = element_prev.start.y;
@@ -83,5 +85,6 @@ Shape irregular::clean_shape_y(const Shape& shape)
         if (!found)
             break;
     }
-    return new_shape;
+
+    return shape_tmp_1;
 }
