@@ -403,6 +403,12 @@ public:
     /** Get the mean area of the items. */
     inline AreaDbl mean_area() const { return item_area_ / number_of_items(); }
 
+    /** Get the smallest area of the items. */
+    inline AreaDbl smallest_item_area() const { return smallest_item_area_; }
+
+    /** Get the largest area of the items. */
+    inline AreaDbl largest_item_area() const { return largest_item_area_; }
+
     /** Get the total profit of the items. */
     inline Profit item_profit() const { return item_profit_; }
 
@@ -479,6 +485,12 @@ private:
 
     /** Total item profit. */
     Profit item_profit_ = 0;
+
+    /** Smallest item area. */
+    AreaDbl smallest_item_area_ = std::numeric_limits<AreaDbl>::infinity();
+
+    /** Largest item area. */
+    AreaDbl largest_item_area_ = 0.0;
 
     /** Id of the item with maximum efficiency. */
     ItemTypeId max_efficiency_item_type_id_ = -1;

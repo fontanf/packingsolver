@@ -228,7 +228,8 @@ BranchingScheme::BranchingScheme(
                 Shape cleaned_shape = clean_shape(defect.shape);
                 std::vector<Shape> cleaned_holes;
                 for (const Shape& hole: defect.holes)
-                    cleaned_holes.push_back(clean_shape(hole));
+                    if (!striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                        cleaned_holes.push_back(clean_shape(hole));
                 {
                     auto trapezoids = polygon_trapezoidation(
                             cleaned_shape,
@@ -243,7 +244,8 @@ BranchingScheme::BranchingScheme(
                 Shape sym_shape = defect.shape.identity_line_axial_symmetry();
                 std::vector<Shape> sym_holes;
                 for (const Shape& hole: defect.holes)
-                    sym_holes.push_back(hole.identity_line_axial_symmetry());
+                    if (!striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                        sym_holes.push_back(hole.identity_line_axial_symmetry());
 
                 Shape cleaned_shape = clean_shape(sym_shape);
                 std::vector<Shape> cleaned_holes;
@@ -278,7 +280,8 @@ BranchingScheme::BranchingScheme(
                 Shape rotated_shape = item_shape.shape.rotate(angle_range.first);
                 std::vector<Shape> rotated_holes;
                 for (const Shape& hole: item_shape.holes)
-                    rotated_holes.push_back(hole.rotate(angle_range.first));
+                    if (!striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                        rotated_holes.push_back(hole.rotate(angle_range.first));
 
                 Shape cleaned_shape = clean_shape(rotated_shape);
                 std::vector<Shape> cleaned_holes;
@@ -330,7 +333,8 @@ BranchingScheme::BranchingScheme(
                 Shape sym_shape = item_shape.shape.identity_line_axial_symmetry();
                 std::vector<Shape> sym_holes;
                 for (const Shape& hole: item_shape.holes)
-                    sym_holes.push_back(hole.identity_line_axial_symmetry());
+                    if (!striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                        sym_holes.push_back(hole.identity_line_axial_symmetry());
 
                 Shape rotated_shape = sym_shape.rotate(angle_range.first);
                 std::vector<Shape> rotated_holes;

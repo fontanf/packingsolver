@@ -598,6 +598,8 @@ std::ostream& Instance::format(
             << "Number of rectangular items:  " << number_of_rectangular_items_ << std::endl
             << "Number of circular items:     " << number_of_circular_items_ << std::endl
             << "Item area:                    " << item_area() << std::endl
+            << "Smallest item area:           " << smallest_item_area() << std::endl
+            << "Largest item area:            " << largest_item_area() << std::endl
             << "Bin area:                     " << bin_area() << std::endl
             ;
     }
