@@ -107,6 +107,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "irregular" / "tests" / "trapezoidal_insertions_2.json",
                 fs::path("data") / "irregular" / "tests" / "trapezoidal_insertions_2_solution.json"
             }, {
+                fs::path("data") / "irregular" / "tests" / "trapezoidal_insertions_3.json",
+                fs::path("data") / "irregular" / "tests" / "trapezoidal_insertions_3_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "tests" / "trapezoidal_insertions_4.json",
+                fs::path("data") / "irregular" / "tests" / "trapezoidal_insertions_4_solution.json"
+            }, {
                 fs::path("data") / "irregular" / "users" / "2024-08-05.json",
                 fs::path("data") / "irregular" / "users" / "2024-08-05_solution.json"
             }, {
