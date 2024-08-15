@@ -170,6 +170,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
             }
 
             std::vector<std::thread> threads;
+            std::forward_list<std::exception_ptr> exception_ptr_list;
             for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
                 ibs_parameters_list[i].new_solution_callback
                     = [&algorithm_formatter, &branching_schemes, i](
@@ -186,8 +187,10 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                         algorithm_formatter.update_solution(solution, ss.str());
                     };
                 if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+                    exception_ptr_list.push_front(std::exception_ptr());
                     threads.push_back(std::thread(
-                                treesearchsolver::iterative_beam_search_2<BranchingScheme>,
+                                wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>,
+                                std::ref(exception_ptr_list.front()),
                                 std::ref(branching_schemes[i]),
                                 ibs_parameters_list[i]));
                 } else {
@@ -198,6 +201,9 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
             }
             for (Counter i = 0; i < (Counter)threads.size(); ++i)
                 threads[i].join();
+            for (const std::exception_ptr& exception_ptr: exception_ptr_list)
+                if (exception_ptr)
+                    std::rethrow_exception(exception_ptr);
 
             auto bs_end = std::chrono::steady_clock::now();
             std::chrono::duration<double> bs_time_span

@@ -451,8 +451,8 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
 
     // Run selected algorithms.
     if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
-        std::forward_list<std::exception_ptr> exception_ptr_list;
         std::vector<std::thread> threads;
+        std::forward_list<std::exception_ptr> exception_ptr_list;
         // Tree search.
         if (use_tree_search) {
             exception_ptr_list.push_front(std::exception_ptr());
