@@ -773,6 +773,21 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
         //std::cout << std::endl;
     }
 
+    // Check area.
+    AreaDbl shape_area = shape.compute_area();
+    for (const Shape& hole: holes)
+        shape_area -= hole.compute_area();
+    AreaDbl trapezoidation_area = 0.0;
+    for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+        trapezoidation_area += trapezoid.area();
+    if (!equal(shape_area, trapezoidation_area)) {
+        throw std::runtime_error(
+                "polygon_trapezoidation."
+                "shape_area: " + std::to_string(shape_area)
+                + "; trapezoidation_area: " + std::to_string(trapezoidation_area)
+                + ".");
+    }
+
     //std::cout << "polygon_trapezoidation end" << std::endl;
     return trapezoids;
 }

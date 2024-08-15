@@ -55,7 +55,8 @@ Shape irregular::clean_shape(
                 element_prev.end = element.end;
             }
         }
-        element_prev_pos = element_cur_pos;
+        if (useless[element_cur_pos] == 0)
+            element_prev_pos = element_cur_pos;
         element_cur_pos = element_next_pos;
     }
     for (ElementPos element_pos = 0;
