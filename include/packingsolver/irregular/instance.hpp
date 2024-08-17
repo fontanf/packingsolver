@@ -53,7 +53,7 @@ LengthDbl cross_product(
         const Point& vector_1,
         const Point& vector_2);
 
-Angle angle(
+Angle angle_radian(
         const Point& vector);
 
 /**
@@ -61,7 +61,7 @@ Angle angle(
  *
  * The angle is measured anticlockwise and always belongs to [0, 2 * pi[.
  */
-Angle angle(
+Angle angle_radian(
         const Point& vector_1,
         const Point& vector_2);
 

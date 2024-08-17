@@ -59,13 +59,33 @@ LengthDbl irregular::cross_product(
 Point Point::rotate(
         Angle angle) const
 {
-    Point point_out;
-    point_out.x = std::cos(angle) * x - std::sin(angle) * y;
-    point_out.y = std::sin(angle) * x + std::cos(angle) * y;
-    return point_out;
+    if (equal(angle, 0.0)) {
+        return *this;
+    } else if (equal(angle, 180)) {
+        Point point_out;
+        point_out.x = -x;
+        point_out.y = -y;
+        return point_out;
+    } else if (equal(angle, 90)) {
+        Point point_out;
+        point_out.x = -y;
+        point_out.y = x;
+        return point_out;
+    } else if (equal(angle, 270)) {
+        Point point_out;
+        point_out.x = y;
+        point_out.y = -x;
+        return point_out;
+    } else {
+        Point point_out;
+        angle = M_PI * angle / 180;
+        point_out.x = std::cos(angle) * x - std::sin(angle) * y;
+        point_out.y = std::sin(angle) * x + std::cos(angle) * y;
+        return point_out;
+    }
 }
 
-Angle irregular::angle(
+Angle irregular::angle_radian(
         const Point& vector)
 {
     Angle a = std::atan2(vector.y, vector.x);
@@ -74,7 +94,7 @@ Angle irregular::angle(
     return a;
 }
 
-Angle irregular::angle(
+Angle irregular::angle_radian(
         const Point& vector_1,
         const Point& vector_2)
 {
@@ -97,7 +117,7 @@ LengthDbl ShapeElement::length() const
         return distance(this->start, this->end);
     case ShapeElementType::CircularArc:
         LengthDbl r = distance(center, start);
-        return angle(start - center, end - center) * r;
+        return angle_radian(start - center, end - center) * r;
     }
     return -1;
 }
@@ -212,7 +232,7 @@ bool Shape::is_square() const
         if (it->type != ShapeElementType::LineSegment)
             return false;
         // Check angle.
-        Angle theta = angle(it_prev->start - it_prev->end, it->end - it->start);
+        Angle theta = angle_radian(it_prev->start - it_prev->end, it->end - it->start);
         if (!equal(theta, M_PI / 2))
             return false;
         // Check length.
@@ -232,7 +252,7 @@ bool Shape::is_rectangle() const
         if (it->type != ShapeElementType::LineSegment)
             return false;
         // Check angle.
-        Angle theta = angle(it_prev->start - it_prev->end, it->end - it->start);
+        Angle theta = angle_radian(it_prev->start - it_prev->end, it->end - it->start);
         if (!equal(theta, M_PI / 2))
             return false;
         it_prev = it;
@@ -261,7 +281,7 @@ AreaDbl Shape::compute_area() const
         // Handle circular arcs.
         if (element.type == ShapeElementType::CircularArc) {
             LengthDbl radius = distance(element.center, element.start);
-            Angle theta = angle(element.center - element.start, element.center - element.end);
+            Angle theta = angle_radian(element.center - element.start, element.center - element.end);
             if (element.anticlockwise) {
                 area += radius * radius * ((!(element.start == element.end))? theta: 2.0 * M_PI);
             } else {
@@ -287,8 +307,8 @@ std::pair<Point, Point> Shape::compute_min_max(Angle angle) const
 
         if (element.type == ShapeElementType::CircularArc) {
             LengthDbl radius = distance(elements.front().center, elements.front().start);
-            Angle starting_angle = irregular::angle(element.start - element.center);
-            Angle ending_angle = irregular::angle(element.end - element.center);
+            Angle starting_angle = irregular::angle_radian(element.start - element.center);
+            Angle ending_angle = irregular::angle_radian(element.end - element.center);
             if (!element.anticlockwise)
                 std::swap(starting_angle, ending_angle);
             if (starting_angle <= ending_angle) {

@@ -21,7 +21,7 @@
             ],
             "allowed_rotations": [
                 {"start": 0, "end": 0},
-                {"start": 3.14159265359, "end": 3.14159265359}
+                {"start": 180, "end": 180}
             ]
         }
     ]
