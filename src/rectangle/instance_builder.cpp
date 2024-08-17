@@ -384,7 +384,7 @@ void InstanceBuilder::read_bin_types(
             } else if (labels[i] == "HEIGHT") {
                 y = (Length)std::stol(line[i]);
             } else if (labels[i] == "COST") {
-                cost = (Length)std::stol(line[i]);
+                cost = (Profit)std::stol(line[i]);
             } else if (labels[i] == "COPIES") {
                 copies = (BinPos)std::stol(line[i]);
             } else if (labels[i] == "COPIES_MIN") {
