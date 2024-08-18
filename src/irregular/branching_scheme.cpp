@@ -1,6 +1,7 @@
 #include "irregular/branching_scheme.hpp"
 
 #include "irregular/polygon_trapezoidation.hpp"
+#include "irregular/polygon_simplification.hpp"
 #include "irregular/shape.hpp"
 
 #include <iostream>
@@ -263,7 +264,7 @@ BranchingScheme::BranchingScheme(
         }
     }
 
-    // Compute item_types_rectangles_.
+    // Compute item_types_trapezoidss_.
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -291,37 +292,7 @@ BranchingScheme::BranchingScheme(
                 auto trapezoids = polygon_trapezoidation(
                         cleaned_shape,
                         cleaned_holes);
-                std::sort(
-                        trapezoids.begin(),
-                        trapezoids.end(),
-                        [](
-                            const GeneralizedTrapezoid& trapezoid_1,
-                            const GeneralizedTrapezoid& trapezoid_2)
-                        {
-                            return trapezoid_1.x_min() < trapezoid_2.x_min();
-                        });
                 trapezoid_set_x.shapes.push_back(trapezoids);
-            }
-            trapezoid_set_x.x_min = std::numeric_limits<LengthDbl>::infinity();
-            trapezoid_set_x.x_max = -std::numeric_limits<LengthDbl>::infinity();
-            trapezoid_set_x.y_min = std::numeric_limits<LengthDbl>::infinity();
-            trapezoid_set_x.y_max = -std::numeric_limits<LengthDbl>::infinity();
-            for (const auto& item_shape_trapezoids: trapezoid_set_x.shapes) {
-                for (const GeneralizedTrapezoid& trapezoid: item_shape_trapezoids) {
-                    if (trapezoid_set_x.x_min > trapezoid.x_bottom_left())
-                        trapezoid_set_x.x_min = trapezoid.x_bottom_left();
-                    if (trapezoid_set_x.x_min > trapezoid.x_top_left())
-                        trapezoid_set_x.x_min = trapezoid.x_top_left();
-                    if (trapezoid_set_x.x_max < trapezoid.x_bottom_right())
-                        trapezoid_set_x.x_max = trapezoid.x_bottom_right();
-                    if (trapezoid_set_x.x_max < trapezoid.x_top_right())
-                        trapezoid_set_x.x_max = trapezoid.x_top_right();
-
-                    if (trapezoid_set_x.y_min > trapezoid.y_bottom())
-                        trapezoid_set_x.y_min = trapezoid.y_bottom();
-                    if (trapezoid_set_x.y_max < trapezoid.y_top())
-                        trapezoid_set_x.y_max = trapezoid.y_top();
-                }
             }
             trapezoid_sets_x_.push_back(trapezoid_set_x);
 
@@ -349,46 +320,108 @@ BranchingScheme::BranchingScheme(
                 auto trapezoids = polygon_trapezoidation(
                         cleaned_shape,
                         cleaned_holes);
-                std::sort(
-                        trapezoids.begin(),
-                        trapezoids.end(),
-                        [](
-                            const GeneralizedTrapezoid& trapezoid_1,
-                            const GeneralizedTrapezoid& trapezoid_2)
-                        {
-                            return trapezoid_1.x_min() < trapezoid_2.x_min();
-                        });
                 trapezoid_set_y.shapes.push_back(trapezoids);
-            }
-            trapezoid_set_y.x_min = std::numeric_limits<LengthDbl>::infinity();
-            trapezoid_set_y.x_max = -std::numeric_limits<LengthDbl>::infinity();
-            trapezoid_set_y.y_min = std::numeric_limits<LengthDbl>::infinity();
-            trapezoid_set_y.y_max = -std::numeric_limits<LengthDbl>::infinity();
-            for (const auto& item_shape_trapezoids: trapezoid_set_y.shapes) {
-                for (const GeneralizedTrapezoid& trapezoid: item_shape_trapezoids) {
-                    if (trapezoid_set_y.x_min > trapezoid.x_bottom_left())
-                        trapezoid_set_y.x_min = trapezoid.x_bottom_left();
-                    if (trapezoid_set_y.x_min > trapezoid.x_top_left())
-                        trapezoid_set_y.x_min = trapezoid.x_top_left();
-                    if (trapezoid_set_y.x_max < trapezoid.x_bottom_right())
-                        trapezoid_set_y.x_max = trapezoid.x_bottom_right();
-                    if (trapezoid_set_y.x_max < trapezoid.x_top_right())
-                        trapezoid_set_y.x_max = trapezoid.x_top_right();
-
-                    if (trapezoid_set_y.y_min > trapezoid.y_bottom())
-                        trapezoid_set_y.y_min = trapezoid.y_bottom();
-                    if (trapezoid_set_y.y_max < trapezoid.y_top())
-                        trapezoid_set_y.y_max = trapezoid.y_top();
-                }
             }
             trapezoid_sets_y_.push_back(trapezoid_set_y);
         }
+    }
+
+    trapezoid_sets_x_ = polygon_simplification(
+            instance,
+            trapezoid_sets_x_);
+    trapezoid_sets_y_ = polygon_simplification(
+            instance,
+            trapezoid_sets_y_);
+
+    for (TrapezoidSetId trapezoid_set_id = 0;
+            trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_x_.size();
+            ++trapezoid_set_id) {
+
+        TrapezoidSet& trapezoid_set_x = trapezoid_sets_x_[trapezoid_set_id];
+        TrapezoidSet& trapezoid_set_y = trapezoid_sets_y_[trapezoid_set_id];
+
+        for (std::vector<GeneralizedTrapezoid>& item_shape_trapezoids: trapezoid_set_x.shapes) {
+            std::sort(
+                    item_shape_trapezoids.begin(),
+                    item_shape_trapezoids.end(),
+                    [](
+                        const GeneralizedTrapezoid& trapezoid_1,
+                        const GeneralizedTrapezoid& trapezoid_2)
+                    {
+                        return trapezoid_1.x_min() < trapezoid_2.x_min();
+                    });
+        }
+
+        for (std::vector<GeneralizedTrapezoid>& item_shape_trapezoids: trapezoid_set_y.shapes) {
+            std::sort(
+                    item_shape_trapezoids.begin(),
+                    item_shape_trapezoids.end(),
+                    [](
+                        const GeneralizedTrapezoid& trapezoid_1,
+                        const GeneralizedTrapezoid& trapezoid_2)
+                    {
+                        return trapezoid_1.x_min() < trapezoid_2.x_min();
+                    });
+        }
+
+        trapezoid_set_x.x_min = std::numeric_limits<LengthDbl>::infinity();
+        trapezoid_set_x.x_max = -std::numeric_limits<LengthDbl>::infinity();
+        trapezoid_set_x.y_min = std::numeric_limits<LengthDbl>::infinity();
+        trapezoid_set_x.y_max = -std::numeric_limits<LengthDbl>::infinity();
+        for (const auto& item_shape_trapezoids: trapezoid_set_x.shapes) {
+            for (const GeneralizedTrapezoid& trapezoid: item_shape_trapezoids) {
+                if (trapezoid_set_x.x_min > trapezoid.x_bottom_left())
+                    trapezoid_set_x.x_min = trapezoid.x_bottom_left();
+                if (trapezoid_set_x.x_min > trapezoid.x_top_left())
+                    trapezoid_set_x.x_min = trapezoid.x_top_left();
+                if (trapezoid_set_x.x_max < trapezoid.x_bottom_right())
+                    trapezoid_set_x.x_max = trapezoid.x_bottom_right();
+                if (trapezoid_set_x.x_max < trapezoid.x_top_right())
+                    trapezoid_set_x.x_max = trapezoid.x_top_right();
+
+                if (trapezoid_set_x.y_min > trapezoid.y_bottom())
+                    trapezoid_set_x.y_min = trapezoid.y_bottom();
+                if (trapezoid_set_x.y_max < trapezoid.y_top())
+                    trapezoid_set_x.y_max = trapezoid.y_top();
+            }
+        }
+
+        trapezoid_set_y.x_min = std::numeric_limits<LengthDbl>::infinity();
+        trapezoid_set_y.x_max = -std::numeric_limits<LengthDbl>::infinity();
+        trapezoid_set_y.y_min = std::numeric_limits<LengthDbl>::infinity();
+        trapezoid_set_y.y_max = -std::numeric_limits<LengthDbl>::infinity();
+        for (const auto& item_shape_trapezoids: trapezoid_set_y.shapes) {
+            for (const GeneralizedTrapezoid& trapezoid: item_shape_trapezoids) {
+                if (trapezoid_set_y.x_min > trapezoid.x_bottom_left())
+                    trapezoid_set_y.x_min = trapezoid.x_bottom_left();
+                if (trapezoid_set_y.x_min > trapezoid.x_top_left())
+                    trapezoid_set_y.x_min = trapezoid.x_top_left();
+                if (trapezoid_set_y.x_max < trapezoid.x_bottom_right())
+                    trapezoid_set_y.x_max = trapezoid.x_bottom_right();
+                if (trapezoid_set_y.x_max < trapezoid.x_top_right())
+                    trapezoid_set_y.x_max = trapezoid.x_top_right();
+
+                if (trapezoid_set_y.y_min > trapezoid.y_bottom())
+                    trapezoid_set_y.y_min = trapezoid.y_bottom();
+                if (trapezoid_set_y.y_max < trapezoid.y_top())
+                    trapezoid_set_y.y_max = trapezoid.y_top();
+            }
+        }
+
     }
 
     //for (TrapezoidSetId trapezoid_set_id = 0;
     //        trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_x_.size();
     //        ++trapezoid_set_id) {
     //    const TrapezoidSet& trapezoid_set = trapezoid_sets_x_[trapezoid_set_id];
+    //    const ItemType& item_type = instance.item_type(trapezoid_set.item_type_id);
+    //    std::cout << "item_type_id " << trapezoid_set.item_type_id
+    //        << " angle " << trapezoid_set.angle
+    //        << " x_min " << item_type.compute_min_max(trapezoid_set.angle).first.x
+    //        << " x_max " << item_type.compute_min_max(trapezoid_set.angle).second.x
+    //        << " y_min " << item_type.compute_min_max(trapezoid_set.angle).first.y
+    //        << " y_max " << item_type.compute_min_max(trapezoid_set.angle).second.y
+    //        << std::endl;
     //    std::cout << "trapezoid_set_id " << trapezoid_set_id << std::endl;
     //    std::cout << "item_type_id " << trapezoid_set.item_type_id
     //        << " angle " << trapezoid_set.angle << std::endl;
@@ -745,11 +778,6 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.current_area += trapezoid.area(bb_bin_type.x_min);
         //std::cout << "* " << trapezoid.area() << " " << trapezoid.area(0.0) << std::endl;
         //std::cout << "current_area: " << node.current_area << std::endl;
-        if (node.xe_max < trapezoid.x_max())
-            node.xe_max = trapezoid.x_max();
-        if (trapezoid.x_max() != bb_bin_type.x_min
-                && node.ye_max < trapezoid.y_top())
-            node.ye_max = trapezoid.y_top();
         if (trapezoid.x_max() > node.xs_max)
             node.guide_area += trapezoid.area(node.xs_max);
     }
@@ -763,14 +791,35 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.current_area += trapezoid.area();
         //std::cout << trapezoid << std::endl;
         //std::cout << "current_area " << node.current_area << std::endl;
-        if (extra_trapezoid.item_type_id != -1) {
-            if (node.xe_max < trapezoid.x_max())
-                node.xe_max = trapezoid.x_max();
-            if (node.ye_max < trapezoid.y_top())
-                node.ye_max = trapezoid.y_top();
-        }
         if (trapezoid.x_max() > node.xs_max)
             node.guide_area += trapezoid.area(node.xs_max);
+    }
+
+    // Compute node.xe_max and node.ye_max.
+    if (node.last_bin_direction == Direction::X) {
+        if (insertion.new_bin == 0) {
+            node.xe_max = std::max(
+                    parent.xe_max,
+                    node.x + item_type.compute_min_max(trapezoid_set.angle).second.x);
+            node.ye_max = std::max(
+                    parent.ye_max,
+                    node.y + item_type.compute_min_max(trapezoid_set.angle).second.y);
+        } else {
+            node.xe_max = node.x + item_type.compute_min_max(trapezoid_set.angle).second.x;
+            node.ye_max = node.y + item_type.compute_min_max(trapezoid_set.angle).second.y;
+        }
+    } else {
+        if (insertion.new_bin == 0) {
+            node.xe_max = std::max(
+                    parent.xe_max,
+                    node.x + item_type.compute_min_max(trapezoid_set.angle).second.y);
+            node.ye_max = std::max(
+                    parent.ye_max,
+                    node.y + item_type.compute_min_max(trapezoid_set.angle).second.x);
+        } else {
+            node.xe_max = node.x + item_type.compute_min_max(trapezoid_set.angle).second.y;
+            node.ye_max = node.y + item_type.compute_min_max(trapezoid_set.angle).second.x;
+        }
     }
 
     if (node.number_of_items == instance().number_of_items()) {
@@ -1755,9 +1804,9 @@ Solution BranchingScheme::to_solution(
             Point{current_node->x, current_node->y}:
             Point{current_node->y, current_node->x};
         //std::cout << "bin_pos " << bin_pos
-        //    << " item_type_id " << trapezoid_set_item.item_type_id
+        //    << " item_type_id " << trapezoid_set.item_type_id
         //    << " bl_corner " << bl_corner.to_string()
-        //    << " angle " << trapezoid_set_item.angle
+        //    << " angle " << trapezoid_set.angle
         //    << std::endl;
         solution.add_item(
                 bin_pos,
