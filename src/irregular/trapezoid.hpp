@@ -64,10 +64,10 @@ public:
         x_min_ = std::min(x_bottom_left(), x_top_left());
         x_max_ = std::max(x_bottom_right(), x_top_right());
 
-        left_side_increasing_not_vertical_ = (a_left() > 1e-2);
-        left_side_decreasing_not_vertical_ = (a_left() < -1e-2);
-        right_side_increasing_not_vertical_ = (a_right() > 1e-2);
-        right_side_decreasing_not_vertical_ = (a_right() < -1e-2);
+        left_side_increasing_not_vertical_ = (a_left() > 0);
+        left_side_decreasing_not_vertical_ = (a_left() < -0);
+        right_side_increasing_not_vertical_ = (a_right() > 0);
+        right_side_decreasing_not_vertical_ = (a_right() < -0);
     }
 
     void shift_top(LengthDbl l)
@@ -510,6 +510,41 @@ public:
         return x_shift;
     }
 
+    GeneralizedTrapezoid clean() const
+    {
+        LengthDbl yb = yb_;
+        LengthDbl yt = yt_;
+        LengthDbl xbl = xbl_;
+        LengthDbl xbr = xbr_;
+        LengthDbl xtl = xtl_;
+        LengthDbl xtr = xtr_;
+        if (a_left() > 1e2) {
+            xtl = xbl_;
+        } else if (a_left() < -1e2) {
+            xbl = xtl_;
+        } else if (a_left() > 0 && a_left() < 1e-2) {
+            xtl = xbl_;
+        } else if (a_left() < 0 && a_left() > -1e-2) {
+            xbl = xtl_;
+        }
+        if (a_right() > 1e2) {
+            xbr = xtr_;
+        } else if (a_right() < -1e2) {
+            xtr = xbr_;
+        } else if (a_right() > 0 && a_right() < 1e-2) {
+            xbr = xtr_;
+        } else if (a_right() < 0 && a_right() > -1e-2) {
+            xtr = xbr_;
+        }
+        return GeneralizedTrapezoid(
+                yb,
+                yt,
+                xbl,
+                xbr,
+                xtl,
+                xtr);
+    }
+
 private:
 
     /** x-coordinate of the bottom. */
@@ -576,12 +611,15 @@ inline std::ostream& operator<<(
         std::ostream& os,
         const GeneralizedTrapezoid& trapezoid)
 {
-    os << "yb " << trapezoid.y_bottom()
+    std::streamsize precision = std::cout.precision();
+    os << std::setprecision(std::numeric_limits<double>::digits10 + 1)
+        << "yb " << trapezoid.y_bottom()
         << " yt " << trapezoid.y_top()
         << " xbl " << trapezoid.x_bottom_left()
         << " xbr " << trapezoid.x_bottom_right()
         << " xtl " << trapezoid.x_top_left()
         << " xtr " << trapezoid.x_top_right()
+        << std::setprecision(precision)
         ;
     return os;
 }

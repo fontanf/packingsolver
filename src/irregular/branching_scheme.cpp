@@ -199,7 +199,7 @@ BranchingScheme::BranchingScheme(
                     if (cleaned_shape.elements.size() > 2) {
                         auto trapezoids = polygon_trapezoidation(cleaned_shape);
                         for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
-                            UncoveredTrapezoid defect(-1, trapezoid);
+                            UncoveredTrapezoid defect(-1, trapezoid.clean());
                             bin_types_x_[bin_type_id].defects.push_back(defect);
                         }
                     }
@@ -210,7 +210,7 @@ BranchingScheme::BranchingScheme(
                     if (cleaned_shape.elements.size() > 2) {
                         auto trapezoids = polygon_trapezoidation(cleaned_shape);
                         for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
-                            UncoveredTrapezoid defect(-1, trapezoid);
+                            UncoveredTrapezoid defect(-1, trapezoid.clean());
                             bin_types_y_[bin_type_id].defects.push_back(defect);
                         }
                     }
@@ -236,7 +236,7 @@ BranchingScheme::BranchingScheme(
                             cleaned_shape,
                             cleaned_holes);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
-                        UncoveredTrapezoid defect(defect_id, trapezoid);
+                        UncoveredTrapezoid defect(defect_id, trapezoid.clean());
                         bin_types_x_[bin_type_id].defects.push_back(defect);
                     }
                 }
@@ -257,7 +257,7 @@ BranchingScheme::BranchingScheme(
                         cleaned_shape,
                         cleaned_holes);
                 for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
-                    UncoveredTrapezoid defect(defect_id, trapezoid);
+                    UncoveredTrapezoid defect(defect_id, trapezoid.clean());
                     bin_types_y_[bin_type_id].defects.push_back(defect);
                 }
             }
@@ -292,7 +292,9 @@ BranchingScheme::BranchingScheme(
                 auto trapezoids = polygon_trapezoidation(
                         cleaned_shape,
                         cleaned_holes);
-                trapezoid_set_x.shapes.push_back(trapezoids);
+                trapezoid_set_x.shapes.push_back({});
+                for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+                    trapezoid_set_x.shapes.back().push_back(trapezoid.clean());
             }
             trapezoid_sets_x_.push_back(trapezoid_set_x);
 
@@ -320,7 +322,9 @@ BranchingScheme::BranchingScheme(
                 auto trapezoids = polygon_trapezoidation(
                         cleaned_shape,
                         cleaned_holes);
-                trapezoid_set_y.shapes.push_back(trapezoids);
+                trapezoid_set_y.shapes.push_back({});
+                for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+                    trapezoid_set_y.shapes.back().push_back(trapezoid.clean());
             }
             trapezoid_sets_y_.push_back(trapezoid_set_y);
         }
@@ -1135,13 +1139,14 @@ inline bool BranchingScheme::update_position(
             LengthDbl lx = current_trapezoid.compute_top_right_shift(
                     trapezoid_to_avoid,
                     1.0 / item_shape_trapezoid.a_right());
-            if (equal(xs + lx, xs) && equal(ys + lx / item_shape_trapezoid.a_right(), ys)) {
+            LengthDbl ly = lx / item_shape_trapezoid.a_right();
+            if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
             } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_right(), supporting_trapezoid.x_bottom_left())) {
                 current_trapezoid.shift_right(lx);
-                current_trapezoid.shift_top(lx / item_shape_trapezoid.a_right());
+                current_trapezoid.shift_top(ly);
                 xs += lx;
-                ys += lx / item_shape_trapezoid.a_right();
+                ys += ly;
                 return true;
             } else {
                 state = State::ItemShapeTrapezoidBottomRightSupportingTrapezoidLeft;
@@ -1157,13 +1162,14 @@ inline bool BranchingScheme::update_position(
             LengthDbl lx = current_trapezoid.compute_top_right_shift(
                     trapezoid_to_avoid,
                     1.0 / supporting_trapezoid.a_left());
-            if (equal(xs + lx, xs) && equal(ys + lx / supporting_trapezoid.a_left(), ys)) {
+            LengthDbl ly = lx / supporting_trapezoid.a_left();
+            if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
             } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_top_right(), supporting_trapezoid.x_top_left())) {
                 current_trapezoid.shift_right(lx);
-                current_trapezoid.shift_top(lx / supporting_trapezoid.a_left());
+                current_trapezoid.shift_top(ly);
                 xs += lx;
-                ys += lx / supporting_trapezoid.a_left();
+                ys += ly;
                 return true;
             } else if (!supporting_trapezoid.top_covered()) {
                 state = State::ItemShapeTrapezoidRightSupportingTrapezoidTopLeft;
@@ -1179,13 +1185,14 @@ inline bool BranchingScheme::update_position(
             LengthDbl lx = current_trapezoid.compute_top_right_shift(
                     trapezoid_to_avoid,
                     1.0 / supporting_trapezoid.a_left());
-            if (equal(xs + lx, xs) && equal(ys + lx / supporting_trapezoid.a_left(), ys)) {
+            LengthDbl ly = lx / supporting_trapezoid.a_left();
+            if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
             } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_right(), supporting_trapezoid.x_top_left())) {
                 current_trapezoid.shift_right(lx);
-                current_trapezoid.shift_top(lx / supporting_trapezoid.a_left());
+                current_trapezoid.shift_top(ly);
                 xs += lx;
-                ys += lx / supporting_trapezoid.a_left();
+                ys += ly;
                 return true;
             } else if (!supporting_trapezoid.top_covered()) {
                 state = State::ItemShapeTrapezoidBottomRightSupportingTrapezoidTop;
@@ -1228,14 +1235,15 @@ inline bool BranchingScheme::update_position(
             LengthDbl lx = current_trapezoid.compute_top_right_shift(
                     trapezoid_to_avoid,
                     1.0 / item_shape_trapezoid.a_right());
+            LengthDbl ly = lx / item_shape_trapezoid.a_right();
             //std::cout << "lx " << lx << std::endl;
-            if (equal(xs + lx, xs) && equal(ys + lx / item_shape_trapezoid.a_right(), ys)) {
+            if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
             } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_right(), supporting_trapezoid.x_top_left())) {
                 current_trapezoid.shift_right(lx);
-                current_trapezoid.shift_top(lx / item_shape_trapezoid.a_right());
+                current_trapezoid.shift_top(ly);
                 xs += lx;
-                ys += lx / item_shape_trapezoid.a_right();
+                ys += ly;
                 return true;
             } else if (!supporting_trapezoid.top_covered()) {
                 state = State::ItemShapeTrapezoidBottomRightSupportingTrapezoidTop;
@@ -1302,6 +1310,7 @@ inline bool BranchingScheme::update_position(
                     ys = supporting_trapezoid.y_top() - item_shape_trapezoid.y_bottom();
                 }
             } else {
+                //std::cout << "infeasible" << std::endl;
                 state = State::Infeasible;
                 return false;
             }
@@ -1312,13 +1321,14 @@ inline bool BranchingScheme::update_position(
             LengthDbl lx = current_trapezoid.compute_top_right_shift(
                     trapezoid_to_avoid,
                     1.0 / item_shape_trapezoid.a_left());
-            if (equal(xs + lx, xs) && equal(ys + lx / item_shape_trapezoid.a_left(), ys)) {
+            LengthDbl ly = lx / item_shape_trapezoid.a_left();
+            if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
             } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_top_left(), supporting_trapezoid.x_top_right())) {
                 current_trapezoid.shift_right(lx);
-                current_trapezoid.shift_top(lx / item_shape_trapezoid.a_left());
+                current_trapezoid.shift_top(ly);
                 xs += lx;
-                ys += lx / item_shape_trapezoid.a_left();
+                ys += ly;
                 return true;
             } else if (supporting_trapezoid.right_side_decreasing_not_vertical()) {
                 state = State::ItemShapeTrapezoidTopLeftSupportingTrapezoidRight;
@@ -1337,13 +1347,14 @@ inline bool BranchingScheme::update_position(
             LengthDbl lx = current_trapezoid.compute_top_right_shift(
                     trapezoid_to_avoid,
                     1.0 / supporting_trapezoid.a_right());
-            if (equal(xs + lx, xs) && equal(ys + lx / supporting_trapezoid.a_right(), ys)) {
+            LengthDbl ly = lx / supporting_trapezoid.a_right();
+            if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
             } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_top_left(), supporting_trapezoid.x_bottom_right())) {
                 current_trapezoid.shift_right(lx);
-                current_trapezoid.shift_top(lx / supporting_trapezoid.a_right());
+                current_trapezoid.shift_top(ly);
                 xs += lx;
-                ys += lx / supporting_trapezoid.a_right();
+                ys += ly;
                 return true;
             } else {
                 state = State::Infeasible;
@@ -1356,13 +1367,14 @@ inline bool BranchingScheme::update_position(
             LengthDbl lx = current_trapezoid.compute_top_right_shift(
                     trapezoid_to_avoid,
                     1.0 / supporting_trapezoid.a_right());
-            if (equal(xs + lx, xs) && equal(ys + lx / supporting_trapezoid.a_right(), ys)) {
+            LengthDbl ly = lx / supporting_trapezoid.a_right();
+            if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
             } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_left(), supporting_trapezoid.x_bottom_right())) {
                 current_trapezoid.shift_right(lx);
-                current_trapezoid.shift_top(lx / supporting_trapezoid.a_right());
+                current_trapezoid.shift_top(ly);
                 xs += lx;
-                ys += lx / supporting_trapezoid.a_right();
+                ys += ly;
                 return true;
             } else if (item_shape_trapezoid.left_side_decreasing_not_vertical()
                     && striclty_greater(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
@@ -1382,13 +1394,14 @@ inline bool BranchingScheme::update_position(
             LengthDbl lx = current_trapezoid.compute_top_right_shift(
                     trapezoid_to_avoid,
                     1.0 / item_shape_trapezoid.a_left());
-            if (equal(xs + lx, xs) && equal(ys + lx / item_shape_trapezoid.a_left(), ys)) {
+            LengthDbl ly = lx / item_shape_trapezoid.a_left();
+            if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
             } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_top_left(), supporting_trapezoid.x_bottom_right())) {
                 xs += lx;
-                ys += lx / item_shape_trapezoid.a_left();
+                ys += ly;
                 current_trapezoid.shift_right(lx);
-                current_trapezoid.shift_top(lx / item_shape_trapezoid.a_left());
+                current_trapezoid.shift_top(ly);
                 return true;
             } else {
                 state = State::Infeasible;

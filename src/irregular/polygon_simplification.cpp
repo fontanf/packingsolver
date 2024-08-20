@@ -7,10 +7,11 @@ namespace
 {
 
 
-std::vector<TrapezoidSetId> compute_trapezoid_below(
+std::vector<TrapezoidSetId> compute_trapezoids_below(
         const std::vector<GeneralizedTrapezoid>& trapezoids)
 {
     std::vector<TrapezoidSetId> trapezoid_below(trapezoids.size(), -1);
+    std::vector<TrapezoidSetId> trapezoid_above(trapezoids.size(), -1);
 
     std::vector<TrapezoidSetId> sorted_trapezoids(trapezoids.size(), -1);
     std::iota(sorted_trapezoids.begin(), sorted_trapezoids.end(), 0);
@@ -38,8 +39,13 @@ std::vector<TrapezoidSetId> compute_trapezoid_below(
             //std::cout << "trapezoid_pos_2 " << trapezoid_pos_2 << std::endl;
             const GeneralizedTrapezoid& trapezoid_2 = trapezoids[sorted_trapezoids[trapezoid_pos_2]];
             //std::cout << "trapezoid_2 " << trapezoid_2 << std::endl;
+
+            if (trapezoid_above[sorted_trapezoids[trapezoid_pos_2]] != -1)
+                continue;
+
             if (striclty_lesser(trapezoid_2.y_top(), trapezoid_1.y_bottom()))
                 break;
+
             bool ok_1 = (!striclty_greater(trapezoid_2.x_top_left(), trapezoid_1.x_bottom_left())
                     && !striclty_lesser(trapezoid_2.x_top_right(), trapezoid_1.x_bottom_right()));
             bool ok_2 = (!striclty_lesser(trapezoid_2.x_top_left(), trapezoid_1.x_bottom_left())
@@ -48,6 +54,8 @@ std::vector<TrapezoidSetId> compute_trapezoid_below(
                     && (ok_1 || ok_2)) {
                 trapezoid_below[sorted_trapezoids[trapezoid_pos_1]]
                     = sorted_trapezoids[trapezoid_pos_2];
+                trapezoid_above[sorted_trapezoids[trapezoid_pos_2]]
+                    = sorted_trapezoids[trapezoid_pos_1];
                 //std::cout << "above "
                 //    << sorted_trapezoids[trapezoid_pos_1]
                 //    << " " << trapezoid_1 << std::endl;
@@ -261,7 +269,7 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
 
     // Compute trapezoid_below.
     std::vector<TrapezoidSet> trapezoid_sets_tmp = trapezoid_sets;
-    std::vector<std::vector<std::vector<TrapezoidSetId>>> trapezoid_below(trapezoid_sets.size());
+    std::vector<std::vector<std::vector<TrapezoidSetId>>> trapezoids_below(trapezoid_sets.size());
     std::vector<PolygonSimplificationElement> merge_candidates_tmp;
     //std::cout << "trapezoid_sets.size() " << trapezoid_sets.size() << std::endl;
     for (TrapezoidSetId trapezoid_set_id = 0;
@@ -269,17 +277,18 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
             ++trapezoid_set_id) {
         //std::cout << "trapezoid_set_id " << trapezoid_set_id << std::endl;
         const TrapezoidSet& trapezoid_set = trapezoid_sets[trapezoid_set_id];
+        const ItemType& item_type = instance.item_type(trapezoid_set.item_type_id);
         for (ItemShapePos item_shape_pos = 0;
                 item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
                 ++item_shape_pos) {
             const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
-            trapezoid_below[trapezoid_set_id].push_back(
-                    compute_trapezoid_below(item_shape_trapezoids));
+            trapezoids_below[trapezoid_set_id].push_back(
+                    compute_trapezoids_below(item_shape_trapezoids));
             for (TrapezoidPos item_shape_trapezoid_pos = 0;
                     item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
                     ++item_shape_trapezoid_pos) {
                 const GeneralizedTrapezoid& trapezoid_above = item_shape_trapezoids[item_shape_trapezoid_pos];
-                TrapezoidSetId trapezoid_below_pos = trapezoid_below[trapezoid_set_id][item_shape_pos][item_shape_trapezoid_pos];
+                TrapezoidSetId trapezoid_below_pos = trapezoids_below[trapezoid_set_id][item_shape_pos][item_shape_trapezoid_pos];
                 if (trapezoid_below_pos != -1) {
                     const GeneralizedTrapezoid& trapezoid_below = trapezoid_sets_tmp[trapezoid_set_id].shapes[item_shape_pos][trapezoid_below_pos];
                     PolygonSimplificationElement candidate;
@@ -290,7 +299,7 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
                     GeneralizedTrapezoid trapezoid_merge = merge(trapezoid_above, trapezoid_below);
                     double c_old = trapezoid_above.area() + trapezoid_below.area();
                     double c_new = trapezoid_merge.area();
-                    candidate.merge_cost = c_new - c_old;
+                    candidate.merge_cost = (c_new - c_old) * item_type.copies;
                     if (striclty_lesser(c_new, c_old)
                             && !equal(trapezoid_above.y_top(), trapezoid_above.y_bottom())
                             && !equal(trapezoid_below.y_top(), trapezoid_below.y_bottom())) {
@@ -325,16 +334,31 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
 
     // Current merge cost for each trapezoid set.
     std::vector<double> trapezoid_set_merge_cost(trapezoid_sets.size(), 0.0);
+
     // Current merge cost for each item type.
     std::vector<double> item_type_merge_cost(instance.number_of_item_types(), 0.0);
+
     // Current total merge cost.
     double total_merge_cost = 0.0;
+
     // We allow a merge cost of 1% of the bin or item area.
     double maximum_merge_cost = (instance.objective() == Objective::Knapsack)?
         instance.bin_area():
         instance.item_area();
-    maximum_merge_cost *= 0.0001;
+    maximum_merge_cost *= 0.01;
 
+    // Compute the total number of trapezoids.
+    TrapezoidPos total_number_of_trapezoids = 0;
+    for (const TrapezoidSet& trapezoid_set: trapezoid_sets) {
+        const ItemType& item_type = instance.item_type(trapezoid_set.item_type_id);
+        for (const std::vector<GeneralizedTrapezoid>& item_shape_trapezoids: trapezoid_set.shapes) {
+            total_number_of_trapezoids += item_shape_trapezoids.size()
+                * item_type.copies;
+        }
+    }
+    //std::cout << "total_number_of_trapezoids " << total_number_of_trapezoids << std::endl;
+
+    // Initialize is_trapezoid_removed.
     std::vector<std::vector<std::vector<uint8_t>>> is_trapezoid_removed(trapezoid_sets.size());
     for (TrapezoidSetId trapezoid_set_id = 0;
             trapezoid_set_id < (TrapezoidSetId)trapezoid_sets.size();
@@ -352,6 +376,13 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
     }
 
     while (!merge_candidates.empty()) {
+
+        // Check the total number of trapezoids.
+        if (total_number_of_trapezoids
+                <= 16 * instance.number_of_items()) {
+            break;
+        }
+
         // Get the best candidate from the candidate set.
         PolygonSimplificationElement candidate = *merge_candidates.begin();
         //std::cout << std::endl;
@@ -369,20 +400,22 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
         if (is_trapezoid_removed[candidate.trapezoid_set_id][candidate.item_shape_pos][candidate.trapezoid_below_pos])
             continue;
 
-        double merge_cost = merge(
-                trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_above_pos],
-                trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_below_pos]).area()
-            - trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_above_pos].area()
-            - trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_below_pos].area();
+        const TrapezoidSet& trapezoid_set = trapezoid_sets[candidate.trapezoid_set_id];
+        ItemTypeId item_type_id = trapezoid_set.item_type_id;
+        const ItemType& item_type = instance.item_type(item_type_id);
+
+        const GeneralizedTrapezoid& trapezoid_above = trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_above_pos];
+        const GeneralizedTrapezoid& trapezoid_below = trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_below_pos];
+        GeneralizedTrapezoid trapezoid_merge = merge(trapezoid_above, trapezoid_below);
+        double merge_cost = trapezoid_merge.area()
+            - trapezoid_above.area()
+            - trapezoid_below.area();
+        merge_cost *= item_type.copies;
         if (candidate.merge_cost != merge_cost) {
             candidate.merge_cost = merge_cost;
             merge_candidates.insert(candidate);
             continue;
         }
-
-        const TrapezoidSet& trapezoid_set = trapezoid_sets[candidate.trapezoid_set_id];
-        ItemTypeId item_type_id = trapezoid_set.item_type_id;
-        const ItemType& item_type = instance.item_type(item_type_id);
 
         // Compute potential_total_merge_cost.
         double potential_trapezoid_set_merge_cost = trapezoid_set_merge_cost[candidate.trapezoid_set_id]
@@ -402,20 +435,27 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
             //    << " above " << candidate.trapezoid_above_pos
             //    << " below " << candidate.trapezoid_below_pos
             //    << std::endl;
-            //std::cout << "above " << trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_above_pos] << std::endl;
-            //std::cout << "below " << trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_below_pos] << std::endl;
+            //std::cout << "above " << trapezoid_above << std::endl;
+            //std::cout << "below " << trapezoid_below << std::endl;
+            //std::cout << "merge " << trapezoid_merge << std::endl;
+
             // Update trapezoid_set_tmp.
-            trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_above_pos]
-                = merge(
-                        trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_above_pos],
-                        trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_below_pos]);
+            trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_above_pos] = trapezoid_merge;
             //std::cout << "merge " << trapezoid_sets_tmp[candidate.trapezoid_set_id].shapes[candidate.item_shape_pos][candidate.trapezoid_above_pos] << std::endl;
+
             // Update is_trapezoid_removed.
             is_trapezoid_removed[candidate.trapezoid_set_id][candidate.item_shape_pos][candidate.trapezoid_below_pos] = 1;
+
+            // Update the total merge cost.
+            total_merge_cost += candidate.merge_cost;
+
+            // Update the total number of trapezoids.
+            total_number_of_trapezoids -= item_type.copies;
+
             // Create new candidate.
-            TrapezoidPos trapezoid_below_new_pos = trapezoid_below[candidate.trapezoid_set_id][candidate.item_shape_pos][candidate.trapezoid_below_pos];
-            trapezoid_below[candidate.trapezoid_set_id][candidate.item_shape_pos][candidate.trapezoid_above_pos] = trapezoid_below_new_pos;
+            TrapezoidPos trapezoid_below_new_pos = trapezoids_below[candidate.trapezoid_set_id][candidate.item_shape_pos][candidate.trapezoid_below_pos];
             //std::cout << "trapezoid_below_new_pos " << trapezoid_below_new_pos << std::endl;
+            trapezoids_below[candidate.trapezoid_set_id][candidate.item_shape_pos][candidate.trapezoid_above_pos] = trapezoid_below_new_pos;
             if (trapezoid_below_new_pos != -1) {
                 PolygonSimplificationElement candidate_new;
                 candidate_new.trapezoid_set_id = candidate.trapezoid_set_id;
@@ -433,10 +473,13 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
                         trapezoid_sets_tmp[candidate_new.trapezoid_set_id].shapes[candidate_new.item_shape_pos][candidate_new.trapezoid_below_pos]).area()
                     - trapezoid_sets_tmp[candidate_new.trapezoid_set_id].shapes[candidate_new.item_shape_pos][candidate_new.trapezoid_above_pos].area()
                     - trapezoid_sets_tmp[candidate_new.trapezoid_set_id].shapes[candidate_new.item_shape_pos][candidate_new.trapezoid_below_pos].area();
+                candidate.merge_cost *= item_type.copies;
                 merge_candidates.insert(candidate_new);
             }
         }
     }
+    //std::cout << "total_number_of_trapezoids " << total_number_of_trapezoids << " / " << 16 * instance.number_of_items() << std::endl;
+    //std::cout << "total_merge_cost " << total_merge_cost << " / " << maximum_merge_cost << std::endl;
 
     // Build trapezoid_sets_new from trapezoid_sets_tmp and is_trapezoid_removed.
     std::vector<TrapezoidSet> trapezoid_sets_new(trapezoid_sets.size());
