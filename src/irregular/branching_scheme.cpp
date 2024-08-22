@@ -1054,40 +1054,6 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.ye_max = y + mm.second.y;
     }
 
-    node.waste = node.current_area - node.item_area;
-
-    if (node.waste < -PSTOL) {
-        for (Node* current_node = &node;
-                current_node->parent != nullptr;
-                current_node = current_node->parent.get()) {
-            std::cout << current_node->trapezoid_set_id
-                << " x " << current_node->x
-                << " y " << current_node->y
-                << " d " << (int)current_node->last_bin_direction
-                << std::endl;
-        }
-        std::cout << "bb_bin_type x_min " << bb_bin_type.x_min
-            << " x_max " << bb_bin_type.x_max
-            << " y_min " << bb_bin_type.y_min
-            << " y_max " << bb_bin_type.y_max
-            << std::endl;
-        std::cout << "uncovered_trapezoids" << std::endl;
-        for (const UncoveredTrapezoid& uncovered_trapezoid: node.uncovered_trapezoids)
-            std::cout << uncovered_trapezoid << std::endl;
-        std::cout << "extra_trapezoids" << std::endl;
-        for (const UncoveredTrapezoid& extra_trapezoid: node.extra_trapezoids)
-            std::cout << extra_trapezoid << std::endl;
-        Solution solution = to_solution(std::make_shared<Node>(node));
-        solution.write("solution_irregular.json");
-        throw std::runtime_error(
-                "waste: " + std::to_string(node.waste)
-                + "; number_of_items: " + std::to_string(node.number_of_items)
-                + "; current_area: " + std::to_string(node.current_area)
-                + "; item_area: " + std::to_string(node.item_area));
-    }
-    if (node.waste < 0.0)
-        node.waste = 0.0;
-
     node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
         - (node.xe_max - bin_type.x_min) * (node.ye_max - bin_type.y_min);
 
@@ -1898,13 +1864,7 @@ bool BranchingScheme::better(
         const std::shared_ptr<Node>& node_2) const
 {
     switch (instance_.objective()) {
-    case Objective::Default: {
-        if (node_2->profit > node_1->profit)
-            return false;
-        if (node_2->profit < node_1->profit)
-            return true;
-        return node_2->waste > node_1->waste;
-    } case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
+    case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
         if (!leaf(node_1))
             return false;
         if (!leaf(node_2))
@@ -1949,27 +1909,10 @@ bool BranchingScheme::bound(
     switch (instance_.objective()) {
     case Objective::Default: {
         return false;
-        //Profit ub = node_1->profit + knapsack_bounds_[instance_.packable_area() - node_1->current_area];
-        //if (!leaf(node_2)) {
-        //    return (ub <= node_2->profit);
-        //} else {
-        //    if (ub != node_2->profit)
-        //        return (ub <= node_2->profit);
-        //    return node_1->waste >= node_2->waste;
-        //}
     } case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
         if (!leaf(node_2))
             return false;
-        BinPos bin_pos = -1;
-        AreaDbl a = instance_.item_area() + node_1->waste;
-        while (a > 0) {
-            bin_pos++;
-            if (bin_pos >= instance_.number_of_bins())
-                return true;
-            BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
-            a -= instance_.bin_type(bin_type_id).area;
-        }
-        return (bin_pos + 1 >= node_2->number_of_bins);
+        return (node_1->number_of_bins >= node_2->number_of_bins);
     } case Objective::BinPackingWithLeftovers: {
         if (!leaf(node_2))
             return false;
@@ -1987,17 +1930,11 @@ bool BranchingScheme::bound(
     } case Objective::OpenDimensionX: {
         if (!leaf(node_2))
             return false;
-        return std::max(
-                node_1->xe_max,
-                node_1->waste + instance_.item_area())
-            / instance_.bin_type(0).x_max >= node_2->xe_max;
+        return node_1->xe_max >= node_2->xe_max;
     } case Objective::OpenDimensionY: {
         if (!leaf(node_2))
             return false;
-        return std::max(
-                node_1->ye_max,
-                node_1->waste + instance_.item_area())
-            / instance_.bin_type(0).y_max >= node_2->ye_max;
+        return node_1->ye_max >= node_2->ye_max;
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         return false;
     } default: {
@@ -2158,8 +2095,7 @@ std::ostream& packingsolver::irregular::operator<<(
     os << "item_area " << node.item_area
         << " current_area " << node.current_area
         << std::endl;
-    os << "waste " << node.waste
-        << " profit " << node.profit
+    os << " profit " << node.profit
         << std::endl;
 
     // item_number_of_copies

@@ -195,9 +195,6 @@ public:
         /** Current area. */
         AreaDbl current_area = 0;
 
-        /** Waste. */
-        AreaDbl waste = 0;
-
         /** Leftover value. */
         Profit leftover_value = 0;
 
@@ -392,7 +389,6 @@ public:
     std::string display(const std::shared_ptr<Node>& node) const
     {
         std::stringstream ss;
-        //ss << node->waste;
         ss << node->profit;
         return ss.str();
     }
@@ -436,12 +432,6 @@ private:
 
     /** Get the remaining item area of a node. */
     inline double remaining_item_area(const Node& node) const { return instance_.item_area() - node.item_area; }
-
-    /** Get the waste percentage of a node. */
-    inline double waste_percentage(const Node& node) const { return (double)node.waste / node.current_area; }
-
-    /** Get the waste ratio of a node. */
-    inline double waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
 
     /** Get the area load of a node. */
     inline double area_load(const Node& node) const { return (double)node.item_area / instance().bin_area(); }
