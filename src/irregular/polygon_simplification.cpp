@@ -300,18 +300,18 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
                     double c_old = trapezoid_above.area() + trapezoid_below.area();
                     double c_new = trapezoid_merge.area();
                     candidate.merge_cost = (c_new - c_old) * item_type.copies;
-                    if (striclty_lesser(c_new, c_old)
-                            && !equal(trapezoid_above.y_top(), trapezoid_above.y_bottom())
-                            && !equal(trapezoid_below.y_top(), trapezoid_below.y_bottom())) {
-                        //std::cout << "above " << trapezoid_above << std::endl;
-                        //std::cout << "below " << trapezoid_below << std::endl;
-                        //std::cout << "merge " << trapezoid_merge << std::endl;
-                        //std::cout << "cost " << candidate.merge_cost << std::endl;
-                        //std::cout << "c_old " << c_old << std::endl;
-                        //std::cout << "c_new " << c_new << std::endl;
-                        throw std::logic_error(
-                                "polygon_simplification.");
-                    }
+                    //if (striclty_lesser(c_new, c_old)
+                    //        && !equal(trapezoid_above.y_top(), trapezoid_above.y_bottom())
+                    //        && !equal(trapezoid_below.y_top(), trapezoid_below.y_bottom())) {
+                    //    //std::cout << "above " << trapezoid_above << std::endl;
+                    //    //std::cout << "below " << trapezoid_below << std::endl;
+                    //    //std::cout << "merge " << trapezoid_merge << std::endl;
+                    //    //std::cout << "cost " << candidate.merge_cost << std::endl;
+                    //    //std::cout << "c_old " << c_old << std::endl;
+                    //    //std::cout << "c_new " << c_new << std::endl;
+                    //    throw std::logic_error(
+                    //            "polygon_simplification.");
+                    //}
                     merge_candidates_tmp.push_back(candidate);
                 }
             }
