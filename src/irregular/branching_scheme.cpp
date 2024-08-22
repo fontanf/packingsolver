@@ -344,20 +344,20 @@ BranchingScheme::BranchingScheme(
             trapezoid_set_y.angle = angle_range.first;
             for (const ItemShape& item_shape: item_type.shapes) {
 
-                Shape sym_shape = item_shape.shape.axial_symmetry_identity_line();
-                std::vector<Shape> sym_holes;
+                Shape rotated_shape = item_shape.shape.rotate(angle_range.first);
+                std::vector<Shape> rotated_holes;
                 for (const Shape& hole: item_shape.holes)
+                    rotated_holes.push_back(hole.rotate(angle_range.first));
+
+                Shape sym_shape = rotated_shape.axial_symmetry_identity_line();
+                std::vector<Shape> sym_holes;
+                for (const Shape& hole: rotated_holes)
                     if (!striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
                         sym_holes.push_back(hole.axial_symmetry_identity_line());
 
-                Shape rotated_shape = sym_shape.rotate(angle_range.first);
-                std::vector<Shape> rotated_holes;
-                for (const Shape& hole: sym_holes)
-                    rotated_holes.push_back(hole.rotate(angle_range.first));
-
-                Shape cleaned_shape = clean_shape(rotated_shape);
+                Shape cleaned_shape = clean_shape(sym_shape);
                 std::vector<Shape> cleaned_holes;
-                for (const Shape& hole: rotated_holes)
+                for (const Shape& hole: sym_holes)
                     cleaned_holes.push_back(clean_shape(hole));
 
                 auto trapezoids = polygon_trapezoidation(
