@@ -265,7 +265,7 @@ void InstanceBuilder::read(
     for (const auto& json_item: j["bin_types"]) {
         Shape shape = read_shape(json_item);
 
-        Profit cost = shape.compute_area();
+        Profit cost = -1;
         if (json_item.contains("cost"))
             cost = json_item["cost"];
 
