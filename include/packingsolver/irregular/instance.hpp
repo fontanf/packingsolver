@@ -158,7 +158,11 @@ struct Shape
 
     Shape rotate(Angle angle) const;
 
-    Shape identity_line_axial_symmetry() const;
+    Shape axial_symmetry_identity_line() const;
+
+    Shape axial_symmetry_y_axis() const;
+
+    Shape axial_symmetry_x_axis() const;
 
     Shape reverse() const;
 
@@ -365,20 +369,6 @@ public:
     inline DefectId number_of_defects() const { return number_of_defects_; }
 
     /*
-     * Getters: bin type dimensions
-     */
-
-    /** Get the x of a bin type depending on its orientation. */
-    inline LengthDbl x_max(
-            const BinType& bin_type,
-            Direction o) const;
-
-    /** Get the y of a bin type depending on its orientation. */
-    inline LengthDbl y_max(
-            const BinType& bin_type,
-            Direction o) const;
-
-    /*
      * Getters: item types
      */
 
@@ -501,24 +491,6 @@ private:
     friend class InstanceBuilder;
 
 };
-
-////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Inlined methods ////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-LengthDbl Instance::x_max(
-        const BinType& bin_type,
-        Direction o) const
-{
-    return (o == Direction::X)? bin_type.x_max: bin_type.y_max;
-}
-
-LengthDbl Instance::y_max(
-        const BinType& bin_type,
-        Direction o) const
-{
-    return (o == Direction::X)? bin_type.y_max: bin_type.x_max;
-}
 
 }
 }

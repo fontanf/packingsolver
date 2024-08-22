@@ -510,6 +510,28 @@ public:
         return x_shift;
     }
 
+    GeneralizedTrapezoid axial_symmetry_x_axis() const
+    {
+        return GeneralizedTrapezoid(
+                -y_top(),
+                -y_bottom(),
+                x_top_left(),
+                x_top_right(),
+                x_bottom_left(),
+                x_bottom_right());
+    }
+
+    GeneralizedTrapezoid axial_symmetry_y_axis() const
+    {
+        return GeneralizedTrapezoid(
+                y_bottom(),
+                y_top(),
+                -x_bottom_right(),
+                -x_bottom_left(),
+                -x_top_right(),
+                -x_top_left());
+    }
+
     GeneralizedTrapezoid clean() const
     {
         LengthDbl yb = yb_;

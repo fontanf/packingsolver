@@ -45,6 +45,19 @@ public:
      * Sub-structures
      */
 
+    enum class Direction
+    {
+        LeftToRightThenBottomToTop,
+        LeftToRightThenTopToBottom,
+        RightToLeftThenBottomToTop,
+        RightToLeftThenTopToBottom,
+        BottomToTopThenLeftToRight,
+        BottomToTopThenRightToLeft,
+        TopToBottomThenLeftToRight,
+        TopToBottomThenRightToLeft,
+        Any,
+    };
+
     /**
      * Structure that stores a point of the skyline.
      */
@@ -112,11 +125,10 @@ public:
         TrapezoidPos item_shape_trapezoid_pos = -1;
 
         /**
-         * - < 0: the item is inserted in the last bin
-         * - 0: the item is inserted in a new bin with horizontal direction
-         * - 1: the item is inserted in a new bin with vertical direction
+         * - -1: the item is inserted in the last bin
+         * - Otherwise, direction
          */
-        int8_t new_bin = -1;
+        Direction new_bin_direction = Direction::Any;
 
         /** x-coordinate of the point of interest. */
         LengthDbl x = 0.0;
@@ -160,7 +172,7 @@ public:
         LengthDbl ye = 0.0;
 
         /** Last bin direction. */
-        Direction last_bin_direction = Direction::X;
+        Direction last_bin_direction = Direction::LeftToRightThenBottomToTop;
 
         /** Uncovered rectangles. */
         std::vector<UncoveredTrapezoid> uncovered_trapezoids;
@@ -193,19 +205,16 @@ public:
         AreaDbl guide_area = 0;
 
         /** Maximum xe of all items in the last bin. */
-        LengthDbl xe_max = 0;
+        LengthDbl xe_max = -std::numeric_limits<LengthDbl>::infinity();
 
         /** Maximum ye of all items in the last bin. */
-        LengthDbl ye_max = 0;
+        LengthDbl ye_max = -std::numeric_limits<LengthDbl>::infinity();
 
         /** Maximum xs of all items in the last bin. */
-        LengthDbl xs_max = 0;
+        LengthDbl xs_max = -std::numeric_limits<LengthDbl>::infinity();
 
         /** Profit. */
         Profit profit = 0;
-
-        /** Width or height. */
-        LengthDbl length = 0;
 
         /** Insertions. */
         mutable std::vector<Insertion> children_insertions;
@@ -217,7 +226,7 @@ public:
         GuideId guide_id = 0;
 
         /** Direction. */
-        Direction direction = Direction::X;
+        Direction direction = Direction::LeftToRightThenBottomToTop;
     };
 
     /** Constructor. */
@@ -399,17 +408,11 @@ private:
     /** Parameters. */
     Parameters parameters_;
 
-    /** Bin types for X direction. */
-    std::vector<BranchingSchemeBinType> bin_types_x_;
+    /** Bin types in each direction. */
+    std::vector<std::vector<BranchingSchemeBinType>> bin_types_;
 
-    /** Bin types for Y direction. */
-    std::vector<BranchingSchemeBinType> bin_types_y_;
-
-    /** Trapezoid sets in x direction. */
-    std::vector<TrapezoidSet> trapezoid_sets_x_;
-
-    /** Trapezoid sets in y direction. */
-    std::vector<TrapezoidSet> trapezoid_sets_y_;
+    /** Trapezoid sets in each direction. */
+    std::vector<std::vector<TrapezoidSet>> trapezoid_sets_;
 
     mutable Counter node_id_ = 0;
 
@@ -514,7 +517,7 @@ private:
             TrapezoidSetId trapezoid_set_id,
             ItemShapePos item_shape_pos,
             TrapezoidPos item_shape_trapezoid_pos,
-            int8_t new_bin,
+            Direction new_bin_direction,
             ItemPos uncovered_trapezoid_pos,
             ItemPos extra_trapezoid_pos) const;
 
