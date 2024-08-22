@@ -356,7 +356,7 @@ Shape Shape::rotate(Angle angle) const
     return shape;
 }
 
-Shape Shape::identity_line_axial_symmetry() const
+Shape Shape::axial_symmetry_identity_line() const
 {
     Shape shape;
     for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
@@ -368,6 +368,43 @@ Shape Shape::identity_line_axial_symmetry() const
         element_new.end.y = element.start.x;
         element_new.center.x = element.center.y;
         element_new.center.y = element.center.x;
+        element_new.anticlockwise = !element.anticlockwise;
+        shape.elements.push_back(element_new);
+    }
+    return shape;
+}
+
+Shape Shape::axial_symmetry_x_axis() const
+{
+    Shape shape;
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
+        const ShapeElement& element = *it;
+        ShapeElement element_new = element;
+        element_new.start.x = element.end.x;
+        element_new.start.y = -element.end.y;
+        element_new.end.x = element.start.x;
+        element_new.end.y = -element.start.y;
+        element_new.center.x = element.center.x;
+        element_new.center.y = -element.center.y;
+        element_new.anticlockwise = !element.anticlockwise;
+        shape.elements.push_back(element_new);
+    }
+    return shape;
+}
+
+Shape Shape::axial_symmetry_y_axis() const
+{
+    Shape shape;
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
+        const ShapeElement& element = *it;
+        ShapeElement element_new = element;
+        element_new.start.x = -element.end.x;
+        element_new.start.y = element.end.y;
+        element_new.end.x = -element.start.x;
+        element_new.end.y = element.start.y;
+        element_new.center.x = -element.center.x;
+        element_new.center.y = element.center.y;
+        element_new.anticlockwise = !element.anticlockwise;
         shape.elements.push_back(element_new);
     }
     return shape;

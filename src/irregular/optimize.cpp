@@ -30,16 +30,37 @@ void optimize_tree_search(
     } else {
         guides = {0, 1};
     }
+    //guides = {4};
 
-    std::vector<Direction> directions;
+    std::vector<BranchingScheme::Direction> directions;
     if (instance.objective() == Objective::OpenDimensionX) {
-        directions = {Direction::X};
+        directions = {
+            BranchingScheme::Direction::LeftToRightThenBottomToTop,
+            BranchingScheme::Direction::LeftToRightThenTopToBottom,
+        };
     } else if (instance.objective() == Objective::OpenDimensionY) {
-        directions = {Direction::Y};
+        directions = {
+            BranchingScheme::Direction::BottomToTopThenLeftToRight,
+            BranchingScheme::Direction::BottomToTopThenRightToLeft,
+        };
     } else if (instance.number_of_bin_types() == 1) {
-        directions = {Direction::X, Direction::Y};
+        if (instance.objective() == Objective::BinPackingWithLeftovers) {
+            directions = {
+                BranchingScheme::Direction::LeftToRightThenBottomToTop,
+                BranchingScheme::Direction::BottomToTopThenLeftToRight,
+                BranchingScheme::Direction::LeftToRightThenTopToBottom,
+                BranchingScheme::Direction::BottomToTopThenRightToLeft,
+            };
+        } else {
+            directions = {
+                BranchingScheme::Direction::LeftToRightThenBottomToTop,
+                BranchingScheme::Direction::BottomToTopThenLeftToRight,
+                BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                BranchingScheme::Direction::TopToBottomThenRightToLeft,
+            };
+        }
     } else {
-        directions = {Direction::Any};
+        directions = {BranchingScheme::Direction::Any};
     }
 
     std::vector<double> growth_factors = {1.5};
@@ -53,7 +74,7 @@ void optimize_tree_search(
     std::vector<irregular::Output> outputs;
     for (double growth_factor: growth_factors) {
         for (GuideId guide_id: guides) {
-            for (Direction direction: directions) {
+            for (BranchingScheme::Direction direction: directions) {
                 //std::cout << growth_factor << " " << guide_id << " " << direction << std::endl;
                 BranchingScheme::Parameters branching_scheme_parameters;
                 branching_scheme_parameters.guide_id = guide_id;
@@ -89,7 +110,7 @@ void optimize_tree_search(
                             tssibs_output.solution_pool.best());
                     std::stringstream ss;
                     ss << "TS g " << branching_schemes[i].parameters().guide_id
-                        << " d " << branching_schemes[i].parameters().direction
+                        << " d " << (int)branching_schemes[i].parameters().direction
                         << " q " << tssibs_output.maximum_size_of_the_queue;
                     algorithm_formatter.update_solution(solution, ss.str());
                 };
@@ -127,7 +148,7 @@ void optimize_tree_search(
         for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
             std::stringstream ss;
             ss << "TS g " << branching_schemes[i].parameters().guide_id
-                << " d " << branching_schemes[i].parameters().direction;
+                << " d " << (int)branching_schemes[i].parameters().direction;
             algorithm_formatter.update_solution(outputs[i].solution_pool.best(), ss.str());
         }
     }
