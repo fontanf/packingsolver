@@ -52,10 +52,10 @@ BranchingScheme::BranchingScheme(
                 bin_shape = bin_shape.axial_symmetry_identity_line();
             } else if (direction == Direction::BottomToTopThenRightToLeft) {
                 bin_shape = bin_shape.axial_symmetry_identity_line();
-                bin_shape = bin_shape.axial_symmetry_y_axis();
+                bin_shape = bin_shape.axial_symmetry_x_axis();
             } else if (direction == Direction::TopToBottomThenLeftToRight) {
                 bin_shape = bin_shape.axial_symmetry_identity_line();
-                bin_shape = bin_shape.axial_symmetry_x_axis();
+                bin_shape = bin_shape.axial_symmetry_y_axis();
             } else if (direction == Direction::TopToBottomThenRightToLeft) {
                 bin_shape = bin_shape.axial_symmetry_identity_line();
                 bin_shape = bin_shape.axial_symmetry_y_axis();
@@ -558,7 +558,7 @@ BranchingScheme::BranchingScheme(
                 const auto& defect_ref = *it_ref;
                 UncoveredTrapezoid defect(
                         defect_ref.defect_id,
-                        defect_ref.trapezoid.axial_symmetry_y_axis());
+                        defect_ref.trapezoid.axial_symmetry_x_axis());
                 bb_bin_type.defects.push_back(defect);
             }
         }
@@ -570,7 +570,7 @@ BranchingScheme::BranchingScheme(
                 const auto& defect_ref = *it_ref;
                 UncoveredTrapezoid defect(
                         defect_ref.defect_id,
-                        defect_ref.trapezoid.axial_symmetry_x_axis());
+                        defect_ref.trapezoid.axial_symmetry_y_axis());
                 bb_bin_type.defects.push_back(defect);
             }
         }
@@ -602,7 +602,7 @@ BranchingScheme::BranchingScheme(
             for (const std::vector<GeneralizedTrapezoid>& shapes_ref: trapezoid_set_ref.shapes) {
                 trapezoid_set.shapes.push_back({});
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
-                    trapezoid_set.shapes.back().push_back(shape_ref.axial_symmetry_y_axis());
+                    trapezoid_set.shapes.back().push_back(shape_ref.axial_symmetry_x_axis());
             }
             trapezoid_sets_[(int)Direction::BottomToTopThenRightToLeft].push_back(trapezoid_set);
         }
@@ -617,7 +617,7 @@ BranchingScheme::BranchingScheme(
             for (const std::vector<GeneralizedTrapezoid>& shapes_ref: trapezoid_set_ref.shapes) {
                 trapezoid_set.shapes.push_back({});
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
-                    trapezoid_set.shapes.back().push_back(shape_ref.axial_symmetry_x_axis());
+                    trapezoid_set.shapes.back().push_back(shape_ref.axial_symmetry_y_axis());
             }
             trapezoid_sets_[(int)Direction::TopToBottomThenLeftToRight].push_back(trapezoid_set);
         }
@@ -1036,11 +1036,11 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         x = node.y;
         y = node.x;
     } else if (node.last_bin_direction == Direction::TopToBottomThenLeftToRight) {
-        x = node.y;
-        y = -node.x;
-    } else if (node.last_bin_direction == Direction::BottomToTopThenRightToLeft) {
         x = -node.y;
         y = node.x;
+    } else if (node.last_bin_direction == Direction::BottomToTopThenRightToLeft) {
+        x = node.y;
+        y = -node.x;
     } else if (node.last_bin_direction == Direction::TopToBottomThenRightToLeft) {
         x = -node.y;
         y = -node.x;
@@ -1982,9 +1982,9 @@ Solution BranchingScheme::to_solution(
         } else if (current_node->last_bin_direction == Direction::BottomToTopThenLeftToRight) {
             bl_corner = Point{current_node->y, current_node->x};
         } else if (current_node->last_bin_direction == Direction::BottomToTopThenRightToLeft) {
-            bl_corner = Point{current_node->y, -current_node->x};
-        } else if (current_node->last_bin_direction == Direction::TopToBottomThenLeftToRight) {
             bl_corner = Point{-current_node->y, current_node->x};
+        } else if (current_node->last_bin_direction == Direction::TopToBottomThenLeftToRight) {
+            bl_corner = Point{current_node->y, -current_node->x};
         } else if (current_node->last_bin_direction == Direction::TopToBottomThenRightToLeft) {
             bl_corner = Point{-current_node->y, -current_node->x};
         }
