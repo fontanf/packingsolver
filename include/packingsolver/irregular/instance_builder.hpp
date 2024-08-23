@@ -92,6 +92,11 @@ public:
             ItemPos copies = 1,
             const std::vector<std::pair<Angle, Angle>>& allowed_rotations = {{0, 0}});
 
+    /** Set allow mirroring of an item type. */
+    void set_item_type_allow_mirroring(
+            ItemTypeId item_type_id,
+            bool allow_mirroring);
+
     /**
      * Add an item type from another item type.
      *

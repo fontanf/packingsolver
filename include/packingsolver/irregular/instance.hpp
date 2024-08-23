@@ -25,6 +25,12 @@ struct Point
 
     Point rotate(Angle angle) const;
 
+    Point axial_symmetry_identity_line() const;
+
+    Point axial_symmetry_y_axis() const;
+
+    Point axial_symmetry_x_axis() const;
+
     bool operator==(const Point& point) const { return x == point.x && y == point.y; }
 
     std::string to_string() const;
@@ -101,6 +107,12 @@ struct ShapeElement
 
     ShapeElement rotate(Angle angle) const;
 
+    ShapeElement axial_symmetry_identity_line() const;
+
+    ShapeElement axial_symmetry_x_axis() const;
+
+    ShapeElement axial_symmetry_y_axis() const;
+
     std::string to_string() const;
 };
 
@@ -148,10 +160,14 @@ struct Shape
     AreaDbl compute_area() const;
 
     /** Compute the smallest and greatest x and y of the shape. */
-    std::pair<Point, Point> compute_min_max(Angle angle = 0.0) const;
+    std::pair<Point, Point> compute_min_max(
+            Angle angle = 0.0,
+            bool mirror = false) const;
 
     /** Compute the width and length of the shape. */
-    std::pair<LengthDbl, LengthDbl> compute_width_and_length(Angle angle = 0.0) const;
+    std::pair<LengthDbl, LengthDbl> compute_width_and_length(
+            Angle angle = 0.0,
+            bool mirror = false) const;
 
     /* Check if the shape is connected and in anticlockwise direction. */
     bool check() const;
@@ -287,6 +303,9 @@ struct ItemType
     /** Allowed rotations of the item type. */
     std::vector<std::pair<Angle, Angle>> allowed_rotations = {{0, 0}};
 
+    /** Allow mirroring the item type. */
+    bool allow_mirroring = false;
+
     /*
      * Computed attributes.
      */
@@ -299,7 +318,9 @@ struct ItemType
     /** Return type of shape of the item type. */
     ShapeType shape_type() const;
 
-    std::pair<Point, Point> compute_min_max(Angle angle = 0.0) const;
+    std::pair<Point, Point> compute_min_max(
+            Angle angle = 0.0,
+            bool mirror = false) const;
 
     bool has_full_continuous_rotations() const;
 

@@ -17,6 +17,9 @@ struct SolutionItem
 
     /** Rotation angle of the item. */
     Angle angle;
+
+    /** Mirror the item. */
+    bool mirror;
 };
 
 struct SolutionBin
@@ -59,7 +62,8 @@ public:
             BinPos bin_pos,
             ItemTypeId item_type_id,
             Point bl_corner,
-            Angle angle);
+            Angle angle,
+            bool mirror);
 
     void append(
             const Solution& solution,

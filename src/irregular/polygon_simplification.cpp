@@ -491,6 +491,7 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
             = std::vector<std::vector<GeneralizedTrapezoid>>(trapezoid_set.shapes.size());
         trapezoid_sets_new[trapezoid_set_id].item_type_id = trapezoid_set.item_type_id;
         trapezoid_sets_new[trapezoid_set_id].angle = trapezoid_set.angle;
+        trapezoid_sets_new[trapezoid_set_id].mirror = trapezoid_set.mirror;
         for (ItemShapePos item_shape_pos = 0;
                 item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
                 ++item_shape_pos) {

@@ -311,63 +311,90 @@ BranchingScheme::BranchingScheme(
             ++item_type_id) {
         //std::cout << "item_type_id " << item_type_id << std::endl;
         const ItemType& item_type = instance.item_type(item_type_id);
-        for (const auto& angle_range: item_type.allowed_rotations) {
-            //std::cout << "angle " << angle_range.first;
-            TrapezoidSet trapezoid_set_x;
-            trapezoid_set_x.item_type_id = item_type_id;
-            trapezoid_set_x.angle = angle_range.first;
-            for (const ItemShape& item_shape: item_type.shapes) {
-                //std::cout << "item_shape " << item_shape.to_string(0) << std::endl;
+        for (bool mirror: {false, true}) {
+            if (mirror && !item_type.allow_mirroring)
+                continue;
+            for (const auto& angle_range: item_type.allowed_rotations) {
+                //std::cout << "angle " << angle_range.first;
+                TrapezoidSet trapezoid_set_x;
+                trapezoid_set_x.item_type_id = item_type_id;
+                trapezoid_set_x.angle = angle_range.first;
+                trapezoid_set_x.mirror = mirror;
+                for (const ItemShape& item_shape: item_type.shapes) {
+                    //std::cout << "item_shape " << item_shape.to_string(0) << std::endl;
+                    Shape shape = (!mirror)?
+                        item_shape.shape:
+                        item_shape.shape.axial_symmetry_y_axis();
+                    std::vector<Shape> holes;
+                    for (const Shape& hole: item_shape.holes) {
+                        if (striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                            continue;
+                        holes.push_back((!(mirror)?
+                                hole:
+                                hole.axial_symmetry_y_axis()));
+                    }
 
-                Shape rotated_shape = item_shape.shape.rotate(angle_range.first);
-                std::vector<Shape> rotated_holes;
-                for (const Shape& hole: item_shape.holes)
-                    if (!striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                    Shape rotated_shape = shape.rotate(angle_range.first);
+                    std::vector<Shape> rotated_holes;
+                    for (const Shape& hole: holes)
                         rotated_holes.push_back(hole.rotate(angle_range.first));
 
-                Shape cleaned_shape = clean_shape(rotated_shape);
-                std::vector<Shape> cleaned_holes;
-                for (const Shape& hole: rotated_holes)
-                    cleaned_holes.push_back(clean_shape(hole));
+                    Shape cleaned_shape = clean_shape(rotated_shape);
+                    std::vector<Shape> cleaned_holes;
+                    for (const Shape& hole: rotated_holes)
+                        cleaned_holes.push_back(clean_shape(hole));
 
-                auto trapezoids = polygon_trapezoidation(
-                        cleaned_shape,
-                        cleaned_holes);
-                trapezoid_set_x.shapes.push_back({});
-                for (const GeneralizedTrapezoid& trapezoid: trapezoids)
-                    trapezoid_set_x.shapes.back().push_back(trapezoid.clean());
-            }
-            trapezoid_sets_x.push_back(trapezoid_set_x);
+                    auto trapezoids = polygon_trapezoidation(
+                            cleaned_shape,
+                            cleaned_holes);
+                    trapezoid_set_x.shapes.push_back({});
+                    for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+                        trapezoid_set_x.shapes.back().push_back(trapezoid.clean());
+                }
+                trapezoid_sets_x.push_back(trapezoid_set_x);
 
-            TrapezoidSet trapezoid_set_y;
-            trapezoid_set_y.item_type_id = item_type_id;
-            trapezoid_set_y.angle = angle_range.first;
-            for (const ItemShape& item_shape: item_type.shapes) {
+                TrapezoidSet trapezoid_set_y;
+                trapezoid_set_y.item_type_id = item_type_id;
+                trapezoid_set_y.angle = angle_range.first;
+                trapezoid_set_y.mirror = mirror;
+                for (const ItemShape& item_shape: item_type.shapes) {
 
-                Shape rotated_shape = item_shape.shape.rotate(angle_range.first);
-                std::vector<Shape> rotated_holes;
-                for (const Shape& hole: item_shape.holes)
-                    rotated_holes.push_back(hole.rotate(angle_range.first));
+                    Shape shape = (!mirror)?
+                        item_shape.shape:
+                        item_shape.shape.axial_symmetry_y_axis();
+                    std::vector<Shape> holes;
+                    for (const Shape& hole: item_shape.holes) {
+                        if (striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                            continue;
+                        holes.push_back((!(mirror)?
+                                hole:
+                                hole.axial_symmetry_y_axis()));
+                    }
 
-                Shape sym_shape = rotated_shape.axial_symmetry_identity_line();
-                std::vector<Shape> sym_holes;
-                for (const Shape& hole: rotated_holes)
-                    if (!striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                    Shape rotated_shape = shape.rotate(angle_range.first);
+                    std::vector<Shape> rotated_holes;
+                    for (const Shape& hole: holes)
+                        rotated_holes.push_back(hole.rotate(angle_range.first));
+
+                    Shape sym_shape = rotated_shape.axial_symmetry_identity_line();
+                    std::vector<Shape> sym_holes;
+                    for (const Shape& hole: rotated_holes)
                         sym_holes.push_back(hole.axial_symmetry_identity_line());
 
-                Shape cleaned_shape = clean_shape(sym_shape);
-                std::vector<Shape> cleaned_holes;
-                for (const Shape& hole: sym_holes)
-                    cleaned_holes.push_back(clean_shape(hole));
+                    Shape cleaned_shape = clean_shape(sym_shape);
+                    std::vector<Shape> cleaned_holes;
+                    for (const Shape& hole: sym_holes)
+                        cleaned_holes.push_back(clean_shape(hole));
 
-                auto trapezoids = polygon_trapezoidation(
-                        cleaned_shape,
-                        cleaned_holes);
-                trapezoid_set_y.shapes.push_back({});
-                for (const GeneralizedTrapezoid& trapezoid: trapezoids)
-                    trapezoid_set_y.shapes.back().push_back(trapezoid.clean());
+                    auto trapezoids = polygon_trapezoidation(
+                            cleaned_shape,
+                            cleaned_holes);
+                    trapezoid_set_y.shapes.push_back({});
+                    for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+                        trapezoid_set_y.shapes.back().push_back(trapezoid.clean());
+                }
+                trapezoid_sets_y.push_back(trapezoid_set_y);
             }
-            trapezoid_sets_y.push_back(trapezoid_set_y);
         }
     }
 
@@ -504,6 +531,7 @@ BranchingScheme::BranchingScheme(
             TrapezoidSet trapezoid_set;
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
             trapezoid_set.angle = trapezoid_set_ref.angle;
+            trapezoid_set.mirror = trapezoid_set_ref.mirror;
             trapezoid_set.x_min = trapezoid_set_ref.x_min;
             trapezoid_set.x_max = trapezoid_set_ref.x_max;
             trapezoid_set.y_min = -trapezoid_set_ref.y_max;
@@ -519,6 +547,7 @@ BranchingScheme::BranchingScheme(
             TrapezoidSet trapezoid_set;
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
             trapezoid_set.angle = trapezoid_set_ref.angle;
+            trapezoid_set.mirror = trapezoid_set_ref.mirror;
             trapezoid_set.x_min = -trapezoid_set_ref.x_max;
             trapezoid_set.x_max = -trapezoid_set_ref.x_min;
             trapezoid_set.y_min = trapezoid_set_ref.y_min;
@@ -534,6 +563,7 @@ BranchingScheme::BranchingScheme(
             TrapezoidSet trapezoid_set;
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
             trapezoid_set.angle = trapezoid_set_ref.angle;
+            trapezoid_set.mirror = trapezoid_set_ref.mirror;
             trapezoid_set.x_min = -trapezoid_set_ref.x_max;
             trapezoid_set.x_max = -trapezoid_set_ref.x_min;
             trapezoid_set.y_min = -trapezoid_set_ref.y_max;
@@ -595,6 +625,7 @@ BranchingScheme::BranchingScheme(
             TrapezoidSet trapezoid_set;
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
             trapezoid_set.angle = trapezoid_set_ref.angle;
+            trapezoid_set.mirror = trapezoid_set_ref.mirror;
             trapezoid_set.x_min = -trapezoid_set_ref.x_max;
             trapezoid_set.x_max = -trapezoid_set_ref.x_min;
             trapezoid_set.y_min = trapezoid_set_ref.y_min;
@@ -610,6 +641,7 @@ BranchingScheme::BranchingScheme(
             TrapezoidSet trapezoid_set;
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
             trapezoid_set.angle = trapezoid_set_ref.angle;
+            trapezoid_set.mirror = trapezoid_set_ref.mirror;
             trapezoid_set.x_min = trapezoid_set_ref.x_min;
             trapezoid_set.x_max = trapezoid_set_ref.x_max;
             trapezoid_set.y_min = -trapezoid_set_ref.y_max;
@@ -625,6 +657,7 @@ BranchingScheme::BranchingScheme(
             TrapezoidSet trapezoid_set;
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
             trapezoid_set.angle = trapezoid_set_ref.angle;
+            trapezoid_set.mirror = trapezoid_set_ref.mirror;
             trapezoid_set.x_min = -trapezoid_set_ref.x_max;
             trapezoid_set.x_max = -trapezoid_set_ref.x_min;
             trapezoid_set.y_min = -trapezoid_set_ref.y_max;
@@ -639,12 +672,13 @@ BranchingScheme::BranchingScheme(
     }
 
     //for (TrapezoidSetId trapezoid_set_id = 0;
-    //        trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_x_.size();
+    //        trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop].size();
     //        ++trapezoid_set_id) {
-    //    const TrapezoidSet& trapezoid_set = trapezoid_sets_x_[trapezoid_set_id];
+    //    const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop][trapezoid_set_id];
     //    const ItemType& item_type = instance.item_type(trapezoid_set.item_type_id);
     //    std::cout << "item_type_id " << trapezoid_set.item_type_id
     //        << " angle " << trapezoid_set.angle
+    //        << " mirror " << trapezoid_set.mirror
     //        << " x_min " << item_type.compute_min_max(trapezoid_set.angle).first.x
     //        << " x_max " << item_type.compute_min_max(trapezoid_set.angle).second.x
     //        << " y_min " << item_type.compute_min_max(trapezoid_set.angle).first.y
@@ -1045,7 +1079,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         x = -node.y;
         y = -node.x;
     }
-    auto mm = item_type.compute_min_max(trapezoid_set.angle);
+    auto mm = item_type.compute_min_max(
+            trapezoid_set.angle,
+            trapezoid_set.mirror);
     if (insertion.new_bin_direction == Direction::Any) {  // Same bin
         node.xe_max = std::max(parent.xe_max, x + mm.second.x);
         node.ye_max = std::max(parent.ye_max, y + mm.second.y);
@@ -1997,7 +2033,8 @@ Solution BranchingScheme::to_solution(
                 bin_pos,
                 trapezoid_set.item_type_id,
                 bl_corner,
-                trapezoid_set.angle);
+                trapezoid_set.angle,
+                trapezoid_set.mirror);
     }
 
     if (node->last_bin_direction == Direction::LeftToRightThenBottomToTop

@@ -130,4 +130,7 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 fs::path("data") / "irregular" / "users" / "2024-08-13.json",
                 fs::path("data") / "irregular" / "users" / "2024-08-13_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "tests" / "mirror.json",
+                fs::path("data") / "irregular" / "tests" / "mirror_solution.json"
             }}));
