@@ -129,6 +129,13 @@ ItemTypeId InstanceBuilder::add_item_type(
     return instance_.item_types_.size() - 1;
 }
 
+void InstanceBuilder::set_item_type_allow_mirroring(
+        ItemTypeId item_type_id,
+        bool allow_mirroring)
+{
+    instance_.item_types_[item_type_id].allow_mirroring = allow_mirroring;
+}
+
 void InstanceBuilder::add_item_type(
         const ItemType& item_type,
         Profit profit,
@@ -345,11 +352,19 @@ void InstanceBuilder::read(
             }
         }
 
-        add_item_type(
+        // Read allow_mirroring.
+        bool allow_mirroring = false;
+        if (json_item.contains("allow_mirroring"))
+            allow_mirroring = json_item["allow_mirroring"];
+
+        ItemTypeId item_type_id = add_item_type(
                 item_shapes,
                 profit,
                 copies,
                 allowed_rotations);
+        set_item_type_allow_mirroring(
+                item_type_id,
+                allow_mirroring);
     }
 
 }

@@ -22,6 +22,8 @@ struct TrapezoidSet
 
     Angle angle;
 
+    bool mirror;
+
     std::vector<std::vector<GeneralizedTrapezoid>> shapes;
 
     LengthDbl x_min;

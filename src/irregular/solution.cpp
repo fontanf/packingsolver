@@ -47,7 +47,8 @@ void Solution::add_item(
         BinPos bin_pos,
         ItemTypeId item_type_id,
         Point bl_corner,
-        Angle angle)
+        Angle angle,
+        bool mirror)
 {
     if (item_type_id < 0
             || item_type_id >= instance().number_of_item_types()) {
@@ -75,10 +76,18 @@ void Solution::add_item(
                 + std::to_string(item_type_id) + ".");
     }
 
+    if (mirror && !item_type.allow_mirroring) {
+        throw std::invalid_argument(
+                "irregular::Solution::add_item."
+                " Mirroring is not allowed for item type "
+                + std::to_string(item_type_id) + ".");
+    }
+
     SolutionItem item;
     item.item_type_id = item_type_id;
     item.bl_corner = bl_corner;
     item.angle = angle;
+    item.mirror = mirror;
     bin.items.push_back(item);
 
     item_area_ += bin.copies * item_type.area;
@@ -87,7 +96,7 @@ void Solution::add_item(
     item_copies_[item_type_id] += bin.copies;
 
     if (bin_pos == (BinPos)bins_.size() - 1) {
-        auto points = item_type.compute_min_max(angle);
+        auto points = item_type.compute_min_max(angle, mirror);
         x_max_ = std::max(x_max_, bl_corner.x + points.second.x);
         y_max_ = std::max(y_max_, bl_corner.y + points.second.y);
         leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
@@ -120,7 +129,7 @@ void Solution::append(
         ItemTypeId item_type_id = (item_type_ids.empty())?
             item.item_type_id:
             item_type_ids[item.item_type_id];
-        add_item(i_pos, item_type_id, item.bl_corner, item.angle);
+        add_item(i_pos, item_type_id, item.bl_corner, item.angle, item.mirror);
     }
 }
 
@@ -152,11 +161,15 @@ Solution::Solution(
     for (const auto& json_bin: j["bins"]) {
         BinPos bin_pos = add_bin(json_bin["id"], json_bin["copies"]);
         for (const auto& json_item: json_bin["items"]) {
+            bool mirror = false;
+            if (json_item.contains("mirror"))
+                mirror = json_item["mirror"];
             add_item(
                     bin_pos,
                     json_item["id"],
                     {json_item["x"], json_item["y"]},
-                    json_item["angle"]);
+                    json_item["angle"],
+                    mirror);
         }
     }
 }
@@ -292,15 +305,19 @@ void Solution::write(
             json["bins"][bin_pos]["items"][item_pos]["x"] = item.bl_corner.x;
             json["bins"][bin_pos]["items"][item_pos]["y"] = item.bl_corner.y;
             json["bins"][bin_pos]["items"][item_pos]["angle"] = item.angle;
+            json["bins"][bin_pos]["items"][item_pos]["mirror"] = item.mirror;
             for (Counter item_shape_pos = 0;
                     item_shape_pos < (Counter)item_type.shapes.size();
                     ++item_shape_pos) {
                 const ItemShape& item_shape = item_type.shapes[item_shape_pos];
+                Shape shape = item_shape.shape;
+                if (item.mirror)
+                    shape = shape.axial_symmetry_y_axis();
+                shape = shape.rotate(item.angle);
                 for (Counter element_pos = 0;
-                        element_pos < (Counter)item_shape.shape.elements.size();
+                        element_pos < (Counter)shape.elements.size();
                         ++element_pos) {
-                    const ShapeElement& element_orig = item_shape.shape.elements[element_pos];
-                    ShapeElement element = element_orig.rotate(item.angle);
+                    ShapeElement element = shape.elements[element_pos];
                     json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["type"] = element2str(element.type);
                     json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["xs"] = element.start.x + item.bl_corner.x;
                     json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["ys"] = element.start.y + item.bl_corner.y;
@@ -315,12 +332,14 @@ void Solution::write(
                 for (Counter hole_pos = 0;
                         hole_pos < (Counter)item_shape.holes.size();
                         ++hole_pos) {
-                    const Shape& hole = item_shape.holes[hole_pos];
+                    Shape hole = item_shape.holes[hole_pos];
+                    if (item.mirror)
+                        hole = hole.axial_symmetry_y_axis();
+                    hole = hole.rotate(item.angle);
                     for (Counter element_pos = 0;
                             element_pos < (Counter)hole.elements.size();
                             ++element_pos) {
-                        const ShapeElement& element_orig = hole.elements[element_pos];
-                        ShapeElement element = element_orig.rotate(item.angle);
+                        const ShapeElement& element = hole.elements[element_pos];
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["type"] = element2str(element.type);
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["xs"] = element.start.x + item.bl_corner.x;
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["ys"] = element.start.y + item.bl_corner.y;

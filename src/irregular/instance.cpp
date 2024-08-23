@@ -85,6 +85,30 @@ Point Point::rotate(
     }
 }
 
+Point Point::axial_symmetry_identity_line() const
+{
+    Point point_out;
+    point_out.x = y;
+    point_out.y = x;
+    return point_out;
+}
+
+Point Point::axial_symmetry_y_axis() const
+{
+    Point point_out;
+    point_out.x = -x;
+    point_out.y = y;
+    return point_out;
+}
+
+Point Point::axial_symmetry_x_axis() const
+{
+    Point point_out;
+    point_out.x = x;
+    point_out.y = -y;
+    return point_out;
+}
+
 Angle irregular::angle_radian(
         const Point& vector)
 {
@@ -144,6 +168,36 @@ ShapeElement ShapeElement::rotate(
     element_out.start = start.rotate(angle);
     element_out.end = end.rotate(angle);
     element_out.center = center.rotate(angle);
+    return element_out;
+}
+
+ShapeElement ShapeElement::axial_symmetry_identity_line() const
+{
+    ShapeElement element_out = *this;
+    element_out.start = end.axial_symmetry_identity_line();
+    element_out.end = start.axial_symmetry_identity_line();
+    element_out.center = center.axial_symmetry_identity_line();
+    element_out.anticlockwise = !anticlockwise;
+    return element_out;
+}
+
+ShapeElement ShapeElement::axial_symmetry_x_axis() const
+{
+    ShapeElement element_out = *this;
+    element_out.start = end.axial_symmetry_x_axis();
+    element_out.end = start.axial_symmetry_x_axis();
+    element_out.center = center.axial_symmetry_x_axis();
+    element_out.anticlockwise = !anticlockwise;
+    return element_out;
+}
+
+ShapeElement ShapeElement::axial_symmetry_y_axis() const
+{
+    ShapeElement element_out = *this;
+    element_out.start = end.axial_symmetry_y_axis();
+    element_out.end = start.axial_symmetry_y_axis();
+    element_out.center = center.axial_symmetry_y_axis();
+    element_out.anticlockwise = !anticlockwise;
     return element_out;
 }
 
@@ -292,14 +346,18 @@ AreaDbl Shape::compute_area() const
     return area / 2;
 }
 
-std::pair<Point, Point> Shape::compute_min_max(Angle angle) const
+std::pair<Point, Point> Shape::compute_min_max(
+        Angle angle,
+        bool mirror) const
 {
     LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
     for (const ShapeElement& element: elements) {
-        Point point = element.start.rotate(angle);
+        Point point = (!mirror)?
+            element.start.rotate(angle):
+            element.start.axial_symmetry_y_axis().rotate(angle);
         x_min = std::min(x_min, point.x);
         x_max = std::max(x_max, point.x);
         y_min = std::min(y_min, point.y);
@@ -360,15 +418,7 @@ Shape Shape::axial_symmetry_identity_line() const
 {
     Shape shape;
     for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
-        const ShapeElement& element = *it;
-        ShapeElement element_new = element;
-        element_new.start.x = element.end.y;
-        element_new.start.y = element.end.x;
-        element_new.end.x = element.start.y;
-        element_new.end.y = element.start.x;
-        element_new.center.x = element.center.y;
-        element_new.center.y = element.center.x;
-        element_new.anticlockwise = !element.anticlockwise;
+        ShapeElement element_new = it->axial_symmetry_identity_line();
         shape.elements.push_back(element_new);
     }
     return shape;
@@ -378,15 +428,7 @@ Shape Shape::axial_symmetry_x_axis() const
 {
     Shape shape;
     for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
-        const ShapeElement& element = *it;
-        ShapeElement element_new = element;
-        element_new.start.x = element.end.x;
-        element_new.start.y = -element.end.y;
-        element_new.end.x = element.start.x;
-        element_new.end.y = -element.start.y;
-        element_new.center.x = element.center.x;
-        element_new.center.y = -element.center.y;
-        element_new.anticlockwise = !element.anticlockwise;
+        ShapeElement element_new = it->axial_symmetry_x_axis();
         shape.elements.push_back(element_new);
     }
     return shape;
@@ -396,15 +438,7 @@ Shape Shape::axial_symmetry_y_axis() const
 {
     Shape shape;
     for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
-        const ShapeElement& element = *it;
-        ShapeElement element_new = element;
-        element_new.start.x = -element.end.x;
-        element_new.start.y = element.end.y;
-        element_new.end.x = -element.start.x;
-        element_new.end.y = element.start.y;
-        element_new.center.x = -element.center.x;
-        element_new.center.y = element.center.y;
-        element_new.anticlockwise = !element.anticlockwise;
+        ShapeElement element_new = it->axial_symmetry_y_axis();
         shape.elements.push_back(element_new);
     }
     return shape;
@@ -429,9 +463,11 @@ Shape Shape::reverse() const
     return shape;
 }
 
-std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_length(Angle angle) const
+std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_length(
+        Angle angle,
+        bool mirror) const
 {
-    auto points = compute_min_max(angle);
+    auto points = compute_min_max(angle, mirror);
     LengthDbl width = points.second.x - points.first.x;
     LengthDbl height = points.second.y - points.first.y;
     return {width, height};
@@ -556,14 +592,16 @@ ShapeType ItemType::shape_type() const
     return ShapeType::GeneralShape;
 }
 
-std::pair<Point, Point> ItemType::compute_min_max(Angle angle) const
+std::pair<Point, Point> ItemType::compute_min_max(
+        Angle angle,
+        bool mirror) const
 {
     LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
     for (const ItemShape& item_shape: shapes) {
-        auto points = item_shape.shape.compute_min_max(angle);
+        auto points = item_shape.shape.compute_min_max(angle, mirror);
         x_min = std::min(x_min, points.first.x);
         x_max = std::max(x_max, points.second.x);
         y_min = std::min(y_min, points.first.y);
@@ -1030,6 +1068,7 @@ void Instance::write(
         const ItemType& item_type = this->item_type(item_type_id);
         json["item_types"][item_type_id]["profit"] = item_type.profit;
         json["item_types"][item_type_id]["copies"] = item_type.copies;
+        json["item_types"][item_type_id]["allow_mirroring"] = item_type.allow_mirroring;
 
         for (Counter item_shape_pos = 0;
                 item_shape_pos < (Counter)item_type.shapes.size();
