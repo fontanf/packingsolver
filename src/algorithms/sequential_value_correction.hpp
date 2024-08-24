@@ -63,9 +63,6 @@ struct SequentialValueCorrectionOutput: packingsolver::Output<Instance, Solution
 };
 
 template <typename Instance, typename Solution>
-using SequentialValueCorrectionNewSolutionCallback = std::function<void(const SequentialValueCorrectionOutput<Instance, Solution>&)>;
-
-template <typename Instance, typename Solution>
 struct SequentialValueCorrectionParameters: packingsolver::Parameters<Instance, Solution>
 {
     /** Maximum number of iterations. */
@@ -335,7 +332,6 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         std::stringstream ss;
         ss << "iteration " << output.number_of_iterations;
         algorithm_formatter.update_solution(solution, ss.str());
-        parameters.new_solution_callback(output);
 
         // Check BinPacking goal.
         if (instance.objective() == Objective::BinPacking

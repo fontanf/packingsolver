@@ -206,6 +206,7 @@ void AlgorithmFormatter::update_solution(
     if (new_best == 1) {
         print(s);
         output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        std::cout << "new_solution_callback" << std::endl;
         parameters_.new_solution_callback(output_);
     }
     mutex_.unlock();
