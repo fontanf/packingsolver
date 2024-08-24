@@ -36,6 +36,12 @@ public:
     inline void add_quality_rule(
             const std::vector<uint8_t>& quality_rule);
 
+    /** Set item-item minimum spacing. */
+    void set_item_item_minimum_spacing(LengthDbl item_item_minimum_spacing) { instance_.parameters_.item_item_minimum_spacing = item_item_minimum_spacing; }
+
+    /** Set item-bin minimum spacing. */
+    void set_item_bin_minimum_spacing(LengthDbl item_bin_minimum_spacing) { instance_.parameters_.item_bin_minimum_spacing = item_bin_minimum_spacing; }
+
     /*
      * Set bin types
      */

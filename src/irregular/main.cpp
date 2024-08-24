@@ -55,6 +55,8 @@ int main(int argc, char *argv[])
 
         ("objective,f", po::value<Objective>(), "Objective")
 
+        ("item-bin-minimum-spacing,f", po::value<LengthDbl>(), "Item-bin minimum spacing")
+        ("item-item-minimum-spacing,f", po::value<LengthDbl>(), "Item-item minimum spacing")
         ("bin-unweighted", "")
         ("unweighted", "")
 
@@ -100,6 +102,10 @@ int main(int argc, char *argv[])
 
     if (vm.count("objective"))
         instance_builder.set_objective(vm["objective"].as<Objective>());
+    if (vm.count("item-item-minimum-spacing"))
+        instance_builder.set_item_item_minimum_spacing(vm["item-item-minimum-spacing"].as<LengthDbl>());
+    if (vm.count("item-bin-minimum-spacing"))
+        instance_builder.set_item_bin_minimum_spacing(vm["item-bin-minimum-spacing"].as<LengthDbl>());
     if (vm.count("unweighted"))
         instance_builder.set_item_types_unweighted();
     if (vm.count("bin-unweighted"))

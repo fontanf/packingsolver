@@ -268,6 +268,15 @@ void InstanceBuilder::read(
         set_objective(objective);
     }
 
+    // Read parameters.
+    if (j.contains("parameters")) {
+        auto json_parameters = j["parameters"];
+        if (json_parameters.contains("item-item-minimum-spacing"))
+            set_item_item_minimum_spacing(json_parameters["item-item-minimum-spacing"]);
+        if (json_parameters.contains("item-bin-minimum-spacing"))
+            set_item_bin_minimum_spacing(json_parameters["item-bin-minimum-spacing"]);
+    }
+
     // Read bin types.
     for (const auto& json_item: j["bin_types"]) {
         Shape shape = read_shape(json_item);
