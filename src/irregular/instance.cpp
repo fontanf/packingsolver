@@ -1003,19 +1003,20 @@ void Instance::write(
         json["bin_types"][bin_type_id]["cost"] = bin_type.cost;
         json["bin_types"][bin_type_id]["copies"] = bin_type.copies;
         json["bin_types"][bin_type_id]["copies_min"] = bin_type.copies_min;
+        json["bin_types"][bin_type_id]["type"] = "general";
         for (ElementPos element_pos = 0;
                 element_pos < (ElementPos)bin_type.shape.elements.size();
                 ++element_pos) {
             const ShapeElement& element = bin_type.shape.elements[element_pos];
-            json["bin_types"][bin_type_id]["shape"][element_pos]["type"] = element2str(element.type);
-            json["bin_types"][bin_type_id]["shape"][element_pos]["xs"] = element.start.x;
-            json["bin_types"][bin_type_id]["shape"][element_pos]["ys"] = element.start.y;
-            json["bin_types"][bin_type_id]["shape"][element_pos]["xe"] = element.end.x;
-            json["bin_types"][bin_type_id]["shape"][element_pos]["ye"] = element.end.y;
+            json["bin_types"][bin_type_id]["elements"][element_pos]["type"] = element2str(element.type);
+            json["bin_types"][bin_type_id]["elements"][element_pos]["start"]["x"] = element.start.x;
+            json["bin_types"][bin_type_id]["elements"][element_pos]["start"]["y"] = element.start.y;
+            json["bin_types"][bin_type_id]["elements"][element_pos]["end"]["x"] = element.end.x;
+            json["bin_types"][bin_type_id]["elements"][element_pos]["end"]["y"] = element.end.y;
             if (element.type == ShapeElementType::CircularArc) {
-                json["bin_types"][bin_type_id]["shape"][element_pos]["xc"] = element.center.x;
-                json["bin_types"][bin_type_id]["shape"][element_pos]["yc"] = element.center.y;
-                json["bin_types"][bin_type_id]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
+                json["bin_types"][bin_type_id]["elements"][element_pos]["center"]["x"] = element.center.x;
+                json["bin_types"][bin_type_id]["elements"][element_pos]["center"]["y"] = element.center.y;
+                json["bin_types"][bin_type_id]["elements"][element_pos]["anticlockwise"] = element.anticlockwise;
             }
         }
         // Bin defects.
@@ -1023,37 +1024,39 @@ void Instance::write(
                 defect_id < (DefectId)bin_type.defects.size();
                 ++defect_id) {
             const Defect& defect = bin_type.defects[defect_id];
+            json["bin_types"][bin_type_id]["defects"][defect_id]["type"] = "general";
             for (Counter element_pos = 0;
                     element_pos < (Counter)defect.shape.elements.size();
                     ++element_pos) {
                 const ShapeElement& element = defect.shape.elements[element_pos];
-                json["bin_types"][bin_type_id]["defects"][defect_id]["shape"][element_pos]["type"] = element2str(element.type);
-                json["bin_types"][bin_type_id]["defects"][defect_id]["shape"][element_pos]["xs"] = element.start.x;
-                json["bin_types"][bin_type_id]["defects"][defect_id]["shape"][element_pos]["ys"] = element.start.y;
-                json["bin_types"][bin_type_id]["defects"][defect_id]["shape"][element_pos]["xe"] = element.end.x;
-                json["bin_types"][bin_type_id]["defects"][defect_id]["shape"][element_pos]["ye"] = element.end.y;
+                json["bin_types"][bin_type_id]["defects"][defect_id]["elements"][element_pos]["type"] = element2str(element.type);
+                json["bin_types"][bin_type_id]["defects"][defect_id]["elements"][element_pos]["start"]["x"] = element.start.x;
+                json["bin_types"][bin_type_id]["defects"][defect_id]["elements"][element_pos]["start"]["y"] = element.start.y;
+                json["bin_types"][bin_type_id]["defects"][defect_id]["elements"][element_pos]["end"]["x"] = element.end.x;
+                json["bin_types"][bin_type_id]["defects"][defect_id]["elements"][element_pos]["end"]["y"] = element.end.y;
                 if (element.type == ShapeElementType::CircularArc) {
-                    json["bin_types"][bin_type_id]["defects"][defect_id]["shape"][element_pos]["xc"] = element.center.x;
-                    json["bin_types"][bin_type_id]["defects"][defect_id]["shape"][element_pos]["yc"] = element.center.y;
-                    json["bin_types"][bin_type_id]["defects"][defect_id]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
+                    json["bin_types"][bin_type_id]["defects"][defect_id]["elements"][element_pos]["center"]["x"] = element.center.x;
+                    json["bin_types"][bin_type_id]["defects"][defect_id]["elements"][element_pos]["center"]["y"] = element.center.y;
+                    json["bin_types"][bin_type_id]["defects"][defect_id]["elements"][element_pos]["anticlockwise"] = element.anticlockwise;
                 }
                 for (Counter hole_pos = 0;
                         hole_pos < (Counter)defect.holes.size();
                         ++hole_pos) {
                     const Shape& hole = defect.holes[hole_pos];
+                    json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["type"] = "general";
                     for (Counter element_pos = 0;
                             element_pos < (Counter)hole.elements.size();
                             ++element_pos) {
                         const ShapeElement& element = hole.elements[element_pos];
-                        json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos][element_pos]["type"] = element2str(element.type);
-                        json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos][element_pos]["xs"] = element.start.x;
-                        json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos][element_pos]["ys"] = element.start.y;
-                        json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos][element_pos]["xe"] = element.end.x;
-                        json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos][element_pos]["ye"] = element.end.y;
+                        json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["elements"][element_pos]["type"] = element2str(element.type);
+                        json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["elements"][element_pos]["start"]["x"] = element.start.x;
+                        json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["elements"][element_pos]["start"]["y"] = element.start.y;
+                        json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["elements"][element_pos]["end"]["x"] = element.end.x;
+                        json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["elements"][element_pos]["end"]["y"] = element.end.y;
                         if (element.type == ShapeElementType::CircularArc) {
-                            json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos][element_pos]["xc"] = element.center.x;
-                            json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos][element_pos]["yc"] = element.center.y;
-                            json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos][element_pos]["anticlockwise"] = element.anticlockwise;
+                            json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["elements"][element_pos]["center"]["x"] = element.center.x;
+                            json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["elements"][element_pos]["center"]["y"] = element.center.y;
+                            json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["elements"][element_pos]["anticlockwise"] = element.anticlockwise;
                         }
                     }
                 }
@@ -1068,44 +1071,51 @@ void Instance::write(
         const ItemType& item_type = this->item_type(item_type_id);
         json["item_types"][item_type_id]["profit"] = item_type.profit;
         json["item_types"][item_type_id]["copies"] = item_type.copies;
-        json["item_types"][item_type_id]["allow_mirroring"] = item_type.allow_mirroring;
+        for (AnglePos angle_pos = 0;
+                angle_pos < (AnglePos)item_type.allowed_rotations.size();
+                ++angle_pos) {
+            json["item_types"][item_type_id]["allowed_rotations"][angle_pos]["start"] = item_type.allowed_rotations[angle_pos].first;
+            json["item_types"][item_type_id]["allowed_rotations"][angle_pos]["end"] = item_type.allowed_rotations[angle_pos].second;
+        }
 
         for (Counter item_shape_pos = 0;
                 item_shape_pos < (Counter)item_type.shapes.size();
                 ++item_shape_pos) {
             const ItemShape& item_shape = item_type.shapes[item_shape_pos];
+            json["item_types"][item_type_id]["shapes"][item_shape_pos]["type"] = "general";
             for (Counter element_pos = 0;
                     element_pos < (Counter)item_shape.shape.elements.size();
                     ++element_pos) {
                 const ShapeElement& element = item_shape.shape.elements[element_pos];
-                json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["shape"][element_pos]["type"] = element2str(element.type);
-                json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["shape"][element_pos]["xs"] = element.start.x;
-                json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["shape"][element_pos]["ys"] = element.start.y;
-                json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["shape"][element_pos]["xe"] = element.end.x;
-                json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["shape"][element_pos]["ye"] = element.end.y;
+                json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"][element_pos]["type"] = element2str(element.type);
+                json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"][element_pos]["start"]["x"] = element.start.x;
+                json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"][element_pos]["start"]["y"] = element.start.y;
+                json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"][element_pos]["end"]["x"] = element.end.x;
+                json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"][element_pos]["end"]["y"] = element.end.y;
                 if (element.type == ShapeElementType::CircularArc) {
-                    json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["shape"][element_pos]["xc"] = element.center.x;
-                    json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["shape"][element_pos]["yc"] = element.center.y;
-                    json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
+                    json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"][element_pos]["center"]["x"] = element.center.x;
+                    json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"][element_pos]["center"]["y"] = element.center.y;
+                    json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"][element_pos]["anticlockwise"] = element.anticlockwise;
                 }
             }
             for (Counter hole_pos = 0;
                     hole_pos < (Counter)item_shape.holes.size();
                     ++hole_pos) {
                 const Shape& hole = item_shape.holes[hole_pos];
+                json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["type"] = "general";
                 for (Counter element_pos = 0;
                         element_pos < (Counter)hole.elements.size();
                         ++element_pos) {
                     const ShapeElement& element = hole.elements[element_pos];
-                    json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["type"] = element2str(element.type);
-                    json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["xs"] = element.start.x;
-                    json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["ys"] = element.start.y;
-                    json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["xe"] = element.end.x;
-                    json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["ye"] = element.end.y;
+                    json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["elements"][element_pos]["type"] = element2str(element.type);
+                    json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["elements"][element_pos]["start"]["x"] = element.start.x;
+                    json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["elements"][element_pos]["start"]["y"] = element.start.y;
+                    json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["elements"][element_pos]["end"]["x"] = element.end.x;
+                    json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["elements"][element_pos]["end"]["y"] = element.end.y;
                     if (element.type == ShapeElementType::CircularArc) {
-                        json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["xc"] = element.center.x;
-                        json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["yc"] = element.center.y;
-                        json["item_types"][item_type_id]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["anticlockwise"] = element.anticlockwise;
+                        json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["elements"][element_pos]["center"]["x"] = element.center.x;
+                        json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["elements"][element_pos]["center"]["y"] = element.center.y;
+                        json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["elements"][element_pos]["anticlockwise"] = element.anticlockwise;
                     }
                 }
             }
