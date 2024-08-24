@@ -216,6 +216,12 @@ struct Parameters
      * not allowed (resp. allowed) for qulity rule rule 'quality_rule'.
      */
     std::vector<std::vector<uint8_t>> quality_rules;
+
+    /** Minimum distance between two items. */
+    LengthDbl item_item_minimum_spacing = 0.0;
+
+    /** Minimum distance between and item and a bin. */
+    LengthDbl item_bin_minimum_spacing = 0.0;
 };
 
 /**
