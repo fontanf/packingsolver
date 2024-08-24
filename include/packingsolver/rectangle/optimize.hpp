@@ -15,15 +15,10 @@ struct Output: packingsolver::Output<Instance, Solution>
         packingsolver::Output<Instance, Solution>(instance) { }
 };
 
-using NewSolutionCallback = std::function<void(const Output&)>;
-
 struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 {
     /** Optimization mode. */
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
-
-    /** New solution callback. */
-    NewSolutionCallback new_solution_callback = [](const Output&) { };
 
     /** Fixed items. */
     Solution* fixed_items = nullptr;
