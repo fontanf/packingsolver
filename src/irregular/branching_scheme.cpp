@@ -626,10 +626,10 @@ BranchingScheme::BranchingScheme(
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
             trapezoid_set.angle = trapezoid_set_ref.angle;
             trapezoid_set.mirror = trapezoid_set_ref.mirror;
-            trapezoid_set.x_min = -trapezoid_set_ref.x_max;
-            trapezoid_set.x_max = -trapezoid_set_ref.x_min;
-            trapezoid_set.y_min = trapezoid_set_ref.y_min;
-            trapezoid_set.y_max = trapezoid_set_ref.y_max;
+            trapezoid_set.x_min = trapezoid_set_ref.x_max;
+            trapezoid_set.x_max = trapezoid_set_ref.x_min;
+            trapezoid_set.y_min = -trapezoid_set_ref.y_min;
+            trapezoid_set.y_max = -trapezoid_set_ref.y_max;
             for (const std::vector<GeneralizedTrapezoid>& shapes_ref: trapezoid_set_ref.shapes) {
                 trapezoid_set.shapes.push_back({});
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
@@ -642,10 +642,10 @@ BranchingScheme::BranchingScheme(
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
             trapezoid_set.angle = trapezoid_set_ref.angle;
             trapezoid_set.mirror = trapezoid_set_ref.mirror;
-            trapezoid_set.x_min = trapezoid_set_ref.x_min;
-            trapezoid_set.x_max = trapezoid_set_ref.x_max;
-            trapezoid_set.y_min = -trapezoid_set_ref.y_max;
-            trapezoid_set.y_max = -trapezoid_set_ref.y_min;
+            trapezoid_set.x_min = -trapezoid_set_ref.x_min;
+            trapezoid_set.x_max = -trapezoid_set_ref.x_max;
+            trapezoid_set.y_min = trapezoid_set_ref.y_max;
+            trapezoid_set.y_max = trapezoid_set_ref.y_min;
             for (const std::vector<GeneralizedTrapezoid>& shapes_ref: trapezoid_set_ref.shapes) {
                 trapezoid_set.shapes.push_back({});
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
@@ -1070,11 +1070,11 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         x = node.y;
         y = node.x;
     } else if (node.last_bin_direction == Direction::TopToBottomThenLeftToRight) {
-        x = -node.y;
-        y = node.x;
-    } else if (node.last_bin_direction == Direction::BottomToTopThenRightToLeft) {
         x = node.y;
         y = -node.x;
+    } else if (node.last_bin_direction == Direction::BottomToTopThenRightToLeft) {
+        x = -node.y;
+        y = node.x;
     } else if (node.last_bin_direction == Direction::TopToBottomThenRightToLeft) {
         x = -node.y;
         y = -node.x;
