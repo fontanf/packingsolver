@@ -634,10 +634,10 @@ BranchingScheme::BranchingScheme(
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
             trapezoid_set.angle = trapezoid_set_ref.angle;
             trapezoid_set.mirror = trapezoid_set_ref.mirror;
-            trapezoid_set.x_min = trapezoid_set_ref.x_max;
-            trapezoid_set.x_max = trapezoid_set_ref.x_min;
-            trapezoid_set.y_min = -trapezoid_set_ref.y_min;
-            trapezoid_set.y_max = -trapezoid_set_ref.y_max;
+            trapezoid_set.x_min = trapezoid_set_ref.x_min;
+            trapezoid_set.x_max = trapezoid_set_ref.x_max;
+            trapezoid_set.y_min = -trapezoid_set_ref.y_max;
+            trapezoid_set.y_max = -trapezoid_set_ref.y_min;
             for (const std::vector<GeneralizedTrapezoid>& shapes_ref: trapezoid_set_ref.shapes) {
                 trapezoid_set.shapes.push_back({});
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
@@ -650,10 +650,10 @@ BranchingScheme::BranchingScheme(
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
             trapezoid_set.angle = trapezoid_set_ref.angle;
             trapezoid_set.mirror = trapezoid_set_ref.mirror;
-            trapezoid_set.x_min = -trapezoid_set_ref.x_min;
-            trapezoid_set.x_max = -trapezoid_set_ref.x_max;
-            trapezoid_set.y_min = trapezoid_set_ref.y_max;
-            trapezoid_set.y_max = trapezoid_set_ref.y_min;
+            trapezoid_set.x_min = -trapezoid_set_ref.x_max;
+            trapezoid_set.x_max = -trapezoid_set_ref.x_min;
+            trapezoid_set.y_min = trapezoid_set_ref.y_min;
+            trapezoid_set.y_max = trapezoid_set_ref.y_max;
             for (const std::vector<GeneralizedTrapezoid>& shapes_ref: trapezoid_set_ref.shapes) {
                 trapezoid_set.shapes.push_back({});
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
@@ -1130,6 +1130,22 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     } else {
         node.xe_max = x + mm.second.x;
         node.ye_max = y + mm.second.y;
+    }
+    if (striclty_greater(node.ye_max, bin_type.y_max)) {
+        throw std::runtime_error(
+                "irregular::BranchingScheme::child_tmp."
+                " node.ye_max: " + std::to_string(node.ye_max)
+                + "; bin_type.y_max: " + std::to_string(bin_type.y_max)
+                + "; insertions.trapezoid_set_id: " + std::to_string(insertion.trapezoid_set_id)
+                + "; insertions.x: " + std::to_string(insertion.x)
+                + "; insertions.y: " + std::to_string(insertion.y)
+                + "; trapezoid_set.x_min: " + std::to_string(trapezoid_set.x_min)
+                + "; trapezoid_set.x_max: " + std::to_string(trapezoid_set.x_max)
+                + "; trapezoid_set.y_min: " + std::to_string(trapezoid_set.y_min)
+                + "; trapezoid_set.y_max: " + std::to_string(trapezoid_set.y_max)
+                + "; bb_bin_type.x_max: " + std::to_string(bb_bin_type.x_max)
+                + "; bb_bin_type.y_max: " + std::to_string(bb_bin_type.y_max)
+                + ".");
     }
 
     node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
