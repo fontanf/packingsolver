@@ -271,10 +271,10 @@ void InstanceBuilder::read(
     // Read parameters.
     if (j.contains("parameters")) {
         auto json_parameters = j["parameters"];
-        if (json_parameters.contains("item-item-minimum-spacing"))
-            set_item_item_minimum_spacing(json_parameters["item-item-minimum-spacing"]);
-        if (json_parameters.contains("item-bin-minimum-spacing"))
-            set_item_bin_minimum_spacing(json_parameters["item-bin-minimum-spacing"]);
+        if (json_parameters.contains("item_item_minimum_spacing"))
+            set_item_item_minimum_spacing(json_parameters["item_item_minimum_spacing"]);
+        if (json_parameters.contains("item_bin_minimum_spacing"))
+            set_item_bin_minimum_spacing(json_parameters["item_bin_minimum_spacing"]);
     }
 
     // Read bin types.
