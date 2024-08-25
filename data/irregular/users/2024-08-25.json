@@ -1,0 +1,44 @@
+{
+  "objective": "bin-packing-with-leftovers",
+  "parameters": {
+    "item_item_minimum_spacing": 1.96850394,
+    "item_bin_minimum_spacing": 3.93700787
+  },
+  "bin_types": [
+    {
+      "copies": 10,
+      "width": 47.24409449,
+      "height": 78.74015748,
+      "type": "rectangle"
+    }
+  ],
+  "item_types": [
+    {
+      "copies": 12,
+      "shapes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 11.81102362,
+              "y": 11.81102362
+            },
+            {
+              "x": 0.0,
+              "y": 11.81102362
+            },
+            {
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "x": 11.81102362,
+              "y": 0.0
+            }
+          ],
+          "holes": []
+        }
+      ]
+    }
+  ]
+}

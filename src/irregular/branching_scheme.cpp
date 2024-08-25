@@ -1773,9 +1773,16 @@ void BranchingScheme::insertion_trapezoid_set(
         return;
 
     if (parent->parent != nullptr) {
-        if (striclty_greater(ys + trapezoid_set.y_min, parent->ye)
-                || !striclty_greater(ys + trapezoid_set.y_max, parent->ys)) {
-            //std::cout << "skip ys " << ys << std::endl;
+        LengthDbl ys_tmp = supporting_trapezoid.y_bottom()
+            - item_shape_trapezoid.y_top()
+            + trapezoid_set.y_min
+            - instance().parameters().item_item_minimum_spacing;
+        LengthDbl ye_tmp = supporting_trapezoid.y_top()
+            - item_shape_trapezoid.y_bottom()
+            + trapezoid_set.y_max
+            + instance().parameters().item_item_minimum_spacing;
+        if (striclty_greater(ys_tmp, parent->ye)
+                || striclty_lesser(ye_tmp, parent->ys)) {
             return;
         }
     }
@@ -1915,8 +1922,14 @@ void BranchingScheme::insertion_trapezoid_set(
     insertion.item_shape_trapezoid_pos = item_shape_trapezoid_pos;
     insertion.x = xs;
     insertion.y = ys;
-    insertion.ys = supporting_trapezoid.y_bottom() - item_shape_trapezoid.y_top() + trapezoid_set.y_min;
-    insertion.ye = supporting_trapezoid.y_top() - item_shape_trapezoid.y_bottom() + trapezoid_set.y_max;
+    insertion.ys = supporting_trapezoid.y_bottom()
+        - item_shape_trapezoid.y_top()
+        + trapezoid_set.y_min
+        - instance().parameters().item_item_minimum_spacing;
+    insertion.ye = supporting_trapezoid.y_top()
+        - item_shape_trapezoid.y_bottom()
+        + trapezoid_set.y_max
+        + instance().parameters().item_item_minimum_spacing;
     insertion.new_bin_direction = new_bin_direction;
     parent->children_insertions.push_back(insertion);
     //std::cout << "y " << insertion.y
