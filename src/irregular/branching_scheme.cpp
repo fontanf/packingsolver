@@ -83,16 +83,6 @@ BranchingScheme::BranchingScheme(
             UncoveredTrapezoid defect_bottom(-1, trapezoid_bottom);
             bb_bin_type.defects.push_back(defect_bottom);
 
-            GeneralizedTrapezoid trapezoid_left(
-                    y_min,
-                    y_max,
-                    x_min,
-                    bb_bin_type.x_min + instance.parameters().item_bin_minimum_spacing,
-                    x_min,
-                    bb_bin_type.x_min + instance.parameters().item_bin_minimum_spacing);
-            UncoveredTrapezoid defect_left(-1, trapezoid_left);
-            bb_bin_type.defects.push_back(defect_left);
-
             GeneralizedTrapezoid trapezoid_top(
                     bb_bin_type.y_max - instance.parameters().item_bin_minimum_spacing,
                     y_max,
@@ -980,8 +970,15 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                     item_shape_pos,
                     item_shape_trapezoid_pos,
                     trapezoid);
-            //std::cout << "add extra_trapezoid " << item_shape_trapezoids[item_shape_trapezoid_pos] << std::endl;
-            //std::cout << "shifted " << extra_trapezoid << std::endl;
+            if (extra_trapezoid.trapezoid.x_bottom_left() < -2000) {
+                GeneralizedTrapezoid trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
+                trapezoid.shift_right(insertion.x);
+                trapezoid.shift_top(insertion.y);
+                //std::cout << "insertion " << insertion << std::endl;
+                //std::cout << "add extra_trapezoid " << item_shape_trapezoids[item_shape_trapezoid_pos] << std::endl;
+                //std::cout << "shifted " << trapezoid << std::endl;
+                //std::cout << "inflate " << extra_trapezoid << std::endl;
+            }
             node.extra_trapezoids.push_back(extra_trapezoid);
         }
     }
@@ -1188,7 +1185,7 @@ void BranchingScheme::insertions(
                 uncovered_trapezoid_pos_cur < (ItemPos)parent->uncovered_trapezoids.size();
                 ++uncovered_trapezoid_pos_cur) {
             GeneralizedTrapezoid uncovered_trapezoid = parent->uncovered_trapezoids[uncovered_trapezoid_pos_cur].trapezoid;
-            uncovered_trapezoid.extend_left(bb_bin_type.x_min - (bb_bin_type.x_max - bb_bin_type.x_min));
+            uncovered_trapezoid.extend_left(bb_bin_type.x_min);
             uncovered_trapezoids_cur_.push_back(uncovered_trapezoid);
         }
     }
@@ -1812,6 +1809,59 @@ void BranchingScheme::insertion_trapezoid_set(
     //if (striclty_lesser(ys + trapezoid_set.y_min, bb_bin_type.y_min))
     //    return;
 
+    // Move the item to the right of the left side of the bin.
+    for (;;) {
+        bool stop = true;
+
+        // Loop through trapezoids of the trapezoid set.
+        for (ItemShapePos item_shape_cur_pos = 0;
+                item_shape_cur_pos < (ItemShapePos)trapezoid_set.shapes.size();
+                ++item_shape_cur_pos) {
+            const auto& item_shape_trapezoids_cur = trapezoid_set.shapes[item_shape_cur_pos];
+            for (TrapezoidPos item_shape_trapezoid_cur_pos = 0;
+                    item_shape_trapezoid_cur_pos < (TrapezoidPos)item_shape_trapezoids_cur.size();
+                    ++item_shape_trapezoid_cur_pos) {
+                GeneralizedTrapezoid item_shape_trapezoid_cur = item_shape_trapezoids_cur[item_shape_trapezoid_cur_pos];
+                item_shape_trapezoid_cur.shift_right(xs);
+                item_shape_trapezoid_cur.shift_top(ys);
+
+                GeneralizedTrapezoid trapezoid_to_avoid(
+                        std::min(
+                            bb_bin_type.y_min,
+                            item_shape_trapezoid_cur.y_bottom()),
+                        std::max(
+                            bb_bin_type.y_max,
+                            item_shape_trapezoid_cur.y_top()),
+                        std::min(
+                            bb_bin_type.x_min - (bb_bin_type.x_max - bb_bin_type.x_min),
+                            item_shape_trapezoid_cur.x_min()),
+                        bb_bin_type.x_min + instance().parameters().item_bin_minimum_spacing,
+                        std::min(
+                            bb_bin_type.x_min - (bb_bin_type.x_max - bb_bin_type.x_min),
+                            item_shape_trapezoid_cur.x_min()),
+                        bb_bin_type.x_min + instance().parameters().item_bin_minimum_spacing);
+
+                bool b = update_position(
+                        item_shape_trapezoid,
+                        supporting_trapezoid,
+                        trapezoid_to_avoid,
+                        item_shape_trapezoid_cur,
+                        state,
+                        xs,
+                        ys);
+                if (state == State::Infeasible)
+                    return;
+                if (b) {
+                    stop = false;
+                    if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+                        return;
+                }
+            }
+        }
+
+        if (stop)
+            break;
+    }
 
     for (;;) {
         bool stop = true;
@@ -1859,7 +1909,7 @@ void BranchingScheme::insertion_trapezoid_set(
                             return;
                         if (b) {
                             stop = false;
-                            if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max))
+                            if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
                                 return;
                         }
                     }
@@ -1907,7 +1957,7 @@ void BranchingScheme::insertion_trapezoid_set(
                     if (state == State::Infeasible)
                         return;
                     if (b) {
-                        if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max))
+                        if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
                             return;
                         stop = false;
                     }

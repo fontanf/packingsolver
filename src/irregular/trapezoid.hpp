@@ -516,18 +516,16 @@ public:
         LengthDbl l_left = std::sqrt(
                 (x_top_left() - x_bottom_left()) * (x_top_left() - x_bottom_left())
                 + height() * height());
-        double cos_left = height() / l_left;
-        LengthDbl xbl = x_left(y_bottom() - value) - value / cos_left;
-        LengthDbl xtl = x_left(y_top() - value) - value / cos_left;
+        LengthDbl xbl = x_left(y_bottom() - value) - value * l_left / height();
+        LengthDbl xtl = x_left(y_top() - value) - value * l_left / height();
         //std::cout << "l_left " << l_left << std::endl;
         //std::cout << "cos_left " << cos_left << std::endl;
         //std::cout << "xbl_ " << xbl_ << " -> " << xbl << std::endl;
         LengthDbl l_right = std::sqrt(
                 (x_top_right() - x_bottom_right()) * (x_top_right() - x_bottom_right())
                 + height() * height());
-        double cos_right = height() / l_right;
-        LengthDbl xbr = x_right(y_bottom() - value) + value / cos_right;
-        LengthDbl xtr = x_right(y_top() + value) + value / cos_right;
+        LengthDbl xbr = x_right(y_bottom() - value) + value * l_right / height();
+        LengthDbl xtr = x_right(y_top() + value) + value * l_right / height();
         //std::cout << "a_right " << a_right() << std::endl;
         //std::cout << "l_right " << l_right << std::endl;
         //std::cout << "cos_right " << cos_right << std::endl;
