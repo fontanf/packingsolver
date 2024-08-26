@@ -1757,7 +1757,7 @@ void BranchingScheme::insertion_trapezoid_set(
         bb_bin_type.defects;
 
     const GeneralizedTrapezoid& supporting_trapezoid = (uncovered_trapezoid_pos != -1)?
-        parent->uncovered_trapezoids[uncovered_trapezoid_pos].trapezoid:
+        uncovered_trapezoids_cur_[uncovered_trapezoid_pos]:
         extra_trapezoids[extra_trapezoid_pos].trapezoid;
     if (supporting_trapezoid.y_top() == bb_bin_type.y_max + (bb_bin_type.y_max - bb_bin_type.y_min))
         return;
