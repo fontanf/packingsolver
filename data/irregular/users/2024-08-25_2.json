@@ -1,0 +1,145 @@
+{
+  "objective": "bin-packing-with-leftovers",
+  "parameters": {
+    "item_bin_minimum_spacing": 9.84251969,
+    "item_item_minimum_spacing": 47.24409449
+  },
+  "bin_types": [
+    {
+      "copies": 12,
+      "width": 110.23622047,
+      "height": 81.49606299,
+      "type": "rectangle"
+    }
+  ],
+  "item_types": [
+    {
+      "copies": 2,
+      "shapes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 16.19690203,
+              "y": 7.4773331
+            },
+            {
+              "x": 0.0,
+              "y": 7.4773331
+            },
+            {
+              "x": 13.02220925,
+              "y": 0.0
+            }
+          ],
+          "holes": []
+        }
+      ],
+      "allowed_rotations": [
+        {
+          "start": 0,
+          "end": 0
+        }
+      ],
+      "allow_mirroring": false
+    },
+    {
+      "copies": 2,
+      "shapes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 16.05129784,
+              "y": 3.1952252
+            },
+            {
+              "x": 1.18487016,
+              "y": 3.1952252
+            },
+            {
+              "x": 0.0,
+              "y": -0.0
+            },
+            {
+              "x": 15.48998301,
+              "y": -0.0
+            }
+          ],
+          "holes": []
+        }
+      ],
+      "allowed_rotations": [
+        {
+          "start": 0,
+          "end": 0
+        }
+      ],
+      "allow_mirroring": false
+    },
+    {
+      "copies": 2,
+      "shapes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 5.11231824,
+              "y": 3.1952252
+            },
+            {
+              "x": 0.0,
+              "y": 3.1952252
+            },
+            {
+              "x": 1.18487016,
+              "y": -0.0
+            },
+            {
+              "x": 11.99889954,
+              "y": -0.0
+            }
+          ],
+          "holes": []
+        }
+      ],
+      "allowed_rotations": [
+        {
+          "start": 0,
+          "end": 0
+        }
+      ],
+      "allow_mirroring": false
+    },
+    {
+      "copies": 4,
+      "shapes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 4.66601124,
+              "y": 2.81466403
+            },
+            {
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "x": 11.85935567,
+              "y": 0.0
+            }
+          ],
+          "holes": []
+        }
+      ],
+      "allowed_rotations": [
+        {
+          "start": 0,
+          "end": 0
+        }
+      ],
+      "allow_mirroring": false
+    }
+  ]
+}
