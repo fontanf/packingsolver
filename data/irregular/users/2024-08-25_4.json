@@ -1,0 +1,107 @@
+{
+  "objective": "bin-packing-with-leftovers",
+  "parameters": {
+    "item_bin_minimum_spacing": 3.93700787,
+    "item_item_minimum_spacing": 0.39370079
+  },
+  "bin_types": [
+    {
+      "copies": 46,
+      "width": 110.23622047,
+      "height": 81.49606299,
+      "type": "rectangle"
+    }
+  ],
+  "item_types": [
+    {
+      "copies": 24,
+      "shapes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 11.81102362,
+              "y": 11.81102362
+            },
+            {
+              "x": 0.0,
+              "y": 11.81102362
+            },
+            {
+              "x": 0.0,
+              "y": 0.0
+            },
+            {
+              "x": 11.81102362,
+              "y": 0.0
+            }
+          ],
+          "holes": [
+            {
+              "type": "polygon",
+              "vertices": [
+                {
+                  "x": 1.96850394,
+                  "y": 1.96850394
+                },
+                {
+                  "x": 9.84251969,
+                  "y": 1.96850394
+                },
+                {
+                  "x": 9.84251969,
+                  "y": 9.84251969
+                },
+                {
+                  "x": 1.96850394,
+                  "y": 9.84251969
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "allowed_rotations": [
+        {
+          "start": 0,
+          "end": 0
+        }
+      ],
+      "allow_mirroring": false
+    },
+    {
+      "copies": 22,
+      "shapes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 5.90551181,
+              "y": 5.90551181
+            },
+            {
+              "x": 0.0,
+              "y": 5.90551181
+            },
+            {
+              "x": 0.0,
+              "y": -0.0
+            },
+            {
+              "x": 5.90551181,
+              "y": -0.0
+            }
+          ],
+          "holes": []
+        }
+      ],
+      "allowed_rotations": [
+        {
+          "start": 0,
+          "end": 0
+        }
+      ],
+      "allow_mirroring": false
+    }
+  ]
+}
