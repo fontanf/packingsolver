@@ -765,24 +765,30 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
             //std::cout << "right_sides_intersect " << right_sides_intersect << std::endl;
             //std::cout << "y_intersection " << y_intersection << std::endl;
 
-            LengthDbl y1 = ys;
-            LengthDbl y2 = ye;
+            LengthDbl y1 = yb;
+            LengthDbl y2 = yt;
             //std::cout << "uncovered_trapezoid.trapezoid.x_bottom_right() " << uncovered_trapezoid.trapezoid.x_bottom_right() << std::endl;
             //std::cout << "new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_bottom() " << new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_bottom()) << std::endl;
-            if (uncovered_trapezoid.trapezoid.x_right(yb)
-                    > new_trapezoid.x_right(yb)) {
+            if (striclty_greater(
+                        uncovered_trapezoid.trapezoid.x_right(yb),
+                        new_trapezoid.x_right(yb))) {
                 if (!right_sides_intersect) {
-                    y1 = uncovered_trapezoid.trapezoid.y_top();
+                    y1 = yt;
+                    if (y2 < y1)
+                        y2 = y1;
                 } else {
                     y1 = y_intersection;
                 }
             }
             //std::cout << "uncovered_trapezoid.trapezoid.x_top_right() " << uncovered_trapezoid.trapezoid.x_top_right() << std::endl;
             //std::cout << "new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_top()) " << new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_top()) << std::endl;
-            if (uncovered_trapezoid.trapezoid.x_right(yt)
-                    > new_trapezoid.x_right(yt)) {
+            if (striclty_greater(
+                        uncovered_trapezoid.trapezoid.x_right(yt),
+                        new_trapezoid.x_right(yt))) {
                 if (!right_sides_intersect) {
-                    y2 = uncovered_trapezoid.trapezoid.y_bottom();
+                    y2 = yb;
+                    if (y1 > y2)
+                        y1 = y2;
                 } else {
                     y2 = y_intersection;
                 }
@@ -898,9 +904,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                     bb_bin_type.y_min,
                     bb_bin_type.y_max,
                     bb_bin_type.x_min,
+                    bb_bin_type.x_min + instance().parameters().item_bin_minimum_spacing,
                     bb_bin_type.x_min,
-                    bb_bin_type.x_min,
-                    bb_bin_type.x_min));
+                    bb_bin_type.x_min + instance().parameters().item_bin_minimum_spacing));
         node.uncovered_trapezoids.push_back(uncovered_trapezoid);
 
         // Add extra trapezoids from defects.
@@ -966,10 +972,12 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 LengthDbl xt_t = trapezoid.x_left(yt);
                 LengthDbl xb_ut = uncovered_trapezoid.trapezoid.x_right(yb);
                 LengthDbl xt_ut = uncovered_trapezoid.trapezoid.x_right(yt);
-                if (equal(xb_t, xb_ut) && equal(xt_t, xt_ut)) {
+                if (!striclty_greater(xb_t, xb_ut)
+                        && !striclty_greater(xt_t, xt_ut)) {
                     touching_height += (yt - yb);
                 }
             }
+            //std::cout << "touching_height " << touching_height << " " << trapezoid.height() << std::endl;
             if (equal(touching_height, trapezoid.height())) {
                 node.uncovered_trapezoids = add_trapezoid_to_skyline(
                         node.uncovered_trapezoids,
