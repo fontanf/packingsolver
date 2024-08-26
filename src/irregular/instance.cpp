@@ -696,6 +696,8 @@ std::ostream& Instance::format(
             << "Smallest item area:           " << smallest_item_area() << std::endl
             << "Largest item area:            " << largest_item_area() << std::endl
             << "Bin area:                     " << bin_area() << std::endl
+            << "Item-bin minimum spacing:     " << parameters().item_bin_minimum_spacing << std::endl
+            << "Item-item minimum spacing:    " << parameters().item_item_minimum_spacing << std::endl
             ;
     }
 
