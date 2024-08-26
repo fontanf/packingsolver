@@ -730,15 +730,16 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
     LengthDbl ye = std::min(new_trapezoid.y_top(), uncovered_trapezoids.back().trapezoid.y_top());
     //std::cout << "ys " << ys << " ye " << ye << std::endl;
 
+    bool current_new_trapezoid = false;
+    LengthDbl y_cur = 0.0;
+
     // Update uncovered_trapezoids.
     for (const BranchingScheme::UncoveredTrapezoid& uncovered_trapezoid: uncovered_trapezoids) {
         //std::cout << "uncovered_trapezoid " << uncovered_trapezoid << std::endl;
         if (!striclty_greater(uncovered_trapezoid.trapezoid.y_top(), ys)) {
-            UncoveredTrapezoid new_uncovered_trapezoid = uncovered_trapezoid;
-            new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+            new_uncovered_trapezoids.push_back(uncovered_trapezoid);
         } else if (!striclty_lesser(uncovered_trapezoid.trapezoid.y_bottom(), ye)) {
-            UncoveredTrapezoid new_uncovered_trapezoid = uncovered_trapezoid;
-            new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+            new_uncovered_trapezoids.push_back(uncovered_trapezoid);
         } else {
 
             bool right_sides_intersect = false;
@@ -796,6 +797,24 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
             //std::cout << "y1 " << y1 << " y2 " << y2 << std::endl;
 
             if (striclty_lesser(uncovered_trapezoid.trapezoid.y_bottom(), y1)) {
+
+                if (current_new_trapezoid) {
+                    LengthDbl y_curr_top = uncovered_trapezoid.trapezoid.y_bottom();
+                    UncoveredTrapezoid new_uncovered_trapezoid(
+                            item_type_id,
+                            item_shape_pos,
+                            item_shape_trapezoid_pos,
+                            GeneralizedTrapezoid(
+                                y_cur,
+                                y_curr_top,
+                                new_trapezoid.x_left(y_cur),
+                                new_trapezoid.x_right(y_cur),
+                                new_trapezoid.x_left(y_curr_top),
+                                new_trapezoid.x_right(y_curr_top)));
+                    new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+                    current_new_trapezoid = false;
+                }
+
                 UncoveredTrapezoid new_uncovered_trapezoid(
                         uncovered_trapezoid.item_type_id,
                         uncovered_trapezoid.item_shape_pos,
@@ -811,21 +830,47 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
             }
 
             if (striclty_lesser(y1, y2)) {
-                UncoveredTrapezoid new_uncovered_trapezoid(
-                        item_type_id,
-                        item_shape_pos,
-                        item_shape_trapezoid_pos,
-                        GeneralizedTrapezoid(
-                            y1,
-                            y2,
-                            new_trapezoid.x_left(y1),
-                            new_trapezoid.x_right(y1),
-                            new_trapezoid.x_left(y2),
-                            new_trapezoid.x_right(y2)));
-                new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+                if (!current_new_trapezoid)
+                    y_cur = y1;
+                current_new_trapezoid = true;
+
+                if (equal(y2, new_trapezoid.y_top())) {
+                    LengthDbl y_curr_top = y2;
+                    UncoveredTrapezoid new_uncovered_trapezoid(
+                            item_type_id,
+                            item_shape_pos,
+                            item_shape_trapezoid_pos,
+                            GeneralizedTrapezoid(
+                                y_cur,
+                                y_curr_top,
+                                new_trapezoid.x_left(y_cur),
+                                new_trapezoid.x_right(y_cur),
+                                new_trapezoid.x_left(y_curr_top),
+                                new_trapezoid.x_right(y_curr_top)));
+                    new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+                    current_new_trapezoid = false;
+                }
             }
 
             if (striclty_lesser(y2, uncovered_trapezoid.trapezoid.y_top())) {
+
+                if (current_new_trapezoid) {
+                    LengthDbl y_curr_top = y2;
+                    UncoveredTrapezoid new_uncovered_trapezoid(
+                            item_type_id,
+                            item_shape_pos,
+                            item_shape_trapezoid_pos,
+                            GeneralizedTrapezoid(
+                                y_cur,
+                                y_curr_top,
+                                new_trapezoid.x_left(y_cur),
+                                new_trapezoid.x_right(y_cur),
+                                new_trapezoid.x_left(y_curr_top),
+                                new_trapezoid.x_right(y_curr_top)));
+                    new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+                    current_new_trapezoid = false;
+                }
+
                 UncoveredTrapezoid new_uncovered_trapezoid(
                         uncovered_trapezoid.item_type_id,
                         uncovered_trapezoid.item_shape_pos,
@@ -840,6 +885,23 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
                 new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
             }
         }
+    }
+
+    if (current_new_trapezoid) {
+        LengthDbl y_curr_top = ye;
+        UncoveredTrapezoid new_uncovered_trapezoid(
+                item_type_id,
+                item_shape_pos,
+                item_shape_trapezoid_pos,
+                GeneralizedTrapezoid(
+                    y_cur,
+                    y_curr_top,
+                    new_trapezoid.x_left(y_cur),
+                    new_trapezoid.x_right(y_cur),
+                    new_trapezoid.x_left(y_curr_top),
+                    new_trapezoid.x_right(y_curr_top)));
+        new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
+        current_new_trapezoid = false;
     }
 
     //std::cout << "uncovered_trapezoids:" << std::endl;
