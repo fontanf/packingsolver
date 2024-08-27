@@ -517,7 +517,7 @@ public:
                 (x_top_left() - x_bottom_left()) * (x_top_left() - x_bottom_left())
                 + height() * height());
         LengthDbl xbl = x_left(y_bottom() - value) - value * l_left / height();
-        LengthDbl xtl = x_left(y_top() - value) - value * l_left / height();
+        LengthDbl xtl = x_left(y_top() + value) - value * l_left / height();
         //std::cout << "l_left " << l_left << std::endl;
         //std::cout << "cos_left " << cos_left << std::endl;
         //std::cout << "xbl_ " << xbl_ << " -> " << xbl << std::endl;
