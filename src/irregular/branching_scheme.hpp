@@ -395,6 +395,10 @@ public:
     Solution to_solution(
             const std::shared_ptr<Node>& node) const;
 
+    void to_svg(
+            const std::shared_ptr<Node>& node,
+            const std::string& file_path) const;
+
 private:
 
     /** Instance. */

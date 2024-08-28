@@ -596,6 +596,23 @@ public:
                 xtr);
     }
 
+    std::string to_svg(
+            const std::string color = "purple",
+            double factor = 10) const
+    {
+        return std::string("<path d=\"")
+            + "M" + std::to_string(x_bottom_left() * factor) + "," + std::to_string(-y_bottom() * factor)
+            + "L" + std::to_string(x_bottom_right() * factor) + "," + std::to_string(-y_bottom() * factor)
+            + "L" + std::to_string(x_top_right() * factor) + "," + std::to_string(-y_top() * factor)
+            + "L" + std::to_string(x_top_left() * factor) + "," + std::to_string(-y_top() * factor)
+            + "Z\""
+            + " stroke=\"black\""
+            + " stroke-width=\"1\""
+            + " fill=\"" + color + "\""
+            + " fill-opacity=\"0.2\""
+            + "/>\n";
+    }
+
 private:
 
     /** x-coordinate of the bottom. */
