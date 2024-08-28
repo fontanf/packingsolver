@@ -1045,7 +1045,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             // Add the item to the skyline.
             if (item_shape_pos == insertion.item_shape_pos
                     && item_shape_trapezoid_pos == insertion.item_shape_trapezoid_pos
-                    //&& !trapezoid.left_side_increasing_not_vertical()
+                    && !trapezoid.left_side_increasing_not_vertical()
                     ) {
                 node.uncovered_trapezoids = add_trapezoid_to_skyline(
                         node.uncovered_trapezoids,
