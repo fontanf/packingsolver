@@ -704,6 +704,45 @@ BranchingScheme::BranchingScheme(
     //    }
     //}
 
+    compute_inflated_trapezoid_sets();
+}
+
+void BranchingScheme::compute_inflated_trapezoid_sets()
+{
+    for (Direction direction: {
+            Direction::LeftToRightThenBottomToTop,
+            Direction::LeftToRightThenTopToBottom,
+            Direction::RightToLeftThenBottomToTop,
+            Direction::RightToLeftThenTopToBottom,
+            Direction::BottomToTopThenLeftToRight,
+            Direction::BottomToTopThenRightToLeft,
+            Direction::TopToBottomThenLeftToRight,
+            Direction::TopToBottomThenRightToLeft}) {
+        trapezoid_sets_inflated_.push_back({});
+
+        for (TrapezoidSetId trapezoid_set_id = 0;
+                trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_[(int)direction].size();
+                ++trapezoid_set_id) {
+            const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)direction][trapezoid_set_id];
+            trapezoid_sets_inflated_.back().push_back({});
+
+            // Loop through rectangles of the rectangle set.
+            for (ItemShapePos item_shape_pos = 0;
+                    item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
+                    ++item_shape_pos) {
+                const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
+                trapezoid_sets_inflated_.back().back().push_back({});
+
+                for (TrapezoidPos item_shape_trapezoid_pos = 0;
+                        item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
+                        ++item_shape_trapezoid_pos) {
+                    const auto& item_shape_trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
+                    trapezoid_sets_inflated_.back().back().back().push_back(
+                            item_shape_trapezoid.inflate(instance().parameters().item_item_minimum_spacing));
+                }
+            }
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -995,13 +1034,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
                 ++item_shape_trapezoid_pos) {
             //std::cout << "insertion " << insertion << std::endl;
-            GeneralizedTrapezoid trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
-            //std::cout << "add extra_trapezoid " << trapezoid << std::endl;
+            //std::cout << "add extra_trapezoid " << item_shape_trapezoids[item_shape_trapezoid_pos] << std::endl;
+            GeneralizedTrapezoid trapezoid
+                = trapezoid_sets_inflated_[(int)node.last_bin_direction][node.trapezoid_set_id][item_shape_pos][item_shape_trapezoid_pos];
+            //std::cout << "inflate " << trapezoid << std::endl;
             trapezoid.shift_right(insertion.x);
             trapezoid.shift_top(insertion.y);
             //std::cout << "shifted " << trapezoid << std::endl;
-            trapezoid = trapezoid.inflate(instance().parameters().item_item_minimum_spacing);
-            //std::cout << "inflate " << trapezoid << std::endl;
 
             // Add the item to the skyline.
             if (item_shape_pos == insertion.item_shape_pos
@@ -2077,7 +2116,13 @@ void BranchingScheme::insertion_trapezoid_set(
         + instance().parameters().item_item_minimum_spacing;
     insertion.new_bin_direction = new_bin_direction;
     parent->children_insertions.push_back(insertion);
-    //std::cout << "y " << insertion.y
+    //std::cout << "- trapezoid_set_id " << trapezoid_set_id
+    //    << " " << item_shape_pos
+    //    << " " << item_shape_trapezoid_pos
+    //    << " new_bin_direction " << (int)new_bin_direction
+    //    << " utp " << uncovered_trapezoid_pos
+    //    << " etp " << extra_trapezoid_pos
+    //    << " y " << insertion.y
     //    << " x " << insertion.x
     //    << " nbd " << (int)insertion.new_bin_direction
     //    << " -> ok" << std::endl;

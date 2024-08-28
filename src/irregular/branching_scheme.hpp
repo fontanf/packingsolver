@@ -412,6 +412,9 @@ private:
     /** Trapezoid sets in each direction. */
     std::vector<std::vector<TrapezoidSet>> trapezoid_sets_;
 
+    /** Inflated trapezoid sets in each direction. */
+    std::vector<std::vector<std::vector<std::vector<GeneralizedTrapezoid>>>> trapezoid_sets_inflated_;
+
     mutable Counter node_id_ = 0;
 
     mutable std::vector<GeneralizedTrapezoid> uncovered_trapezoids_cur_;
@@ -437,6 +440,8 @@ private:
 
     /** Get the area load of a node. */
     inline double area_load(const Node& node) const { return (double)node.item_area / instance().bin_area(); }
+
+    void compute_inflated_trapezoid_sets();
 
     std::vector<UncoveredTrapezoid> add_trapezoid_to_skyline(
             const std::vector<UncoveredTrapezoid>& uncovered_trapezoids,
