@@ -194,9 +194,6 @@ public:
         /** Item area. */
         AreaDbl item_area = 0;
 
-        /** Current area. */
-        AreaDbl current_area = 0;
-
         /** Leftover value. */
         Profit leftover_value = 0;
 
@@ -425,9 +422,6 @@ private:
 
     /** Get the percentage of item inserted into a node. */
     inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
-
-    /** Get the mean area of a node. */
-    inline double mean_area(const Node& node) const { return (double)node.current_area / node.number_of_items; }
 
     /** Get the mean item area of a node; */
     inline double mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
