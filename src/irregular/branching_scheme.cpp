@@ -1175,18 +1175,16 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     //std::cout << "parent.item_area " << parent.item_area << " item_area " << item_type.area << std::endl;
     node.profit = parent.profit + item_type.profit;
 
-    // Compute current_area, guide_area and width using uncovered_trapezoids.
+    // Compute, guide_area and width using uncovered_trapezoids.
     node.xs_max = (insertion.new_bin_direction == Direction::Any)?  // Same bin
         std::max(parent.xs_max, insertion.x):
         insertion.x;
-    node.current_area = instance_.previous_bin_area(bin_pos);
     node.guide_area = instance_.previous_bin_area(bin_pos)
         + (node.xs_max - bb_bin_type.x_min)
         * (bb_bin_type.y_max - bb_bin_type.y_min);
     for (auto it = node.uncovered_trapezoids.rbegin(); it != node.uncovered_trapezoids.rend(); ++it) {
         const GeneralizedTrapezoid& trapezoid = it->trapezoid;
         //std::cout << trapezoid << std::endl;
-        node.current_area += trapezoid.area(bb_bin_type.x_min);
         //std::cout << "* " << trapezoid.area() << " " << trapezoid.area(0.0) << std::endl;
         //std::cout << "current_area: " << node.current_area << std::endl;
         if (trapezoid.x_max() > node.xs_max)
@@ -1199,7 +1197,6 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             continue;
         }
         const GeneralizedTrapezoid& trapezoid = extra_trapezoid.trapezoid;
-        node.current_area += trapezoid.area();
         //std::cout << trapezoid << std::endl;
         //std::cout << "current_area " << node.current_area << std::endl;
         if (trapezoid.x_max() > node.xs_max)
@@ -2375,7 +2372,6 @@ std::ostream& packingsolver::irregular::operator<<(
         << " number_of_bins " << node.number_of_bins
         << std::endl;
     os << "item_area " << node.item_area
-        << " current_area " << node.current_area
         << std::endl;
     os << " profit " << node.profit
         << std::endl;
