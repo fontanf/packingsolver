@@ -5,6 +5,9 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
+namespace
+{
+
 Shape build_polygon_shape(const std::vector<Point>& points)
 {
     Shape shape;
@@ -18,6 +21,8 @@ Shape build_polygon_shape(const std::vector<Point>& points)
         pos_prev = pos;
     }
     return shape;
+}
+
 }
 
 TEST(IrregularPolygonTrapezoidation, Triangle1)

@@ -194,6 +194,9 @@ public:
         /** Item area. */
         AreaDbl item_area = 0;
 
+        /** Sum of the area of the convex hull of each packed item. */
+        AreaDbl item_convex_hull_area = 0;
+
         /** Leftover value. */
         Profit leftover_value = 0;
 
@@ -416,6 +419,8 @@ private:
     /** Inflated trapezoid sets in each direction. */
     std::vector<std::vector<std::vector<std::vector<GeneralizedTrapezoid>>>> trapezoid_sets_inflated_;
 
+    std::vector<AreaDbl> item_types_convex_hull_area_;
+
     mutable Counter node_id_ = 0;
 
     mutable std::vector<GeneralizedTrapezoid> uncovered_trapezoids_cur_;
@@ -544,8 +549,8 @@ inline bool BranchingScheme::operator()(
             return node_2->guide_area != 0;
         if (node_2->guide_area == 0)
             return false;
-        double guide_1 = (double)node_1->guide_area / node_1->item_area;
-        double guide_2 = (double)node_2->guide_area / node_2->item_area;
+        double guide_1 = (double)node_1->guide_area / node_1->item_convex_hull_area;
+        double guide_2 = (double)node_2->guide_area / node_2->item_convex_hull_area;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
@@ -559,11 +564,11 @@ inline bool BranchingScheme::operator()(
         if (node_2->number_of_items == 0)
             return true;
         double guide_1 = (double)node_1->guide_area
-            / node_1->item_area
-            / mean_item_area(*node_1);
+            / node_1->item_convex_hull_area
+            / node_1->item_convex_hull_area;
         double guide_2 = (double)node_2->guide_area
-            / node_2->item_area
-            / mean_item_area(*node_2);
+            / node_2->item_convex_hull_area
+            / node_2->item_convex_hull_area;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
@@ -572,8 +577,8 @@ inline bool BranchingScheme::operator()(
             return node_2->number_of_items != 0;
         if (node_2->number_of_items == 0)
             return true;
-        double guide_1 = (double)(node_1->xe_max * node_1->ye_max) / node_1->item_area;
-        double guide_2 = (double)(node_2->xe_max * node_2->ye_max) / node_2->item_area;
+        double guide_1 = (double)(node_1->xe_max * node_1->ye_max) / node_1->item_convex_hull_area;
+        double guide_2 = (double)(node_2->xe_max * node_2->ye_max) / node_2->item_convex_hull_area;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
@@ -582,10 +587,10 @@ inline bool BranchingScheme::operator()(
             return node_2->number_of_items != 0;
         if (node_2->number_of_items == 0)
             return true;
-        double guide_1 = (double)(node_1->xe_max * node_1->ye_max) / node_1->item_area
-            / mean_item_area(*node_1);
-        double guide_2 = (double)(node_2->xe_max * node_2->ye_max) / node_2->item_area
-            / mean_item_area(*node_2);
+        double guide_1 = (double)(node_1->xe_max * node_1->ye_max) / node_1->item_convex_hull_area
+            / node_1->item_convex_hull_area;
+        double guide_2 = (double)(node_2->xe_max * node_2->ye_max) / node_2->item_convex_hull_area
+            / node_2->item_convex_hull_area;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
