@@ -1,5 +1,6 @@
 #include "irregular/branching_scheme.hpp"
 
+#include "irregular/polygon_convex_hull.hpp"
 #include "irregular/polygon_trapezoidation.hpp"
 #include "irregular/polygon_simplification.hpp"
 #include "irregular/shape.hpp"
@@ -705,6 +706,26 @@ BranchingScheme::BranchingScheme(
     //}
 
     compute_inflated_trapezoid_sets();
+
+    item_types_convex_hull_area_
+        = std::vector<AreaDbl>(instance.number_of_item_types(), 0.0);
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        for (ItemShapePos item_shape_pos = 0;
+                item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                ++item_shape_pos) {
+            const auto& item_shape = item_type.shapes[item_shape_pos];
+            Shape convex_hull = polygon_convex_hull(item_shape.shape);
+            AreaDbl convex_hull_area = convex_hull.compute_area();
+            item_types_convex_hull_area_[item_type_id] += convex_hull_area;
+        }
+        //std::cout << "item_type_id " << item_type_id
+        //    << " area " << item_type.area
+        //    << " convex_hull_area " << item_types_convex_hull_area_[item_type_id]
+        //    << std::endl;
+    }
 }
 
 void BranchingScheme::compute_inflated_trapezoid_sets()
@@ -1174,6 +1195,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.item_area = parent.item_area + item_type.area;
     //std::cout << "parent.item_area " << parent.item_area << " item_area " << item_type.area << std::endl;
     node.profit = parent.profit + item_type.profit;
+    node.item_convex_hull_area = parent.item_convex_hull_area
+        + item_types_convex_hull_area_[trapezoid_set.item_type_id];
 
     // Compute, guide_area and width using uncovered_trapezoids.
     node.xs_max = (insertion.new_bin_direction == Direction::Any)?  // Same bin
