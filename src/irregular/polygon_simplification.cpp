@@ -502,7 +502,7 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
                 const auto& item_shape_trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
                 if (is_trapezoid_removed[trapezoid_set_id][item_shape_pos][item_shape_trapezoid_pos])
                     continue;
-                trapezoid_sets_new[trapezoid_set_id].shapes[item_shape_pos].push_back(item_shape_trapezoid);
+                trapezoid_sets_new[trapezoid_set_id].shapes[item_shape_pos].push_back(item_shape_trapezoid.clean());
             }
         }
     }
