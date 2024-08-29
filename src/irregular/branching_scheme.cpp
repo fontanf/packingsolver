@@ -796,9 +796,9 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
     // Update uncovered_trapezoids.
     for (const BranchingScheme::UncoveredTrapezoid& uncovered_trapezoid: uncovered_trapezoids) {
         //std::cout << "uncovered_trapezoid " << uncovered_trapezoid << std::endl;
-        if (!striclty_greater(uncovered_trapezoid.trapezoid.y_top(), ys)) {
+        if (uncovered_trapezoid.trapezoid.y_top() <= ys) {
             new_uncovered_trapezoids.push_back(uncovered_trapezoid);
-        } else if (!striclty_lesser(uncovered_trapezoid.trapezoid.y_bottom(), ye)) {
+        } else if (uncovered_trapezoid.trapezoid.y_bottom() >= ye) {
             new_uncovered_trapezoids.push_back(uncovered_trapezoid);
         } else {
 
@@ -818,8 +818,8 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
                 y_intersection = -(b1 - b2)
                     / (uncovered_trapezoid.trapezoid.a_right()
                             - new_trapezoid.a_right());
-                if (!striclty_lesser(y_intersection, yb)
-                        && !striclty_greater(y_intersection, yt)) {
+                if (striclty_greater(y_intersection, yb)
+                        && striclty_lesser(y_intersection, yt)) {
                     right_sides_intersect = true;
                 }
             }
@@ -832,7 +832,11 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
             //std::cout << "new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_bottom() " << new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_bottom()) << std::endl;
             if (striclty_greater(
                         uncovered_trapezoid.trapezoid.x_right(yb),
-                        new_trapezoid.x_right(yb))) {
+                        new_trapezoid.x_right(yb))
+                    && (!right_sides_intersect
+                        || striclty_greater(
+                            uncovered_trapezoid.trapezoid.x_right(yt),
+                            new_trapezoid.x_right(yt)))) {
                 if (!right_sides_intersect) {
                     y1 = yt;
                     if (y2 < y1)
@@ -845,7 +849,11 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
             //std::cout << "new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_top()) " << new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_top()) << std::endl;
             if (striclty_greater(
                         uncovered_trapezoid.trapezoid.x_right(yt),
-                        new_trapezoid.x_right(yt))) {
+                        new_trapezoid.x_right(yt))
+                    && (!right_sides_intersect
+                        || striclty_greater(
+                            uncovered_trapezoid.trapezoid.x_right(yb),
+                            new_trapezoid.x_right(yb)))) {
                 if (!right_sides_intersect) {
                     y2 = yb;
                     if (y1 > y2)
@@ -856,7 +864,7 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
             }
             //std::cout << "y1 " << y1 << " y2 " << y2 << std::endl;
 
-            if (striclty_lesser(uncovered_trapezoid.trapezoid.y_bottom(), y1)) {
+            if (uncovered_trapezoid.trapezoid.y_bottom() < y1) {
 
                 if (current_new_trapezoid) {
                     LengthDbl y_curr_top = uncovered_trapezoid.trapezoid.y_bottom();
@@ -889,12 +897,12 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
                 new_uncovered_trapezoids.push_back(new_uncovered_trapezoid);
             }
 
-            if (striclty_lesser(y1, y2)) {
+            if (y1 < y2) {
                 if (!current_new_trapezoid)
                     y_cur = y1;
                 current_new_trapezoid = true;
 
-                if (equal(y2, new_trapezoid.y_top())) {
+                if (y2 == new_trapezoid.y_top()) {
                     LengthDbl y_curr_top = y2;
                     UncoveredTrapezoid new_uncovered_trapezoid(
                             item_type_id,
@@ -912,7 +920,7 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
                 }
             }
 
-            if (striclty_lesser(y2, uncovered_trapezoid.trapezoid.y_top())) {
+            if (y2 < uncovered_trapezoid.trapezoid.y_top()) {
 
                 if (current_new_trapezoid) {
                     LengthDbl y_curr_top = y2;
@@ -968,7 +976,30 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
     //for (const UncoveredTrapezoid& uncovered_trapezoid: new_uncovered_trapezoids)
     //    std::cout << "* " << uncovered_trapezoid << std::endl;
 
+    check_skyline(new_uncovered_trapezoids);
     return new_uncovered_trapezoids;
+}
+
+void BranchingScheme::check_skyline(
+        const std::vector<UncoveredTrapezoid>& uncovered_trapezoids) const
+{
+    LengthDbl y_cur = uncovered_trapezoids.front().trapezoid.y_top();
+    for (TrapezoidPos uncovered_trapezoid_pos = 1;
+            uncovered_trapezoid_pos < (TrapezoidPos)uncovered_trapezoids.size();
+            ++uncovered_trapezoid_pos) {
+        const UncoveredTrapezoid& uncovered_trapezoid = uncovered_trapezoids[uncovered_trapezoid_pos];
+        if (uncovered_trapezoid.trapezoid.y_bottom() != y_cur) {
+            for (const UncoveredTrapezoid& uncovered_trapezoid: uncovered_trapezoids)
+                std::cout << "* " << uncovered_trapezoid << std::endl;
+            throw std::logic_error(
+                    "check_skyline."
+                    " y_cur: " + std::to_string(y_cur)
+                    + "; uncovered_trapezoid.trapezoid.y_bottom(): "
+                    + std::to_string(uncovered_trapezoid.trapezoid.y_bottom())
+                    + ".");
+        }
+        y_cur = uncovered_trapezoid.trapezoid.y_top();
+    }
 }
 
 BranchingScheme::Node BranchingScheme::child_tmp(
@@ -1343,6 +1374,7 @@ void BranchingScheme::insertions(
     //    << std::endl;
     //for (const UncoveredTrapezoid& uncovered_trapezoid: parent->uncovered_trapezoids)
     //    std::cout << "* " << uncovered_trapezoid << std::endl;
+    //to_svg(parent, "node_" + std::to_string(parent->id) + ".svg");
 
     // Add all previous insertions which are still valid.
     if (parent->parent != nullptr) {
@@ -2399,12 +2431,7 @@ std::ostream& packingsolver::irregular::operator<<(
 {
     os << "item_type_id " << uncovered_trapezoid.item_type_id
         << " defect_id " << uncovered_trapezoid.defect_id
-        << " yb " << uncovered_trapezoid.trapezoid.y_bottom()
-        << " yt " << uncovered_trapezoid.trapezoid.y_top()
-        << " xbl " << uncovered_trapezoid.trapezoid.x_bottom_left()
-        << " xbr " << uncovered_trapezoid.trapezoid.x_bottom_right()
-        << " xtl " << uncovered_trapezoid.trapezoid.x_top_left()
-        << " xtr " << uncovered_trapezoid.trapezoid.x_top_right()
+        << " trapezoid " << uncovered_trapezoid.trapezoid
         ;
     return os;
 }

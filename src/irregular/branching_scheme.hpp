@@ -453,6 +453,9 @@ private:
             ItemShapeTrapezoidPos item_shape_trapezoid_pos,
             const GeneralizedTrapezoid& trapezoid) const;
 
+    void check_skyline(
+            const std::vector<UncoveredTrapezoid>& uncovered_trapezoids) const;
+
     enum class State
     {
         // Only if supporting_trapezoid.left_side_increasing_not_vertical()
