@@ -505,6 +505,57 @@ std::string Shape::to_string(
     return s;
 }
 
+void Shape::write_svg(
+        const std::string& file_path) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+    auto mm = compute_min_max(0.0);
+
+    LengthDbl width = (mm.second.x - mm.first.x);
+    LengthDbl height = (mm.second.y - mm.first.y);
+
+    double factor = 1;
+    while (width * factor > 1000)
+        factor /= 10;
+    while (width * factor < 100)
+        factor *= 10;
+
+    std::string s = "<svg viewBox=\""
+        + std::to_string(mm.first.x * factor)
+        + " " + std::to_string(-mm.first.y * factor - height * factor)
+        + " " + std::to_string(width * factor)
+        + " " + std::to_string(height * factor)
+        + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+    file << s;
+
+    file << "<path d=\"M";
+    for (const ShapeElement& element: elements) {
+        file << (element.start.x * factor)
+            << "," << -(element.start.y * factor);
+        if (element.type == ShapeElementType::LineSegment) {
+            file << "L";
+        } else {
+            throw std::invalid_argument("");
+        }
+    }
+    file << (elements.front().start.x * factor)
+        << "," << -(elements.front().start.y * factor)
+        << "Z\""
+        << " stroke=\"black\""
+        << " stroke-width=\"1\""
+        << " fill=\"blue\""
+        << " fill-opacity=\"0.2\""
+        << "/>" << std::endl;
+
+    file << "</svg>" << std::endl;
+}
+
 std::string ItemShape::to_string(
         Counter indentation) const
 {

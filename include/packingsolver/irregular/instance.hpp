@@ -183,6 +183,9 @@ struct Shape
     Shape reverse() const;
 
     std::string to_string(Counter indentation) const;
+
+    void write_svg(
+            const std::string& file_path) const;
 };
 
 struct ItemShape
