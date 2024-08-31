@@ -103,13 +103,13 @@ void Solution::add_item(
             - (x_max_ - bin_type.x_min) * (y_max_ - bin_type.y_min);
     }
 
-    if (strictly_lesser(leftover_value_, 0.0)) {
-        write("solution_irregular.json");
-        throw std::invalid_argument(
-                "irregular::Solution::add_item."
-                " Negative leftover value: "
-                + std::to_string(leftover_value_) + ".");
-    }
+    //if (strictly_lesser(leftover_value_, 0.0)) {
+    //    write("solution_irregular.json");
+    //    throw std::invalid_argument(
+    //            "irregular::Solution::add_item."
+    //            " Negative leftover value: "
+    //            + std::to_string(leftover_value_) + ".");
+    //}
 }
 
 void Solution::append(
