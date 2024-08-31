@@ -256,7 +256,7 @@ bool Solution::check_stack(
         // Check maximum stack density.
         weight += item_type.weight;
         double stack_density = (double)(weight) / xj / yj;
-        if (striclty_greater(stack_density, bin_type.maximum_stack_density))
+        if (strictly_greater(stack_density, bin_type.maximum_stack_density))
             return false;
 
         // Check maximum stackability.
@@ -267,7 +267,7 @@ bool Solution::check_stack(
             return false;
 
         // Check maximum weight above.
-        if (striclty_greater(item_type.weight, remaining_weight))
+        if (strictly_greater(item_type.weight, remaining_weight))
             return false;
         remaining_weight = std::min(
                 remaining_weight - item_type.weight,

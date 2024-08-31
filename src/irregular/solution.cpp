@@ -103,7 +103,7 @@ void Solution::add_item(
             - (x_max_ - bin_type.x_min) * (y_max_ - bin_type.y_min);
     }
 
-    if (striclty_lesser(leftover_value_, 0.0)) {
+    if (strictly_lesser(leftover_value_, 0.0)) {
         write("solution_irregular.json");
         throw std::invalid_argument(
                 "irregular::Solution::add_item."
@@ -198,27 +198,27 @@ bool Solution::operator<(const Solution& solution) const
             return true;
         if (solution.number_of_bins() != number_of_bins())
             return solution.number_of_bins() < number_of_bins();
-        return striclty_greater(solution.leftover_value(), leftover_value());
+        return strictly_greater(solution.leftover_value(), leftover_value());
     } case Objective::OpenDimensionX: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return striclty_lesser(solution.x_max(), x_max());
+        return strictly_lesser(solution.x_max(), x_max());
     } case Objective::OpenDimensionY: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return striclty_lesser(solution.y_max(), y_max());
+        return strictly_lesser(solution.y_max(), y_max());
     } case Objective::Knapsack: {
-        return striclty_greater(solution.profit(), profit());
+        return strictly_greater(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return striclty_lesser(solution.cost(), cost());
+        return strictly_lesser(solution.cost(), cost());
     } default: {
         std::stringstream ss;
         ss << "Solution irregular::Solution does not support objective \""

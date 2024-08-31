@@ -341,9 +341,9 @@ public:
             LengthDbl x1tr = trapezoid_1.x_right(yt);
             LengthDbl x2br = trapezoid_2.x_right(yb);
             LengthDbl x2tr = trapezoid_2.x_right(yt);
-            if (striclty_greater(x1br, x2br))
+            if (strictly_greater(x1br, x2br))
                 return false;
-            if (striclty_greater(x1tr, x2tr))
+            if (strictly_greater(x1tr, x2tr))
                 return false;
             if (pos_1 == 0 && pos_2 == 0)
                 break;
@@ -352,7 +352,7 @@ public:
                     break;
                 pos_1--;
                 pos_2--;
-            } else if (striclty_lesser(trapezoid_1.y_bottom(), trapezoid_2.y_bottom())) {
+            } else if (strictly_lesser(trapezoid_1.y_bottom(), trapezoid_2.y_bottom())) {
                 pos_2--;
             } else {
                 pos_1--;

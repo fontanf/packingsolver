@@ -79,13 +79,13 @@ std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
         LengthDbl x_left = x(open_trapezoid.bottom_left, open_trapezoid.top_left, vertex.y);
         LengthDbl x_right = x(open_trapezoid.bottom_right, open_trapezoid.top_right, vertex.y);
         //std::cout << "x_left " << x_left << " x " << vertex.x << " x_right " << x_right << std::endl;
-        if (!striclty_greater(x_left, vertex.x)
-                && !striclty_lesser(x_right, vertex.x)) {
+        if (!strictly_greater(x_left, vertex.x)
+                && !strictly_lesser(x_right, vertex.x)) {
             if (res.first == -1) {
                 res.first = open_trapezoid_pos;
                 x_left_1 = x_left;
             } else {
-                if (striclty_lesser(x_left_1, x_left)) {
+                if (strictly_lesser(x_left_1, x_left)) {
                     res.second = open_trapezoid_pos;
                 } else {
                     res.second = res.first;

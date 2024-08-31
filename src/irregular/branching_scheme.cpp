@@ -263,7 +263,7 @@ BranchingScheme::BranchingScheme(
                 Shape cleaned_shape = clean_shape(defect.shape);
                 std::vector<Shape> cleaned_holes;
                 for (const Shape& hole: defect.holes)
-                    if (!striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                    if (!strictly_lesser(hole.compute_area(), instance.smallest_item_area()))
                         cleaned_holes.push_back(clean_shape(hole));
                 {
                     auto trapezoids = polygon_trapezoidation(
@@ -281,7 +281,7 @@ BranchingScheme::BranchingScheme(
                 Shape sym_shape = defect.shape.axial_symmetry_identity_line();
                 std::vector<Shape> sym_holes;
                 for (const Shape& hole: defect.holes)
-                    if (!striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                    if (!strictly_lesser(hole.compute_area(), instance.smallest_item_area()))
                         sym_holes.push_back(hole.axial_symmetry_identity_line());
 
                 Shape cleaned_shape = clean_shape(sym_shape);
@@ -326,7 +326,7 @@ BranchingScheme::BranchingScheme(
                         item_shape.shape.axial_symmetry_y_axis();
                     std::vector<Shape> holes;
                     for (const Shape& hole: item_shape.holes) {
-                        if (striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                        if (strictly_lesser(hole.compute_area(), instance.smallest_item_area()))
                             continue;
                         holes.push_back((!(mirror)?
                                 hole:
@@ -363,7 +363,7 @@ BranchingScheme::BranchingScheme(
                         item_shape.shape.axial_symmetry_y_axis();
                     std::vector<Shape> holes;
                     for (const Shape& hole: item_shape.holes) {
-                        if (striclty_lesser(hole.compute_area(), instance.smallest_item_area()))
+                        if (strictly_lesser(hole.compute_area(), instance.smallest_item_area()))
                             continue;
                         holes.push_back((!(mirror)?
                                 hole:
@@ -818,8 +818,8 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
                 y_intersection = -(b1 - b2)
                     / (uncovered_trapezoid.trapezoid.a_right()
                             - new_trapezoid.a_right());
-                if (striclty_greater(y_intersection, yb)
-                        && striclty_lesser(y_intersection, yt)) {
+                if (strictly_greater(y_intersection, yb)
+                        && strictly_lesser(y_intersection, yt)) {
                     right_sides_intersect = true;
                 }
             }
@@ -830,11 +830,11 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
             LengthDbl y2 = yt;
             //std::cout << "uncovered_trapezoid.trapezoid.x_bottom_right() " << uncovered_trapezoid.trapezoid.x_bottom_right() << std::endl;
             //std::cout << "new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_bottom() " << new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_bottom()) << std::endl;
-            if (striclty_greater(
+            if (strictly_greater(
                         uncovered_trapezoid.trapezoid.x_right(yb),
                         new_trapezoid.x_right(yb))
                     && (!right_sides_intersect
-                        || striclty_greater(
+                        || strictly_greater(
                             uncovered_trapezoid.trapezoid.x_right(yt),
                             new_trapezoid.x_right(yt)))) {
                 if (!right_sides_intersect) {
@@ -847,11 +847,11 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
             }
             //std::cout << "uncovered_trapezoid.trapezoid.x_top_right() " << uncovered_trapezoid.trapezoid.x_top_right() << std::endl;
             //std::cout << "new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_top()) " << new_trapezoid.x_right(uncovered_trapezoid.trapezoid.y_top()) << std::endl;
-            if (striclty_greater(
+            if (strictly_greater(
                         uncovered_trapezoid.trapezoid.x_right(yt),
                         new_trapezoid.x_right(yt))
                     && (!right_sides_intersect
-                        || striclty_greater(
+                        || strictly_greater(
                             uncovered_trapezoid.trapezoid.x_right(yb),
                             new_trapezoid.x_right(yb)))) {
                 if (!right_sides_intersect) {
@@ -1125,8 +1125,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 LengthDbl xt_t = trapezoid.x_left(yt);
                 LengthDbl xb_ut = uncovered_trapezoid.trapezoid.x_right(yb);
                 LengthDbl xt_ut = uncovered_trapezoid.trapezoid.x_right(yt);
-                if (!striclty_greater(xb_t, xb_ut)
-                        && !striclty_greater(xt_t, xt_ut)) {
+                if (!strictly_greater(xb_t, xb_ut)
+                        && !strictly_greater(xt_t, xt_ut)) {
                     touching_height += (yt - yb);
                 }
             }
@@ -1181,7 +1181,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 LengthDbl x_uncov = uncovered_trapezoid.trapezoid.x_right(y);
                 //std::cout << "yb " << yb << " yt " << yt << " y " << y << std::endl;
                 //std::cout << "x_extra " << x_extra << " x_uncov " << x_uncov << std::endl;
-                if (!striclty_greater(x_extra, x_uncov)) {
+                if (!strictly_greater(x_extra, x_uncov)) {
                     //std::cout << "covers" << std::endl;
                     covered_length += (yt - yb);
                 }
@@ -1189,7 +1189,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             //std::cout << "length " << extra_trapezoid.trapezoid.height()
             //    << " covered " << covered_length
             //    << std::endl;
-            if (striclty_lesser(covered_length, extra_trapezoid.trapezoid.height())) {
+            if (strictly_lesser(covered_length, extra_trapezoid.trapezoid.height())) {
                 //std::cout << "add " << extra_trapezoid << std::endl;
                 node.extra_trapezoids.push_back(extra_trapezoid);
             }
@@ -1295,7 +1295,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.xe_max = x + mm.second.x;
         node.ye_max = y + mm.second.y;
     }
-    if (striclty_greater(node.ye_max, bin_type.y_max)) {
+    if (strictly_greater(node.ye_max, bin_type.y_max)) {
         throw std::runtime_error(
                 "irregular::BranchingScheme::child_tmp."
                 " node.ye_max: " + std::to_string(node.ye_max)
@@ -1379,8 +1379,8 @@ void BranchingScheme::insertions(
     // Add all previous insertions which are still valid.
     if (parent->parent != nullptr) {
         for (const Insertion& insertion: parent->parent->children_insertions) {
-            if (!striclty_lesser(insertion.ys, parent->ye)
-                    || !striclty_greater(insertion.ye, parent->ys)) {
+            if (!strictly_lesser(insertion.ys, parent->ye)
+                    || !strictly_greater(insertion.ye, parent->ys)) {
                 ItemTypeId item_type_id = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop][insertion.trapezoid_set_id].item_type_id;
                 const ItemType& item_type = instance().item_type(item_type_id);
                 if (parent->item_number_of_copies[item_type_id] == item_type.copies)
@@ -1515,7 +1515,7 @@ void BranchingScheme::init_position(
     if (supporting_trapezoid.left_side_increasing_not_vertical()) {
     //if (supporting_trapezoid.x_top_left() - supporting_trapezoid.x_bottom_left() >= supporting_trapezoid.width_top()) {
         if (item_shape_trapezoid.right_side_increasing_not_vertical()) {
-            if (!striclty_greater(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
+            if (!strictly_greater(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
                 state = State::ItemShapeTrapezoidRightSupportingTrapezoidBottomLeft;
                 xs = supporting_trapezoid.x_bottom_left() - item_shape_trapezoid.x_top_right();
                 ys = supporting_trapezoid.y_bottom() - item_shape_trapezoid.y_top();
@@ -1541,7 +1541,7 @@ void BranchingScheme::init_position(
     } else if (supporting_trapezoid.right_side_decreasing_not_vertical()) {
     //} else if (supporting_trapezoid.x_bottom_right() - supporting_trapezoid.x_top_right() >= supporting_trapezoid.width_top()) {
         if (item_shape_trapezoid.left_side_decreasing_not_vertical()) {
-            if (!striclty_greater(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
+            if (!strictly_greater(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
                 state = State::ItemShapeTrapezoidLeftSupportingTrapezoidTopRight;
                 xs = supporting_trapezoid.x_top_right() - item_shape_trapezoid.x_bottom_left();
                 ys = supporting_trapezoid.y_top() - item_shape_trapezoid.y_bottom();
@@ -1592,7 +1592,7 @@ inline bool BranchingScheme::update_position(
             LengthDbl ly = lx / item_shape_trapezoid.a_right();
             if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
-            } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_right(), supporting_trapezoid.x_bottom_left())) {
+            } else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_bottom_right(), supporting_trapezoid.x_bottom_left())) {
                 current_trapezoid.shift_right(lx);
                 current_trapezoid.shift_top(ly);
                 xs += lx;
@@ -1615,7 +1615,7 @@ inline bool BranchingScheme::update_position(
             LengthDbl ly = lx / supporting_trapezoid.a_left();
             if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
-            } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_top_right(), supporting_trapezoid.x_top_left())) {
+            } else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_top_right(), supporting_trapezoid.x_top_left())) {
                 current_trapezoid.shift_right(lx);
                 current_trapezoid.shift_top(ly);
                 xs += lx;
@@ -1638,7 +1638,7 @@ inline bool BranchingScheme::update_position(
             LengthDbl ly = lx / supporting_trapezoid.a_left();
             if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
-            } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_right(), supporting_trapezoid.x_top_left())) {
+            } else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_bottom_right(), supporting_trapezoid.x_top_left())) {
                 current_trapezoid.shift_right(lx);
                 current_trapezoid.shift_top(ly);
                 xs += lx;
@@ -1652,7 +1652,7 @@ inline bool BranchingScheme::update_position(
                 ys = supporting_trapezoid.y_top() - item_shape_trapezoid.y_bottom();
             } else if (supporting_trapezoid.right_side_decreasing_not_vertical()) {
                 if (item_shape_trapezoid.left_side_decreasing_not_vertical()) {
-                    if (!striclty_lesser(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
+                    if (!strictly_lesser(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
                         state = State::ItemShapeTrapezoidLeftSupportingTrapezoidTopRight;
                         current_trapezoid.shift_right(supporting_trapezoid.x_top_right() - item_shape_trapezoid.x_bottom_left() - xs);
                         current_trapezoid.shift_top(supporting_trapezoid.y_top() - item_shape_trapezoid.y_bottom() - ys);
@@ -1689,7 +1689,7 @@ inline bool BranchingScheme::update_position(
             //std::cout << "lx " << lx << std::endl;
             if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
-            } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_right(), supporting_trapezoid.x_top_left())) {
+            } else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_bottom_right(), supporting_trapezoid.x_top_left())) {
                 current_trapezoid.shift_right(lx);
                 current_trapezoid.shift_top(ly);
                 xs += lx;
@@ -1703,7 +1703,7 @@ inline bool BranchingScheme::update_position(
                 ys = supporting_trapezoid.y_top() - item_shape_trapezoid.y_bottom();
             } else if (supporting_trapezoid.right_side_decreasing_not_vertical()) {
                 if (item_shape_trapezoid.left_side_decreasing_not_vertical()) {
-                    if (striclty_lesser(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
+                    if (strictly_lesser(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
                         state = State::ItemShapeTrapezoidLeftSupportingTrapezoidTopRight;
                         current_trapezoid.shift_right(supporting_trapezoid.x_top_right() - item_shape_trapezoid.x_bottom_left() - xs);
                         current_trapezoid.shift_top(supporting_trapezoid.y_top() - item_shape_trapezoid.y_bottom() - ys);
@@ -1732,14 +1732,14 @@ inline bool BranchingScheme::update_position(
             LengthDbl lx = current_trapezoid.compute_right_shift_if_intersects(trapezoid_to_avoid);
             if (equal(xs + lx, xs)) {
                 return updated;
-            } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_left(), supporting_trapezoid.x_top_right())) {
+            } else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_bottom_left(), supporting_trapezoid.x_top_right())) {
                 current_trapezoid.shift_right(lx);
                 xs += lx;
                 return true;
             } else if (supporting_trapezoid.right_side_decreasing_not_vertical()) {
             //} else if (supporting_trapezoid.x_bottom_right() - supporting_trapezoid.x_top_right() >= supporting_trapezoid.width_top()) {
                 if (item_shape_trapezoid.left_side_decreasing_not_vertical()) {
-                    if (striclty_lesser(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
+                    if (strictly_lesser(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
                         state = State::ItemShapeTrapezoidLeftSupportingTrapezoidTopRight;
                         current_trapezoid.shift_right(supporting_trapezoid.x_top_right() - item_shape_trapezoid.x_bottom_left() - xs);
                         current_trapezoid.shift_top(supporting_trapezoid.y_top() - item_shape_trapezoid.y_bottom() - ys);
@@ -1774,7 +1774,7 @@ inline bool BranchingScheme::update_position(
             LengthDbl ly = lx / item_shape_trapezoid.a_left();
             if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
-            } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_top_left(), supporting_trapezoid.x_top_right())) {
+            } else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_top_left(), supporting_trapezoid.x_top_right())) {
                 current_trapezoid.shift_right(lx);
                 current_trapezoid.shift_top(ly);
                 xs += lx;
@@ -1800,7 +1800,7 @@ inline bool BranchingScheme::update_position(
             LengthDbl ly = lx / supporting_trapezoid.a_right();
             if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
-            } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_top_left(), supporting_trapezoid.x_bottom_right())) {
+            } else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_top_left(), supporting_trapezoid.x_bottom_right())) {
                 current_trapezoid.shift_right(lx);
                 current_trapezoid.shift_top(ly);
                 xs += lx;
@@ -1820,14 +1820,14 @@ inline bool BranchingScheme::update_position(
             LengthDbl ly = lx / supporting_trapezoid.a_right();
             if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
-            } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_left(), supporting_trapezoid.x_bottom_right())) {
+            } else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_bottom_left(), supporting_trapezoid.x_bottom_right())) {
                 current_trapezoid.shift_right(lx);
                 current_trapezoid.shift_top(ly);
                 xs += lx;
                 ys += ly;
                 return true;
             } else if (item_shape_trapezoid.left_side_decreasing_not_vertical()
-                    && striclty_greater(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
+                    && strictly_greater(item_shape_trapezoid.a_left(), supporting_trapezoid.a_right())) {
                 state = State::ItemShapeTrapezoidLeftSupportingTrapezoidBottomRight;
                 current_trapezoid.shift_right(supporting_trapezoid.x_bottom_right() - item_shape_trapezoid.x_bottom_left() - xs);
                 current_trapezoid.shift_top(supporting_trapezoid.y_bottom() - item_shape_trapezoid.y_bottom() - ys);
@@ -1847,7 +1847,7 @@ inline bool BranchingScheme::update_position(
             LengthDbl ly = lx / item_shape_trapezoid.a_left();
             if (equal(xs + lx, xs) && equal(ys + ly, ys)) {
                 return updated;
-            } else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_top_left(), supporting_trapezoid.x_bottom_right())) {
+            } else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_top_left(), supporting_trapezoid.x_bottom_right())) {
                 xs += lx;
                 ys += ly;
                 current_trapezoid.shift_right(lx);
@@ -1964,19 +1964,19 @@ void BranchingScheme::insertion_trapezoid_set(
             - item_shape_trapezoid.y_bottom()
             + trapezoid_set.y_max
             + instance().parameters().item_item_minimum_spacing;
-        if (striclty_greater(ys_tmp, parent->ye)
-                || striclty_lesser(ye_tmp, parent->ys)) {
+        if (strictly_greater(ys_tmp, parent->ye)
+                || strictly_lesser(ye_tmp, parent->ys)) {
             return;
         }
     }
 
     //xs = (std::max)(xs, bb_bin_type.x_min - item_shape_trapezoid.x_max());
 
-    if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+    if (strictly_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
         return;
-    //if (striclty_greater(ys + trapezoid_set.y_max, bb_bin_type.y_max))
+    //if (strictly_greater(ys + trapezoid_set.y_max, bb_bin_type.y_max))
     //    return;
-    //if (striclty_lesser(ys + trapezoid_set.y_min, bb_bin_type.y_min))
+    //if (strictly_lesser(ys + trapezoid_set.y_min, bb_bin_type.y_min))
     //    return;
 
     // Move the item to the right of the left side of the bin.
@@ -2023,7 +2023,7 @@ void BranchingScheme::insertion_trapezoid_set(
                     return;
                 if (b) {
                     stop = false;
-                    if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+                    if (strictly_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
                         return;
                 }
             }
@@ -2058,10 +2058,10 @@ void BranchingScheme::insertion_trapezoid_set(
 
                         //LengthDbl lx = item_shape_trapezoid_cur.compute_right_shift_if_intersects(uncovered_trapezoids_cur_[uncovered_trapezoid_pos_cur]);
                         //if (equal(xs + lx, xs)) {
-                        //} else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_left(), supporting_trapezoid.x_top_right())) {
+                        //} else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_bottom_left(), supporting_trapezoid.x_top_right())) {
                         //    item_shape_trapezoid_cur.shift_right(lx);
                         //    xs += lx;
-                        //    if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max))
+                        //    if (strictly_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max))
                         //        return;
                         //} else {
                         //    return;
@@ -2079,7 +2079,7 @@ void BranchingScheme::insertion_trapezoid_set(
                             return;
                         if (b) {
                             stop = false;
-                            if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+                            if (strictly_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
                                 return;
                         }
                     }
@@ -2106,10 +2106,10 @@ void BranchingScheme::insertion_trapezoid_set(
 
                     //LengthDbl lx = item_shape_trapezoid_cur.compute_right_shift_if_intersects(extra_trapezoid.trapezoid);
                     //if (equal(xs + lx, xs)) {
-                    //} else if (striclty_lesser(xs + lx + item_shape_trapezoid.x_bottom_left(), supporting_trapezoid.x_top_right())) {
+                    //} else if (strictly_lesser(xs + lx + item_shape_trapezoid.x_bottom_left(), supporting_trapezoid.x_top_right())) {
                     //    item_shape_trapezoid_cur.shift_right(lx);
                     //    xs += lx;
-                    //    if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max))
+                    //    if (strictly_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max))
                     //        return;
                     //    stop = false;
                     //} else {
@@ -2127,7 +2127,7 @@ void BranchingScheme::insertion_trapezoid_set(
                     if (state == State::Infeasible)
                         return;
                     if (b) {
-                        if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+                        if (strictly_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
                             return;
                         stop = false;
                     }
@@ -2140,7 +2140,7 @@ void BranchingScheme::insertion_trapezoid_set(
     }
 
     // Check bin width.
-    if (striclty_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing)) {
+    if (strictly_greater(xs + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing)) {
         return;
     }
 
