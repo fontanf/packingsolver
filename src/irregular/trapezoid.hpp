@@ -40,13 +40,13 @@ public:
                     "yb: " + std::to_string(yb)
                     + "; yt: " + std::to_string(yt) + ".");
         }
-        if (striclty_greater(xbl_, xbr_)) {
+        if (strictly_greater(xbl_, xbr_)) {
             throw std::logic_error(
                     "GeneralizedTrapezoid::GeneralizedTrapezoid."
                     "xbl: " + std::to_string(xbl)
                     + "; xbr: " + std::to_string(xbr) + ".");
         }
-        if (striclty_greater(xtl_, xtr_)) {
+        if (strictly_greater(xtl_, xtr_)) {
             throw std::logic_error(
                     "GeneralizedTrapezoid::GeneralizedTrapezoid."
                     "xtl: " + std::to_string(xtl)
@@ -193,8 +193,8 @@ public:
 
     AreaDbl area(LengthDbl x_left) const
     {
-        if (striclty_greater(x_left, x_bottom_right())) {
-            if (striclty_greater(x_left, x_top_right())) {
+        if (strictly_greater(x_left, x_bottom_right())) {
+            if (strictly_greater(x_left, x_top_right())) {
                 throw std::invalid_argument(
                         "GeneralizedTrapezoid::area(LengthDbl)."
                         " x_left: " + std::to_string(x_left)
@@ -204,7 +204,7 @@ public:
             }
             double k = (x_top_right() - x_bottom_right()) / (x_top_right() - x_left);
             return (x_top_right() - x_bottom_right()) * height() / 2.0 / k / k;
-        } else if (striclty_greater(x_left, x_top_right())) {
+        } else if (strictly_greater(x_left, x_top_right())) {
             double k = (x_bottom_right() - x_top_right()) / (x_bottom_right() - x_left);
             return (x_bottom_right() - x_top_right()) * height() / 2.0 / k / k;
         }
@@ -217,9 +217,9 @@ public:
     inline bool intersect(
             const GeneralizedTrapezoid& trapezoid) const
     {
-        if (!striclty_lesser(y_bottom(), trapezoid.y_top()))
+        if (!strictly_lesser(y_bottom(), trapezoid.y_top()))
             return false;
-        if (!striclty_greater(y_top(), trapezoid.y_bottom()))
+        if (!strictly_greater(y_top(), trapezoid.y_bottom()))
             return false;
 
         LengthDbl yb = std::max(y_bottom(), trapezoid.y_bottom());
@@ -229,16 +229,16 @@ public:
         LengthDbl x1tr = x_right(yt);
         LengthDbl x2bl = trapezoid.x_left(yb);
         LengthDbl x2tl = trapezoid.x_left(yt);
-        if (!striclty_greater(x1br, x2bl)
-                && !striclty_greater(x1tr, x2tl))
+        if (!strictly_greater(x1br, x2bl)
+                && !strictly_greater(x1tr, x2tl))
             return false;
 
         LengthDbl x1bl = x_left(yb);
         LengthDbl x1tl = x_left(yt);
         LengthDbl x2br = trapezoid.x_right(yb);
         LengthDbl x2tr = trapezoid.x_right(yt);
-        if (!striclty_lesser(x1bl, x2br)
-                && !striclty_lesser(x1tl, x2tr))
+        if (!strictly_lesser(x1bl, x2br)
+                && !strictly_lesser(x1tl, x2tr))
             return false;
 
         return true;
@@ -251,9 +251,9 @@ public:
     inline LengthDbl compute_right_shift(
             const GeneralizedTrapezoid& trapezoid) const
     {
-        if (!striclty_lesser(y_bottom(), trapezoid.y_top()))
+        if (!strictly_lesser(y_bottom(), trapezoid.y_top()))
             return 0.0;
-        if (!striclty_greater(y_top(), trapezoid.y_bottom()))
+        if (!strictly_greater(y_top(), trapezoid.y_bottom()))
             return 0.0;
 
         LengthDbl yb = std::max(y_bottom(), trapezoid.y_bottom());
@@ -266,8 +266,8 @@ public:
         LengthDbl x2tr = trapezoid.x_right(yt);
         //std::cout << "x1bl " << x1bl << " x1tl " << x1tl << std::endl;
         //std::cout << "x2br " << x2br << " x2tr " << x2tr << std::endl;
-        if (!striclty_lesser(x1bl, x2br)
-                && !striclty_lesser(x1tl, x2tr))
+        if (!strictly_lesser(x1bl, x2br)
+                && !strictly_lesser(x1tl, x2tr))
             return 0.0;
 
         return std::max(x2br - x1bl, x2tr - x1tl);
@@ -280,9 +280,9 @@ public:
     inline LengthDbl compute_right_shift_if_intersects(
             const GeneralizedTrapezoid& trapezoid) const
     {
-        if (!striclty_lesser(y_bottom(), trapezoid.y_top()))
+        if (!strictly_lesser(y_bottom(), trapezoid.y_top()))
             return 0.0;
-        if (!striclty_greater(y_top(), trapezoid.y_bottom()))
+        if (!strictly_greater(y_top(), trapezoid.y_bottom()))
             return 0.0;
 
         LengthDbl yb = std::max(y_bottom(), trapezoid.y_bottom());
@@ -292,16 +292,16 @@ public:
         LengthDbl x1tr = x_right(yt);
         LengthDbl x2bl = trapezoid.x_left(yb);
         LengthDbl x2tl = trapezoid.x_left(yt);
-        if (!striclty_greater(x1br, x2bl)
-                && !striclty_greater(x1tr, x2tl))
+        if (!strictly_greater(x1br, x2bl)
+                && !strictly_greater(x1tr, x2tl))
             return 0.0;
 
         LengthDbl x1bl = x_left(yb);
         LengthDbl x1tl = x_left(yt);
         LengthDbl x2br = trapezoid.x_right(yb);
         LengthDbl x2tr = trapezoid.x_right(yt);
-        if (!striclty_lesser(x1bl, x2br)
-                && !striclty_lesser(x1tl, x2tr))
+        if (!strictly_lesser(x1bl, x2br)
+                && !strictly_lesser(x1tl, x2tr))
             return 0.0;
 
         return std::max(x2br - x1bl, x2tr - x1tl);
@@ -329,9 +329,9 @@ public:
                 //    << " x_shift " << x - p.x
                 //    << " y_shift " << trapezoid.y_bottom() - p.y
                 //    << std::endl;
-                if (striclty_greater(x, p.x)
-                        && !striclty_lesser(x, trapezoid.x_bottom_left())
-                        && !striclty_greater(x, trapezoid.x_bottom_right())) {
+                if (strictly_greater(x, p.x)
+                        && !strictly_lesser(x, trapezoid.x_bottom_left())
+                        && !strictly_greater(x, trapezoid.x_bottom_right())) {
                     x_shift = std::max(x_shift, x - p.x);
                 }
             }
@@ -344,9 +344,9 @@ public:
                 //    << " x_shift " << x - p.x
                 //    << " y_shift " << trapezoid.y_top() - p.y
                 //    << std::endl;
-                if (striclty_greater(x, p.x)
-                        && !striclty_lesser(x, trapezoid.x_top_left())
-                        && !striclty_greater(x, trapezoid.x_top_right())) {
+                if (strictly_greater(x, p.x)
+                        && !strictly_lesser(x, trapezoid.x_top_left())
+                        && !strictly_greater(x, trapezoid.x_top_right())) {
                     x_shift = std::max(x_shift, x - p.x);
                 }
             }
@@ -367,9 +367,9 @@ public:
                     x = trapezoid.x_top_left();
                     y = trapezoid.y_top();
                 }
-                if (striclty_greater(x, p.x)
-                        && !striclty_lesser(y, trapezoid.y_bottom())
-                        && !striclty_greater(y, trapezoid.y_top())) {
+                if (strictly_greater(x, p.x)
+                        && !strictly_lesser(y, trapezoid.y_bottom())
+                        && !strictly_greater(y, trapezoid.y_top())) {
                     //std::cout << "left:"
                     //    << " x_shift " << x - p.x
                     //    << " y_shift " << y - p.y
@@ -404,9 +404,9 @@ public:
                 //    << " x_shift " << x - p.x
                 //    << " y_shift " << y - p.y
                 //    << std::endl;
-                if (striclty_greater(x, p.x)
-                        && !striclty_lesser(y, trapezoid.y_bottom())
-                        && !striclty_greater(y, trapezoid.y_top())) {
+                if (strictly_greater(x, p.x)
+                        && !strictly_lesser(y, trapezoid.y_bottom())
+                        && !strictly_greater(y, trapezoid.y_top())) {
                     x_shift = std::max(x_shift, x - p.x);
                 }
             }
@@ -428,9 +428,9 @@ public:
                 //    << " x_shift " << p.x - x
                 //    << " y_shift " << p.y - y_bottom()
                 //    << std::endl;
-                if (striclty_lesser(x, p.x)
-                        && !striclty_lesser(x, x_bottom_left())
-                        && !striclty_greater(x, x_bottom_right())) {
+                if (strictly_lesser(x, p.x)
+                        && !strictly_lesser(x, x_bottom_left())
+                        && !strictly_greater(x, x_bottom_right())) {
                     x_shift = std::max(x_shift, p.x - x);
                 }
             }
@@ -443,9 +443,9 @@ public:
                 //    << " x_shift " << p.x - x
                 //    << " y_shift " << p.y - y_top()
                 //    << std::endl;
-                if (striclty_lesser(x, p.x)
-                        && !striclty_lesser(x, x_top_left())
-                        && !striclty_greater(x, x_top_right())) {
+                if (strictly_lesser(x, p.x)
+                        && !strictly_lesser(x, x_top_left())
+                        && !strictly_greater(x, x_top_right())) {
                     x_shift = std::max(x_shift, p.x - x);
                 }
             }
@@ -471,9 +471,9 @@ public:
                 //    << " x_shift " << p.x - x
                 //    << " y_shift " << p.y - y
                 //    << std::endl;
-                if (striclty_lesser(x, p.x)
-                        && !striclty_lesser(y, y_bottom())
-                        && !striclty_greater(y, y_top())) {
+                if (strictly_lesser(x, p.x)
+                        && !strictly_lesser(y, y_bottom())
+                        && !strictly_greater(y, y_top())) {
                     x_shift = std::max(x_shift, p.x - x);
                 }
             }
@@ -499,9 +499,9 @@ public:
                 //    << " x_shift " << p.x - x
                 //    << " y_shift " << p.y - y
                 //    << std::endl;
-                if (striclty_lesser(x, p.x)
-                        && !striclty_lesser(y, y_bottom())
-                        && !striclty_greater(y, y_top())) {
+                if (strictly_lesser(x, p.x)
+                        && !strictly_lesser(y, y_bottom())
+                        && !strictly_greater(y, y_top())) {
                     x_shift = std::max(x_shift, p.x - x);
                 }
             }

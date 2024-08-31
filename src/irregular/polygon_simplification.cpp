@@ -43,13 +43,13 @@ std::vector<TrapezoidSetId> compute_trapezoids_below(
             if (trapezoid_above[sorted_trapezoids[trapezoid_pos_2]] != -1)
                 continue;
 
-            if (striclty_lesser(trapezoid_2.y_top(), trapezoid_1.y_bottom()))
+            if (strictly_lesser(trapezoid_2.y_top(), trapezoid_1.y_bottom()))
                 break;
 
-            bool ok_1 = (!striclty_greater(trapezoid_2.x_top_left(), trapezoid_1.x_bottom_left())
-                    && !striclty_lesser(trapezoid_2.x_top_right(), trapezoid_1.x_bottom_right()));
-            bool ok_2 = (!striclty_lesser(trapezoid_2.x_top_left(), trapezoid_1.x_bottom_left())
-                    && !striclty_greater(trapezoid_2.x_top_right(), trapezoid_1.x_bottom_right()));
+            bool ok_1 = (!strictly_greater(trapezoid_2.x_top_left(), trapezoid_1.x_bottom_left())
+                    && !strictly_lesser(trapezoid_2.x_top_right(), trapezoid_1.x_bottom_right()));
+            bool ok_2 = (!strictly_lesser(trapezoid_2.x_top_left(), trapezoid_1.x_bottom_left())
+                    && !strictly_greater(trapezoid_2.x_top_right(), trapezoid_1.x_bottom_right()));
             if (equal(trapezoid_2.y_top(), trapezoid_1.y_bottom())
                     && (ok_1 || ok_2)) {
                 trapezoid_below[sorted_trapezoids[trapezoid_pos_1]]
@@ -103,8 +103,8 @@ GeneralizedTrapezoid merge(
     {
         LengthDbl xtl_cur = trapezoid_above.x_top_left();
         LengthDbl xbl_cur = trapezoid_above.x_left(trapezoid_below.y_bottom());
-        if (!striclty_greater(xbl_cur, trapezoid_below.x_bottom_left())
-                && !striclty_greater(trapezoid_above.x_bottom_left(), trapezoid_below.x_top_left())) {
+        if (!strictly_greater(xbl_cur, trapezoid_below.x_bottom_left())
+                && !strictly_greater(trapezoid_above.x_bottom_left(), trapezoid_below.x_top_left())) {
             AreaDbl area_cur = h * ((std::max)(xbl_cur, xtl_cur) - (std::min)(xbl_cur, xtl_cur)) / 2
                     + h * (xl_max - (std::min)(xbl_cur, xtl_cur));
             //std::cout << "area_cur " << area_cur << std::endl;
@@ -120,8 +120,8 @@ GeneralizedTrapezoid merge(
     {
         LengthDbl xtl_cur = trapezoid_below.x_left(trapezoid_above.y_top());
         LengthDbl xbl_cur = trapezoid_below.x_bottom_left();
-        if (!striclty_greater(xtl_cur, trapezoid_above.x_top_left())
-                && !striclty_greater(trapezoid_below.x_top_left(), trapezoid_above.x_bottom_left())) {
+        if (!strictly_greater(xtl_cur, trapezoid_above.x_top_left())
+                && !strictly_greater(trapezoid_below.x_top_left(), trapezoid_above.x_bottom_left())) {
             AreaDbl area_cur = h * ((std::max)(xbl_cur, xtl_cur) - (std::min)(xbl_cur, xtl_cur)) / 2
                     + h * (xl_max - (std::min)(xbl_cur, xtl_cur));
             //std::cout << "area_cur " << area_cur << std::endl;
@@ -148,8 +148,8 @@ GeneralizedTrapezoid merge(
         //std::cout << "trapezoid_tmp.x_left(trapezoid_below.y_top()) " << trapezoid_tmp.x_left(trapezoid_below.y_top()) << std::endl;
         //std::cout << "trapezoid_below.x_top_left() " << trapezoid_below.x_top_left() << std::endl;
         //std::cout << "trapezoid_above.x_bottom_left() " << trapezoid_above.x_bottom_left() << std::endl;
-        if (!striclty_greater(trapezoid_tmp.x_left(trapezoid_below.y_top()), trapezoid_below.x_top_left())
-                && !striclty_greater(trapezoid_tmp.x_left(trapezoid_below.y_top()), trapezoid_above.x_bottom_left())) {
+        if (!strictly_greater(trapezoid_tmp.x_left(trapezoid_below.y_top()), trapezoid_below.x_top_left())
+                && !strictly_greater(trapezoid_tmp.x_left(trapezoid_below.y_top()), trapezoid_above.x_bottom_left())) {
             AreaDbl area_cur = h * ((std::max)(xbl_cur, xtl_cur) - (std::min)(xbl_cur, xtl_cur)) / 2
                     + h * (xl_max - (std::min)(xbl_cur, xtl_cur));
             //std::cout << "area_cur " << area_cur << std::endl;
@@ -176,8 +176,8 @@ GeneralizedTrapezoid merge(
     {
         LengthDbl xtr_cur = trapezoid_above.x_top_right();
         LengthDbl xbr_cur = trapezoid_above.x_right(trapezoid_below.y_bottom());
-        if (!striclty_lesser(xbr_cur, trapezoid_below.x_bottom_right())
-                && !striclty_lesser(trapezoid_above.x_bottom_right(), trapezoid_below.x_top_right())) {
+        if (!strictly_lesser(xbr_cur, trapezoid_below.x_bottom_right())
+                && !strictly_lesser(trapezoid_above.x_bottom_right(), trapezoid_below.x_top_right())) {
             AreaDbl area_cur = h * ((std::max)(xbr_cur, xtr_cur) - (std::min)(xbr_cur, xtr_cur)) / 2
                     + h * ((std::min)(xbr_cur, xtr_cur) - xr_min);
             //std::cout << "area_cur " << area_cur << std::endl;
@@ -197,8 +197,8 @@ GeneralizedTrapezoid merge(
         //std::cout << "trapezoid_above.x_top_right() " << trapezoid_above.x_top_right() << std::endl;
         //std::cout << "trapezoid_below.x_top_right() " << trapezoid_below.x_top_right() << std::endl;
         //std::cout << "trapezoid_above.x_bottom_right() " << trapezoid_above.x_bottom_right() << std::endl;
-        if (!striclty_lesser(xtr_cur, trapezoid_above.x_top_right())
-                && !striclty_lesser(trapezoid_below.x_top_right(), trapezoid_above.x_bottom_right())) {
+        if (!strictly_lesser(xtr_cur, trapezoid_above.x_top_right())
+                && !strictly_lesser(trapezoid_below.x_top_right(), trapezoid_above.x_bottom_right())) {
             AreaDbl area_cur = h * ((std::max)(xbr_cur, xtr_cur) - (std::min)(xbr_cur, xtr_cur)) / 2
                     + h * ((std::min)(xbr_cur, xtr_cur) - xr_min);
             //std::cout << "area_cur " << area_cur << std::endl;
@@ -225,8 +225,8 @@ GeneralizedTrapezoid merge(
         //std::cout << "trapezoid_tmp.x_right(trapezoid_below.y_top()) " << trapezoid_tmp.x_right(trapezoid_below.y_top()) << std::endl;
         //std::cout << "trapezoid_below.x_top_right() " << trapezoid_below.x_top_right() << std::endl;
         //std::cout << "trapezoid_above.x_bottom_right() " << trapezoid_above.x_bottom_right() << std::endl;
-        if (!striclty_lesser(trapezoid_tmp.x_right(trapezoid_below.y_top()), trapezoid_below.x_top_right())
-                && !striclty_lesser(trapezoid_tmp.x_right(trapezoid_below.y_top()), trapezoid_above.x_bottom_right())) {
+        if (!strictly_lesser(trapezoid_tmp.x_right(trapezoid_below.y_top()), trapezoid_below.x_top_right())
+                && !strictly_lesser(trapezoid_tmp.x_right(trapezoid_below.y_top()), trapezoid_above.x_bottom_right())) {
             AreaDbl area_cur = h * ((std::max)(xbr_cur, xtr_cur) - (std::min)(xbr_cur, xtr_cur)) / 2
                     + h * ((std::min)(xbr_cur, xtr_cur) - xr_min);
             //std::cout << "area_cur " << area_cur << std::endl;
@@ -300,7 +300,7 @@ std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
                     double c_old = trapezoid_above.area() + trapezoid_below.area();
                     double c_new = trapezoid_merge.area();
                     candidate.merge_cost = (c_new - c_old) * item_type.copies;
-                    //if (striclty_lesser(c_new, c_old)
+                    //if (strictly_lesser(c_new, c_old)
                     //        && !equal(trapezoid_above.y_top(), trapezoid_above.y_bottom())
                     //        && !equal(trapezoid_below.y_top(), trapezoid_below.y_bottom())) {
                     //    //std::cout << "above " << trapezoid_above << std::endl;

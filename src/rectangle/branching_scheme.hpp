@@ -370,13 +370,13 @@ public:
     {
         if (instance().objective() == Objective::SequentialOneDimensionalRectangleSubproblem) {
             if (parameters().guide_id == 8) {
-                if (striclty_greater(
+                if (strictly_greater(
                             node_1->groups.front().last_bin_middle_axle_weight,
                             node_2->groups.front().last_bin_middle_axle_weight)) {
                     return false;
                 }
             } else if (parameters().guide_id == 9) {
-                if (striclty_greater(
+                if (strictly_greater(
                             node_1->groups.front().last_bin_rear_axle_weight,
                             node_2->groups.front().last_bin_rear_axle_weight)) {
                     return false;
