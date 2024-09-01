@@ -1,4 +1,4 @@
-#include "irregular/polygon_simplification.hpp"
+#include "irregular/trapezoid_sets_simplification.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -261,7 +261,7 @@ struct PolygonSimplificationElement
 
 }
 
-std::vector<TrapezoidSet> packingsolver::irregular::polygon_simplification(
+std::vector<TrapezoidSet> packingsolver::irregular::trapezoid_sets_simplification(
         const Instance& instance,
         const std::vector<TrapezoidSet>& trapezoid_sets)
 {

@@ -9,7 +9,7 @@ target_sources(PackingSolver_irregular PRIVATE
     shape.cpp
     polygon_convex_hull.cpp
     polygon_trapezoidation.cpp
-    polygon_simplification.cpp
+    trapezoid_sets_simplification.cpp
     branching_scheme.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)

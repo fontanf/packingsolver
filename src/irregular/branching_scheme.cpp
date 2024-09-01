@@ -2,7 +2,7 @@
 
 #include "irregular/polygon_convex_hull.hpp"
 #include "irregular/polygon_trapezoidation.hpp"
-#include "irregular/polygon_simplification.hpp"
+#include "irregular/trapezoid_sets_simplification.hpp"
 #include "irregular/shape.hpp"
 
 #include <iostream>
@@ -528,10 +528,10 @@ BranchingScheme::BranchingScheme(
         }
     }
 
-    trapezoid_sets_x = polygon_simplification(
+    trapezoid_sets_x = trapezoid_sets_simplification(
             instance,
             trapezoid_sets_x);
-    trapezoid_sets_y = polygon_simplification(
+    trapezoid_sets_y = trapezoid_sets_simplification(
             instance,
             trapezoid_sets_y);
 
