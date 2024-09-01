@@ -505,6 +505,24 @@ std::string Shape::to_string(
     return s;
 }
 
+std::string Shape::to_svg(double factor) const
+{
+    std::string s = "M";
+    for (const ShapeElement& element: elements) {
+        s += std::to_string(element.start.x * factor)
+            + "," + std::to_string(-(element.start.y * factor));
+        if (element.type == ShapeElementType::LineSegment) {
+            s += "L";
+        } else {
+            throw std::invalid_argument("");
+        }
+    }
+    s += std::to_string(elements.front().start.x * factor)
+        + "," + std::to_string(-(elements.front().start.y * factor))
+        + "Z";
+    return s;
+}
+
 void Shape::write_svg(
         const std::string& file_path) const
 {
@@ -520,11 +538,7 @@ void Shape::write_svg(
     LengthDbl width = (mm.second.x - mm.first.x);
     LengthDbl height = (mm.second.y - mm.first.y);
 
-    double factor = 1;
-    while (width * factor > 1000)
-        factor /= 10;
-    while (width * factor < 100)
-        factor *= 10;
+    double factor = compute_svg_factor(width);
 
     std::string s = "<svg viewBox=\""
         + std::to_string(mm.first.x * factor)
@@ -552,6 +566,73 @@ void Shape::write_svg(
         << " fill=\"blue\""
         << " fill-opacity=\"0.2\""
         << "/>" << std::endl;
+
+    file << "</svg>" << std::endl;
+}
+
+double irregular::compute_svg_factor(
+        double width)
+{
+    double factor = 1;
+    while (width * factor > 1000)
+        factor /= 10;
+    while (width * factor < 100)
+        factor *= 10;
+    return factor;
+}
+
+std::string irregular::to_svg(
+        const Shape& shape,
+        const std::vector<Shape>& holes,
+        double factor)
+{
+    std::string s = "<path d=\"" + shape.to_svg(factor);
+    for (const Shape& hole: holes)
+        s += hole.reverse().to_svg(factor);
+    s += "\""
+        " stroke=\"black\""
+        " stroke-width=\"1\""
+        " fill=\"blue\""
+        " fill-opacity=\"0.2\""
+        "/>\n";
+    return s;
+}
+
+void irregular::write_svg(
+        const Shape& shape,
+        const std::vector<Shape>& holes,
+        const std::string& file_path)
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    auto mm = shape.compute_min_max(0.0);
+    LengthDbl width = (mm.second.x - mm.first.x);
+    LengthDbl height = (mm.second.y - mm.first.y);
+
+    double factor = compute_svg_factor(width);
+
+    std::string s = "<svg viewBox=\""
+        + std::to_string(mm.first.x * factor)
+        + " " + std::to_string(-mm.first.y * factor - height * factor)
+        + " " + std::to_string(width * factor)
+        + " " + std::to_string(height * factor)
+        + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+    file << s;
+
+    file << "<g>" << std::endl;
+    file << to_svg(shape, holes, factor);
+    //file << "<text x=\"" << std::to_string(x * factor)
+    //    << "\" y=\"" << std::to_string(-y * factor)
+    //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
+    //    << std::to_string(item_shape_pos)
+    //    << "</text>" << std::endl;
+    file << "</g>" << std::endl;
 
     file << "</svg>" << std::endl;
 }
@@ -703,6 +784,49 @@ std::string ItemType::to_string(
     return s;
 }
 
+void ItemType::write_svg(
+        const std::string& file_path) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    auto mm = compute_min_max(0.0);
+    LengthDbl width = (mm.second.x - mm.first.x);
+    LengthDbl height = (mm.second.y - mm.first.y);
+
+    double factor = compute_svg_factor(width);
+
+    std::string s = "<svg viewBox=\""
+        + std::to_string(mm.first.x * factor)
+        + " " + std::to_string(-mm.first.y * factor - height * factor)
+        + " " + std::to_string(width * factor)
+        + " " + std::to_string(height * factor)
+        + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+    file << s;
+
+    // Loop through trapezoids of the trapezoid set.
+    for (ItemShapePos item_shape_pos = 0;
+            item_shape_pos < (ItemShapePos)shapes.size();
+            ++item_shape_pos) {
+        const auto& item_shape = shapes[item_shape_pos];
+        file << "<g>" << std::endl;
+        file << to_svg(item_shape.shape, item_shape.holes, factor);
+        //file << "<text x=\"" << std::to_string(x * factor)
+        //    << "\" y=\"" << std::to_string(-y * factor)
+        //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
+        //    << std::to_string(item_shape_pos)
+        //    << "</text>" << std::endl;
+        file << "</g>" << std::endl;
+    }
+
+    file << "</svg>" << std::endl;
+}
+
 std::string BinType::to_string(
         Counter indentation) const
 {
@@ -714,6 +838,53 @@ std::string BinType::to_string(
     for (const Defect& defect: defects)
         s += indent + "  - " + defect.to_string(indentation + 4);
     return s;
+}
+
+void BinType::write_svg(
+        const std::string& file_path) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    LengthDbl width = (x_max - x_min);
+    LengthDbl height = (y_max - y_min);
+
+    double factor = compute_svg_factor(width);
+    while (width * factor > 1000)
+        factor /= 10;
+    while (width * factor < 100)
+        factor *= 10;
+
+    std::string s = "<svg viewBox=\""
+        + std::to_string(x_min * factor)
+        + " " + std::to_string(-y_min * factor - height * factor)
+        + " " + std::to_string(width * factor)
+        + " " + std::to_string(height * factor)
+        + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+    file << s;
+
+    // Loop through trapezoids of the trapezoid set.
+    file << "<g>" << std::endl;
+    file << to_svg(shape, {}, factor);
+    //file << "<text x=\"" << std::to_string(x * factor)
+    //    << "\" y=\"" << std::to_string(-y * factor)
+    //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
+    //    << std::to_string(item_shape_pos)
+    //    << "</text>" << std::endl;
+    file << "</g>" << std::endl;
+
+    for (const Defect& defect: defects) {
+        file << "<g>" << std::endl;
+        file << to_svg(defect.shape, defect.holes, factor);
+        file << "</g>" << std::endl;
+    }
+
+    file << "</svg>" << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
