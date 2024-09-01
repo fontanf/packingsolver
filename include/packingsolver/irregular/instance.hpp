@@ -10,6 +10,7 @@ namespace irregular
 using LengthDbl = double;
 using AreaDbl = double;
 using ElementPos = int64_t;
+using ItemShapePos = int64_t;
 using ShapePos = int64_t;
 
 /**
@@ -184,9 +185,23 @@ struct Shape
 
     std::string to_string(Counter indentation) const;
 
+    std::string to_svg(double factor) const;
+
     void write_svg(
             const std::string& file_path) const;
 };
+
+double compute_svg_factor(double width);
+
+std::string to_svg(
+        const Shape& shape,
+        const std::vector<Shape>& holes,
+        double factor);
+
+void write_svg(
+        const Shape& shape,
+        const std::vector<Shape>& holes,
+        const std::string& file_path);
 
 struct ItemShape
 {
@@ -288,6 +303,9 @@ struct BinType
     AreaDbl packable_area(QualityRule quality_rule) const { (void)quality_rule; return 0; } // TODO
 
     std::string to_string(Counter indentation) const;
+
+    void write_svg(
+            const std::string& file_path) const;
 };
 
 /**
@@ -336,6 +354,9 @@ struct ItemType
     bool has_only_discrete_rotations() const;
 
     std::string to_string(Counter indentation) const;
+
+    void write_svg(
+            const std::string& file_path) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

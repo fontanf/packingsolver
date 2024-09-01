@@ -14,12 +14,63 @@ using namespace packingsolver::irregular;
 /////////////////////////////// BranchingScheme ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+void TrapezoidSet::write_svg(
+        const std::string& file_path) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    LengthDbl width = (x_max - x_min);
+    LengthDbl height = (y_max - y_min);
+
+    double factor = compute_svg_factor(width);
+
+    std::string s = "<svg viewBox=\""
+        + std::to_string(x_min * factor)
+        + " " + std::to_string(-y_min * factor - height * factor)
+        + " " + std::to_string(width * factor)
+        + " " + std::to_string(height * factor)
+        + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+    file << s;
+
+    // Loop through trapezoids of the trapezoid set.
+    for (ItemShapePos item_shape_pos = 0;
+            item_shape_pos < (ItemShapePos)shapes.size();
+            ++item_shape_pos) {
+        const auto& item_shape_trapezoids = shapes[item_shape_pos];
+        for (TrapezoidPos item_shape_trapezoid_pos = 0;
+                item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
+                ++item_shape_trapezoid_pos) {
+            GeneralizedTrapezoid trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
+            file << "<g>" << std::endl;
+            file << trapezoid.to_svg("blue", factor);
+            LengthDbl x = (trapezoid.x_max() + trapezoid.x_min()) / 2;
+            LengthDbl y = (trapezoid.y_top() + trapezoid.y_bottom()) / 2;
+            file << "<text x=\"" << std::to_string(x * factor)
+                << "\" y=\"" << std::to_string(-y * factor)
+                << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
+                << std::to_string(item_shape_pos) << "," << std::to_string(item_shape_trapezoid_pos)
+                << "</text>" << std::endl;
+            file << "</g>" << std::endl;
+        }
+    }
+
+    file << "</svg>" << std::endl;
+}
+
 BranchingScheme::BranchingScheme(
         const Instance& instance,
         const Parameters& parameters):
     instance_(instance),
     parameters_(parameters)
 {
+    bool write_shapes = false;
+
     // Compute branching scheme bin types.
     bin_types_ = std::vector<std::vector<BranchingSchemeBinType>>(
             8,
@@ -310,17 +361,31 @@ BranchingScheme::BranchingScheme(
             ++item_type_id) {
         //std::cout << "item_type_id " << item_type_id << std::endl;
         const ItemType& item_type = instance.item_type(item_type_id);
+
+        // Write item type.
+        if (write_shapes) {
+            item_type.write_svg(
+                    "item_type_" + std::to_string(item_type_id)
+                    + ".svg");
+        }
+
         for (bool mirror: {false, true}) {
             if (mirror && !item_type.allow_mirroring)
                 continue;
+
             for (const auto& angle_range: item_type.allowed_rotations) {
                 //std::cout << "angle " << angle_range.first;
                 TrapezoidSet trapezoid_set_x;
                 trapezoid_set_x.item_type_id = item_type_id;
                 trapezoid_set_x.angle = angle_range.first;
                 trapezoid_set_x.mirror = mirror;
-                for (const ItemShape& item_shape: item_type.shapes) {
+
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                        ++item_shape_pos) {
+                    const ItemShape& item_shape = item_type.shapes[item_shape_pos];
                     //std::cout << "item_shape " << item_shape.to_string(0) << std::endl;
+
                     Shape shape = (!mirror)?
                         item_shape.shape:
                         item_shape.shape.axial_symmetry_y_axis();
@@ -332,16 +397,53 @@ BranchingScheme::BranchingScheme(
                                 hole:
                                 hole.axial_symmetry_y_axis()));
                     }
+                    // Write item shape.
+                    if (write_shapes) {
+                        std::string name = "item_type_" + std::to_string(item_type_id)
+                                + "_" + std::to_string(item_shape_pos)
+                                + "_mirror_" + std::to_string(mirror)
+                                + ".svg";
+                        irregular::write_svg(
+                                item_shape.shape,
+                                item_shape.holes,
+                                name);
+                    }
 
                     Shape rotated_shape = shape.rotate(angle_range.first);
                     std::vector<Shape> rotated_holes;
                     for (const Shape& hole: holes)
                         rotated_holes.push_back(hole.rotate(angle_range.first));
+                    // Write rotated item shape.
+                    if (write_shapes) {
+                        std::string name = "item_type_" + std::to_string(item_type_id)
+                                + "_x"
+                                + "_" + std::to_string(item_shape_pos)
+                                + "_mirror_" + std::to_string(mirror)
+                                + "_rotated_" + std::to_string(angle_range.first)
+                                + ".svg";
+                        irregular::write_svg(
+                                rotated_shape,
+                                rotated_holes,
+                                name);
+                    }
 
                     Shape cleaned_shape = clean_shape(rotated_shape);
                     std::vector<Shape> cleaned_holes;
                     for (const Shape& hole: rotated_holes)
                         cleaned_holes.push_back(clean_shape(hole));
+                    // Write cleaned item shape.
+                    if (write_shapes) {
+                        std::string name = "item_type_" + std::to_string(item_type_id)
+                                + "_x"
+                                + "_" + std::to_string(item_shape_pos)
+                                + "_mirror_" + std::to_string(mirror)
+                                + "_rotated_" + std::to_string(angle_range.first)
+                                + "_cleaned.svg";
+                        irregular::write_svg(
+                                cleaned_shape,
+                                cleaned_holes,
+                                name);
+                    }
 
                     auto trapezoids = polygon_trapezoidation(
                             cleaned_shape,
@@ -356,7 +458,10 @@ BranchingScheme::BranchingScheme(
                 trapezoid_set_y.item_type_id = item_type_id;
                 trapezoid_set_y.angle = angle_range.first;
                 trapezoid_set_y.mirror = mirror;
-                for (const ItemShape& item_shape: item_type.shapes) {
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                        ++item_shape_pos) {
+                    const ItemShape& item_shape = item_type.shapes[item_shape_pos];
 
                     Shape shape = (!mirror)?
                         item_shape.shape:
@@ -379,11 +484,37 @@ BranchingScheme::BranchingScheme(
                     std::vector<Shape> sym_holes;
                     for (const Shape& hole: rotated_holes)
                         sym_holes.push_back(hole.axial_symmetry_identity_line());
+                    // Write rotated item shape.
+                    if (write_shapes) {
+                        std::string name = "item_type_" + std::to_string(item_type_id)
+                                + "_y"
+                                + "_" + std::to_string(item_shape_pos)
+                                + "_mirror_" + std::to_string(mirror)
+                                + "_rotated_" + std::to_string(angle_range.first)
+                                + ".svg";
+                        irregular::write_svg(
+                                rotated_shape,
+                                rotated_holes,
+                                name);
+                    }
 
                     Shape cleaned_shape = clean_shape(sym_shape);
                     std::vector<Shape> cleaned_holes;
                     for (const Shape& hole: sym_holes)
                         cleaned_holes.push_back(clean_shape(hole));
+                    // Write cleaned item shape.
+                    if (write_shapes) {
+                        std::string name = "item_type_" + std::to_string(item_type_id)
+                                + "_y"
+                                + "_" + std::to_string(item_shape_pos)
+                                + "_mirror_" + std::to_string(mirror)
+                                + "_rotated_" + std::to_string(angle_range.first)
+                                + "_cleaned.svg";
+                        irregular::write_svg(
+                                cleaned_shape,
+                                cleaned_holes,
+                                name);
+                    }
 
                     auto trapezoids = polygon_trapezoidation(
                             cleaned_shape,
@@ -477,6 +608,26 @@ BranchingScheme::BranchingScheme(
                 if (trapezoid_set_y.y_max < trapezoid.y_top())
                     trapezoid_set_y.y_max = trapezoid.y_top();
             }
+        }
+
+        // Write trapezoidation.
+        if (write_shapes) {
+            std::string name = "item_type_" + std::to_string(trapezoid_set_x.item_type_id)
+                + "_x"
+                + "_mirror_" + std::to_string(trapezoid_set_x.mirror)
+                + "_rotated_" + std::to_string(trapezoid_set_x.angle)
+                + "_trapezoidation.svg";
+            trapezoid_set_x.write_svg(
+                    name);
+        }
+        if (write_shapes) {
+            std::string name = "item_type_" + std::to_string(trapezoid_set_y.item_type_id)
+                + "_y"
+                + "_mirror_" + std::to_string(trapezoid_set_y.mirror)
+                + "_rotated_" + std::to_string(trapezoid_set_y.angle)
+                + "_trapezoidation.svg";
+            trapezoid_set_y.write_svg(
+                    name);
         }
 
     }
@@ -2361,7 +2512,7 @@ Solution BranchingScheme::to_solution(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void BranchingScheme::to_svg(
+void BranchingScheme::write_svg(
         const std::shared_ptr<Node>& node,
         const std::string& file_path) const
 {
@@ -2373,8 +2524,6 @@ void BranchingScheme::to_svg(
                 "Unable to open file \"" + file_path + "\".");
     }
 
-    //double factor = 1e-3;
-
     BinPos bin_pos = node->number_of_bins - 1;
     BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
     const BinType& bin_type = instance().bin_type(bin_type_id);
@@ -2382,11 +2531,7 @@ void BranchingScheme::to_svg(
     LengthDbl width = (bb_bin_type.x_max - bb_bin_type.x_min);
     LengthDbl height = (bb_bin_type.y_max - bb_bin_type.y_min);
 
-    double factor = 1;
-    while (width * factor > 1000)
-        factor /= 10;
-    while (width * factor < 100)
-        factor *= 10;
+    double factor = compute_svg_factor(width);
 
     std::string s = "<svg viewBox=\""
         + std::to_string(bb_bin_type.x_min * factor)
@@ -2401,12 +2546,12 @@ void BranchingScheme::to_svg(
             ++extra_trapezoid_pos) {
         const GeneralizedTrapezoid& trapezoid = node->extra_trapezoids[extra_trapezoid_pos].trapezoid;
 
-        file << "<g>";
+        file << "<g>" << std::endl;
         file << trapezoid.to_svg("red", factor);
         LengthDbl x = (trapezoid.x_max() + trapezoid.x_min()) / 2;
         LengthDbl y = (trapezoid.y_top() + trapezoid.y_bottom()) / 2;
         file << "<text x=\"" << std::to_string(x * factor) << "\" y=\"" << std::to_string(-y * factor) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(extra_trapezoid_pos) << "</text>" << std::endl;
-        file << "</g>";
+        file << "</g>" << std::endl;
     }
     for (TrapezoidPos uncovered_trapezoid_pos = 0;
             uncovered_trapezoid_pos < (ItemPos)node->uncovered_trapezoids.size();
@@ -2414,12 +2559,12 @@ void BranchingScheme::to_svg(
         GeneralizedTrapezoid trapezoid = node->uncovered_trapezoids[uncovered_trapezoid_pos].trapezoid;
         trapezoid.extend_left(bb_bin_type.x_min);
 
-        file << "<g>";
+        file << "<g>" << std::endl;
         file << trapezoid.to_svg("blue", factor);
         LengthDbl x = (trapezoid.x_max() + trapezoid.x_min()) / 2;
         LengthDbl y = (trapezoid.y_top() + trapezoid.y_bottom()) / 2;
         file << "<text x=\"" << std::to_string(x * factor) << "\" y=\"" << std::to_string(-y * factor) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(uncovered_trapezoid_pos) << "</text>" << std::endl;
-        file << "</g>";
+        file << "</g>" << std::endl;
     }
 
     file << "</svg>" << std::endl;

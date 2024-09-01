@@ -12,7 +12,6 @@ namespace packingsolver
 namespace irregular
 {
 
-using ItemShapePos = int64_t;
 using ItemShapeTrapezoidPos = int64_t;
 using TrapezoidSetId = int64_t;
 
@@ -33,6 +32,9 @@ struct TrapezoidSet
     LengthDbl y_min;
 
     LengthDbl y_max;
+
+    void write_svg(
+            const std::string& file_path) const;
 };
 
 /**
@@ -398,7 +400,7 @@ public:
     Solution to_solution(
             const std::shared_ptr<Node>& node) const;
 
-    void to_svg(
+    void write_svg(
             const std::shared_ptr<Node>& node,
             const std::string& file_path) const;
 
