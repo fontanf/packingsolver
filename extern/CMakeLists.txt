@@ -23,7 +23,6 @@ FetchContent_MakeAvailable(mathoptsolverscmake)
 # Fetch boost.
 set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options dynamic_bitset)
 set(BOOST_ENABLE_CMAKE ON)
-include(FetchContent)
 FetchContent_Declare(
     Boost
     URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
@@ -57,6 +56,16 @@ FetchContent_Declare(
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../columngenerationsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(columngenerationsolver)
+
+# Fetch CDT.
+FetchContent_Declare(
+    cdt
+    URL https://github.com/artem-ogre/CDT/archive/refs/tags/1.4.1.tar.gz
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(cdt)
+add_library(CDT INTERFACE)
+target_include_directories(CDT INTERFACE
+    ${cdt_SOURCE_DIR}/CDT/include)
 
 # Fetch fontanf/knitrocpp.
 if (PACKINGSOLVER_USE_KNITRO)
