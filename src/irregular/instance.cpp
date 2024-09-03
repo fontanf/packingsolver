@@ -56,6 +56,15 @@ LengthDbl irregular::cross_product(
     return vector_1.x * vector_2.y - vector_2.x * vector_1.y;
 }
 
+Point& Point::shift(
+        LengthDbl x,
+        LengthDbl y)
+{
+    this->x += x;
+    this->y += y;
+    return *this;
+}
+
 Point Point::rotate(
         Angle angle) const
 {
@@ -404,6 +413,18 @@ std::pair<Point, Point> Shape::compute_min_max(
     return {{x_min, y_min}, {x_max, y_max}};
 }
 
+Shape& Shape::shift(
+        LengthDbl x,
+        LengthDbl y)
+{
+    for (ShapeElement& element: elements) {
+        element.start.shift(x, y);
+        element.end.shift(x, y);
+        element.center.shift(x, y);
+    }
+    return *this;
+}
+
 Shape Shape::rotate(Angle angle) const
 {
     Shape shape;
@@ -574,9 +595,9 @@ double irregular::compute_svg_factor(
         double width)
 {
     double factor = 1;
-    while (width * factor > 1000)
+    while (width * factor > 10000)
         factor /= 10;
-    while (width * factor < 100)
+    while (width * factor < 1000)
         factor *= 10;
     return factor;
 }
@@ -584,17 +605,20 @@ double irregular::compute_svg_factor(
 std::string irregular::to_svg(
         const Shape& shape,
         const std::vector<Shape>& holes,
-        double factor)
+        double factor,
+        const std::string& fill_color)
 {
     std::string s = "<path d=\"" + shape.to_svg(factor);
     for (const Shape& hole: holes)
         s += hole.reverse().to_svg(factor);
     s += "\""
         " stroke=\"black\""
-        " stroke-width=\"1\""
-        " fill=\"blue\""
-        " fill-opacity=\"0.2\""
-        "/>\n";
+        " stroke-width=\"1\"";
+    if (!fill_color.empty()) {
+        s += " fill=\"" + fill_color + "\""
+            " fill-opacity=\"0.2\"";
+    }
+    s += "/>\n";
     return s;
 }
 

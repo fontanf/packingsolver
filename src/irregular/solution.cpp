@@ -367,6 +367,99 @@ void Solution::write(
     file << std::setw(4) << json << std::endl;
 }
 
+void Solution::write_svg(
+        const std::string& file_path,
+        BinPos bin_pos) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    const SolutionBin& bin = this->bin(bin_pos);
+    const BinType& bin_type = instance().bin_type(bin.bin_type_id);
+    LengthDbl width = (bin_type.x_max - bin_type.x_min);
+    LengthDbl height = (bin_type.y_max - bin_type.y_min);
+
+    double factor = compute_svg_factor(width);
+
+    std::string s = "<svg viewBox=\""
+        + std::to_string(bin_type.x_min * factor)
+        + " " + std::to_string(-bin_type.y_min * factor - height * factor)
+        + " " + std::to_string(width * factor)
+        + " " + std::to_string(height * factor)
+        + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+    file << s;
+
+    // Write bin.
+    file << "<g>" << std::endl;
+    file << to_svg(bin_type.shape, {}, factor, "white");
+    for (const Defect& defect: bin_type.defects)
+        file << to_svg(defect.shape, defect.holes, factor, "red");
+    file << "</g>" << std::endl;
+
+    // Write items.
+    for (const SolutionItem& item: bin.items) {
+        const ItemType& item_type = instance().item_type(item.item_type_id);
+
+        LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
+        LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+        LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
+        LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+
+        file << "<g>" << std::endl;
+        for (const ItemShape& item_shape: item_type.shapes) {
+            Shape shape = item_shape.shape;
+            std::vector<Shape> holes = item_shape.holes;
+
+            // Apply mirroring.
+            if (item.mirror)
+                shape = shape.axial_symmetry_y_axis();
+            // Apply angles.
+            shape = shape.rotate(item.angle);
+            // Apply shift.
+            shape.shift(item.bl_corner.x, item.bl_corner.y);
+
+            for (Counter hole_pos = 0;
+                    hole_pos < (Counter)item_shape.holes.size();
+                    ++hole_pos) {
+                // Apply mirroring.
+                if (item.mirror)
+                    holes[hole_pos] = holes[hole_pos].axial_symmetry_y_axis();
+                // Apply angles.
+                holes[hole_pos] = holes[hole_pos].rotate(item.angle);
+                // Apply shift.
+                holes[hole_pos].shift(item.bl_corner.x, item.bl_corner.y);
+            }
+
+            file << to_svg(shape, holes, factor, "blue");
+
+            auto mm = shape.compute_min_max(0.0);
+            x_min = (std::min)(x_min, mm.first.x);
+            x_max = (std::max)(x_max, mm.second.x);
+            y_min = (std::min)(y_min, mm.first.y);
+            y_max = (std::max)(y_max, mm.second.y);
+        }
+
+        // Write item type id.
+        LengthDbl x = (x_min + x_max) / 2;
+        LengthDbl y = (y_min + y_max) / 2;
+        file << "<text x=\"" << std::to_string(x * factor)
+            << "\" y=\"" << std::to_string(-y * factor)
+            << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
+            << std::to_string(item.item_type_id)
+            << "</text>"
+            << std::endl;
+
+        file << "</g>" << std::endl;
+    }
+
+    file << "</svg>" << std::endl;
+}
+
 nlohmann::json Solution::to_json() const
 {
     return nlohmann::json {
