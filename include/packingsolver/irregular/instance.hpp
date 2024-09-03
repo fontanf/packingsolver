@@ -24,6 +24,14 @@ struct Point
     /** y-coordiante. */
     LengthDbl y;
 
+    /*
+     * Transformations
+     */
+
+    Point& shift(
+            LengthDbl x,
+            LengthDbl y);
+
     Point rotate(Angle angle) const;
 
     Point axial_symmetry_identity_line() const;
@@ -32,9 +40,17 @@ struct Point
 
     Point axial_symmetry_x_axis() const;
 
-    bool operator==(const Point& point) const { return x == point.x && y == point.y; }
+    /*
+     * Export
+     */
 
     std::string to_string() const;
+
+    /*
+     * Others
+     */
+
+    bool operator==(const Point& point) const { return x == point.x && y == point.y; }
 };
 
 Point operator+(
@@ -173,6 +189,10 @@ struct Shape
     /* Check if the shape is connected and in anticlockwise direction. */
     bool check() const;
 
+    Shape& shift(
+            LengthDbl x,
+            LengthDbl y);
+
     Shape rotate(Angle angle) const;
 
     Shape axial_symmetry_identity_line() const;
@@ -196,7 +216,8 @@ double compute_svg_factor(double width);
 std::string to_svg(
         const Shape& shape,
         const std::vector<Shape>& holes,
-        double factor);
+        double factor,
+        const std::string& fill_color = "blue");
 
 void write_svg(
         const Shape& shape,
