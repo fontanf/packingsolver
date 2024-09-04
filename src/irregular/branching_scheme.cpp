@@ -984,7 +984,7 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
             if (strictly_greater(
                         uncovered_trapezoid.trapezoid.x_right(yb),
                         new_trapezoid.x_right(yb))
-                    && (!right_sides_intersect
+                    && (right_sides_intersect
                         || strictly_greater(
                             uncovered_trapezoid.trapezoid.x_right(yt),
                             new_trapezoid.x_right(yt)))) {
@@ -1001,7 +1001,7 @@ std::vector<BranchingScheme::UncoveredTrapezoid> BranchingScheme::add_trapezoid_
             if (strictly_greater(
                         uncovered_trapezoid.trapezoid.x_right(yt),
                         new_trapezoid.x_right(yt))
-                    && (!right_sides_intersect
+                    && (right_sides_intersect
                         || strictly_greater(
                             uncovered_trapezoid.trapezoid.x_right(yb),
                             new_trapezoid.x_right(yb)))) {
