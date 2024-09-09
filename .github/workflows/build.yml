@@ -37,6 +37,10 @@ jobs:
         git remote set-branches origin '*'
         git fetch --depth 1
         git checkout master
+    - name: Install CLP (MacOS)
+      run: |
+        brew install clp
+      if: ${{ (matrix.os == 'macos-13') || (matrix.os == 'macos-latest') }}
     - name: Build
       run: |
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
