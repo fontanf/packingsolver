@@ -550,7 +550,7 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         last_bin_instance_builder.set_parameters(instance.parameters());
 
         // Add bin types.
-        const SolutionBin& last_bin = solution_best.bin(solution_best.number_of_bins() - 1);
+        const SolutionBin& last_bin = solution_best.bin(solution_best.number_of_different_bins() - 1);
         last_bin_instance_builder.add_bin_type(instance.bin_type(last_bin.bin_type_id), 1);
 
         // Add item types.
@@ -596,7 +596,7 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             solution.append(
                     last_bin_output.solution_pool.best(),
                     0,
-                    1,
+                    last_bin.copies,
                     {last_bin.bin_type_id},
                     last_bin_to_orig);
 
