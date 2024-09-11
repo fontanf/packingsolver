@@ -561,40 +561,7 @@ public:
                 -x_top_left());
     }
 
-    GeneralizedTrapezoid clean() const
-    {
-        LengthDbl yb = yb_;
-        LengthDbl yt = yt_;
-        LengthDbl xbl = xbl_;
-        LengthDbl xbr = xbr_;
-        LengthDbl xtl = xtl_;
-        LengthDbl xtr = xtr_;
-        if (a_left() > 1e2) {
-            xtl = xbl_;
-        } else if (a_left() < -1e2) {
-            xbl = xtl_;
-        } else if (a_left() > 0 && a_left() < 1e-2) {
-            xtl = xbl_;
-        } else if (a_left() < 0 && a_left() > -1e-2) {
-            xbl = xtl_;
-        }
-        if (a_right() > 1e2) {
-            xbr = xtr_;
-        } else if (a_right() < -1e2) {
-            xtr = xbr_;
-        } else if (a_right() > 0 && a_right() < 1e-2) {
-            xbr = xtr_;
-        } else if (a_right() < 0 && a_right() > -1e-2) {
-            xtr = xbr_;
-        }
-        return GeneralizedTrapezoid(
-                yb,
-                yt,
-                xbl,
-                xbr,
-                xtl,
-                xtr);
-    }
+    GeneralizedTrapezoid clean() const;
 
     std::string to_svg(
             const std::string color = "purple",
@@ -690,6 +657,62 @@ inline std::ostream& operator<<(
         << std::setprecision(precision)
         ;
     return os;
+}
+
+inline GeneralizedTrapezoid GeneralizedTrapezoid::clean() const
+{
+    LengthDbl yb = yb_;
+    LengthDbl yt = yt_;
+    LengthDbl xbl = xbl_;
+    LengthDbl xbr = xbr_;
+    LengthDbl xtl = xtl_;
+    LengthDbl xtr = xtr_;
+
+    bool is_left_vertical = (a_left() > 1e2
+            || a_left() < -1e2
+            || (a_left() >= 0 && a_left() < 1e-2)
+            || (a_left() <= 0 && a_left() > -1e-2));
+    bool is_right_vertical = (a_right() > 1e2
+            || a_right() < -1e2
+            || (a_right() >= 0 && a_right() < 1e-2)
+            || (a_right() <= 0 && a_right() > -1e-2));
+
+    if (xtl > xtr)
+        std::swap(xtl, xtr);
+    if (xbl > xbr)
+        std::swap(xbl, xbr);
+
+    if (is_left_vertical) {
+        if (xtl > xbl) {
+            xtl = xbl;
+        } else if (xbl > xtl) {
+            xbl = xtl;
+        }
+    }
+
+    if (is_right_vertical) {
+        if (xbr < xtr) {
+            xbr = xtr;
+        } else if (xtr < xbr) {
+            xtr = xbr;
+        }
+    }
+
+    GeneralizedTrapezoid new_trapezoid(
+            yb,
+            yt,
+            xbl,
+            xbr,
+            xtl,
+            xtr);
+
+    //std::cout << "is_top_point " << is_top_point << " is_bottom_point " << is_bottom_point << std::endl;
+    //std::cout << "is_left_vertical " << is_left_vertical << " is_right_vertical " << is_right_vertical << std::endl;
+    //std::cout << *this << std::endl;
+    //std::cout << "a_left " << a_left() << " a_right " << a_right() << std::endl;
+    //std::cout << new_trapezoid << std::endl;
+    //std::cout << new_trapezoid.a_left() << " " << new_trapezoid.a_right() << std::endl;
+    return new_trapezoid;
 }
 
 }
