@@ -302,7 +302,7 @@ void optimize_column_generation(
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.internal_diving = 1;
-    cgslds_parameters.dummy_column_objective_coefficient = 2 * instance.bin_type(0).cost;
+    cgslds_parameters.dummy_column_objective_coefficient = (std::max)(2 * instance.bin_type(0).cost, Profit(1));
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         cgslds_parameters.automatic_stop = true;
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
