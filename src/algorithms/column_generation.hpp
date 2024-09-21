@@ -86,7 +86,7 @@ private:
 
     std::vector<BinPos> fixed_bin_types_;
 
-    std::vector<ItemPos> filled_demands_;
+    std::vector<double> filled_demands_;
 
 };
 
