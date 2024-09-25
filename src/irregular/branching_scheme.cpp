@@ -1393,7 +1393,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         //std::cout << "* " << trapezoid.area() << " " << trapezoid.area(0.0) << std::endl;
         //std::cout << "current_area: " << node.current_area << std::endl;
         if (trapezoid.x_max() > node.xs_max)
-            node.guide_area += trapezoid.area(node.xs_max);
+            node.guide_area += (std::min)(trapezoid.area(), trapezoid.area(node.xs_max));
     }
     // Add area from extra rectangles.
     for (const UncoveredTrapezoid& extra_trapezoid: node.extra_trapezoids) {
@@ -1405,7 +1405,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         //std::cout << trapezoid << std::endl;
         //std::cout << "current_area " << node.current_area << std::endl;
         if (trapezoid.x_max() > node.xs_max)
-            node.guide_area += trapezoid.area(node.xs_max);
+            node.guide_area += (std::min)(trapezoid.area(), trapezoid.area(node.xs_max));
     }
 
     // Compute node.xe_max and node.ye_max.
@@ -1525,7 +1525,7 @@ void BranchingScheme::insertions(
     //    << std::endl;
     //for (const UncoveredTrapezoid& uncovered_trapezoid: parent->uncovered_trapezoids)
     //    std::cout << "* " << uncovered_trapezoid << std::endl;
-    //to_svg(parent, "node_" + std::to_string(parent->id) + ".svg");
+    //write_svg(parent, "node_" + std::to_string(parent->id) + ".svg");
 
     // Add all previous insertions which are still valid.
     if (parent->parent != nullptr) {
