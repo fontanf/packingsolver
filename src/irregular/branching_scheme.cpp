@@ -1382,8 +1382,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Compute, guide_area and width using uncovered_trapezoids.
     node.xs_max = (insertion.new_bin_direction == Direction::Any)?  // Same bin
-        std::max(parent.xs_max, insertion.x):
-        insertion.x;
+        std::max(parent.xs_max, insertion.x + trapezoid_set.x_min):
+        insertion.x + trapezoid_set.x_min;
     node.guide_area = instance_.previous_bin_area(bin_pos)
         + (node.xs_max - bb_bin_type.x_min)
         * (bb_bin_type.y_max - bb_bin_type.y_min);
@@ -1405,7 +1405,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         //std::cout << trapezoid << std::endl;
         //std::cout << "current_area " << node.current_area << std::endl;
         if (trapezoid.x_max() > node.xs_max)
-            node.guide_area += trapezoid.area(node.xs_max);
+            node.guide_area += (std::min)(trapezoid.area(), trapezoid.area(node.xs_max));
     }
 
     // Compute node.xe_max and node.ye_max.
@@ -1488,6 +1488,7 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
         //    << " yi_max " << bb_bin_type.y_max
         //    << " guide_area " << cs[i]->guide_area
         //    << std::endl;
+        //write_svg(cs[i], "node_" + std::to_string(cs[i]->id) + ".svg");
     }
     return cs;
 }
@@ -1525,7 +1526,7 @@ void BranchingScheme::insertions(
     //    << std::endl;
     //for (const UncoveredTrapezoid& uncovered_trapezoid: parent->uncovered_trapezoids)
     //    std::cout << "* " << uncovered_trapezoid << std::endl;
-    //to_svg(parent, "node_" + std::to_string(parent->id) + ".svg");
+    //write_svg(parent, "node_" + std::to_string(parent->id) + ".svg");
 
     // Add all previous insertions which are still valid.
     if (parent->parent != nullptr) {
