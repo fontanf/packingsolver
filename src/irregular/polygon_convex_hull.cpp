@@ -11,11 +11,11 @@ int counter_clockwise(
         const Point& point_2,
         const Point& point_3)
 {
-    int area = (point_2.x - point_1.x) * (point_3.y - point_1.y)
+    AreaDbl area = (point_2.x - point_1.x) * (point_3.y - point_1.y)
         - (point_2.y - point_1.y) * (point_3.x - point_1.x);
-    if (area > 0) {
+    if (strictly_greater(area, 0)) {
         return -1;
-    } else if (area < 0) {
+    } else if (strictly_lesser(area, 0)) {
         return 1;
     }
     return 0;
@@ -83,7 +83,7 @@ Shape irregular::polygon_convex_hull(
     convex_hull.push_back(points[1]);
     //std::cout << "push " << points[1].to_string() << std::endl;
 
-    for (int pos = 2; pos < (ElementPos)points.size(); pos++) {
+    for (ElementPos pos = 2; pos < (ElementPos)points.size(); pos++) {
         //std::cout << "pos " << pos << " / " << points.size() << std::endl;
         //std::cout << "point " << points[pos].to_string() << std::endl;
         Point top = convex_hull.back();
@@ -111,5 +111,15 @@ Shape irregular::polygon_convex_hull(
         element.end = convex_hull[(pos + 1) % convex_hull.size()];
         convex_hull_shape.elements.push_back(element);
     }
+
+    if (strictly_lesser(convex_hull_shape.compute_area(), shape.compute_area())) {
+        throw std::runtime_error(
+                "irregular::polygon_convex_hull."
+                "shape.compute_area(): " + std::to_string(shape.compute_area())
+                + "; convex_hull_shape.compute_area(): " + std::to_string(convex_hull_shape.compute_area())
+                + ".");
+
+    }
+
     return convex_hull_shape;
 }
