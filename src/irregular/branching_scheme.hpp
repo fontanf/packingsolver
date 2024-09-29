@@ -184,6 +184,12 @@ public:
         /** Extra rectangles. */
         std::vector<UncoveredTrapezoid> extra_trapezoids;
 
+        /**
+         * Skyline of all inserted item trapezoids used to compute the guide
+         * area.
+         */
+        std::vector<UncoveredTrapezoid> all_trapezoids_skyline;
+
         /** For each item type, number of copies in the node. */
         std::vector<ItemPos> item_number_of_copies;
 

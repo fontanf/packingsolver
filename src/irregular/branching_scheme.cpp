@@ -1212,6 +1212,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                     bb_bin_type.x_min,
                     bb_bin_type.x_min + instance().parameters().item_bin_minimum_spacing));
         node.uncovered_trapezoids.push_back(uncovered_trapezoid);
+        node.all_trapezoids_skyline.push_back(uncovered_trapezoid);
 
         // Add extra trapezoids from defects.
         for (DefectId defect_id = 0;
@@ -1224,6 +1225,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     } else {  // Same bin.
 
         node.uncovered_trapezoids = parent.uncovered_trapezoids;
+        node.all_trapezoids_skyline = parent.all_trapezoids_skyline;
 
     }
 
@@ -1244,6 +1246,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             trapezoid.shift_right(insertion.x);
             trapezoid.shift_top(insertion.y);
             //std::cout << "shifted " << trapezoid << std::endl;
+
+            node.all_trapezoids_skyline = add_trapezoid_to_skyline(
+                    node.all_trapezoids_skyline,
+                    trapezoid_set.item_type_id,
+                    item_shape_pos,
+                    item_shape_trapezoid_pos,
+                    trapezoid);
 
             // Add the item to the skyline.
             if (item_shape_pos == insertion.item_shape_pos
@@ -1387,25 +1396,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.guide_area = instance_.previous_bin_area(bin_pos)
         + (node.xs_max - bb_bin_type.x_min)
         * (bb_bin_type.y_max - bb_bin_type.y_min);
-    for (auto it = node.uncovered_trapezoids.rbegin(); it != node.uncovered_trapezoids.rend(); ++it) {
+    for (auto it = node.all_trapezoids_skyline.rbegin(); it != node.all_trapezoids_skyline.rend(); ++it) {
         const GeneralizedTrapezoid& trapezoid = it->trapezoid;
         //std::cout << trapezoid << std::endl;
         //std::cout << "* " << trapezoid.area() << " " << trapezoid.area(0.0) << std::endl;
         //std::cout << "current_area: " << node.current_area << std::endl;
         if (trapezoid.x_max() > node.xs_max)
             node.guide_area += trapezoid.area(node.xs_max);
-    }
-    // Add area from extra rectangles.
-    for (const UncoveredTrapezoid& extra_trapezoid: node.extra_trapezoids) {
-        if (extra_trapezoid.trapezoid.y_top() >= bb_bin_type.y_max + (bb_bin_type.y_max - bb_bin_type.y_min)
-                || extra_trapezoid.trapezoid.y_bottom() <= bb_bin_type.y_min - (bb_bin_type.y_max - bb_bin_type.y_min)) {
-            continue;
-        }
-        const GeneralizedTrapezoid& trapezoid = extra_trapezoid.trapezoid;
-        //std::cout << trapezoid << std::endl;
-        //std::cout << "current_area " << node.current_area << std::endl;
-        if (trapezoid.x_max() > node.xs_max)
-            node.guide_area += (std::min)(trapezoid.area(), trapezoid.area(node.xs_max));
     }
 
     // Compute node.xe_max and node.ye_max.
@@ -1523,6 +1520,8 @@ void BranchingScheme::insertions(
     //    << " guide_area " << parent->guide_area
     //    << " profit " << parent->profit
     //    << " leftover_value " << parent->leftover_value
+    //    << " item_convex_hull_area " << parent->item_convex_hull_area
+    //    << " guide " << parent->guide_area / parent->item_convex_hull_area
     //    << std::endl;
     //for (const UncoveredTrapezoid& uncovered_trapezoid: parent->uncovered_trapezoids)
     //    std::cout << "* " << uncovered_trapezoid << std::endl;
