@@ -90,7 +90,7 @@ public:
     /** Get the number of items in the solution. */
     inline ItemPos number_of_items() const { return number_of_items_; }
 
-    /** Return 'tree' iff the solution contains all items. */
+    /** Return 'true' iff the solution contains all items. */
     inline bool full() const { return number_of_items() == instance().number_of_items(); }
 
     /** Get the number of bins in the solution. */
@@ -130,10 +130,10 @@ public:
     inline ItemPos item_copies(ItemTypeId item_type_id) const { return item_copies_[item_type_id]; }
 
     /** Get a bin. */
-    const SolutionBin& bin(BinPos i) const { return bins_[i]; }
+    inline const SolutionBin& bin(BinPos bin_pos) const { return bins_[bin_pos]; }
 
-    /** Get the number of copies of bin 'i' in the solution. */
-    inline BinPos bin_copies(BinTypeId i) const { return bin_copies_[i]; }
+    /** Get the number of copies of a bin type. */
+    inline BinPos bin_copies(BinTypeId bin_type_id) const { return bin_copies_[bin_type_id]; }
 
     bool operator<(const Solution& solution) const;
 

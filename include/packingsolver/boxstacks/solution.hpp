@@ -152,7 +152,7 @@ public:
     inline BinPos number_of_different_bins() const { return bins_.size(); }
 
     /** Get a bin. */
-    const SolutionBin& bin(BinPos bin_pos) const { return bins_[bin_pos]; }
+    inline const SolutionBin& bin(BinPos bin_pos) const { return bins_[bin_pos]; }
 
     /** Get the number of copies of a bin type in the solution. */
     inline BinPos bin_copies(BinTypeId bin_type_id) const { return bin_copies_[bin_type_id]; }
@@ -186,7 +186,7 @@ public:
     /** Get the number of items in the solution. */
     inline ItemPos number_of_items() const { return number_of_items_; }
 
-    /** Return 'tree' iff the solution contains all items. */
+    /** Return 'true' iff the solution contains all items. */
     inline bool full() const { return number_of_items() == instance().number_of_items(); }
 
     /** Get the total volume of the items of the solution. */
@@ -381,4 +381,3 @@ std::ostream& operator<<(
 
 }
 }
-
