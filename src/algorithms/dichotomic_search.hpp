@@ -24,18 +24,6 @@ namespace packingsolver
 {
 
 template <typename Instance>
-double largest_bin_space(const Instance& instance)
-{
-    double space_max = 0;
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
-            ++bin_type_id)
-        if (space_max < instance.bin_type(bin_type_id).space())
-            space_max = instance.bin_type(bin_type_id).space();
-    return space_max;
-}
-
-template <typename Instance>
 double mean_item_space(const Instance& instance)
 {
     double space = 0;
