@@ -278,6 +278,18 @@ struct Parameters: optimizationtools::Parameters
     NewSolutionCallback<Instance, Solution> new_solution_callback = [](const Output<Instance, Solution>&) { };
 };
 
+template <typename Instance>
+double largest_bin_space(const Instance& instance)
+{
+    double space_max = 0;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id)
+        if (space_max < instance.bin_type(bin_type_id).space())
+            space_max = instance.bin_type(bin_type_id).space();
+    return space_max;
+}
+
 template<class F, F f> struct wrapper_impl;
 template<class R, class... Args, R(*f)(Args...)>
 struct wrapper_impl<R(*)(Args...), f>

@@ -103,7 +103,11 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         } else {
             profits[item_type_id] = instance.item_type(item_type_id).space();
         }
+        //std::cout << "item_type_id " << item_type_id
+        //    << " profit " << profits[item_type_id]
+        //    << std::endl;
     }
+    auto lbs = largest_bin_space(instance);
 
     for (output.number_of_iterations = 0;; output.number_of_iterations++) {
         //std::cout << "it " << output.number_of_iterations
@@ -121,9 +125,9 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         // For VBPP objective, we store the solutions found for each bin type
         // at each iterations. Thus, at the next iteration, we can check if the
         // previously computed ones are still feasible.
-        std::vector<Solution> solutions_cur(
+        std::vector<std::pair<Solution, Profit>> solutions_cur(
                 instance.number_of_bin_types(),
-                Solution(instance));
+                {Solution(instance), 0.0});
 
         for (;;) {
 
@@ -148,13 +152,6 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 if (copies > 0)
                     kp2orig.push_back(item_type_id);
             }
-
-            double largest_item_space = 0;
-            for (ItemTypeId item_type_id: kp2orig) {
-                if (largest_item_space < instance.item_type(item_type_id).space())
-                    largest_item_space = instance.item_type(item_type_id).space();
-            }
-            //std::cout << "largest_item_space " << largest_item_space << std::endl;
 
             // Find bin types to try.
             std::vector<BinTypeId> bin_type_ids;
@@ -182,8 +179,6 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                         const auto& bin_type = instance.bin_type(bin_type_id);
                         if (solution.bin_copies(bin_type_id) == bin_type.copies)
                             continue;
-                        if (bin_type.space() < largest_item_space)
-                            continue;
                         bin_type_ids.push_back(bin_type_id);
                     }
                 }
@@ -195,7 +190,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 const auto& bin_type = instance.bin_type(bin_type_id);
 
                 if (instance.objective() == Objective::VariableSizedBinPacking
-                        && solutions_cur[bin_type_id].number_of_items() > 0) {
+                        && solutions_cur[bin_type_id].first.number_of_items() > 0) {
                     // Check if previous solution is still valid.
                     bool valid = true;
                     for (ItemTypeId item_type_id = 0;
@@ -205,7 +200,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                             = instance.item_type(item_type_id).copies
                             - solution.item_copies(item_type_id);
                         if (item_remaining_copies
-                                < solutions_cur[bin_type_id].item_copies(item_type_id)) {
+                                < solutions_cur[bin_type_id].first.item_copies(item_type_id)) {
                             valid = false;
                             break;
                         }
@@ -239,7 +234,8 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 Solution solution(instance);
                 if (kp_solution.number_of_different_bins() > 0)
                     solution.append(kp_solution, 0, 1, {bin_type_id}, kp2orig);
-                solutions_cur[bin_type_id] = solution;
+                solutions_cur[bin_type_id].first = solution;
+                solutions_cur[bin_type_id].second = kp_solution.profit();
                 output.all_patterns.push_back(solution);
             }
 
@@ -251,10 +247,10 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 const auto& bin_type = instance.bin_type(bin_type_id);
 
                 // Update next solution.
-                double ratio = solutions_cur[bin_type_id].profit() / bin_type.cost;
+                double ratio = solutions_cur[bin_type_id].second / bin_type.cost;
                 //std::cout << "bin_type_id " << bin_type_id
                 //    << " cost " << bin_type.cost
-                //    << " profit " << solutions_cur[bin_type_id].profit()
+                //    << " profit " << solutions_cur[bin_type_id].second
                 //    << " ratio " << ratio
                 //    << std::endl;
                 if (ratio_best < ratio) {
@@ -266,7 +262,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
             // If no item has been packed, stop.
             if (bin_type_id_best == -1)
                 break;
-            const Solution& kp_solution_best = solutions_cur[bin_type_id_best];
+            const Solution& kp_solution_best = solutions_cur[bin_type_id_best].first;
 
             // Compute the number of copies of the selected Knapsack solution
             // to add.
@@ -359,6 +355,8 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     * item_type_adjusted_space[item_type_id]
                     / solution.item_copies(item_type_id);
             } else {
+                item_type_adjusted_space[item_type_id]
+                    += 100 * lbs * (item_type.copies - solution.item_copies(item_type_id));
                 profit_new
                     = item_type_adjusted_space[item_type_id]
                     / item_type.copies;
