@@ -138,7 +138,7 @@ void optimize_sequential_single_knapsack(
     for (Counter queue_size = 1;;) {
 
         if (parameters.optimization_mode != OptimizationMode::Anytime)
-            queue_size = parameters.not_anytime_dichotomic_search_subproblem_queue_size;
+            queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_queue_size;
 
         SequentialValueCorrectionFunction<Instance, Solution> kp_solve
             = [&parameters, &queue_size](const Instance& kp_instance)
