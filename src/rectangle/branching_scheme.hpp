@@ -226,7 +226,7 @@ public:
          * If 'false' follow a "skyline" scheme.
          * If "true", follow a "staircase" scheme.
          */
-        bool staircase = true;
+        bool staircase = false;
 
         /**
          * How a predecessor is defined:
