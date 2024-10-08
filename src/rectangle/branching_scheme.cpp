@@ -253,8 +253,11 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     }
 
     // Update uncovered_item.xe_dominance.
+    Length smallest_item_height = (node.last_bin_direction == Direction::X)?
+        instance().smallest_item_height():
+        instance().smallest_item_width();
     if (yi - node.uncovered_items[new_uncovered_item_pos].ye
-            < instance().smallest_item_height()) {
+            < smallest_item_height) {
         for (ItemPos uncovered_item_pos = new_uncovered_item_pos + 1;
                 uncovered_item_pos < node.uncovered_items.size();
                 ++uncovered_item_pos) {
@@ -265,7 +268,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         }
     }
     if (node.uncovered_items[new_uncovered_item_pos].ys
-            < instance().smallest_item_height()) {
+            < smallest_item_height) {
         for (ItemPos uncovered_item_pos = new_uncovered_item_pos - 1;
                 uncovered_item_pos >= 0;
                 --uncovered_item_pos) {
