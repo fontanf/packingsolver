@@ -52,6 +52,11 @@ TEST_P(AlgorithmTest, Algorithm)
     Output output = optimize(instance, optimize_parameters);
 
     Solution solution(instance, test_params.certificate_path.string());
+    std::cout << std::endl
+        << "Reference solution" << std::endl
+        << "------------------" << std::endl;
+    solution.format(std::cout);
+
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
     EXPECT_EQ(!(solution < output.solution_pool.best()), true);
 }
