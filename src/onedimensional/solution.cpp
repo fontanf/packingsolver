@@ -212,13 +212,13 @@ bool Solution::operator<(const Solution& solution) const
             return true;
         return solution.waste() < waste();
     } case Objective::Knapsack: {
-        return solution.profit() > profit();
+        return strictly_greater(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return solution.cost() < cost();
+        return strictly_lesser(solution.cost(), cost());
     } default: {
         std::stringstream ss;
         ss << "Solution onedimensional::Solution does not support objective \""
