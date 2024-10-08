@@ -1184,7 +1184,7 @@ std::ostream& packingsolver::rectangle::operator<<(
 {
     os << "item_type_id " << insertion.item_type_id
         << " rotate " << insertion.rotate
-        << " new_bin " << insertion.new_bin
+        << " new_bin " << (int)insertion.new_bin
         << " x " << insertion.x
         << " y " << insertion.y
         ;

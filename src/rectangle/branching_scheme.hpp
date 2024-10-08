@@ -212,9 +212,6 @@ public:
 
         /** Overweight for the rear axle weight constraints. */
         double rear_axle_overweight = 0;
-
-        /** Width or height. */
-        Length length = 0;
     };
 
     struct Parameters
