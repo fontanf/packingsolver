@@ -243,7 +243,7 @@ bool Solution::operator<(const Solution& solution) const
             return true;
         if (solution.number_of_bins() != number_of_bins())
             return solution.number_of_bins() < number_of_bins();
-        return solution.leftover_value() > leftover_value();
+        return strictly_greater(solution.leftover_value(), leftover_value());
     } case Objective::OpenDimensionX: {
         if (!solution.full())
             return false;
@@ -257,16 +257,16 @@ bool Solution::operator<(const Solution& solution) const
             return true;
         return solution.y_max() < y_max();
     } case Objective::Knapsack: {
-        return solution.profit() > profit();
+        return strictly_greater(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return solution.cost() < cost();
+        return strictly_lesser(solution.cost(), cost());
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
-        if (solution.profit() != profit())
-            return solution.profit() > profit();
+        if (!equal(solution.profit(), profit()))
+            return strictly_greater(solution.profit(), profit());
         if (solution.middle_axle_overweight() + solution.rear_axle_overweight()
                 != middle_axle_overweight() + rear_axle_overweight())
             return solution.middle_axle_overweight() + solution.rear_axle_overweight()
