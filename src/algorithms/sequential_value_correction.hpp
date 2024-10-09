@@ -323,6 +323,15 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         //        << std::endl;
         //}
         //std::cout << solution.cost() << std::endl;
+        //for (ItemTypeId item_type_id = 0;
+        //        item_type_id < instance.number_of_item_types();
+        //        ++item_type_id) {
+        //    if (solution.item_copies(item_type_id) != instance.item_type(item_type_id).copies) {
+        //        std::cout << item_type_id << std::endl;
+        //    }
+        //}
+        //std::cout << solution.number_of_items() << " " << solution.number_of_bins() << std::endl;
+        //solution.write("solution_svc_" + std::to_string(output.number_of_iterations) + ".json");
 
         // Update best solution.
         std::stringstream ss;
@@ -331,6 +340,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
 
         // Check BinPacking goal.
         if (instance.objective() == Objective::BinPacking
+                && output.solution_pool.best().number_of_items() == instance.number_of_items()
                 && output.solution_pool.best().number_of_bins() <= std::max(parameters.bin_packing_goal, (BinPos)2))
             return output;
 
