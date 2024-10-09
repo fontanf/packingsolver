@@ -397,11 +397,12 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
+                    use_column_generation = true;
                 }
             } else {
                 use_tree_search = true;
+                use_column_generation = true;
             }
-            use_column_generation = true;
         }
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
@@ -422,12 +423,20 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
+                    if (instance.number_of_bin_types() == 1)
+                        use_column_generation = true;
                 }
             } else {
                 use_tree_search = true;
+                if (mean_number_of_items_in_bins
+                        > parameters.many_items_in_bins_threshold) {
+                    use_sequential_single_knapsack = true;
+                } else {
+                    use_sequential_value_correction = true;
+                    if (instance.number_of_bin_types() == 1)
+                        use_column_generation = true;
+                }
             }
-            if (instance.number_of_bin_types() == 1)
-                use_column_generation = true;
         }
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
@@ -453,20 +462,22 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
+                    use_column_generation = true;
                 }
             } else {
-                if (instance.number_of_bin_types() == 1) {
-                    use_tree_search = true;
-                } else {
-                    if (mean_number_of_items_in_bins
-                            > parameters.many_items_in_bins_threshold) {
+                if (mean_number_of_items_in_bins
+                        > parameters.many_items_in_bins_threshold) {
+                    use_sequential_single_knapsack = true;
+                    if (instance.number_of_bin_types() > 1) {
                         use_dichotomic_search = true;
                     } else {
-                        use_sequential_value_correction = true;
+                        use_tree_search = true;
                     }
+                } else {
+                    use_sequential_value_correction = true;
+                    use_column_generation = true;
                 }
             }
-            use_column_generation = true;
         }
     }
 
@@ -537,17 +548,23 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
                     parameters,
                     algorithm_formatter);
         // Sequential single knapsack.
-        if (use_sequential_single_knapsack)
+        if (use_sequential_single_knapsack
+                && (output.solution_pool.best().number_of_items() == 0
+                    || output.solution_pool.best().number_of_different_bins() > 1)) {
             optimize_sequential_single_knapsack(
                     instance,
                     parameters,
                     algorithm_formatter);
+        }
         // Sequential value correction.
-        if (use_sequential_value_correction)
+        if (use_sequential_value_correction
+                && (output.solution_pool.best().number_of_items() == 0
+                    || output.solution_pool.best().number_of_different_bins() > 1)) {
             optimize_sequential_value_correction(
                     instance,
                     parameters,
                     algorithm_formatter);
+        }
         // Dichotomic search.
         if (use_dichotomic_search)
             optimize_dichotomic_search(
@@ -555,11 +572,14 @@ const packingsolver::irregular::Output packingsolver::irregular::optimize(
                     parameters,
                     algorithm_formatter);
         // Column generation.
-        if (use_column_generation)
+        if (use_column_generation
+                && (output.solution_pool.best().number_of_items() == 0
+                    || output.solution_pool.best().number_of_different_bins() > 1)) {
             optimize_column_generation(
                     instance,
                     parameters,
                     algorithm_formatter);
+        }
     }
 
     const Solution& solution_best = output.solution_pool.best();
