@@ -362,11 +362,12 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
+                    use_column_generation = true;
                 }
             } else {
                 use_tree_search = true;
+                use_column_generation = true;
             }
-            use_column_generation = true;
         }
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
@@ -387,12 +388,20 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
+                    if (instance.number_of_bin_types() == 1)
+                        use_column_generation = true;
                 }
             } else {
                 use_tree_search = true;
+                if (mean_number_of_items_in_bins
+                        > parameters.many_items_in_bins_threshold) {
+                    use_sequential_single_knapsack = true;
+                } else {
+                    use_sequential_value_correction = true;
+                    if (instance.number_of_bin_types() == 1)
+                        use_column_generation = true;
+                }
             }
-            if (instance.number_of_bin_types() == 1)
-                use_column_generation = true;
         }
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
@@ -418,20 +427,22 @@ const packingsolver::onedimensional::Output packingsolver::onedimensional::optim
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
+                    use_column_generation = true;
                 }
             } else {
-                if (instance.number_of_bin_types() == 1) {
-                    use_tree_search = true;
-                } else {
-                    if (mean_number_of_items_in_bins
-                            > parameters.many_items_in_bins_threshold) {
+                if (mean_number_of_items_in_bins
+                        > parameters.many_items_in_bins_threshold) {
+                    use_sequential_single_knapsack = true;
+                    if (instance.number_of_bin_types() > 1) {
                         use_dichotomic_search = true;
                     } else {
-                        use_sequential_value_correction = true;
+                        use_tree_search = true;
                     }
+                } else {
+                    use_sequential_value_correction = true;
+                    use_column_generation = true;
                 }
             }
-            use_column_generation = true;
         }
     }
 

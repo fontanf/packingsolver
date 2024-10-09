@@ -113,6 +113,11 @@ int main(int argc, char *argv[])
 
     Instance instance = instance_builder.build();
 
+    //for (ItemTypeId item_type_id = 0;
+    //        item_type_id < instance.number_of_item_types();
+    //        ++item_type_id) {
+    //    instance.item_type(item_type_id).write_svg("item_type_" + std::to_string(item_type_id) + ".svg");
+    //}
     //instance.write(vm["input"].as<std::string>() + "_tmp.json");
 
     OptimizeParameters parameters;
