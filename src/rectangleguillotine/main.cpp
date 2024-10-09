@@ -95,6 +95,8 @@ int main(int argc, char *argv[])
         ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
         ("use-column-generation,", po::value<bool>(), "enable column-generation")
         ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
+        ("sequential-value-correction-subproblem-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
+        ("column-generation-subproblem-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
         ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
         ("not-anytime-sequential-single-knapsack-subproblem-queue-size,", po::value<Counter>(), "")
         ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
@@ -205,6 +207,10 @@ int main(int argc, char *argv[])
     if (vm.count("use-dichotomic-search"))
         parameters.use_dichotomic_search = vm["use-dichotomic-search"].as<bool>();
 
+    if (vm.count("sequential-value-correction-subproblem-queue-size"))
+        parameters.sequential_value_correction_subproblem_queue_size = vm["sequential-value-correction-subproblem-queue-size"].as<NodeId>();
+    if (vm.count("column-generation-subproblem-queue-size"))
+        parameters.column_generation_subproblem_queue_size = vm["column-generation-subproblem-queue-size"].as<NodeId>();
     if (vm.count("not-anytime-tree-search-queue-size"))
         parameters.not_anytime_tree_search_queue_size = vm["not-anytime-tree-search-queue-size"].as<Counter>();
     if (vm.count("not-anytime-sequential-single-knapsack-subproblem-queue-size"))
