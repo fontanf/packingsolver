@@ -481,7 +481,7 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-sequent
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective variable-sized-bin-packing"
-                + "  --use-sequential-value-correction 1"
+                + "  --optimization-mode not-anytime"
                 + " --use-sequential-value-correction 1"
                 + " --sequential-value-correction-subproblem-queue-size 256"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"
