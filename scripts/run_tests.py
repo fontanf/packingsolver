@@ -402,7 +402,7 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-dichoto
                 + " --objective variable-sized-bin-packing"
                 + "  --optimization-mode not-anytime"
                 + " --use-dichotomic-search 1"
-                + " --not-anytime-dichotomic-search-subproblem-queue-size 512"
+                + " --not-anytime-dichotomic-search-subproblem-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
