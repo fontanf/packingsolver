@@ -52,13 +52,13 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
      * Size of the queue for the pricing knapsack subproblem of the sequential
      * value correction algorithm.
      */
-    NodeId sequential_value_correction_subproblem_queue_size = 256;
+    NodeId sequential_value_correction_subproblem_queue_size = 512;
 
     /**
      * Size of the queue for the pricing knapsack subproblem of the column
      * generation algorithm.
      */
-    NodeId column_generation_subproblem_queue_size = 256;
+    NodeId column_generation_subproblem_queue_size = 512;
 
     /*
      * Parameters for non-anytime mode
