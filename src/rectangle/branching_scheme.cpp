@@ -470,6 +470,8 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 {
     //std::cout << "id " << parent->id
     //    << " number_of_items " << parent->number_of_items
+    //    << " number_of_bins " << parent->number_of_bins
+    //    << " waste " << parent->waste
     //    << " group_score " << parent->group_score
     //    << " load " << (double)parent->item_area / parent->guide_area
     //    << " last_bin_middle_axle_weight " << parent->groups.front().last_bin_middle_axle_weight
