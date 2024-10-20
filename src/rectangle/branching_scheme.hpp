@@ -381,6 +381,11 @@ public:
             }
         }
 
+        if (node_1->number_of_bins < node_2->number_of_bins)
+            return true;
+        if (node_1->number_of_bins > node_2->number_of_bins)
+            return false;
+
         //if (unbounded_knapsck_ && node_1->profit < node_2->profit)
         //    return false;
         ItemPos pos_1 = node_1->uncovered_items.size() - 1;
