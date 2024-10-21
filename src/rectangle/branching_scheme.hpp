@@ -171,8 +171,8 @@ public:
         /** Guide item area. */
         Area guide_item_area = 0;
 
-        /** Squared item area. */
-        Area squared_item_area = 0;
+        /** Guide item pseudo-profit. */
+        double guide_item_pseudo_profit = 0;
 
         /** Current area. */
         Area current_area = 0;
@@ -478,9 +478,6 @@ private:
     /** Get the mean item area of a node; */
     inline double mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
 
-    /** Get the mean squared item area of a node. */
-    inline double mean_squared_item_area(const Node& node) const { return (double)node.squared_item_area / node.number_of_items; }
-
     /** Get the mean remaining item area of a node. */
     inline double mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance_.number_of_items() - node.number_of_items); }
 
@@ -581,10 +578,12 @@ inline bool BranchingScheme::operator()(
             return true;
         double guide_1 = (double)node_1->guide_area
             / node_1->guide_item_area
-            / mean_item_area(*node_1);
+            / node_1->guide_item_pseudo_profit
+            * node_1->number_of_items;
         double guide_2 = (double)node_2->guide_area
             / node_2->guide_item_area
-            / mean_item_area(*node_2);
+            / node_2->guide_item_pseudo_profit
+            * node_2->number_of_items;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
