@@ -289,8 +289,14 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.item_weight = parent.item_weight + item_type.weight;
     node.weight_profit = parent.item_weight
         + (double)1.0 / item_type.weight / insertion.x;
-    node.squared_item_area = parent.squared_item_area + item_type.area() * item_type.area();
     node.profit = parent.profit + item_type.profit;
+    if (item_type.oriented) {
+        node.guide_item_pseudo_profit = parent.guide_item_pseudo_profit
+            + std::pow(xj, 1.2) * std::pow(yj, 1.1) / item_type.area();
+    } else {
+        node.guide_item_pseudo_profit = parent.guide_item_pseudo_profit
+            + std::pow(xj, 1.1) * std::pow(yj, 1.1) / item_type.area();
+    }
     if (parameters_.group_guiding_strategy == 0) {
         node.guide_item_area = parent.guide_item_area
             + item_type.area() * (item_type.group_id + 1);
