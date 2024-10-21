@@ -337,6 +337,11 @@ public:
             const std::shared_ptr<Node>& node_1,
             const std::shared_ptr<Node>& node_2) const
     {
+        if (node_1->number_of_bins < node_2->number_of_bins)
+            return true;
+        if (node_1->number_of_bins > node_2->number_of_bins)
+            return false;
+
         // Check uncovered rectangles.
         ItemPos pos_1 = node_1->uncovered_trapezoids.size() - 1;
         ItemPos pos_2 = node_2->uncovered_trapezoids.size() - 1;
