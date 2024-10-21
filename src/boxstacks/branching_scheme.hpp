@@ -346,6 +346,11 @@ public:
             const std::shared_ptr<Node>& node_1,
             const std::shared_ptr<Node>& node_2) const
     {
+        if (node_1->number_of_bins < node_2->number_of_bins)
+            return true;
+        if (node_1->number_of_bins > node_2->number_of_bins)
+            return false;
+
         if (node_1->last_bin_middle_axle_weight > node_2->last_bin_middle_axle_weight)
             return false;
         if (node_1->uncovered_items.size() != node_2->uncovered_items.size())
