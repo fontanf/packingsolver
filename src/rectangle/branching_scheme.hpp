@@ -469,33 +469,6 @@ private:
      * Private methods
      */
 
-    /** Get the percentage of item inserted into a node. */
-    inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
-
-    /** Get the mean area of a node. */
-    inline double mean_area(const Node& node) const { return (double)node.current_area / node.number_of_items; }
-
-    /** Get the mean item area of a node; */
-    inline double mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
-
-    /** Get the mean remaining item area of a node. */
-    inline double mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance_.number_of_items() - node.number_of_items); }
-
-    /** Get the remaining item area of a node. */
-    inline double remaining_item_area(const Node& node) const { return instance_.item_area() - node.item_area; }
-
-    /** Get the waste percentage of a node. */
-    inline double waste_percentage(const Node& node) const { return (double)node.waste / node.current_area; }
-
-    /** Get the waste ratio of a node. */
-    inline double waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
-
-    /** Get the area load of a node. */
-    inline double area_load(const Node& node) const { return (double)node.item_area / instance().bin_area(); }
-
-    /** Get the weight load of a node. */
-    inline double weight_load(const Node& node) const { return (double)node.item_weight / instance().bin_weight(); }
-
     /** Insertion of one item. */
     void insertion_item(
             const std::shared_ptr<Node>& parent,
@@ -606,10 +579,14 @@ inline bool BranchingScheme::operator()(
             return true;
         double ye_max_1 = node_1->uncovered_items[node_1->uncovered_items.size() - 2].ye;
         double ye_max_2 = node_2->uncovered_items[node_2->uncovered_items.size() - 2].ye;
-        double guide_1 = (double)(node_1->xe_max * ye_max_1) / node_1->item_area
-            / mean_item_area(*node_1);
-        double guide_2 = (double)(node_2->xe_max * ye_max_2) / node_2->item_area
-            / mean_item_area(*node_2);
+        double guide_1 = (double)(node_1->xe_max * ye_max_1)
+            / node_1->item_area
+            / node_1->guide_item_pseudo_profit
+            * node_1->number_of_items;
+        double guide_2 = (double)(node_2->xe_max * ye_max_2)
+            / node_2->item_area
+            / node_2->guide_item_pseudo_profit
+            * node_2->number_of_items;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
@@ -634,10 +611,12 @@ inline bool BranchingScheme::operator()(
             return true;
         double guide_1 = (double)node_1->guide_area
             / node_1->guide_profit
-            / mean_item_area(*node_1);
+            / node_1->item_area
+            * node_1->number_of_items;
         double guide_2 = (double)node_2->guide_area
             / node_2->guide_profit
-            / mean_item_area(*node_2);
+            / node_2->item_area
+            * node_2->number_of_items;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
