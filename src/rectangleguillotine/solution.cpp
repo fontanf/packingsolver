@@ -51,8 +51,8 @@ void Solution::update_indicators(
     bin_copies_[bin.bin_type_id] += bin.copies;
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
     cost_ += bin.copies * bin_type.cost;
-    area_ += bin.copies * bin_type.area();
     full_area_ += bin.copies * bin_type.area();
+    area_ = full_area_;
 
     width_ = 0;
     height_ = 0;
