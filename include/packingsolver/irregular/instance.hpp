@@ -211,6 +211,8 @@ struct Shape
             const std::string& file_path) const;
 };
 
+Shape build_polygon_shape(const std::vector<Point>& points);
+
 double compute_svg_factor(double width);
 
 std::string to_svg(
