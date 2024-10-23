@@ -139,3 +139,21 @@ TEST(IrregularShape, CleanShapeAligned2)
     EXPECT_EQ(cleaned_shape.elements[2].end.x, 0);
     EXPECT_EQ(cleaned_shape.elements[2].end.y, 0);
 }
+
+TEST(IrregularShape, Borders1)
+{
+    Shape shape = build_polygon_shape({{2, 0}, {3, 1}, {0, 1}});
+    std::vector<Shape> shape_borders = borders(shape);
+
+    EXPECT_EQ(shape_borders.size(), 3);
+}
+
+TEST(IrregularShape, Borders2)
+{
+    Shape shape = build_polygon_shape({{0, 0}, {3, 1}, {0, 1}});
+    std::vector<Shape> shape_borders = borders(shape);
+    for (const Shape& border: shape_borders)
+        std::cout << border.to_string(0) << std::endl;
+
+    EXPECT_EQ(shape_borders.size(), 1);
+}

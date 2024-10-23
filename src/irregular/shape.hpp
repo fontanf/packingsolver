@@ -19,5 +19,8 @@ std::pair<bool, Shape> equalize_close_y(
 Shape clean_shape(
         const Shape& shape);
 
+std::vector<Shape> borders(
+        const Shape& shape);
+
 }
 }

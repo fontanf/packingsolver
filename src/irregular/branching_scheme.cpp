@@ -155,152 +155,32 @@ BranchingScheme::BranchingScheme(
         BranchingSchemeBinType& bb_bin_type_x = bin_types_[(int)Direction::LeftToRightThenBottomToTop][bin_type_id];
         BranchingSchemeBinType& bb_bin_type_y = bin_types_[(int)Direction::BottomToTopThenLeftToRight][bin_type_id];
 
-        // Bin borders.
-        Shape shape_border;
-        ElementPos element_0_pos = 0;
-        for (ElementPos element_pos = 0;
-                element_pos < bin_type.shape.elements.size();
-                ++element_pos) {
-            const ShapeElement& shape_element = bin_type.shape.elements[element_pos];
-            if (shape_element.start.x == bin_type.x_min) {
-                element_0_pos = element_pos;
-                break;
-            }
-        }
-        // 0: left; 1: bottom; 2: right; 3: top.
-        const ShapeElement& element_0 = bin_type.shape.elements[element_0_pos];
-        int start_border = (element_0.start.y == bin_type.y_min)? 1: 0;
-        LengthDbl start_coordinate = element_0.start.y;
-        for (ElementPos element_pos = 0;
-                element_pos < bin_type.shape.elements.size();
-                ++element_pos) {
-            const ShapeElement& element = bin_type.shape.elements[(element_0_pos + element_pos) % bin_type.shape.elements.size()];
-            //std::cout << "element_pos " << ((element_0_pos + element_pos) % bin_type.shape.elements.size()) << " / " << bin_type.shape.elements.size() << ": " << element.to_string() << std::endl;
-            shape_border.elements.push_back(element);
-            bool close = false;
-            if (start_border == 0) {
-                if (equal(element.end.x, bin_type.x_min)) {
-                    ShapeElement new_element;
-                    new_element.type = ShapeElementType::LineSegment;
-                    new_element.start = element.end;
-                    new_element.end = shape_border.elements[0].start;
-                    shape_border.elements.push_back(new_element);
-                    close = true;
-                    start_border = 0;
-                } else if (equal(element.end.y, bin_type.y_min)) {
-                    ShapeElement new_element_1;
-                    new_element_1.type = ShapeElementType::LineSegment;
-                    new_element_1.start = element.end;
-                    new_element_1.end = {bin_type.x_min, bin_type.y_min};
-                    shape_border.elements.push_back(new_element_1);
-                    ShapeElement new_element_2;
-                    new_element_2.type = ShapeElementType::LineSegment;
-                    new_element_2.start = new_element_1.end;
-                    new_element_2.end = shape_border.elements[0].start;
-                    shape_border.elements.push_back(new_element_2);
-                    close = true;
-                    start_border = 1;
-                }
-            } else if (start_border == 1) {
-                if (equal(element.end.y, bin_type.y_min)) {
-                    ShapeElement new_element;
-                    new_element.type = ShapeElementType::LineSegment;
-                    new_element.start = element.end;
-                    new_element.end = shape_border.elements[0].start;
-                    shape_border.elements.push_back(new_element);
-                    close = true;
-                    start_border = 1;
-                } else if (equal(element.end.x, bin_type.x_max)) {
-                    ShapeElement new_element_1;
-                    new_element_1.type = ShapeElementType::LineSegment;
-                    new_element_1.start = element.end;
-                    new_element_1.end = {bin_type.x_max, bin_type.y_min};
-                    shape_border.elements.push_back(new_element_1);
-                    ShapeElement new_element_2;
-                    new_element_2.type = ShapeElementType::LineSegment;
-                    new_element_2.start = new_element_1.end;
-                    new_element_2.end = shape_border.elements[0].start;
-                    shape_border.elements.push_back(new_element_2);
-                    close = true;
-                    start_border = 2;
-                }
-            } else if (start_border == 2) {
-                if (equal(element.end.x, bin_type.x_max)) {
-                    ShapeElement new_element;
-                    new_element.type = ShapeElementType::LineSegment;
-                    new_element.start = element.end;
-                    new_element.end = shape_border.elements[0].start;
-                    shape_border.elements.push_back(new_element);
-                    close = true;
-                    start_border = 2;
-                } else if (equal(element.end.y, bin_type.y_max)) {
-                    ShapeElement new_element_1;
-                    new_element_1.type = ShapeElementType::LineSegment;
-                    new_element_1.start = element.end;
-                    new_element_1.end = {bin_type.x_max, bin_type.y_max};
-                    shape_border.elements.push_back(new_element_1);
-                    ShapeElement new_element_2;
-                    new_element_2.type = ShapeElementType::LineSegment;
-                    new_element_2.start = new_element_1.end;
-                    new_element_2.end = shape_border.elements[0].start;
-                    shape_border.elements.push_back(new_element_2);
-                    close = true;
-                    start_border = 3;
-                }
-            } else if (start_border == 3) {
-                if (equal(element.end.y, bin_type.y_max)) {
-                    ShapeElement new_element;
-                    new_element.type = ShapeElementType::LineSegment;
-                    new_element.start = element.end;
-                    new_element.end = shape_border.elements[0].start;
-                    shape_border.elements.push_back(new_element);
-                    close = true;
-                    start_border = 3;
-                } else if (equal(element.end.x, bin_type.x_min)) {
-                    ShapeElement new_element_1;
-                    new_element_1.type = ShapeElementType::LineSegment;
-                    new_element_1.start = element.end;
-                    new_element_1.end = {bin_type.x_min, bin_type.y_max};
-                    shape_border.elements.push_back(new_element_1);
-                    ShapeElement new_element_2;
-                    new_element_2.type = ShapeElementType::LineSegment;
-                    new_element_2.start = new_element_1.end;
-                    new_element_2.end = shape_border.elements[0].start;
-                    shape_border.elements.push_back(new_element_2);
-                    close = true;
-                    start_border = 0;
-                }
-            }
-            // New shape.
-            if (close) {
-                Shape reversed_shape = shape_border.reverse();
-                {
-                    Shape cleaned_shape = clean_shape(reversed_shape);
-                    //std::cout << cleaned_shape.to_string(0) << std::endl;
-                    if (cleaned_shape.elements.size() > 2) {
-                        auto trapezoids = polygon_trapezoidation(cleaned_shape);
-                        for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
-                            UncoveredTrapezoid defect(
-                                    -1,
-                                    trapezoid.clean().inflate(instance.parameters().item_bin_minimum_spacing));
-                            bb_bin_type_x.defects.push_back(defect);
-                        }
+        for (const Shape& shape_border: borders(bin_type.shape)) {
+            {
+                Shape cleaned_shape = clean_shape(shape_border);
+                //std::cout << cleaned_shape.to_string(0) << std::endl;
+                if (cleaned_shape.elements.size() > 2) {
+                    auto trapezoids = polygon_trapezoidation(cleaned_shape);
+                    for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
+                        UncoveredTrapezoid defect(
+                                -1,
+                                trapezoid.clean().inflate(instance.parameters().item_bin_minimum_spacing));
+                        bb_bin_type_x.defects.push_back(defect);
                     }
                 }
-                {
-                    Shape sym_shape = reversed_shape.axial_symmetry_identity_line();
-                    Shape cleaned_shape = clean_shape(sym_shape);
-                    if (cleaned_shape.elements.size() > 2) {
-                        auto trapezoids = polygon_trapezoidation(cleaned_shape);
-                        for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
-                            UncoveredTrapezoid defect(
-                                    -1,
-                                    trapezoid.clean().inflate(instance.parameters().item_bin_minimum_spacing));
-                            bb_bin_type_y.defects.push_back(defect);
-                        }
+            }
+            {
+                Shape sym_shape = shape_border.axial_symmetry_identity_line();
+                Shape cleaned_shape = clean_shape(sym_shape);
+                if (cleaned_shape.elements.size() > 2) {
+                    auto trapezoids = polygon_trapezoidation(cleaned_shape);
+                    for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
+                        UncoveredTrapezoid defect(
+                                -1,
+                                trapezoid.clean().inflate(instance.parameters().item_bin_minimum_spacing));
+                        bb_bin_type_y.defects.push_back(defect);
                     }
                 }
-                shape_border.elements.clear();
             }
         }
 
