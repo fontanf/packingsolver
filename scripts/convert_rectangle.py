@@ -417,8 +417,9 @@ def convert_long2020(filename):
     write_dict(bins, filename + "_bins.csv")
     write_dict(items, filename + "_items.csv")
     p = os.path.join("data", "rectangle", filename.replace(" ", "_"))
-    with open(p + "_parameters.txt", "w") as params_file:
-        params_file.write("--max1cut " + str(max1cut) + "\n")
+    with open(p + "_parameters.csv", "w") as params_file:
+        params_file.write("NAME,VALUE\n")
+        params_file.write("max1cut," + str(max1cut) + "\n")
 
 
 ###############################################################################
