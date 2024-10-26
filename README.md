@@ -4,32 +4,13 @@ A state-of-the-art solver for (geometrical) Packing Problems.
 
 PackingSolver solves the following problem types:
 
-* `rectangleguillotine`
-  * Items: two-dimensional rectangles
-  * Only edge-to-edge cuts are allowed
-
-![Example](img/rectangleguillotine.png?raw=true "Example rectangleguillotine")
-
-* `rectangle`
-  * Items: two-dimensional rectangles
-
-![Example](img/rectangle.png?raw=true "Example rectangle")
-
-* `boxstacks`
-  * Items: three-dimensional rectangular parallelepipeds
-  * Items can be stacked; a stack contains items with the same width and length
-
-![Example](img/boxstacks.png?raw=true "Example boxstacks")
-
-* `onedimensional`
-  * Items: one-dimensional items
-
-![Example](img/onedimensional.png?raw=true "Example onedimensional")
-
-* `irregular`
-  * Items: two-dimensional polygons
-
-![Example](img/irregular.png?raw=true "Example irregular")
+| Problem types            |  Examples |
+:------------------------- |:-------------------------
+`rectangleguillotine`<ul><li>Items: two-dimensional rectangles</li><li>Only edge-to-edge cuts are allowed</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/rectangleguillotine.png" align=center width="512">
+`rectangle`<ul><li>Items: two-dimensional rectangles</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/rectangle.png" align=center width="512">
+`boxstacks`<ul><li>Items: three-dimensional rectangular parallelepipeds</li><li>Items can be stacked; a stack contains items with the same width and length</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/boxstacks.png" align=center width="512">
+`onedimensional`<ul><li>Items: one-dimensional items</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/onedimensional.png" align=center width="512">
+`irregular`<ul><li>Items: two-dimensional polygons</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/irregular.png" align=center width="512">
 
 ## Compilation
 
