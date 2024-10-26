@@ -6,11 +6,11 @@ PackingSolver solves the following problem types:
 
 | Problem types            |  Examples |
 :------------------------- |:-------------------------
-`rectangleguillotine`<ul><li>Items: two-dimensional rectangles</li><li>Only edge-to-edge cuts are allowed</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/rectangleguillotine.png" align=center width="512">
-`rectangle`<ul><li>Items: two-dimensional rectangles</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/rectangle.png" align=center width="512">
-`boxstacks`<ul><li>Items: three-dimensional rectangular parallelepipeds</li><li>Items can be stacked; a stack contains items with the same width and length</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/boxstacks.png" align=center width="512">
-`onedimensional`<ul><li>Items: one-dimensional items</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/onedimensional.png" align=center width="512">
-`irregular`<ul><li>Items: two-dimensional polygons</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/irregular.png" align=center width="512">
+[`rectangleguillotine`](#rectangleguillotine-solver)<ul><li>Items: two-dimensional rectangles</li><li>Only edge-to-edge cuts are allowed</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/rectangleguillotine.png" align=center width="512">
+[`rectangle`](#rectangle-solver)<ul><li>Items: two-dimensional rectangles</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/rectangle.png" align=center width="512">
+[`boxstacks`](#boxstacks-solver)<ul><li>Items: three-dimensional rectangular parallelepipeds</li><li>Items can be stacked; a stack contains items with the same width and length</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/boxstacks.png" align=center width="512">
+[`onedimensional`](#onedimensional-solver)<ul><li>Items: one-dimensional items</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/onedimensional.png" align=center width="512">
+[`irregular`](#irregular-solver)<ul><li>Items: two-dimensional polygons</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/irregular.png" align=center width="512">
 
 ## Compilation
 
@@ -19,7 +19,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release --parallel && cmake --install build --config Release --prefix install
 ```
 
-## Problem type `rectangleguillotine`
+## `rectangleguillotine` solver
 
 Features:
 * Objectives:
@@ -161,7 +161,7 @@ Visualize solution:
 python3 scripts/visualize_rectangleguillotine.py solution_rectangleguillotine.csv
 ```
 
-## Problem type `rectangle`
+## `rectangle` solver
 
 Features:
 * Objectives:
@@ -292,7 +292,7 @@ Visualize solution:
 python3 scripts/visualize_rectangle.py solution_rectangle.csv
 ```
 
-## Problem type `boxstacks`
+## `boxstacks` solver
 
 Features:
 * Objectives:
@@ -389,7 +389,7 @@ Visualize solution:
 python3 scripts/visualize_boxstacks.py solution_boxstacks.csv
 ```
 
-## Problem type `onedimensional`
+## `onedimensional` solver
 
 Features:
 * Objectives:
@@ -493,7 +493,7 @@ Visualize:
 python3 scripts/visualize_onedimensional.py solution_onedimensional.csv
 ```
 
-## Problem type `irregular`
+## `irregular` solver
 
 Features:
 * Objectives:
