@@ -7,12 +7,17 @@ import time
 import sys
 
 
-def download(id):
+def download(file_id, file_format="7z"):
     for _ in range(3):
         try:
-            gdown.download(id=id, output="data.7z")
-            os.system("7z x data.7z")
-            pathlib.Path("data.7z").unlink()
+            if file_format == "7z":
+                gdown.download(id=file_id, output="data.7z")
+                os.system("7z x data.7z")
+                pathlib.Path("data.7z").unlink()
+            elif file_format == "tar.gz":
+                gdown.download(id=file_id, output="data.tar.gz")
+                os.system("tar zxf data.tar.gz")
+                pathlib.Path("data.tar.gz").unlink()
         except:
             time.sleep(10)
             continue
@@ -43,6 +48,23 @@ if args.data is None or "imahori2010" in args.data:
     if dir_path.exists():
         shutil.rmtree(dir_path)
     shutil.move("imahori2010_packingsolver", dir_path)
+
+
+if args.data is None or "roadef2022_2024-04-25_kp" in args.data:
+    # roadef2022_2024-04-25_kp
+    download("1pYlKC0zwrg8sd9Ph1HOJpMLwEXe8_YLb", "tar.gz")
+    dir_path = pathlib.Path("data") / "boxstacks" / "roadef2022_2024-04-25_kp"
+    if dir_path.exists():
+        shutil.rmtree(dir_path)
+    shutil.move("roadef2022_2024-04-25_kp", dir_path)
+
+if args.data is None or "roadef2022_2024-04-25_bpp" in args.data:
+    # roadef2022_2024-04-25_bpp
+    download("1w8Q6S680FM_R8xKPXJrL1u75wTVFOTCT", "tar.gz")
+    dir_path = pathlib.Path("data") / "boxstacks" / "roadef2022_2024-04-25_bpp"
+    if dir_path.exists():
+        shutil.rmtree(dir_path)
+    shutil.move("roadef2022_2024-04-25_bpp", dir_path)
 
 
 if args.data is None or "cgshop2024" in args.data:
