@@ -197,6 +197,120 @@ Features:
   * Maximum weight
 * Unloading constraints: only horizontal/vertical movements, increasing x/y
 
+Example:
+```shell
+./install/bin/packingsolver_rectangle \
+        --verbosity-level 1 \
+        --items data/rectangle/afsharian2014/450-200.txt/C22M25R10N15_D4_items.csv \
+        --bins data/rectangle/afsharian2014/450-200.txt/C22M25R10N15_D4_bins.csv \
+        --defects data/rectangle/afsharian2014/450-200.txt/C22M25R10N15_D4_defects.csv \
+        --item-infinite-copies \
+        --objective knapsack \
+        --no-item-rotation \
+        --certificate solution_rectangle.csv \
+        --time-limit 5
+```
+
+<details><p>
+
+```
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             Knapsack
+Number of item types:  25
+Number of items:       247
+Number of bin types:   1
+Number of bins:        1
+Number of groups:      1
+Number of defects:     4
+Unloading constraint:  None
+Total item area:       2576510
+Total item width:      33005
+Total item height:     17382
+Smallest item width:   47
+Smallest item height:  21
+Total bin area:        90000
+Total item weight:     0
+Total bin weight:      0
+
+        Time        Profit   # items                         Comment
+        ----        ------   -------                         -------
+       0.001         10773         1                  TS g 4 d X q 1
+       0.002         17052         1                  TS g 4 d X q 1
+       0.002         23765         1                  TS g 4 d X q 1
+       0.003         27825         2                  TS g 4 d X q 1
+       0.003         30429         2                  TS g 4 d X q 1
+       0.004         34538         2                  TS g 4 d Y q 1
+       0.004         39178         3                  TS g 4 d Y q 1
+       0.005         40237         4                  TS g 4 d X q 1
+       0.005         43421         2                  TS g 5 d Y q 1
+       0.006         43818         4                  TS g 4 d Y q 1
+       0.006         50405         5                  TS g 4 d X q 1
+       0.007         52631         6                  TS g 4 d X q 1
+       0.007         53985         5                  TS g 5 d Y q 1
+       0.008         54875         7                  TS g 4 d X q 1
+       0.008         57101         8                  TS g 4 d X q 1
+       0.009         59327         9                  TS g 4 d X q 1
+       0.009         61553        10                  TS g 4 d X q 1
+       0.010         63797        11                  TS g 4 d X q 1
+       0.010         66041        12                  TS g 4 d X q 1
+       0.011         66125        13                  TS g 4 d X q 1
+       0.011         67227        15                  TS g 4 d X q 1
+       0.012         69471        16                  TS g 4 d X q 1
+       0.014         69760        17                  TS g 4 d X q 3
+       0.017         70866        10                 TS g 5 d Y q 19
+       0.017         71638        11                 TS g 5 d Y q 19
+       0.020         71674        12                 TS g 5 d Y q 28
+       0.050         72296        11                TS g 5 d Y q 141
+       0.162         72704        21                TS g 4 d X q 141
+       0.282         72832        19                TS g 4 d Y q 316
+       0.282         73344        19                TS g 4 d Y q 316
+       0.286         73443        20                TS g 4 d Y q 316
+       0.813         73980        20                TS g 4 d X q 711
+       1.196         73997        22               TS g 4 d X q 1066
+       1.794         74170        21               TS g 4 d X q 1599
+       4.873         74986        22               TS g 4 d X q 3597
+
+Final statistics
+----------------
+Time (s):  5.02934
+
+Solution
+--------
+Number of items:  22 / 247 (8.90688%)
+Item area:        74986 / 2576510 (2.91037%)
+Item weight:      0 / 0 (-nan%)
+Item profit:      74986 / 2.57651e+06 (2.91037%)
+Number of bins:   1 / 1 (100%)
+Bin area:         90000 / 90000 (100%)
+Bin weight:       0 / 0 (-nan%)
+Bin cost:         90000
+Waste:            14166
+Waste (%):        15.8897
+Full waste:       15014
+Full waste (%):   16.6822
+Area load:        0.833178
+Weight load:      -nan
+X max:            448
+Y max:            199
+Leftover value:   848
+```
+
+</p></details>
+
+Visualize solution:
+```shell
+python3 scripts/visualize_rectangle.py solution_rectangle.csv
+```
+
 ## Problem type `boxstacks`
 
 Features:
@@ -214,6 +328,85 @@ Features:
   * Maximum stack density
   * Maximum weight on middle and rear axles
 * Unloading constraints: only horizontal/vertical movements, increasing x/y
+
+Example:
+```shell
+python3 scripts/download_data.py --data roadef2022_2024-04-25_bpp
+./install/bin/packingsolver_boxstacks \
+        --verbosity-level 1 \
+        --items data/boxstacks/roadef2022_2024-04-25_bpp/C/AS/AS_149_items.csv \
+        --bins data/boxstacks/roadef2022_2024-04-25_bpp/C/AS/AS_149_bins.csv \
+        --parameters data/boxstacks/roadef2022_2024-04-25_bpp/C/AS/AS_149_parameters.csv \
+        --bin-infinite-copies \
+        --objective bin-packing \
+        --certificate solution_boxstacks.csv \
+        --time-limit 1
+```
+
+<details><p>
+
+```
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+BoxStacks
+
+Instance
+--------
+Objective:             BinPacking
+Number of item types:  13
+Number of items:       118
+Number of bin types:   1
+Number of bins:        118
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  IncreasingX
+Item volume:           196704000000
+Bin volume:            13001535000000
+Item weight:           17323.9
+Bin weight:            2.832e+06
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.119       2           10.74                     iteration 0
+
+Final statistics
+----------------
+Time (s):  0.119291
+
+Solution
+--------
+Number of items:   118 / 118 (100%)
+Item volume:       1.96704e+11 / 1.96704e+11 (100%)
+Item weight:       17323.9 / 17323.9 (100%)
+Item profit:       1.96704e+11 / 1.96704e+11 (100%)
+Number of stacks:  37
+Stack area:        69600000
+Number of bins:    2 / 118 (1.69492%)
+Bin volume:        220365000000 / 13001535000000 (1.69492%)
+Bin area:          74700000 / 4407300000 (1.69492%)
+Bin weight:        48000 / 2832000 (1.69492%)
+Bin cost:          6
+Waste:             19678500000
+Waste (%):         9.09431
+Full waste:        23661000000
+Full waste (%):    10.7372
+Volume load:       0.0151293
+Area load:         0.015792
+Weight load:       0.00611719
+X max:             14400
+Y max:             2400
+```
+
+</p></details>
+
+Visualize solution:
+```shell
+python3 scripts/visualize_boxstacks.py solution_boxstacks.csv
+```
 
 ## Problem type `onedimensional`
 
