@@ -1,4 +1,4 @@
-Items,Best known solution value
+Path,Best known solution value
 berkey1987/Class_01.2bp_20_1,8
 berkey1987/Class_01.2bp_20_2,5
 berkey1987/Class_01.2bp_20_3,9
@@ -296,7 +296,7 @@ berkey1987/Class_06.2bp_100_4,3
 berkey1987/Class_06.2bp_100_5,3
 berkey1987/Class_06.2bp_100_6,4
 berkey1987/Class_06.2bp_100_7,3
-berkey1987/Class_06.2bp_100_8,4
+berkey1987/Class_06.2bp_100_8,3
 berkey1987/Class_06.2bp_100_9,3
 berkey1987/Class_06.2bp_100_10,4
 martello1998/Class_07.2bp_20_1,5
@@ -487,10 +487,10 @@ martello1998/Class_10.2bp_80_5,14
 martello1998/Class_10.2bp_80_6,13
 martello1998/Class_10.2bp_80_7,14
 martello1998/Class_10.2bp_80_8,10
-martello1998/Class_10.2bp_80_9,13
+martello1998/Class_10.2bp_80_9,12
 martello1998/Class_10.2bp_80_10,15
 martello1998/Class_10.2bp_100_1,14
-martello1998/Class_10.2bp_100_2,16
+martello1998/Class_10.2bp_100_2,15
 martello1998/Class_10.2bp_100_3,16
 martello1998/Class_10.2bp_100_4,18
 martello1998/Class_10.2bp_100_5,18
