@@ -404,27 +404,24 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.subplate2curr_items_above_defect.push_back(jrx);
     }
 
-    // Update pos_stack, items_area, squared_item_area and profit.
+    // Update pos_stack, items_area.
     node.pos_stack = parent.pos_stack;
     node.number_of_items = parent.number_of_items;
     node.item_area = parent.item_area;
-    node.squared_item_area = parent.squared_item_area;
     node.profit = parent.profit;
     if (insertion.item_type_id_1 != -1) {
-        const ItemType& item = instance().item_type(insertion.item_type_id_1);
-        node.pos_stack[item.stack_id]++;
-        node.number_of_items += 1;
-        node.item_area += item.area();
-        node.squared_item_area += item.area() * item.area();
-        node.profit += item.profit;
+        const ItemType& item_type = instance().item_type(insertion.item_type_id_1);
+        node.pos_stack[item_type.stack_id]++;
+        node.number_of_items++;
+        node.item_area += item_type.area();
+        node.profit += item_type.profit;
     }
     if (insertion.item_type_id_2 != -1) {
-        const ItemType& item = instance().item_type(insertion.item_type_id_2);
-        node.pos_stack[item.stack_id]++;
-        node.number_of_items += 1;
-        node.item_area += item.area();
-        node.squared_item_area += item.area() * item.area();
-        node.profit += item.profit;
+        const ItemType& item_type = instance().item_type(insertion.item_type_id_2);
+        node.pos_stack[item_type.stack_id]++;
+        node.number_of_items++;
+        node.item_area += item_type.area();
+        node.profit += item_type.profit;
     }
     assert(node.item_area <= instance().bin_area());
 

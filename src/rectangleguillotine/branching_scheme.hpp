@@ -197,9 +197,6 @@ public:
         /** Total area of the items of the partial solution. */
         Area item_area = 0;
 
-        /** Total squared area of the items of the partial solution. */
-        Area squared_item_area = 0;
-
         /** Area of the partial solution. */
         Area current_area = 0;
 
@@ -403,30 +400,6 @@ private:
 
     inline bool full(const Node& node) const { return node.number_of_items == instance_.number_of_items(); }
 
-    /** Get the percentage of item inserted into a node. */
-    inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
-
-    /** Get the mean area of a node. */
-    inline double mean_area(const Node& node) const { return (double)node.current_area / node.number_of_items; }
-
-    /** Get the mean item area of a node; */
-    inline double mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
-
-    /** Get the mean squared item area of a node. */
-    inline double mean_squared_item_area(const Node& node) const { return (double)node.squared_item_area / node.number_of_items; }
-
-    /** Get the mean remaining item area of a node. */
-    inline double mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance_.number_of_items() - node.number_of_items); }
-
-    /** Get the remaining item area of a node. */
-    inline double remaining_item_area(const Node& node) const { return instance_.item_area() - node.item_area; }
-
-    /** Get the waste percentage of a node. */
-    inline double waste_percentage(const Node& node) const { return (double)node.waste / node.current_area; }
-
-    /** Get the waste ratio of a node. */
-    inline double waste_ratio(const Node& node) const { return (double)node.waste / node.item_area; }
-
     /** Get the width of a node. */
     inline Length width(const Node& node) const { return (instance_.number_of_stages() == 3)? node.x1_curr: node.y2_curr; }
 
@@ -624,138 +597,40 @@ bool BranchingScheme::operator()(
 {
     switch(parameters_.guide_id) {
     case 0: {
-        if (node_1->current_area == 0) {
-            if (node_2->current_area != 0) {
-                return false;
-            } else {
-                return node_1->id < node_2->id;
-            }
-        }
-        if (node_2->current_area == 0)
-            return true;
-
-        if (waste_percentage(*node_1) != waste_percentage(*node_2))
-            return waste_percentage(*node_1) < waste_percentage(*node_2);
+        double guide_1 = (double)node_1->current_area / node_1->item_area;
+        double guide_2 = (double)node_2->current_area / node_2->item_area;
+        if (guide_1 != guide_2)
+            return guide_1 < guide_2;
         break;
     } case 1: {
-        if (node_1->current_area == 0) {
-            if (node_2->current_area != 0) {
-                return false;
-            } else {
-                return node_1->id < node_2->id;
-            }
-        }
-        if (node_2->current_area == 0)
-            return true;
-
-        if (node_1->number_of_items == 0) {
-            if (node_2->number_of_items != 0) {
-                return false;
-            } else {
-                return node_1->id < node_2->id;
-            }
-        }
-        if (node_2->number_of_items == 0)
-            return true;
-
-        if (waste_percentage(*node_1) / mean_item_area(*node_1)
-                != waste_percentage(*node_2) / mean_item_area(*node_2))
-            return waste_percentage(*node_1) / mean_item_area(*node_1)
-                < waste_percentage(*node_2) / mean_item_area(*node_2);
-        break;
-    } case 2: {
-        if (node_1->current_area == 0) {
-            if (node_2->current_area != 0) {
-                return false;
-            } else {
-                return node_1->id < node_2->id;
-            }
-        }
-        if (node_2->current_area == 0)
-            return true;
-
-        if (node_1->number_of_items == 0) {
-            if (node_2->number_of_items != 0) {
-                return false;
-            } else {
-                return node_1->id < node_2->id;
-            }
-        }
-        if (node_2->number_of_items == 0)
-            return true;
-
-        if ((0.1 + waste_percentage(*node_1)) / mean_item_area(*node_1)
-                != (0.1 + waste_percentage(*node_2)) / mean_item_area(*node_2))
-            return (0.1 + waste_percentage(*node_1)) / mean_item_area(*node_1)
-                < (0.1 + waste_percentage(*node_2)) / mean_item_area(*node_2);
-        break;
-    } case 3: {
-        if (node_1->current_area == 0) {
-            if (node_2->current_area != 0) {
-                return false;
-            } else {
-                return node_1->id < node_2->id;
-            }
-        }
-        if (node_2->current_area == 0)
-            return true;
-
-        if (node_1->number_of_items == 0) {
-            if (node_2->number_of_items != 0) {
-                return false;
-            } else {
-                return node_1->id < node_2->id;
-            }
-        }
-        if (node_2->number_of_items == 0)
-            return true;
-
-        if ((0.1 + waste_percentage(*node_1)) / mean_squared_item_area(*node_1)
-                != (0.1 + waste_percentage(*node_2)) / mean_squared_item_area(*node_2))
-            return (0.1 + waste_percentage(*node_1)) / mean_squared_item_area(*node_1)
-                < (0.1 + waste_percentage(*node_2)) / mean_squared_item_area(*node_2);
+        double guide_1 = (double)(node_1->current_area - node_1->item_area)
+            / node_1->current_area
+            / node_1->item_area
+            * node_1->number_of_items;
+        double guide_2 = (double)(node_2->current_area - node_2->item_area)
+            / node_2->current_area
+            / node_2->item_area
+            * node_2->number_of_items;
+        if (guide_1 != guide_2)
+            return guide_1 < guide_2;
         break;
     } case 4: {
-        if (node_1->profit == 0) {
-            if (node_2->profit != 0) {
-                return false;
-            } else {
-                return node_1->id < node_2->id;
-            }
-        }
-        if (node_2->profit == 0)
-            return true;
-
         if ((double)node_1->current_area / node_1->profit
                 != (double)node_2->current_area / node_2->profit)
             return (double)node_1->current_area / node_1->profit
                 < (double)node_2->current_area / node_2->profit;
         break;
     } case 5: {
-        if (node_1->profit == 0) {
-            if (node_2->profit != 0) {
-                return false;
-            } else {
-                return node_1->id < node_2->id;
-            }
-        }
-        if (node_2->profit == 0)
-            return true;
-
-        if (node_1->number_of_items == 0) {
-            if (node_2->number_of_items != 0) {
-                return false;
-            } else {
-                return node_1->id < node_2->id;
-            }
-        }
-        if (node_2->number_of_items == 0)
-            return true;
-
-        if ((double)node_1->current_area / node_1->profit / mean_item_area(*node_1)
-                != (double)node_2->current_area / node_2->profit / mean_item_area(*node_2))
-            return (double)node_1->current_area / node_1->profit / mean_item_area(*node_1)
-                < (double)node_2->current_area / node_2->profit / mean_item_area(*node_2);
+        double guide_1 = (double)node_1->current_area
+            / node_1->profit
+            / node_1->item_area
+            * node_1->number_of_items;
+        double guide_2 = (double)node_2->current_area
+            / node_2->profit
+            / node_2->item_area
+            * node_2->number_of_items;
+        if (guide_1 != guide_2)
+            return guide_1 < guide_2;
         break;
     } case 6: {
         if (node_1->waste != node_2->waste)
