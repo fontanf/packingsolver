@@ -531,24 +531,12 @@ inline bool BranchingScheme::operator()(
 
     switch(parameters_.guide_id) {
     case 0: {
-        if (node_1->guide_area == 0)
-            return node_2->guide_area != 0;
-        if (node_2->guide_area == 0)
-            return false;
         double guide_1 = (double)node_1->guide_area / node_1->guide_item_area;
         double guide_2 = (double)node_2->guide_area / node_2->guide_item_area;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
     } case 1: {
-        if (node_1->guide_area == 0)
-            return node_2->guide_area != 0;
-        if (node_2->guide_area == 0)
-            return false;
-        if (node_1->number_of_items == 0)
-            return node_2->number_of_items != 0;
-        if (node_2->number_of_items == 0)
-            return true;
         double guide_1 = (double)node_1->guide_area
             / node_1->guide_item_area
             / node_1->guide_item_pseudo_profit
@@ -561,10 +549,6 @@ inline bool BranchingScheme::operator()(
             return guide_1 < guide_2;
         break;
     } case 2: {
-        if (node_1->number_of_items == 0)
-            return node_2->number_of_items != 0;
-        if (node_2->number_of_items == 0)
-            return true;
         double ye_max_1 = node_1->uncovered_items[node_1->uncovered_items.size() - 2].ye;
         double ye_max_2 = node_2->uncovered_items[node_2->uncovered_items.size() - 2].ye;
         double guide_1 = (double)(node_1->xe_max * ye_max_1) / node_1->item_area;
@@ -573,10 +557,6 @@ inline bool BranchingScheme::operator()(
             return guide_1 < guide_2;
         break;
     } case 3: {
-        if (node_1->number_of_items == 0)
-            return node_2->number_of_items != 0;
-        if (node_2->number_of_items == 0)
-            return true;
         double ye_max_1 = node_1->uncovered_items[node_1->uncovered_items.size() - 2].ye;
         double ye_max_2 = node_2->uncovered_items[node_2->uncovered_items.size() - 2].ye;
         double guide_1 = (double)(node_1->xe_max * ye_max_1)
@@ -591,24 +571,12 @@ inline bool BranchingScheme::operator()(
             return guide_1 < guide_2;
         break;
     } case 4: {
-        if (node_1->guide_profit == 0)
-            return node_2->profit != 0;
-        if (node_2->guide_profit == 0)
-            return true;
         double guide_1 = (double)node_1->guide_area / node_1->guide_profit;
         double guide_2 = (double)node_2->guide_area / node_2->guide_profit;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
     } case 5: {
-        if (node_1->guide_profit == 0)
-            return node_2->guide_profit != 0;
-        if (node_2->guide_profit == 0)
-            return true;
-        if (node_1->number_of_items == 0)
-            return node_2->number_of_items != 0;
-        if (node_2->number_of_items == 0)
-            return true;
         double guide_1 = (double)node_1->guide_area
             / node_1->guide_profit
             / node_1->item_area
