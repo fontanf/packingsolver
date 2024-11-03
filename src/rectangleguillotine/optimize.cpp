@@ -27,10 +27,8 @@ void optimize_tree_search(
         guides = parameters.tree_search_guides;
     } else if (instance.objective() == Objective::Knapsack) {
         guides = {4, 5};
-    } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-        guides = {0, 1};
     } else {
-        guides = {0, 2, 3};
+        guides = {0, 1};
     }
 
     std::vector<CutOrientation> first_stage_orientations = {instance.first_stage_orientation()};
