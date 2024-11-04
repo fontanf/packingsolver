@@ -529,7 +529,7 @@ inline bool BranchingScheme::operator()(
             return node_1->group_score > node_2->group_score;
     }
 
-    switch(parameters_.guide_id) {
+    switch (parameters_.guide_id) {
     case 0: {
         double guide_1 = (double)node_1->guide_area / node_1->guide_item_area;
         double guide_2 = (double)node_2->guide_area / node_2->guide_item_area;
@@ -561,11 +561,11 @@ inline bool BranchingScheme::operator()(
         double ye_max_2 = node_2->uncovered_items[node_2->uncovered_items.size() - 2].ye;
         double guide_1 = (double)(node_1->xe_max * ye_max_1)
             / node_1->item_area
-            / node_1->guide_item_pseudo_profit
+            / node_1->item_area
             * node_1->number_of_items;
         double guide_2 = (double)(node_2->xe_max * ye_max_2)
             / node_2->item_area
-            / node_2->guide_item_pseudo_profit
+            / node_2->item_area
             * node_2->number_of_items;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
