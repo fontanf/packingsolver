@@ -595,7 +595,7 @@ bool BranchingScheme::operator()(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    switch(parameters_.guide_id) {
+    switch (parameters_.guide_id) {
     case 0: {
         double guide_1 = (double)node_1->current_area / node_1->item_area;
         double guide_2 = (double)node_2->current_area / node_2->item_area;
@@ -603,17 +603,18 @@ bool BranchingScheme::operator()(
             return guide_1 < guide_2;
         break;
     } case 1: {
-        double guide_1 = (double)(node_1->current_area - node_1->item_area)
-            / node_1->current_area
-            / node_1->item_area
-            * node_1->number_of_items;
-        double guide_2 = (double)(node_2->current_area - node_2->item_area)
-            / node_2->current_area
-            / node_2->item_area
-            * node_2->number_of_items;
+        double waste_rate_1 = (double)(node_1->current_area - node_1->item_area)
+            / node_1->current_area;
+        double waste_rate_2 = (double)(node_2->current_area - node_2->item_area)
+            / node_2->current_area;
+        if (waste_rate_1 < 0.02)
+            waste_rate_1 = 0.01 + waste_rate_1 / 2;
+        if (waste_rate_2 < 0.02)
+            waste_rate_2 = 0.01 + waste_rate_2 / 2;
+        double guide_1 = waste_rate_1 / node_1->item_area * node_1->number_of_items;
+        double guide_2 = waste_rate_2 / node_2->item_area * node_2->number_of_items;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
-        break;
     } case 4: {
         if ((double)node_1->current_area / node_1->profit
                 != (double)node_2->current_area / node_2->profit)
