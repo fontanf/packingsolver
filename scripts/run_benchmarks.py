@@ -31,6 +31,10 @@ if __name__ == "__main__":
             usage='%(prog)s [options]')
     parser.add_argument('benchmark', help='benchmark to run')
     parser.add_argument(
+            '--sub',
+            help='sub-benchmark',
+            default=None)
+    parser.add_argument(
             '--directory',
             help='benchmark directory',
             default="benchmark_results")
@@ -48,6 +52,138 @@ if __name__ == "__main__":
         output_directory = os.path.join(output_directory, date)
 
 
+    if benchmark == "rectangleguillotine_roadef2018":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_roadef2018.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if not row["Path"]:
+                    break
+                if args.sub and args.sub != row["Dataset"][-1]:
+                    continue
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective bin-packing-with-leftovers"
+                        + " --predefined roadef2018"
+                        + "  --optimization-mode anytime"
+                        + " --use-tree-search 1"
+                        + " --time-limit 3600"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    if benchmark == "rectangleguillotine_bin_packing_3nho":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_bin_packing_3nho.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if not row["Path"]:
+                    break
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --bin-infinite-copies"
+                        + " --objective bin-packing"
+                        + " --predefined 3NHO"
+                        + ("  " + options if options else "")
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    if benchmark == "rectangleguillotine_bin_packing_3nhr":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_bin_packing_3nhr.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if not row["Path"]:
+                    break
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --bin-infinite-copies"
+                        + " --objective bin-packing"
+                        + " --predefined 3NHR"
+                        + ("  " + options if options else "")
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
     if benchmark == "rectangle_bin_packing_oriented":
 
         datacsv_path = os.path.join(
@@ -59,22 +195,22 @@ if __name__ == "__main__":
         with open(datacsv_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                if not row["Items"]:
+                if not row["Path"]:
                     break
 
                 instance_path = os.path.join(
                         data_dir,
-                        row["Items"])
+                        row["Path"])
 
                 json_output_path = os.path.join(
                         output_directory,
-                        row["Items"] + "_output.json")
+                        row["Path"] + "_output.json")
                 if not os.path.exists(os.path.dirname(json_output_path)):
                     os.makedirs(os.path.dirname(json_output_path))
 
                 certificate_path = os.path.join(
                         output_directory,
-                        row["Items"] + "_solution.csv")
+                        row["Path"] + "_solution.csv")
                 if not os.path.exists(os.path.dirname(certificate_path)):
                     os.makedirs(os.path.dirname(certificate_path))
 
@@ -87,7 +223,7 @@ if __name__ == "__main__":
                         + " --objective bin-packing"
                         + ("  " + options if options else "")
                         + "  --output \"" + json_output_path + "\""
-                        + "  --certificate \"" + certificate_path + "\"")
+                        + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
 
 
@@ -102,22 +238,22 @@ if __name__ == "__main__":
         with open(datacsv_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                if not row["Items"]:
+                if not row["Path"]:
                     break
 
                 instance_path = os.path.join(
                         data_dir,
-                        row["Items"])
+                        row["Path"])
 
                 json_output_path = os.path.join(
                         output_directory,
-                        row["Items"] + "_output.json")
+                        row["Path"] + "_output.json")
                 if not os.path.exists(os.path.dirname(json_output_path)):
                     os.makedirs(os.path.dirname(json_output_path))
 
                 certificate_path = os.path.join(
                         output_directory,
-                        row["Items"] + "_solution.csv")
+                        row["Path"] + "_solution.csv")
                 if not os.path.exists(os.path.dirname(certificate_path)):
                     os.makedirs(os.path.dirname(certificate_path))
 
@@ -129,5 +265,5 @@ if __name__ == "__main__":
                         + " --objective bin-packing"
                         + ("  " + options if options else "")
                         + "  --output \"" + json_output_path + "\""
-                        + "  --certificate \"" + certificate_path + "\"")
+                        + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
