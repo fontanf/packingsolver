@@ -314,26 +314,14 @@ inline bool BranchingScheme::operator()(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    switch(parameters_.guide_id) {
+    switch (parameters_.guide_id) {
     case 0: {
-        if (node_1->current_length == 0)
-            return node_2->current_length != 0;
-        if (node_2->current_length == 0)
-            return false;
         double guide_1 = (double)node_1->current_length / node_1->item_length;
         double guide_2 = (double)node_2->current_length / node_2->item_length;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
     } case 1: {
-        if (node_1->current_length == 0)
-            return node_2->current_length != 0;
-        if (node_2->current_length == 0)
-            return false;
-        if (node_1->number_of_items == 0)
-            return node_2->number_of_items != 0;
-        if (node_2->number_of_items == 0)
-            return true;
         double guide_1 = (double)node_1->current_length
             / node_1->item_length
             / mean_item_length(*node_1);
@@ -344,52 +332,24 @@ inline bool BranchingScheme::operator()(
             return guide_1 < guide_2;
         break;
     } case 2: {
-        if (node_1->current_length == 0)
-            return node_2->current_length != 0;
-        if (node_2->current_length == 0)
-            return false;
-        if (node_1->number_of_items == 0)
-            return node_2->number_of_items != 0;
-        if (node_2->number_of_items == 0)
-            return true;
         if ((0.1 + waste_percentage(*node_1)) / mean_item_length(*node_1)
                 != (0.1 + waste_percentage(*node_2)) / mean_item_length(*node_2))
             return (0.1 + waste_percentage(*node_1)) / mean_item_length(*node_1)
                 < (0.1 + waste_percentage(*node_2)) / mean_item_length(*node_2);
         break;
     } case 3: {
-        if (node_1->current_length == 0)
-            return node_2->current_length != 0;
-        if (node_2->current_length == 0)
-            return false;
-        if (node_1->number_of_items == 0)
-            return node_2->number_of_items != 0;
-        if (node_2->number_of_items == 0)
-            return true;
         if ((0.1 + waste_percentage(*node_1)) / mean_squared_item_length(*node_1)
                 != (0.1 + waste_percentage(*node_2)) / mean_squared_item_length(*node_2))
             return (0.1 + waste_percentage(*node_1)) / mean_squared_item_length(*node_1)
                 < (0.1 + waste_percentage(*node_2)) / mean_squared_item_length(*node_2);
         break;
     } case 4: {
-        if (node_1->profit == 0)
-            return node_2->profit != 0;
-        if (node_2->profit == 0)
-            return true;
         double guide_1 = (double)node_1->current_length / node_1->profit;
         double guide_2 = (double)node_2->current_length / node_2->profit;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
     } case 5: {
-        if (node_1->profit == 0)
-            return node_2->profit != 0;
-        if (node_2->profit == 0)
-            return true;
-        if (node_1->number_of_items == 0)
-            return node_2->number_of_items != 0;
-        if (node_2->number_of_items == 0)
-            return true;
         double guide_1 = (double)node_1->current_length
             / node_1->profit
             / mean_item_length(*node_1);
@@ -424,4 +384,3 @@ inline bool BranchingScheme::operator()(
 
 }
 }
-
