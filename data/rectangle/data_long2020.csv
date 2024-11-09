@@ -1,0 +1,26 @@
+Path,Best known solution value,Best known bound,long2020 / SILP / Solution value,long2020 / SILP / Time,long2020 / HCG2 / Solution value,long2020 / HCG2 / Time
+long2020/Instance_1.txt,7,7,7,3.880,7,7.880
+long2020/Instance_2.txt,4,4,4,0.650,4,0.860
+long2020/Instance_3.txt,6,6,6,0.500,6,0.530
+long2020/Instance_4.txt,10,9,10,7.030,10,90.670
+long2020/Instance_5.txt,7,7,7,0.490,7,1.850
+long2020/Instance_6.txt,14,14,14,42.810,14,213.430
+long2020/Instance_7.txt,11,11,11,0.990,11,6.550
+long2020/Instance_8.txt,15,15,16,26.760,16,2731.610
+long2020/Instance_9.txt,21,21,21,73.200,21,3447.210
+long2020/Instance_10.txt,20,19,20,174.490,20,3481.260
+long2020/Instance_11.txt,15,15,15,1.540,15,33.850
+long2020/Instance_12.txt,49,49,51,5.660,50,60.820
+long2020/Instance_13.txt,59,59,60,3.220,59,19.480
+long2020/Instance_14.txt,108,108,109,2.830,108,38.660
+long2020/Instance_15.txt,185,185,186,10.630,185,676.540
+long2020/Instance_16.txt,177,177,178,15.420,177,518.870
+long2020/Instance_17.txt,165,165,169,5.310,165,142.370
+long2020/Instance_18.txt,263,263,263,23.860,263,172.110
+long2020/Instance_19.txt,296,296,297,6.900,296,136.020
+long2020/Instance_20.txt,322,322,322,58.130,322,283.540
+long2020/Instance_21.txt,330,330,333,15.000,330,585.760
+long2020/Instance_22.txt,330,330,334,31.200,331,783.410
+long2020/Instance_23.txt,456,456,458,62.850,456,1261.110
+long2020/Instance_24.txt,386,386,388,19.830,386,3475.890
+long2020/Instance_25.txt,858,858,858,71.900,858,1004.830
