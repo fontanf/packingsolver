@@ -224,7 +224,50 @@ if __name__ == "__main__":
                         + " --objective bin-packing"
                         + " --predefined 3NVO"
                         + " --one2cut 1"
-                        + " --time-limit 5"
+                        + "  --time-limit 5"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    if benchmark == "rectangleguillotine_bin_packing_3hao":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_bin_packing_3hao.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if not row["Path"]:
+                    break
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --bin-infinite-copies"
+                        + " --objective bin-packing"
+                        + " --predefined 3HAO"
+                        + "  --time-limit 60"
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
