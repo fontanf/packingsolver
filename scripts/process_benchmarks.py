@@ -702,6 +702,15 @@ elif benchmark == "rectangleguillotine_knapsack_3nvo_alvarez2002":
         result_columns = [fieldname for fieldname in out_fieldnames
                           if "Solution value" in fieldname]
 
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
         out_rows = []
 
         # Initialize extra rows.
@@ -709,6 +718,7 @@ elif benchmark == "rectangleguillotine_knapsack_3nvo_alvarez2002":
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
 
         for row in reader:
 
@@ -736,6 +746,12 @@ elif benchmark == "rectangleguillotine_knapsack_3nvo_alvarez2002":
                 profit = int(row[result_column])
                 row[result_column] = profit
                 extra_rows[row_id][result_column] += profit
+
+                # Compute gap.
+                gap = (row[bksv_field] - profit) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+                extra_rows[row_id][gap_column] += gap
 
             # Add current row.
             out_rows.append(row)
@@ -778,6 +794,15 @@ elif benchmark == "rectangleguillotine_knapsack_3nvo_cui2012":
         result_columns = [fieldname for fieldname in out_fieldnames
                           if "Solution value" in fieldname]
 
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
         out_rows = []
 
         # Initialize extra rows.
@@ -785,6 +810,7 @@ elif benchmark == "rectangleguillotine_knapsack_3nvo_cui2012":
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
 
         for row in reader:
 
@@ -812,6 +838,12 @@ elif benchmark == "rectangleguillotine_knapsack_3nvo_cui2012":
                 profit = int(row[result_column])
                 row[result_column] = profit
                 extra_rows[row_id][result_column] += profit
+
+                # Compute gap.
+                gap = (row[bksv_field] - profit) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+                extra_rows[row_id][gap_column] += gap
 
             # Add current row.
             out_rows.append(row)
@@ -854,6 +886,15 @@ elif benchmark == "rectangleguillotine_knapsack_3hao_others":
         result_columns = [fieldname for fieldname in out_fieldnames
                           if "Solution value" in fieldname]
 
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
         out_rows = []
 
         # Initialize extra rows.
@@ -861,6 +902,7 @@ elif benchmark == "rectangleguillotine_knapsack_3hao_others":
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
 
         for row in reader:
 
@@ -891,6 +933,12 @@ elif benchmark == "rectangleguillotine_knapsack_3hao_others":
                 row[result_column] = profit
                 extra_rows[row_id][result_column] += profit
 
+                # Compute gap.
+                gap = (row[bksv_field] - profit) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+                extra_rows[row_id][gap_column] += gap
+
             # Add current row.
             out_rows.append(row)
 
@@ -918,7 +966,7 @@ elif benchmark == "rectangleguillotine_knapsack_3hao_cui2008":
     datacsv_path = os.path.join(
             "data",
             "rectangle",
-            "data_knapsack_3hao.csv")
+            "data_knapsack_3hao_cui2008.csv")
 
     data_dir = os.path.dirname(os.path.realpath(datacsv_path))
     with open(datacsv_path, newline='') as csvfile:
@@ -932,6 +980,15 @@ elif benchmark == "rectangleguillotine_knapsack_3hao_cui2008":
         result_columns = [fieldname for fieldname in out_fieldnames
                           if "Solution value" in fieldname]
 
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
         out_rows = []
 
         # Initialize extra rows.
@@ -944,6 +1001,7 @@ elif benchmark == "rectangleguillotine_knapsack_3hao_cui2008":
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
 
         for row in reader:
 
@@ -978,6 +1036,12 @@ elif benchmark == "rectangleguillotine_knapsack_3hao_cui2008":
                 profit = int(row[result_column])
                 row[result_column] = profit
                 extra_rows[row_id][result_column] += profit
+
+                # Compute gap.
+                gap = (row[bksv_field] - profit) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+                extra_rows[row_id][gap_column] += gap
 
             # Add current row.
             out_rows.append(row)
@@ -1020,6 +1084,15 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_others":
         result_columns = [fieldname for fieldname in out_fieldnames
                           if "Solution value" in fieldname]
 
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
         out_rows = []
 
         # Initialize extra rows.
@@ -1027,6 +1100,7 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_others":
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
 
         for row in reader:
 
@@ -1059,6 +1133,12 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_others":
                 profit = int(row[result_column])
                 row[result_column] = profit
                 extra_rows[row_id][result_column] += profit
+
+                # Compute gap.
+                gap = (row[bksv_field] - profit) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+                extra_rows[row_id][gap_column] += gap
 
             # Add current row.
             out_rows.append(row)
@@ -1101,6 +1181,15 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_alvarez2002":
         result_columns = [fieldname for fieldname in out_fieldnames
                           if "Solution value" in fieldname]
 
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
         out_rows = []
 
         # Initialize extra rows.
@@ -1108,6 +1197,7 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_alvarez2002":
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
 
         for row in reader:
 
@@ -1140,6 +1230,12 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_alvarez2002":
                 profit = int(row[result_column])
                 row[result_column] = profit
                 extra_rows[row_id][result_column] += profit
+
+                # Compute gap.
+                gap = (row[bksv_field] - profit) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+                extra_rows[row_id][gap_column] += gap
 
             # Add current row.
             out_rows.append(row)
@@ -1182,6 +1278,15 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_hifi2012":
         result_columns = [fieldname for fieldname in out_fieldnames
                           if "Solution value" in fieldname]
 
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
         out_rows = []
 
         # Initialize extra rows.
@@ -1189,6 +1294,7 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_hifi2012":
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
 
         for row in reader:
 
@@ -1221,6 +1327,12 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_hifi2012":
                 profit = int(row[result_column])
                 row[result_column] = profit
                 extra_rows[row_id][result_column] += profit
+
+                # Compute gap.
+                gap = (row[bksv_field] - profit) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+                extra_rows[row_id][gap_column] += gap
 
             # Add current row.
             out_rows.append(row)
