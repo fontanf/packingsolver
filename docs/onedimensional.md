@@ -1,5 +1,5 @@
 ---
-title: onedimensional solver
+title: OneDimensional solver
 ---
 
-# `onedimensional` solver
+# OneDimensional solver

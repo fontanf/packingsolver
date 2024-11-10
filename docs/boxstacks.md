@@ -1,5 +1,5 @@
 ---
-title: boxstacks solver
+title: BoxStacks solver
 ---
 
-# `boxstacks` solver
+# BoxStacks solver

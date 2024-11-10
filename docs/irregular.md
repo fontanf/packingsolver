@@ -1,5 +1,5 @@
 ---
-title: irregular solver
+title: Irregular solver
 ---
 
-# `irregular` solver
+# Irregular solver
