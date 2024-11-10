@@ -72,11 +72,14 @@ int main(int argc, char *argv[])
         ("cut-type,", po::value<rectangleguillotine::CutType>(), "")
         ("first-stage-orientation,", po::value<rectangleguillotine::CutOrientation>(), "")
         ("min1cut,", po::value<Length>(), "")
+        ("minimum-distance-1-cuts,", po::value<Length>(), "")
         ("max1cut,", po::value<Length>(), "")
+        ("maximum-distance-1-cuts,", po::value<Length>(), "")
         ("min2cut,", po::value<Length>(), "")
-        ("max2cut,", po::value<Length>(), "")
+        ("minimum-distance-2-cuts,", po::value<Length>(), "")
         ("min-waste,", po::value<Length>(), "")
-        ("one2cut,", po::value<bool>(), "")
+        ("minimum-waste-length,", po::value<Length>(), "")
+        ("maximum-number-2-cuts,", po::value<bool>(), "")
         ("cut-through-defects", po::value<bool>(), "")
         ("cut-thickness", po::value<Length>(), "")
 
@@ -173,17 +176,23 @@ int main(int argc, char *argv[])
     if (vm.count("first-stage-orientation"))
         instance_builder.set_first_stage_orientation(vm["first-stage-orientation"].as<CutOrientation>());
     if (vm.count("min1cut"))
-        instance_builder.set_min1cut(vm["min1cut"].as<Length>());
+        instance_builder.set_minimum_distance_1_cuts(vm["min1cut"].as<Length>());
+    if (vm.count("minimum-distance-1-cuts"))
+        instance_builder.set_minimum_distance_1_cuts(vm["minimum-distance-1-cuts"].as<Length>());
     if (vm.count("max1cut"))
-        instance_builder.set_max1cut(vm["max1cut"].as<Length>());
+        instance_builder.set_maximum_distance_1_cuts(vm["max1cut"].as<Length>());
+    if (vm.count("maximum-distance-1-cuts"))
+        instance_builder.set_maximum_distance_1_cuts(vm["maximum-distance-1-cuts"].as<Length>());
     if (vm.count("min2cut"))
-        instance_builder.set_min2cut(vm["min2cut"].as<Length>());
-    if (vm.count("max2cut"))
-        instance_builder.set_max2cut(vm["max2cut"].as<Length>());
+        instance_builder.set_minimum_distance_2_cuts(vm["min2cut"].as<Length>());
+    if (vm.count("minimum-distance-2-cuts"))
+        instance_builder.set_minimum_distance_2_cuts(vm["minimum-distance-2-cuts"].as<Length>());
     if (vm.count("min-waste"))
-        instance_builder.set_min_waste(vm["min-waste"].as<Length>());
-    if (vm.count("one2cut"))
-        instance_builder.set_one2cut(vm["one2cut"].as<bool>());
+        instance_builder.set_minimum_waste_length(vm["min-waste"].as<Length>());
+    if (vm.count("minimum-waste-length"))
+        instance_builder.set_minimum_waste_length(vm["minimum-waste-length"].as<Length>());
+    if (vm.count("maximum-number-2-cuts"))
+        instance_builder.set_maximum_number_2_cuts(vm["maximum-number-2-cuts"].as<bool>());
     if (vm.count("cut-through-defects"))
         instance_builder.set_cut_through_defects(vm["cut-through-defects"].as<bool>());
     if (vm.count("cut-thickness"))

@@ -47,17 +47,15 @@ public:
 
     void set_first_stage_orientation(CutOrientation first_stage_orientation) { instance_.parameters_.first_stage_orientation = first_stage_orientation; }
 
-    void set_min1cut(Length min1cut) { instance_.parameters_.min1cut = min1cut; }
+    void set_minimum_distance_1_cuts(Length minimum_distance_1_cuts) { instance_.parameters_.minimum_distance_1_cuts = minimum_distance_1_cuts; }
 
-    void set_max1cut(Length max1cut) { instance_.parameters_.max1cut = max1cut; }
+    void set_maximum_distance_1_cuts(Length maximum_distance_1_cuts) { instance_.parameters_.maximum_distance_1_cuts = maximum_distance_1_cuts; }
 
-    void set_min2cut(Length min2cut) { instance_.parameters_.min2cut = min2cut; }
+    void set_minimum_distance_2_cuts(Length minimum_distance_2_cuts) { instance_.parameters_.minimum_distance_2_cuts = minimum_distance_2_cuts; }
 
-    void set_max2cut(Length max2cut) { instance_.parameters_.max2cut = max2cut; }
+    void set_minimum_waste_length(Length minimum_waste_length) { instance_.parameters_.minimum_waste_length = minimum_waste_length; }
 
-    void set_min_waste(Length min_waste) { instance_.parameters_.min_waste = min_waste; }
-
-    void set_one2cut(bool one2cut) { instance_.parameters_.one2cut = one2cut; }
+    void set_maximum_number_2_cuts(bool maximum_number_2_cuts) { instance_.parameters_.maximum_number_2_cuts = maximum_number_2_cuts; }
 
     void set_cut_through_defects(bool cut_through_defects) { instance_.parameters_.cut_through_defects = cut_through_defects; }
 

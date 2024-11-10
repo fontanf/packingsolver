@@ -206,6 +206,9 @@ public:
         /** Profit of the partial solution. */
         Profit profit = 0;
 
+        /** Number of 2-cuts in the current 1-level sub-plate. */
+        Counter subplate1curr_number_of_2_cuts = 0;
+
         /**
          * Contains the list of items (id, rotate, left cut position) inserted
          * above a defect in the current 2-level sub-plate.
@@ -401,10 +404,10 @@ private:
     inline bool full(const Node& node) const { return node.number_of_items == instance_.number_of_items(); }
 
     /** Get the width of a node. */
-    inline Length width(const Node& node) const { return (instance_.number_of_stages() == 3)? node.x1_curr: node.y2_curr; }
+    inline Length width(const Node& node) const { return (instance_.parameters().number_of_stages == 3)? node.x1_curr: node.y2_curr; }
 
     /** Get the height of a node. */
-    inline Length height(const Node& node) const { return (instance_.number_of_stages() == 3)? node.x1_curr: node.y2_curr; }
+    inline Length height(const Node& node) const { return (instance_.parameters().number_of_stages == 3)? node.x1_curr: node.y2_curr; }
 
     /** Get the knapsack upper bound of a node. */
     inline Profit ubkp(const Node& node) const;

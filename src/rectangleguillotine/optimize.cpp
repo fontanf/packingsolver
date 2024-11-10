@@ -31,9 +31,9 @@ void optimize_tree_search(
         guides = {0, 1};
     }
 
-    std::vector<CutOrientation> first_stage_orientations = {instance.first_stage_orientation()};
+    std::vector<CutOrientation> first_stage_orientations = {instance.parameters().first_stage_orientation};
     if (instance.number_of_bin_types() == 1
-            && instance.first_stage_orientation() == CutOrientation::Any) {
+            && instance.parameters().first_stage_orientation == CutOrientation::Any) {
         first_stage_orientations = {CutOrientation::Vertical, CutOrientation::Horizontal};
     }
 
