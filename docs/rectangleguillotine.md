@@ -1,5 +1,5 @@
 ---
-layout: default
+title: RectangleGuillotine solver
 ---
 
-# `rectangleguillotine` solver
+# RectangleGuillotine solver
