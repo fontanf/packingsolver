@@ -1,5 +1,5 @@
 ---
-title: rectangle solver
+title: Rectangle solver
 ---
 
-# `rectangle` solver
+# Rectangle solver
