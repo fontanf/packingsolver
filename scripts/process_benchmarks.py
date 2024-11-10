@@ -370,19 +370,19 @@ elif benchmark == "rectangleguillotine_long2020":
                      else ('background-color: pink'
                            if s[fieldname] > s[bksv_field]
                            else 'background-color: yellow'))
-                    if fieldname in result_columns + output_directories
+                    if fieldname in result_columns
                     else ''
                     for fieldname in out_fieldnames]
         df = df.style.apply(highlight, axis = 1)
         show_datafram(df)
 
 
-elif benchmark == "rectangleguillotine_bin_packing_3hao":
+elif benchmark == "rectangleguillotine_bin_packing_3hao_cintra2008":
 
     datacsv_path = os.path.join(
             "data",
             "rectangle",
-            "data_bin_packing_3hao.csv")
+            "data_bin_packing_3hao_cintra2008.csv")
 
     data_dir = os.path.dirname(os.path.realpath(datacsv_path))
     with open(datacsv_path, newline='') as csvfile:
@@ -399,19 +399,12 @@ elif benchmark == "rectangleguillotine_bin_packing_3hao":
         out_rows = []
 
         # Initialize extra rows.
-        extra_rows = [
-                {
-                    "Path": dataset,
-                    bksv_field: 0,
-                }
-                for dataset in ["cintra2008_1bintype", "imahori2005"]]
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
 
         for row in reader:
-            if not row["Path"]:
-                break
 
             row[bksv_field] = int(row[bksv_field])
 
@@ -427,8 +420,7 @@ elif benchmark == "rectangleguillotine_bin_packing_3hao":
                         json_data["Output"]["Solution"]["NumberOfBins"])
 
             # Get extra rows to update.
-            row_id = (
-                    0 if "cintra2008_1bintype" in row["Path"] else 1)
+            row_id = 0
 
             # Update "Best known solution value" column of extra row.
             extra_rows[row_id][bksv_field] += row[bksv_field]
@@ -451,20 +443,22 @@ elif benchmark == "rectangleguillotine_bin_packing_3hao":
         def highlight(s):
             return [('background-color: lightgreen'
                      if s[fieldname] == s[bksv_field]
-                     else 'background-color: pink')
-                    if "Solution value" in fieldname
+                     else ('background-color: pink'
+                           if s[fieldname] > s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns
                     else ''
                     for fieldname in out_fieldnames]
         df = df.style.apply(highlight, axis = 1)
         show_datafram(df)
 
 
-elif benchmark == "rectangleguillotine_bin_packing_3hvo":
+elif benchmark == "rectangleguillotine_bin_packing_3hao_imahori2005":
 
     datacsv_path = os.path.join(
             "data",
             "rectangle",
-            "data_bin_packing_3hvo.csv")
+            "data_bin_packing_3hao_imahori2005.csv")
 
     data_dir = os.path.dirname(os.path.realpath(datacsv_path))
     with open(datacsv_path, newline='') as csvfile:
@@ -481,19 +475,12 @@ elif benchmark == "rectangleguillotine_bin_packing_3hvo":
         out_rows = []
 
         # Initialize extra rows.
-        extra_rows = [
-                {
-                    "Path": dataset,
-                    bksv_field: 0,
-                }
-                for dataset in ["alvarez2002", "others"]]
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
 
         for row in reader:
-            if not row["Path"]:
-                break
 
             row[bksv_field] = int(row[bksv_field])
 
@@ -509,8 +496,7 @@ elif benchmark == "rectangleguillotine_bin_packing_3hvo":
                         json_data["Output"]["Solution"]["NumberOfBins"])
 
             # Get extra rows to update.
-            row_id = (
-                    0 if "alvarez2002" in row["Path"] else 1)
+            row_id = 0
 
             # Update "Best known solution value" column of extra row.
             extra_rows[row_id][bksv_field] += row[bksv_field]
@@ -533,8 +519,725 @@ elif benchmark == "rectangleguillotine_bin_packing_3hvo":
         def highlight(s):
             return [('background-color: lightgreen'
                      if s[fieldname] == s[bksv_field]
-                     else 'background-color: pink')
-                    if "Solution value" in fieldname
+                     else ('background-color: pink'
+                           if s[fieldname] > s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "rectangleguillotine_bin_packing_3hvo_alvarez2002":
+
+    datacsv_path = os.path.join(
+            "data",
+            "rectangle",
+            "data_bin_packing_3hvo_alvarez2002.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["NumberOfBins"])
+
+            # Get extra rows to update.
+            row_id = 0
+
+            # Update "Best known solution value" column of extra row.
+            extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for result_column in result_columns:
+                number_of_bins = int(row[result_column])
+                row[result_column] = number_of_bins
+                extra_rows[row_id][result_column] += number_of_bins
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] > s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "rectangleguillotine_bin_packing_3hvo_others":
+
+    datacsv_path = os.path.join(
+            "data",
+            "rectangle",
+            "data_bin_packing_3hvo_others.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+
+        for row in reader:
+            if not row["Path"]:
+                break
+
+            row[bksv_field] = int(row[bksv_field])
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["NumberOfBins"])
+
+            # Get extra rows to update.
+            row_id = 0
+
+            # Update "Best known solution value" column of extra row.
+            extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for result_column in result_columns:
+                number_of_bins = int(row[result_column])
+                row[result_column] = number_of_bins
+                extra_rows[row_id][result_column] += number_of_bins
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] > s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "rectangleguillotine_knapsack_3nvo_alvarez2002":
+
+    datacsv_path = os.path.join(
+            "data",
+            "rectangle",
+            "data_knapsack_3nvo_alvarez2002.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["ItemProfit"])
+
+            # Get extra rows to update.
+            row_id = 0
+
+            # Update "Best known solution value" column of extra row.
+            extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for result_column in result_columns:
+                profit = int(row[result_column])
+                row[result_column] = profit
+                extra_rows[row_id][result_column] += profit
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] < s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "rectangleguillotine_knapsack_3nvo_cui2012":
+
+    datacsv_path = os.path.join(
+            "data",
+            "rectangle",
+            "data_knapsack_3nvo_cui2012.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["ItemProfit"])
+
+            # Get extra rows to update.
+            row_id = 0
+
+            # Update "Best known solution value" column of extra row.
+            extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for result_column in result_columns:
+                profit = int(row[result_column])
+                row[result_column] = profit
+                extra_rows[row_id][result_column] += profit
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] < s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "rectangleguillotine_knapsack_3hao_others":
+
+    datacsv_path = os.path.join(
+            "data",
+            "rectangle",
+            "data_knapsack_3hao_others.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["ItemProfit"])
+
+            # Get extra rows to update.
+            row_id = 0
+
+            # Update "Best known solution value" column of extra row.
+            extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for result_column in result_columns:
+                if row[result_column] == "":
+                    continue
+                profit = int(row[result_column])
+                row[result_column] = profit
+                extra_rows[row_id][result_column] += profit
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] < s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns and s[fieldname] != ""
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "rectangleguillotine_knapsack_3hao_cui2008":
+
+    datacsv_path = os.path.join(
+            "data",
+            "rectangle",
+            "data_knapsack_3hao.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [
+                {
+                    "Path": dataset,
+                    bksv_field: 0,
+                }
+                for dataset in ["weighted", "unweighted"]]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            if row["Options"] == "unweighted":
+                s = "_unweighted"
+            else:
+                s = ""
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + s + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["ItemProfit"])
+
+            # Get extra rows to update.
+            row_id = (1 if "unweighted" in row["Options"] else 0)
+
+            # Update "Best known solution value" column of extra row.
+            extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for result_column in result_columns:
+                if row[result_column] == "":
+                    continue
+                profit = int(row[result_column])
+                row[result_column] = profit
+                extra_rows[row_id][result_column] += profit
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] < s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns and s[fieldname] != ""
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_others":
+
+    datacsv_path = os.path.join(
+            "data",
+            "rectangle",
+            "data_knapsack_2nho_2nvo_others.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            if row["Options"] == "Horizontal":
+                s = "_horizontal"
+            else:
+                s = "_vertical"
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + s + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["ItemProfit"])
+
+            # Get extra rows to update.
+            row_id = 0
+
+            # Update "Best known solution value" column of extra row.
+            extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for result_column in result_columns:
+                profit = int(row[result_column])
+                row[result_column] = profit
+                extra_rows[row_id][result_column] += profit
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] < s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_alvarez2002":
+
+    datacsv_path = os.path.join(
+            "data",
+            "rectangle",
+            "data_knapsack_2nho_2nvo_alvarez2002.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            if row["Options"] == "Horizontal":
+                s = "_horizontal"
+            else:
+                s = "_vertical"
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + s + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["ItemProfit"])
+
+            # Get extra rows to update.
+            row_id = 0
+
+            # Update "Best known solution value" column of extra row.
+            extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for result_column in result_columns:
+                profit = int(row[result_column])
+                row[result_column] = profit
+                extra_rows[row_id][result_column] += profit
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] < s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_hifi2012":
+
+    datacsv_path = os.path.join(
+            "data",
+            "rectangle",
+            "data_knapsack_2nho_2nvo_hifi2012.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            if row["Options"] == "Horizontal":
+                s = "_horizontal"
+            else:
+                s = "_vertical"
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + s + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["ItemProfit"])
+
+            # Get extra rows to update.
+            row_id = 0
+
+            # Update "Best known solution value" column of extra row.
+            extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for result_column in result_columns:
+                profit = int(row[result_column])
+                row[result_column] = profit
+                extra_rows[row_id][result_column] += profit
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] < s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns
                     else ''
                     for fieldname in out_fieldnames]
         df = df.style.apply(highlight, axis = 1)

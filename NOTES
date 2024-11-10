@@ -1,4 +1,0 @@
-* cui2008, "Heuristic and exact algorithms for generating homogenous constrained three-staged cutting patterns": we found better solutions on some instances whereas the reported solutions from the branch-and-bound were supposed to be optimal.
-* hifi2008, "Algorithms for the Constrained Two-Staged Two-Dimensional Cutting Problem": instances "nice" and "path" provided by the authors inconsistent with the reported results.
-* hifi2012, "A parallel algorithm for constrained two-staged two-dimensional cutting problems": inconsistent results (the reported solution values returned by the algorithm on several unweighted instances is above the total area the bin)
-* dusberger2015, "Solving the 3-Staged 2-Dimensional Cutting Stock Problem by Dynamic Programming and Variable Neighborhood Search": instances lost
