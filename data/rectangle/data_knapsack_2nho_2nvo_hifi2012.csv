@@ -1,0 +1,13 @@
+Path,Options,Best known solution value,hifi2008 / Solution value,hifi2008 / Time
+hifi2012/UL1H.txt,Horizontal,890012,887393,138.56
+hifi2012/UL2H.txt,Horizontal,908544,906237,310.13
+hifi2012/UL3H.txt,Horizontal,1021618,1017575,347.89
+hifi2012/WL1H.txt,Horizontal,696456,688840,410.09
+hifi2012/WL2H.txt,Horizontal,783504,782566,454.76
+hifi2012/WL3H.txt,Horizontal,902393,899890,488.76
+hifi2012/UL1H.txt,Vertical,891831,891516,120.87
+hifi2012/UL2H.txt,Vertical,909649,908982,210.41
+hifi2012/UL3H.txt,Vertical,1022541,1022483,320.87
+hifi2012/WL1H.txt,Vertical,697378,694657,340.89
+hifi2012/WL2H.txt,Vertical,789841,783836,410.78
+hifi2012/WL3H.txt,Vertical,895375,881931,456.81

@@ -63,8 +63,6 @@ if __name__ == "__main__":
         with open(datacsv_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                if not row["Path"]:
-                    break
                 if args.sub and args.sub != row["Dataset"][-1]:
                     continue
 
@@ -98,7 +96,7 @@ if __name__ == "__main__":
                 run_command(command)
 
 
-    if benchmark == "rectangleguillotine_bin_packing_3nho":
+    elif benchmark == "rectangleguillotine_bin_packing_3nho":
 
         datacsv_path = os.path.join(
                 "data",
@@ -109,8 +107,6 @@ if __name__ == "__main__":
         with open(datacsv_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                if not row["Path"]:
-                    break
 
                 instance_path = os.path.join(
                         data_dir,
@@ -141,7 +137,7 @@ if __name__ == "__main__":
                 run_command(command)
 
 
-    if benchmark == "rectangleguillotine_bin_packing_3nhr":
+    elif benchmark == "rectangleguillotine_bin_packing_3nhr":
 
         datacsv_path = os.path.join(
                 "data",
@@ -152,8 +148,6 @@ if __name__ == "__main__":
         with open(datacsv_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                if not row["Path"]:
-                    break
 
                 instance_path = os.path.join(
                         data_dir,
@@ -184,7 +178,7 @@ if __name__ == "__main__":
                 run_command(command)
 
 
-    if benchmark == "rectangleguillotine_long2020":
+    elif benchmark == "rectangleguillotine_long2020":
 
         datacsv_path = os.path.join(
                 "data",
@@ -195,8 +189,6 @@ if __name__ == "__main__":
         with open(datacsv_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                if not row["Path"]:
-                    break
                 if args.sub and args.sub != row["Dataset"][-1]:
                     continue
 
@@ -230,19 +222,17 @@ if __name__ == "__main__":
                 run_command(command)
 
 
-    if benchmark == "rectangleguillotine_bin_packing_3hao":
+    elif benchmark == "rectangleguillotine_bin_packing_3hao_cintra2008":
 
         datacsv_path = os.path.join(
                 "data",
                 "rectangle",
-                "data_bin_packing_3hao.csv")
+                "data_bin_packing_3hao_cintra2008.csv")
 
         data_dir = os.path.dirname(os.path.realpath(datacsv_path))
         with open(datacsv_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                if not row["Path"]:
-                    break
 
                 instance_path = os.path.join(
                         data_dir,
@@ -273,19 +263,58 @@ if __name__ == "__main__":
                 run_command(command)
 
 
-    if benchmark == "rectangleguillotine_bin_packing_3hvo":
+    elif benchmark == "rectangleguillotine_bin_packing_3hao_imahori2005":
 
         datacsv_path = os.path.join(
                 "data",
                 "rectangle",
-                "data_bin_packing_3hvo.csv")
+                "data_bin_packing_3hao_imahori2005.csv")
 
         data_dir = os.path.dirname(os.path.realpath(datacsv_path))
         with open(datacsv_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                if not row["Path"]:
-                    break
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --bin-infinite-copies"
+                        + " --objective bin-packing"
+                        + " --predefined 3HAO"
+                        + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangleguillotine_bin_packing_3hvo_alvarez2002":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_bin_packing_3hvo_alvarez2002.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
 
                 instance_path = os.path.join(
                         data_dir,
@@ -316,7 +345,357 @@ if __name__ == "__main__":
                 run_command(command)
 
 
-    if benchmark == "rectangle_bin_packing_oriented":
+    elif benchmark == "rectangleguillotine_bin_packing_3hvo_others":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_bin_packing_3hvo_others.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --bin-infinite-copies"
+                        + " --objective bin-packing"
+                        + " --predefined 3HVO"
+                        + "  --time-limit 5"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangleguillotine_knapsack_3nvo_alvarez2002":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_3nvo_alvarez2002.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + " --predefined 3NVO"
+                        + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangleguillotine_knapsack_3nvo_cui2012":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_3nvo_cui2012.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + " --predefined 3NVO"
+                        + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangleguillotine_knapsack_3hao_others":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_3hao_others.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + " --predefined 3HAO"
+                        + "  --time-limit 2"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangleguillotine_knapsack_3hao_cui2008":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_3hao_cui2008.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                if row["Options"] == "unweighted":
+                    s = "_unweighted"
+                    options = " --unweighted"
+                else:
+                    s = ""
+                    options = ""
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + s + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + s + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + options
+                        + " --predefined 3HAO"
+                        + "  --time-limit 180"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_others":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_2nho_2nvo_others.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                if row["Options"] == "Horizontal":
+                    s = "_horizontal"
+                    options = " --predefined 2NHO"
+                else:
+                    s = "_vertical"
+                    options = " --predefined 2NVO"
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + s + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + s + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + options
+                        + "  --time-limit 3"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_alvarez2002":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_2nho_2nvo_alvarez2002.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                if row["Options"] == "Horizontal":
+                    s = "_horizontal"
+                    options = " --predefined 2NHO"
+                else:
+                    s = "_vertical"
+                    options = " --predefined 2NVO"
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + s + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + s + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + options
+                        + "  --time-limit 5"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_hifi2012":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_2nho_2nvo_hifi2012.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                if row["Options"] == "Horizontal":
+                    s = "_horizontal"
+                    options = " --predefined 2NHO"
+                else:
+                    s = "_vertical"
+                    options = " --predefined 2NVO"
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + s + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + s + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + options
+                        + "  --time-limit 300"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangle_bin_packing_oriented":
 
         datacsv_path = os.path.join(
                 "data",
@@ -353,7 +732,7 @@ if __name__ == "__main__":
                         + " --bin-infinite-copies"
                         + " --no-item-rotation"
                         + " --objective bin-packing"
-                        + ("  " + options if options else "")
+                        + "  --optimization-mode not-anytime"
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
@@ -395,7 +774,7 @@ if __name__ == "__main__":
                         + "  --items \"" + instance_path + "\""
                         + " --bin-infinite-copies"
                         + " --objective bin-packing"
-                        + ("  " + options if options else "")
+                        + "  --optimization-mode not-anytime"
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
