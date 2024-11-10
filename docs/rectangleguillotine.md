@@ -1,0 +1,1 @@
+# `rectangleguillotine` solver
