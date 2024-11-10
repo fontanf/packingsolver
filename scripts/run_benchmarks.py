@@ -215,7 +215,7 @@ if __name__ == "__main__":
                         + " --bin-infinite-copies"
                         + " --objective bin-packing"
                         + " --predefined 3NVO"
-                        + " --one2cut 1"
+                        + " --maximum-number-2-cuts 1"
                         + "  --time-limit 5"
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")

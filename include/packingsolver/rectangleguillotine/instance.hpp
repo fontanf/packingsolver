@@ -100,25 +100,21 @@ struct Parameters
     CutOrientation first_stage_orientation = CutOrientation::Vertical;
 
     /** Minimum distance between two consecutive 1-cuts. */
-    Length min1cut = 0;
+    Length minimum_distance_1_cuts = 0;
 
     /** Maximum distance between two consecutive 1-cuts. */
-    Length max1cut = -1;
+    Length maximum_distance_1_cuts = -1;
 
     /** Minimum distance between two consecutive 2-cuts. */
-    Length min2cut = 0;
-
-    /** Maximum distance between two consecutive 2-cuts. */
-    Length max2cut = -1;
+    Length minimum_distance_2_cuts = 0;
 
     /** Minimum distance between two cuts. */
-    Length min_waste = 1;
+    Length minimum_waste_length = 1;
 
     /**
-     * Boolean indicating whether a single 2-cut is allowed in each first-level
-     * sub-plate.
+     * Maximum number of 2-cuts in a first-level sub-plate.
      */
-    bool one2cut = false;
+    Counter maximum_number_2_cuts = -1;
 
     /** Boolean indicating whether it is allowed to cut through defects. */
     bool cut_through_defects = false;
@@ -274,29 +270,6 @@ public:
      */
 
     inline const Parameters& parameters() const { return parameters_; }
-
-    inline Counter number_of_stages() const { return parameters_.number_of_stages; }
-
-    inline CutType cut_type() const { return parameters_.cut_type; }
-
-    inline CutOrientation first_stage_orientation() const { return parameters_.first_stage_orientation; }
-
-    inline Length min1cut() const { return parameters_.min1cut; }
-
-    inline Length max1cut() const { return parameters_.max1cut; }
-
-    inline Length min2cut() const { return parameters_.min2cut; }
-
-    inline Length max2cut() const { return parameters_.max2cut; }
-
-    inline Length min_waste() const { return parameters_.min_waste; }
-
-    inline bool one2cut() const { return parameters_.one2cut; }
-
-    inline bool cut_through_defects() const { return parameters_.cut_through_defects; }
-
-    /** Get cut thickness. */
-    inline Length cut_thickness() const { return parameters_.cut_thickness; }
 
     /*
      * Getters: bin types

@@ -39,8 +39,11 @@ Features:
 * First cut vertical, horizontal or any
 * Trims
 * Cut thickness
-* Minimum and maximum distance between consecutive 1- and 2-cuts
+* Minimum distance between consecutive 1-cuts
+* Maximum distance between consecutive 1-cuts
+* Minimum distance between consecutive 2-cuts
 * Minimum distance between cuts
+* Maximum number of consecutive 2-cuts
 
 Example:
 ```shell

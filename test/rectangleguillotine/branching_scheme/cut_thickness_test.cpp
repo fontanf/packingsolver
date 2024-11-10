@@ -119,7 +119,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness3)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
-    instance_builder.set_min_waste(10);
+    instance_builder.set_minimum_waste_length(10);
     instance_builder.add_item_type(3000, 500, -1, 1, false, 0);
     instance_builder.add_item_type(2970, 3210, -1, 1, false, 0);
     instance_builder.add_bin_type(6000, 3210);
@@ -203,7 +203,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness5)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
-    instance_builder.set_min_waste(10);
+    instance_builder.set_minimum_waste_length(10);
     instance_builder.add_item_type(3000, 1000, -1, 1, false, 0);
     instance_builder.add_item_type(6000, 2180, -1, 1, false, 0);
     instance_builder.add_bin_type(6000, 3210);
@@ -379,7 +379,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness9)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
-    instance_builder.set_min_waste(30);
+    instance_builder.set_minimum_waste_length(30);
     instance_builder.add_item_type(3000, 1000, -1, 1, true, 0);
     instance_builder.add_item_type(3010, 2190, -1, 1, true, 0);
     instance_builder.add_bin_type(6000, 3210);

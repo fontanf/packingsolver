@@ -306,10 +306,11 @@ void Instance::write(
         << "number_of_stages," << parameters().number_of_stages << std::endl
         << "cut_type," << parameters().cut_type << std::endl
         << "first_stage_orientation," << parameters().first_stage_orientation << std::endl
-        << "min1cut," << parameters().min1cut << std::endl
-        << "max1cut," << parameters().max1cut << std::endl
-        << "min2cut," << parameters().min2cut << std::endl
-        << "min_waste," << parameters().min_waste << std::endl
+        << "minimum_distance_1_cuts," << parameters().minimum_distance_1_cuts << std::endl
+        << "maximum_distance_1_cuts," << parameters().maximum_distance_1_cuts << std::endl
+        << "minimum_distance_2_cuts," << parameters().minimum_distance_2_cuts << std::endl
+        << "minimum_waste-length," << parameters().minimum_waste_length << std::endl
+        << "maximum_number_2_cuts," << parameters().maximum_number_2_cuts << std::endl
         << "cut_thickness," << parameters().cut_thickness << std::endl;
 }
 
@@ -319,24 +320,23 @@ std::ostream& Instance::format(
 {
     if (verbosity_level >= 1) {
         os
-            << "Objective:                " << objective() << std::endl
-            << "Number of item types:     " << number_of_item_types() << std::endl
-            << "Number of items:          " << number_of_items() << std::endl
-            << "Number of bin types:      " << number_of_bin_types() << std::endl
-            << "Number of bins:           " << number_of_bins() << std::endl
-            << "Number of stacks:         " << number_of_stacks() << std::endl
-            << "Number of defects:        " << number_of_defects() << std::endl
-            << "Number of stages:         " << number_of_stages() << std::endl
-            << "Cut type:                 " << cut_type() << std::endl
-            << "First stage orientation:  " << first_stage_orientation() << std::endl
-            << "min1cut:                  " << min1cut() << std::endl
-            << "max1cut:                  " << max1cut() << std::endl
-            << "min2cut:                  " << min2cut() << std::endl
-            << "max2cut:                  " << max2cut() << std::endl
-            << "Minimum waste:            " << min_waste() << std::endl
-            << "one2cut:                  " << one2cut() << std::endl
-            << "Cut through defects:      " << cut_through_defects() << std::endl
-            << "Cut thickness:            " << cut_thickness() << std::endl;
+            << "Objective:                             " << objective() << std::endl
+            << "Number of item types:                  " << number_of_item_types() << std::endl
+            << "Number of items:                       " << number_of_items() << std::endl
+            << "Number of bin types:                   " << number_of_bin_types() << std::endl
+            << "Number of bins:                        " << number_of_bins() << std::endl
+            << "Number of stacks:                      " << number_of_stacks() << std::endl
+            << "Number of defects:                     " << number_of_defects() << std::endl
+            << "Number of stages:                      " << parameters().number_of_stages << std::endl
+            << "Cut type:                              " << parameters().cut_type << std::endl
+            << "First stage orientation:               " << parameters().first_stage_orientation << std::endl
+            << "Minimum distance between 1-cuts:       " << parameters().minimum_distance_1_cuts << std::endl
+            << "Maximum distance between 1-cuts:       " << parameters().maximum_distance_1_cuts << std::endl
+            << "Minimum distance between 2-cuts:       " << parameters().minimum_distance_2_cuts << std::endl
+            << "Minimum waste length:                  " << parameters().minimum_waste_length << std::endl
+            << "Maximum number of consecutive 2-cuts:  " << parameters().maximum_number_2_cuts << std::endl
+            << "Cut through defects:                   " << parameters().cut_through_defects << std::endl
+            << "Cut thickness:                         " << parameters().cut_thickness << std::endl;
     }
 
     if (verbosity_level >= 2) {
@@ -474,4 +474,3 @@ std::ostream& Instance::format(
 
     return os;
 }
-

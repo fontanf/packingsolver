@@ -17,15 +17,15 @@ void InstanceBuilder::set_predefined(std::string str)
     }
 
     if (str.length() != 4) {
-        std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter \"" << str << "\" should contain four characters." << "\033[0m" << std::endl;
-        if (str.length() < 4)
-            return;
+        // TODO
+        throw std::invalid_argument("");
     }
 
     Counter number_of_stages = (Counter)(str[0] - 48);
     if (number_of_stages <= 1) {
         // TODO
-        throw std::invalid_argument("");
+        throw std::invalid_argument(
+                "predefined branching scheme parameter 1st character");
     }
     set_number_of_stages(number_of_stages);
 
@@ -44,7 +44,8 @@ void InstanceBuilder::set_predefined(std::string str)
         break;
     } default: {
         // TODO
-        std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter 2nd character \"" << str[1] << "\" invalid." << "\033[0m" << std::endl;
+        throw std::invalid_argument(
+                "predefined branching scheme parameter 2nd character");
     }
     }
 
@@ -59,7 +60,9 @@ void InstanceBuilder::set_predefined(std::string str)
         set_first_stage_orientation(rectangleguillotine::CutOrientation::Any);
         break;
     } default: {
-        std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter 3rd character \"" << str[2] << "\" invalid." << "\033[0m" << std::endl;
+        // TODO
+        throw std::invalid_argument(
+                "predefined branching scheme parameter 3rd character");
     }
     }
     switch (str[3]) {
@@ -69,7 +72,9 @@ void InstanceBuilder::set_predefined(std::string str)
         set_item_types_oriented();
         break;
     } default: {
-        std::cerr << "\033[31m" << "ERROR, predefined branching scheme parameter 4th character \"" << str[3] << "\" invalid." << "\033[0m" << std::endl;
+        // TODO
+        throw std::invalid_argument(
+                "predefined branching scheme parameter 4th character");
     }
     }
 }
@@ -79,10 +84,10 @@ void InstanceBuilder::set_roadef2018()
     instance_.parameters_.number_of_stages = 3;
     instance_.parameters_.cut_type = rectangleguillotine::CutType::Roadef2018;
     instance_.parameters_.first_stage_orientation = rectangleguillotine::CutOrientation::Vertical;
-    instance_.parameters_.min1cut = 100;
-    instance_.parameters_.max1cut = 3500;
-    instance_.parameters_.min2cut = 100;
-    instance_.parameters_.min_waste = 20;
+    instance_.parameters_.minimum_distance_1_cuts = 100;
+    instance_.parameters_.maximum_distance_1_cuts = 3500;
+    instance_.parameters_.minimum_distance_2_cuts = 100;
+    instance_.parameters_.minimum_waste_length = 20;
     instance_.parameters_.cut_through_defects = false;
 }
 
@@ -461,16 +466,25 @@ void InstanceBuilder::read_parameters(
             std::stringstream ss(value);
             ss >> first_stage_orientation;
             set_first_stage_orientation(first_stage_orientation);
-        } else if (name == "min1cut" || name == "min1Cut") {
-            set_min1cut(std::stol(value));
-        } else if (name == "max1cut" || name == "max1Cut") {
-            set_max1cut(std::stol(value));
-        } else if (name == "min2cut" || name == "min2Cut") {
-            set_min2cut(std::stol(value));
-        } else if (name == "max2cut" || name == "max2Cut") {
-            set_max2cut(std::stol(value));
-        } else if (name == "min_waste" || name == "minwaste" || name == "minWaste") {
-            set_min_waste(std::stol(value));
+        } else if (name == "min1cut"
+                || name == "min1Cut"
+                || name == "minimum_distance_1_cuts") {
+            set_minimum_distance_1_cuts(std::stol(value));
+        } else if (name == "max1cut"
+                || name == "max1Cut"
+                || name == "maximum_distance_1_cuts") {
+            set_maximum_distance_1_cuts(std::stol(value));
+        } else if (name == "min2cut"
+                || name == "min2Cut"
+                || name == "minimum_distance_2_cuts") {
+            set_minimum_distance_2_cuts(std::stol(value));
+        } else if (name == "min_waste"
+                || name == "minwaste"
+                || name == "minWaste"
+                || name == "minimum_waste_length") {
+            set_minimum_waste_length(std::stol(value));
+        } else if (name == "maximum_number_2_cuts") {
+            set_maximum_number_2_cuts(std::stol(value));
         } else if (name == "cut_thickness") {
             set_cut_thickness(std::stol(value));
         }
