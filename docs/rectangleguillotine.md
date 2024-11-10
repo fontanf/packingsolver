@@ -1,5 +1,5 @@
 ---
-title: `rectangleguillotine` solver
+title: rectangleguillotine solver
 ---
 
 # `rectangleguillotine` solver
