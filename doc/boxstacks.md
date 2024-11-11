@@ -1,1 +1,0 @@
-# BoxStacks solver
