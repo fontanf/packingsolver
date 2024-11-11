@@ -16,7 +16,6 @@ Then `PackingSolver` outputs the cutting/loading plans.
 
 PackingSolver solves multiple problem types:
 
-
 | Problem types            |  Examples |
 :------------------------- |:-------------------------
 [`rectangleguillotine`](rectangleguillotine)<ul><li>Items: two-dimensional rectangles</li><li>Only edge-to-edge cuts are allowed</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/rectangleguillotine.png" align=center width="512">
