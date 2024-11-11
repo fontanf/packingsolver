@@ -39,8 +39,15 @@ public:
             const Solution& solution,
             const std::string& s);
 
+    /** Update the bin packing bound. */
+    void update_bin_packing_bound(
+            BinPos number_of_bins);
+
     /** Method to call at the end of the algorithm. */
     void end();
+
+    /** Get end boolean. */
+    bool& end_boolean() { return end_; };
 
 private:
 
@@ -55,6 +62,9 @@ private:
 
     /** Output stream. */
     std::unique_ptr<optimizationtools::ComposeStream> os_;
+
+    /** End boolean. */
+    bool end_ = false;
 
     /** Mutex. */
     std::mutex mutex_;

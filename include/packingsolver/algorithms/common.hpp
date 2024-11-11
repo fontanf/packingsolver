@@ -242,6 +242,9 @@ struct Output: optimizationtools::Output
     /** Solution pool. */
     SolutionPool<Instance, Solution> solution_pool;
 
+    /** Bin packing bound. */
+    BinPos bin_packing_bound = 0;
+
     /** Elapsed time. */
     double time = 0.0;
 

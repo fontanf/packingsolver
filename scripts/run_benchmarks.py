@@ -131,7 +131,7 @@ if __name__ == "__main__":
                         + " --bin-infinite-copies"
                         + " --objective bin-packing"
                         + " --predefined 3NHO"
-                        + ("  " + options if options else "")
+                        + "  --time-limit 60"
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
@@ -172,7 +172,7 @@ if __name__ == "__main__":
                         + " --bin-infinite-copies"
                         + " --objective bin-packing"
                         + " --predefined 3NHR"
-                        + ("  " + options if options else "")
+                        + "  --time-limit 60"
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
