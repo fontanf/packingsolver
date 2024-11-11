@@ -95,7 +95,7 @@ Here we consider a single container of width 1000 and of height 500 available in
    WIDTH,HEIGHT,COPIES
    1000,500,10
 
-Finally, in a third CSV file, we provide the other optimizaton parameters. Here we just set the :code:`objective` parameter to :code:`bin-packing`, which means that we look to pack all items while minimizing the number of bin used. The :ref:`objectives<objectives>` page gives more details about the possible objectives.
+Finally, in a third CSV file, we provide the other optimizaton parameters. Here we just set the :code:`objective` parameter to :code:`bin-packing`, which means that we look to pack all the items using as few bins as possible. The :ref:`objectives<objectives>` page gives more details about the possible objectives.
 
 .. code-block:: none
    :caption: parameters.csv
@@ -180,7 +180,7 @@ The loading plans are written in the :code:`solution_rectangle.csv` file. A scri
 
     python3 scripts/visualize_rectangle.py solution_rectangle.csv
 
-The script should open a page in a browser where the loading plans are displayed:
+The script opens a page in a browser where the loading plans are displayed:
 
 .. image:: img/getting_started_solution.png
    :width: 256pt
