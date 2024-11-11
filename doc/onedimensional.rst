@@ -1,0 +1,4 @@
+.. _onedimensional:
+
+OneDimensional solver
+=====================

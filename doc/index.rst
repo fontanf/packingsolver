@@ -2,8 +2,20 @@ PackingSolver's documentation
 =============================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 3
+   :hidden:
+
+   self
+   objectives
+   rectangleguillotine
+   rectangle
+   boxstacks
+   onedimensional
+   irregular
+
+
+Introduction
+------------
 
 `PackingSolver` is a software package dedicated to the practical resolution of cutting and packing problems.
 
@@ -17,10 +29,160 @@ Then `PackingSolver` outputs the cutting/loading plans.
 
 PackingSolver solves multiple problem types:
 
-| Problem types            |  Examples |
-:------------------------- |:-------------------------
-[`rectangleguillotine`](rectangleguillotine)<ul><li>Items: two-dimensional rectangles</li><li>Only edge-to-edge cuts are allowed</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/rectangleguillotine.png" align=center width="512">
-[`rectangle`](rectangle)<ul><li>Items: two-dimensional rectangles</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/rectangle.png" align=center width="512">
-[`boxstacks`](boxstacks)<ul><li>Items: three-dimensional rectangular parallelepipeds</li><li>Items can be stacked; a stack contains items with the same width and length</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/boxstacks.png" align=center width="512">
-[`onedimensional`](onedimensional)<ul><li>Items: one-dimensional items</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/onedimensional.png" align=center width="512">
-[`irregular`](irregular)<ul><li>Items: two-dimensional polygons</li></ul>  |  <img src="https://github.com/fontanf/packingsolver/blob/master/img/irregular.png" align=center width="512">
+.. |rectangleguillotine| image:: ../img/rectangleguillotine.png
+   :width: 512pt
+.. |rectangle| image:: ../img/rectangle.png
+   :width: 512pt
+.. |boxstacks| image:: ../img/boxstacks.png
+   :width: 512pt
+.. |onedimensional| image:: ../img/onedimensional.png
+   :width: 512pt
+.. |irregular| image:: ../img/irregular.png
+   :width: 512pt
+
+
+.. list-table::
+   :widths: 1, 1
+   :align: center
+
+   * - :ref:`RectangleGuillotine<rectangleguillotine>`
+
+       * Items: two-dimensional rectangles
+       * Only edge-to-edge cuts are allowed
+     - |rectangleguillotine|
+   * - :ref:`Rectangle<rectangle>`
+
+       * Items: two-dimensional rectangles
+     - |rectangle|
+   * - :ref:`BoxStacks<boxstacks>`
+
+       * Items: three-dimensional rectangular parallelepipeds
+       * Items can be stacked; a stack contains items with the same width and length
+     - |boxstacks|
+   * - :ref:`OneDimensional<onedimensional>`
+
+       * Items: one-dimensional items
+     - |onedimensional|
+   * - :ref:`Irregular<irregular>`
+
+       * Items: two-dimensional polygons
+     - |irregular|
+
+Getting started
+---------------
+
+Let's see how to solve a simple rectangle packing problem.
+
+In a first CSV file, we provide the width, height and number of copies of the items to pack.
+Here we consider two items:
+
+* The first one has a width of 300, a height of 200 and 10 copies.
+* The second one has a width of 250, a height of 150 and 10 copies.
+
+.. code-block:: none
+   :caption: items.csv
+
+   WIDTH,HEIGHT,COPIES
+   300,200,10
+   250,150,10
+
+In a second CSV file, we provide the width, height and number of copies of the bins in which the items must be packed.
+Here we consider a single container of width 1000 and of height 500 available in 10 copies.
+
+.. code-block:: none
+   :caption: bin.csv
+
+   WIDTH,HEIGHT,COPIES
+   1000,500,10
+
+Finally, in a third CSV file, we provide the other optimizaton parameters. Here we just set the :code:`objective` parameter to :code:`bin-packing`, which means that we look to pack all items while minimizing the number of bin used. The :ref:`objectives<objectives>` page gives more details about the possible objectives.
+
+.. code-block:: none
+   :caption: parameters.csv
+
+   NAME,VALUE
+   objective,bin-packing
+
+Now, we use the following command to launch the optimization:
+
+.. code-block:: shell
+
+    packingsolver_rectangle \
+            --items items.csv \
+            --bins bins.csv \
+            --parameters parameters.csv \
+            --certificate solution_rectangle.csv
+
+The terminal output looks like:
+
+.. code-block:: none
+
+    =================================
+              PackingSolver          
+    =================================
+
+    Problem type
+    ------------
+    Rectangle
+
+    Instance
+    --------
+    Objective:             BinPacking
+    Number of item types:  2
+    Number of items:       20
+    Number of bin types:   1
+    Number of bins:        10
+    Number of groups:      1
+    Number of defects:     0
+    Unloading constraint:  None
+    Total item area:       975000
+    Total item width:      5500
+    Total item height:     3500
+    Smallest item width:   150
+    Smallest item height:  150
+    Total bin area:        5000000
+    Total item weight:     0
+    Total bin weight:      0
+
+            Time    Bins  Full waste (%)                         Comment
+            ----    ----  --------------                         -------
+           0.001       3           35.00                  TS g 0 d X q 1
+           0.002       2            2.50                  TS g 0 d X q 9
+
+    Final statistics
+    ----------------
+    Time (s):  0.0166683
+
+    Solution
+    --------
+    Number of items:  20 / 20 (100%)
+    Item area:        975000 / 975000 (100%)
+    Item weight:      0 / 0 (-nan%)
+    Item profit:      975000 / 975000 (100%)
+    Number of bins:   2 / 10 (20%)
+    Bin area:         1000000 / 5000000 (20%)
+    Bin weight:       0 / 0 (-nan%)
+    Bin cost:         1e+06
+    Waste:            25000
+    Waste (%):        2.5
+    Full waste:       25000
+    Full waste (%):   2.5
+    Area load:        0.195
+    Weight load:      -nan
+    X max:            1000
+    Y max:            500
+    Leftover value:   0
+
+From the terminal output, we see that the solver managed to pack all the items using two bins.
+The loading plans are written in the :code:`solution_rectangle.csv` file. A script is available to visualize them:
+
+.. code-block:: shell
+
+    python3 scripts/visualize_rectangle.py solution_rectangle.csv
+
+The script should open a page in a browser where the loading plans are displayed:
+
+.. image:: img/getting_started_solution.png
+   :width: 256pt
+   :align: center
+

@@ -1,0 +1,4 @@
+.. _irregular:
+
+Irregular solver
+================

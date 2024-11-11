@@ -1,1 +1,0 @@
-# Irregular solver
