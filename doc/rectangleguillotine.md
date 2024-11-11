@@ -1,1 +1,0 @@
-# RectangleGuillotine solver
