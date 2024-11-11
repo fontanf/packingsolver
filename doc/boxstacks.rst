@@ -1,0 +1,4 @@
+.. _boxstacks:
+
+BoxStacks solver
+================
