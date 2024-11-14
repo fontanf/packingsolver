@@ -245,6 +245,9 @@ struct Output: optimizationtools::Output
     /** Bin packing bound. */
     BinPos bin_packing_bound = 0;
 
+    /** Knapsack bound. */
+    Profit knapsack_bound = std::numeric_limits<Profit>::infinity();
+
     /** Elapsed time. */
     double time = 0.0;
 

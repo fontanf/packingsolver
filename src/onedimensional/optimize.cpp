@@ -9,6 +9,9 @@
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
+#include "knapsacksolver/knapsack/instance_builder.hpp"
+#include "knapsacksolver/knapsack/algorithms/dynamic_programming_primal_dual.hpp"
+
 #include <thread>
 
 using namespace packingsolver;
@@ -17,11 +20,79 @@ using namespace packingsolver::onedimensional;
 namespace
 {
 
+void optimize_dynamic_programming(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (instance.number_of_bins() != 1)
+        return;
+    if (instance.objective() != Objective::Knapsack)
+        return;
+
+    knapsacksolver::knapsack::InstanceFromFloatProfitsBuilder kp_instance_builder;
+    std::vector<std::pair<ItemTypeId, ItemPos>> kp2ps;
+    knapsacksolver::knapsack::Weight kp_capacity = instance.bin_type(0).length;
+    kp_instance_builder.set_capacity(kp_capacity);
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        ItemPos total_copies = 0;
+        ItemPos copies = 1;
+        while (total_copies < item_type.copies) {
+            if (total_copies + copies > item_type.copies)
+                copies = item_type.copies - total_copies;
+            knapsacksolver::knapsack::Weight kp_weight = copies * item_type.length;
+            if (kp_weight > kp_capacity)
+                break;
+            kp2ps.push_back({item_type_id, copies});
+            kp_instance_builder.add_item(
+                    copies * item_type.profit,
+                    kp_weight);
+            total_copies += copies;
+            copies *= 2;
+        }
+    }
+    knapsacksolver::knapsack::Instance kp_instance = kp_instance_builder.build();
+
+    knapsacksolver::knapsack::DynamicProgrammingPrimalDualParameters kp_parameters;
+    kp_parameters.verbosity_level = 0;
+    auto kp_output = knapsacksolver::knapsack::dynamic_programming_primal_dual(
+            kp_instance,
+            kp_parameters);
+
+    Solution solution(instance);
+    solution.add_bin(0, 1);
+    for (knapsacksolver::knapsack::ItemId kp_item_type_id = 0;
+            kp_item_type_id < kp_instance.number_of_items();
+            ++kp_item_type_id) {
+        if (kp_output.solution.contains(kp_item_type_id)) {
+            ItemTypeId item_type_id = kp2ps[kp_item_type_id].first;
+            ItemPos copies = kp2ps[kp_item_type_id].second;
+            for (ItemPos copy = 0; copy < copies; ++copy)
+                solution.add_item(0, item_type_id);
+        }
+    }
+
+    if (solution.feasible()) {
+        std::stringstream ss;
+        ss << "DP";
+        algorithm_formatter.update_solution(solution, ss.str());
+    }
+    algorithm_formatter.update_knapsack_bound(solution.profit());
+}
+
 void optimize_tree_search(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    // Try dynamic programming.
+    optimize_dynamic_programming(instance, parameters, algorithm_formatter);
+    if (algorithm_formatter.end_boolean())
+        return;
+
     std::vector<GuideId> guides;
     if (!parameters.tree_search_guides.empty()) {
         guides = parameters.tree_search_guides;
@@ -51,6 +122,8 @@ void optimize_tree_search(
             treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
             ibs_parameters.verbosity_level = 0;
             ibs_parameters.timer = parameters.timer;
+            if (parameters.optimization_mode == OptimizationMode::Anytime)
+                ibs_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
             ibs_parameters.growth_factor = growth_factor;
             if (parameters.optimization_mode != OptimizationMode::Anytime) {
                 ibs_parameters.minimum_size_of_the_queue
@@ -146,6 +219,8 @@ void optimize_sequential_single_knapsack(
         SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
+        if (parameters.optimization_mode == OptimizationMode::Anytime)
+            svc_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
         svc_parameters.maximum_number_of_iterations = 1;
         svc_parameters.new_solution_callback = [
             &algorithm_formatter, &queue_size](
@@ -160,6 +235,8 @@ void optimize_sequential_single_knapsack(
         sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, kp_solve, svc_parameters);
 
         // Check end.
+        if (algorithm_formatter.end_boolean())
+            break;
         if (parameters.timer.needs_to_end())
             break;
 
@@ -195,6 +272,8 @@ void optimize_sequential_value_correction(
     SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
     svc_parameters.verbosity_level = 0;
     svc_parameters.timer = parameters.timer;
+    if (parameters.optimization_mode == OptimizationMode::Anytime)
+        svc_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
     svc_parameters.new_solution_callback = [&algorithm_formatter](
@@ -238,6 +317,8 @@ void optimize_dichotomic_search(
         DichotomicSearchParameters<Instance, Solution> ds_parameters;
         ds_parameters.verbosity_level = 0;
         ds_parameters.timer = parameters.timer;
+        if (parameters.optimization_mode == OptimizationMode::Anytime)
+            ds_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
         ds_parameters.initial_waste_percentage_upper_bound = waste_percentage_upper_bound;
         ds_parameters.new_solution_callback = [
             &algorithm_formatter, &queue_size](
@@ -253,6 +334,8 @@ void optimize_dichotomic_search(
         auto ds_output = dichotomic_search<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, bpp_solve, ds_parameters);
 
         // Check end.
+        if (algorithm_formatter.end_boolean())
+            break;
         if (parameters.timer.needs_to_end())
             break;
 
@@ -291,6 +374,8 @@ void optimize_column_generation(
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
+    if (parameters.optimization_mode == OptimizationMode::Anytime)
+        cgslds_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = 1;
     cgslds_parameters.dummy_column_objective_coefficient = (std::max)(2 * instance.bin_type(0).cost, (Profit)1);
     if (parameters.optimization_mode != OptimizationMode::Anytime)

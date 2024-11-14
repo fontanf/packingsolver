@@ -32,6 +32,15 @@ struct SolutionBin
 
     /** Stacks. */
     std::vector<SolutionItem> items;
+
+    /** Maximum number of items allowed in the bin. */
+    ItemPos maximum_number_of_items = -1;
+
+    /**
+     * Remaining weight allowed in the bin to satisfy the maximum
+     * weight after constraint.
+     */
+    Weight remaiing_weight = -1;
 };
 
 /**
@@ -126,6 +135,9 @@ public:
     /** Get the fraction of waste of the solution including the residual. */
     inline double full_waste_percentage() const { return (bin_length() == 0)? 0.0: (double)full_waste() / bin_length(); }
 
+    /** Return 'true' iff the solution satisfies the packing constraints. */
+    inline bool feasible() const { return feasible_; }
+
     /** Get the number of copies of an item type in the solution. */
     inline ItemPos item_copies(ItemTypeId item_type_id) const { return item_copies_[item_type_id]; }
 
@@ -190,6 +202,9 @@ private:
 
     /** Number of copies of each item type in the solution. */
     std::vector<ItemPos> item_copies_;
+
+    /** 'true' iff the solution is feasible regarding the packing constraints. */
+    bool feasible_ = true;
 
 };
 
