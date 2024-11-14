@@ -90,7 +90,7 @@ In a second CSV file, we provide the width, height and number of copies of the b
 Here we consider a single container of width 1000 and of height 500 available in 10 copies.
 
 .. code-block:: none
-   :caption: bin.csv
+   :caption: bins.csv
 
    WIDTH,HEIGHT,COPIES
    1000,500,10
