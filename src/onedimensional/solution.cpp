@@ -49,19 +49,55 @@ void Solution::add_item(
 
     SolutionItem item;
     item.item_type_id = item_type_id;
+
     item.start = bin.end;
     if (!bin.items.empty())
         item.start -= item_type.nesting_length;
 
     bin.end = item.start + item_type.length;
+    if (bin.end > bin_type.length) {
+        feasible_ = false;
+    }
+
+    // Update bin.weight.
     bin.weight += item_type.weight;
+    if (bin.weight > bin_type.maximum_weight) {
+        feasible_ = false;
+    }
+
     bin.items.push_back(item);
+
+    // Update bin.maximum_number_of_items and bin.maximum_number_of_items.
+    if (bin.items.size() == 1) {
+        bin.maximum_number_of_items = item_type.maximum_stackability;
+        bin.remaiing_weight = item_type.maximum_weight_after;
+    } else {
+        bin.maximum_number_of_items = std::min(
+                bin.maximum_number_of_items,
+                item_type.maximum_stackability);
+        bin.remaiing_weight = std::min(
+                bin.remaiing_weight - item_type.weight,
+                item_type.maximum_weight_after);
+    }
+    if (bin.items.size() > bin.maximum_number_of_items) {
+        feasible_ = false;
+    }
+    if (bin.remaiing_weight < 0) {
+        feasible_ = false;
+    }
 
     number_of_items_ += bin.copies;
     item_copies_[item.item_type_id] += bin.copies;
+    if (item_copies_[item.item_type_id] > item_type.copies) {
+        throw std::runtime_error(
+                "onedimensional::Solution::add_item"
+                "; item_copies_[item.item_type_id]: " + std::to_string(item_copies_[item.item_type_id])
+                + "; item_type.copies: " + std::to_string(item_type.copies));
+    }
     item_length_ += bin.copies * item_type.length;
     item_profit_ += bin.copies * item_type.profit;
 
+    // Update length_.
     if (bin_pos == (BinPos)bins_.size() - 1)
         length_ = bin_length_ - bin_type.length + bin.end;
 }

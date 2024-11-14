@@ -34,7 +34,7 @@ FetchContent_MakeAvailable(Boost)
 FetchContent_Declare(
     knapsacksolver
     GIT_REPOSITORY https://github.com/fontanf/knapsacksolver.git
-    GIT_TAG 5115e4db582c97e2e1ade8ea3ab5e678a921b223
+    GIT_TAG c4eddb0bd2124ad0598507610d356cb82aa72403
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../knapsacksolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(knapsacksolver)

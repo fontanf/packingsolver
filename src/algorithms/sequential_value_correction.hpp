@@ -282,6 +282,10 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                             (BinPos)(item_remaining_copies / item_packed_copies));
                 }
             }
+            if (number_of_copies < 1) {
+                throw std::logic_error(
+                        "number_of_copies: " + std::to_string(number_of_copies) + ".");
+            }
 
             // Update ratio_sums.
             //auto item_space = instance.item_type(0).space();
