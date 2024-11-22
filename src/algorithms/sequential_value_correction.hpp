@@ -101,7 +101,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         if (instance.objective() == Objective::Knapsack) {
             profits[item_type_id] = instance.item_type(item_type_id).profit;
         } else {
-            profits[item_type_id] = instance.item_type(item_type_id).space();
+            profits[item_type_id] = std::pow(instance.item_type(item_type_id).space(), 1.1);
         }
         //std::cout << "item_type_id " << item_type_id
         //    << " profit " << profits[item_type_id]
