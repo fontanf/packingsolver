@@ -39,13 +39,17 @@ public:
             const Solution& solution,
             const std::string& s);
 
+    /** Update the knapsack bound. */
+    void update_knapsack_bound(
+            Profit profit);
+
     /** Update the bin packing bound. */
     void update_bin_packing_bound(
             BinPos number_of_bins);
 
-    /** Update the knapsack bound. */
-    void update_knapsack_bound(
-            Profit profit);
+    /** Update the bin packing bound. */
+    void update_variable_sized_bin_packing_bound(
+            Profit cost);
 
     /** Method to call at the end of the algorithm. */
     void end();

@@ -411,8 +411,7 @@ void optimize_column_generation(
         const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
             = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
         if (instance.objective() == Objective::VariableSizedBinPacking) {
-            // TODO
-            //algorithm_formatter.update_variable_sized_bin_packing_bound(cgslds_output.bound);
+            algorithm_formatter.update_variable_sized_bin_packing_bound(cgslds_output.bound);
         } else if (instance.objective() == Objective::Knapsack) {
             algorithm_formatter.update_knapsack_bound(cgslds_output.bound);
         } else if (instance.objective() == Objective::BinPacking) {

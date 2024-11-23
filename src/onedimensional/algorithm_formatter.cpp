@@ -182,15 +182,37 @@ void AlgorithmFormatter::update_solution(
         parameters_.new_solution_callback(output_);
 
         // Check optimality.
-        if (instance_.objective() == Objective::BinPacking) {
+        if (instance_.objective() == Objective::Knapsack) {
+            if (equal(output_.knapsack_bound, output_.solution_pool.best().profit())) {
+                end_ = true;
+            }
+       } else  if (instance_.objective() == Objective::BinPacking) {
             if (output_.solution_pool.best().full()
                     && output_.bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
                 end_ = true;
             }
-        } else if (instance_.objective() == Objective::Knapsack) {
-            if (output_.knapsack_bound == output_.solution_pool.best().profit()) {
+       } else if (instance_.objective() == Objective::VariableSizedBinPacking) {
+            if (output_.solution_pool.best().full()
+                    && equal(output_.variable_sized_bin_packing_bound, output_.solution_pool.best().cost())) {
                 end_ = true;
             }
+        }
+    }
+    mutex_.unlock();
+}
+
+void AlgorithmFormatter::update_knapsack_bound(
+        Profit profit)
+{
+    mutex_.lock();
+    if (profit < output_.knapsack_bound) {
+        output_.knapsack_bound = profit;
+        output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+
+        // Check optimality.
+        if (equal(output_.knapsack_bound, output_.solution_pool.best().profit())) {
+            end_ = true;
         }
     }
     mutex_.unlock();
@@ -214,17 +236,18 @@ void AlgorithmFormatter::update_bin_packing_bound(
     mutex_.unlock();
 }
 
-void AlgorithmFormatter::update_knapsack_bound(
-        Profit profit)
+void AlgorithmFormatter::update_variable_sized_bin_packing_bound(
+        Profit cost)
 {
     mutex_.lock();
-    if (profit < output_.knapsack_bound) {
-        output_.knapsack_bound = profit;
+    if (cost > output_.variable_sized_bin_packing_bound) {
+        output_.variable_sized_bin_packing_bound = cost;
         output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
 
         // Check optimality.
-        if (output_.knapsack_bound == output_.solution_pool.best().profit()) {
+        if (output_.solution_pool.best().full()
+                && equal(output_.variable_sized_bin_packing_bound, output_.solution_pool.best().cost())) {
             end_ = true;
         }
     }
