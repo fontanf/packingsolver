@@ -44,6 +44,8 @@ std::ostream& Instance::format(
             << "Number of items:       " << number_of_items() << std::endl
             << "Number of bin types:   " << number_of_bin_types() << std::endl
             << "Number of bins:        " << number_of_bins() << std::endl
+            << "Maximum item copies:   " << maximum_item_copies() << std::endl
+            << "Maximum bin cost:      " << maximum_bin_cost() << std::endl
             ;
     }
 
