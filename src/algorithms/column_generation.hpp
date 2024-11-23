@@ -332,7 +332,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
                     || instance_.objective() == Objective::BinPacking) {
                 reduced_cost_bound = (std::min)(
                         reduced_cost_bound,
-                        bin_type.cost - kp_output.knapsack_bound);
+                        bin_type.cost - duals[bin_type_id] - kp_output.knapsack_bound);
             } else if (instance_.objective() == Objective::Knapsack) {
                 reduced_cost_bound = (std::max)(
                         reduced_cost_bound,
