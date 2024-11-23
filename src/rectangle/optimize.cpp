@@ -323,8 +323,7 @@ void optimize_column_generation(
                 OptimizationMode::NotAnytime;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.column_generation_subproblem_queue_size;
-            auto kp_output = optimize(kp_instance, kp_parameters);
-            return kp_output.solution_pool;
+            return optimize(kp_instance, kp_parameters);
         };
 
     columngenerationsolver::Model cgs_model = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
@@ -334,7 +333,9 @@ void optimize_column_generation(
     if (parameters.optimization_mode == OptimizationMode::Anytime)
         cgslds_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = 1;
-    cgslds_parameters.dummy_column_objective_coefficient = (std::max)(2 * instance.bin_type(0).cost, (Profit)1);
+    cgslds_parameters.dummy_column_objective_coefficient = (std::max)(
+            2 * instance.maximum_bin_cost() * instance.maximum_item_copies(),
+            (Profit)1);
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         cgslds_parameters.automatic_stop = true;
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](

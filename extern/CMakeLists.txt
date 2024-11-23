@@ -53,7 +53,7 @@ set(COLUMNGENERATIONSOLVER_USE_CLP ON)
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
-    GIT_TAG cbab1bddcaad460ee9dd8e9c850f6f3b2f1cdea0
+    GIT_TAG 096802d9e20d2826aed5b44e3b68ac9df6b20da2
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../columngenerationsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(columngenerationsolver)

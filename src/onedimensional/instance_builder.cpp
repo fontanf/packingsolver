@@ -431,6 +431,9 @@ Instance InstanceBuilder::build()
         ItemPos c = (bin_types_length_max - 1) / item_type.length + 1;
         if (item_type.copies < c)
             instance_.all_item_types_infinite_copies_ = false;
+        // Update maximum_item_copies_.
+        if (instance_.maximum_item_copies_ < item_type.copies)
+            instance_.maximum_item_copies_ = item_type.copies;
     }
 
     // Compute bin type attributes.
@@ -448,6 +451,9 @@ Instance InstanceBuilder::build()
             instance_.previous_bins_length_.push_back(previous_bins_length);
             previous_bins_length += bin_type.length;
         }
+        // Update maximum_bin_cost_.
+        if (instance_.maximum_bin_cost_ < bin_type.cost)
+            instance_.maximum_bin_cost_ = bin_type.cost;
     }
 
     // Compute bin_type.item_type_ids_.

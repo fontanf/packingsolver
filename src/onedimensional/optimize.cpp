@@ -366,8 +366,7 @@ void optimize_column_generation(
                 OptimizationMode::NotAnytime;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.column_generation_subproblem_queue_size;
-            auto kp_output = optimize(kp_instance, kp_parameters);
-            return kp_output.solution_pool;
+            return optimize(kp_instance, kp_parameters);
         };
 
     columngenerationsolver::Model cgs_model = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
@@ -377,7 +376,9 @@ void optimize_column_generation(
     if (parameters.optimization_mode == OptimizationMode::Anytime)
         cgslds_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = 0;
-    cgslds_parameters.dummy_column_objective_coefficient = (std::max)(2 * instance.bin_type(0).cost, (Profit)1);
+    cgslds_parameters.dummy_column_objective_coefficient = (std::max)(
+            2 * instance.maximum_bin_cost() * instance.maximum_item_copies(),
+            (Profit)1);
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         cgslds_parameters.automatic_stop = true;
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
@@ -400,6 +401,21 @@ void optimize_column_generation(
             std::stringstream ss;
             ss << "CG n " << cgslds_output.number_of_nodes;
             algorithm_formatter.update_solution(solution, ss.str());
+        }
+    };
+    cgslds_parameters.new_bound_callback = [&instance, &algorithm_formatter](
+            const columngenerationsolver::Output& cgs_output)
+    {
+        const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
+            = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
+        if (instance.objective() == Objective::VariableSizedBinPacking) {
+            // TODO
+            //algorithm_formatter.update_variable_sized_bin_packing_bound(cgslds_output.bound);
+        } else if (instance.objective() == Objective::Knapsack) {
+            algorithm_formatter.update_knapsack_bound(cgslds_output.bound);
+        } else if (instance.objective() == Objective::BinPacking) {
+            BinPos bin_packing_bound = std::ceil(cgslds_output.bound / instance.bin_type(0).space() - 0.001);
+            algorithm_formatter.update_bin_packing_bound(bin_packing_bound);
         }
     };
     cgslds_parameters.column_generation_parameters.linear_programming_solver

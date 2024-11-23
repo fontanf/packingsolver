@@ -158,9 +158,11 @@ std::ostream& Instance::format(
             << "Total item height:     " << total_item_height() << std::endl
             << "Smallest item width:   " << smallest_item_width() << std::endl
             << "Smallest item height:  " << smallest_item_height() << std::endl
-            << "Total bin area:        " << bin_area() << std::endl
             << "Total item weight:     " << item_weight() << std::endl
+            << "Maximum item copies:   " << maximum_item_copies() << std::endl
+            << "Total bin area:        " << bin_area() << std::endl
             << "Total bin weight:      " << bin_weight() << std::endl
+            << "Maximum bin cost:      " << maximum_bin_cost() << std::endl
             ;
     }
 

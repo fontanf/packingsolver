@@ -296,6 +296,9 @@ public:
     /** Get the total area of the bins before a given position. */
     inline Area previous_bin_area(BinPos bin_pos) const { return previous_bins_area_[bin_pos]; }
 
+    /** Get the maximum cost of the bins. */
+    inline Profit maximum_bin_cost() const { return maximum_bin_cost_; }
+
     /*
      * Getters: bin type dimensions
      */
@@ -432,6 +435,9 @@ public:
     /** Get the id of the item type with maximum efficiency. */
     inline ItemTypeId max_efficiency_item_type_id() const { return max_efficiency_item_type_id_; }
 
+    /** Get the maximum number of copies of the items. */
+    inline ItemPos maximum_item_copies() const { return maximum_item_copies_; }
+
     /** Return true iff all items have infinite copies. */
     inline bool unbounded_knapsck() const { return all_item_types_infinite_copies_; }
 
@@ -567,6 +573,9 @@ private:
     /** Bins area sum. */
     Area bins_area_sum_ = 0;
 
+    /** Maximum bin cost. */
+    Profit maximum_bin_cost_ = 0.0;
+
     /** Number of defects. */
     DefectId number_of_defects_ = 0;
 
@@ -584,6 +593,9 @@ private:
 
     /** Id of the item with maximum efficiency. */
     ItemTypeId max_efficiency_item_type_id_ = -1;
+
+    /** Maximum item copies. */
+    ItemPos maximum_item_copies_ = 0;
 
     /** True iff all item types have an infinite number of copies. */
     bool all_item_types_infinite_copies_ = false;
