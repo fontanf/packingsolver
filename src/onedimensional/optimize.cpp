@@ -373,7 +373,7 @@ void optimize_column_generation(
 
     columngenerationsolver::Model cgs_model = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
-    cgslds_parameters.verbosity_level = 1;
+    cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
     if (parameters.optimization_mode == OptimizationMode::Anytime)
         cgslds_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
