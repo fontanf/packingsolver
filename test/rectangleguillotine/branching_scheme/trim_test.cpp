@@ -33,14 +33,14 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimSoft)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_trims(
-            i,
+            bin_type_id,
             0, TrimType::Soft,
             0, TrimType::Soft,
             20, TrimType::Soft,
             0, TrimType::Soft);
-    instance_builder.add_defect(i, 495, 25, 5, 5);
+    instance_builder.add_defect(bin_type_id, 495, 25, 5, 5);
     instance_builder.add_item_type(1000, 500, -1, 1, true, 0);
     Instance instance = instance_builder.build();
 
@@ -82,14 +82,14 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimHard)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_trims(
-            i,
+            bin_type_id,
             0, TrimType::Soft,
             0, TrimType::Soft,
             20, TrimType::Hard,
             0, TrimType::Soft);
-    instance_builder.add_defect(i, 495, 25, 5, 5);
+    instance_builder.add_defect(bin_type_id, 495, 25, 5, 5);
     instance_builder.add_item_type(1000, 500, -1, 1, true, 0);
     Instance instance = instance_builder.build();
 
@@ -130,14 +130,14 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimSoft)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_trims(
-            i,
+            bin_type_id,
             20, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft);
-    instance_builder.add_defect(i, 25, 495, 5, 5);
+    instance_builder.add_defect(bin_type_id, 25, 495, 5, 5);
     instance_builder.add_item_type(500, 1000, -1, 1, true, 0);
     Instance instance = instance_builder.build();
 
@@ -178,14 +178,14 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimHard)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_trims(
-            i,
+            bin_type_id,
             20, TrimType::Hard,
             0, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft);
-    instance_builder.add_defect(i, 25, 495, 5, 5);
+    instance_builder.add_defect(bin_type_id, 25, 495, 5, 5);
     instance_builder.add_item_type(500, 1000, -1, 1, true, 0);
     Instance instance = instance_builder.build();
 
@@ -224,9 +224,9 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_trims(
-            i,
+            bin_type_id,
             0, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft,
@@ -268,9 +268,9 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimHard)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    BinTypeId i = instance_builder.add_bin_type(6000, 3210);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_trims(
-            i,
+            bin_type_id,
             0, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft,
@@ -311,9 +311,9 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    BinTypeId i = instance_builder.add_bin_type(3000, 3210);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(3000, 3210);
     instance_builder.add_trims(
-            i,
+            bin_type_id,
             0, TrimType::Soft,
             20, TrimType::Soft,
             0, TrimType::Soft,
@@ -355,9 +355,9 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    BinTypeId i = instance_builder.add_bin_type(3000, 3210);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(3000, 3210);
     instance_builder.add_trims(
-            i,
+            bin_type_id,
             0, TrimType::Soft,
             20, TrimType::Hard,
             0, TrimType::Soft,
@@ -369,6 +369,37 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
+    };
+
+    EXPECT_EQ(branching_scheme.insertions(root), is);
+}
+
+TEST(RectangleGuillotineBranchingScheme, TrimAndDefect)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+    instance_builder.set_predefined("3EVR");
+    instance_builder.set_cut_through_defects(true);
+    instance_builder.set_minimum_waste_length(10);
+    instance_builder.set_minimum_distance_1_cuts(10);
+    instance_builder.set_maximum_distance_1_cuts(3210);
+    instance_builder.set_cut_thickness(3);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(3210, 2250);
+    instance_builder.add_trims(
+            bin_type_id,
+            10, TrimType::Soft,
+            10, TrimType::Hard,
+            10, TrimType::Soft,
+            10, TrimType::Soft);
+    instance_builder.add_defect(bin_type_id, 12, 9, 300, 54);
+    instance_builder.add_item_type(910, 846);
+    Instance instance = instance_builder.build();
+
+    BranchingScheme branching_scheme(instance);
+    auto root = branching_scheme.root();
+
+    std::vector<BranchingScheme::Insertion> is {
+        {-1, -1, -1, 312, 63, 312, 3200, 2240, 1, 1},
     };
 
     EXPECT_EQ(branching_scheme.insertions(root), is);

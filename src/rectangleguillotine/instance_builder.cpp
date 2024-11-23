@@ -218,14 +218,25 @@ void InstanceBuilder::add_defect(
         Length w,
         Length h)
 {
+    if (bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "rectangleguillotine::InstanceBuilder::add_defect"
+                ". bin_type_id: " + std::to_string(bin_type_id)
+                + "; instance_.bin_types_.size(): "
+                + std::to_string(instance_.bin_types_.size())
+                + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+
     Defect defect;
-    defect.id = instance_.bin_types_[bin_type_id].defects.size();
+    defect.id = bin_type.defects.size();
     defect.bin_type_id = bin_type_id;
     defect.pos.x = x;
     defect.pos.y = y;
     defect.rect.w = w;
     defect.rect.h = h;
-    instance_.bin_types_[bin_type_id].defects.push_back(defect);
+    bin_type.defects.push_back(defect);
 }
 
 void InstanceBuilder::add_bin_type(

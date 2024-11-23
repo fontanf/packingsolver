@@ -545,7 +545,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         Length x = x3_prev(parent, df);
         Length y = y2_prev(parent, df);
 
-        // Try adding an item
+        // Try inserting an item
         for (StackId s = 0; s < instance().number_of_stacks(); ++s) {
             if (parent.pos_stack[s] == instance().stack_size(s))
                 continue;
@@ -651,15 +651,20 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             }
         }
 
-        if (parent.parent == nullptr || parent.item_type_id_1 != -1 || parent.item_type_id_2 != -1) {
+        // Try inserting a defect.
+        if (parent.parent == nullptr
+                || parent.item_type_id_1 != -1
+                || parent.item_type_id_2 != -1) {
             BinTypeId bin_type_id = instance().bin_type_id(i);
             const BinType& bin_type = instance().bin_type(bin_type_id);
             for (DefectId defect_id = 0;
                     defect_id < (DefectId)bin_type.defects.size();
                     ++defect_id) {
                 const Defect& defect = bin_type.defects[defect_id];
-                if (instance().left(defect, o) >= x && instance().bottom(defect, o) >= y)
+                if (instance().right(defect, o) >= x
+                        && instance().top(defect, o) >= y) {
                     insertion_defect(parent, defect_id, df);
+                }
             }
         }
     }
