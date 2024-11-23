@@ -93,7 +93,7 @@ if benchmark == "rectangleguillotine_roadef2018":
                 extra_rows_to_update.append(3)
             extra_rows_to_update.append(4)
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             for row_id in extra_rows_to_update:
                 extra_rows[row_id][bksv_field] += row[bksv_field]
 
@@ -185,11 +185,10 @@ elif benchmark == "rectangleguillotine_bin_packing_3nho":
             instance_class = int(row["Path"].split('_')[1].split('.')[0])
             number_of_items = int(row["Path"].split('_')[2])
             extra_rows_to_update = [
-                    ((instance_class - 1) * 5
-                     + int(number_of_items / 20 - 1)),
+                    ((instance_class - 1) * 5 + int(number_of_items / 20 - 1)),
                     -1]
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             for row_id in extra_rows_to_update:
                 extra_rows[row_id][bksv_field] += row[bksv_field]
 
@@ -281,11 +280,10 @@ elif benchmark == "rectangleguillotine_bin_packing_3nhr":
             instance_class = int(row["Path"].split('_')[1].split('.')[0])
             number_of_items = int(row["Path"].split('_')[2])
             extra_rows_to_update = [
-                    ((instance_class - 1) * 5
-                     + int(number_of_items / 20 - 1)),
+                    ((instance_class - 1) * 5 + int(number_of_items / 20 - 1)),
                     -1]
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             for row_id in extra_rows_to_update:
                 extra_rows[row_id][bksv_field] += row[bksv_field]
 
@@ -422,7 +420,7 @@ elif benchmark == "rectangleguillotine_bin_packing_3hao_cintra2008":
             # Get extra rows to update.
             row_id = 0
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -498,7 +496,7 @@ elif benchmark == "rectangleguillotine_bin_packing_3hao_imahori2005":
             # Get extra rows to update.
             row_id = 0
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -574,7 +572,7 @@ elif benchmark == "rectangleguillotine_bin_packing_3hvo_alvarez2002":
             # Get extra rows to update.
             row_id = 0
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -652,7 +650,7 @@ elif benchmark == "rectangleguillotine_bin_packing_3hvo_others":
             # Get extra rows to update.
             row_id = 0
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -738,7 +736,7 @@ elif benchmark == "rectangleguillotine_knapsack_3nvo_alvarez2002":
             # Get extra rows to update.
             row_id = 0
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -830,7 +828,7 @@ elif benchmark == "rectangleguillotine_knapsack_3nvo_cui2012":
             # Get extra rows to update.
             row_id = 0
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -922,7 +920,7 @@ elif benchmark == "rectangleguillotine_knapsack_3hao_others":
             # Get extra rows to update.
             row_id = 0
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -1026,7 +1024,7 @@ elif benchmark == "rectangleguillotine_knapsack_3hao_cui2008":
             # Get extra rows to update.
             row_id = (1 if "unweighted" in row["Options"] else 0)
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -1125,7 +1123,7 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_others":
             # Get extra rows to update.
             row_id = 0
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -1222,7 +1220,7 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_alvarez2002":
             # Get extra rows to update.
             row_id = 0
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -1319,7 +1317,7 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_hifi2012":
             # Get extra rows to update.
             row_id = 0
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             extra_rows[row_id][bksv_field] += row[bksv_field]
 
             # Update result columns of extra rows.
@@ -1416,11 +1414,10 @@ elif benchmark == "rectangle_bin_packing_oriented":
             instance_class = int(row["Path"].split('_')[1].split('.')[0])
             number_of_items = int(row["Path"].split('_')[2])
             extra_rows_to_update = [
-                    ((instance_class - 1) * 5
-                     + int(number_of_items / 20 - 1)),
+                    ((instance_class - 1) * 5 + int(number_of_items / 20 - 1)),
                     -1]
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             for row_id in extra_rows_to_update:
                 extra_rows[row_id][bksv_field] += row[bksv_field]
 
@@ -1513,11 +1510,10 @@ elif benchmark == "rectangle_bin_packing_rotation":
             instance_class = int(row["Path"].split('_')[1].split('.')[0])
             number_of_items = int(row["Path"].split('_')[2])
             extra_rows_to_update = [
-                    ((instance_class - 1) * 5
-                     + int(number_of_items / 20 - 1)),
+                    ((instance_class - 1) * 5 + int(number_of_items / 20 - 1)),
                     -1]
 
-            # Update "Best known solution value" column of extra row.
+            # Update "Best known solution value" column of extra rows.
             for row_id in extra_rows_to_update:
                 extra_rows[row_id][bksv_field] += row[bksv_field]
 
@@ -1544,6 +1540,99 @@ elif benchmark == "rectangle_bin_packing_rotation":
                            if s[fieldname] > s[bksv_field]
                            else 'background-color: yellow'))
                     if fieldname in result_columns
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "onedimensional_gschwind2016":
+
+    datacsv_path = os.path.join(
+            "data",
+            "onedimensional",
+            "data_gschwind2016.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+            out_fieldnames.append(output_directory + " / Time")
+
+        result_columns = [fieldname for fieldname in reader.fieldnames
+                          if "Solution value" in fieldname]
+
+        # Initialize extra rows.
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{
+                        "Path": "Total",
+                        bksv_field: 0}]
+        for fieldname in reader.fieldnames:
+            if "olution value" in fieldname or "Time" in fieldname:
+                for row in extra_rows:
+                    row[fieldname] = 0
+
+        for row in reader:
+            if not row["Path"]:
+                break
+
+            row[bksv_field] = int(row[bksv_field])
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["NumberOfBins"])
+                row[output_directory + " / Time"] = (
+                        json_data["Output"]["Time"])
+
+            # Get extra rows to update.
+            extra_rows_to_update = [-1]
+
+            # Update "Best known solution value" column of extra rows.
+            for row_id in extra_rows_to_update:
+                extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            # Update result columns of extra rows.
+            for fieldname in reader.fieldnames:
+                if "Solution value" in fieldname:
+                    number_of_bins = int(row[fieldname])
+                    row[fieldname] = number_of_bins
+                    for row_id in extra_rows_to_update:
+                        extra_rows[row_id][fieldname] += number_of_bins
+                if "Time" in fieldname:
+                    time = float(row[fieldname])
+                    row[fieldname] = time
+                    for row_id in extra_rows_to_update:
+                        extra_rows[row_id][fieldname] += time
+
+            # Add current row.
+            out_rows.append(row)
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] > s[bksv_field]
+                           else 'background-color: yellow'))
+                    if "olution value" in fieldname
                     else ''
                     for fieldname in out_fieldnames]
         df = df.style.apply(highlight, axis = 1)
