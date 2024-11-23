@@ -101,6 +101,15 @@ void InstanceBuilder::add_defect(
         Length rect_x,
         Length rect_y)
 {
+    if (bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "boxstacks::InstanceBuilder::add_defect"
+                ". bin_type_id: " + std::to_string(bin_type_id)
+                + "; instance_.bin_types_.size(): "
+                + std::to_string(instance_.bin_types_.size())
+                + ".");
+    }
+
     BinType& bin_type = instance_.bin_types_[bin_type_id];
 
     rectangle::Defect defect;

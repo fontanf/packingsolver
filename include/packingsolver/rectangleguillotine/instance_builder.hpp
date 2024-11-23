@@ -80,7 +80,7 @@ public:
 
     /** Add trims to bin type 'i'. */
     void add_trims(
-            BinTypeId i,
+            BinTypeId bin_type_id,
             Length left_trim,
             TrimType left_trim_type,
             Length right_trim,
@@ -92,7 +92,7 @@ public:
 
     /** Add a defect. */
     void add_defect(
-            BinTypeId i,
+            BinTypeId bin_type_id,
             Length x,
             Length y,
             Length w,
