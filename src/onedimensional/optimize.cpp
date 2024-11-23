@@ -43,7 +43,9 @@ void optimize_dynamic_programming(
         while (total_copies < item_type.copies) {
             if (total_copies + copies > item_type.copies)
                 copies = item_type.copies - total_copies;
-            knapsacksolver::knapsack::Weight kp_weight = copies * item_type.length;
+            knapsacksolver::knapsack::Weight kp_weight = copies * (
+                    item_type.length
+                    - (std::max)(item_type.nesting_length, (Length)0));
             if (kp_weight > kp_capacity)
                 break;
             kp2ps.push_back({item_type_id, copies});
@@ -371,7 +373,7 @@ void optimize_column_generation(
 
     columngenerationsolver::Model cgs_model = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
-    cgslds_parameters.verbosity_level = 0;
+    cgslds_parameters.verbosity_level = 1;
     cgslds_parameters.timer = parameters.timer;
     if (parameters.optimization_mode == OptimizationMode::Anytime)
         cgslds_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());

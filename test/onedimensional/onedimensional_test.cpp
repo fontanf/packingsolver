@@ -35,6 +35,10 @@ TEST(OneDimensional, Users_2023_08_01)
     Output output = optimize(instance, optimize_parameters);
 
     Solution solution(instance, (directory / "2023-08-01_solution.csv").string());
+    std::cout << std::endl
+        << "Reference solution" << std::endl
+        << "------------------" << std::endl;
+    solution.format(std::cout);
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
 }
 
@@ -53,6 +57,10 @@ TEST(OneDimensional, Users_2024_04_06_t1)
     Output output = optimize(instance, optimize_parameters);
 
     Solution solution(instance, (directory / "2024-04-06_t1_solution.csv").string());
+    std::cout << std::endl
+        << "Reference solution" << std::endl
+        << "------------------" << std::endl;
+    solution.format(std::cout);
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
 }
 
@@ -71,6 +79,10 @@ TEST(OneDimensional, Users_2024_04_06_t2)
     Output output = optimize(instance, optimize_parameters);
 
     Solution solution(instance, (directory / "2024-04-06_t2_solution.csv").string());
+    std::cout << std::endl
+        << "Reference solution" << std::endl
+        << "------------------" << std::endl;
+    solution.format(std::cout);
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
 }
 
@@ -89,6 +101,10 @@ TEST(OneDimensional, Users_2024_04_06_t3)
     Output output = optimize(instance, optimize_parameters);
 
     Solution solution(instance, (directory / "2024-04-06_t3_solution.csv").string());
+    std::cout << std::endl
+        << "Reference solution" << std::endl
+        << "------------------" << std::endl;
+    solution.format(std::cout);
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
 }
 
@@ -108,6 +124,10 @@ TEST(OneDimensional, Users_2024_04_07)
     Output output = optimize(instance, optimize_parameters);
 
     Solution solution(instance, (directory / "2024-04-07_solution.csv").string());
+    std::cout << std::endl
+        << "Reference solution" << std::endl
+        << "------------------" << std::endl;
+    solution.format(std::cout);
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
 }
 
@@ -126,6 +146,10 @@ TEST(OneDimensional, Users_2024_04_09)
     Output output = optimize(instance, optimize_parameters);
 
     Solution solution(instance, (directory / "2024-04-09_solution.csv").string());
+    std::cout << std::endl
+        << "Reference solution" << std::endl
+        << "------------------" << std::endl;
+    solution.format(std::cout);
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
 }
 
@@ -144,5 +168,9 @@ TEST(OneDimensional, Users_2024_04_21)
     Output output = optimize(instance, optimize_parameters);
 
     Solution solution(instance, (directory / "2024-04-21_solution.csv").string());
+    std::cout << std::endl
+        << "Reference solution" << std::endl
+        << "------------------" << std::endl;
+    solution.format(std::cout);
     EXPECT_EQ(!(output.solution_pool.best() < solution), true);
 }
