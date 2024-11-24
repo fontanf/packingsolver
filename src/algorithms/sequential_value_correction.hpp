@@ -123,7 +123,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
         std::vector<double> item_type_adjusted_space(instance.number_of_item_types(), 0.0);
 
         // For VBPP objective, we store the solutions found for each bin type
-        // at each iterations. Thus, at the next iteration, we can check if the
+        // at each iteration. Thus, at the next iteration, we can check if the
         // previously computed ones are still feasible.
         std::vector<std::pair<Solution, Profit>> solutions_cur(
                 instance.number_of_bin_types(),
@@ -231,6 +231,39 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     return output;
 
                 auto kp_solution = kp_solution_pool.best();
+
+                // If the objective is BinPackingWithLeftovers and this is the
+                // last bin, then we re-optimize it to maximize the leftover
+                // value.
+                if (instance.objective() == Objective::BinPackingWithLeftovers
+                        && kp_solution.number_of_items() == kp_instance.number_of_items()) {
+
+                    InstanceBuilder bppl_instance_builder;
+                    bppl_instance_builder.set_objective(Objective::BinPackingWithLeftovers);
+                    bppl_instance_builder.set_parameters(instance.parameters());
+                    bppl_instance_builder.add_bin_type(bin_type, 1);
+                    for (ItemTypeId item_type_id: kp2orig) {
+                        ItemPos copies
+                            = instance.item_type(item_type_id).copies
+                            - solution.item_copies(item_type_id);
+                        bppl_instance_builder.add_item_type(
+                                instance.item_type(item_type_id),
+                                profits[item_type_id],
+                                copies);
+                    }
+                    Instance bppl_instance = bppl_instance_builder.build();
+
+                    SolutionPool<Instance, Solution> bppl_solution_pool = function(bppl_instance);
+                    if (parameters.timer.needs_to_end())
+                        return output;
+
+                    auto bppl_solution = bppl_solution_pool.best();
+
+                    if (!(bppl_solution < kp_solution)) {
+                        kp_solution = bppl_solution;
+                    }
+                }
+
                 Solution solution(instance);
                 if (kp_solution.number_of_different_bins() > 0)
                     solution.append(kp_solution, 0, 1, {bin_type_id}, kp2orig);
