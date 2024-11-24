@@ -125,7 +125,7 @@ void optimize_tree_search(
             ibs_parameters.verbosity_level = 0;
             ibs_parameters.timer = parameters.timer;
             if (parameters.optimization_mode == OptimizationMode::Anytime)
-                ibs_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
+                ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
             ibs_parameters.growth_factor = growth_factor;
             if (parameters.optimization_mode != OptimizationMode::Anytime) {
                 ibs_parameters.minimum_size_of_the_queue
@@ -222,7 +222,7 @@ void optimize_sequential_single_knapsack(
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
         if (parameters.optimization_mode == OptimizationMode::Anytime)
-            svc_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
+            svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         svc_parameters.maximum_number_of_iterations = 1;
         svc_parameters.new_solution_callback = [
             &algorithm_formatter, &queue_size](
@@ -275,7 +275,7 @@ void optimize_sequential_value_correction(
     svc_parameters.verbosity_level = 0;
     svc_parameters.timer = parameters.timer;
     if (parameters.optimization_mode == OptimizationMode::Anytime)
-        svc_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
+        svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
     svc_parameters.new_solution_callback = [&algorithm_formatter](
@@ -320,7 +320,7 @@ void optimize_dichotomic_search(
         ds_parameters.verbosity_level = 0;
         ds_parameters.timer = parameters.timer;
         if (parameters.optimization_mode == OptimizationMode::Anytime)
-            ds_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
+            ds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         ds_parameters.initial_waste_percentage_upper_bound = waste_percentage_upper_bound;
         ds_parameters.new_solution_callback = [
             &algorithm_formatter, &queue_size](
@@ -376,7 +376,7 @@ void optimize_column_generation(
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
     if (parameters.optimization_mode == OptimizationMode::Anytime)
-        cgslds_parameters.timer.set_end_boolean(&algorithm_formatter.end_boolean());
+        cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = 0;
     cgslds_parameters.dummy_column_objective_coefficient = (std::max)(
             2 * instance.maximum_bin_cost() * instance.maximum_item_copies(),
