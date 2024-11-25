@@ -420,8 +420,10 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    if (instance.number_of_bin_types() == 1)
+                    if (instance.number_of_bin_types() == 1
+                            && instance.number_of_stacks() == instance.number_of_item_types()) {
                         use_column_generation = true;
+                    }
                 }
             } else {
                 use_tree_search = true;
@@ -430,8 +432,10 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    if (instance.number_of_bin_types() == 1)
+                    if (instance.number_of_bin_types() == 1
+                            && instance.number_of_stacks() == instance.number_of_item_types()) {
                         use_column_generation = true;
+                    }
                 }
             }
         }
