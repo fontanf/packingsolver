@@ -353,6 +353,8 @@ void Solution::write(
     BinPos bin_pos_2 = 0;
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& solution_bin = bins_[bin_pos];
+        BinTypeId bin_type_id = solution_bin.bin_type_id;
+        const BinType& bin_type = instance().bin_type(bin_type_id);
         for (BinPos copie = 0; copie < solution_bin.copies; ++copie) {
             for (SolutionNodeId node_id = 0;
                     node_id < (SolutionNodeId)solution_bin.nodes.size();
@@ -373,6 +375,18 @@ void Solution::write(
             }
             offset += solution_bin.nodes.size();
             bin_pos_2++;
+        }
+        for (const Defect& defect: bin_type.defects) {
+            file
+                << bin_pos << ","
+                << -1 << ","
+                << defect.pos.x << ","
+                << defect.pos.y << ","
+                << defect.rect.w << ","
+                << defect.rect.h << ","
+                << -4 << ","
+                << -1 << ","
+                << std::endl;
         }
     }
 }
