@@ -36,6 +36,9 @@ with open(args.csvpath, newline='') as csvfile:
         x2 = x1 + w
         y2 = y1 + h
 
+        if t == -4:  # Defect.
+            defects_x[i] += [x1, x2, x2, x1, x1, None]
+            defects_y[i] += [y1, y1, y2, y2, y1, None]
         if not parent:  # Bin.
             bins_x.append([])
             bins_y.append([])
