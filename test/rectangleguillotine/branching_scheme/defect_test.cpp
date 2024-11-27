@@ -560,4 +560,3 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDefect)
     };
     EXPECT_EQ(branching_scheme.insertions(node_1), is);
 }
-

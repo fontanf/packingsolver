@@ -342,9 +342,12 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Compute number_of_bins and first_stage_orientation.
     if (insertion.df < 0) {
-        node.number_of_bins = parent.number_of_bins + 1;
-        node.first_stage_orientation = (insertion.df == -1)?
-            CutOrientation::Vertical: CutOrientation::Horizontal;
+        if (std::abs(insertion.df) % 2 == 0) {
+            node.first_stage_orientation = CutOrientation::Horizontal;
+        } else {
+            node.first_stage_orientation = CutOrientation::Vertical;
+        }
+        node.number_of_bins = parent.number_of_bins + std::ceil(std::fabs(insertion.df) / 2);
     } else {
         node.number_of_bins = parent.number_of_bins;
         node.first_stage_orientation = parent.first_stage_orientation;
@@ -482,42 +485,29 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
     const Node& parent = *pparent;
     insertions_.clear();
 
-    // Compute df_min
-    Depth df_min = -2;
-    if (parent.number_of_bins == instance().number_of_bins()) {
-        df_min = 0;
-    } else if (first_stage_orientation_ == CutOrientation::Vertical) {
-        df_min = -1;
-    } else if (first_stage_orientation_ == CutOrientation::Any
-            // Next bin has no defects,
-            && instance().bin_type(instance().bin_type_id(parent.number_of_bins)).defects.size() == 0
-            // is a square,
-            && instance().bin_type(instance().bin_type_id(parent.number_of_bins)).rect.w
-            == instance().bin_type(instance().bin_type_id(parent.number_of_bins)).rect.h
-            // and items can be rotated
-            && no_oriented_items_) {
-        df_min = -1;
-    }
-
     // Compute df_max
     Depth df_max = 2;
     if (parent.parent == nullptr)
         df_max = -1;
 
-    for (Depth df = df_max; df >= df_min; --df) {
-        if (df == -1 && first_stage_orientation_ == CutOrientation::Horizontal)
-            continue;
-
-        if (df == -2) {
-            i = parent.number_of_bins;
-            o = CutOrientation::Horizontal;
-        } else if (df == -1) {
-            i = parent.number_of_bins;
-            o = CutOrientation::Vertical;
+    for (Depth df = df_max;; --df) {
+        if (df < 0) {
+            if (std::abs(df) % 2 == 0) {
+                o = CutOrientation::Horizontal;
+            } else {
+                o = CutOrientation::Vertical;
+            }
+            i = parent.number_of_bins - 1 + std::ceil(std::fabs(df) / 2);
         } else {
             i = parent.number_of_bins - 1;
             o = parent.first_stage_orientation;
         }
+        if (first_stage_orientation_ != CutOrientation::Any
+                && o != first_stage_orientation_) {
+            continue;
+        }
+        if (i >= instance().number_of_bins())
+            break;
 
         // Simple dominance rule
         bool stop = false;
@@ -533,8 +523,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                     && insertion.x1 == parent.x1_curr) {
                 stop = true;
                 break;
-            } else if (df < 0
-                    && insertion.df >= 0) {
+            } else if (df < 0) {
                 stop = true;
                 break;
             }
@@ -652,19 +641,15 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         }
 
         // Try inserting a defect.
-        if (parent.parent == nullptr
-                || parent.item_type_id_1 != -1
-                || parent.item_type_id_2 != -1) {
-            BinTypeId bin_type_id = instance().bin_type_id(i);
-            const BinType& bin_type = instance().bin_type(bin_type_id);
-            for (DefectId defect_id = 0;
-                    defect_id < (DefectId)bin_type.defects.size();
-                    ++defect_id) {
-                const Defect& defect = bin_type.defects[defect_id];
-                if (instance().right(defect, o) >= x
-                        && instance().top(defect, o) >= y) {
-                    insertion_defect(parent, defect_id, df);
-                }
+        BinTypeId bin_type_id = instance().bin_type_id(i);
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        for (DefectId defect_id = 0;
+                defect_id < (DefectId)bin_type.defects.size();
+                ++defect_id) {
+            const Defect& defect = bin_type.defects[defect_id];
+            if (instance().right(defect, o) >= x
+                    && instance().top(defect, o) >= y) {
+                insertion_defect(parent, defect_id, df);
             }
         }
     }
@@ -1472,6 +1457,7 @@ Solution BranchingScheme::to_solution(
     SolutionBuilder solution_builder(instance());
     Length subplate1_curr_x1 = -1;
     Length subplate2_curr_y2 = -1;
+    BinPos number_of_bins = 0;
     for (SolutionNodeId node_pos = 0;
             node_pos < (SolutionNodeId)descendents.size();
             ++node_pos) {
@@ -1486,15 +1472,16 @@ Solution BranchingScheme::to_solution(
             descendents[node_pos + 1]->df: -1;
 
         // Create a new bin
-        if (current_node->df <= -1) {
+        while (number_of_bins < current_node->number_of_bins) {
             CutOrientation cut_orientation = (
                     (instance().parameters().number_of_stages == 3 && current_node->first_stage_orientation == CutOrientation::Vertical)
                     || (instance().parameters().number_of_stages == 2 && current_node->first_stage_orientation == CutOrientation::Horizontal))?
                     CutOrientation::Vertical: CutOrientation::Horizontal;
             solution_builder.add_bin(
-                    bin_type_id,
+                    number_of_bins,
                     1,
                     cut_orientation);
+            number_of_bins++;
         }
 
         // Create a new first-level sub-plate.
