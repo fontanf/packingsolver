@@ -209,17 +209,31 @@ ItemTypeId InstanceBuilder::add_item_type(
         GroupId group_id)
 {
     if (x < 0) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
                 "rectangle::InstanceBuilder::add_item_type."
                 " item type width "
                 + std::to_string(x)
                 + " must be >= 0.");
     }
     if (y < 0) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
                 "rectangle::InstanceBuilder::add_item_type."
                 " item type height "
                 + std::to_string(y)
+                + " must be >= 0.");
+    }
+    if (copies <= 0) {
+        throw std::invalid_argument(
+                "rectangle::InstanceBuilder::add_item_type."
+                " item type copies "
+                + std::to_string(copies)
+                + " must be >= 0.");
+    }
+    if (group_id < 0) {
+        throw std::invalid_argument(
+                "rectangle::InstanceBuilder::add_item_type."
+                " item type group id "
+                + std::to_string(group_id)
                 + " must be >= 0.");
     }
 
