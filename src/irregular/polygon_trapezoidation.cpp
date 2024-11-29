@@ -95,11 +95,6 @@ std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
             }
         }
     }
-    throw std::runtime_error(
-            "irregular::find_trapezoid_containing_vertex."
-            " no open trapezoid containing vertex "
-            + vertex.to_string()
-            + " found.");
     return res;
 }
 
@@ -284,6 +279,11 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "LocalMinimumConvex" << std::endl;
 
             ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            if (open_trapezoid_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_pos' must be != -1.");
+            }
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
@@ -307,6 +307,11 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "LocalMaximumConcave" << std::endl;
 
             ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            if (open_trapezoid_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_pos' must be != -1.");
+            }
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
@@ -353,6 +358,16 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "LocalMinimumConcave" << std::endl;
 
             auto p = find_trapezoid_containing_vertex(open_trapezoids, vertex);
+            if (p.first == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'p.first' must be != -1.");
+            }
+            if (p.second == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'p.second' must be != -1.");
+            }
             const OpenTrapezoid& open_trapezoid_1 = open_trapezoids[p.first];
             const OpenTrapezoid& open_trapezoid_2 = open_trapezoids[p.second];
 
@@ -403,6 +418,11 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "Inflection" << std::endl;
 
             ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            if (open_trapezoid_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_pos' must be != -1.");
+            }
             //std::cout << "open_trapezoid_pos " << open_trapezoid_pos << std::endl;
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
             //std::cout << "open_trapezoid"
@@ -477,6 +497,11 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "HorizontalLocalMinimumConvex HorizontalLocalMinimumConvex" << std::endl;
 
             ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            if (open_trapezoid_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_pos' must be != -1.");
+            }
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
@@ -506,6 +531,11 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "HorizontalLocalMaximumConcave HorizontalLocalMaximumConcave" << std::endl;
 
             ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            if (open_trapezoid_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_pos' must be != -1.");
+            }
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
             //std::cout << "open trapezoid " << open_trapezoid << std::endl;
 
@@ -556,8 +586,18 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "HorizontalLocalMinimumConcave HorizontalLocalMinimumConcave" << std::endl;
 
             ElementPos open_trapezoid_1_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            if (open_trapezoid_1_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_1_pos' must be != -1.");
+            }
             auto p = find_trapezoid_containing_vertex(open_trapezoids, vertex_next);
             ElementPos open_trapezoid_2_pos = (p.second != -1)? p.second: p.first;
+            if (open_trapezoid_2_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_2_pos' must be != -1.");
+            }
             //std::cout << "open_trapezoid_1_pos " << open_trapezoid_1_pos << " open_trapezoid_2_pos " << open_trapezoid_2_pos << std::endl;
             const OpenTrapezoid& open_trapezoid_1 = open_trapezoids[open_trapezoid_1_pos];
             const OpenTrapezoid& open_trapezoid_2 = open_trapezoids[open_trapezoid_2_pos];
@@ -612,6 +652,11 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "HorizontalLocalMaximumConvex HorizontalLocalMinimumConcave" << std::endl;
 
             ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex_next).first;
+            if (open_trapezoid_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_pos' must be != -1.");
+            }
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
@@ -652,6 +697,11 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "HorizontalLocalMinimumConvex HorizontalLocalMaximumConcave" << std::endl;
 
             ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            if (open_trapezoid_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_pos' must be != -1.");
+            }
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
@@ -691,6 +741,11 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "HorizontalLocalMaximumConcave HorizontalLocalMinimumConvex" << std::endl;
 
             ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex_next).first;
+            if (open_trapezoid_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_pos' must be != -1.");
+            }
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
@@ -733,6 +788,11 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
             //std::cout << "HorizontalLocalMinimumConcave HorizontalLocalMaximumConvex" << std::endl;
 
             ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            if (open_trapezoid_pos == -1) {
+                throw std::runtime_error(
+                        "irregular::polygon_trapezoidation."
+                        " 'open_trapezoid_pos' must be != -1.");
+            }
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
