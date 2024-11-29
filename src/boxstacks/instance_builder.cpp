@@ -227,10 +227,40 @@ ItemTypeId InstanceBuilder::add_item_type(
         int rotations,
         GroupId group_id)
 {
+    if (x < 0) {
+        throw std::invalid_argument(
+                "boxstacks::InstanceBuilder::add_item_type."
+                " item type x "
+                + std::to_string(x)
+                + " must be >= 0.");
+    }
+    if (y < 0) {
+        throw std::invalid_argument(
+                "boxstacks::InstanceBuilder::add_item_type."
+                " item type y "
+                + std::to_string(y)
+                + " must be >= 0.");
+    }
+    if (z < 0) {
+        throw std::invalid_argument(
+                "boxstacks::InstanceBuilder::add_item_type."
+                " item type z "
+                + std::to_string(y)
+                + " must be >= 0.");
+    }
     if (copies <= 0) {
-        throw std::runtime_error(
-                "'boxstacks::InstanceBuilder::add_item_type'"
-                " requires 'copies > 0'.");
+        throw std::invalid_argument(
+                "boxstacks::InstanceBuilder::add_item_type."
+                " item type copies "
+                + std::to_string(copies)
+                + " must be >= 0.");
+    }
+    if (group_id < 0) {
+        throw std::invalid_argument(
+                "boxstacks::InstanceBuilder::add_item_type."
+                " item type group id "
+                + std::to_string(group_id)
+                + " must be >= 0.");
     }
 
     ItemType item_type;
