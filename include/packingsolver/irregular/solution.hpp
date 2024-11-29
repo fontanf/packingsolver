@@ -34,7 +34,7 @@ struct SolutionBin
     std::vector<SolutionItem> items;
 
     /** Item area. */
-    Area item_area = 0;
+    AreaDbl item_area = 0;
 };
 
 /**
@@ -109,7 +109,7 @@ public:
     inline Profit cost() const { return bin_cost_; }
 
     /** Get the total area of the bins of the solution. */
-    inline Area bin_area() const { return bin_area_; }
+    inline AreaDbl bin_area() const { return bin_area_; }
 
     /*
      * Getters: items
@@ -122,7 +122,7 @@ public:
     inline bool full() const { return number_of_items() == instance().number_of_items(); }
 
     /** Get the total area of the items of the solution. */
-    inline Area item_area() const { return item_area_; }
+    inline AreaDbl item_area() const { return item_area_; }
 
     /** Get the profit of the solution. */
     inline Profit profit() const { return item_profit_; }
@@ -144,7 +144,7 @@ public:
     inline Profit leftover_value() const { return leftover_value_; }
 
     /** Get the waste of the solution including the residual. */
-    inline Area full_waste() const { return bin_area() - item_area(); }
+    inline AreaDbl full_waste() const { return bin_area() - item_area(); }
 
     /** Get the fraction of waste of the solution including the residual. */
     inline double full_waste_percentage() const { return (double)full_waste() / bin_area(); }
@@ -189,10 +189,10 @@ private:
     Profit leftover_value_ = 0.0;
 
     /** Total area of the bins of the solution. */
-    Area bin_area_ = 0;
+    AreaDbl bin_area_ = 0;
 
     /** Total area of the items of the solution. */
-    Area item_area_ = 0;
+    AreaDbl item_area_ = 0;
 
     /** Profit of the solution. */
     Profit item_profit_ = 0;
