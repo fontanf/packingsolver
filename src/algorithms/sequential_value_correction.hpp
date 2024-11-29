@@ -157,21 +157,21 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
             std::vector<BinTypeId> bin_type_ids;
             if (instance.objective() == Objective::VariableSizedBinPacking) {
                 // Start with mandatory bins (bin types with copies_min > 0).
-                BinTypeId smallest_mandaotry_bin_type_id = -1;
+                BinTypeId smallest_mandatory_bin_type_id = -1;
                 for (BinTypeId bin_type_id = 0;
                         bin_type_id < instance.number_of_bin_types();
                         ++bin_type_id) {
                     const auto& bin_type = instance.bin_type(bin_type_id);
                     if (solution.bin_copies(bin_type_id) >= bin_type.copies_min)
                         continue;
-                    if (smallest_mandaotry_bin_type_id == -1
-                            || bin_type.space() < instance.bin_type(smallest_mandaotry_bin_type_id).space()) {
-                        smallest_mandaotry_bin_type_id = bin_type_id;
+                    if (smallest_mandatory_bin_type_id == -1
+                            || bin_type.space() < instance.bin_type(smallest_mandatory_bin_type_id).space()) {
+                        smallest_mandatory_bin_type_id = bin_type_id;
                     }
                 }
 
-                if (smallest_mandaotry_bin_type_id != -1) {
-                    bin_type_ids.push_back(smallest_mandaotry_bin_type_id);
+                if (smallest_mandatory_bin_type_id != -1) {
+                    bin_type_ids.push_back(smallest_mandatory_bin_type_id);
                 } else {
                     for (BinTypeId bin_type_id = 0;
                             bin_type_id < instance.number_of_bin_types();
