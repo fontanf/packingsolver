@@ -348,5 +348,17 @@ Solution SolutionBuilder::build()
         solution_.update_indicators(bin_pos);
     }
 
+    // Check the size of nodes containing items.
+    // TODO
+
+    // Check min waste constraint.
+    // TODO
+
+    // Check consecutive cuts constraints.
+    // TODO
+
+    // Check stack order.
+    // TODO
+
     return std::move(solution_);
 }

@@ -254,4 +254,3 @@ std::ostream& operator<<(
 
 }
 }
-
