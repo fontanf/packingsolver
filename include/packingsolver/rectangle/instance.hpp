@@ -366,7 +366,7 @@ public:
     inline ItemPos maximum_item_copies() const { return maximum_item_copies_; }
 
     /** Return true iff all items have infinite copies. */
-    inline bool unbounded_knapsck() const { return all_item_types_infinite_copies_; }
+    inline bool unbounded_knapsack() const { return all_item_types_infinite_copies_; }
 
     /*
      * Getters: item type dimensions

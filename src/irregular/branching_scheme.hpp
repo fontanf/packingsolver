@@ -314,7 +314,7 @@ public:
                 const std::shared_ptr<Node>& node_1,
                 const std::shared_ptr<Node>& node_2) const
         {
-            //if (branching_scheme.unbounded_knapsck_)
+            //if (branching_scheme.unbounded_knapsack_)
             //    return true;
             return node_1->item_number_of_copies == node_2->item_number_of_copies;
         }
@@ -322,7 +322,7 @@ public:
         inline std::size_t operator()(
                 const std::shared_ptr<Node>& node) const
         {
-            //if (branching_scheme.unbounded_knapsck_)
+            //if (branching_scheme.unbounded_knapsack_)
             //    return 0;
             size_t hash = 0;
             for (ItemPos s: node->item_number_of_copies)

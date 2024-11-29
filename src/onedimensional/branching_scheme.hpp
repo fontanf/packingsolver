@@ -196,7 +196,7 @@ public:
         inline std::size_t operator()(
                 const std::shared_ptr<Node>& node) const
         {
-            if (branching_scheme.instance().unbounded_knapsck())
+            if (branching_scheme.instance().unbounded_knapsack())
                 return 0;
             size_t hash = 0;
             for (ItemPos s: node->item_number_of_copies)

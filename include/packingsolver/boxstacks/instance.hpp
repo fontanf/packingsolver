@@ -374,7 +374,7 @@ public:
     inline ItemTypeId max_efficiency_item_type_id() const { return max_efficiency_item_type_id_; }
 
     /** Return true iff all items have infinite copies. */
-    inline bool unbounded_knapsck() const { return all_item_types_infinite_copies_; }
+    inline bool unbounded_knapsack() const { return all_item_types_infinite_copies_; }
 
     /** Get a group. */
     inline const Group& group(GroupId group_id) const { return groups_[group_id]; }
