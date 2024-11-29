@@ -131,7 +131,7 @@ BranchingScheme::BranchingScheme(
         //    << std::endl;
     }
 
-    //unbounded_knapsck_ = instance.unbounded_knapsck();
+    //unbounded_knapsack_ = instance.unbounded_knapsack();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

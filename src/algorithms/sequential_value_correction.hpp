@@ -16,7 +16,7 @@
  * For Variable-sized bin packing, this algorithm should require less
  * computational effort to find a good solution than the other algorithms for
  * this objective.
- * For multiple knapsck and bin packing, it is useful for boxstacks problem
+ * For multiple knapsack and bin packing, it is useful for boxstacks problem
  * type since, in this case, tree search might not be applied directly to get a
  * good solution.
  *
