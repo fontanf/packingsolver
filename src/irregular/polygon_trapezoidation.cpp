@@ -95,6 +95,11 @@ std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
             }
         }
     }
+    throw std::runtime_error(
+            "irregular::find_trapezoid_containing_vertex."
+            " no open trapezoid containing vertex "
+            + vertex.to_string()
+            + " found.");
     return res;
 }
 
@@ -764,8 +769,8 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
 
         } else {
             throw std::runtime_error(
-                    "polygon_trapezoidation."
-                    "flag: " + std::to_string((int)vertices[shape_pos][element_pos].flag)
+                    "irregular::polygon_trapezoidation."
+                    " flag: " + std::to_string((int)vertices[shape_pos][element_pos].flag)
                     + "; flag_next: " + std::to_string((int)vertices[shape_pos_next][element_pos_next].flag)
                     + ".");
 
@@ -783,7 +788,7 @@ std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidati
     if (!equal(shape_area, trapezoidation_area)) {
         throw std::runtime_error(
                 "polygon_trapezoidation."
-                "shape_area: " + std::to_string(shape_area)
+                " shape_area: " + std::to_string(shape_area)
                 + "; trapezoidation_area: " + std::to_string(trapezoidation_area)
                 + ".");
     }
