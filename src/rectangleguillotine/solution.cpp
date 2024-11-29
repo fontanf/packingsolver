@@ -62,9 +62,6 @@ void Solution::update_indicators(
             item_area_ += bin.copies * instance().item_type(node.item_type_id).area();
             profit_ += bin.copies * instance().item_type(node.item_type_id).profit;
             item_copies_[node.item_type_id] += bin.copies;
-
-            // Check the size of nodes containing items.
-            // TODO
         }
 
         // Subtract residual area.
@@ -76,16 +73,7 @@ void Solution::update_indicators(
             width_ = node.r;
         if (node.t < bin_type.rect.h && height_ < node.t)
             height_ = node.t;
-
-        // Check min waste constraint.
-        // TODO
-
-        // Check consecutive cuts constraints.
-        // TODO
     }
-
-    // Check stack order.
-    // TODO
 }
 
 void Solution::append(
