@@ -7,6 +7,7 @@ PackingSolver's documentation
 
    self
    objectives
+   optimization_modes
    rectangleguillotine
    rectangle
    boxstacks
