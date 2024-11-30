@@ -29,4 +29,4 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # html_theme = 'sphinx_book_theme'
 html_theme = 'classic'
 html_static_path = ['_static']
-html_sidebars = { '**': ['searchbox.html', 'globaltoc.html', 'localtoc.html'] }
+html_sidebars = { '**': ['searchbox.html', 'globaltoc.html'] }
