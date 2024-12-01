@@ -773,12 +773,12 @@ elif benchmark == "rectangleguillotine_knapsack_3nvo_alvarez2002":
         show_datafram(df)
 
 
-elif benchmark == "rectangleguillotine_knapsack_3nvo_cui2012":
+elif benchmark == "rectangleguillotine_knapsack_3nvo_cui2015":
 
     datacsv_path = os.path.join(
             "data",
             "rectangle",
-            "data_knapsack_3nvo_cui2012.csv")
+            "data_knapsack_3nvo_cui2015.csv")
 
     data_dir = os.path.dirname(os.path.realpath(datacsv_path))
     with open(datacsv_path, newline='') as csvfile:
