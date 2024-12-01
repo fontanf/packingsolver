@@ -285,6 +285,9 @@ struct Parameters: optimizationtools::Parameters
 
     /** New solution callback. */
     NewSolutionCallback<Instance, Solution> new_solution_callback = [](const Output<Instance, Solution>&) { };
+
+    /** JSON search tree path. */
+    std::string json_search_tree_path;
 };
 
 template <typename Instance>

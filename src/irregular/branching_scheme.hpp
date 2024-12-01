@@ -411,9 +411,30 @@ public:
     Solution to_solution(
             const std::shared_ptr<Node>& node) const;
 
+    std::string to_svg(
+            const std::shared_ptr<Node>& node) const;
+
     void write_svg(
             const std::shared_ptr<Node>& node,
             const std::string& file_path) const;
+
+    nlohmann::json node_export(
+            const std::shared_ptr<Node>& node) const
+    {
+        return {
+            {"ID", node->id},
+            {"ParentID", (node->parent == nullptr)? -1: node->parent->id},
+            {"TrapezoidSetId", node->trapezoid_set_id},
+            {"X", node->x},
+            {"Y", node->y},
+            {"NumberOfItems", node->number_of_items},
+            {"NumberOfBins", node->number_of_bins},
+            {"Profit", node->profit},
+            {"ItemArea", node->item_area},
+            {"ItemConvexHullArea", node->item_convex_hull_area},
+            {"GuideArea", node->guide_area},
+            {"SVG", to_svg(node)}};
+    }
 
 private:
 
