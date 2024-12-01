@@ -50,7 +50,7 @@ FetchContent_MakeAvailable(knapsacksolver)
 FetchContent_Declare(
     treesearchsolver
     GIT_REPOSITORY https://github.com/fontanf/treesearchsolver.git
-    GIT_TAG 985b0d81868cf636d3577f6e88dcad14425345ea
+    GIT_TAG b3576ba2c6bee690fb80dc5d3ae407f77e7d8989
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../treesearchsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(treesearchsolver)

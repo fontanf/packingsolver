@@ -143,6 +143,8 @@ void optimize_tree_search(
                     ibs_parameters.maximum_size_of_the_queue
                         = parameters.not_anytime_tree_search_queue_size;
                 }
+                if (!parameters.json_search_tree_path.empty())
+                    ibs_parameters.write_json_search_tree = true;
                 ibs_parameters_list.push_back(ibs_parameters);
                 outputs.push_back(irregular::Output(instance));
             }
@@ -150,6 +152,7 @@ void optimize_tree_search(
     }
 
     std::vector<std::thread> threads;
+    std::vector<std::shared_ptr<treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>>> ibs_outputs(branching_schemes.size(), nullptr);
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
@@ -192,14 +195,16 @@ void optimize_tree_search(
         } else if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
-                        wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>,
+                        wrapper<decltype(&optimize_tree_search_worker), optimize_tree_search_worker>,
                         std::ref(exception_ptr_list.front()),
                         std::ref(branching_schemes[i]),
-                        ibs_parameters_list[i]));
+                        std::ref(ibs_parameters_list[i]),
+                        std::ref(ibs_outputs[i])));
         } else {
-            treesearchsolver::iterative_beam_search_2<BranchingScheme>(
+            optimize_tree_search_worker(
                     branching_schemes[i],
-                    ibs_parameters_list[i]);
+                    ibs_parameters_list[i],
+                    ibs_outputs[i]);
         }
     }
     for (Counter i = 0; i < (Counter)threads.size(); ++i)
@@ -214,6 +219,22 @@ void optimize_tree_search(
                 << " d " << (int)branching_schemes[i].parameters().direction;
             algorithm_formatter.update_solution(outputs[i].solution_pool.best(), ss.str());
         }
+    }
+
+    if (!parameters.json_search_tree_path.empty()) {
+        nlohmann::json json_search_tree;
+        for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
+            std::string key = "guide_"
+                + std::to_string(branching_schemes[i].parameters().guide_id)
+                + "_d_" + std::to_string((int)branching_schemes[i].parameters().direction);
+            json_search_tree[key] = ibs_outputs[i]->json_search_tree;
+        }
+        std::ofstream file(parameters.json_search_tree_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    "Unable to open file \"" + parameters.json_search_tree_path + "\".");
+        }
+        file << std::setw(4) << json_search_tree << std::endl;
     }
 }
 
