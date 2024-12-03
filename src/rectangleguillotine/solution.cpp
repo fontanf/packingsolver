@@ -90,13 +90,15 @@ void Solution::append(
             area_ -= (node.t - node.b) * (node.r - node.l);
         }
     }
+    const SolutionBin& bin_old = solution.bin(bin_pos);
     BinTypeId bin_type_id = (bin_type_ids.empty())?
-        solution.bins_[bin_pos].bin_type_id:
-        bin_type_ids[solution.bins_[bin_pos].bin_type_id];
+        bin_old.bin_type_id:
+        bin_type_ids[bin_old.bin_type_id];
     SolutionBin bin;
     bin.bin_type_id = bin_type_id;
     bin.copies = copies;
-    for (SolutionNode node: solution.bin(bin_pos).nodes) {
+    bin.first_cut_orientation = bin_old.first_cut_orientation;
+    for (SolutionNode node: bin_old.nodes) {
         if (node.item_type_id >= 0)
             node.item_type_id = (item_type_ids.empty())?
                 node.item_type_id:
