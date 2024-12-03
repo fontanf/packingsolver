@@ -6,13 +6,13 @@
  *
  * Input:
  * - m bin types with lower bounds lᵢ, upper bounds uᵢ and costs cᵢ (i = 0..m)
- * - n item types with qᵢ copies
+ * - n item types with qⱼ copies
  * Problem:
  * - pack all items in a subset of the bins.
  * Objective:
  * - minimize the sum of the cost of the bins used.
  *
- * The linear programming formulation of the Variable-sized Bin Packing Problem
+ * The linear programming formulation of the variable-sized bin packing problem
  * based on Dantzig–Wolfe decomposition is written as follows:
  *
  * Variables:
@@ -28,16 +28,16 @@
  *                           (bounds on the number of bins for each bin type)
  *                                                         Dual variables: uⱼ
  *
- * qⱼ <= ∑ₖ xⱼᵏ yᵢᵏ <= qⱼ     for all item types j
+ * qⱼ <= ∑ₖ xⱼᵢᵏ yᵢᵏ <= qⱼ     for all item types j
  *                                      (each item selected exactly qⱼ times)
  *                                                         Dual variables: vⱼ
  *
  * The pricing problem consists in finding a variable of negative reduced cost.
- * The reduced cost of a variable yᵏ is given by:
- * rc(yᵢᵏ) = cᵢ - uᵢ - ∑ⱼ xⱼᵏ vⱼ
+ * The reduced cost of a variable yᵢᵏ is given by:
+ * rc(yᵢᵏ) = cᵢ - uᵢ - ∑ⱼ xⱼᵢᵏ vⱼ
  *
  * Therefore, finding a variable of minium reduced cost reduces to solving
- * a Bounded Knapsack Problems with items with profit vⱼ.
+ * m bounded knapsack problems with items with profit vⱼ.
  *
  */
 
