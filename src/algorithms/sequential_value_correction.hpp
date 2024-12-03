@@ -232,11 +232,43 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
 
                 auto kp_solution = kp_solution_pool.best();
 
+                if (kp_solution.number_of_different_bins() == 0) {
+                    solutions_cur[bin_type_id].first = Solution(instance);
+                    solutions_cur[bin_type_id].second = 0;
+                    continue;
+                }
+
+                // Compute the number of copies of the selected Knapsack solution
+                // to add.
+                BinPos number_of_copies
+                    = instance.bin_type(bin_type_id).copies
+                    - solution.bin_copies(bin_type_id);
+                for (ItemTypeId kp_item_type_id = 0;
+                        kp_item_type_id < kp_instance.number_of_item_types();
+                        ++kp_item_type_id) {
+                    ItemTypeId item_type_id = kp2orig[kp_item_type_id];
+                    ItemPos item_remaining_copies
+                        = instance.item_type(item_type_id).copies
+                        - solution.item_copies(item_type_id);
+                    ItemPos item_packed_copies = kp_solution.item_copies(kp_item_type_id);
+                    if (item_packed_copies > 0) {
+                        number_of_copies = std::min(
+                                number_of_copies,
+                                (BinPos)(item_remaining_copies / item_packed_copies));
+                    }
+                }
+                if (number_of_copies < 1) {
+                    throw std::logic_error(
+                            "number_of_copies: " + std::to_string(number_of_copies) + ".");
+                }
+
                 // If the objective is BinPackingWithLeftovers and this is the
                 // last bin, then we re-optimize it to maximize the leftover
                 // value.
                 if (instance.objective() == Objective::BinPackingWithLeftovers
-                        && kp_solution.number_of_items() == kp_instance.number_of_items()) {
+                        && solution.number_of_items()
+                        + number_of_copies * kp_solution.number_of_items()
+                        == instance.number_of_items()) {
 
                     InstanceBuilder bppl_instance_builder;
                     bppl_instance_builder.set_objective(Objective::BinPackingWithLeftovers);
@@ -264,12 +296,32 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     }
                 }
 
-                Solution solution(instance);
-                if (kp_solution.number_of_different_bins() > 0)
-                    solution.append(kp_solution, 0, 1, {bin_type_id}, kp2orig);
-                solutions_cur[bin_type_id].first = solution;
+                Solution kp_solution_orig(instance);
+                kp_solution_orig.append(kp_solution, 0, 1, {bin_type_id}, kp2orig);
+                solutions_cur[bin_type_id].first = kp_solution_orig;
                 solutions_cur[bin_type_id].second = kp_solution.profit();
-                output.all_patterns.push_back(solution);
+                output.all_patterns.push_back(kp_solution_orig);
+
+                // If the objective is VariableSizedBinPacking and the
+                // current solution is full, check if it is the new best
+                // solution.
+                if (instance.objective() == Objective::VariableSizedBinPacking
+                        && solution.number_of_items()
+                        + number_of_copies * kp_solution.number_of_items()
+                        == instance.number_of_items()) {
+
+                    // Update current solution.
+                    Solution solution_tmp = solution;
+                    solution_tmp.append(
+                            kp_solution_orig,
+                            0,
+                            number_of_copies);
+
+                    // Update best solution.
+                    std::stringstream ss;
+                    ss << "iteration " << output.number_of_iterations;
+                    algorithm_formatter.update_solution(solution_tmp, ss.str());
+                }
             }
 
             // Find best solution.

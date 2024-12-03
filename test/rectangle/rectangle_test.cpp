@@ -71,4 +71,10 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_parameters.csv",
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_solution.csv",
+            }, {
+                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_items.csv",
+                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_solution.csv",
             }}));
