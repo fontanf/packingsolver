@@ -180,9 +180,6 @@ private:
      * Private methods
      */
 
-    /** Compute number of items. */
-    ItemPos compute_number_of_items() const;
-
     /** Compute item type max length sum. */
     Length compute_item_types_max_length_sum() const;
 
