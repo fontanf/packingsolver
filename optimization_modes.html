@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Optimization modes &#8212; PackingSolver 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="RectangleGuillotine solver" href="rectangleguillotine.html" />
+    <link rel="prev" title="Objectives" href="objectives.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="rectangleguillotine.html" title="RectangleGuillotine solver"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="objectives.html" title="Objectives"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Optimization modes</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="optimization-modes">
+<span id="id1"></span><h1>Optimization modes<a class="headerlink" href="#optimization-modes" title="Link to this heading">¶</a></h1>
+<p>PackingSolver provides 3 optimization modes:</p>
+<ul class="simple">
+<li><p>Anytime</p></li>
+<li><p>Not-anytime</p></li>
+<li><p>Not-anytime sequential</p></li>
+</ul>
+<section id="anytime-mode">
+<h2>Anytime mode<a class="headerlink" href="#anytime-mode" title="Link to this heading">¶</a></h2>
+<p>In anytime mode, PackingSolver tries to quickly get a solution and looks for improving ones as long as a stopping criterion is not met. This mode is typically meant to be used <strong>with a time limit</strong>.</p>
+<p>The anytime mode uses <strong>multiple threads</strong>, in general about 8 threads.</p>
+<p>In anytime mode, PackingSolver may still stop before any stopping criterion is met if it proved it would not be able to improve the current solution further.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Anytime mode: let the solver find the best possible solution within X seconds.</p>
+</div>
+<p><strong>Example</strong></p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>WIDTH,HEIGHT,COPIES
+100,50,1
+103,53,1
+106,56,1
+109,59,1
+112,62,1
+115,65,1
+118,68,1
+121,71,1
+124,74,1
+127,77,1
+130,80,1
+133,83,1
+136,86,1
+139,89,1
+142,92,1
+145,95,1
+148,98,1
+151,101,1
+154,104,1
+157,107,1
+160,110,1
+163,113,1
+166,116,1
+169,119,1
+172,122,1
+175,125,1
+178,128,1
+181,131,1
+184,134,1
+187,137,1
+190,140,1
+193,143,1
+196,146,1
+199,149,1
+202,152,1
+205,155,1
+208,158,1
+211,161,1
+214,164,1
+217,167,1
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>WIDTH,HEIGHT,COPIES
+1000,500,20
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id4" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>NAME,VALUE
+objective,bin-packing-with-leftovers
+</pre></div>
+</div>
+</div>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution_rectangle.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--optimization-mode<span class="w"> </span>anytime<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--time-limit<span class="w"> </span><span class="m">15</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>=================================
+          PackingSolver
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             BinPackingWithLeftovers
+Number of item types:  40
+Number of items:       40
+Number of bin types:   1
+Number of bins:        20
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item area:       735860
+Total item width:      6340
+Total item height:     4340
+Smallest item width:   50
+Smallest item height:  50
+Total item weight:     0
+Maximum item copies:   1
+Total bin area:        10000000
+Total bin weight:      0
+Maximum bin cost:      500000
+
+        Time      # bins    Leftover                         Comment
+        ----      ------    --------                         -------
+       0.005           2      166300                  TS g 1 d X q 1
+       0.005           2      189800                  TS g 1 d X q 1
+       0.018           2      212864                         SSK q 1
+       0.070           2      216608                  TS g 0 d X q 6
+       0.229           2      218000                 TS g 0 d X q 19
+       0.229           2      221384                 TS g 0 d X q 19
+       0.232           2      223988                 TS g 0 d X q 19
+       0.808           2      224000                 TS g 0 d X q 63
+       0.808           2      225000                 TS g 0 d X q 63
+       0.815           2      226500                 TS g 0 d X q 63
+       1.666           2      230500                        SSK q 64
+      12.251           2      241518                       SSK q 512
+      14.221           2      243015               TS g 1 d X q 1066
+
+Final statistics
+----------------
+Time (s):  15.0054
+
+Solution
+--------
+Number of items:  40 / 40 (100%)
+Item area:        735860 / 735860 (100%)
+Item weight:      0 / 0 (-nan%)
+Item profit:      735860 / 735860 (100%)
+Number of bins:   2 / 20 (10%)
+Bin area:         1000000 / 10000000 (10%)
+Bin weight:       0 / 0 (-nan%)
+Bin cost:         1e+06
+Waste:            21125
+Waste (%):        2.79068
+Full waste:       264140
+Full waste (%):   26.414
+Area load:        0.073586
+Weight load:      -nan
+X max:            515
+Y max:            499
+Leftover value:   243015
+</pre></div>
+</div>
+</section>
+<section id="non-anytime-modes">
+<h2>Non-anytime modes<a class="headerlink" href="#non-anytime-modes" title="Link to this heading">¶</a></h2>
+<p>In non-anytime modes, PackingSolver stops by itself. These modes are meant to always return solutions of similar quality even with instances of different sizes. The resolution time will be smaller for smaller instances and larger for larger instances.</p>
+<p>Non-anytime modes are more complex to use, since defining accurately the desired quality requires tuning the algorithms parameters (for now).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Non-anytime mode: let the solver find a solution of a given quality</p>
+</div>
+<p>There are 2 non-anytime modes. The <cite>not-anytime</cite> mode uses multiple threads, typically about 8 threads. The <cite>not-anytime-sequential</cite> mode uses a single thread.</p>
+<p>The <cite>not-anytime-sequential</cite> mode is <strong>deterministic</strong>. The other optimization modes may not be deterministic even if they should be most of the time.</p>
+<p><strong>Example</strong></p>
+<p>Same input as above. The solver terminates after 35 seconds.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution_rectangle.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--optimization-mode<span class="w"> </span>not-anytime
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>=================================
+          PackingSolver
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             BinPackingWithLeftovers
+Number of item types:  40
+Number of items:       40
+Number of bin types:   1
+Number of bins:        20
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item area:       735860
+Total item width:      6340
+Total item height:     4340
+Smallest item width:   50
+Smallest item height:  50
+Total item weight:     0
+Maximum item copies:   1
+Total bin area:        10000000
+Total bin weight:      0
+Maximum bin cost:      500000
+
+        Time      # bins    Leftover                         Comment
+        ----      ------    --------                         -------
+      17.920           2      234000                      TS g 0 d X
+      17.921           2      241518                      TS g 1 d X
+      28.537           2      246020                      SSK q 2048
+
+Final statistics
+----------------
+Time (s):  34.1616
+
+Solution
+--------
+Number of items:  40 / 40 (100%)
+Item area:        735860 / 735860 (100%)
+Item weight:      0 / 0 (-nan%)
+Item profit:      735860 / 735860 (100%)
+Number of bins:   2 / 20 (10%)
+Bin area:         1000000 / 10000000 (10%)
+Bin weight:       0 / 0 (-nan%)
+Bin cost:         1e+06
+Waste:            18120
+Waste (%):        2.40325
+Full waste:       264140
+Full waste (%):   26.414
+Area load:        0.073586
+Weight load:      -nan
+X max:            510
+Y max:            498
+Leftover value:   246020
+</pre></div>
+</div>
+<p>Now if we remove half of the items, the solver terminates after 22 seconds.</p>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id5" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>WIDTH,HEIGHT,COPIES
+100,50,1
+106,56,1
+112,62,1
+118,68,1
+124,74,1
+130,80,1
+136,86,1
+142,92,1
+148,98,1
+154,104,1
+160,110,1
+166,116,1
+172,122,1
+178,128,1
+184,134,1
+190,140,1
+196,146,1
+202,152,1
+208,158,1
+214,164,1
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id6" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>WIDTH,HEIGHT,COPIES
+1000,500,20
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id7">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id7" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>NAME,VALUE
+objective,bin-packing-with-leftovers
+</pre></div>
+</div>
+</div>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution_rectangle.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--optimization-mode<span class="w"> </span>not-anytime
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>=================================
+          PackingSolver
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             BinPackingWithLeftovers
+Number of item types:  20
+Number of items:       20
+Number of bin types:   1
+Number of bins:        20
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item area:       359920
+Total item width:      3140
+Total item height:     2140
+Smallest item width:   50
+Smallest item height:  50
+Total item weight:     0
+Maximum item copies:   1
+Total bin area:        10000000
+Total bin weight:      0
+Maximum bin cost:      500000
+
+        Time      # bins    Leftover                         Comment
+        ----      ------    --------                         -------
+       5.982           1      131000                      TS g 0 d X
+
+Final statistics
+----------------
+Time (s):  22.0075
+
+Solution
+--------
+Number of items:  20 / 20 (100%)
+Item area:        359920 / 359920 (100%)
+Item weight:      0 / 0 (-nan%)
+Item profit:      359920 / 359920 (100%)
+Number of bins:   1 / 20 (5%)
+Bin area:         500000 / 10000000 (5%)
+Bin weight:       0 / 0 (-nan%)
+Bin cost:         500000
+Waste:            9080
+Waste (%):        2.4607
+Full waste:       140080
+Full waste (%):   28.016
+Area load:        0.035992
+Weight load:      -nan
+X max:            738
+Y max:            500
+Leftover value:   131000
+</pre></div>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Optimization modes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#anytime-mode">Anytime mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#non-anytime-modes">Non-anytime modes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html">RectangleGuillotine solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html">Rectangle solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html">BoxStacks solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html">OneDimensional solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html">Irregular solver</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="rectangleguillotine.html" title="RectangleGuillotine solver"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="objectives.html" title="Objectives"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Optimization modes</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+  </body>
+</html>

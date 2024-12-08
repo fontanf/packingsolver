@@ -1,0 +1,4 @@
+.. _rectangleguillotine:
+
+RectangleGuillotine solver
+==========================

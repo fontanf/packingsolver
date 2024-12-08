@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>OneDimensional solver &#8212; PackingSolver 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Irregular solver" href="irregular.html" />
+    <link rel="prev" title="BoxStacks solver" href="boxstacks.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="irregular.html" title="Irregular solver"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="boxstacks.html" title="BoxStacks solver"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">OneDimensional solver</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="onedimensional-solver">
+<span id="onedimensional"></span><h1>OneDimensional solver<a class="headerlink" href="#onedimensional-solver" title="Link to this heading">¶</a></h1>
+<p>The OneDimensional solver solves problems with one-dimensional items and bins.</p>
+<p>These problems occur for example when cutting paper rolls, pipes, cables, steel bars; or when stacking parcels.</p>
+<p>This dimension is called length here.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Objectives:</p>
+<ul>
+<li><p>Knapsack</p></li>
+<li><p>Bin packing</p></li>
+<li><p>Bin packing with leftovers</p></li>
+<li><p>Variable-sized bin packing</p></li>
+</ul>
+</li>
+<li><p>Item types</p>
+<ul>
+<li><p>Nesting length</p></li>
+<li><p>Maximum number of items in a bin containing an item of a given type</p></li>
+<li><p>Maximum weight allowed after an item of a given type</p></li>
+</ul>
+</li>
+<li><p>Bin types</p>
+<ul>
+<li><p>Maximum weight</p></li>
+</ul>
+</li>
+<li><p>Item type / bin type eligibility</p></li>
+</ul>
+<section id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Link to this heading">¶</a></h2>
+<p>The OneDimensional solver takes as input:</p>
+<ul class="simple">
+<li><p>an item CSV file; option: <code class="docutils literal notranslate"><span class="pre">--items</span> <span class="pre">items.csv</span></code></p></li>
+<li><p>a bin CSV file; option: <code class="docutils literal notranslate"><span class="pre">--bins</span> <span class="pre">bins.csv</span></code></p></li>
+<li><p>a parameter CSV file; option: <code class="docutils literal notranslate"><span class="pre">--parameters</span> <span class="pre">parameters.csv</span></code></p></li>
+</ul>
+<p>It outputs:</p>
+<ul class="simple">
+<li><p>a solution CSV file; option: <code class="docutils literal notranslate"><span class="pre">--certificate</span> <span class="pre">solution.csv</span></code></p></li>
+</ul>
+<p>The <strong>item file</strong> contains:</p>
+<ul class="simple">
+<li><p>The dimension of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">X</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the item type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>The profit of an item of this type (for a knapsack objective)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">PROFIT</span></code></p></li>
+<li><p>default value: item length</p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>bin file</strong> contains:</p>
+<ul class="simple">
+<li><p>The dimension of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">X</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the bin type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>The cost of a bin of this type (for a variable-sized bin packing objective)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COST</span></code></p></li>
+<li><p>default value: bin length</p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>parameter file</strong> has two columns: <code class="docutils literal notranslate"><span class="pre">NAME</span></code> and <code class="docutils literal notranslate"><span class="pre">VALUE</span></code>. The possible entries are:</p>
+<ul class="simple">
+<li><p>The objective; name: <code class="docutils literal notranslate"><span class="pre">objective</span></code>; possible values:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">knapsasck</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>The output <strong>certificate file</strong> is a CSV file as well. Each line corresponds to either a bin - if the value in the <code class="docutils literal notranslate"><span class="pre">TYPE</span></code> column is <code class="docutils literal notranslate"><span class="pre">BIN</span></code> - or to an item of the solution - if the value in the <code class="docutils literal notranslate"><span class="pre">TYPE</span></code> column is <code class="docutils literal notranslate"><span class="pre">ITEM</span></code>.</p>
+<p>A line corresponding to a bin contains:</p>
+<ul class="simple">
+<li><p>The id of the bin type</p>
+<ul>
+<li><p>Column <code class="docutils literal notranslate"><span class="pre">ID</span></code></p></li>
+</ul>
+</li>
+<li><p>The number of copies of this bin in the solution</p>
+<ul>
+<li><p>Column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+</ul>
+</li>
+<li><p>The length of the bin (input)</p>
+<ul>
+<li><p>Column <code class="docutils literal notranslate"><span class="pre">X</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>A line corresponding to an item contains:</p>
+<ul class="simple">
+<li><p>The id of the item type</p>
+<ul>
+<li><p>Column <code class="docutils literal notranslate"><span class="pre">ID</span></code></p></li>
+</ul>
+</li>
+<li><p>The starting length of the item</p>
+<ul>
+<li><p>Column <code class="docutils literal notranslate"><span class="pre">X</span></code></p></li>
+</ul>
+</li>
+<li><p>The length of the item (input)</p>
+<ul>
+<li><p>Column <code class="docutils literal notranslate"><span class="pre">LX</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p><strong>Example</strong></p>
+<p>Inputs</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>X
+193
+197
+199
+211
+223
+227
+229
+233
+239
+241
+251
+257
+263
+269
+271
+277
+281
+283
+293
+307
+311
+313
+317
+331
+337
+347
+349
+353
+359
+367
+373
+379
+383
+389
+397
+401
+409
+419
+421
+431
+433
+439
+443
+449
+457
+461
+463
+467
+479
+487
+491
+499
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>X,COPIES
+1000,100
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>NAME,VALUE
+objective,bin-packing
+</pre></div>
+</div>
+</div>
+<p>Solve:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_onedimensional<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>=================================
+          PackingSolver
+=================================
+
+Problem type
+------------
+OneDimensional
+
+Instance
+--------
+Objective:             BinPacking
+Number of item types:  52
+Number of items:       52
+Number of bin types:   1
+Number of bins:        100
+Maximum item copies:   1
+Maximum bin cost:      1000
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.001      20           10.51                      TS g 0 q 1
+       0.003      19            5.80                      TS g 2 q 2
+       0.130      18            0.57                         CG n 18
+
+Final statistics
+----------------
+Time (s):  0.131665
+
+Solution
+--------
+Number of items:  52 / 52 (100%)
+Item length:      17898 / 17898 (100%)
+Item profit:      17898 / 17898 (100%)
+Number of bins:   18 / 100 (18%)
+Bin length:       18000 / 100000 (18%)
+Bin cost:         18000
+Waste:            75
+Waste (%):        0.417293
+Full waste:       102
+Full waste (%):   0.566667
+</pre></div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">solution.csv</span><a class="headerlink" href="#id4" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span> TYPE,ID,COPIES,BIN,X,LX
+ BIN,0,1,0,0,1000
+ ITEM,50,1,0,0,491
+ ITEM,51,1,0,491,499
+ BIN,0,1,1,0,1000
+ ITEM,48,1,1,0,479
+ ITEM,49,1,1,479,487
+ BIN,0,1,2,0,1000
+ ITEM,5,1,2,0,227
+ ITEM,32,1,2,227,383
+ ITEM,33,1,2,610,389
+ BIN,0,1,3,0,1000
+ ITEM,9,1,3,0,241
+ ITEM,26,1,3,241,349
+ ITEM,36,1,3,590,409
+ BIN,0,1,4,0,1000
+ ITEM,15,1,4,0,277
+ ITEM,17,1,4,277,283
+ ITEM,41,1,4,560,439
+ BIN,0,1,5,0,1000
+ ITEM,3,1,5,0,211
+ ITEM,29,1,5,211,367
+ ITEM,38,1,5,578,421
+ BIN,0,1,6,0,1000
+ ITEM,0,1,6,0,193
+ ITEM,30,1,6,193,373
+ ITEM,40,1,6,566,433
+ BIN,0,1,7,0,1000
+ ITEM,1,1,7,0,197
+ ITEM,27,1,7,197,353
+ ITEM,43,1,7,550,449
+ BIN,0,1,8,0,1000
+ ITEM,8,1,8,0,239
+ ITEM,28,1,8,239,359
+ ITEM,35,1,8,598,401
+ BIN,0,1,9,0,1000
+ ITEM,11,1,9,0,257
+ ITEM,16,1,9,257,281
+ ITEM,45,1,9,538,461
+ BIN,0,1,10,0,1000
+ ITEM,10,1,10,0,251
+ ITEM,22,1,10,251,317
+ ITEM,39,1,10,568,431
+ BIN,0,1,11,0,1000
+ ITEM,13,1,11,0,269
+ ITEM,20,1,11,269,311
+ ITEM,37,1,11,580,419
+ BIN,0,1,12,0,1000
+ ITEM,14,1,12,0,271
+ ITEM,25,1,12,271,347
+ ITEM,31,1,12,618,379
+ BIN,0,1,13,0,1000
+ ITEM,12,1,13,0,263
+ ITEM,24,1,13,263,337
+ ITEM,34,1,13,600,397
+ BIN,0,1,14,0,1000
+ ITEM,6,1,14,0,229
+ ITEM,21,1,14,229,313
+ ITEM,44,1,14,542,457
+ BIN,0,1,15,0,1000
+ ITEM,7,1,15,0,233
+ ITEM,18,1,15,233,293
+ ITEM,46,1,15,526,463
+ BIN,0,1,16,0,1000
+ ITEM,4,1,16,0,223
+ ITEM,19,1,16,223,307
+ ITEM,47,1,16,530,467
+ BIN,0,1,17,0,1000
+ ITEM,2,1,17,0,199
+ ITEM,23,1,17,199,331
+ ITEM,42,1,17,530,443
+</pre></div>
+</div>
+</div>
+<p>Visualize:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/visualize_onedimensional.py<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/onedimensional_solution.png"><img alt="_images/onedimensional_solution.png" class="align-center" src="_images/onedimensional_solution.png" style="width: 512pt;" />
+</a>
+</section>
+<section id="nesting-length">
+<h2>Nesting length<a class="headerlink" href="#nesting-length" title="Link to this heading">¶</a></h2>
+</section>
+<section id="maximum-number-of-items-in-a-bin-containing-an-item-of-a-given-type">
+<h2>Maximum number of items in a bin containing an item of a given type<a class="headerlink" href="#maximum-number-of-items-in-a-bin-containing-an-item-of-a-given-type" title="Link to this heading">¶</a></h2>
+</section>
+<section id="maximum-weight-allowed-after-an-item-of-a-given-type">
+<h2>Maximum weight allowed after an item of a given type<a class="headerlink" href="#maximum-weight-allowed-after-an-item-of-a-given-type" title="Link to this heading">¶</a></h2>
+</section>
+<section id="maximum-weight-in-a-bin">
+<h2>Maximum weight in a bin<a class="headerlink" href="#maximum-weight-in-a-bin" title="Link to this heading">¶</a></h2>
+</section>
+<section id="item-type-bin-type-eligibility">
+<h2>Item type / bin type eligibility<a class="headerlink" href="#item-type-bin-type-eligibility" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html">RectangleGuillotine solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html">Rectangle solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html">BoxStacks solver</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">OneDimensional solver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#nesting-length">Nesting length</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-number-of-items-in-a-bin-containing-an-item-of-a-given-type">Maximum number of items in a bin containing an item of a given type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-weight-allowed-after-an-item-of-a-given-type">Maximum weight allowed after an item of a given type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-weight-in-a-bin">Maximum weight in a bin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#item-type-bin-type-eligibility">Item type / bin type eligibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html">Irregular solver</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="irregular.html" title="Irregular solver"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="boxstacks.html" title="BoxStacks solver"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">OneDimensional solver</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+  </body>
+</html>

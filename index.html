@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>PackingSolver’s documentation &#8212; PackingSolver 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Objectives" href="objectives.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="objectives.html" title="Objectives"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">PackingSolver’s documentation</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="packingsolver-s-documentation">
+<h1>PackingSolver’s documentation<a class="headerlink" href="#packingsolver-s-documentation" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">¶</a></h2>
+<p><cite>PackingSolver</cite> is a software package dedicated to the practical resolution of cutting and packing problems.</p>
+<p><cite>PackingSolver</cite> takes as input:</p>
+<ul class="simple">
+<li><p>A set of pieces to cut/pack called <strong>items</strong>.</p></li>
+<li><p>A set of containers from which to cut / in which to pack these items, called <strong>bins</strong>.</p></li>
+<li><p>A set of parameters for the optimization</p></li>
+</ul>
+<p>Then <cite>PackingSolver</cite> outputs the cutting/loading plans.</p>
+<p>PackingSolver solves multiple problem types:</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="rectangleguillotine.html#rectangleguillotine"><span class="std std-ref">RectangleGuillotine</span></a></p>
+<ul class="simple">
+<li><p>Items: two-dimensional rectangles</p></li>
+<li><p>Only edge-to-edge cuts are allowed</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine.png"><img alt="rectangleguillotine" src="_images/rectangleguillotine.png" style="width: 512pt;" /></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="rectangle.html#rectangle"><span class="std std-ref">Rectangle</span></a></p>
+<ul class="simple">
+<li><p>Items: two-dimensional rectangles</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/rectangle.png"><img alt="rectangle" src="_images/rectangle.png" style="width: 512pt;" /></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="boxstacks.html#boxstacks"><span class="std std-ref">BoxStacks</span></a></p>
+<ul class="simple">
+<li><p>Items: three-dimensional rectangular parallelepipeds</p></li>
+<li><p>Items can be stacked; a stack contains items with the same width and length</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/boxstacks.png"><img alt="boxstacks" src="_images/boxstacks.png" style="width: 512pt;" /></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="onedimensional.html#onedimensional"><span class="std std-ref">OneDimensional</span></a></p>
+<ul class="simple">
+<li><p>Items: one-dimensional items</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/onedimensional.png"><img alt="onedimensional" src="_images/onedimensional.png" style="width: 512pt;" /></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="irregular.html#irregular"><span class="std std-ref">Irregular</span></a></p>
+<ul class="simple">
+<li><p>Items: two-dimensional polygons</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/irregular.png"><img alt="irregular" src="_images/irregular.png" style="width: 512pt;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="getting-started">
+<h2>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h2>
+<p>Let’s see how to solve a simple rectangle packing problem.</p>
+<p>In a first CSV file, we provide the width, height and number of copies of the items to pack.
+Here we consider two items:</p>
+<ul class="simple">
+<li><p>The first one has a width of 300, a height of 200 and 10 copies.</p></li>
+<li><p>The second one has a width of 250, a height of 150 and 10 copies.</p></li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>WIDTH,HEIGHT,COPIES
+300,200,10
+250,150,10
+</pre></div>
+</div>
+</div>
+<p>In a second CSV file, we provide the width, height and number of copies of the bins in which the items must be packed.
+Here we consider a single container of width 1000 and of height 500 available in 10 copies.</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>WIDTH,HEIGHT,COPIES
+1000,500,10
+</pre></div>
+</div>
+</div>
+<p>Finally, in a third CSV file, we provide the other optimizaton parameters. Here we just set the <code class="code docutils literal notranslate"><span class="pre">objective</span></code> parameter to <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, which means that we look to pack all the items using as few bins as possible. The <a class="reference internal" href="objectives.html#objectives"><span class="std std-ref">objectives</span></a> page gives more details about the possible objectives.</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>NAME,VALUE
+objective,bin-packing
+</pre></div>
+</div>
+</div>
+<p>Now, we use the following command to launch the optimization:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution_rectangle.csv
+</pre></div>
+</div>
+<p>The terminal output looks like:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>=================================
+          PackingSolver
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             BinPacking
+Number of item types:  2
+Number of items:       20
+Number of bin types:   1
+Number of bins:        10
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item area:       975000
+Total item width:      5500
+Total item height:     3500
+Smallest item width:   150
+Smallest item height:  150
+Total bin area:        5000000
+Total item weight:     0
+Total bin weight:      0
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.001       3           35.00                  TS g 0 d X q 1
+       0.002       2            2.50                  TS g 0 d X q 9
+
+Final statistics
+----------------
+Time (s):  0.0166683
+
+Solution
+--------
+Number of items:  20 / 20 (100%)
+Item area:        975000 / 975000 (100%)
+Item weight:      0 / 0 (-nan%)
+Item profit:      975000 / 975000 (100%)
+Number of bins:   2 / 10 (20%)
+Bin area:         1000000 / 5000000 (20%)
+Bin weight:       0 / 0 (-nan%)
+Bin cost:         1e+06
+Waste:            25000
+Waste (%):        2.5
+Full waste:       25000
+Full waste (%):   2.5
+Area load:        0.195
+Weight load:      -nan
+X max:            1000
+Y max:            500
+Leftover value:   0
+</pre></div>
+</div>
+<p>From the terminal output, we see that the solver managed to pack all the items using two bins.
+The loading plans are written in the <code class="code docutils literal notranslate"><span class="pre">solution_rectangle.csv</span></code> file. A script is available to visualize them:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/visualize_rectangle.py<span class="w"> </span>solution_rectangle.csv
+</pre></div>
+</div>
+<p>The script opens a page in a browser where the loading plans are displayed:</p>
+<a class="reference internal image-reference" href="_images/getting_started_solution.png"><img alt="_images/getting_started_solution.png" class="align-center" src="_images/getting_started_solution.png" style="width: 256pt;" />
+</a>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="#">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html">RectangleGuillotine solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html">Rectangle solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html">BoxStacks solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html">OneDimensional solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html">Irregular solver</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="objectives.html" title="Objectives"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">PackingSolver’s documentation</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    </div>
+  </body>
+</html>
