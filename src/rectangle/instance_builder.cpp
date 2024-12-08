@@ -49,10 +49,17 @@ BinTypeId InstanceBuilder::add_bin_type(
                 "'rectangle::InstanceBuilder::add_bin_type'"
                 " requires 'copies_min >= 0'.");
     }
-    if (copies_min > copies) {
-        throw std::runtime_error(
-                "'rectangle::InstanceBuilder::add_bin_type'"
-                " requires 'copies_min <= copies'.");
+    if (copies != -1) {
+        if (copies <= 0) {
+            throw std::runtime_error(
+                    "'rectangle::InstanceBuilder::add_bin_type'"
+                    " requires 'copies > 0' or 'copies == -1'.");
+        }
+        if (copies_min > copies) {
+            throw std::runtime_error(
+                    "'rectangle::InstanceBuilder::add_bin_type'"
+                    " requires 'copies_min <= copies' or 'copies == -1'.");
+        }
     }
 
     BinType bin_type;
@@ -165,25 +172,12 @@ void InstanceBuilder::set_bin_types_infinite_y()
     }
 }
 
-ItemPos InstanceBuilder::compute_number_of_items() const
-{
-    ItemPos number_of_items = 0;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance_.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance_.item_type(item_type_id);
-        number_of_items += item_type.copies;
-    }
-    return number_of_items;
-}
-
 void InstanceBuilder::set_bin_types_infinite_copies()
 {
-    ItemPos number_of_items = compute_number_of_items();
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
-        instance_.bin_types_[bin_type_id].copies = number_of_items;
+        instance_.bin_types_[bin_type_id].copies = -1;
     }
 }
 
@@ -616,6 +610,9 @@ Instance InstanceBuilder::build()
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance_.bin_type(bin_type_id);
+        // Update bin_type.copies.
+        if (bin_type.copies == -1)
+            instance_.bin_types_[bin_type_id].copies = instance_.number_of_items();
         // Update bins_area_sum_.
         instance_.bin_area_ += bin_type.copies * bin_type.area();
         // Update previous_bins_area_ and bin_type_ids_.
