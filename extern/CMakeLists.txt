@@ -34,7 +34,7 @@ FetchContent_MakeAvailable(Boost)
 FetchContent_Declare(
     knapsacksolver
     GIT_REPOSITORY https://github.com/fontanf/knapsacksolver.git
-    GIT_TAG c4eddb0bd2124ad0598507610d356cb82aa72403
+    GIT_TAG abd1acf0704744f5e975e75a1f09cb5a9679e7e8
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../knapsacksolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(knapsacksolver)
@@ -53,7 +53,7 @@ set(COLUMNGENERATIONSOLVER_USE_CLP ON)
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
-    GIT_TAG 096802d9e20d2826aed5b44e3b68ac9df6b20da2
+    GIT_TAG 2540bdeb450126acacf09e96dc0d0c34601adaad
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../columngenerationsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(columngenerationsolver)
