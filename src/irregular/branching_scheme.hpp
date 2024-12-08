@@ -418,23 +418,10 @@ public:
             const std::shared_ptr<Node>& node,
             const std::string& file_path) const;
 
-    nlohmann::json node_export(
-            const std::shared_ptr<Node>& node) const
-    {
-        return {
-            {"ID", node->id},
-            {"ParentID", (node->parent == nullptr)? -1: node->parent->id},
-            {"TrapezoidSetId", node->trapezoid_set_id},
-            {"X", node->x},
-            {"Y", node->y},
-            {"NumberOfItems", node->number_of_items},
-            {"NumberOfBins", node->number_of_bins},
-            {"Profit", node->profit},
-            {"ItemArea", node->item_area},
-            {"ItemConvexHullArea", node->item_convex_hull_area},
-            {"GuideArea", node->guide_area},
-            {"SVG", to_svg(node)}};
-    }
+    nlohmann::json json_export_init();
+
+    nlohmann::json json_export(
+            const std::shared_ptr<Node>& node) const;
 
 private:
 
@@ -454,6 +441,10 @@ private:
     std::vector<std::vector<std::vector<std::vector<GeneralizedTrapezoid>>>> trapezoid_sets_inflated_;
 
     std::vector<AreaDbl> item_types_convex_hull_area_;
+
+    std::vector<std::vector<std::vector<Counter>>> json_items_init_ids_;
+
+    std::vector<std::vector<std::vector<Counter>>> json_bins_init_ids_;
 
     mutable Counter node_id_ = 0;
 

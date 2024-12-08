@@ -176,7 +176,8 @@ void optimize_tree_search(
             std::string key = "guide_"
                 + std::to_string(branching_schemes[i].parameters().guide_id)
                 + "_d_" + std::to_string((int)branching_schemes[i].parameters().direction);
-            json_search_tree[key] = ibs_outputs[i]->json_search_tree;
+            json_search_tree[i] = ibs_outputs[i]->json_search_tree;
+            json_search_tree[i]["Name"] = key;
         }
         std::ofstream file(parameters.json_search_tree_path);
         if (!file.good()) {

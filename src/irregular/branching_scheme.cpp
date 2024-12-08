@@ -2392,56 +2392,99 @@ Solution BranchingScheme::to_solution(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-std::string BranchingScheme::to_svg(
+nlohmann::json BranchingScheme::json_export_init()
+{
+    const auto& trapezoid_sets = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop];
+    nlohmann::json json_init;
+    Counter i = 0;
+
+    // Bins.
+    // TODO
+
+    // Items.
+    json_items_init_ids_ = std::vector<std::vector<std::vector<Counter>>>(trapezoid_sets_.size());
+    for (TrapezoidSetId trapezoid_set_id = 0;
+            trapezoid_set_id < (TrapezoidSetId)trapezoid_sets.size();
+            ++trapezoid_set_id) {
+        const TrapezoidSet& trapezoid_set = trapezoid_sets[trapezoid_set_id];
+        const ItemType& item_type = instance().item_type(trapezoid_set.item_type_id);
+
+        json_items_init_ids_[trapezoid_set_id] = std::vector<std::vector<Counter>>(trapezoid_sets_.size());
+        for (ItemShapePos item_shape_pos = 0;
+                item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
+                ++item_shape_pos) {
+            const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
+
+            json_items_init_ids_[trapezoid_set_id][item_shape_pos] = std::vector<Counter>(trapezoid_sets_.size(), -1);
+            for (TrapezoidPos item_shape_trapezoid_pos = 0;
+                    item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
+                    ++item_shape_trapezoid_pos) {
+                json_items_init_ids_[trapezoid_set_id][item_shape_pos][item_shape_trapezoid_pos] = i;
+                // TODO
+                json_init[i] = {
+
+                };
+                i++;
+            }
+        }
+    }
+
+    return json_init;
+}
+
+nlohmann::json BranchingScheme::json_export(
         const std::shared_ptr<Node>& node) const
 {
-    std::stringstream ss;
-
-    BinPos bin_pos = node->number_of_bins - 1;
-    BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
-    const BinType& bin_type = instance().bin_type(bin_type_id);
-    const BranchingSchemeBinType& bb_bin_type = bin_types_[(int)node->last_bin_direction][bin_type_id];
-    LengthDbl width = (bb_bin_type.x_max - bb_bin_type.x_min);
-    LengthDbl height = (bb_bin_type.y_max - bb_bin_type.y_min);
-
-    double factor = compute_svg_factor(width);
-
-    std::string s = "<svg viewBox=\""
-        + std::to_string(bb_bin_type.x_min * factor)
-        + " " + std::to_string(-bb_bin_type.y_min * factor - height * factor)
-        + " " + std::to_string(width * factor)
-        + " " + std::to_string(height * factor)
-        + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
-    ss << s;
-
+    nlohmann::json plot;
+    Counter i = 0;
+    // Plot bin.
+    plot[i];
+    i++;
+    // Plot extra trapezoids.
     for (ItemPos extra_trapezoid_pos = 0;
             extra_trapezoid_pos < (ItemPos)node->extra_trapezoids.size();
             ++extra_trapezoid_pos) {
         const GeneralizedTrapezoid& trapezoid = node->extra_trapezoids[extra_trapezoid_pos].trapezoid;
 
-        ss << "<g>" << std::endl;
-        ss << trapezoid.to_svg("red", factor);
+        file << "<g>" << std::endl;
+        file << trapezoid.to_svg("red", factor);
         LengthDbl x = (trapezoid.x_max() + trapezoid.x_min()) / 2;
         LengthDbl y = (trapezoid.y_top() + trapezoid.y_bottom()) / 2;
-        ss << "<text x=\"" << std::to_string(x * factor) << "\" y=\"" << std::to_string(-y * factor) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(extra_trapezoid_pos) << "</text>" << std::endl;
-        ss << "</g>" << std::endl;
+        file << "<text x=\"" << std::to_string(x * factor) << "\" y=\"" << std::to_string(-y * factor) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(extra_trapezoid_pos) << "</text>" << std::endl;
+        file << "</g>" << std::endl;
+        plot[i];
+        i++;
     }
+    // Plot uncovered trapezoids.
     for (TrapezoidPos uncovered_trapezoid_pos = 0;
             uncovered_trapezoid_pos < (ItemPos)node->uncovered_trapezoids.size();
             ++uncovered_trapezoid_pos) {
         GeneralizedTrapezoid trapezoid = node->uncovered_trapezoids[uncovered_trapezoid_pos].trapezoid;
         trapezoid.extend_left(bb_bin_type.x_min);
 
-        ss << "<g>" << std::endl;
-        ss << trapezoid.to_svg("blue", factor);
+        file << "<g>" << std::endl;
+        file << trapezoid.to_svg("blue", factor);
         LengthDbl x = (trapezoid.x_max() + trapezoid.x_min()) / 2;
         LengthDbl y = (trapezoid.y_top() + trapezoid.y_bottom()) / 2;
-        ss << "<text x=\"" << std::to_string(x * factor) << "\" y=\"" << std::to_string(-y * factor) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(uncovered_trapezoid_pos) << "</text>" << std::endl;
-        ss << "</g>" << std::endl;
+        file << "<text x=\"" << std::to_string(x * factor) << "\" y=\"" << std::to_string(-y * factor) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(uncovered_trapezoid_pos) << "</text>" << std::endl;
+        file << "</g>" << std::endl;
+        plot[i];
+        i++;
     }
 
-    ss << "</svg>" << std::endl;
-    return ss.str();
+    return {
+        {"ID", node->id},
+        {"ParentID", (node->parent == nullptr)? -1: node->parent->id},
+        {"TrapezoidSetId", node->trapezoid_set_id},
+        {"X", node->x},
+        {"Y", node->y},
+        {"NumberOfItems", node->number_of_items},
+        {"NumberOfBins", node->number_of_bins},
+        {"Profit", node->profit},
+        {"ItemArea", node->item_area},
+        {"ItemConvexHullArea", node->item_convex_hull_area},
+        {"GuideArea", node->guide_area},
+        {"Plot", plot}};
 }
 
 void BranchingScheme::write_svg(
