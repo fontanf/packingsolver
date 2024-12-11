@@ -140,20 +140,86 @@ TEST(IrregularShape, CleanShapeAligned2)
     EXPECT_EQ(cleaned_shape.elements[2].end.y, 0);
 }
 
+TEST(IrregularShape, Borders0)
+{
+    Shape shape = build_polygon_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}});
+    std::vector<Shape> expected_borders = {};
+
+    std::vector<Shape> shape_borders = borders(shape);
+    for (const Shape& border: shape_borders)
+        std::cout << border.to_string(0) << std::endl;
+
+    EXPECT_EQ(shape_borders.size(), expected_borders.size());
+    for (const Shape& expected_border: expected_borders) {
+        bool found = true;
+        for (const Shape& border: shape_borders)
+            if (border == expected_border)
+                found = true;
+        EXPECT_EQ(found, true);
+    }
+}
+
 TEST(IrregularShape, Borders1)
 {
     Shape shape = build_polygon_shape({{2, 0}, {3, 1}, {0, 1}});
-    std::vector<Shape> shape_borders = borders(shape);
+    std::vector<Shape> expected_borders = {
+        build_polygon_shape({{3, 0}, {3, 1}, {2, 0}}),
+        build_polygon_shape({{0, 0}, {2, 0}, {0, 1}}),
+    };
 
-    EXPECT_EQ(shape_borders.size(), 3);
+    std::vector<Shape> shape_borders = borders(shape);
+    for (const Shape& border: shape_borders)
+        std::cout << border.to_string(0) << std::endl;
+
+    EXPECT_EQ(shape_borders.size(), expected_borders.size());
+    for (const Shape& expected_border: expected_borders) {
+        bool found = true;
+        for (const Shape& border: shape_borders)
+            if (border == expected_border)
+                found = true;
+        EXPECT_EQ(found, true);
+    }
 }
 
 TEST(IrregularShape, Borders2)
 {
     Shape shape = build_polygon_shape({{0, 0}, {3, 1}, {0, 1}});
+    std::vector<Shape> expected_borders = {
+        build_polygon_shape({{3, 0}, {3, 1}, {0, 0}}),
+    };
+
     std::vector<Shape> shape_borders = borders(shape);
     for (const Shape& border: shape_borders)
         std::cout << border.to_string(0) << std::endl;
 
-    EXPECT_EQ(shape_borders.size(), 1);
+    EXPECT_EQ(shape_borders.size(), expected_borders.size());
+    for (const Shape& expected_border: expected_borders) {
+        bool found = true;
+        for (const Shape& border: shape_borders)
+            if (border == expected_border)
+                found = true;
+        EXPECT_EQ(found, true);
+    }
+}
+
+TEST(IrregularShape, Borders3)
+{
+    Shape shape = build_polygon_shape({{0, 0}, {50, 0}, {30, 30}});
+    std::vector<Shape> expected_borders = {
+        build_polygon_shape({{0, 0}, {0, 30}, {30, 30}}),
+        build_polygon_shape({{30, 30}, {30, 50}, {0, 50}}),
+    };
+
+    std::vector<Shape> shape_borders = borders(shape);
+    for (const Shape& border: shape_borders)
+        std::cout << border.to_string(0) << std::endl;
+
+    EXPECT_EQ(shape_borders.size(), expected_borders.size());
+    for (const Shape& expected_border: expected_borders) {
+        bool found = true;
+        for (const Shape& border: shape_borders)
+            if (border == expected_border)
+                found = true;
+        EXPECT_EQ(found, true);
+    }
 }
