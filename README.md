@@ -29,10 +29,10 @@ Features:
   * Bin packing
   * Bin packing with leftovers
   * Variable-sized bin packing
-* Item types
+* Item types:
   * With or without rotations
   * Stacks (precedence constraints on the order in which items are extracted)
-* Bins types
+* Bins types:
   * May contain defects
   * Allow or forbid cutting through a defect
 * Two- and three-staged, exact, non-exact, roadef2018 and homogenous patterns
@@ -174,9 +174,9 @@ Features:
   * Bin packing
   * Bin packing with leftovers
   * Variable-sized bin packing
-* Item types
+* Item types:
   * With or without rotations
-* Bin types
+* Bin types:
   * May contain defects
   * Maximum weight
 * Unloading constraints: only horizontal/vertical movements, increasing x/y
@@ -302,12 +302,12 @@ Features:
   * Knapsack
   * Bin packing
   * Variable-sized bin packing
-* Item types
+* Item types:
   * Rotations (among the 6 possible rotations)
   * Nesting height
   * Maximum number of items in a stack containing an item of a given type
   * Maximum weight allowed above an item of a given type
-* Bin types
+* Bin types:
   * Maximum weight
   * Maximum stack density
   * Maximum weight on middle and rear axles
@@ -397,14 +397,16 @@ python3 scripts/visualize_boxstacks.py solution_boxstacks.csv
 Features:
 * Objectives:
   * Knapsack
+  * Bin packing
+  * Bin packing with leftovers
   * Variable-sized bin packing
-* Item types
+* Item types:
   * Nesting length
   * Maximum number of items in a bin containing an item of a given type
   * Maximum weight allowed after an item of a given type
-* Bin types
+* Bin types:
   * Maximum weight
-* Item type / Bin type eligibility
+* Item type / bin type eligibility
 
 Example:
 ```shell
@@ -506,10 +508,10 @@ Features:
   * Bin packing
   * Bin packing with leftovers
   * Variable-sized bin packing
-* Item types
+* Item types:
   * Polygonal shape (possibly non-convex, possibly with holes)
   * Discrete rotations
-* Bin types
+* Bin types:
   * Polygonal shape (possibly non-convex)
   * May contain different quality areas
 * Minimum distance between each pair of items
