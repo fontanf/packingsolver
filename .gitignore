@@ -7,3 +7,8 @@ checker/*
 OLD
 instances/*
 output/*
+data/rectangle/imahori2010
+data/rectangle_raw/imahori2010
+data/irregular/cgshop2024
+data/irregular_raw/cgshop2024
+benchmark_results
