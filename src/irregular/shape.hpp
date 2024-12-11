@@ -22,5 +22,13 @@ Shape clean_shape(
 std::vector<Shape> borders(
         const Shape& shape);
 
+bool operator==(
+        const ShapeElement& element_1,
+        const ShapeElement& element_2);
+
+bool operator==(
+        const Shape& shape_1,
+        const Shape& shape_2);
+
 }
 }
