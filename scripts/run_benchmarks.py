@@ -28,6 +28,11 @@ onedimensional_main = os.path.join(
         "bin",
         "packingsolver_onedimensional")
 
+irregular_main = os.path.join(
+        "install",
+        "bin",
+        "packingsolver_irregular")
+
 
 if __name__ == "__main__":
 
@@ -820,6 +825,70 @@ if __name__ == "__main__":
                         + " --bin-infinite-copies"
                         + " --objective bin-packing"
                         + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark in ("irregular_cgshop2024_100",
+                       "irregular_cgshop2024_1000",
+                       "irregular_cgshop2024_10000",
+                       "irregular_cgshop2024_100000"):
+
+        datacsv_path = os.path.join(
+                "data",
+                "irregular",
+                "data_cgshop2024.csv")
+
+        time_limit = 300
+        if benchmark == "irregular_cgshop2024_100":
+            time_limit = 300
+        elif benchmark == "irregular_cgshop2024_1000":
+            time_limit = 900
+        elif benchmark == "irregular_cgshop2024_10000":
+            time_limit = 3600
+        elif benchmark == "irregular_cgshop2024_100000":
+            time_limit = 10800
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                n = int(row["Number of items"])
+                if benchmark == "irregular_cgshop2024_100":
+                    if n >= 100:
+                        continue
+                elif benchmark == "irregular_cgshop2024_1000":
+                    if n < 100 or n >= 1000:
+                        continue
+                elif benchmark == "irregular_cgshop2024_10000":
+                    if n < 1000 or n >= 10000:
+                        continue
+                elif benchmark == "irregular_cgshop2024_100000":
+                    if n < 10000:
+                        continue
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        irregular_main
+                        + "  --verbosity-level 1"
+                        + "  --input \"" + instance_path + "\""
+                        + "  --time-limit " + str(time_limit)
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
