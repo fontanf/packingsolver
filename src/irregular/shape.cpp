@@ -168,6 +168,22 @@ std::string ShapeElement::to_string() const
     return "";
 }
 
+nlohmann::json ShapeElement::to_json() const
+{
+    nlohmann::json json;
+    json["type"] = element2str(type);
+    json["start"]["x"] = start.x;
+    json["start"]["y"] = start.y;
+    json["end"]["x"] = end.x;
+    json["end"]["y"] = end.y;
+    if (type == ShapeElementType::CircularArc) {
+        json["center"]["x"] = center.x;
+        json["center"]["y"] = center.y;
+        json["anticlockwise"] = anticlockwise;
+    }
+    return json;
+}
+
 ShapeElement ShapeElement::rotate(
         Angle angle) const
 {
@@ -627,6 +643,17 @@ std::string Shape::to_string(
             s += indent + elements[pos].to_string() + ((pos < (Counter)elements.size() - 1)? "\n": "");
     }
     return s;
+}
+
+nlohmann::json Shape::to_json() const
+{
+    nlohmann::json json;
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)elements.size();
+            ++element_pos) {
+        json[element_pos] = elements[element_pos].to_json();
+    }
+    return json;
 }
 
 std::string Shape::to_svg(double factor) const
