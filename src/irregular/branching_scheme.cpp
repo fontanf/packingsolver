@@ -2392,41 +2392,66 @@ Solution BranchingScheme::to_solution(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-nlohmann::json BranchingScheme::json_export_init()
+nlohmann::json BranchingScheme::json_export_init() const
 {
     const auto& trapezoid_sets = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop];
     nlohmann::json json_init;
     Counter i = 0;
 
     // Bins.
-    // TODO
+    json_bins_init_ids_ = std::vector<Counter>(instance().number_of_bin_types(), -1);
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+
+        json_bins_init_ids_[bin_type_id] = i;
+        json_init[i][0] = {
+            {"Shape", bin_type.shape.to_json()},
+            {"FillColor", ""},
+        };
+        for (DefectId defect_id = 0;
+                defect_id < (DefectId)bin_type.defects.size();
+                ++defect_id) {
+            const Defect& defect = bin_type.defects[defect_id];
+            json_init[i][defect_id + 1] = {
+                {"Shape", bin_type.shape.to_json()},
+                {"FillColor", "red"},
+            };
+        }
+        i++;
+    }
 
     // Items.
-    json_items_init_ids_ = std::vector<std::vector<std::vector<Counter>>>(trapezoid_sets_.size());
-    for (TrapezoidSetId trapezoid_set_id = 0;
-            trapezoid_set_id < (TrapezoidSetId)trapezoid_sets.size();
-            ++trapezoid_set_id) {
-        const TrapezoidSet& trapezoid_set = trapezoid_sets[trapezoid_set_id];
-        const ItemType& item_type = instance().item_type(trapezoid_set.item_type_id);
+    json_items_init_ids_ = std::vector<std::vector<std::unordered_map<double, Counter>>>(instance().number_of_item_types());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance().number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance().item_type(item_type_id);
 
-        json_items_init_ids_[trapezoid_set_id] = std::vector<std::vector<Counter>>(trapezoid_sets_.size());
-        for (ItemShapePos item_shape_pos = 0;
-                item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
-                ++item_shape_pos) {
-            const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
+        json_items_init_ids_[item_type_id] = std::vector<std::unordered_map<double, Counter>>(2);
+        for (bool mirror: {false, true}) {
 
-            json_items_init_ids_[trapezoid_set_id][item_shape_pos] = std::vector<Counter>(trapezoid_sets_.size(), -1);
-            for (TrapezoidPos item_shape_trapezoid_pos = 0;
-                    item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
-                    ++item_shape_trapezoid_pos) {
-                json_items_init_ids_[trapezoid_set_id][item_shape_pos][item_shape_trapezoid_pos] = i;
-                // TODO
-                json_init[i] = {
+            for (const auto& angle_range: item_type.allowed_rotations) {
 
-                };
-                i++;
+                json_items_init_ids_[item_type_id][mirror][angle_range.first] = i;
+
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                        ++item_shape_pos) {
+                    const ItemShape& item_shape = item_type.shapes[item_shape_pos];
+                    Shape shape = (!mirror)?
+                        item_shape.shape:
+                        item_shape.shape.axial_symmetry_y_axis();
+                    shape = shape.rotate(angle_range.first);
+                    json_init[i][item_shape_pos] = {
+                        {"Shape", shape.to_json()},
+                        {"FillColor", "blue"},
+                    };
+                }
             }
         }
+        i++;
     }
 
     return json_init;
@@ -2435,46 +2460,9 @@ nlohmann::json BranchingScheme::json_export_init()
 nlohmann::json BranchingScheme::json_export(
         const std::shared_ptr<Node>& node) const
 {
-    nlohmann::json plot;
-    Counter i = 0;
-    // Plot bin.
-    plot[i];
-    i++;
-    // Plot extra trapezoids.
-    for (ItemPos extra_trapezoid_pos = 0;
-            extra_trapezoid_pos < (ItemPos)node->extra_trapezoids.size();
-            ++extra_trapezoid_pos) {
-        const GeneralizedTrapezoid& trapezoid = node->extra_trapezoids[extra_trapezoid_pos].trapezoid;
-
-        file << "<g>" << std::endl;
-        file << trapezoid.to_svg("red", factor);
-        LengthDbl x = (trapezoid.x_max() + trapezoid.x_min()) / 2;
-        LengthDbl y = (trapezoid.y_top() + trapezoid.y_bottom()) / 2;
-        file << "<text x=\"" << std::to_string(x * factor) << "\" y=\"" << std::to_string(-y * factor) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(extra_trapezoid_pos) << "</text>" << std::endl;
-        file << "</g>" << std::endl;
-        plot[i];
-        i++;
-    }
-    // Plot uncovered trapezoids.
-    for (TrapezoidPos uncovered_trapezoid_pos = 0;
-            uncovered_trapezoid_pos < (ItemPos)node->uncovered_trapezoids.size();
-            ++uncovered_trapezoid_pos) {
-        GeneralizedTrapezoid trapezoid = node->uncovered_trapezoids[uncovered_trapezoid_pos].trapezoid;
-        trapezoid.extend_left(bb_bin_type.x_min);
-
-        file << "<g>" << std::endl;
-        file << trapezoid.to_svg("blue", factor);
-        LengthDbl x = (trapezoid.x_max() + trapezoid.x_min()) / 2;
-        LengthDbl y = (trapezoid.y_top() + trapezoid.y_bottom()) / 2;
-        file << "<text x=\"" << std::to_string(x * factor) << "\" y=\"" << std::to_string(-y * factor) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(uncovered_trapezoid_pos) << "</text>" << std::endl;
-        file << "</g>" << std::endl;
-        plot[i];
-        i++;
-    }
-
-    return {
-        {"ID", node->id},
-        {"ParentID", (node->parent == nullptr)? -1: node->parent->id},
+    nlohmann::json json = {
+        {"Id", node->id},
+        {"ParentId", (node->parent == nullptr)? -1: node->parent->id},
         {"TrapezoidSetId", node->trapezoid_set_id},
         {"X", node->x},
         {"Y", node->y},
@@ -2484,7 +2472,34 @@ nlohmann::json BranchingScheme::json_export(
         {"ItemArea", node->item_area},
         {"ItemConvexHullArea", node->item_convex_hull_area},
         {"GuideArea", node->guide_area},
-        {"Plot", plot}};
+    };
+    if (node->number_of_items == 0)
+        return json;
+
+    nlohmann::json plot;
+    Counter i = 0;
+    // Plot bin.
+    BinTypeId bin_type_id = instance().bin_type_id(node->number_of_bins - 1);
+    plot[i] = {
+        {"Id",json_bins_init_ids_[bin_type_id]},
+        {"X", 0},
+        {"Y", 0},
+    };
+    i++;
+    // Plot items.
+    for (std::shared_ptr<const Node> node_tmp = node;
+            node_tmp->number_of_bins == node->number_of_bins;
+            node_tmp = node_tmp->parent) {
+        const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)node_tmp->last_bin_direction][node_tmp->trapezoid_set_id];
+        plot[i] = {
+            {"Id", json_items_init_ids_[trapezoid_set.item_type_id][trapezoid_set.mirror].at(trapezoid_set.angle)},
+            {"X", node_tmp->x},
+            {"Y", node_tmp->y},
+        };
+        i++;
+    }
+    json["Plot"] = plot;
+    return json;
 }
 
 void BranchingScheme::write_svg(

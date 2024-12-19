@@ -131,6 +131,8 @@ struct ShapeElement
     ShapeElement axial_symmetry_y_axis() const;
 
     std::string to_string() const;
+
+    nlohmann::json to_json() const;
 };
 
 enum class ShapeType
@@ -204,6 +206,8 @@ struct Shape
     Shape reverse() const;
 
     std::string to_string(Counter indentation) const;
+
+    nlohmann::json to_json() const;
 
     std::string to_svg(double factor) const;
 

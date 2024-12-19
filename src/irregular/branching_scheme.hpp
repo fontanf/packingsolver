@@ -418,7 +418,7 @@ public:
             const std::shared_ptr<Node>& node,
             const std::string& file_path) const;
 
-    nlohmann::json json_export_init();
+    nlohmann::json json_export_init() const;
 
     nlohmann::json json_export(
             const std::shared_ptr<Node>& node) const;
@@ -442,9 +442,9 @@ private:
 
     std::vector<AreaDbl> item_types_convex_hull_area_;
 
-    std::vector<std::vector<std::vector<Counter>>> json_items_init_ids_;
+    mutable std::vector<std::vector<std::unordered_map<Angle, Counter>>> json_items_init_ids_;
 
-    std::vector<std::vector<std::vector<Counter>>> json_bins_init_ids_;
+    mutable std::vector<Counter> json_bins_init_ids_;
 
     mutable Counter node_id_ = 0;
 
