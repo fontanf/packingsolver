@@ -620,8 +620,11 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         Instance last_bin_instance = last_bin_instance_builder.build();
 
         // Solve instance.
-        OptimizeParameters last_bin_parameters = parameters;
+        OptimizeParameters last_bin_parameters;
         last_bin_parameters.verbosity_level = 0;
+        last_bin_parameters.timer = parameters.timer;
+        last_bin_parameters.optimization_mode = OptimizationMode::NotAnytime;
+        last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
         last_bin_parameters.tree_search_guides = {2, 3};
         auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
 
