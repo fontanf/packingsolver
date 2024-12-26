@@ -215,15 +215,15 @@ nlohmann::json Solution::to_json() const
         {"ItemArea", item_area()},
         {"ItemProfit", profit()},
         {"NumberOfBins", number_of_bins()},
-        //{"BinArea", bin_area()},
+        {"NumberOfDifferentBins", number_of_different_bins()},
+        {"BinArea", full_area()},
         {"BinCost", cost()},
         {"Waste", waste()},
         {"WastePercentage", waste_percentage()},
         {"FullWaste", full_waste()},
         {"FullWastePercentage", full_waste_percentage()},
-        //{"AreaLoad", area_load()},
-        //{"XMax", x_max()},
-        //{"YMax", y_max()},
+        {"Width", width()},
+        {"Height", height()},
     };
 }
 
@@ -233,19 +233,17 @@ void Solution::format(
 {
     if (verbosity_level >= 1) {
         os
-            << "Number of items:  " << optimizationtools::Ratio<ItemPos>(number_of_items(), instance().number_of_items()) << std::endl
-            << "Item area:        " << optimizationtools::Ratio<Area>(item_area(), instance().item_area()) << std::endl
-            << "Item profit:      " << optimizationtools::Ratio<Profit>(profit(), instance().item_profit()) << std::endl
-            << "Number of bins:   " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
-            //<< "Bin area:         " << optimizationtools::Ratio<BinPos>(bin_area(), instance().bin_area()) << std::endl
-            << "Bin cost:         " << cost() << std::endl
-            << "Waste:            " << waste() << std::endl
-            << "Waste (%):        " << 100 * waste_percentage() << std::endl
-            << "Full waste:       " << full_waste() << std::endl
-            << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl
-            //<< "Area load:        " << area_load() << std::endl
-            //<< "X max:            " << x_max() << std::endl
-            //<< "Y max:            " << y_max() << std::endl
+            << "Number of items:           " << optimizationtools::Ratio<ItemPos>(number_of_items(), instance().number_of_items()) << std::endl
+            << "Item area:                 " << optimizationtools::Ratio<Area>(item_area(), instance().item_area()) << std::endl
+            << "Item profit:               " << optimizationtools::Ratio<Profit>(profit(), instance().item_profit()) << std::endl
+            << "Number of bins:            " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
+            << "Number of different bins:  " << number_of_different_bins() << std::endl
+            << "Bin area:                  " << optimizationtools::Ratio<BinPos>(full_area(), instance().bin_area()) << std::endl
+            << "Bin cost:                  " << cost() << std::endl
+            << "Waste:                     " << waste() << " (" << 100 * waste_percentage() << "%)" << std::endl
+            << "Full waste:                " << full_waste() << " (" << 100 * full_waste_percentage() << "%)" << std::endl
+            << "Width:                     " << width() << std::endl
+            << "Height:                    " << height() << std::endl
             ;
     }
     if (verbosity_level >= 2) {
