@@ -396,6 +396,88 @@ if __name__ == "__main__":
                 run_command(command)
 
 
+    elif benchmark == "rectangleguillotine_variable_sized_bin_packing_2nho_cintra2008":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_variable_sized_bin_packing_2nho_cintra2008.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --bin-infinite-copies"
+                        + " --objective variable-sized-bin-packing"
+                        + " --predefined 2NHO"
+                        + "  --time-limit 30"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangleguillotine_variable_sized_bin_packing_2nhr_cintra2008":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_variable_sized_bin_packing_2nhr_cintra2008.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangleguillotine_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --bin-infinite-copies"
+                        + " --objective variable-sized-bin-packing"
+                        + " --predefined 2NHR"
+                        + "  --time-limit 30"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
     elif benchmark == "rectangleguillotine_knapsack_3nvo_alvarez2002":
 
         datacsv_path = os.path.join(
