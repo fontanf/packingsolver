@@ -1,5 +1,7 @@
 #include "rectangleguillotine/solution_builder.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 
@@ -23,7 +25,7 @@ void SolutionBuilder::add_bin(
     root.r = bin_type.rect.w;
     root.b = 0;
     root.t = bin_type.rect.h;
-    root.item_type_id = -1;
+    root.item_type_id = bin_type_id;
     bin.nodes.push_back(root);
 
     // Trims.
@@ -159,6 +161,16 @@ void SolutionBuilder::set_last_node_item(
                 "rectangleguillotine::SolutionBuilder::set_last_node_item: "
                 "at least one bin must have been added to the solution.");
     }
+    if (item_type_id < 0
+            || item_type_id >= solution_.instance().number_of_item_types()) {
+        throw std::logic_error(
+                "rectangleguillotine::SolutionBuilder::set_last_node_item: "
+                "wrong 'item_type_id' value"
+                "; item_type_id: " + std::to_string(item_type_id)
+                + "; solution_.instance().number_of_item_types(): "
+                + std::to_string(solution_.instance().number_of_item_types())
+                + ".");
+    }
 
     const ItemType& item_type = solution_.instance().item_type(item_type_id);
     SolutionBin& bin = solution_.bins_.back();
@@ -242,12 +254,13 @@ void SolutionBuilder::add_node(
     }
 
     SolutionNode& parent = bin.nodes[parent_id];
-    if (parent.item_type_id >= 0) {
+    if (parent.f != -1 && parent.item_type_id >= 0) {
         throw std::logic_error(
                 "rectangleguillotine::SolutionBuilder::add_node: "
                 "cannot add a child to a node with an item.");
     }
-    parent.item_type_id = -2;
+    if (parent.f != -1)
+        parent.item_type_id = -2;
 
     SolutionNode child;
     child.f = parent_id;
@@ -263,12 +276,22 @@ void SolutionBuilder::add_node(
         if (child.r <= child.l) {
             throw std::logic_error(
                     "rectangleguillotine::SolutionBuilder::add_last_node_child: "
-                    "'cut_position' is too small");
+                    "'cut_position' is too small"
+                    "; depth: " + std::to_string(depth)
+                    + "; cut_position: " + std::to_string(cut_position)
+                    + "; child.l: " + std::to_string(child.l)
+                    + "; child.r: " + std::to_string(child.r)
+                    + ".");
         }
         if (child.r > parent.r) {
             throw std::logic_error(
                     "rectangleguillotine::SolutionBuilder::add_last_node_child: "
-                    "'cut_position' is too large.");
+                    "'cut_position' is too large"
+                    "; depth: " + std::to_string(depth)
+                    + "; cut_position: " + std::to_string(cut_position)
+                    + "; parent.r: " + std::to_string(parent.r)
+                    + "; child.r: " + std::to_string(child.r)
+                    + ".");
         }
     } else {
         child.l = parent.l;
@@ -278,18 +301,140 @@ void SolutionBuilder::add_node(
         if (child.t <= child.b) {
             throw std::logic_error(
                     "rectangleguillotine::SolutionBuilder::add_last_node_child: "
-                    "'cut_position' is too small.");
+                    "'cut_position' is too small"
+                    "; depth: " + std::to_string(depth)
+                    + "; cut_position: " + std::to_string(cut_position)
+                    + "; child.b: " + std::to_string(child.b)
+                    + "; child.t: " + std::to_string(child.t)
+                    + ".");
         }
         if (child.t > parent.t) {
             throw std::logic_error(
                     "rectangleguillotine::SolutionBuilder::add_last_node_child: "
-                    "'cut_position' is too large.");
+                    "'cut_position' is too large"
+                    "; depth: " + std::to_string(depth)
+                    + "; cut_position: " + std::to_string(cut_position)
+                    + "; parent.t: " + std::to_string(parent.t)
+                    + "; child.t: " + std::to_string(child.t)
+                    + ".");
         }
     }
     child.item_type_id = -1;
     parent.children.push_back(bin.nodes.size());
     bin.nodes.push_back(child);
 }
+
+void SolutionBuilder::read(
+        const std::string& certificate_path)
+{
+    std::ifstream f(certificate_path);
+    if (!f.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + certificate_path + "\".");
+    }
+
+    std::string tmp;
+    std::vector<std::string> line;
+    std::vector<std::string> labels;
+
+    getline(f, tmp);
+    labels = optimizationtools::split(tmp, ',');
+    std::vector<std::vector<SolutionNode>> nodes;
+    SolutionNodeId offset = 0;
+    while (getline(f, tmp)) {
+        line = optimizationtools::split(tmp, ',');
+
+        SolutionNode node;
+        Length width = -1;
+        Length height = -1;
+        BinPos bin_pos = -1;
+        for (Counter i = 0; i < (Counter)line.size(); ++i) {
+            if (labels[i] == "NODE_ID") {
+            } else if (labels[i] == "PLATE_ID") {
+                bin_pos = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "X") {
+                node.l = (Length)std::stol(line[i]);
+            } else if (labels[i] == "Y") {
+                node.b = (Length)std::stol(line[i]);
+            } else if (labels[i] == "WIDTH") {
+                width = (Length)std::stol(line[i]);
+            } else if (labels[i] == "HEIGHT") {
+                height = (Length)std::stol(line[i]);
+            } else if (labels[i] == "TYPE") {
+                node.item_type_id = (ItemTypeId)std::stol(line[i]);
+            } else if (labels[i] == "CUT") {
+                node.d = (Depth)std::stol(line[i]);
+            } else if (labels[i] == "PARENT") {
+                if (line[i] == "") {
+                    node.f = -1;
+                } else {
+                    node.f = (SolutionNodeId)std::stol(line[i]) - offset;
+                }
+            }
+            node.r = node.l + width;
+            node.t = node.b + height;
+        }
+
+        if (nodes.size() <= bin_pos) {
+            if (nodes.size() > 0)
+                offset += nodes.back().size();
+            nodes.push_back({});
+        }
+        nodes[bin_pos].push_back(node);
+    }
+
+    for (BinPos bin_pos = 0;
+            bin_pos < (BinPos)nodes.size();
+            ++bin_pos) {
+
+        BinTypeId bin_type_id = -1;
+        CutOrientation first_cut_orientation = CutOrientation::Any;
+        for (SolutionNodeId node_id = 0;
+                node_id < (SolutionNodeId)nodes[bin_pos].size();
+                ++node_id) {
+            const SolutionNode& node = nodes[bin_pos][node_id];
+            if (node.d == 0 && bin_type_id < 0)
+                bin_type_id = node.item_type_id;
+            if (node.d == 1) {
+                const SolutionNode& parent = nodes[bin_pos][node.f];
+                if (node.b == parent.b && node.t == parent.t) {
+                    first_cut_orientation = CutOrientation::Vertical;
+                } else if (node.l == parent.l && node.r == parent.r) {
+                    first_cut_orientation = CutOrientation::Horizontal;
+                } else {
+                    throw std::logic_error("");
+                }
+                break;
+            }
+        }
+        std::cout << "bin_type_id " << bin_type_id << std::endl;
+        std::cout << "first_cut_orientation " << first_cut_orientation << std::endl;
+        add_bin(bin_type_id, 1, first_cut_orientation);
+
+        for (SolutionNodeId node_id = 0;
+                node_id < (SolutionNodeId)nodes[bin_pos].size();
+                ++node_id) {
+            const SolutionNode& node = nodes[bin_pos][node_id];
+            std::cout << node << std::endl;
+            if (node.d == 0)
+                continue;
+            if ((first_cut_orientation == CutOrientation::Vertical
+                        && node.d % 2 == 1)
+                    || (first_cut_orientation == CutOrientation::Horizontal
+                        && node.d % 2 == 0)) {
+                add_node(node.d, node.r);
+            } else {
+                add_node(node.d, node.t);
+            }
+            if (node.item_type_id >= 0)
+                set_last_node_item(node.item_type_id);
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// Build /////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 Solution SolutionBuilder::build()
 {

@@ -57,7 +57,7 @@ void Solution::update_indicators(
     width_ = 0;
     height_ = 0;
     for (const SolutionNode& node: bin.nodes) {
-        if (node.item_type_id >= 0) {
+        if (node.f != -1 && node.item_type_id >= 0) {
             number_of_items_ += bin.copies;
             item_area_ += bin.copies * instance().item_type(node.item_type_id).area();
             profit_ += bin.copies * instance().item_type(node.item_type_id).profit;
