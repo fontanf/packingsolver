@@ -181,6 +181,7 @@ void Solution::write(
 
     file << "PLATE_ID,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
     SolutionNodeId offset = 0;
+    BinPos bin_pos_2 = 0;
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& solution_bin = bins_[bin_pos];
         for (BinPos copie = 0; copie < solution_bin.copies; ++copie) {
@@ -189,7 +190,7 @@ void Solution::write(
                     ++node_id) {
                 const SolutionNode& n = solution_bin.nodes[node_id];
                 file
-                    << bin_pos << ","
+                    << bin_pos_2 << ","
                     << offset + node_id << ","
                     << n.l << ","
                     << n.b << ","
@@ -202,6 +203,7 @@ void Solution::write(
                 file << std::endl;
             }
             offset += solution_bin.nodes.size();
+            bin_pos_2++;
         }
     }
 }
