@@ -267,7 +267,7 @@ if __name__ == "__main__":
                         + " --bin-infinite-copies"
                         + " --objective bin-packing"
                         + " --predefined 3HAO"
-                        + "  --time-limit 60"
+                        + "  --time-limit 5"
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
