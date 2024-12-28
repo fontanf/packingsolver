@@ -419,8 +419,8 @@ void optimize_column_generation(
             algorithm_formatter.update_bin_packing_bound(bin_packing_bound);
         }
     };
-    cgslds_parameters.column_generation_parameters.linear_programming_solver
-        = parameters.linear_programming_solver;
+    cgslds_parameters.column_generation_parameters.solver_name
+        = parameters.solver_name;
     columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
 }
 

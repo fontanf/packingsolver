@@ -24,8 +24,8 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     Solution* fixed_items = nullptr;
 
     /** Linear programming solver. */
-    columngenerationsolver::LinearProgrammingSolver linear_programming_solver
-        = columngenerationsolver::LinearProgrammingSolver::CLP;
+    columngenerationsolver::SolverName solver_name
+        = columngenerationsolver::SolverName::CLP;
 
     /** Use tree search algorithm. */
     bool use_tree_search = false;

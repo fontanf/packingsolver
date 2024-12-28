@@ -21,8 +21,8 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
     /** Linear programming solver. */
-    columngenerationsolver::LinearProgrammingSolver linear_programming_solver
-        = columngenerationsolver::LinearProgrammingSolver::CLP;
+    columngenerationsolver::SolverName solver_name
+        = columngenerationsolver::SolverName::CLP;
 
     /** Use tree search algorithm. */
     bool use_tree_search = false;

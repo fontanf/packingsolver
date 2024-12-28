@@ -32,7 +32,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         sor_parameters.verbosity_level = 0;
         sor_parameters.timer = parameters.timer;
         sor_parameters.logger = logger;
-        sor_parameters.onedimensional_parameters.linear_programming_solver = parameters.linear_programming_solver;
+        sor_parameters.onedimensional_parameters.solver_name = parameters.solver_name;
         //sor_parameters.info.set_verbosity_level(2);
         sor_parameters.new_solution_callback = [
             &algorithm_formatter](
@@ -236,7 +236,7 @@ const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                     OptimizationMode::NotAnytimeSequential:
                     OptimizationMode::NotAnytime;
-                kp_parameters.linear_programming_solver = parameters.linear_programming_solver;
+                kp_parameters.solver_name = parameters.solver_name;
                 kp_parameters.not_anytime_tree_search_queue_size
                     = parameters.sequential_value_correction_subproblem_queue_size;
                 //kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;

@@ -15,7 +15,7 @@ set(MATHOPTSOLVERSCMAKE_USE_CLP ON)
 FetchContent_Declare(
     mathoptsolverscmake
     GIT_REPOSITORY https://github.com/fontanf/mathoptsolverscmake.git
-    GIT_TAG 11807d2c4c85dba33e56d2509e2aa8124b33ddf1
+    GIT_TAG 4472814a28a40f4d861ccd757e140835c3a31bd0
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../mathoptsolverscmake/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(mathoptsolverscmake)
@@ -53,7 +53,7 @@ set(COLUMNGENERATIONSOLVER_USE_CLP ON)
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
-    GIT_TAG 7d6ad8ef6d7bf68adf90ccf7c3ed12f124d4eb19
+    GIT_TAG 003031b2be98ddfd477f88002de6aa8684c2d148
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../columngenerationsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(columngenerationsolver)
