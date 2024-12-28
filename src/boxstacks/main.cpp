@@ -150,8 +150,8 @@ int main(int argc, char *argv[])
     Instance instance = instance_builder.build();
 
 #if XPRESS_FOUND
-    if (optimize_parameters.linear_programming_solver
-            == columngenerationsolver::LinearProgrammingSolver::Xpress)
+    if (optimize_parameters.solver_name
+            == columngenerationsolver::SolverName::Xpress)
         XPRSinit(NULL);
 #endif
 
@@ -168,8 +168,8 @@ int main(int argc, char *argv[])
         output.write_json_output(vm["output"].as<std::string>());
 
 #if XPRESS_FOUND
-    if (optimize_parameters.linear_programming_solver
-            == columngenerationsolver::LinearProgrammingSolver::Xpress)
+    if (optimize_parameters.solver_name
+            == columngenerationsolver::SolverName::Xpress)
         XPRSfree();
 #endif
 
