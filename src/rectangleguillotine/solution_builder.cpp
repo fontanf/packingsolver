@@ -183,7 +183,15 @@ void SolutionBuilder::set_last_node_item(
     if (!ok) {
         throw std::logic_error(
                 "rectangleguillotine::SolutionBuilder::set_last_node_item: "
-                "wrong item dimensions.");
+                "wrong item dimensions"
+                "; item_type_id: " + std::to_string(item_type_id)
+                + "; item_type.rect.w: " + std::to_string(item_type.rect.w)
+                + "; item_type.rect.h: " + std::to_string(item_type.rect.h)
+                + "; node.l: " + std::to_string(node.l)
+                + "; node.r: " + std::to_string(node.r)
+                + "; node.b: " + std::to_string(node.b)
+                + "; node.t: " + std::to_string(node.t)
+                + ".");
     }
 
     node.item_type_id = item_type_id;
@@ -407,16 +415,16 @@ void SolutionBuilder::read(
                 break;
             }
         }
-        std::cout << "bin_type_id " << bin_type_id << std::endl;
-        std::cout << "first_cut_orientation " << first_cut_orientation << std::endl;
+        //std::cout << "bin_type_id " << bin_type_id << std::endl;
+        //std::cout << "first_cut_orientation " << first_cut_orientation << std::endl;
         add_bin(bin_type_id, 1, first_cut_orientation);
 
         for (SolutionNodeId node_id = 0;
                 node_id < (SolutionNodeId)nodes[bin_pos].size();
                 ++node_id) {
             const SolutionNode& node = nodes[bin_pos][node_id];
-            std::cout << node << std::endl;
-            if (node.d == 0)
+            //std::cout << node << std::endl;
+            if (node.d <= 0)
                 continue;
             if ((first_cut_orientation == CutOrientation::Vertical
                         && node.d % 2 == 1)
