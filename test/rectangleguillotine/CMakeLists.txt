@@ -8,7 +8,8 @@ target_sources(PackingSolver_rectangleguillotine_test PRIVATE
     branching_scheme/cut_through_defect_test.cpp
     branching_scheme/trim_test.cpp
     branching_scheme/cut_thickness_test.cpp
-    branching_scheme/integration_test.cpp)
+    branching_scheme/integration_test.cpp
+    column_generation_2_test.cpp)
 target_include_directories(PackingSolver_rectangleguillotine_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_rectangleguillotine_test

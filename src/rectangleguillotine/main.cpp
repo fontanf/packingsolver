@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
 
         ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
         ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
+        ("use-column-generation-2,", po::value<bool>(), "enable column generation 2 algorithm")
         ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
         ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
         ("use-column-generation,", po::value<bool>(), "enable column-generation")
@@ -207,6 +208,8 @@ int main(int argc, char *argv[])
 
     if (vm.count("use-tree-search"))
         parameters.use_tree_search = vm["use-tree-search"].as<bool>();
+    if (vm.count("use-column-generation-2"))
+        parameters.use_column_generation_2 = vm["use-column-generation-2"].as<bool>();
     if (vm.count("use-sequential-single-knapsack"))
         parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
     if (vm.count("use-sequential-value-correction"))
