@@ -67,4 +67,10 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_horizontal_parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_horizontal_solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_trims_items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_trims_bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_trims_parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_trims_solution.csv",
             }}));

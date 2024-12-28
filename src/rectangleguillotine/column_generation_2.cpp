@@ -51,6 +51,8 @@ private:
 columngenerationsolver::Model get_model(
         const Instance& instance)
 {
+    const BinType& bin_type = instance.bin_type(0);
+
     columngenerationsolver::Model model;
 
     Profit maximum_bin_type_cost = 0;
@@ -99,7 +101,7 @@ columngenerationsolver::Model get_model(
 
         columngenerationsolver::Row row;
         row.lower_bound = 0;
-        row.upper_bound = instance.bin_type(0).rect.w;
+        row.upper_bound = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim;
         row.coefficient_lower_bound = 0;
         row.coefficient_upper_bound = 1;
         model.rows.push_back(row);
@@ -150,13 +152,16 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
             const std::vector<Value>& duals)
 {
     //std::cout << "solve_pricing" << std::endl;
+
+    const BinType& bin_type = instance_.bin_type(0);
+
     PricingOutput output;
     Value reduced_cost_bound = 0.0;
 
     // Generate one-staged exact patterns.
     {
-        Length width = instance_.bin_type(0).rect.w - filled_width_;
-        Length height = instance_.bin_type(0).rect.h;
+        Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+        Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
         for (;;) {
 
             // Build one-dimensional knapsack instance.
@@ -211,8 +216,8 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                 Column column;
                 SolutionBuilder extra_solution_builder(instance_);
                 extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-                extra_solution_builder.add_node(1, width);
-                Length cut_position = 0;
+                extra_solution_builder.add_node(1, bin_type.left_trim + width);
+                Length cut_position = bin_type.bottom_trim;
                 for (ItemTypeId kp_item_type_id = 0;
                         kp_item_type_id < kp_instance.number_of_item_types();
                         ++kp_item_type_id) {
@@ -295,8 +300,8 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
 
     // Generate one-staged non-exact patterns.
     {
-        Length width = instance_.bin_type(0).rect.w - filled_width_;
-        Length height = instance_.bin_type(0).rect.h;
+        Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+        Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
         for (;;) {
 
             // Build one-dimensional knapsack instance.
@@ -389,8 +394,8 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
             // Build extra solution.
             SolutionBuilder extra_solution_builder(instance_);
             extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-            extra_solution_builder.add_node(1, width_max);
-            Length cut_position = 0;
+            extra_solution_builder.add_node(1, bin_type.left_trim + width_max);
+            Length cut_position = bin_type.bottom_trim;
             for (ItemTypeId kp_item_type_id = 0;
                     kp_item_type_id < kp_instance.number_of_item_types();
                     ++kp_item_type_id) {
@@ -406,7 +411,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                     cut_position += kp_instance.item_type(kp_item_type_id).length;
                     extra_solution_builder.add_node(2, cut_position);
                     if (width_cur < width_max)
-                        extra_solution_builder.add_node(3, width_cur);
+                        extra_solution_builder.add_node(3, bin_type.left_trim + width_cur);
                     extra_solution_builder.set_last_node_item(item_type_id);
                 }
             }
@@ -459,8 +464,8 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
 
     // Generate two-staged homogenous patterns.
     {
-        Length width = instance_.bin_type(0).rect.w - filled_width_;
-        Length height = instance_.bin_type(0).rect.h;
+        Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+        Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
         // TODO
     }
     if (instance_.parameters().number_of_stages == 3
@@ -469,8 +474,8 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
 
     // Generate other patterns.
     {
-        Length width = instance_.bin_type(0).rect.w - filled_width_;
-        Length height = instance_.bin_type(0).rect.h;
+        Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+        Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
         // TODO
     }
 
@@ -511,6 +516,7 @@ void column_generation_2_vertical(
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
             const columngenerationsolver::Output& cgs_output)
     {
+        const BinType& bin_type = instance.bin_type(0);
         const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
             = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
         if (cgslds_output.solution.feasible()) {
@@ -525,7 +531,7 @@ void column_generation_2_vertical(
                     bool first = true;
                     Length offset_new = offset;
                     for (const SolutionNode& node: bin.nodes) {
-                        if (node.d == 0)
+                        if (node.d <= 0)
                             continue;
                         if (node.d == 1) {
                             if (!first)
@@ -634,7 +640,7 @@ void column_generation_2_horizontal(
                         flipped_bin.copies,
                         CutOrientation::Horizontal);
                 for (const SolutionNode& flipped_node: flipped_bin.nodes) {
-                    if (flipped_node.d == 0)
+                    if (flipped_node.d <= 0)
                         continue;
                     if (flipped_node.d % 2 == 1) {
                         solution_builder.add_node(flipped_node.d, flipped_node.r);
