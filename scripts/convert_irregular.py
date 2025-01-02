@@ -2,6 +2,14 @@ import os
 import os.path
 import json
 import re
+import xml.etree.ElementTree as ET
+
+
+def words(filename):
+    f = open(os.path.join("data", "irregular_raw", filename), "r")
+    for line in f:
+        for word in line.split():
+            yield word
 
 
 def write_dict(dic, filename):
@@ -615,7 +623,76 @@ def convert_cgshop2024():
                 write_dict(dic, path)
 
 
+def convert_oliveira2000(filename):
+    path = os.path.join("data", "irregular_raw", filename)
+
+    dic = {
+        "objective": "open-dimension-x",
+        "bin_types": [],
+        "item_types": [],
+    }
+
+    tree = ET.parse(path)
+    root = tree.getroot()
+
+    ns = '{http://www.fe.up.pt/~esicup/nesting.xsd}'
+
+    # Read polygons.
+    polygons = {}
+    for sec_polygon in root.find(ns + 'polygons').iter(ns + "polygon"):
+        key = sec_polygon.get('id')
+        elements = []
+        for sec_segment in sec_polygon.find(ns + 'lines').iter(ns + "segment"):
+            elements.append({
+                    "type": "line_segment",
+                    "start": {
+                        "x": float(sec_segment.get('x0')),
+                        "y": float(sec_segment.get('y0'))},
+                    "end": {
+                        "x": float(sec_segment.get('x1')),
+                        "y": float(sec_segment.get('y1'))}})
+        polygons[key] = elements
+
+    # Read bin types.
+    for sec_piece in root.find(ns + 'problem').find(ns + 'boards').iter(ns + "piece"):
+        copies = int(sec_piece.get('quantity'))
+        polygon = sec_piece.find(ns + 'component').get('idPolygon')
+        dic["bin_types"].append(
+            {
+                "type": "general",
+                "copies": copies,
+                "elements": polygons[polygon],
+            }
+        )
+
+    # Read item types.
+    for sec_piece in root.find(ns + 'problem').find(ns + 'lot').iter(ns + "piece"):
+        copies = int(sec_piece.get('quantity'))
+        allowed_rotations = []
+        for sec_angle in sec_piece.find(ns + 'orientation').iter(ns + "enumeration"):
+            angle = float(sec_angle.get('angle'))
+            allowed_rotations.append({"start": angle, "end": angle})
+        polygon = sec_piece.find(ns + 'component').get('idPolygon')
+        dic["item_types"].append(
+            {
+                "type": "general",
+                "copies": copies,
+                "allowed_rotations": allowed_rotations,
+                "elements": polygons[polygon],
+            }
+        )
+
+    write_dict(dic, filename)
+
+
 if __name__ == "__main__":
 
     convert_packomania_coop()
     convert_cgshop2024()
+
+    convert_oliveira2000(os.path.join("oliveira2000", "blaz_2007-04-23", "blaz.xml"))
+    convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes0.xml"))
+    convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes1.xml"))
+    convert_oliveira2000(os.path.join("oliveira2000", "shirts_2007-05-15", "shirts.xml"))
+    convert_oliveira2000(os.path.join("oliveira2000", "swim_2007-05-15", "swim.xml"))
+    convert_oliveira2000(os.path.join("oliveira2000", "trousers_2007-05-15", "trousers.xml"))
