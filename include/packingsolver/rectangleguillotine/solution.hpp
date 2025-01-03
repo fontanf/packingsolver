@@ -193,6 +193,37 @@ private:
     const Instance* instance_;
 
     /*
+     * Private attributes: feasiblity
+     */
+
+    /** Feasibility for the minimum waste length. */
+    bool minimum_waste_length_feasible_ = true;
+
+    /** Feasibility for the minimum distance between two consecutive 1-cuts. */
+    bool minimum_distance_1_cuts_feasible_ = true;
+
+    /** Feasibility for the maximum distance between two consecutive 1-cuts. */
+    bool maximum_distance_1_cuts_feasible_ = true;
+
+    /** Feasibility for the minimum distance between two consecutive 2-cuts. */
+    bool minimum_distance_2_cuts_feasible_ = true;
+
+    /** Feasibility for the maximum number of 2-cuts in a first-level sub-plate. */
+    bool maximum_number_2_cuts_feasible_ = true;
+
+    /** Feasibility for the stacks. */
+    bool stacks_feasible_ = true;
+
+    /** Feasibility for the defect intersections. */
+    bool defects_feasible_ = true;
+
+    /** Feasibility for the cut through defects. */
+    bool cut_through_defects_feasible_ = true;
+
+    /** Overall feasibility. */
+    bool feasible_ = true;
+
+    /*
      * Private attributes: bins
      */
 

@@ -226,6 +226,9 @@ struct ItemType
     /** Stack id to which the item type belongs. */
     StackId stack_id;
 
+    /** Position of the item in the stack. */
+    ItemPos stack_pos;
+
     /** Indicates if the item is oriented (i.e. cannot be rotated). */
     bool oriented;
 
@@ -507,6 +510,19 @@ public:
      */
     inline DefectId x_intersects_defect(
             Length x,
+            const BinType& bin_type,
+            CutOrientation o) const;
+
+    /**
+     * Return the id of a defect intersecting an x-coordinate in bin type i
+     * with orientation o.
+     *
+     * Return -1 if there is none.
+     */
+    inline DefectId x_intersects_defect(
+            Length x,
+            Length b,
+            Length t,
             const BinType& bin_type,
             CutOrientation o) const;
 
@@ -802,6 +818,25 @@ DefectId Instance::y_intersects_defect(
         if (bottom(k, o) >= y || top(k, o) <= y)
             continue;
         if (k_min == -1 || left(k, o) < left(bin_type.defects[k_min], o))
+            k_min = k.id;
+    }
+    return k_min;
+}
+
+DefectId Instance::x_intersects_defect(
+        Length x,
+        Length b,
+        Length t,
+        const BinType& bin_type,
+        CutOrientation o) const
+{
+    DefectId k_min = -1;
+    for (const Defect& k: bin_type.defects) {
+        if (top(k, o) <= b || bottom(k, o) >= t)
+            continue;
+        if (left(k, o) >= x || right(k, o) <= x)
+            continue;
+        if (k_min == -1 || bottom(k, o) < bottom(bin_type.defects[k_min], o))
             k_min = k.id;
     }
     return k_min;
