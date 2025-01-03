@@ -56,6 +56,8 @@ void Solution::update_indicators(
 
     width_ = 0;
     height_ = 0;
+    Counter subplate1curr_number_of_2_cuts = 0;
+    Length subpalte1curr_end = -1;
     for (const SolutionNode& node: bin.nodes) {
         if (node.f != -1 && node.item_type_id >= 0) {
             number_of_items_ += bin.copies;
@@ -73,6 +75,167 @@ void Solution::update_indicators(
             width_ = node.r;
         if (node.t < bin_type.rect.h && height_ < node.t)
             height_ = node.t;
+
+        // Check minimum waste length.
+        if (node.d >= 1
+                && node.item_type_id < 0) {
+            if ((node.r - node.l
+                        < instance().parameters().minimum_waste_length)
+                    || (node.t - node.b
+                        < instance().parameters().minimum_waste_length)) {
+                //std::cout << "minimum_waste_length_feasible_ = false" << std::endl;
+                minimum_waste_length_feasible_ = false;
+                feasible_ = false;
+            }
+        }
+
+        // Check minimum distance between 1-cuts.
+        if (node.d == 1
+                && node.item_type_id == -2) {
+            if ((bin.first_cut_orientation == CutOrientation::Vertical
+                        && node.r - node.l
+                        < instance().parameters().minimum_distance_1_cuts)
+                    || (bin.first_cut_orientation == CutOrientation::Horizontal
+                        && node.t - node.b
+                        < instance().parameters().minimum_distance_1_cuts)) {
+                //std::cout << "minimum_distance_1_cuts = false" << std::endl;
+                minimum_distance_1_cuts_feasible_ = false;
+                feasible_ = false;
+            }
+        }
+
+        // Check maximum distance between 1-cuts.
+        if (instance().parameters().maximum_distance_1_cuts >= 0) {
+            if (node.d == 1
+                    && node.item_type_id == -2) {
+                if ((bin.first_cut_orientation == CutOrientation::Vertical
+                            && node.r - node.l
+                            > instance().parameters().maximum_distance_1_cuts)
+                        || (bin.first_cut_orientation == CutOrientation::Horizontal
+                            && node.t - node.b
+                            > instance().parameters().maximum_distance_1_cuts)) {
+                    //std::cout << "maximum_distance_1_cuts = false" << std::endl;
+                    maximum_distance_1_cuts_feasible_ = false;
+                    feasible_ = false;
+                }
+            }
+        }
+
+        // Check minimum distance between 2-cuts.
+        if (node.d == 2
+                && node.item_type_id == -2) {
+            if ((bin.first_cut_orientation == CutOrientation::Vertical
+                        && node.t - node.b
+                        < instance().parameters().minimum_distance_2_cuts)
+                    || (bin.first_cut_orientation == CutOrientation::Horizontal
+                        && node.r - node.l
+                        < instance().parameters().minimum_distance_2_cuts)) {
+                //std::cout << "minimum_distance_2_cuts = false" << std::endl;
+                minimum_distance_2_cuts_feasible_ = false;
+                feasible_ = false;
+            }
+        }
+
+        // Check maximum number of 2-cuts.
+        if (instance().parameters().maximum_number_2_cuts >= 0) {
+            if (node.d == 1) {
+                subpalte1curr_end = (bin.first_cut_orientation == CutOrientation::Vertical)?
+                    node.t:
+                    node.r;
+                subplate1curr_number_of_2_cuts = 0;
+            }
+            if (node.d == 2) {
+                if ((bin.first_cut_orientation == CutOrientation::Vertical
+                            && node.t != subpalte1curr_end)
+                        || (bin.first_cut_orientation == CutOrientation::Horizontal
+                            && node.r != subpalte1curr_end)) {
+                    subplate1curr_number_of_2_cuts++;
+                    if (subplate1curr_number_of_2_cuts
+                            > instance().parameters().maximum_number_2_cuts) {
+                        //std::cout << "maximum_number_2_cuts = false" << std::endl;
+                        maximum_number_2_cuts_feasible_ = false;
+                        feasible_ = false;
+                    }
+                }
+            }
+        }
+
+        // Check stacks.
+        if (node.d >= 1
+                && node.item_type_id >= 0) {
+            const ItemType& item_type = instance().item_type(node.item_type_id);
+            if (item_type.stack_pos > 0) {
+                ItemTypeId item_type_id_pred = instance().item(
+                        item_type.stack_id,
+                        item_type.stack_pos - 1);
+                const ItemType& item_type_pred = instance().item_type(item_type_id_pred);
+                if (item_copies(item_type_id_pred) != item_type_pred.copies) {
+                    //std::cout << "stacks_feasible = false" << std::endl;
+                    //std::cout << "item_type_id " << node.item_type_id
+                    //    << " stack_id " << item_type.stack_id
+                    //    << " stack_pos " << item_type.stack_pos
+                    //    << std::endl;
+                    //std::cout << "item_type_id_pred " << item_type_id_pred
+                    //    << " stack_id " << item_type_pred.stack_id
+                    //    << " stack_pos " << item_type_pred.stack_pos
+                    //    << " copies " << item_copies(item_type_id_pred)
+                    //    << " / " << item_type_pred.copies
+                    //    << std::endl;
+                    stacks_feasible_ = false;
+                    feasible_ = false;
+                }
+            }
+        }
+
+        // Check defect intersections.
+        if (node.d >= 1
+                && node.item_type_id >= 0) {
+            DefectId k = instance().rect_intersects_defect(
+                    node.l,
+                    node.r,
+                    node.b,
+                    node.t,
+                    bin_type,
+                    CutOrientation::Vertical);
+            if (k != -1) {
+                std::cout << "defects_feasible = false" << std::endl;
+                defects_feasible_ = false;
+                feasible_ = false;
+            }
+        }
+
+        // Check cuts through defects.
+        if (!instance().parameters().cut_through_defects
+                && node.d >= 1) {
+            DefectId kl = instance().x_intersects_defect(
+                    node.l,
+                    node.b,
+                    node.t,
+                    bin_type,
+                    CutOrientation::Vertical);
+            DefectId kr = instance().x_intersects_defect(
+                    node.r,
+                    node.b,
+                    node.t,
+                    bin_type,
+                    CutOrientation::Vertical);
+            DefectId kb = instance().y_intersects_defect(
+                    node.l,
+                    node.r,
+                    node.b,
+                    bin_type,
+                    CutOrientation::Vertical);
+            DefectId kt = instance().y_intersects_defect(
+                    node.l,
+                    node.r,
+                    node.t,
+                    bin_type,
+                    CutOrientation::Vertical);
+            if (kl != -1 || kr != -1 || kb != -1 || kt != -1) {
+                cut_through_defects_feasible_ = false;
+                feasible_ = false;
+            }
+        }
     }
 }
 
@@ -120,6 +283,12 @@ void Solution::append(
 
 bool Solution::operator<(const Solution& solution) const
 {
+    // Check feasibility.
+    if (!solution.feasible_)
+        return false;
+    if (!feasible_)
+        return true;
+
     switch (instance().objective()) {
     case Objective::Default: {
         if (solution.profit() < profit())

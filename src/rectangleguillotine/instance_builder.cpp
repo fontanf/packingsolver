@@ -731,6 +731,7 @@ Instance InstanceBuilder::build()
                 <= item_type.stack_id) {
             instance_.item_type_ids_.push_back({});
         }
+        instance_.item_types_[item_type_id].stack_pos = instance_.item_type_ids_[item_type.stack_id].size();
         for (ItemPos c = 0; c < item_type.copies; ++c)
             instance_.item_type_ids_[item_type.stack_id].push_back(item_type_id);
     }
@@ -741,6 +742,7 @@ Instance InstanceBuilder::build()
         if (item_type.stack_id != -1)
             continue;
         instance_.item_types_[item_type_id].stack_id = instance_.item_type_ids_.size();
+        instance_.item_types_[item_type_id].stack_pos = 0;
         instance_.item_type_ids_.push_back({});
         for (ItemPos c = 0; c < item_type.copies; ++c)
             instance_.item_type_ids_[item_type.stack_id].push_back(item_type_id);
