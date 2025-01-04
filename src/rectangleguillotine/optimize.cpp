@@ -400,10 +400,6 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
     bool use_column_generation = parameters.use_column_generation;
     if (instance.number_of_bins() <= 1) {
         // Disable algorithms which are not available for this objective.
-        if (instance.number_of_stacks() != instance.number_of_item_types()
-                || instance.number_of_defects() > 0) {
-            use_column_generation_2 = false;
-        }
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
@@ -412,10 +408,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
         if (!use_tree_search
                 && !use_column_generation_2) {
             use_tree_search = true;
-            if (instance.number_of_stacks() == instance.number_of_item_types()
-                    && instance.number_of_defects() == 0) {
-                use_column_generation_2 = true;
-            }
+            use_column_generation_2 = true;
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.

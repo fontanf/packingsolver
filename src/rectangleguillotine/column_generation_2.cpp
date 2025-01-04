@@ -163,6 +163,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
         Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
         for (;;) {
+            //std::cout << "1E width " << width << std::endl;
 
             // Build one-dimensional knapsack instance.
             onedimensional::InstanceBuilder kp_instance_builder;
@@ -213,6 +214,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                 auto kp_output = optimize(kp_instance, kp_parameters);
 
                 // Retrieve column.
+                //std::cout << "retrieve column" << std::endl;
                 Column column;
                 SolutionBuilder extra_solution_builder(instance_);
                 extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
@@ -285,7 +287,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                 if (!item_type.oriented
                         && item_type.rect.h < width
                         && width_new < item_type.rect.h) {
-                    width_new = item_type.rect.w;
+                    width_new = item_type.rect.h;
                 }
             }
             if (width_new == 0)
@@ -303,6 +305,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
         Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
         for (;;) {
+            //std::cout << "1N width " << width << std::endl;
 
             // Build one-dimensional knapsack instance.
             onedimensional::InstanceBuilder kp_instance_builder;
@@ -325,7 +328,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                     profit = instance_.item_type(item_type_id).profit
                         - duals[item_type_id];
                 }
-                if (profit <= 0)
+                if (!strictly_greater(profit, 0.0))
                     continue;
 
                 Length item_width = width + 1;
@@ -392,6 +395,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
             }
 
             // Build extra solution.
+            //std::cout << "build extra solution width_max " << width_max << std::endl;
             SolutionBuilder extra_solution_builder(instance_);
             extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
             extra_solution_builder.add_node(1, bin_type.left_trim + width_max);
@@ -439,7 +443,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                     profit = instance_.item_type(item_type_id).profit
                         - duals[item_type_id];
                 }
-                if (profit <= 0)
+                if (!strictly_greater(profit, 0.0))
                     continue;
 
                 if (item_type.rect.w < width
@@ -449,7 +453,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                 if (!item_type.oriented
                         && item_type.rect.h < width
                         && width_new < item_type.rect.h) {
-                    width_new = item_type.rect.w;
+                    width_new = item_type.rect.h;
                 }
             }
             if (width_new == 0)
@@ -520,6 +524,7 @@ void column_generation_2_vertical(
         const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
             = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
         if (cgslds_output.solution.feasible()) {
+            //std::cout << "callback" << std::endl;
             SolutionBuilder solution_builder(instance);
             solution_builder.add_bin(0, 1, CutOrientation::Vertical);
             Length offset = 0;
@@ -629,6 +634,7 @@ void column_generation_2_horizontal(
                 = static_cast<const ColumnGeneration2Output&>(ps_output);
             std::stringstream ss;
             ss << "CG n ";
+            //std::cout << "callback flipped" << std::endl;
             SolutionBuilder solution_builder(instance);
             const Solution& flipped_solution = flipped_output.solution_pool.best();
             for (BinPos bin_pos = 0;
