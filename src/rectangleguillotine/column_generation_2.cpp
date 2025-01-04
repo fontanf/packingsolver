@@ -189,14 +189,16 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                 if (profit <= 0)
                     continue;
 
-                if (item_type.rect.w == width) {
+                if (item_type.rect.w == width
+                        && item_type.rect.h <= height) {
                     kp_instance_builder.add_item_type(
                             item_type.rect.h,
                             profit,
                             copies);
                     kp2orig.push_back(item_type_id);
                 } else if (!item_type.oriented
-                        && item_type.rect.h == width) {
+                        && item_type.rect.h == width
+                        && item_type.rect.w <= height) {
                     kp_instance_builder.add_item_type(
                             item_type.rect.w,
                             profit,
@@ -281,11 +283,13 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                     continue;
 
                 if (item_type.rect.w < width
+                        && item_type.rect.h <= height
                         && width_new < item_type.rect.w) {
                     width_new = item_type.rect.w;
                 }
                 if (!item_type.oriented
                         && item_type.rect.h < width
+                        && item_type.rect.w <= height
                         && width_new < item_type.rect.h) {
                     width_new = item_type.rect.h;
                 }
@@ -333,13 +337,15 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
 
                 Length item_width = width + 1;
                 Length item_height = height + 1;
-                if (item_type.rect.w <= width) {
+                if (item_type.rect.w <= width
+                        && item_type.rect.h <= height) {
                     item_width = item_type.rect.w;
                     item_height = item_type.rect.h;
                 }
                 if (!item_type.oriented
                         && item_type.rect.h <= width
-                        && item_height > item_type.rect.w) {
+                        && item_type.rect.w <= height
+                        && item_type.rect.w < item_height) {
                     item_width = item_type.rect.h;
                     item_height = item_type.rect.w;
                 }
@@ -447,11 +453,13 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                     continue;
 
                 if (item_type.rect.w < width
+                        && item_type.rect.h <= height
                         && width_new < item_type.rect.w) {
                     width_new = item_type.rect.w;
                 }
                 if (!item_type.oriented
                         && item_type.rect.h < width
+                        && item_type.rect.w <= height
                         && width_new < item_type.rect.h) {
                     width_new = item_type.rect.h;
                 }
