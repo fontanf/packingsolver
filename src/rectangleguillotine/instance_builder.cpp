@@ -751,6 +751,7 @@ Instance InstanceBuilder::build()
     // Compute item type attributes.
     Area bin_types_area_max = compute_bin_types_area_max();
     instance_.all_item_types_infinite_copies_ = true;
+    instance_.all_item_types_oriented_ = true;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
@@ -776,6 +777,9 @@ Instance InstanceBuilder::build()
         // Update maximum_item_copies_.
         if (instance_.maximum_item_copies_ < item_type.copies)
             instance_.maximum_item_copies_ = item_type.copies;
+        // Update all_item_types_oriented_.
+        if (!item_type.oriented)
+            instance_.all_item_types_oriented_ = false;
     }
 
     // Compute bin type attributes.
