@@ -199,7 +199,17 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initia
             continue;
         for (const columngenerationsolver::LinearTerm& element: column.elements) {
             if (element.row < instance_.number_of_item_types()) {
-                filled_demands_[element.row] += value * element.coefficient;
+                ItemTypeId item_type_id = element.row;
+                ItemPos copies = instance_.item_type(item_type_id).copies;
+                filled_demands_[item_type_id] += value * element.coefficient;
+                if (filled_demands_[item_type_id] > copies) {
+                    throw std::logic_error(
+                            "rectangleguillotine::ColumnGenerationPricingSolver::initialize_pricing"
+                            "; item_type_id: " + std::to_string(item_type_id)
+                            + "; copies: " + std::to_string(copies)
+                            + "; filled_demands: " + std::to_string(filled_demands_[item_type_id])
+                            + ".");
+                }
             } else {
                 filled_width_ += value * element.coefficient;
             }
