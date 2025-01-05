@@ -118,8 +118,9 @@ ItemTypeId InstanceBuilder::add_item_type(
 {
     if (copies <= 0) {
         throw std::runtime_error(
-                "'onedimensional::InstanceBuilder::add_item_type'"
-                " requires 'copies > 0'.");
+                "onedimensional::InstanceBuilder::add_item_type"
+                "; copies: " + std::to_string(copies)
+                + ".");
     }
 
     ItemType item_type;
