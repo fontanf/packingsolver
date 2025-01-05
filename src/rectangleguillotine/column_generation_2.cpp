@@ -195,8 +195,6 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initia
     for (auto p: fixed_columns) {
         const Column& column = *(p.first);
         Value value = p.second;
-        if (value < 0.5)
-            continue;
         for (const columngenerationsolver::LinearTerm& element: column.elements) {
             if (element.row < instance_.number_of_item_types()) {
                 ItemTypeId item_type_id = element.row;
@@ -876,7 +874,7 @@ void column_generation_2_vertical(
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    cgslds_parameters.internal_diving = 1;
+    cgslds_parameters.internal_diving = 0;
     if (instance.objective() == Objective::OpenDimensionX) {
         cgslds_parameters.dummy_column_objective_coefficient = 2 * item_largest_length;
     } else {
