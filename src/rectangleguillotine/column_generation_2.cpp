@@ -67,7 +67,7 @@ private:
 
     const Instance& instance_;
 
-    std::vector<double> filled_demands_;
+    std::vector<ItemPos> filled_demands_;
 
     Length filled_width_ = 0;
 
@@ -201,7 +201,7 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initia
             if (element.row < instance_.number_of_item_types()) {
                 ItemTypeId item_type_id = element.row;
                 ItemPos copies = instance_.item_type(item_type_id).copies;
-                filled_demands_[item_type_id] += value * element.coefficient;
+                filled_demands_[item_type_id] += std::round(value) * std::round(element.coefficient);
                 if (filled_demands_[item_type_id] > copies) {
                     throw std::logic_error(
                             "rectangleguillotine::ColumnGenerationPricingSolver::initialize_pricing"
@@ -211,7 +211,7 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initia
                             + ".");
                 }
             } else {
-                filled_width_ += value * element.coefficient;
+                filled_width_ += std::round(value) * std::round(element.coefficient);
             }
         }
     }
