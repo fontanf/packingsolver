@@ -156,7 +156,7 @@ void optimize_column_generation_2(
         const SequentialValueCorrectionOutput<Instance, Solution>& pscg_output
             = static_cast<const SequentialValueCorrectionOutput<Instance, Solution>&>(ps_output);
         std::stringstream ss;
-        ss << "CG n " << pscg_output.number_of_iterations;
+        ss << "CG";
         algorithm_formatter.update_solution(pscg_output.solution_pool.best(), ss.str());
     };
     column_generation_2(instance, cg_parameters);

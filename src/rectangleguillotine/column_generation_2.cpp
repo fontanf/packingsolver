@@ -278,20 +278,22 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             kp_parameters.verbosity_level = 0;
             auto kp_output = optimize(kp_instance, kp_parameters);
 
-            // Retrieve column.
-            //std::cout << "retrieve column" << std::endl;
-            Column column;
+            // Retrieve solution.
             SolutionBuilder extra_solution_builder(instance_);
             extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
             extra_solution_builder.add_node(1, bin_type.left_trim + width);
             Length cut_position = bin_type.bottom_trim;
-            for (ItemTypeId kp_item_type_id = 0;
-                    kp_item_type_id < kp_instance.number_of_item_types();
-                    ++kp_item_type_id) {
-                ItemTypeId item_type_id = kp2orig[kp_item_type_id];
+            Solution extra_solution = extra_solution_builder.build();
+
+            // Retrieve column.
+            //std::cout << "retrieve column" << std::endl;
+            Column column;
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance_.number_of_item_types();
+                    ++item_type_id) {
                 const ItemType& item_type = instance_.item_type(item_type_id);
 
-                ItemPos copies = kp_output.solution_pool.best().item_copies(kp_item_type_id);
+                ItemPos copies = extra_solution.item_copies(item_type_id);
                 if (copies == 0)
                     continue;
 
@@ -304,7 +306,9 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
                 column.elements.push_back(element);
 
                 for (ItemPos copy = 0; copy < copies; ++copy) {
-                    cut_position += kp_instance.item_type(kp_item_type_id).length;
+                    cut_position += (item_type.rect.w == width)?
+                        item_type.rect.h:
+                        item_type.rect.w;
                     extra_solution_builder.add_node(2, cut_position);
                     extra_solution_builder.set_last_node_item(item_type_id);
                 }
@@ -317,7 +321,6 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
                 element.coefficient = width;
                 column.elements.push_back(element);
             }
-            Solution extra_solution = extra_solution_builder.build();
             column.extra = std::shared_ptr<void>(new Solution(extra_solution));
             output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
             if (instance_.parameters().number_of_stages == 3
@@ -436,8 +439,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
         kp_parameters.verbosity_level = 0;
         auto kp_output = optimize(kp_instance, kp_parameters);
 
-        // Retrieve column.
-        Column column;
+        // Retrieve width_max.
         Length width_max = 0;
         for (ItemTypeId kp_item_type_id = 0;
                 kp_item_type_id < kp_instance.number_of_item_types();
@@ -451,25 +453,9 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
 
             if (width_max < kp2orig[kp_item_type_id].second)
                 width_max = kp2orig[kp_item_type_id].second;
-
-            if (instance_.objective() == Objective::Knapsack)
-                column.objective_coefficient += copies * item_type.profit;
-
-            columngenerationsolver::LinearTerm element;
-            element.row = item_type_id;
-            element.coefficient = copies;
-            column.elements.push_back(element);
-        }
-        if (instance_.objective() == Objective::OpenDimensionX) {
-            column.objective_coefficient = width_max;
-        } else {
-            columngenerationsolver::LinearTerm element;
-            element.row = instance_.number_of_item_types();
-            element.coefficient = width_max;
-            column.elements.push_back(element);
         }
 
-        // Build extra solution.
+        // Retrieve solution.
         //std::cout << "build extra solution width_max " << width_max << std::endl;
         SolutionBuilder extra_solution_builder(instance_);
         extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
@@ -495,9 +481,36 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             }
         }
         Solution extra_solution = extra_solution_builder.build();
+
+        // Retrieve column.
+        Column column;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+
+            ItemPos copies = extra_solution.item_copies(item_type_id);
+            if (copies == 0)
+                continue;
+
+            if (instance_.objective() == Objective::Knapsack)
+                column.objective_coefficient += copies * item_type.profit;
+
+            columngenerationsolver::LinearTerm element;
+            element.row = item_type_id;
+            element.coefficient = copies;
+            column.elements.push_back(element);
+        }
+        if (instance_.objective() == Objective::OpenDimensionX) {
+            column.objective_coefficient = width_max;
+        } else {
+            columngenerationsolver::LinearTerm element;
+            element.row = instance_.number_of_item_types();
+            element.coefficient = width_max;
+            column.elements.push_back(element);
+        }
         //std::cout << "column.objective_coefficient  " << column.objective_coefficient << std::endl;
         column.extra = std::shared_ptr<void>(new Solution(extra_solution));
-
         output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
         if (instance_.parameters().number_of_stages == 2
                 && instance_.parameters().cut_type == CutType::Exact) {
@@ -631,8 +644,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
         kp_parameters.verbosity_level = 0;
         auto kp_output = optimize(kp_instance, kp_parameters);
 
-        // Retrieve column.
-        Column column;
+        // Retrieve width_max.
         Length width_max = 0;
         for (ItemTypeId kp_item_type_id = 0;
                 kp_item_type_id < kp_instance.number_of_item_types();
@@ -648,22 +660,6 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             Length width = item_type.rect.w * copies;
             if (width_max < width)
                 width_max = width;
-
-            if (instance_.objective() == Objective::Knapsack)
-                column.objective_coefficient += kp_copies * copies * item_type.profit;
-
-            columngenerationsolver::LinearTerm element;
-            element.row = item_type_id;
-            element.coefficient = kp_copies * copies;
-            column.elements.push_back(element);
-        }
-        if (instance_.objective() == Objective::OpenDimensionX) {
-            column.objective_coefficient = width_max;
-        } else {
-            columngenerationsolver::LinearTerm element;
-            element.row = instance_.number_of_item_types();
-            element.coefficient = width_max;
-            column.elements.push_back(element);
         }
 
         // Build extra solution.
@@ -703,9 +699,36 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             }
         }
         Solution extra_solution = extra_solution_builder.build();
+
+        // Retrieve column.
+        Column column;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+
+            ItemPos copies = extra_solution.item_copies(item_type_id);
+            if (copies == 0)
+                continue;
+
+            if (instance_.objective() == Objective::Knapsack)
+                column.objective_coefficient += copies * item_type.profit;
+
+            columngenerationsolver::LinearTerm element;
+            element.row = item_type_id;
+            element.coefficient = copies;
+            column.elements.push_back(element);
+        }
+        if (instance_.objective() == Objective::OpenDimensionX) {
+            column.objective_coefficient = width_max;
+        } else {
+            columngenerationsolver::LinearTerm element;
+            element.row = instance_.number_of_item_types();
+            element.coefficient = width_max;
+            column.elements.push_back(element);
+        }
         //std::cout << "column.objective_coefficient  " << column.objective_coefficient << std::endl;
         column.extra = std::shared_ptr<void>(new Solution(extra_solution));
-
         output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
         if (instance_.parameters().number_of_stages == 3
                 && instance_.parameters().cut_type == CutType::Homogenous
@@ -848,6 +871,8 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
 
     //std::cout << "solve_pricing end" << std::endl;
     output.overcost = instance_.number_of_items() * reduced_cost_bound;
+    //for (const auto& column: output.columns)
+    //    std::cout << *column << std::endl;
     return output;
 }
 
