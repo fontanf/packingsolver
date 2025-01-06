@@ -65,6 +65,10 @@ struct ColumnGeneration2Output: packingsolver::Output<Instance, Solution>
     /** Constructor. */
     ColumnGeneration2Output(const Instance& instance):
         packingsolver::Output<Instance, Solution>(instance) { }
+
+    CutOrientation best_solution_first_stage_orientation;
+
+    NodeId best_solution_number_of_nodes;
 };
 
 struct ColumnGeneration2Parameters: packingsolver::Parameters<Instance, Solution>
