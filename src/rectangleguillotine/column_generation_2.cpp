@@ -86,8 +86,145 @@ private:
 std::vector<std::shared_ptr<const Column>> generate_1rr_patterns(
         const Instance& instance)
 {
+    const BinType& bin_type = instance.bin_type(0);
+
     std::vector<std::shared_ptr<const Column>> columns;
-    // TODO
+
+    // Sort item types by width.
+    std::vector<std::pair<ItemTypeId, bool>> sorted_item_type_ids;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        sorted_item_type_ids.push_back({item_type_id, false});
+        if (!item_type.oriented)
+            sorted_item_type_ids.push_back({item_type_id, true});
+    }
+    std::sort(
+            sorted_item_type_ids.begin(),
+            sorted_item_type_ids.end(),
+            [&instance](
+                const std::pair<ItemTypeId, bool>& p1,
+                const std::pair<ItemTypeId, bool>& p2)
+            {
+                Length width_1 = (!p1.second)?
+                    instance.item_type(p1.first).rect.w:
+                    instance.item_type(p1.first).rect.h;
+                Length width_2 = (!p2.second)?
+                    instance.item_type(p2.first).rect.w:
+                    instance.item_type(p2.first).rect.h;
+                return width_1 < width_2;
+            });
+    for (ItemPos pos_1 = 0;
+            pos_1 < (ItemPos)sorted_item_type_ids.size();
+            ++pos_1) {
+        ItemTypeId item_type_id_1 = sorted_item_type_ids[pos_1].first;
+        const ItemType& item_type_1 = instance.item_type(item_type_id_1);
+        Length width_1 = (!sorted_item_type_ids[pos_1].second)?
+            item_type_1.rect.w:
+            item_type_1.rect.h;
+        Length height_1 = (!sorted_item_type_ids[pos_1].second)?
+            item_type_1.rect.h:
+            item_type_1.rect.w;
+
+        if (height_1 > bin_type.rect.h)
+            continue;
+
+        // Retrieve strip.
+        SolutionBuilder extra_solution_builder(instance);
+        extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
+        extra_solution_builder.add_node(1, bin_type.left_trim + width_1);
+        extra_solution_builder.add_node(2, bin_type.bottom_trim + height_1);
+        extra_solution_builder.set_last_node_item(item_type_id_1);
+        Solution extra_solution = extra_solution_builder.build();
+
+        // Build column.
+        Column column;
+        if (instance.objective() == Objective::Knapsack)
+            column.objective_coefficient += item_type_1.profit;
+        columngenerationsolver::LinearTerm element;
+        element.row = item_type_id_1;
+        element.coefficient = 1;
+        column.elements.push_back(element);
+        if (instance.objective() == Objective::OpenDimensionX) {
+            column.objective_coefficient = width_1;
+        } else {
+            columngenerationsolver::LinearTerm element;
+            element.row = instance.number_of_item_types();
+            element.coefficient = width_1;
+            column.elements.push_back(element);
+        }
+        column.extra = std::shared_ptr<void>(new Solution(extra_solution));
+        columns.push_back(std::shared_ptr<const Column>(new Column(column)));
+
+        for (ItemPos pos_2 = pos_1;
+                pos_2 < (ItemPos)sorted_item_type_ids.size();
+                ++pos_2) {
+            ItemTypeId item_type_id_2 = sorted_item_type_ids[pos_2].first;
+            const ItemType& item_type_2 = instance.item_type(item_type_id_2);
+            Length width_2 = (!sorted_item_type_ids[pos_2].second)?
+                item_type_2.rect.w:
+                item_type_2.rect.h;
+            Length height_2 = (!sorted_item_type_ids[pos_2].second)?
+                item_type_2.rect.h:
+                item_type_2.rect.w;
+
+            if (width_1 != width_2)
+                break;
+            if (item_type_id_1 == item_type_id_2
+                    && item_type_1.copies == 1) {
+                continue;
+            }
+            if (bin_type.bottom_trim
+                    + height_1
+                    + instance.parameters().cut_thickness
+                    + height_2
+                    + bin_type.top_trim
+                    != bin_type.rect.h)
+                continue;
+
+            // Retrieve strip.
+            SolutionBuilder extra_solution_builder(instance);
+            extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
+            extra_solution_builder.add_node(1, bin_type.left_trim + width_1);
+            extra_solution_builder.add_node(2, bin_type.bottom_trim + height_1);
+            extra_solution_builder.set_last_node_item(item_type_id_1);
+            extra_solution_builder.add_node(2, bin_type.bottom_trim + height_1 + instance.parameters().cut_thickness + height_2);
+            extra_solution_builder.set_last_node_item(item_type_id_2);
+            Solution extra_solution = extra_solution_builder.build();
+
+            // Build column.
+            Column column;
+            if (instance.objective() == Objective::Knapsack)
+                column.objective_coefficient += item_type_1.profit + item_type_2.profit;
+            if (item_type_id_1 == item_type_id_2) {
+                columngenerationsolver::LinearTerm element;
+                element.row = item_type_id_1;
+                element.coefficient = 2;
+                column.elements.push_back(element);
+            } else {
+                columngenerationsolver::LinearTerm element_1;
+                element_1.row = item_type_id_1;
+                element_1.coefficient = 1;
+                column.elements.push_back(element_1);
+                columngenerationsolver::LinearTerm element_2;
+                element_2.row = item_type_id_2;
+                element_2.coefficient = 1;
+                column.elements.push_back(element_2);
+            }
+            if (instance.objective() == Objective::OpenDimensionX) {
+                column.objective_coefficient = width_1;
+            } else {
+                columngenerationsolver::LinearTerm element;
+                element.row = instance.number_of_item_types();
+                element.coefficient = width_1;
+                column.elements.push_back(element);
+            }
+            column.extra = std::shared_ptr<void>(new Solution(extra_solution));
+            columns.push_back(std::shared_ptr<const Column>(new Column(column)));
+        }
+    }
+
     return columns;
 }
 
@@ -104,8 +241,93 @@ std::vector<std::shared_ptr<const Column>> generate_1rr_patterns(
 std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
         const Instance& instance)
 {
+    const BinType& bin_type = instance.bin_type(0);
+
     std::vector<std::shared_ptr<const Column>> columns;
-    // TODO
+
+    // Sort item types by width.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+
+        ItemPos copies_max = bin_type.rect.w / item_type.rect.w;
+        for (ItemPos copies = 0; copies < copies_max; ++copies) {
+
+            // Build strip.
+            SolutionBuilder extra_solution_builder(instance);
+            extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
+            extra_solution_builder.add_node(1, bin_type.left_trim + item_type.rect.w);
+            Length cut_position = bin_type.bottom_trim;
+            for (ItemPos copy = 0; copy < copies; ++copy) {
+                cut_position
+                    += instance.parameters().cut_thickness
+                    + item_type.rect.h;
+                extra_solution_builder.add_node(2, cut_position);
+                extra_solution_builder.set_last_node_item(item_type_id);
+            }
+            Solution extra_solution = extra_solution_builder.build();
+
+            // Build column.
+            Column column;
+            if (instance.objective() == Objective::Knapsack)
+                column.objective_coefficient += copies * item_type.profit;
+            columngenerationsolver::LinearTerm element;
+            element.row = item_type_id;
+            element.coefficient = copies;
+            column.elements.push_back(element);
+            if (instance.objective() == Objective::OpenDimensionX) {
+                column.objective_coefficient = item_type.rect.w;
+            } else {
+                columngenerationsolver::LinearTerm element;
+                element.row = instance.number_of_item_types();
+                element.coefficient = item_type.rect.w;
+                column.elements.push_back(element);
+            }
+            column.extra = std::shared_ptr<void>(new Solution(extra_solution));
+            columns.push_back(std::shared_ptr<const Column>(new Column(column)));
+        }
+
+        if (!item_type.oriented) {
+            ItemPos copies_max = bin_type.rect.h / item_type.rect.w;
+            for (ItemPos copies = 0; copies < copies_max; ++copies) {
+
+                // Build strip.
+                SolutionBuilder extra_solution_builder(instance);
+                extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
+                extra_solution_builder.add_node(1, bin_type.left_trim + item_type.rect.h);
+                Length cut_position = bin_type.bottom_trim;
+                for (ItemPos copy = 0; copy < copies; ++copy) {
+                    cut_position
+                        += instance.parameters().cut_thickness
+                        + item_type.rect.w;
+                    extra_solution_builder.add_node(2, cut_position);
+                    extra_solution_builder.set_last_node_item(item_type_id);
+                }
+                Solution extra_solution = extra_solution_builder.build();
+
+                // Build column.
+                Column column;
+                if (instance.objective() == Objective::Knapsack)
+                    column.objective_coefficient += copies * item_type.profit;
+                columngenerationsolver::LinearTerm element;
+                element.row = item_type_id;
+                element.coefficient = copies;
+                column.elements.push_back(element);
+                if (instance.objective() == Objective::OpenDimensionX) {
+                    column.objective_coefficient = item_type.rect.h;
+                } else {
+                    columngenerationsolver::LinearTerm element;
+                    element.row = instance.number_of_item_types();
+                    element.coefficient = item_type.rect.h;
+                    column.elements.push_back(element);
+                }
+                column.extra = std::shared_ptr<void>(new Solution(extra_solution));
+                columns.push_back(std::shared_ptr<const Column>(new Column(column)));
+            }
+        }
+    }
+
     return columns;
 }
 
@@ -180,6 +402,19 @@ columngenerationsolver::Model get_model(
         }
     }
 
+    if (instance.parameters().number_of_stages == 1
+            && instance.parameters().cut_type == CutType::Roadef2018
+            && !instance.all_item_types_oriented()) {
+        for (const auto& column: generate_1rr_patterns(instance))
+            model.columns.push_back(column);
+    }
+    if (instance.parameters().number_of_stages == 2
+            && instance.parameters().cut_type == CutType::Homogenous
+            && !instance.all_item_types_oriented()) {
+        for (const auto& column: generate_2hr_patterns(instance))
+            model.columns.push_back(column);
+    }
+
     // Pricing solver.
     model.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
             new ColumnGenerationPricingSolver(instance));
@@ -246,8 +481,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = instance_.item_type(item_type_id).profit
-                    - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id];
             }
             if (profit <= 0)
                 continue;
@@ -284,6 +518,23 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             extra_solution_builder.add_node(1, bin_type.left_trim + width);
             Length cut_position = bin_type.bottom_trim;
             Solution extra_solution = extra_solution_builder.build();
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance_.number_of_item_types();
+                    ++item_type_id) {
+                const ItemType& item_type = instance_.item_type(item_type_id);
+
+                ItemPos copies = extra_solution.item_copies(item_type_id);
+                if (copies == 0)
+                    continue;
+
+                for (ItemPos copy = 0; copy < copies; ++copy) {
+                    cut_position += (item_type.rect.w == width)?
+                        item_type.rect.h:
+                        item_type.rect.w;
+                    extra_solution_builder.add_node(2, cut_position);
+                    extra_solution_builder.set_last_node_item(item_type_id);
+                }
+            }
 
             // Retrieve column.
             //std::cout << "retrieve column" << std::endl;
@@ -304,14 +555,6 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
                 element.row = item_type_id;
                 element.coefficient = copies;
                 column.elements.push_back(element);
-
-                for (ItemPos copy = 0; copy < copies; ++copy) {
-                    cut_position += (item_type.rect.w == width)?
-                        item_type.rect.h:
-                        item_type.rect.w;
-                    extra_solution_builder.add_node(2, cut_position);
-                    extra_solution_builder.set_last_node_item(item_type_id);
-                }
             }
             if (instance_.objective() == Objective::OpenDimensionX) {
                 column.objective_coefficient = width;
@@ -348,8 +591,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = instance_.item_type(item_type_id).profit
-                    - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id];
             }
             if (profit <= 0)
                 continue;
@@ -401,8 +643,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = instance_.item_type(item_type_id).profit
-                    - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id];
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -535,8 +776,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = instance_.item_type(item_type_id).profit
-                    - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id];
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -564,7 +804,275 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         PricingOutput& output,
         Value& reduced_cost_bound)
 {
-    // TODO
+    const BinType& bin_type = instance_.bin_type(0);
+    Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+    Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
+
+    // Sort items by height and then by profit.
+    std::vector<std::pair<ItemTypeId, double>> sorted_item_type_ids;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance_.item_type(item_type_id);
+        ItemPos copies = item_type.copies - filled_demands_[item_type_id];
+        if (copies == 0)
+            continue;
+
+        Profit profit = 0;
+        if (instance_.objective() == Objective::OpenDimensionX) {
+            profit = duals[item_type_id];
+        } else if (instance_.objective() == Objective::Knapsack) {
+            profit = item_type.profit - duals[item_type_id];
+        }
+        if (!strictly_greater(profit, 0.0))
+            continue;
+
+        sorted_item_type_ids.push_back({item_type_id, profit});
+    }
+    std::sort(
+            sorted_item_type_ids.begin(),
+            sorted_item_type_ids.end(),
+            [this](
+                const std::pair<ItemTypeId, bool>& p1,
+                const std::pair<ItemTypeId, bool>& p2)
+            {
+                const ItemType& item_type_1 = instance_.item_type(p1.first);
+                const ItemType& item_type_2 = instance_.item_type(p2.first);
+                if (item_type_1.rect.h != item_type_2.rect.h)
+                    return item_type_1.rect.h < item_type_2.rect.h;
+                return p1.second > p2.second;
+            });
+
+    for (;;) {
+        //std::cout << "2RO width " << width << std::endl;
+
+        std::vector<ItemPos> remaining_copies(instance_.number_of_item_types(), 0);
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+            ItemPos copies = item_type.copies - filled_demands_[item_type_id];
+            if (copies == 0)
+                continue;
+            remaining_copies[item_type_id] = copies;
+        }
+
+        // Build one-dimensional knapsack instance.
+        onedimensional::InstanceBuilder kp_instance_builder;
+        kp_instance_builder.set_objective(Objective::Knapsack);
+        kp_instance_builder.add_bin_type(height);
+        std::vector<std::pair<ItemTypeId, ItemTypeId>> kp2orig;
+        for (ItemTypeId item_type_pos_1 = 0;
+                item_type_pos_1 < (ItemTypeId)sorted_item_type_ids.size();
+                ++item_type_pos_1) {
+            ItemTypeId item_type_id_1 = sorted_item_type_ids[item_type_id_1].first;
+            Profit profit_1 = sorted_item_type_ids[item_type_id_1].second;
+            const ItemType& item_type_1 = instance_.item_type(item_type_id_1);
+
+            for (ItemTypeId item_type_pos_2 = item_type_pos_1;
+                    item_type_pos_2 < (ItemTypeId)sorted_item_type_ids.size();
+                    ++item_type_pos_2) {
+                ItemTypeId item_type_id_2 = sorted_item_type_ids[item_type_id_1].first;
+                const ItemType& item_type_2 = instance_.item_type(item_type_id_1);
+                Profit profit_2 = sorted_item_type_ids[item_type_id_2].second;
+
+                // Items must be of the same height.
+                if (item_type_2.rect.h != item_type_1.rect.h)
+                    break;
+
+                // The sum of their widths must match the strip width.
+                if (item_type_1.rect.w
+                        + instance_.parameters().cut_thickness
+                        + item_type_2.rect.w
+                        != width) {
+                    continue;
+                }
+
+                if (item_type_id_1 == item_type_id_2
+                        && item_type_1.copies == 1)
+                    continue;
+
+                ItemPos copies = (item_type_id_1 == item_type_id_2)?
+                    remaining_copies[item_type_id_1] / 2:
+                    std::min(remaining_copies[item_type_id_1], remaining_copies[item_type_id_2]);
+
+                kp_instance_builder.add_item_type(
+                        item_type_1.rect.h,
+                        profit_1 + profit_2,
+                        copies);
+                kp2orig.push_back({item_type_id_1, item_type_id_2});
+
+                remaining_copies[item_type_id_1] -= copies;
+                remaining_copies[item_type_id_2] -= copies;
+            }
+            if (remaining_copies[item_type_id_1] > 0) {
+                kp_instance_builder.add_item_type(
+                        item_type_1.rect.h,
+                        profit_1,
+                        remaining_copies[item_type_id_1]);
+                kp2orig.push_back({item_type_id_1, -1});
+            }
+        }
+        onedimensional::Instance kp_instance = kp_instance_builder.build();
+        if (kp_instance.number_of_item_types() == 0)
+            break;
+
+        // Solve one-dimensional knapsack problem.
+        onedimensional::OptimizeParameters kp_parameters;
+        kp_parameters.verbosity_level = 0;
+        auto kp_output = optimize(kp_instance, kp_parameters);
+
+        // Retrieve width_max.
+        Length width_max = 0;
+        for (ItemTypeId kp_item_type_id = 0;
+                kp_item_type_id < kp_instance.number_of_item_types();
+                ++kp_item_type_id) {
+            ItemTypeId item_type_id_1 = kp2orig[kp_item_type_id].first;
+            ItemTypeId item_type_id_2 = kp2orig[kp_item_type_id].second;
+
+            ItemPos kp_copies = kp_output.solution_pool.best().item_copies(kp_item_type_id);
+            if (kp_copies == 0)
+                continue;
+
+            const ItemType& item_type_1 = instance_.item_type(item_type_id_1);
+            Length width_cur = item_type_1.rect.w;
+            if (item_type_id_2 != -1) {
+                const ItemType& item_type_2 = instance_.item_type(item_type_id_2);
+                width_cur
+                    += instance_.parameters().cut_thickness
+                    + item_type_2.rect.w;
+            }
+            if (width_max < width_cur)
+                width_max = width_cur;
+        }
+
+        // Build extra solution.
+        //std::cout << "build extra solution width_max " << width_max << std::endl;
+        SolutionBuilder extra_solution_builder(instance_);
+        extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
+        extra_solution_builder.add_node(1, bin_type.left_trim + width_max);
+        Length cut_position = bin_type.bottom_trim;
+        for (ItemTypeId kp_item_type_id = 0;
+                kp_item_type_id < kp_instance.number_of_item_types();
+                ++kp_item_type_id) {
+            ItemTypeId item_type_id_1 = kp2orig[kp_item_type_id].first;
+            const ItemType& item_type_1 = instance_.item_type(item_type_id_1);
+
+            ItemPos kp_copies = kp_output.solution_pool.best().item_copies(kp_item_type_id);
+            if (kp_copies == 0)
+                continue;
+
+            for (ItemPos kp_copy = 0; kp_copy < kp_copies; ++kp_copy) {
+                cut_position += instance_.parameters().cut_thickness + item_type_1.rect.h;
+                extra_solution_builder.add_node(2, cut_position);
+
+                if (item_type_1.rect.w < width_max) {
+                    extra_solution_builder.add_node(
+                            3,
+                            bin_type.left_trim
+                            + item_type_1.rect.w);
+                }
+                extra_solution_builder.set_last_node_item(item_type_id_1);
+
+                ItemTypeId item_type_id_2 = kp2orig[kp_item_type_id].second;
+                if (item_type_id_2 != -1) {
+                    const ItemType& item_type_2 = instance_.item_type(item_type_id_2);
+                    extra_solution_builder.add_node(
+                            3,
+                            bin_type.left_trim
+                            + item_type_1.rect.w
+                            + instance_.parameters().cut_thickness
+                            + item_type_2.rect.w);
+                    extra_solution_builder.set_last_node_item(item_type_id_2);
+                }
+            }
+        }
+        Solution extra_solution = extra_solution_builder.build();
+
+        // Retrieve column.
+        Column column;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+
+            ItemPos copies = extra_solution.item_copies(item_type_id);
+            if (copies == 0)
+                continue;
+
+            if (instance_.objective() == Objective::Knapsack)
+                column.objective_coefficient += copies * item_type.profit;
+
+            columngenerationsolver::LinearTerm element;
+            element.row = item_type_id;
+            element.coefficient = copies;
+            column.elements.push_back(element);
+        }
+        if (instance_.objective() == Objective::OpenDimensionX) {
+            column.objective_coefficient = width_max;
+        } else {
+            columngenerationsolver::LinearTerm element;
+            element.row = instance_.number_of_item_types();
+            element.coefficient = width_max;
+            column.elements.push_back(element);
+        }
+        //std::cout << "column.objective_coefficient  " << column.objective_coefficient << std::endl;
+        column.extra = std::shared_ptr<void>(new Solution(extra_solution));
+        output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
+        if (instance_.parameters().number_of_stages == 3
+                && instance_.parameters().cut_type == CutType::Homogenous
+                && instance_.all_item_types_oriented()) {
+            reduced_cost_bound = (std::max)(
+                    reduced_cost_bound,
+                    columngenerationsolver::compute_reduced_cost(column, duals));
+        }
+
+        // Find the largest width strictly smaller than the largest width
+        // in the generated column.
+        Length width_new = 0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+
+            ItemPos copies = item_type.copies - filled_demands_[item_type_id];
+            if (copies == 0)
+                continue;
+
+            Profit profit = 0;
+            if (instance_.objective() == Objective::OpenDimensionX) {
+                profit = duals[item_type_id];
+            } else if (instance_.objective() == Objective::Knapsack) {
+                profit = item_type.profit - duals[item_type_id];
+            }
+            if (!strictly_greater(profit, 0.0))
+                continue;
+
+            ItemPos number_of_copies_in_full_strip = (width_max - 1) / item_type.rect.w;
+            if (number_of_copies_in_full_strip == 0)
+                continue;
+            if (item_type.rect.h > height)
+                continue;
+            ItemPos number_of_full_strips = copies / number_of_copies_in_full_strip;
+            ItemPos number_of_copies_in_last_strip = copies % number_of_copies_in_full_strip;
+            Length width_cur = (number_of_full_strips > 0)?
+                number_of_copies_in_full_strip * item_type.rect.w:
+                number_of_copies_in_last_strip * item_type.rect.w;
+            //std::cout << "wj " << item_type.rect.w
+            //    << " copies " << copies
+            //    << " number_of_copies_in_full_strip " << number_of_full_strips
+            //    << " number_of_full_strips " << number_of_full_strips
+            //    << " number_of_copies_in_last_strip " << number_of_copies_in_last_strip
+            //    << " wcur " << width_cur
+            //    << std::endl;
+
+            if (width_new < width_cur)
+                width_new = width_cur;
+        }
+        if (width_new == 0)
+            break;
+        width = width_new;
+    }
 }
 
 void ColumnGenerationPricingSolver::generate_2ho_patterns(
@@ -754,8 +1262,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = instance_.item_type(item_type_id).profit
-                    - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id];
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -792,6 +1299,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         PricingOutput& output,
         Value& reduced_cost_bound)
 {
+    // TODO
 }
 
 PricingOutput ColumnGenerationPricingSolver::solve_pricing(
