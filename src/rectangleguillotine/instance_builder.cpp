@@ -485,6 +485,8 @@ void InstanceBuilder::read_parameters(
             set_minimum_waste_length(std::stol(value));
         } else if (name == "maximum_number_2_cuts") {
             set_maximum_number_2_cuts(std::stol(value));
+        } else if (name == "cut_through_defects") {
+            set_cut_through_defects(std::stol(value));
         } else if (name == "cut_thickness") {
             set_cut_thickness(std::stol(value));
         }

@@ -183,7 +183,15 @@ void SolutionBuilder::set_last_node_item(
     if (!ok) {
         throw std::logic_error(
                 "rectangleguillotine::SolutionBuilder::set_last_node_item: "
-                "wrong item dimensions.");
+                "wrong item dimensions"
+                "; item_type_id: " + std::to_string(item_type_id)
+                + "; item_type.rect.w: " + std::to_string(item_type.rect.w)
+                + "; item_type.rect.h: " + std::to_string(item_type.rect.h)
+                + "; node.l: " + std::to_string(node.l)
+                + "; node.r: " + std::to_string(node.r)
+                + "; node.b: " + std::to_string(node.b)
+                + "; node.t: " + std::to_string(node.t)
+                + ".");
     }
 
     node.item_type_id = item_type_id;
