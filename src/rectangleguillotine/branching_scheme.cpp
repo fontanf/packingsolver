@@ -1485,8 +1485,9 @@ Solution BranchingScheme::to_solution(
                     (instance().parameters().number_of_stages == 3 && current_node->first_stage_orientation == CutOrientation::Vertical)
                     || (instance().parameters().number_of_stages == 2 && current_node->first_stage_orientation == CutOrientation::Horizontal))?
                     CutOrientation::Vertical: CutOrientation::Horizontal;
+            BinTypeId bin_type_id = instance().bin_type_id(number_of_bins);
             solution_builder.add_bin(
-                    number_of_bins,
+                    bin_type_id,
                     1,
                     cut_orientation);
             number_of_bins++;

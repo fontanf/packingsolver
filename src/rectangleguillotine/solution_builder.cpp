@@ -10,6 +10,15 @@ void SolutionBuilder::add_bin(
         BinPos copies,
         CutOrientation first_cut_orientation)
 {
+    if (bin_type_id >= solution_.instance().number_of_bin_types()) {
+        throw std::invalid_argument(
+                "rectangleguillotine::SolutionBuilder::add_bin"
+                "; bin_type_id: " + std::to_string(bin_type_id)
+                + "; instance().number_of_bin_types(): "
+                + std::to_string(solution_.instance().number_of_bin_types())
+                + ".");
+    }
+
     //std::cout << "add_bin bin_type_id " << bin_type_id << " copies " << copies << " first_cut_orientation " << first_cut_orientation << std::endl;
     const BinType& bin_type = solution_.instance().bin_type(bin_type_id);
     SolutionBin bin;
