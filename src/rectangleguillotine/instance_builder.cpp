@@ -232,8 +232,6 @@ void InstanceBuilder::add_defect(
     BinType& bin_type = instance_.bin_types_[bin_type_id];
 
     Defect defect;
-    defect.id = bin_type.defects.size();
-    defect.bin_type_id = bin_type_id;
     defect.pos.x = x;
     defect.pos.y = y;
     defect.rect.w = w;

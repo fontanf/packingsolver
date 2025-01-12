@@ -1,6 +1,7 @@
 #pragma once
 
 #include "packingsolver/rectangleguillotine/solution.hpp"
+#include "rectangleguillotine/instance_flipper.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
 
@@ -360,6 +361,8 @@ private:
     /** Instance. */
     const Instance& instance_;
 
+    InstanceFlipper instance_flipper_;
+
     /** Parameters. */
     Parameters parameters_;
 
@@ -391,6 +394,10 @@ private:
     /*
      * Private methods
      */
+
+    const Instance& instance(CutOrientation cut_orientation) const { return (cut_orientation == CutOrientation::Vertical)? instance_: instance_flipper_.flipped_instance(); }
+
+    const Instance& instance(Depth df) const { return (std::abs(df) % 2 == 0)? instance_flipper_.flipped_instance(): instance_; }
 
     /**
      * Return true iff s1 and s2 contains identical objects in the same order.
@@ -538,15 +545,16 @@ inline bool BranchingScheme::dominates(
     if (f1.i < f2.i)
         return true;
     if (f1.i == f2.i && f1.o == f2.o) {
+        const Instance& instance = this->instance(f1.o);
         if (f1.x1_curr <= f2.x1_prev)
             return true;
         if (f1.x1_prev <= f2.x1_prev
                 && f1.x1_curr <= f2.x1_curr
                 && f1.y2_curr <= f2.y2_prev)
             return true;
-        BinTypeId bin_type_id = instance().bin_type_id(f1.i);
-        const BinType& bin_type = instance().bin_type(bin_type_id);
-        Length h = instance().height(bin_type, f1.o);
+        BinTypeId bin_type_id = instance.bin_type_id(f1.i);
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        Length h = bin_type.rect.h;
         if (f1.y2_curr != h
                 && f1.x1_prev <= f2.x1_prev
                 && f1.x3_curr <= f2.x3_curr

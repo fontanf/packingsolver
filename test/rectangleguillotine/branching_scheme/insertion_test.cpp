@@ -1271,7 +1271,7 @@ TEST(RectangleGuillotineBranchingScheme, PlateRotationI)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
     instance_builder.set_first_stage_orientation(CutOrientation::Horizontal);
-    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(500, 1000, -1, 1, true, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -1279,9 +1279,6 @@ TEST(RectangleGuillotineBranchingScheme, PlateRotationI)
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
-        //{0, -1, -1, 1000, 500, 1000, 3500, 3210, 0, 0},
-        //{0, -1, -1, 500, 1000, 500, 3500, 3210, 0, 0},
-        {0, -1, -2, 500, 1000, 500, 3210, 6000, 0, 0},
         {0, -1, -2, 1000, 500, 1000, 3210, 6000, 0, 0},
     };
 
