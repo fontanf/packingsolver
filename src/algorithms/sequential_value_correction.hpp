@@ -278,6 +278,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                         ItemPos copies
                             = instance.item_type(item_type_id).copies
                             - solution.item_copies(item_type_id);
+                        copies /= number_of_copies;
                         bppl_instance_builder.add_item_type(
                                 instance.item_type(item_type_id),
                                 profits[item_type_id],
