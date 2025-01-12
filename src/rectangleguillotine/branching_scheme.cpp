@@ -403,7 +403,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.item_area += item_type.area();
         node.profit += item_type.profit;
     }
-    assert(node.item_area <= instance().bin_area());
+    assert(node.item_area <= instance.bin_area());
 
     // Compute subplate1curr_number_of_2_cuts.
     if (node.df < 1) {

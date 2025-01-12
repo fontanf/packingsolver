@@ -1,6 +1,7 @@
 #pragma once
 
 #include "packingsolver/boxstacks/solution.hpp"
+#include "boxstacks/instance_flipper.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
 
@@ -401,6 +402,9 @@ private:
     /** Instance. */
     const Instance& instance_;
 
+    /** Instance flipper. */
+    InstanceFlipper instance_flipper_;
+
     /** Parameters. */
     Parameters parameters_;
 
@@ -423,6 +427,10 @@ private:
     /*
      * Private methods
      */
+
+    const Instance& instance(Direction direction) const { return (direction == Direction::X)? instance_: instance_flipper_.flipped_instance(); }
+
+    const Instance& instance(int new_bin) const { return (new_bin % 2 == 1)? instance_: instance_flipper_.flipped_instance(); }
 
     /** Get the percentage of item inserted into a node. */
     inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
@@ -659,4 +667,3 @@ inline bool BranchingScheme::operator()(
 
 }
 }
-

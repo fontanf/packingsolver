@@ -4,6 +4,7 @@ target_sources(PackingSolver_rectangle PRIVATE
     instance.cpp
     instance_builder.cpp
     solution.cpp
+    instance_flipper.cpp
     algorithm_formatter.cpp
     optimize.cpp
     branching_scheme.cpp)

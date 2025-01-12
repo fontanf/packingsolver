@@ -361,6 +361,7 @@ private:
     /** Instance. */
     const Instance& instance_;
 
+    /** Instance flipper. */
     InstanceFlipper instance_flipper_;
 
     /** Parameters. */

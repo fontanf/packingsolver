@@ -374,8 +374,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
             for (int rotation = 0; rotation < 6; ++rotation) {
                 if (instance.item_type(item_type_id).can_rotate(rotation)) {
                     Solution solution_child = solution;
-                    Length xj = instance.x(item_type, rotation, Direction::X);
-                    Length yj = instance.y(item_type, rotation, Direction::X);
+                    Length xj = item_type.x(rotation);
+                    Length yj = item_type.y(rotation);
                     if (yj > yi)
                         continue;
                     Length x_start = solution.x_max();
@@ -570,14 +570,23 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     onedim_instance_builder.set_item_type_eligibility(
                             onedim_item_type_id,
                             2);
+                    //std::cout << "item_type_id " << item_type_id
+                    //    << " onedim_item_type_id " << onedim_item_type_id
+                    //    << " eligibility " << 1 << std::endl;
                 } else if (item_type.can_rotate(0)) {
                     onedim_instance_builder.set_item_type_eligibility(
                             onedim_item_type_id,
                             0);
+                    //std::cout << "item_type_id " << item_type_id
+                    //    << " onedim_item_type_id " << onedim_item_type_id
+                    //    << " eligibility " << 0 << std::endl;
                 } else if (item_type.can_rotate(1)) {
                     onedim_instance_builder.set_item_type_eligibility(
                             onedim_item_type_id,
                             1);
+                    //std::cout << "item_type_id " << item_type_id
+                    //    << " onedim_item_type_id " << onedim_item_type_id
+                    //    << " eligibility " << 1 << std::endl;
                 }
             }
 
@@ -687,17 +696,26 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
             std::vector<std::tuple<StackabilityId, int, StackId>> rectangle2boxstacks;
             for (StackId stackability_group_pos = 0; stackability_group_pos < (StackId)stackability_groups.size(); ++stackability_group_pos) {
                 const StackabilityGroup& stackability_group = stackability_groups[stackability_group_pos];
+                //std::cout << "stackability_group_pos " << stackability_group_pos
+                //    << " x " << stackability_group.x
+                //    << " y " << stackability_group.y
+                //    << std::endl;
 
                 for (int rotation = 0; rotation < 3; ++rotation) {
                     bool oriented = (rotation != 2);
                     Length x = (rotation != 1)? stackability_group.x: stackability_group.y;
                     Length y = (rotation != 1)? stackability_group.y: stackability_group.x;
-                    //std::cout << "stackability_group_pos " << stackability_group_pos
-                    //    << " rotation " << rotation
-                    //    << " copies " << copies
-                    //    << std::endl;
                     for (StackId stack_pos = 0; stack_pos < (StackId)stackability_group.stacks[rotation].size(); ++stack_pos) {
                         const Stack& stack = stackability_group.stacks[rotation][stack_pos];
+                        //std::cout << "stackability_group_pos " << stackability_group_pos
+                        //    << " rotation " << rotation
+                        //    << " stack_pos " << stack_pos
+                        //    << " x " << x
+                        //    << " y " << y
+                        //    << " items";
+                        //for (ItemTypeId item: stack.items)
+                        //    std::cout << " " << item;
+                        //std::cout << std::endl;
                         auto rectangle_item_type_id = rectangle_instance_builder.add_item_type(
                                 x,
                                 y,
@@ -1131,7 +1149,6 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
 
     }
 
-    //std::cout << "sequential_onedimensional_rectangle end" << std::endl;
     FFOT_LOG_FOLD_END(parameters.logger, "");
     algorithm_formatter.end();
     return output;
