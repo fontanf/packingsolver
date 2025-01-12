@@ -195,8 +195,7 @@ void Solution::update_indicators(
                     node.r,
                     node.b,
                     node.t,
-                    bin_type,
-                    CutOrientation::Vertical);
+                    bin_type);
             if (k != -1) {
                 std::cout << "defects_feasible = false" << std::endl;
                 defects_feasible_ = false;
@@ -211,26 +210,22 @@ void Solution::update_indicators(
                     node.l,
                     node.b,
                     node.t,
-                    bin_type,
-                    CutOrientation::Vertical);
+                    bin_type);
             DefectId kr = instance().x_intersects_defect(
                     node.r,
                     node.b,
                     node.t,
-                    bin_type,
-                    CutOrientation::Vertical);
+                    bin_type);
             DefectId kb = instance().y_intersects_defect(
                     node.l,
                     node.r,
                     node.b,
-                    bin_type,
-                    CutOrientation::Vertical);
+                    bin_type);
             DefectId kt = instance().y_intersects_defect(
                     node.l,
                     node.r,
                     node.t,
-                    bin_type,
-                    CutOrientation::Vertical);
+                    bin_type);
             if (kl != -1 || kr != -1 || kb != -1 || kt != -1) {
                 cut_through_defects_feasible_ = false;
                 feasible_ = false;

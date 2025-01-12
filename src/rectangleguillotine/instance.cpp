@@ -1,5 +1,7 @@
 #include "packingsolver/rectangleguillotine/instance.hpp"
 
+#include "packingsolver/rectangleguillotine/instance_builder.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -180,8 +182,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         const Defect& defect)
 {
     os
-        << "id " << defect.id
-        << " bin_type_id " << defect.bin_type_id
+        << "defect"
         << " x " << defect.pos.x
         << " y " << defect.pos.y
         << " w " << defect.rect.w
@@ -291,7 +292,7 @@ void Instance::write(
                 const Defect& defect = bin_type.defects[defect_id];
                 f_defects
                     << defect_id << ","
-                    << defect.bin_type_id << ","
+                    << bin_type_id << ","
                     << defect.pos.x << ","
                     << defect.pos.y << ","
                     << defect.rect.w << ","
@@ -431,7 +432,7 @@ std::ostream& Instance::format(
                     const Defect& defect = bin_type.defects[defect_id];
                     os
                         << std::setw(12) << defect_id
-                        << std::setw(12) << defect.bin_type_id
+                        << std::setw(12) << bin_type_id
                         << std::setw(12) << defect.pos.x
                         << std::setw(12) << defect.pos.y
                         << std::setw(12) << defect.rect.w
