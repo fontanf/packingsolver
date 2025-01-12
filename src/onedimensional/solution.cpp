@@ -365,4 +365,36 @@ void Solution::format(
                 << std::endl;
         }
     }
+
+    if (verbosity_level >= 3) {
+        os
+            << std::right << std::endl
+            << std::setw(12) << "Bin"
+            << std::setw(12) << "Item"
+            << std::setw(12) << "X"
+            << std::setw(12) << "Length"
+            << std::setw(12) << "Weight"
+            << std::endl
+            << std::setw(12) << "---"
+            << std::setw(12) << "----"
+            << std::setw(12) << "-"
+            << std::setw(12) << "-------"
+            << std::setw(12) << "-------"
+            << std::endl;
+        for (BinPos bin_pos = 0;
+                bin_pos < number_of_different_bins();
+                ++bin_pos) {
+            const SolutionBin& solution_bin = bin(bin_pos);
+            for (const SolutionItem& solution_item: solution_bin.items) {
+                const ItemType& item_type = instance().item_type(solution_item.item_type_id);
+                os
+                    << std::setw(12) << bin_pos
+                    << std::setw(12) << solution_item.item_type_id
+                    << std::setw(12) << solution_item.start
+                    << std::setw(12) << item_type.length
+                    << std::setw(12) << item_type.weight
+                    << std::endl;
+            }
+        }
+    }
 }

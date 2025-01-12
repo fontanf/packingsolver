@@ -30,13 +30,12 @@ void optimize_dynamic_programming(
     if (instance.objective() != Objective::Knapsack)
         return;
 
+    const BinType& bin_type = instance.bin_type(0);
     knapsacksolver::knapsack::InstanceFromFloatProfitsBuilder kp_instance_builder;
     std::vector<std::pair<ItemTypeId, ItemPos>> kp2ps;
-    knapsacksolver::knapsack::Weight kp_capacity = instance.bin_type(0).length;
+    knapsacksolver::knapsack::Weight kp_capacity = bin_type.length;
     kp_instance_builder.set_capacity(kp_capacity);
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
+    for (ItemTypeId item_type_id: bin_type.item_type_ids) {
         const ItemType& item_type = instance.item_type(item_type_id);
         ItemPos total_copies = 0;
         ItemPos copies = 1;
