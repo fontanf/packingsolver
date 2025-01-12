@@ -52,7 +52,10 @@ StackId Solution::add_stack(
 {
     if (bin_pos >= number_of_bins()) {
         throw std::runtime_error(
-                "boxstacks::Solution::add_item");
+                "boxstacks::Solution::add_stack"
+                "; bin_pos: " + std::to_string(bin_pos)
+                + "; number_of_bins(): " + std::to_string(number_of_bins())
+                + ".");
     }
     SolutionBin& bin = bins_[bin_pos];
 
@@ -89,7 +92,10 @@ void Solution::add_item(
 {
     if (bin_pos >= number_of_bins()) {
         throw std::runtime_error(
-                "boxstacks::Solution::add_item");
+                "boxstacks::Solution::add_item"
+                "; bin_pos: " + std::to_string(bin_pos)
+                + "; number_of_bins(): " + std::to_string(number_of_bins())
+                + ".");
     }
     if (item_type_id < 0 || item_type_id >= instance().number_of_item_types()) {
         throw std::runtime_error(
@@ -102,10 +108,9 @@ void Solution::add_item(
 
     SolutionStack& stack = bin.stacks[stack_id];
     const ItemType& item_type = instance().item_type(item_type_id);
-    Direction o = Direction::X;
-    Length xj = instance().x(item_type, rotation, o);
-    Length yj = instance().y(item_type, rotation, o);
-    Length zj = instance().z(item_type, rotation);
+    Length xj = item_type.x(rotation);
+    Length yj = item_type.y(rotation);
+    Length zj = item_type.z(rotation);
     //std::cout
     //    << "j " << j
     //    << " x " << stack.x_start
@@ -119,7 +124,9 @@ void Solution::add_item(
     if (!item_type.can_rotate(rotation)) {
         throw std::runtime_error(
                 "boxstacks::Solution::add_item"
+                ": forbidden rotation"
                 "; item_type_id: " + std::to_string(item_type_id)
+                + "; item_type.rotations: " + std::to_string(item_type.rotations)
                 + "; rot: " + std::to_string(rotation)
                 + "; xj: " + std::to_string(xj)
                 + "; yj: " + std::to_string(yj)
@@ -240,13 +247,12 @@ bool Solution::check_stack(
         const ItemType& item_type = instance().item_type(item_type_ids[item_pos].first);
         int rotation = item_type_ids[item_pos].second;
 
-        Direction o = Direction::X;
-        Length xj = instance().x(item_type, rotation, o);
-        Length yj = instance().y(item_type, rotation, o);
-        Length zj = instance().z(item_type, rotation);
+        Length xj = item_type.x(rotation);
+        Length yj = item_type.y(rotation);
+        Length zj = item_type.z(rotation);
         if (item_pos > 0)
             zj -=  - item_type.nesting_height;
-        Length zi = instance().z(bin_type);
+        Length zi = bin_type.box.z;
 
         // Check bin z.
         z_end += zj;
@@ -444,7 +450,6 @@ void Solution::write(
     }
 
     file << "TYPE,ID,COPIES,BIN,STACK,X,Y,Z,LX,LY,LZ" << std::endl;
-    Direction o = Direction::X;
     for (BinPos i = 0; i < (BinPos)bins_.size(); ++i) {
         const SolutionBin& bin = bins_[i];
         BinTypeId bin_type_id = bin.bin_type_id;
@@ -503,9 +508,9 @@ void Solution::write(
                     << stack.x_start << ","
                     << stack.y_start << ","
                     << item.z_start << ","
-                    << instance().x(item_type, item.rotation, o) << ","
-                    << instance().y(item_type, item.rotation, o) << ","
-                    << instance().z(item_type, item.rotation) << std::endl;
+                    << item_type.x(item.rotation) << ","
+                    << item_type.y(item.rotation) << ","
+                    << item_type.z(item.rotation) << std::endl;
             }
 
         }

@@ -4,6 +4,7 @@ target_sources(PackingSolver_boxstacks PRIVATE
     instance.cpp
     instance_builder.cpp
     solution.cpp
+    instance_flipper.cpp
     algorithm_formatter.cpp
     optimize.cpp
     sequential_onedimensional_rectangle.cpp

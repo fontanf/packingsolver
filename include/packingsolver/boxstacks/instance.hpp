@@ -143,6 +143,75 @@ struct ItemType
      * Computed attributes
      */
 
+    Length x(int rotation) const
+    {
+        switch (rotation) {
+        case 0: {
+            return box.x;
+        } case 1: {
+            return box.y;
+        } case 2: {
+            return box.z;
+        } case 3: {
+            return box.y;
+        } case 4: {
+            return box.x;
+        } case 5: {
+            return box.z;
+        } default: {
+            throw std::invalid_argument(
+                    "Incorrect rotation value: '"
+                    + std::to_string(rotation) + "'");
+        }
+        }
+    }
+
+    Length y(int rotation) const
+    {
+        switch (rotation) {
+        case 0: {
+            return box.y;
+        } case 1: {
+            return box.x;
+        } case 2: {
+            return box.y;
+        } case 3: {
+            return box.z;
+        } case 4: {
+            return box.z;
+        } case 5: {
+            return box.x;
+        } default: {
+            throw std::invalid_argument(
+                    "Incorrect rotation value: '"
+                    + std::to_string(rotation) + "'");
+        }
+        }
+    }
+
+    Length z(int rotation) const
+    {
+        switch (rotation) {
+        case 0: {
+            return box.z;
+        } case 1: {
+            return box.z;
+        } case 2: {
+            return box.x;
+        } case 3: {
+            return box.x;
+        } case 4: {
+            return box.y;
+        } case 5: {
+            return box.y;
+        } default: {
+            throw std::invalid_argument(
+                    "Incorrect rotation value: '"
+                    + std::to_string(rotation) + "'");
+        }
+        }
+    }
+
     /** Get the volume of the item type. */
     inline Volume volume() const { return box.volume(); }
 
@@ -289,60 +358,6 @@ public:
     inline Area previous_bin_volume(BinPos bin_pos) const { return previous_bins_volume_[bin_pos]; }
 
     /*
-     * Getters: bin type dimensions
-     */
-
-    /** Get the x of a bin type depending on its orientation. */
-    inline Length x(
-            const BinType& bin_type,
-            Direction o) const;
-
-    /** Get the y of a bin type depending on its orientation. */
-    inline Length y(
-            const BinType& bin_type,
-            Direction o) const;
-
-    /** Get the z of a bin type. */
-    inline Length z(
-            const BinType& bin_type) const;
-
-    /*
-     * Getters: defect coordinates
-     */
-
-    /**
-     * Get the start x coordinate of a defect depending on the orientatino of
-     * the bin.
-     */
-    inline Length x_start(
-            const rectangle::Defect& defect,
-            Direction o) const;
-
-    /**
-     * Get the end x coordinate of a defect depending on the orientatino of the
-     * bin.
-     */
-    inline Length x_end(
-            const rectangle::Defect& defect,
-            Direction o) const;
-
-    /**
-     * Get the end y coordinate of a defect depending on the orientatino of the
-     * bin.
-     */
-    inline Length y_end(
-            const rectangle::Defect& defect,
-            Direction o) const;
-
-    /**
-     * Get the start y coordinate of a defect depending on the orientatino of
-     * the bin.
-     */
-    inline Length y_start(
-            const rectangle::Defect& defect,
-            Direction o) const;
-
-    /*
      * Getters: item types
      */
 
@@ -378,35 +393,6 @@ public:
 
     /** Get a group. */
     inline const Group& group(GroupId group_id) const { return groups_[group_id]; }
-
-    /*
-     * Getters: item type dimensions
-     */
-
-    /**
-     * Get the x of an item depending on its rotation and the orientation of
-     * the bin.
-     */
-    inline Length x(
-            const ItemType& item_type,
-            int rotation,
-            Direction o) const;
-
-    /**
-     * Get the y of an item depending on its rotation and the orientation of
-     * the bin.
-     */
-    inline Length y(
-            const ItemType& item_type,
-            int rotation,
-            Direction o) const;
-
-    /**
-     * Get the z of an item depending on its rotation.
-     */
-    inline Length z(
-            const ItemType& item_type,
-            int rotation) const;
 
     /*
      * Export
@@ -501,182 +487,6 @@ private:
 
 };
 
-////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Inlined methods ////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-Length Instance::x(
-        const BinType& bin_type,
-        Direction o) const
-{
-    return (o == Direction::X)? bin_type.box.x: bin_type.box.y;
-}
-
-Length Instance::y(
-        const BinType& bin_type,
-        Direction o) const
-{
-    return (o == Direction::X)? bin_type.box.y: bin_type.box.x;
-}
-
-Length Instance::z(
-        const BinType& bin_type) const
-{
-    return bin_type.box.z;
-}
-
-Length Instance::x_start(
-        const rectangle::Defect& defect,
-        Direction o) const
-{
-    return (o == Direction::X)? defect.pos.x: defect.pos.y;
-}
-
-Length Instance::x_end(
-        const rectangle::Defect& defect,
-        Direction o) const
-{
-    return (o == Direction::X)?
-        defect.pos.x + defect.rect.x:
-        defect.pos.y + defect.rect.y;
-}
-
-Length Instance::y_end(
-        const rectangle::Defect& defect,
-        Direction o) const
-{
-    return (o == Direction::X)?
-        defect.pos.y + defect.rect.y:
-        defect.pos.x + defect.rect.x;
-}
-
-Length Instance::y_start(
-        const rectangle::Defect& defect,
-        Direction o) const
-{
-    return (o == Direction::X)? defect.pos.y: defect.pos.x;
-}
-
-Length Instance::x(
-        const ItemType& item,
-        int rotation,
-        Direction o) const
-{
-    if (o == Direction::X) {
-        switch (rotation) {
-        case 0: {
-            return item.box.x;
-        } case 1: {
-            return item.box.y;
-        } case 2: {
-            return item.box.z;
-        } case 3: {
-            return item.box.y;
-        } case 4: {
-            return item.box.x;
-        } case 5: {
-            return item.box.z;
-        } default: {
-            throw std::invalid_argument(
-                    "Incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
-        }
-        }
-    } else {
-        switch (rotation) {
-        case 0: {
-            return item.box.y;
-        } case 1: {
-            return item.box.x;
-        } case 2: {
-            return item.box.z;
-        } case 3: {
-            return item.box.x;
-        } case 4: {
-            return item.box.y;
-        } case 5: {
-            return item.box.z;
-        } default: {
-            throw std::invalid_argument(
-                    "Incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
-        }
-        }
-    }
-}
-
-Length Instance::y(
-        const ItemType& item,
-        int rotation,
-        Direction o) const
-{
-    if (o == Direction::X) {
-        switch (rotation) {
-        case 0: {
-            return item.box.y;
-        } case 1: {
-            return item.box.x;
-        } case 2: {
-            return item.box.y;
-        } case 3: {
-            return item.box.z;
-        } case 4: {
-            return item.box.z;
-        } case 5: {
-            return item.box.x;
-        } default: {
-            throw std::invalid_argument(
-                    "Incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
-        }
-        }
-    } else {
-        switch (rotation) {
-        case 0: {
-            return item.box.x;
-        } case 1: {
-            return item.box.y;
-        } case 2: {
-            return item.box.x;
-        } case 3: {
-            return item.box.z;
-        } case 4: {
-            return item.box.z;
-        } case 5: {
-            return item.box.y;
-        } default: {
-            throw std::invalid_argument(
-                    "Incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
-        }
-        }
-    }
-}
-
-Length Instance::z(
-        const ItemType& item,
-        int rotation) const
-{
-    switch (rotation) {
-    case 0: {
-        return item.box.z;
-    } case 1: {
-        return item.box.z;
-    } case 2: {
-        return item.box.x;
-    } case 3: {
-        return item.box.x;
-    } case 4: {
-        return item.box.y;
-    } case 5: {
-        return item.box.y;
-    } default: {
-        throw std::invalid_argument(
-                "Incorrect rotation value: '"
-                + std::to_string(rotation) + "'");
-    }
-    }
-}
 
 }
 }

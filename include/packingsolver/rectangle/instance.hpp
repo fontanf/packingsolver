@@ -112,8 +112,19 @@ struct ItemType
     /** Weight of the item type. */
     Weight weight = 0;
 
+    /*
+     * Computed attributes
+     */
+
+    /** Get the width of the item depending on its orientation. */
+    inline Length x(bool rotate) const { return (rotate)? rect.y: rect.x; }
+
+    /** Get the height of the item depending on its orientation. */
+    inline Length y(bool rotate) const { return (rotate)? rect.x: rect.y; }
+
     /** Get the area of the item type. */
     inline Area area() const { return rect.area(); }
+
     inline Area space() const { return area(); }
 };
 
@@ -137,6 +148,22 @@ struct Defect
 
     /** Dimensions of the defect. */
     Rectangle rect;
+
+    /*
+     * Computed attributes
+     */
+
+    /** Get the left coordinate of the defect. */
+    inline Length x_start() const { return pos.x; }
+
+    /** Get the right coordinate of the defect. */
+    inline Length x_end() const { return pos.x + rect.x; }
+
+    /** Get the bottom coordinate of the defect. */
+    inline Length y_start() const { return pos.y; }
+
+    /** Get the top coordinate of the defect. */
+    inline Length y_end() const { return pos.y + rect.y; }
 };
 
 std::ostream& operator<<(
@@ -264,56 +291,6 @@ public:
     inline DefectId number_of_defects() const { return number_of_defects_; }
 
     /*
-     * Getters: bin type dimensions
-     */
-
-    /** Get the x of a bin type depending on its orientation. */
-    inline Length x(
-            const BinType& bin_type,
-            Direction o) const;
-
-    /** Get the y of a bin type depending on its orientation. */
-    inline Length y(
-            const BinType& bin_type,
-            Direction o) const;
-
-    /*
-     * Getters: defect coordinates
-     */
-
-    /**
-     * Get the start x coordinate of a defect depending on the orientatino of
-     * the bin.
-     */
-    inline Length x_start(
-            const Defect& defect,
-            Direction o) const;
-
-    /**
-     * Get the end x coordinate of a defect depending on the orientatino of the
-     * bin.
-     */
-    inline Length x_end(
-            const Defect& defect,
-            Direction o) const;
-
-    /**
-     * Get the start y coordinate of a defect depending on the orientatino of
-     * the bin.
-     */
-    inline Length y_start(
-            const Defect& defect,
-            Direction o) const;
-
-    /**
-     * Get the end y coordinate of a defect depending on the orientatino of the
-     * bin.
-     */
-    inline Length y_end(
-            const Defect& defect,
-            Direction o) const;
-
-    /*
      * Getters: item types
      */
 
@@ -367,28 +344,6 @@ public:
 
     /** Return true iff all items have infinite copies. */
     inline bool unbounded_knapsack() const { return all_item_types_infinite_copies_; }
-
-    /*
-     * Getters: item type dimensions
-     */
-
-    /**
-     * Get the x length of an item depending on whether it has been rotated and
-     * the orientation of the bin.
-     */
-    inline Length x(
-            const ItemType& item_type,
-            bool rotate,
-            Direction o) const;
-
-    /**
-     * Get the y length of an item depending on whether it has been rotated and
-     * the orientation of the bin.
-     */
-    inline Length y(
-            const ItemType& item_type,
-            bool rotate,
-            Direction o) const;
 
     /*
      * Export
@@ -489,80 +444,5 @@ private:
 
 };
 
-////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Inlined methods ////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-Length Instance::x(
-        const BinType& bin_type,
-        Direction o) const
-{
-    return (o == Direction::X)? bin_type.rect.x: bin_type.rect.y;
-}
-
-Length Instance::y(
-        const BinType& bin_type,
-        Direction o) const
-{
-    return (o == Direction::X)? bin_type.rect.y: bin_type.rect.x;
-}
-
-Length Instance::x_start(
-        const Defect& defect,
-        Direction o) const
-{
-    return (o == Direction::X)? defect.pos.x: defect.pos.y;
-}
-
-Length Instance::x_end(
-        const Defect& defect,
-        Direction o) const
-{
-    return (o == Direction::X)?
-        defect.pos.x + defect.rect.x:
-        defect.pos.y + defect.rect.y;
-}
-
-Length Instance::y_start(
-        const Defect& defect,
-        Direction o) const
-{
-    return (o == Direction::X)? defect.pos.y: defect.pos.x;
-}
-
-Length Instance::y_end(
-        const Defect& defect,
-        Direction o) const
-{
-    return (o == Direction::X)?
-        defect.pos.y + defect.rect.y:
-        defect.pos.x + defect.rect.x;
-}
-
-Length Instance::x(
-        const ItemType& item_type,
-        bool rotate,
-        Direction o) const
-{
-    if (o == Direction::X) {
-        return (!rotate)? item_type.rect.x: item_type.rect.y;
-    } else {
-        return (!rotate)? item_type.rect.y: item_type.rect.x;
-    }
-}
-
-Length Instance::y(
-        const ItemType& item_type,
-        bool rotate,
-        Direction o) const
-{
-    if (o == Direction::X) {
-        return (!rotate)? item_type.rect.y: item_type.rect.x;
-    } else {
-        return (!rotate)? item_type.rect.x: item_type.rect.y;
-    }
-}
-
 }
 }
-

@@ -67,8 +67,8 @@ void Solution::add_item(
 
     if (rotate && item_type.oriented) {
         throw std::invalid_argument(
-                "rectangle::Solution::add_item."
-                " Item type " + std::to_string(item_type_id)
+                "rectangle::Solution::add_item:"
+                " item type " + std::to_string(item_type_id)
                 + " cannot be rotated.");
     }
 
@@ -78,9 +78,8 @@ void Solution::add_item(
     item.rotate = rotate;
     bin.items.push_back(item);
 
-    Direction o = Direction::X;
-    Length xe = bl_corner.x + instance().x(item_type, rotate, o);
-    Length ye = bl_corner.y + instance().y(item_type, rotate, o);
+    Length xe = bl_corner.x + item_type.x(rotate);
+    Length ye = bl_corner.y + item_type.y(rotate);
 
     item_area_ += bin.copies * item_type.area();
     item_weight_ += bin.copies * item_type.weight;
@@ -390,7 +389,7 @@ void Solution::format(
             << std::setw(12) << "Item"
             << std::setw(12) << "Rotate"
             << std::setw(12) << "X"
-            << std::setw(12) << "y"
+            << std::setw(12) << "Y"
             << std::setw(12) << "Width"
             << std::setw(12) << "Height"
             << std::setw(12) << "Weight"

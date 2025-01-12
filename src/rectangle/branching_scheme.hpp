@@ -1,6 +1,7 @@
 #pragma once
 
 #include "packingsolver/rectangle/solution.hpp"
+#include "rectangle/instance_flipper.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
 
@@ -448,6 +449,9 @@ private:
     /** Instance. */
     const Instance& instance_;
 
+    /** Instance flipper. */
+    InstanceFlipper instance_flipper_;
+
     /** Parameters. */
     Parameters parameters_;
 
@@ -468,6 +472,10 @@ private:
     /*
      * Private methods
      */
+
+    const Instance& instance(Direction direction) const { return (direction == Direction::X)? instance_: instance_flipper_.flipped_instance(); }
+
+    const Instance& instance(int new_bin) const { return (new_bin % 2 == 1)? instance_: instance_flipper_.flipped_instance(); }
 
     /** Insertion of one item. */
     void insertion_item(

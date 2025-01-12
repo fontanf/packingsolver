@@ -8,7 +8,6 @@ using namespace packingsolver::rectangleguillotine;
 
 Instance InstanceFlipper::flip(const Instance& instance)
 {
-    // Build flipped instance.
     InstanceBuilder flipped_instance_builder;
     if (instance.objective() == Objective::OpenDimensionY) {
         flipped_instance_builder.set_objective(Objective::OpenDimensionX);
