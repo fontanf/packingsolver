@@ -83,3 +83,22 @@ TEST(RectangleGuillotine, BinPackingWithLeftoversB5)
 
     EXPECT_EQ(output.solution_pool.best().waste(), 72155615);
 }
+
+TEST(RectangleGuillotine, BinPackingWithLeftoversEmptyBinTreeSearch)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    instance_builder.add_bin_type(6000, 3000);
+    instance_builder.add_defect(0, 0, 0, 6000, 3000);
+    instance_builder.add_bin_type(6000, 3000);
+    instance_builder.add_item_type(6000, 3000);
+    Instance instance = instance_builder.build();
+
+    OptimizeParameters optimize_parameters;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.use_tree_search = true;
+    Output output = optimize(instance, optimize_parameters);
+
+    EXPECT_EQ(output.solution_pool.best().number_of_items(), instance.number_of_items());
+    EXPECT_EQ(output.solution_pool.best().number_of_bins(), 2);
+}

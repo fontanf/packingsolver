@@ -10,6 +10,15 @@ void SolutionBuilder::add_bin(
         BinPos copies,
         CutOrientation first_cut_orientation)
 {
+    if (bin_type_id >= solution_.instance().number_of_bin_types()) {
+        throw std::invalid_argument(
+                "rectangleguillotine::SolutionBuilder::add_bin"
+                "; bin_type_id: " + std::to_string(bin_type_id)
+                + "; instance().number_of_bin_types(): "
+                + std::to_string(solution_.instance().number_of_bin_types())
+                + ".");
+    }
+
     //std::cout << "add_bin bin_type_id " << bin_type_id << " copies " << copies << " first_cut_orientation " << first_cut_orientation << std::endl;
     const BinType& bin_type = solution_.instance().bin_type(bin_type_id);
     SolutionBin bin;
@@ -183,7 +192,15 @@ void SolutionBuilder::set_last_node_item(
     if (!ok) {
         throw std::logic_error(
                 "rectangleguillotine::SolutionBuilder::set_last_node_item: "
-                "wrong item dimensions.");
+                "wrong item dimensions"
+                "; item_type_id: " + std::to_string(item_type_id)
+                + "; item_type.rect.w: " + std::to_string(item_type.rect.w)
+                + "; item_type.rect.h: " + std::to_string(item_type.rect.h)
+                + "; node.l: " + std::to_string(node.l)
+                + "; node.r: " + std::to_string(node.r)
+                + "; node.b: " + std::to_string(node.b)
+                + "; node.t: " + std::to_string(node.t)
+                + ".");
     }
 
     node.item_type_id = item_type_id;

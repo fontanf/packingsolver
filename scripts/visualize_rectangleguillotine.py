@@ -36,7 +36,10 @@ with open(args.csvpath, newline='') as csvfile:
         x2 = x1 + w
         y2 = y1 + h
 
-        if not parent:  # Bin.
+        if t == -4:  # Defect.
+            defects_x[i] += [x1, x2, x2, x1, x1, None]
+            defects_y[i] += [y1, y1, y2, y2, y1, None]
+        elif not parent:  # Bin.
             bins_x.append([])
             bins_y.append([])
             trims_x.append([])
@@ -91,6 +94,20 @@ for i in range(0, m):
         col=1)
 
     fig.add_trace(go.Scatter(
+        x=defects_x[i],
+        y=defects_y[i],
+        name="Defects",
+        legendgroup="defects",
+        showlegend=(i == 0),
+        fillcolor="crimson",
+        fill="toself",
+        marker=dict(
+            color='black',
+            size=1)),
+        row=i + 1,
+        col=1)
+
+    fig.add_trace(go.Scatter(
         x=trims_x[i],
         y=trims_y[i],
         name="Trims",
@@ -112,20 +129,6 @@ for i in range(0, m):
             marker=dict(
                 color='black',
                 size=1)),
-        row=i + 1,
-        col=1)
-
-    fig.add_trace(go.Scatter(
-        x=defects_x[i],
-        y=defects_y[i],
-        name="Defects",
-        legendgroup="defects",
-        showlegend=(i == 0),
-        fillcolor="crimson",
-        fill="toself",
-        marker=dict(
-            color='black',
-            size=1)),
         row=i + 1,
         col=1)
 
