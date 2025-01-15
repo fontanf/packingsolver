@@ -1,0 +1,7 @@
+NAME,VALUE
+objective,knapsack
+number_of_stages,2
+cut_type,non-exact
+first_stage_orientation,vertical
+cut_through_defects,1
+maximum_distance_between_1_cuts,25

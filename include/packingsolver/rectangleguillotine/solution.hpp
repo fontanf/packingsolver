@@ -86,6 +86,28 @@ public:
     inline const Instance& instance() const { return *instance_; }
 
     /*
+     * Getters: feasibilty
+     */
+
+    bool minimum_waste_length_feasible() const { return minimum_waste_length_feasible_; }
+
+    bool minimum_distance_1_cuts_feasible() const { return minimum_distance_1_cuts_feasible_; }
+
+    bool maximum_distance_1_cuts_feasible() const { return maximum_distance_1_cuts_feasible_; }
+
+    bool minimum_distance_2_cuts_feasible() const { return minimum_distance_2_cuts_feasible_; }
+
+    bool maximum_number_2_cuts_feasible() const { return maximum_number_2_cuts_feasible_; }
+
+    bool stacks_feasible() const { return stacks_feasible_; }
+
+    bool defects_feasible() const { return defects_feasible_; }
+
+    bool cut_through_defects_feasible() const { return cut_through_defects_feasible_; }
+
+    bool feasible() const { return feasible_; }
+
+    /*
      * Getters: bins
      */
 
