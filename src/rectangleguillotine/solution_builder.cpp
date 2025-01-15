@@ -392,6 +392,10 @@ void SolutionBuilder::read(
             node.t = node.b + height;
         }
 
+        // Skip defects.
+        if (node.item_type_id == -4)
+            continue;
+
         if (nodes.size() <= bin_pos) {
             if (nodes.size() > 0)
                 offset += nodes.back().size();
