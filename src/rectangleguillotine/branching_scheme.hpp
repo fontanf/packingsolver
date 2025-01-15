@@ -245,8 +245,8 @@ public:
      * Branching scheme methods
      */
 
-    const std::vector<Insertion>& insertions(
-            const std::shared_ptr<Node>& parent) const;
+    std::vector<Insertion> insertions(
+            const std::vector<std::shared_ptr<Node>>& children) const;
 
     Node child_tmp(
             const std::shared_ptr<Node>& parent,
@@ -381,18 +381,6 @@ private:
     mutable NodeId node_id_ = 0;
 
     /*
-     * Temporary variables
-     */
-
-    /** Position of the last bin. */
-    mutable BinPos i = -1;
-
-    /** Orientation of the last bin. */
-    mutable CutOrientation o = CutOrientation::Vertical;
-
-    mutable std::vector<Insertion> insertions_;
-
-    /*
      * Private methods
      */
 
@@ -505,14 +493,16 @@ private:
 
     /** Insertion of one item. */
     void insertion_1_item(
-            const Node& parent,
+            std::vector<std::shared_ptr<BranchingScheme::Node>>& children,
+            const std::shared_ptr<Node>& pparent,
             ItemTypeId item_type_id,
             bool rotate,
             Depth df) const;
 
     /** Insertion of two items. */
     void insertion_2_items(
-            const Node& parent,
+            std::vector<std::shared_ptr<BranchingScheme::Node>>& children,
+            const std::shared_ptr<Node>& pparent,
             ItemTypeId item_type_id_1,
             bool rotate1,
             ItemTypeId item_type_id_2,
@@ -521,13 +511,16 @@ private:
 
     /** Insertion of a defect. */
     void insertion_defect(
-            const Node& parent,
+            std::vector<std::shared_ptr<BranchingScheme::Node>>& children,
+            const std::shared_ptr<Node>& pparent,
             DefectId defect_id,
+            int mode,
             Depth df) const;
 
     /** Update insertion (x1, z1, y2, z2) and add insertion to insertions. */
     void update(
-            const Node& parent,
+            std::vector<std::shared_ptr<BranchingScheme::Node>>& children,
+            const std::shared_ptr<Node>& pparent,
             Insertion& insertion) const;
 
     bool check(const std::vector<SolutionNode>& nodes) const;
