@@ -1,0 +1,6 @@
+NAME,VALUE
+objective,knapsack
+number_of_stages,2
+cut_type,exact
+first_stage_orientation,vertical
+cut_through_defects,1

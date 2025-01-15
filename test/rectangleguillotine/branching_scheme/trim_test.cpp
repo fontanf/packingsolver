@@ -49,10 +49,10 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimSoft)
 
     std::vector<BranchingScheme::Insertion> is {
         {-1, 0, -1, 1000, 530, 1000, 3500, 3210, 0, 1},
-        {-1, -1, -1, 500, 30, 500, 3500, 3210, 1, 1},
+        {0, -1, 2, 1500, 520, 1500, 3500, 3210, 0, 0},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root), is);
+    EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, BottomTrimHard)
@@ -98,10 +98,10 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimHard)
 
     std::vector<BranchingScheme::Insertion> is {
         {-1, 0, -1, 1000, 540, 1000, 3500, 3210, 0, 1},
-        {-1, -1, -1, 500, 40, 500, 3500, 3210, 1, 1},
+        {0, -1, 2, 1500, 520, 1500, 3500, 3210, 0, 0},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root), is);
+    EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, LeftTrimSoft)
@@ -146,10 +146,10 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimSoft)
 
     std::vector<BranchingScheme::Insertion> is {
         {-1, 0, -1, 520, 1500, 520, 3520, 3210, 0, 1},
-        {-1, -1, -1, 30, 500, 30, 3520, 3210, 1, 1},
+        {0, -1, 2, 530, 1000, 530, 3520, 3210, 0, 0},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root), is);
+    EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, LeftTrimHard)
@@ -194,10 +194,10 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimHard)
 
     std::vector<BranchingScheme::Insertion> is {
         {-1, 0, -1, 520, 1500, 520, 3520, 3210, 0, 1},
-        {-1, -1, -1, 40, 500, 40, 3520, 3210, 1, 1},
+        {0, -1, 2, 540, 1000, 540, 3520, 3210, 0, 0},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root), is);
+    EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
@@ -241,7 +241,7 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
         {0, -1, -1, 1000, 3180, 1000, 3500, 3190, 0, 0},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root), is);
+    EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, TopTrimHard)
@@ -284,7 +284,7 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimHard)
     std::vector<BranchingScheme::Insertion> is {
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root), is);
+    EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
@@ -328,7 +328,7 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
         {0, -1, -1, 2970, 500, 2970, 2980, 3210, 0, 0},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root), is);
+    EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
@@ -371,7 +371,7 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
     std::vector<BranchingScheme::Insertion> is {
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root), is);
+    EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
 }
 
 TEST(RectangleGuillotineBranchingScheme, TrimAndDefect)
@@ -384,6 +384,7 @@ TEST(RectangleGuillotineBranchingScheme, TrimAndDefect)
     instance_builder.set_minimum_distance_1_cuts(10);
     instance_builder.set_maximum_distance_1_cuts(3210);
     instance_builder.set_cut_thickness(3);
+    instance_builder.set_cut_through_defects(false);
     BinTypeId bin_type_id = instance_builder.add_bin_type(3210, 2250);
     instance_builder.add_trims(
             bin_type_id,
@@ -399,8 +400,11 @@ TEST(RectangleGuillotineBranchingScheme, TrimAndDefect)
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
-        {-1, -1, -1, 312, 63, 312, 3200, 2240, 1, 1},
+        {0, -1, 2, 1225, 856, 1225, 3200, 2240, 0, 2},
+        {0, -1, 2, 1161, 920, 1161, 3200, 2240, 0, 2},
+        {0, -1, 1, 920, 912, 920, 3200, 2240, 0, 2},
+        {0, -1, 1, 856, 976, 856, 3200, 2240, 0, 2},
     };
 
-    EXPECT_EQ(branching_scheme.insertions(root), is);
+    EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
 }

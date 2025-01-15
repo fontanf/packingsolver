@@ -1,0 +1,10 @@
+NAME,VALUE
+objective,BPPL
+number_of_stages,3
+cut_type,exact
+first_stage_orientation,vertical
+cut_through_defects,1
+min_waste,10
+min1cut,10
+max1cut,3210
+cut_thickness,3

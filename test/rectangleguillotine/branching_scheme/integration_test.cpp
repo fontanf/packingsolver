@@ -46,12 +46,12 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     auto root = branching_scheme.root();
 
     BranchingScheme::Insertion i0 = {0, -1, -2, 3210, 3000, 3210, 3210, 6000, 0, 0};
-    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(root);
+    std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(branching_scheme.children(root));
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 
     BranchingScheme::Insertion i1 = {1, -1, 1, 3210, 6000, 500, 3210, 6000, 0, 0};
-    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.insertions(node_1);
+    std::vector<BranchingScheme::Insertion> is1 = branching_scheme.insertions(branching_scheme.children(node_1));
     EXPECT_NE(std::find(is1.begin(), is1.end(), i1), is1.end());
     auto node_2 = branching_scheme.child(node_1, i1);
 
