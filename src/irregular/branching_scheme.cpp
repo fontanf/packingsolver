@@ -95,27 +95,7 @@ BranchingScheme::BranchingScheme(
             //std::cout << "bin_type_id " << bin_type_id << std::endl;
             const BinType& bin_type = instance().bin_type(bin_type_id);
             BranchingSchemeBinType& bb_bin_type = bin_types_[(int)direction][bin_type_id];
-            Shape bin_shape = bin_type.shape;
-            if (direction == Direction::LeftToRightThenTopToBottom) {
-                bin_shape = bin_shape.axial_symmetry_x_axis();
-            } else if (direction == Direction::RightToLeftThenBottomToTop) {
-                bin_shape = bin_shape.axial_symmetry_y_axis();
-            } else if (direction == Direction::RightToLeftThenTopToBottom) {
-                bin_shape = bin_shape.axial_symmetry_x_axis();
-                bin_shape = bin_shape.axial_symmetry_y_axis();
-            } else if (direction == Direction::BottomToTopThenLeftToRight) {
-                bin_shape = bin_shape.axial_symmetry_identity_line();
-            } else if (direction == Direction::BottomToTopThenRightToLeft) {
-                bin_shape = bin_shape.axial_symmetry_identity_line();
-                bin_shape = bin_shape.axial_symmetry_x_axis();
-            } else if (direction == Direction::TopToBottomThenLeftToRight) {
-                bin_shape = bin_shape.axial_symmetry_identity_line();
-                bin_shape = bin_shape.axial_symmetry_y_axis();
-            } else if (direction == Direction::TopToBottomThenRightToLeft) {
-                bin_shape = bin_shape.axial_symmetry_identity_line();
-                bin_shape = bin_shape.axial_symmetry_y_axis();
-                bin_shape = bin_shape.axial_symmetry_x_axis();
-            }
+            Shape bin_shape = convert_shape(bin_type.shape, direction);
 
             auto mm = bin_shape.compute_min_max();
             bb_bin_type.x_min = mm.first.x;
@@ -753,6 +733,58 @@ BranchingScheme::BranchingScheme(
         //    << " convex_hull_area " << item_types_convex_hull_area_[item_type_id]
         //    << std::endl;
     }
+}
+
+Shape BranchingScheme::convert_shape(
+        Shape shape,
+        Direction direction) const
+{
+    if (direction == Direction::LeftToRightThenTopToBottom) {
+        shape = shape.axial_symmetry_x_axis();
+    } else if (direction == Direction::RightToLeftThenBottomToTop) {
+        shape = shape.axial_symmetry_y_axis();
+    } else if (direction == Direction::RightToLeftThenTopToBottom) {
+        shape = shape.axial_symmetry_x_axis();
+        shape = shape.axial_symmetry_y_axis();
+    } else if (direction == Direction::BottomToTopThenLeftToRight) {
+        shape = shape.axial_symmetry_identity_line();
+    } else if (direction == Direction::BottomToTopThenRightToLeft) {
+        shape = shape.axial_symmetry_identity_line();
+        shape = shape.axial_symmetry_x_axis();
+    } else if (direction == Direction::TopToBottomThenLeftToRight) {
+        shape = shape.axial_symmetry_identity_line();
+        shape = shape.axial_symmetry_y_axis();
+    } else if (direction == Direction::TopToBottomThenRightToLeft) {
+        shape = shape.axial_symmetry_identity_line();
+        shape = shape.axial_symmetry_y_axis();
+        shape = shape.axial_symmetry_x_axis();
+    }
+    return shape;
+}
+
+Point BranchingScheme::convert_point_back(
+        const Point& point,
+        Direction direction) const
+{
+    if (direction == Direction::LeftToRightThenBottomToTop) {
+        return Point{point.x, point.y};
+    } else if (direction == Direction::LeftToRightThenTopToBottom) {
+        return Point{point.x, -point.y};
+    } else if (direction == Direction::RightToLeftThenBottomToTop) {
+        return Point{-point.x, point.y};
+    } else if (direction == Direction::RightToLeftThenTopToBottom) {
+        return Point{-point.x, -point.y};
+    } else if (direction == Direction::BottomToTopThenLeftToRight) {
+        return Point{point.y, point.x};
+    } else if (direction == Direction::BottomToTopThenRightToLeft) {
+        return Point{-point.y, point.x};
+    } else if (direction == Direction::TopToBottomThenLeftToRight) {
+        return Point{point.y, -point.x};
+    } else if (direction == Direction::TopToBottomThenRightToLeft) {
+        return Point{-point.y, -point.x};
+    }
+    throw std::runtime_error("");
+    return Point();
 }
 
 void BranchingScheme::compute_inflated_trapezoid_sets()
@@ -2333,24 +2365,7 @@ Solution BranchingScheme::to_solution(
             bin_pos = solution.add_bin(instance().bin_type_id(current_node->number_of_bins - 1), 1);
 
         const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)current_node->last_bin_direction][current_node->trapezoid_set_id];
-        Point bl_corner = {0, 0};
-        if (current_node->last_bin_direction == Direction::LeftToRightThenBottomToTop) {
-            bl_corner = Point{current_node->x, current_node->y};
-        } else if (current_node->last_bin_direction == Direction::LeftToRightThenTopToBottom) {
-            bl_corner = Point{current_node->x, -current_node->y};
-        } else if (current_node->last_bin_direction == Direction::RightToLeftThenBottomToTop) {
-            bl_corner = Point{-current_node->x, current_node->y};
-        } else if (current_node->last_bin_direction == Direction::RightToLeftThenTopToBottom) {
-            bl_corner = Point{-current_node->x, -current_node->y};
-        } else if (current_node->last_bin_direction == Direction::BottomToTopThenLeftToRight) {
-            bl_corner = Point{current_node->y, current_node->x};
-        } else if (current_node->last_bin_direction == Direction::BottomToTopThenRightToLeft) {
-            bl_corner = Point{-current_node->y, current_node->x};
-        } else if (current_node->last_bin_direction == Direction::TopToBottomThenLeftToRight) {
-            bl_corner = Point{current_node->y, -current_node->x};
-        } else if (current_node->last_bin_direction == Direction::TopToBottomThenRightToLeft) {
-            bl_corner = Point{-current_node->y, -current_node->x};
-        }
+        Point bl_corner = convert_point_back({current_node->x, current_node->y}, current_node->last_bin_direction);
         //std::cout << "bin_pos " << bin_pos
         //    << " item_type_id " << trapezoid_set.item_type_id
         //    << " bl_corner " << bl_corner.to_string()
@@ -2415,6 +2430,12 @@ nlohmann::json BranchingScheme::json_export_init() const
                 {"Shape", bin_type.shape.to_json()},
                 {"FillColor", "red"},
             };
+            for (Counter hole_pos = 0;
+                    hole_pos < (Counter)defect.holes.size();
+                    ++hole_pos) {
+                const Shape& hole = defect.holes[hole_pos];
+                json_init[i][hole_pos]["Holes"][hole_pos] = hole.to_json();
+            }
         }
         i++;
     }
@@ -2445,10 +2466,16 @@ nlohmann::json BranchingScheme::json_export_init() const
                         {"Shape", shape.to_json()},
                         {"FillColor", "blue"},
                     };
+                    for (Counter hole_pos = 0;
+                            hole_pos < (Counter)item_shape.holes.size();
+                            ++hole_pos) {
+                        const Shape& hole = item_shape.holes[hole_pos];
+                        json_init[i][item_shape_pos]["Holes"][hole_pos] = hole.to_json();
+                    }
                 }
+                i++;
             }
         }
-        i++;
     }
 
     return json_init;
@@ -2488,10 +2515,11 @@ nlohmann::json BranchingScheme::json_export(
             node_tmp->number_of_bins == node->number_of_bins;
             node_tmp = node_tmp->parent) {
         const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)node_tmp->last_bin_direction][node_tmp->trapezoid_set_id];
+        Point bl_corner = convert_point_back({node_tmp->x, node_tmp->y}, node_tmp->last_bin_direction);
         plot[i] = {
             {"Id", json_items_init_ids_[trapezoid_set.item_type_id][trapezoid_set.mirror].at(trapezoid_set.angle)},
-            {"X", node_tmp->x},
-            {"Y", node_tmp->y},
+            {"X", bl_corner.x},
+            {"Y", bl_corner.y},
         };
         i++;
     }

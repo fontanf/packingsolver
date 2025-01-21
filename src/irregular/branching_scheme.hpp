@@ -458,6 +458,14 @@ private:
      * Private methods
      */
 
+    Shape convert_shape(
+            Shape shape,
+            Direction direction) const;
+
+    Point convert_point_back(
+            const Point& point,
+            Direction direction) const;
+
     /** Get the percentage of item inserted into a node. */
     inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance().number_of_items(); }
 
