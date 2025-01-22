@@ -2484,12 +2484,19 @@ nlohmann::json BranchingScheme::json_export_init() const
 nlohmann::json BranchingScheme::json_export(
         const std::shared_ptr<Node>& node) const
 {
+    const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)node->last_bin_direction][node->trapezoid_set_id];
+    Point bl_orig = convert_point_back({node->x, node->y}, node->last_bin_direction);
     nlohmann::json json = {
         {"Id", node->id},
         {"ParentId", (node->parent == nullptr)? -1: node->parent->id},
         {"TrapezoidSetId", node->trapezoid_set_id},
+        {"ItemTypeId", trapezoid_set.item_type_id},
+        {"Angle", trapezoid_set.angle},
+        {"Mirror", trapezoid_set.mirror},
         {"X", node->x},
         {"Y", node->y},
+        {"XOrig", bl_orig.x},
+        {"YOrig", bl_orig.y},
         {"NumberOfItems", node->number_of_items},
         {"NumberOfBins", node->number_of_bins},
         {"Profit", node->profit},
@@ -2521,6 +2528,8 @@ nlohmann::json BranchingScheme::json_export(
             {"X", bl_corner.x},
             {"Y", bl_corner.y},
         };
+        if (node_tmp == node)
+            plot[i]["FillColor"] = "green";
         i++;
     }
     json["Plot"] = plot;

@@ -195,16 +195,14 @@ void optimize_tree_search(
         } else if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_tree_search_worker), optimize_tree_search_worker>,
+                        wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>,
                         std::ref(exception_ptr_list.front()),
                         std::ref(branching_schemes[i]),
-                        std::ref(ibs_parameters_list[i]),
-                        std::ref(ibs_outputs[i])));
+                        ibs_parameters_list[i]));
         } else {
-            optimize_tree_search_worker(
+            treesearchsolver::iterative_beam_search_2<BranchingScheme>(
                     branching_schemes[i],
-                    ibs_parameters_list[i],
-                    ibs_outputs[i]);
+                    ibs_parameters_list[i]);
         }
     }
     for (Counter i = 0; i < (Counter)threads.size(); ++i)
