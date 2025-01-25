@@ -42,6 +42,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use column generation algorithm. */
     bool use_column_generation = false;
 
+    /** Use Benders decomposition algorithm. */
+    bool use_benders_decomposition = false;
+
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 
@@ -63,6 +66,12 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
      */
     NodeId column_generation_subproblem_queue_size = 128;
 
+    /**
+     * Size of the queue for the pricing knapsack subproblem of the Benders
+     * decomposition algorithm.
+     */
+    NodeId benders_decomposition_subproblem_queue_size = 128;
+
     /*
      * Parameters for non-anytime mode
      */
@@ -78,6 +87,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 
     /** Number of iterations of the sequential value correction algorithm. */
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
+
+    /** Number of iterations of the Benders decomposition algorithm. */
+    Counter not_anytime_benders_decomposition_number_of_iterations = 32;
 
     /**
      * Size of the queue in the bin packing subproblem of the dichotomic search

@@ -1,6 +1,7 @@
 add_executable(PackingSolver_rectangle_test)
 target_sources(PackingSolver_rectangle_test PRIVATE
     rectangle_test.cpp
+    benders_decomposition_test.cpp
     branching_scheme/test.cpp
     branching_scheme/defects_test.cpp
     branching_scheme/unloading_test.cpp

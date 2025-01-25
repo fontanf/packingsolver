@@ -67,8 +67,8 @@ void Solution::add_item(
 
     if (rotate && item_type.oriented) {
         throw std::invalid_argument(
-                "rectangle::Solution::add_item:"
-                " item type " + std::to_string(item_type_id)
+                "rectangle::Solution::add_item."
+                " Item type " + std::to_string(item_type_id)
                 + " cannot be rotated.");
     }
 

@@ -7,7 +7,8 @@ target_sources(PackingSolver_rectangle PRIVATE
     instance_flipper.cpp
     algorithm_formatter.cpp
     optimize.cpp
-    branching_scheme.cpp)
+    branching_scheme.cpp
+    benders_decomposition.cpp)
 target_include_directories(PackingSolver_rectangle PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_rectangle PRIVATE
@@ -15,6 +16,7 @@ target_include_directories(PackingSolver_rectangle PRIVATE
 target_link_libraries(PackingSolver_rectangle PUBLIC
     PackingSolver_algorithms
     TreeSearchSolver::treesearchsolver
+    highs
     Threads::Threads)
 add_library(PackingSolver::rectangle ALIAS PackingSolver_rectangle)
 

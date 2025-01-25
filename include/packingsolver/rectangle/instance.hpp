@@ -51,6 +51,9 @@ struct Rectangle
 
     /** Get the legnth of the largest side of the rectangle. */
     Length max() const { return std::max(x, y); }
+
+    /** Get the legnth of the largest side of the rectangle. */
+    Length min() const { return std::min(x, y); }
 };
 
 bool rect_intersection(Point c1, Rectangle r1, Point c2, Rectangle r2);
