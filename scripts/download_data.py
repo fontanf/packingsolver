@@ -52,7 +52,7 @@ if args.data is None or "imahori2010" in args.data:
 
 if args.data is None or "roadef2022_2024-04-25_kp" in args.data:
     # roadef2022_2024-04-25_kp
-    download("1pYlKC0zwrg8sd9Ph1HOJpMLwEXe8_YLb", "tar.gz")
+    download("1FMhywWBgZJK1jcIe7weLbldITMfnksEk", "tar.gz")
     dir_path = pathlib.Path("data") / "boxstacks" / "roadef2022_2024-04-25_kp"
     if dir_path.exists():
         shutil.rmtree(dir_path)
@@ -60,7 +60,7 @@ if args.data is None or "roadef2022_2024-04-25_kp" in args.data:
 
 if args.data is None or "roadef2022_2024-04-25_bpp" in args.data:
     # roadef2022_2024-04-25_bpp
-    download("1w8Q6S680FM_R8xKPXJrL1u75wTVFOTCT", "tar.gz")
+    download("14J3uxRynw1MKRxUU0NN3IDcTC-lgJGdK", "tar.gz")
     dir_path = pathlib.Path("data") / "boxstacks" / "roadef2022_2024-04-25_bpp"
     if dir_path.exists():
         shutil.rmtree(dir_path)
