@@ -20,7 +20,7 @@ TEST(Rectangle, BinCopies)
     EXPECT_EQ(solution.bin_copies(0), 2);
 }
 
-struct TestParams
+struct RectangleOptimizeTestParams
 {
     fs::path items_path;
     fs::path bins_path;
@@ -29,17 +29,17 @@ struct TestParams
     fs::path certificate_path;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const TestParams& test_params)
+inline std::ostream& operator<<(std::ostream& os, const RectangleOptimizeTestParams& test_params)
 {
     os << test_params.items_path;
     return os;
 }
 
-class AlgorithmTest: public testing::TestWithParam<TestParams> { };
+class RectangleOptimizeTest: public testing::TestWithParam<RectangleOptimizeTestParams> { };
 
-TEST_P(AlgorithmTest, Algorithm)
+TEST_P(RectangleOptimizeTest, RectangleOptimize)
 {
-    TestParams test_params = GetParam();
+    RectangleOptimizeTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
     instance_builder.read_item_types(test_params.items_path.string());
     instance_builder.read_bin_types(test_params.bins_path.string());
@@ -63,8 +63,8 @@ TEST_P(AlgorithmTest, Algorithm)
 
 INSTANTIATE_TEST_SUITE_P(
         Rectangle,
-        AlgorithmTest,
-        testing::ValuesIn(std::vector<TestParams>{
+        RectangleOptimizeTest,
+        testing::ValuesIn(std::vector<RectangleOptimizeTestParams>{
             {
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_items.csv",
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_bins.csv",

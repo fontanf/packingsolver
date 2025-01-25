@@ -3,6 +3,7 @@
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "rectangle/branching_scheme.hpp"
+#include "rectangle/benders_decomposition.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -365,6 +366,30 @@ void optimize_column_generation(
     columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
 }
 
+void optimize_benders_decomposition(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    BendersDecompositionParameters bd_parameters;
+    bd_parameters.verbosity_level = 0;
+    bd_parameters.timer = parameters.timer;
+    if (parameters.optimization_mode == OptimizationMode::Anytime)
+        bd_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    if (parameters.optimization_mode != OptimizationMode::Anytime)
+        bd_parameters.maximum_number_of_iterations = parameters.not_anytime_benders_decomposition_number_of_iterations;
+    bd_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& ps_output)
+    {
+        const BendersDecompositionOutput& psbd_output
+            = static_cast<const BendersDecompositionOutput&>(ps_output);
+        std::stringstream ss;
+        ss << "BD " << psbd_output.number_of_iterations;
+        algorithm_formatter.update_solution(psbd_output.solution_pool.best(), ss.str());
+    };
+    benders_decomposition(instance, bd_parameters);
+}
+
 }
 
 const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
@@ -384,15 +409,28 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
+    bool use_benders_decomposition = parameters.use_benders_decomposition;
     if (instance.number_of_bins() <= 1) {
-        use_tree_search = true;
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
+        // Automatic selection.
+        if (instance.objective() == Objective::Knapsack) {
+            if (!use_tree_search
+                    && !use_benders_decomposition) {
+                use_tree_search = true;
+                //use_benders_decomposition = true;
+            }
+        } else {
+            if (!use_tree_search) {
+                use_tree_search = true;
+            }
+        }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
+        use_benders_decomposition = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -419,6 +457,7 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
+        use_benders_decomposition = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -457,6 +496,7 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         } else {
             use_tree_search = false;
         }
+        use_benders_decomposition = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -544,6 +584,16 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
         }
+        // Benders decomposition.
+        if (use_benders_decomposition) {
+            exception_ptr_list.push_front(std::exception_ptr());
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_benders_decomposition), optimize_benders_decomposition>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        }
         for (Counter i = 0; i < (Counter)threads.size(); ++i)
             threads[i].join();
         for (std::exception_ptr exception_ptr: exception_ptr_list)
@@ -577,6 +627,12 @@ const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         // Column generation.
         if (use_column_generation)
             optimize_column_generation(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        // Benders decomposition.
+        if (use_benders_decomposition)
+            optimize_benders_decomposition(
                     instance,
                     parameters,
                     algorithm_formatter);

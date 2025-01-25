@@ -20,6 +20,14 @@ FetchContent_Declare(
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(mathoptsolverscmake)
 
+# Fetch Highs.
+set(BUILD_SHARED_LIBS OFF)
+FetchContent_Declare(
+    highs
+    URL https://github.com/ERGO-Code/HiGHS/archive/refs/tags/v1.7.2.zip
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(highs)
+
 # Fetch boost.
 set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options dynamic_bitset)
 set(BOOST_ENABLE_CMAKE ON)
