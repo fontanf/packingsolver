@@ -23,6 +23,11 @@ rectangle_main = os.path.join(
         "bin",
         "packingsolver_rectangle")
 
+boxstacks_main = os.path.join(
+        "install",
+        "bin",
+        "packingsolver_boxstacks")
+
 onedimensional_main = os.path.join(
         "install",
         "bin",
@@ -866,6 +871,47 @@ if __name__ == "__main__":
                         + "  --items \"" + instance_path + "\""
                         + " --bin-infinite-copies"
                         + " --objective bin-packing"
+                        + "  --optimization-mode not-anytime"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    if benchmark == "boxstacks_knapsack_roadef2022_2024-04-25":
+
+        datacsv_path = os.path.join(
+                "data",
+                "boxstacks",
+                "data_knapsack_roadef2022_2024-04-25.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if args.sub and args.sub != row["Dataset"][-1]:
+                    continue
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        boxstacks_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
                         + "  --optimization-mode not-anytime"
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")

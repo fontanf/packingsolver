@@ -5,6 +5,7 @@ import csv
 import json
 import datetime
 import pandas as pd
+import pathlib
 
 
 st.set_page_config(layout='wide')
@@ -1720,6 +1721,112 @@ elif benchmark == "rectangle_bin_packing_rotation":
         def highlight(s):
             return [('background-color: lightgreen'
                      if s[fieldname] == s[bksv_field]
+                     else ('background-color: pink'
+                           if s[fieldname] > s[bksv_field]
+                           else 'background-color: yellow'))
+                    if fieldname in result_columns
+                    else ''
+                    for fieldname in out_fieldnames]
+        df = df.style.apply(highlight, axis = 1)
+        show_datafram(df)
+
+
+elif benchmark == "boxstacks_knapsack_roadef2022_2024-04-25":
+
+    datacsv_path = os.path.join(
+            "data",
+            "boxstacks",
+            "data_knapsack_roadef2022_2024-04-25.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = reader.fieldnames
+        for output_directory in output_directories:
+            out_fieldnames.append(
+                    output_directory + " / # of incomplete solutions")
+            out_fieldnames.append(
+                    output_directory + " / Total time")
+
+        result_columns = [fieldname for fieldname in reader.fieldnames
+                          if "# of incomplete Solutions" in fieldname]
+        time_columns = [fieldname for fieldname in reader.fieldnames
+                          if "Total time" in fieldname]
+
+        # Initialize extra rows.
+        out_rows = []
+        row_name_to_row = {}
+
+        extra_rows = [{
+                        "Path": "Total",
+                        "# of incomplete solutions": 0,
+                        "Total time": 0.0}]
+        for fieldname in reader.fieldnames:
+            if ("# of incomplete solutions" in fieldname or "Total time" in fieldname):
+                for row in extra_rows:
+                    row[fieldname] = 0
+
+        for row in reader:
+            if not row["Path"]:
+                break
+
+            path = pathlib.Path(row["Path"])
+            row_name = path.parts[1] + "/" + path.parts[2]
+            if row_name not in row_name_to_row:
+                row_name_to_row[row_name] = len(out_rows)
+                row_new = {"Path": row_name, "# instances": 0}
+                for output_directory in output_directories:
+                    row_new[output_directory + " / Total time"] = 0
+                    row_new[output_directory
+                            + " / # of incomplete solutions"] = 0
+                out_rows.append(row_new)
+            row_new = out_rows[row_name_to_row[row_name]]
+            row_new["# instances"] += 1
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                t = json_data["Output"]["Time"]
+                row_new[output_directory + " / Total time"] += t
+                v = json_data["Output"]["Solution"]["NumberOfUnpackedItems"]
+                if v != 0:
+                    row_new[output_directory
+                            + " / # of incomplete solutions"] += 1
+
+
+        # Get extra rows to update.
+        extra_rows_to_update = [-1]
+
+        # Update result columns of extra rows.
+        for row_new in out_rows:
+            for fieldname in reader.fieldnames:
+                if "# of incomplete solutions" in fieldname:
+                    n = int(row_new[fieldname])
+                    row_new[fieldname] = n
+                    for row_id in extra_rows_to_update:
+                        extra_rows[row_id][fieldname] += n
+                if "Total time" in fieldname:
+                    time = float(row_new[fieldname])
+                    row_new[fieldname] = time
+                    for row_id in extra_rows_to_update:
+                        extra_rows[row_id][fieldname] += time
+
+        # Add extra rows.
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        def highlight(s):
+            return [('background-color: lightgreen'
+                     if s[fieldname] == 0
                      else ('background-color: pink'
                            if s[fieldname] > s[bksv_field]
                            else 'background-color: yellow'))
