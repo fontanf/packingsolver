@@ -817,6 +817,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         PricingOutput& output,
         Value& reduced_cost_bound)
 {
+    //std::cout << "generate_1ro_patterns..." << std::endl;
     const BinType& bin_type = instance_.bin_type(0);
     Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
@@ -855,6 +856,8 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
                     return item_type_1.rect.h < item_type_2.rect.h;
                 return p1.second > p2.second;
             });
+    //for (const auto& p: sorted_item_type_ids)
+    //    std::cout << "item_type_id " << p.first << " profit " << p.second << std::endl;
 
     for (;;) {
         //std::cout << "2RO width " << width << std::endl;
@@ -878,16 +881,20 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         for (ItemTypeId item_type_pos_1 = 0;
                 item_type_pos_1 < (ItemTypeId)sorted_item_type_ids.size();
                 ++item_type_pos_1) {
-            ItemTypeId item_type_id_1 = sorted_item_type_ids[item_type_id_1].first;
-            Profit profit_1 = sorted_item_type_ids[item_type_id_1].second;
+            ItemTypeId item_type_id_1 = sorted_item_type_ids[item_type_pos_1].first;
+            Profit profit_1 = sorted_item_type_ids[item_type_pos_1].second;
             const ItemType& item_type_1 = instance_.item_type(item_type_id_1);
+            if (item_type_1.rect.h > height)
+                continue;
+            if (item_type_1.rect.w > width)
+                continue;
 
             for (ItemTypeId item_type_pos_2 = item_type_pos_1;
                     item_type_pos_2 < (ItemTypeId)sorted_item_type_ids.size();
                     ++item_type_pos_2) {
-                ItemTypeId item_type_id_2 = sorted_item_type_ids[item_type_id_1].first;
-                const ItemType& item_type_2 = instance_.item_type(item_type_id_1);
-                Profit profit_2 = sorted_item_type_ids[item_type_id_2].second;
+                ItemTypeId item_type_id_2 = sorted_item_type_ids[item_type_pos_2].first;
+                const ItemType& item_type_2 = instance_.item_type(item_type_id_2);
+                Profit profit_2 = sorted_item_type_ids[item_type_pos_2].second;
 
                 // Items must be of the same height.
                 if (item_type_2.rect.h != item_type_1.rect.h)
@@ -902,13 +909,19 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
                 }
 
                 if (item_type_id_1 == item_type_id_2
-                        && item_type_1.copies == 1)
+                        && remaining_copies[item_type_id_1] == 1)
                     continue;
 
                 ItemPos copies = (item_type_id_1 == item_type_id_2)?
                     remaining_copies[item_type_id_1] / 2:
                     std::min(remaining_copies[item_type_id_1], remaining_copies[item_type_id_2]);
+                if (copies == 0)
+                    continue;
 
+                //std::cout << "add_item_type " << item_type_id_1
+                //    << " " << item_type_id_2
+                //    << " profit " << profit_1 + profit_2
+                //    << std::endl;
                 kp_instance_builder.add_item_type(
                         item_type_1.rect.h,
                         profit_1 + profit_2,
@@ -919,6 +932,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
                 remaining_copies[item_type_id_2] -= copies;
             }
             if (remaining_copies[item_type_id_1] > 0) {
+                //std::cout << "add_item_type " << item_type_id_1 << std::endl;
                 kp_instance_builder.add_item_type(
                         item_type_1.rect.h,
                         profit_1,
@@ -949,6 +963,12 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
 
             const ItemType& item_type_1 = instance_.item_type(item_type_id_1);
             Length width_cur = item_type_1.rect.w;
+            //std::cout << "kp_item_type_id " << kp_item_type_id
+            //    << " kp_copies " << kp_copies
+            //    << " item_type_id_1 " << item_type_id_1
+            //    << " w " << item_type_1.rect.w
+            //    << " item_type_id_2 " << item_type_id_2
+            //    << std::endl;
             if (item_type_id_2 != -1) {
                 const ItemType& item_type_2 = instance_.item_type(item_type_id_2);
                 width_cur
@@ -1043,6 +1063,11 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         // Find the largest width strictly smaller than the largest width
         // in the generated column.
         Length width_new = 0;
+        // If 'width_max < width', we may still needs to try with a new width of
+        // 'width_max' since item pairs valid with width 'width_max' were not
+        // valid with width 'width'.
+        if (width_max < width)
+            width_max++;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance_.number_of_item_types();
                 ++item_type_id) {
@@ -1079,13 +1104,16 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
             //    << " wcur " << width_cur
             //    << std::endl;
 
-            if (width_new < width_cur)
+            if (width_cur < width_max
+                    && width_new < width_cur) {
                 width_new = width_cur;
+            }
         }
         if (width_new == 0)
             break;
         width = width_new;
     }
+    //std::cout << "generate_1ro_patterns end" << std::endl;
 }
 
 void ColumnGenerationPricingSolver::generate_2ho_patterns(
