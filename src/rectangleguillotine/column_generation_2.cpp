@@ -241,6 +241,7 @@ std::vector<std::shared_ptr<const Column>> generate_1rr_patterns(
 std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
         const Instance& instance)
 {
+    //std::cout << "generate_2hr_patterns..." << std::endl;
     const BinType& bin_type = instance.bin_type(0);
 
     std::vector<std::shared_ptr<const Column>> columns;
@@ -250,19 +251,29 @@ std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
+        //std::cout << "item_type_id " << item_type_id
+        //    << " h " << item_type.rect.h << std::endl;
 
-        ItemPos copies_max = bin_type.rect.w / item_type.rect.w;
-        for (ItemPos copies = 0; copies < copies_max; ++copies) {
+        ItemPos copies_max = bin_type.rect.h / item_type.rect.h;
+        //std::cout
+        //    << "bin_type.h " << bin_type.rect.h
+        //    << " copies_max " << copies_max
+        //    << std::endl;
+        for (ItemPos copies = 1; copies <= copies_max; ++copies) {
 
             // Build strip.
+            //std::cout << "build strip no rotation..." << std::endl;
+            //std::cout << "copies " << copies << std::endl;
             SolutionBuilder extra_solution_builder(instance);
             extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
+            //std::cout << "add_node 1 " << bin_type.left_trim + item_type.rect.w << std::endl;
             extra_solution_builder.add_node(1, bin_type.left_trim + item_type.rect.w);
             Length cut_position = bin_type.bottom_trim;
             for (ItemPos copy = 0; copy < copies; ++copy) {
                 cut_position
                     += instance.parameters().cut_thickness
                     + item_type.rect.h;
+                //std::cout << "add_node 2 " << cut_position << std::endl;
                 extra_solution_builder.add_node(2, cut_position);
                 extra_solution_builder.set_last_node_item(item_type_id);
             }
@@ -290,9 +301,10 @@ std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
 
         if (!item_type.oriented) {
             ItemPos copies_max = bin_type.rect.h / item_type.rect.w;
-            for (ItemPos copies = 0; copies < copies_max; ++copies) {
+            for (ItemPos copies = 1; copies <= copies_max; ++copies) {
 
                 // Build strip.
+                //std::cout << "build strip rotation..." << std::endl;
                 SolutionBuilder extra_solution_builder(instance);
                 extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
                 extra_solution_builder.add_node(1, bin_type.left_trim + item_type.rect.h);
@@ -328,6 +340,7 @@ std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
         }
     }
 
+    //std::cout << "generate_2hr_patterns end" << std::endl;
     return columns;
 }
 

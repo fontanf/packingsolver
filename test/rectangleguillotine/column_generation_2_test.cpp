@@ -8,7 +8,7 @@
 using namespace packingsolver::rectangleguillotine;
 namespace fs = boost::filesystem;
 
-struct TestParams
+struct RectangleGuillotineColumnGeneration2TestParams
 {
     fs::path items_path;
     fs::path bins_path;
@@ -17,17 +17,17 @@ struct TestParams
     fs::path certificate_path;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const TestParams& test_params)
+inline std::ostream& operator<<(std::ostream& os, const RectangleGuillotineColumnGeneration2TestParams& test_params)
 {
     os << test_params.items_path;
     return os;
 }
 
-class AlgorithmTest: public testing::TestWithParam<TestParams> { };
+class RectangleGuillotineColumnGeneration2Test: public testing::TestWithParam<RectangleGuillotineColumnGeneration2TestParams> { };
 
-TEST_P(AlgorithmTest, Algorithm)
+TEST_P(RectangleGuillotineColumnGeneration2Test, RectangleGuillotineColumnGeneration2)
 {
-    TestParams test_params = GetParam();
+    RectangleGuillotineColumnGeneration2TestParams test_params = GetParam();
     InstanceBuilder instance_builder;
     instance_builder.read_item_types(test_params.items_path.string());
     instance_builder.read_bin_types(test_params.bins_path.string());
@@ -37,6 +37,7 @@ TEST_P(AlgorithmTest, Algorithm)
 
     OptimizeParameters optimize_parameters;
     optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    optimize_parameters.use_column_generation_2 = true;
     Output output = optimize(instance, optimize_parameters);
 
     SolutionBuilder solution_builder(instance);
@@ -53,8 +54,8 @@ TEST_P(AlgorithmTest, Algorithm)
 
 INSTANTIATE_TEST_SUITE_P(
         RectangleGuillotineColumnGeneration2,
-        AlgorithmTest,
-        testing::ValuesIn(std::vector<TestParams>{
+        RectangleGuillotineColumnGeneration2Test,
+        testing::ValuesIn(std::vector<RectangleGuillotineColumnGeneration2TestParams>{
             {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_vertical_items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_vertical_bins.csv",
@@ -73,4 +74,16 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_trims_parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_trims_solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_1rr_items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_1rr_bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_1rr_parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_1rr_solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hr_items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hr_bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hr_parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hr_solution.csv",
             }}));

@@ -413,6 +413,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
+        use_column_generation_2 = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -436,6 +437,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
+        use_column_generation_2 = false;
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
@@ -473,6 +475,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
         }
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
+        use_column_generation_2 = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
