@@ -1,6 +1,6 @@
 # PackingSolver
 
-A state-of-the-art solver for (geometrical) Packing Problems.
+A state-of-the-art solver for (geometrical) packing problems.
 
 PackingSolver solves the following problem types:
 
