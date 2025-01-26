@@ -66,15 +66,15 @@ INSTANTIATE_TEST_SUITE_P(
         RectangleOptimizeTest,
         testing::ValuesIn(std::vector<RectangleOptimizeTestParams>{
             {
-                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_items.csv",
-                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers" / "bins.csv",
                 fs::path(""),
-                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_parameters.csv",
-                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_solution.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers" / "solution.csv",
             }, {
-                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_items.csv",
-                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing" / "bins.csv",
                 fs::path(""),
-                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_parameters.csv",
-                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing_solution.csv",
+                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing" / "solution.csv",
             }}));
