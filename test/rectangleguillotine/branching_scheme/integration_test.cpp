@@ -63,9 +63,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC1)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     fs::path directory = fs::path("data") / "rectangle" / "tests";
-    instance_builder.read_item_types((directory / "C1_items.csv").string());
-    instance_builder.read_bin_types((directory / "C1_bins.csv").string());
-    instance_builder.read_defects((directory / "C1_defects.csv").string());
+    instance_builder.read_item_types((directory / "C1" / "items.csv").string());
+    instance_builder.read_bin_types((directory / "C1" / "bins.csv").string());
+    instance_builder.read_defects((directory / "C1" / "defects.csv").string());
     instance_builder.set_roadef2018();
     Instance instance = instance_builder.build();
 
@@ -81,9 +81,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC2)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     fs::path directory = fs::path("data") / "rectangle" / "tests";
-    instance_builder.read_item_types((directory / "C2_items.csv").string());
-    instance_builder.read_bin_types((directory / "C2_bins.csv").string());
-    instance_builder.read_defects((directory / "C2_defects.csv").string());
+    instance_builder.read_item_types((directory / "C2" / "items.csv").string());
+    instance_builder.read_bin_types((directory / "C2" / "bins.csv").string());
+    instance_builder.read_defects((directory / "C2" / "defects.csv").string());
     instance_builder.set_roadef2018();
     Instance instance = instance_builder.build();
 
@@ -99,9 +99,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC3)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     fs::path directory = fs::path("data") / "rectangle" / "tests";
-    instance_builder.read_item_types((directory / "C3_items.csv").string());
-    instance_builder.read_bin_types((directory / "C3_bins.csv").string());
-    instance_builder.read_defects((directory / "C3_defects.csv").string());
+    instance_builder.read_item_types((directory / "C3" / "items.csv").string());
+    instance_builder.read_bin_types((directory / "C3" / "bins.csv").string());
+    instance_builder.read_defects((directory / "C3" / "defects.csv").string());
     instance_builder.set_roadef2018();
     Instance instance = instance_builder.build();
 
@@ -138,9 +138,9 @@ TEST(RectangleGuillotineBranchingScheme, IntegrationC11)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     fs::path directory = fs::path("data") / "rectangle" / "tests";
-    instance_builder.read_item_types((directory / "C11_items.csv").string());
-    instance_builder.read_bin_types((directory / "C11_bins.csv").string());
-    instance_builder.read_defects((directory / "C11_defects.csv").string());
+    instance_builder.read_item_types((directory / "C11" / "items.csv").string());
+    instance_builder.read_bin_types((directory / "C11" / "bins.csv").string());
+    instance_builder.read_defects((directory / "C11" / "defects.csv").string());
     instance_builder.set_roadef2018();
     instance_builder.set_cut_type(CutType::Exact);
     Instance instance = instance_builder.build();

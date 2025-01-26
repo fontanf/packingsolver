@@ -55,21 +55,21 @@ INSTANTIATE_TEST_SUITE_P(
         RectangleBendersDecompositionTest,
         testing::ValuesIn(std::vector<RectangleBendersDecompositionTestParams>{
             {
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_incompatible_pairs_items.csv",
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_incompatible_pairs_bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_incompatible_pairs" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_incompatible_pairs" / "bins.csv",
                 fs::path(""),
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_incompatible_pairs_parameters.csv",
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_incompatible_pairs_solution.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_incompatible_pairs" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_incompatible_pairs" / "solution.csv",
             }, {
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_all_fit_items.csv",
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_all_fit_bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_all_fit" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_all_fit" / "bins.csv",
                 fs::path(""),
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_all_fit_parameters.csv",
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_all_fit_solution.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_all_fit" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_all_fit" / "solution.csv",
             }, {
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_unpacked_high_profit_items.csv",
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_unpacked_high_profit_bins.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_unpacked_high_profit" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_unpacked_high_profit" / "bins.csv",
                 fs::path(""),
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_unpacked_high_profit_parameters.csv",
-                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_unpacked_high_profit_solution.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_unpacked_high_profit" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_benders_unpacked_high_profit" / "solution.csv",
             }}));
