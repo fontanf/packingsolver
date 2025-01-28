@@ -2,10 +2,12 @@
 #include "packingsolver/boxstacks/instance_builder.hpp"
 
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 void read_args(
         packingsolver::Parameters<Instance, Solution>& parameters,
@@ -96,26 +98,40 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // Build instance.
+
     InstanceBuilder instance_builder;
 
-    std::string items_path = vm["items"].as<std::string>();
-    if (!std::ifstream(items_path).good())
-        if (std::ifstream(items_path + "_items.csv").good())
-            items_path = items_path + "_items.csv";
-    instance_builder.read_item_types(items_path);
+    std::string instance_path = vm["items"].as<std::string>();
+    if (fs::is_regular_file(instance_path)) {
+        instance_path = "";
+    } if (fs::is_regular_file(instance_path + "_items.csv")) {
+        instance_path = instance_path + "_";
+    } else if (fs::is_regular_file(instance_path + "items.csv")) {
+        instance_path = instance_path;
+    } else if (fs::is_regular_file(instance_path + "/items.csv")) {
+        instance_path = instance_path + "/";
+    } else {
+        throw std::invalid_argument("");
+    }
 
-    std::string bins_path = (vm.count("bins"))?
-        vm["bins"].as<std::string>():
-        vm["items"].as<std::string>() + "_bins.csv";
-    instance_builder.read_bin_types(bins_path);
+    if (instance_path.empty()) {
+        instance_builder.read_item_types(vm["items"].as<std::string>());
+    } else {
+        instance_builder.read_item_types(instance_path + "items.csv");
+    }
 
-    std::string defects_path = (vm.count("defects"))?
-        vm["defects"].as<std::string>():
-        (std::ifstream(vm["items"].as<std::string>() + "_defects.csv").good())?
-        vm["items"].as<std::string>() + "_defects.csv":
-        "";
-    if (!defects_path.empty())
-        instance_builder.read_defects(defects_path);
+    if (vm.count("bins")) {
+        instance_builder.read_bin_types(vm["bins"].as<std::string>());
+    } else {
+        instance_builder.read_bin_types(instance_path + "bins.csv");
+    }
+
+    if (vm.count("defects")) {
+        instance_builder.read_defects(vm["defects"].as<std::string>());
+    } else if (fs::is_regular_file(instance_path + "defects.csv")) {
+        instance_builder.read_defects(instance_path + "defects.csv");
+    }
 
     if (vm.count("bin-infinite-x"))
         instance_builder.set_bin_types_infinite_x();
@@ -134,13 +150,11 @@ int main(int argc, char *argv[])
     if (vm.count("item-profits-auto"))
         instance_builder.set_item_types_profits_auto();
 
-    std::string parameters_path = (vm.count("parameters"))?
-        vm["parameters"].as<std::string>():
-        (std::ifstream(vm["items"].as<std::string>() + "_parameters.csv").good())?
-        vm["items"].as<std::string>() + "_parameters.csv":
-        "";
-    if (!parameters_path.empty())
-        instance_builder.read_parameters(parameters_path);
+    if (vm.count("parameters")) {
+        instance_builder.read_parameters(vm["parameters"].as<std::string>());
+    } else if (fs::is_regular_file(instance_path + "parameters.csv")) {
+        instance_builder.read_parameters(instance_path + "parameters.csv");
+    }
 
     if (vm.count("objective"))
         instance_builder.set_objective(vm["objective"].as<Objective>());
@@ -148,6 +162,8 @@ int main(int argc, char *argv[])
         instance_builder.set_unloading_constraint(vm["unloading-constraint"].as<rectangle::UnloadingConstraint>());
 
     Instance instance = instance_builder.build();
+
+    // Read algorithm parameters.
 
 #if XPRESS_FOUND
     if (optimize_parameters.solver_name

@@ -408,7 +408,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
         if (!use_tree_search
                 && !use_column_generation_2) {
             use_tree_search = true;
-            use_column_generation_2 = true;
+            //use_column_generation_2 = true;
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.

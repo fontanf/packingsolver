@@ -26,6 +26,7 @@ target_sources(PackingSolver_rectangleguillotine_main PRIVATE
     main.cpp)
 target_link_libraries(PackingSolver_rectangleguillotine_main PUBLIC
     PackingSolver_rectangleguillotine
-    Boost::program_options)
+    Boost::program_options
+    Boost::filesystem)
 set_target_properties(PackingSolver_rectangleguillotine_main PROPERTIES OUTPUT_NAME "packingsolver_rectangleguillotine")
 install(TARGETS PackingSolver_rectangleguillotine_main)

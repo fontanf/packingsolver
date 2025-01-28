@@ -147,11 +147,13 @@ std::vector<std::shared_ptr<const Column>> generate_1rr_patterns(
         element.coefficient = 1;
         column.elements.push_back(element);
         if (instance.objective() == Objective::OpenDimensionX) {
-            column.objective_coefficient = width_1;
+            column.objective_coefficient = width_1
+                + instance.parameters().cut_thickness;
         } else {
             columngenerationsolver::LinearTerm element;
             element.row = instance.number_of_item_types();
-            element.coefficient = width_1;
+            element.coefficient = width_1
+                + instance.parameters().cut_thickness;
             column.elements.push_back(element);
         }
         column.extra = std::shared_ptr<void>(new Solution(extra_solution));
@@ -213,11 +215,13 @@ std::vector<std::shared_ptr<const Column>> generate_1rr_patterns(
                 column.elements.push_back(element_2);
             }
             if (instance.objective() == Objective::OpenDimensionX) {
-                column.objective_coefficient = width_1;
+                column.objective_coefficient = width_1
+                    + instance.parameters().cut_thickness;
             } else {
                 columngenerationsolver::LinearTerm element;
                 element.row = instance.number_of_item_types();
-                element.coefficient = width_1;
+                element.coefficient = width_1
+                    + instance.parameters().cut_thickness;
                 column.elements.push_back(element);
             }
             column.extra = std::shared_ptr<void>(new Solution(extra_solution));
@@ -254,7 +258,8 @@ std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
         //std::cout << "item_type_id " << item_type_id
         //    << " h " << item_type.rect.h << std::endl;
 
-        ItemPos copies_max = bin_type.rect.h / item_type.rect.h;
+        ItemPos copies_max = (bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim + instance.parameters().cut_thickness)
+            / (item_type.rect.h + instance.parameters().cut_thickness);
         //std::cout
         //    << "bin_type.h " << bin_type.rect.h
         //    << " copies_max " << copies_max
@@ -270,12 +275,11 @@ std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
             extra_solution_builder.add_node(1, bin_type.left_trim + item_type.rect.w);
             Length cut_position = bin_type.bottom_trim;
             for (ItemPos copy = 0; copy < copies; ++copy) {
-                cut_position
-                    += instance.parameters().cut_thickness
-                    + item_type.rect.h;
+                cut_position += item_type.rect.h;
                 //std::cout << "add_node 2 " << cut_position << std::endl;
                 extra_solution_builder.add_node(2, cut_position);
                 extra_solution_builder.set_last_node_item(item_type_id);
+                cut_position += instance.parameters().cut_thickness;
             }
             Solution extra_solution = extra_solution_builder.build();
 
@@ -288,11 +292,13 @@ std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
             element.coefficient = copies;
             column.elements.push_back(element);
             if (instance.objective() == Objective::OpenDimensionX) {
-                column.objective_coefficient = item_type.rect.w;
+                column.objective_coefficient = item_type.rect.w
+                    + instance.parameters().cut_thickness;
             } else {
                 columngenerationsolver::LinearTerm element;
                 element.row = instance.number_of_item_types();
-                element.coefficient = item_type.rect.w;
+                element.coefficient = item_type.rect.w
+                    + instance.parameters().cut_thickness;
                 column.elements.push_back(element);
             }
             column.extra = std::shared_ptr<void>(new Solution(extra_solution));
@@ -300,7 +306,8 @@ std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
         }
 
         if (!item_type.oriented) {
-            ItemPos copies_max = bin_type.rect.h / item_type.rect.w;
+            ItemPos copies_max = (bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim + instance.parameters().cut_thickness)
+                / (item_type.rect.w + instance.parameters().cut_thickness);
             for (ItemPos copies = 1; copies <= copies_max; ++copies) {
 
                 // Build strip.
@@ -310,11 +317,10 @@ std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
                 extra_solution_builder.add_node(1, bin_type.left_trim + item_type.rect.h);
                 Length cut_position = bin_type.bottom_trim;
                 for (ItemPos copy = 0; copy < copies; ++copy) {
-                    cut_position
-                        += instance.parameters().cut_thickness
-                        + item_type.rect.w;
+                    cut_position += item_type.rect.w;
                     extra_solution_builder.add_node(2, cut_position);
                     extra_solution_builder.set_last_node_item(item_type_id);
+                    cut_position += instance.parameters().cut_thickness;
                 }
                 Solution extra_solution = extra_solution_builder.build();
 
@@ -327,11 +333,13 @@ std::vector<std::shared_ptr<const Column>> generate_2hr_patterns(
                 element.coefficient = copies;
                 column.elements.push_back(element);
                 if (instance.objective() == Objective::OpenDimensionX) {
-                    column.objective_coefficient = item_type.rect.h;
+                    column.objective_coefficient = item_type.rect.h
+                        + instance.parameters().cut_thickness;
                 } else {
                     columngenerationsolver::LinearTerm element;
                     element.row = instance.number_of_item_types();
-                    element.coefficient = item_type.rect.h;
+                    element.coefficient = item_type.rect.h
+                        + instance.parameters().cut_thickness;
                     column.elements.push_back(element);
                 }
                 column.extra = std::shared_ptr<void>(new Solution(extra_solution));
@@ -397,7 +405,10 @@ columngenerationsolver::Model get_model(
 
         columngenerationsolver::Row row;
         row.lower_bound = 0;
-        row.upper_bound = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim;
+        row.upper_bound = bin_type.rect.w
+            - bin_type.left_trim
+            - bin_type.right_trim
+            + instance.parameters().cut_thickness;
         row.coefficient_lower_bound = 0;
         row.coefficient_upper_bound = 1;
         model.rows.push_back(row);
@@ -570,11 +581,13 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
                 column.elements.push_back(element);
             }
             if (instance_.objective() == Objective::OpenDimensionX) {
-                column.objective_coefficient = width;
+                column.objective_coefficient = width
+                    + instance_.parameters().cut_thickness;
             } else {
                 columngenerationsolver::LinearTerm element;
                 element.row = instance_.number_of_item_types();
-                element.coefficient = width;
+                element.coefficient = width
+                    + instance_.parameters().cut_thickness;
                 column.elements.push_back(element);
             }
             column.extra = std::shared_ptr<void>(new Solution(extra_solution));
@@ -632,6 +645,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
         PricingOutput& output,
         Value& reduced_cost_bound)
 {
+    //std::cout << "generate_1n_patterns..." << std::endl;
     const BinType& bin_type = instance_.bin_type(0);
     Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
@@ -641,7 +655,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
         // Build one-dimensional knapsack instance.
         onedimensional::InstanceBuilder kp_instance_builder;
         kp_instance_builder.set_objective(Objective::Knapsack);
-        kp_instance_builder.add_bin_type(height);
+        kp_instance_builder.add_bin_type(height + instance_.parameters().cut_thickness);
         std::vector<std::pair<ItemTypeId, Length>> kp2orig;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance_.number_of_item_types();
@@ -678,7 +692,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
 
             if (item_width <= width) {
                 kp_instance_builder.add_item_type(
-                        item_height,
+                        item_height + instance_.parameters().cut_thickness,
                         profit,
                         copies);
                 kp2orig.push_back({item_type_id, item_width});
@@ -727,11 +741,13 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
                 continue;
 
             for (ItemPos copy = 0; copy < copies; ++copy) {
-                cut_position += kp_instance.item_type(kp_item_type_id).length;
+                cut_position += kp_instance.item_type(kp_item_type_id).length
+                    - instance_.parameters().cut_thickness;
                 extra_solution_builder.add_node(2, cut_position);
                 if (width_cur < width_max)
                     extra_solution_builder.add_node(3, bin_type.left_trim + width_cur);
                 extra_solution_builder.set_last_node_item(item_type_id);
+                cut_position += instance_.parameters().cut_thickness;
             }
         }
         Solution extra_solution = extra_solution_builder.build();
@@ -756,11 +772,13 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             column.elements.push_back(element);
         }
         if (instance_.objective() == Objective::OpenDimensionX) {
-            column.objective_coefficient = width_max;
+            column.objective_coefficient = width_max
+                + instance_.parameters().cut_thickness;
         } else {
             columngenerationsolver::LinearTerm element;
             element.row = instance_.number_of_item_types();
-            element.coefficient = width_max;
+            element.coefficient = width_max
+                + instance_.parameters().cut_thickness;
             column.elements.push_back(element);
         }
         //std::cout << "column.objective_coefficient  " << column.objective_coefficient << std::endl;
@@ -810,6 +828,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             break;
         width = width_new;
     }
+    //std::cout << "generate_1n_patterns end" << std::endl;
 }
 
 void ColumnGenerationPricingSolver::generate_1ro_patterns(
@@ -876,7 +895,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         // Build one-dimensional knapsack instance.
         onedimensional::InstanceBuilder kp_instance_builder;
         kp_instance_builder.set_objective(Objective::Knapsack);
-        kp_instance_builder.add_bin_type(height);
+        kp_instance_builder.add_bin_type(height + instance_.parameters().cut_thickness);
         std::vector<std::pair<ItemTypeId, ItemTypeId>> kp2orig;
         for (ItemTypeId item_type_pos_1 = 0;
                 item_type_pos_1 < (ItemTypeId)sorted_item_type_ids.size();
@@ -923,7 +942,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
                 //    << " profit " << profit_1 + profit_2
                 //    << std::endl;
                 kp_instance_builder.add_item_type(
-                        item_type_1.rect.h,
+                        item_type_1.rect.h + instance_.parameters().cut_thickness,
                         profit_1 + profit_2,
                         copies);
                 kp2orig.push_back({item_type_id_1, item_type_id_2});
@@ -996,7 +1015,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
                 continue;
 
             for (ItemPos kp_copy = 0; kp_copy < kp_copies; ++kp_copy) {
-                cut_position += instance_.parameters().cut_thickness + item_type_1.rect.h;
+                cut_position += item_type_1.rect.h;
                 extra_solution_builder.add_node(2, cut_position);
 
                 if (item_type_1.rect.w < width_max) {
@@ -1018,6 +1037,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
                             + item_type_2.rect.w);
                     extra_solution_builder.set_last_node_item(item_type_id_2);
                 }
+                cut_position += instance_.parameters().cut_thickness;
             }
         }
         Solution extra_solution = extra_solution_builder.build();
@@ -1042,11 +1062,13 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
             column.elements.push_back(element);
         }
         if (instance_.objective() == Objective::OpenDimensionX) {
-            column.objective_coefficient = width_max;
+            column.objective_coefficient = width_max
+                + instance_.parameters().cut_thickness;
         } else {
             columngenerationsolver::LinearTerm element;
             element.row = instance_.number_of_item_types();
-            element.coefficient = width_max;
+            element.coefficient = width_max
+                + instance_.parameters().cut_thickness;
             column.elements.push_back(element);
         }
         //std::cout << "column.objective_coefficient  " << column.objective_coefficient << std::endl;
@@ -1121,6 +1143,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
         PricingOutput& output,
         Value& reduced_cost_bound)
 {
+    //std::cout << "generate_2ho_patterns..." << std::endl;
     const BinType& bin_type = instance_.bin_type(0);
     Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
@@ -1130,7 +1153,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
         // Build one-dimensional knapsack instance.
         onedimensional::InstanceBuilder kp_instance_builder;
         kp_instance_builder.set_objective(Objective::Knapsack);
-        kp_instance_builder.add_bin_type(height);
+        kp_instance_builder.add_bin_type(height + instance_.parameters().cut_thickness);
         std::vector<std::pair<ItemTypeId, ItemPos>> kp2orig;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance_.number_of_item_types();
@@ -1151,7 +1174,8 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             if (!strictly_greater(profit, 0.0))
                 continue;
 
-            ItemPos number_of_copies_in_full_strip = width / item_type.rect.w;
+            ItemPos number_of_copies_in_full_strip = (width + instance_.parameters().cut_thickness)
+                / (item_type.rect.w + instance_.parameters().cut_thickness);
             if (number_of_copies_in_full_strip == 0)
                 continue;
             if (item_type.rect.h > height)
@@ -1159,11 +1183,13 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             ItemPos number_of_full_strips = copies / number_of_copies_in_full_strip;
             ItemPos number_of_copies_in_last_strip = copies % number_of_copies_in_full_strip;
             Length width_cur = (number_of_full_strips > 0)?
-                number_of_copies_in_full_strip * item_type.rect.w:
-                number_of_copies_in_last_strip * item_type.rect.w;
+                number_of_copies_in_full_strip * item_type.rect.w
+                + (number_of_copies_in_full_strip - 1) * instance_.parameters().cut_thickness:
+                number_of_copies_in_last_strip * item_type.rect.w
+                + (number_of_copies_in_last_strip - 1) * instance_.parameters().cut_thickness;
             //std::cout << "wj " << item_type.rect.w
             //    << " copies " << copies
-            //    << " number_of_copies_in_full_strip " << number_of_full_strips
+            //    << " number_of_copies_in_full_strip " << number_of_copies_in_full_strip
             //    << " number_of_full_strips " << number_of_full_strips
             //    << " number_of_copies_in_last_strip " << number_of_copies_in_last_strip
             //    << " wcur " << width_cur
@@ -1171,14 +1197,14 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
 
             if (number_of_full_strips > 0) {
                 kp_instance_builder.add_item_type(
-                        item_type.rect.h,
+                        item_type.rect.h + instance_.parameters().cut_thickness,
                         number_of_copies_in_full_strip * profit,
                         number_of_full_strips);
                 kp2orig.push_back({item_type_id, number_of_copies_in_full_strip});
             }
             if (number_of_copies_in_last_strip > 0) {
                 kp_instance_builder.add_item_type(
-                        item_type.rect.h,
+                        item_type.rect.h + instance_.parameters().cut_thickness,
                         number_of_copies_in_last_strip * profit,
                         1);
                 kp2orig.push_back({item_type_id, number_of_copies_in_last_strip});
@@ -1206,7 +1232,8 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
                 continue;
 
             ItemPos copies = kp2orig[kp_item_type_id].second;
-            Length width = item_type.rect.w * copies;
+            Length width = item_type.rect.w * copies
+                + instance_.parameters().cut_thickness * (copies - 1);
             if (width_max < width)
                 width_max = width;
         }
@@ -1230,21 +1257,29 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             ItemPos copies = kp2orig[kp_item_type_id].second;
 
             for (ItemPos kp_copy = 0; kp_copy < kp_copies; ++kp_copy) {
-                cut_position += kp_instance.item_type(kp_item_type_id).length;
+                cut_position += kp_instance.item_type(kp_item_type_id).length
+                    - instance_.parameters().cut_thickness;
                 extra_solution_builder.add_node(2, cut_position);
 
-                Length width_cur = item_type.rect.w;
+                Length width_cur = 0;
+                //std::cout << "copies " << copies << std::endl;
                 if (copies == 1) {
-                    if (width_cur < width_max)
+                    width_cur += item_type.rect.w;
+                    if (width_cur < width_max) {
+                        //std::cout << "add_node depth 3 cut_position " << bin_type.left_trim + width_cur << std::endl;
                         extra_solution_builder.add_node(3, bin_type.left_trim + width_cur);
+                    }
                     extra_solution_builder.set_last_node_item(item_type_id);
                 } else {
                     for (ItemPos copy = 0; copy < copies; ++copy) {
+                        width_cur += item_type.rect.w;
+                        //std::cout << "add_node depth 3 cut_position " << bin_type.left_trim + width_cur << std::endl;
                         extra_solution_builder.add_node(3, bin_type.left_trim + width_cur);
                         extra_solution_builder.set_last_node_item(item_type_id);
-                        width_cur += item_type.rect.w;
+                        width_cur += instance_.parameters().cut_thickness;
                     }
                 }
+                cut_position += instance_.parameters().cut_thickness;
             }
         }
         Solution extra_solution = extra_solution_builder.build();
@@ -1269,11 +1304,13 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             column.elements.push_back(element);
         }
         if (instance_.objective() == Objective::OpenDimensionX) {
-            column.objective_coefficient = width_max;
+            column.objective_coefficient = width_max
+                + instance_.parameters().cut_thickness;
         } else {
             columngenerationsolver::LinearTerm element;
             element.row = instance_.number_of_item_types();
-            element.coefficient = width_max;
+            element.coefficient = width_max
+                + instance_.parameters().cut_thickness;
             column.elements.push_back(element);
         }
         //std::cout << "column.objective_coefficient  " << column.objective_coefficient << std::endl;
@@ -1308,7 +1345,8 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             if (!strictly_greater(profit, 0.0))
                 continue;
 
-            ItemPos number_of_copies_in_full_strip = (width_max - 1) / item_type.rect.w;
+            ItemPos number_of_copies_in_full_strip = (width_max - 1 + instance_.parameters().cut_thickness)
+                / (item_type.rect.w + instance_.parameters().cut_thickness);
             if (number_of_copies_in_full_strip == 0)
                 continue;
             if (item_type.rect.h > height)
@@ -1316,11 +1354,13 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             ItemPos number_of_full_strips = copies / number_of_copies_in_full_strip;
             ItemPos number_of_copies_in_last_strip = copies % number_of_copies_in_full_strip;
             Length width_cur = (number_of_full_strips > 0)?
-                number_of_copies_in_full_strip * item_type.rect.w:
-                number_of_copies_in_last_strip * item_type.rect.w;
+                number_of_copies_in_full_strip * item_type.rect.w
+                + (number_of_copies_in_full_strip - 1) * instance_.parameters().cut_thickness:
+                number_of_copies_in_last_strip * item_type.rect.w
+                + (number_of_copies_in_last_strip - 1) * instance_.parameters().cut_thickness;
             //std::cout << "wj " << item_type.rect.w
             //    << " copies " << copies
-            //    << " number_of_copies_in_full_strip " << number_of_full_strips
+            //    << " number_of_copies_in_full_strip " << number_of_copies_in_full_strip
             //    << " number_of_full_strips " << number_of_full_strips
             //    << " number_of_copies_in_last_strip " << number_of_copies_in_last_strip
             //    << " wcur " << width_cur
@@ -1333,6 +1373,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             break;
         width = width_new;
     }
+    //std::cout << "generate_2ho_patterns end" << std::endl;
 }
 
 void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
@@ -1462,41 +1503,46 @@ void column_generation_2_vertical(
         const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
             = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
         if (cgslds_output.solution.feasible()) {
-            //std::cout << "callback" << std::endl;
+            //std::cout << "callback..." << std::endl;
             SolutionBuilder solution_builder(instance);
             solution_builder.add_bin(0, 1, CutOrientation::Vertical);
             Length offset = 0;
             for (const auto& pair: cgslds_output.solution.columns()) {
+                //std::cout << "offset " << offset << std::endl;
                 const Column& column = *(pair.first);
                 BinPos value = std::round(pair.second);
                 for (BinPos v = 0; v < value; ++v) {
                     const SolutionBin& bin = std::static_pointer_cast<Solution>(column.extra)->bin(0);
                     bool first = true;
-                    Length offset_new = offset;
+                    Length w_max = 0;
                     for (const SolutionNode& node: bin.nodes) {
+                        //std::cout << "node " << node << std::endl;
                         if (node.d <= 0)
                             continue;
                         if (node.d == 1) {
                             if (!first)
                                 break;
                             first = false;
-                            offset_new += (node.r - node.l);
+                            w_max = std::max(w_max, node.r - node.l);
                         }
                         if (node.d % 2 == 1) {
+                            //std::cout << "add_node depth " << node.d << " cut_position " << offset + node.r << std::endl;
                             solution_builder.add_node(node.d, offset + node.r);
                         } else {
+                            //std::cout << "add_node depth " << node.d << " cut_position " << node.t << std::endl;
                             solution_builder.add_node(node.d, node.t);
                         }
                         if (node.item_type_id >= 0)
                             solution_builder.set_last_node_item(node.item_type_id);
                     }
-                    offset = offset_new;
+                    offset += w_max + instance.parameters().cut_thickness;
                 }
             }
             Solution solution = solution_builder.build();
             std::stringstream ss;
             ss << "CGV n " << cgslds_output.number_of_nodes;
             algorithm_formatter.update_solution(solution, ss.str());
+            //std::cout << "callback end" << std::endl;
         }
     };
     cgslds_parameters.column_generation_parameters.solver_name

@@ -36,7 +36,7 @@ TEST_P(RectangleGuillotineColumnGeneration2Test, RectangleGuillotineColumnGenera
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    //optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_column_generation_2 = true;
     Output output = optimize(instance, optimize_parameters);
 
@@ -98,4 +98,28 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3ho" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3ho" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_1rr_cut_thickness" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_1rr_cut_thickness" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_1rr_cut_thickness" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_1rr_cut_thickness" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hr_cut_thickness" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hr_cut_thickness" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hr_cut_thickness" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hr_cut_thickness" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2ro_cut_thickness" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2ro_cut_thickness" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2ro_cut_thickness" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2ro_cut_thickness" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3ho_cut_thickness" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3ho_cut_thickness" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3ho_cut_thickness" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3ho_cut_thickness" / "solution.csv",
             }}));

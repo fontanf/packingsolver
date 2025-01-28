@@ -25,6 +25,7 @@ target_sources(PackingSolver_rectangle_main PRIVATE
     main.cpp)
 target_link_libraries(PackingSolver_rectangle_main PUBLIC
     PackingSolver_rectangle
-    Boost::program_options)
+    Boost::program_options
+    Boost::filesystem)
 set_target_properties(PackingSolver_rectangle_main PROPERTIES OUTPUT_NAME "packingsolver_rectangle")
 install(TARGETS PackingSolver_rectangle_main)

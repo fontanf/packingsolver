@@ -240,11 +240,11 @@ void SolutionBuilder::add_node(
         // Add a final child to the last node if necessary.
         if (!parent.children.empty()) {
             const SolutionNode& brother = bin.nodes[parent.children.back()];
-            if (parent.r != brother.r) {
+            if (parent.r > brother.r + cut_thickness) {
                 SolutionNode child;
                 child.f = parent_id;
                 child.d = parent.d + 1;
-                child.l = brother.r;
+                child.l = brother.r + cut_thickness;
                 child.r = parent.r;
                 child.b = parent.b;
                 child.t = parent.t;
@@ -252,13 +252,13 @@ void SolutionBuilder::add_node(
                 parent.children.push_back(bin.nodes.size());
                 bin.nodes.push_back(child);
                 //std::cout << "new node " << child << std::endl;
-            } else if (parent.t != brother.t) {
+            } else if (parent.t > brother.t + cut_thickness) {
                 SolutionNode child;
                 child.f = parent_id;
                 child.d = parent.d + 1;
                 child.l = parent.l;
                 child.r = parent.r;
-                child.b = brother.t;
+                child.b = brother.t + cut_thickness;
                 child.t = parent.t;
                 child.item_type_id = -1;
                 parent.children.push_back(bin.nodes.size());
@@ -292,7 +292,7 @@ void SolutionBuilder::add_node(
         child.t = parent.t;
         if (child.r <= child.l) {
             throw std::logic_error(
-                    "rectangleguillotine::SolutionBuilder::add_last_node_child: "
+                    "rectangleguillotine::SolutionBuilder::add_node: "
                     "'cut_position' is too small"
                     "; depth: " + std::to_string(depth)
                     + "; cut_position: " + std::to_string(cut_position)
@@ -302,7 +302,7 @@ void SolutionBuilder::add_node(
         }
         if (child.r > parent.r) {
             throw std::logic_error(
-                    "rectangleguillotine::SolutionBuilder::add_last_node_child: "
+                    "rectangleguillotine::SolutionBuilder::add_node: "
                     "'cut_position' is too large"
                     "; depth: " + std::to_string(depth)
                     + "; cut_position: " + std::to_string(cut_position)
@@ -317,7 +317,7 @@ void SolutionBuilder::add_node(
         child.t = cut_position;
         if (child.t <= child.b) {
             throw std::logic_error(
-                    "rectangleguillotine::SolutionBuilder::add_last_node_child: "
+                    "rectangleguillotine::SolutionBuilder::add_node: "
                     "'cut_position' is too small"
                     "; depth: " + std::to_string(depth)
                     + "; cut_position: " + std::to_string(cut_position)
@@ -327,7 +327,7 @@ void SolutionBuilder::add_node(
         }
         if (child.t > parent.t) {
             throw std::logic_error(
-                    "rectangleguillotine::SolutionBuilder::add_last_node_child: "
+                    "rectangleguillotine::SolutionBuilder::add_node: "
                     "'cut_position' is too large"
                     "; depth: " + std::to_string(depth)
                     + "; cut_position: " + std::to_string(cut_position)
@@ -456,6 +456,7 @@ void SolutionBuilder::read(
 Solution SolutionBuilder::build()
 {
     // Finish bins.
+    Length cut_thickness = solution_.instance().parameters().cut_thickness;
     for (BinPos bin_pos = 0;
             bin_pos < solution_.number_of_different_bins();
             ++bin_pos) {
@@ -466,11 +467,11 @@ Solution SolutionBuilder::build()
             // Add a final child to the last node if necessary.
             if (!parent.children.empty()) {
                 const SolutionNode& brother = bin.nodes[parent.children.back()];
-                if (parent.r != brother.r) {
+                if (parent.r > brother.r + cut_thickness) {
                     SolutionNode child;
                     child.f = parent_id;
                     child.d = parent.d + 1;
-                    child.l = brother.r;
+                    child.l = brother.r + cut_thickness;
                     child.r = parent.r;
                     child.b = parent.b;
                     child.t = parent.t;
@@ -478,13 +479,13 @@ Solution SolutionBuilder::build()
                     parent.children.push_back(bin.nodes.size());
                     bin.nodes.push_back(child);
                     //std::cout << "new node " << child << std::endl;
-                } else if (parent.t != brother.t) {
+                } else if (parent.t > brother.t + cut_thickness) {
                     SolutionNode child;
                     child.f = parent_id;
                     child.d = parent.d + 1;
                     child.l = parent.l;
                     child.r = parent.r;
-                    child.b = brother.t;
+                    child.b = brother.t + cut_thickness;
                     child.t = parent.t;
                     child.item_type_id = -1;
                     parent.children.push_back(bin.nodes.size());
