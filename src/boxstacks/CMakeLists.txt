@@ -26,6 +26,7 @@ target_sources(PackingSolver_boxstacks_main PRIVATE
     main.cpp)
 target_link_libraries(PackingSolver_boxstacks_main PUBLIC
     PackingSolver_boxstacks
-    Boost::program_options)
+    Boost::program_options
+    Boost::filesystem)
 set_target_properties(PackingSolver_boxstacks_main PROPERTIES OUTPUT_NAME "packingsolver_boxstacks")
 install(TARGETS PackingSolver_boxstacks_main)

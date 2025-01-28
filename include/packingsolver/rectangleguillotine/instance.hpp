@@ -358,6 +358,9 @@ public:
     /** Return true iff all items have infinite copies. */
     inline bool unbounded_knapsack() const { return all_item_types_infinite_copies_; }
 
+    /** Return true iff all items types are oriented. */
+    inline bool all_item_types_oriented() const { return all_item_types_oriented_; }
+
     /** Get the item types. */
     inline const std::vector<ItemType>& item_types() const { return item_types_; }
 
@@ -502,6 +505,9 @@ private:
 
     /** True iff all item types have an infinite number of copies. */
     bool all_item_types_infinite_copies_ = false;
+
+    /** True iff all item types are oriented. */
+    bool all_item_types_oriented_ = true;
 
     friend class InstanceBuilder;
 

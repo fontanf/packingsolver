@@ -2,10 +2,12 @@
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 void read_args(
         packingsolver::Parameters<Instance, Solution>& parameters,
@@ -94,6 +96,7 @@ int main(int argc, char *argv[])
 
         ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
         ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
+        ("use-column-generation-2,", po::value<bool>(), "enable column generation 2 algorithm")
         ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
         ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
         ("use-column-generation,", po::value<bool>(), "enable column-generation")
@@ -118,26 +121,39 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // Build instance.
+
     InstanceBuilder instance_builder;
+    std::string instance_path = vm["items"].as<std::string>();
+    if (fs::is_regular_file(instance_path)) {
+        instance_path = "";
+    } if (fs::is_regular_file(instance_path + "_items.csv")) {
+        instance_path = instance_path + "_";
+    } else if (fs::is_regular_file(instance_path + "items.csv")) {
+        instance_path = instance_path;
+    } else if (fs::is_regular_file(instance_path + "/items.csv")) {
+        instance_path = instance_path + "/";
+    } else {
+        throw std::invalid_argument("");
+    }
 
-    std::string items_path = vm["items"].as<std::string>();
-    if (!std::ifstream(items_path).good())
-        if (std::ifstream(items_path + "_items.csv").good())
-            items_path = items_path + "_items.csv";
-    instance_builder.read_item_types(items_path);
+    if (instance_path.empty()) {
+        instance_builder.read_item_types(vm["items"].as<std::string>());
+    } else {
+        instance_builder.read_item_types(instance_path + "items.csv");
+    }
 
-    std::string bins_path = (vm.count("bins"))?
-        vm["bins"].as<std::string>():
-        vm["items"].as<std::string>() + "_bins.csv";
-    instance_builder.read_bin_types(bins_path);
+    if (vm.count("bins")) {
+        instance_builder.read_bin_types(vm["bins"].as<std::string>());
+    } else {
+        instance_builder.read_bin_types(instance_path + "bins.csv");
+    }
 
-    std::string defects_path = (vm.count("defects"))?
-        vm["defects"].as<std::string>():
-        (std::ifstream(vm["items"].as<std::string>() + "_defects.csv").good())?
-        vm["items"].as<std::string>() + "_defects.csv":
-        "";
-    if (!defects_path.empty())
-        instance_builder.read_defects(defects_path);
+    if (vm.count("defects")) {
+        instance_builder.read_defects(vm["defects"].as<std::string>());
+    } else if (fs::is_regular_file(instance_path + "defects.csv")) {
+        instance_builder.read_defects(instance_path + "defects.csv");
+    }
 
     if (vm.count("item-multiply-copies"))
         instance_builder.multiply_item_types_copies(vm["item-multiply-copies"].as<ItemPos>());
@@ -156,13 +172,11 @@ int main(int argc, char *argv[])
     if (vm.count("bin-unweighted"))
         instance_builder.set_bin_types_unweighted();
 
-    std::string parameters_path = (vm.count("parameters"))?
-        vm["parameters"].as<std::string>():
-        (std::ifstream(vm["items"].as<std::string>() + "_parameters.csv").good())?
-        vm["items"].as<std::string>() + "_parameters.csv":
-        "";
-    if (!parameters_path.empty())
-        instance_builder.read_parameters(parameters_path);
+    if (vm.count("parameters")) {
+        instance_builder.read_parameters(vm["parameters"].as<std::string>());
+    } else if (fs::is_regular_file(instance_path + "parameters.csv")) {
+        instance_builder.read_parameters(instance_path + "parameters.csv");
+    }
 
     if (vm.count("objective"))
         instance_builder.set_objective(vm["objective"].as<Objective>());
@@ -200,6 +214,8 @@ int main(int argc, char *argv[])
 
     Instance instance = instance_builder.build();
 
+    // Read algorithm parameters.
+
     OptimizeParameters parameters;
     read_args(parameters, vm);
     if (vm.count("optimization-mode"))
@@ -207,6 +223,8 @@ int main(int argc, char *argv[])
 
     if (vm.count("use-tree-search"))
         parameters.use_tree_search = vm["use-tree-search"].as<bool>();
+    if (vm.count("use-column-generation-2"))
+        parameters.use_column_generation_2 = vm["use-column-generation-2"].as<bool>();
     if (vm.count("use-sequential-single-knapsack"))
         parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
     if (vm.count("use-sequential-value-correction"))

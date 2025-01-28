@@ -3,6 +3,7 @@
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "rectangleguillotine/branching_scheme.hpp"
+#include "rectangleguillotine/column_generation_2.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -135,6 +136,30 @@ void optimize_tree_search(
             algorithm_formatter.update_solution(outputs[i].solution_pool.best(), ss.str());
         }
     }
+}
+
+void optimize_column_generation_2(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    ColumnGeneration2Parameters cg_parameters;
+    cg_parameters.verbosity_level = 0;
+    cg_parameters.timer = parameters.timer;
+    if (parameters.optimization_mode == OptimizationMode::Anytime)
+        cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    if (parameters.optimization_mode != OptimizationMode::Anytime)
+        cg_parameters.automatic_stop = true;
+    cg_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& ps_output)
+    {
+        const SequentialValueCorrectionOutput<Instance, Solution>& pscg_output
+            = static_cast<const SequentialValueCorrectionOutput<Instance, Solution>&>(ps_output);
+        std::stringstream ss;
+        ss << "CG";
+        algorithm_formatter.update_solution(pscg_output.solution_pool.best(), ss.str());
+    };
+    column_generation_2(instance, cg_parameters);
 }
 
 void optimize_sequential_single_knapsack(
@@ -368,19 +393,27 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
     bool use_tree_search = parameters.use_tree_search;
+    bool use_column_generation_2 = parameters.use_column_generation_2;
     bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
     if (instance.number_of_bins() <= 1) {
-        use_tree_search = true;
+        // Disable algorithms which are not available for this objective.
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
+        // Automatic selection.
+        if (!use_tree_search
+                && !use_column_generation_2) {
+            use_tree_search = true;
+            //use_column_generation_2 = true;
+        }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
+        use_column_generation_2 = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -404,6 +437,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
+        use_column_generation_2 = false;
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
@@ -441,6 +475,7 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
         }
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
+        use_column_generation_2 = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
@@ -496,6 +531,16 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
         }
+        // Column generation 2.
+        if (use_column_generation_2) {
+            exception_ptr_list.push_front(std::exception_ptr());
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_column_generation_2), optimize_column_generation_2>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        }
         // Sequential single knapsack.
         if (use_sequential_single_knapsack) {
             exception_ptr_list.push_front(std::exception_ptr());
@@ -545,6 +590,12 @@ const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillot
         // Tree search.
         if (use_tree_search)
             optimize_tree_search(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        // Column generation 2.
+        if (use_column_generation_2)
+            optimize_column_generation_2(
                     instance,
                     parameters,
                     algorithm_formatter);
