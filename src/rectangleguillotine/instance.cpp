@@ -1,7 +1,5 @@
 #include "packingsolver/rectangleguillotine/instance.hpp"
 
-#include "packingsolver/rectangleguillotine/instance_builder.hpp"
-
 #include <iostream>
 #include <fstream>
 #include <iomanip>
