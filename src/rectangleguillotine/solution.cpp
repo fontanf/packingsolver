@@ -80,9 +80,10 @@ void Solution::update_indicators(
         // Update second_leftover_value_.
         if (node.d == 1 && node.item_type_id != -3)
             second_leftover_value_ = 0;
-        if (node.d == 2 && node.item_type_id == -1) {
+        if (node.d == 2 && node.item_type_id != -1)
+            second_leftover_value_ = 0;
+        if (node.d == 2 && node.item_type_id == -1)
             second_leftover_value_ = (node.r - node.l) * (node.t - node.b);
-        }
 
         // Check minimum waste length.
         if (node.d >= 1
