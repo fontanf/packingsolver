@@ -1,0 +1,11 @@
+NAME,VALUE
+objective,BinPackingWithLeftovers
+number_of_stages,3
+cut_type,NonExact
+first_stage_orientation,Horizontal
+minimum_distance_1_cuts,0
+maximum_distance_1_cuts,-1
+minimum_distance_2_cuts,0
+minimum_waste_length,1
+maximum_number_2_cuts,-1
+cut_thickness,31

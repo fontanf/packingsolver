@@ -114,7 +114,7 @@ bool BranchingScheme::bound(
     } case Objective::BinPackingWithLeftovers: {
         if (!leaf(node_2))
             return false;
-        return node_1->waste >= node_2->waste;
+        return node_1->waste > node_2->waste;
     } case Objective::Knapsack: {
         return ubkp(*node_1) <= node_2->profit;
     } case Objective::OpenDimensionX: {
@@ -165,7 +165,9 @@ bool BranchingScheme::better(
             return false;
         if (!leaf(node_2))
             return true;
-        return node_2->waste > node_1->waste;
+        if (node_2->waste != node_1->waste)
+            return node_2->waste > node_1->waste;
+        return second_leftover_value(*node_2) < second_leftover_value(*node_1);
     } case Objective::OpenDimensionX: {
         if (!leaf(node_1))
             return false;

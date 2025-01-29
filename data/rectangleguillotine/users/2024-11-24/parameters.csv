@@ -1,0 +1,6 @@
+NAME,VALUE
+objective,bin-packing-with-leftovers
+cut_type,non-exact
+cut_thickness,30
+number_of_stages,3
+first_stage_orientation,vertical

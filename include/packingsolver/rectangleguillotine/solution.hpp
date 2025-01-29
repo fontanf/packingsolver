@@ -155,6 +155,9 @@ public:
     /** Get the fraction of waste of the solution including the residual. */
     inline double full_waste_percentage() const { return (full_area() == 0)? 0: (double)full_waste() / full_area(); }
 
+    /** Get the second leftover value. */
+    inline Area second_leftover_value() const { return second_leftover_value_; }
+
     /*
      * Others
      */
@@ -270,6 +273,9 @@ private:
 
     /** Height of the solution. */
     Length height_ = 0;
+
+    /** Value (area) of the second leftover. */
+    Area second_leftover_value_ = 0;
 
     friend class SolutionBuilder;
 
