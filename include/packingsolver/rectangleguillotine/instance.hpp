@@ -160,9 +160,6 @@ std::ostream& operator<<(
  */
 struct BinType
 {
-    /** Id of the bin type. */
-    BinTypeId id;
-
     /** Cost of the bin type. */
     Profit cost;
 
@@ -221,9 +218,6 @@ std::ostream& operator<<(
  */
 struct ItemType
 {
-    /** Id of the item type. */
-    ItemTypeId id;
-
     /** Profit of the item type. */
     Profit profit;
 

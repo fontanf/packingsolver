@@ -622,7 +622,9 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             }
 
             // Defects.
-            for (const Defect& defect: bin_type.defects) {
+            for (DefectId defect_id = 0;
+                    defect_id < (DefectId)bin_type.defects.size();
+                    ++defect_id) {
 
                 if (ok_1[item_type_id])
                     insertion_item(
@@ -631,7 +633,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             false,  // rotate
                             0,  // new_bin
                             -1,  // uncovered_item_pos
-                            defect.id);
+                            defect_id);
 
                 if (!item_type.oriented && ok_2[item_type_id])
                     insertion_item(
@@ -640,7 +642,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             true,  // rotate
                             0,  // new_bin
                             -1,  // uncovered_item_pos
-                            defect.id);
+                            defect_id);
             }
         }
     }
@@ -698,7 +700,9 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                         -1);  // defect_id
 
             // Defects.
-            for (const Defect& defect: bin_type.defects) {
+            for (DefectId defect_id = 0;
+                    defect_id < (DefectId)bin_type.defects.size();
+                    ++defect_id) {
 
                 if (ok_1[item_type_id])
                     insertion_item(
@@ -707,7 +711,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             false,  // rotate
                             new_bin,
                             -1,  // uncovered_item_pos
-                            defect.id);
+                            defect_id);
 
                 if (!item_type.oriented && ok_2[item_type_id])
                     insertion_item(
@@ -716,7 +720,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             true,  // rotate
                             new_bin,
                             -1,  // uncovered_item_pos
-                            defect.id);
+                            defect_id);
             }
         }
     }

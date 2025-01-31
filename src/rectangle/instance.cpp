@@ -102,8 +102,7 @@ std::ostream& packingsolver::rectangle::operator<<(
         const ItemType& item_type)
 {
     os
-        << "item type id " << item_type.id
-        << " x " << item_type.rect.x
+        << "x " << item_type.rect.x
         << " y " << item_type.rect.y
         << " profit " << item_type.profit
         << " copies " << item_type.copies
@@ -118,8 +117,7 @@ std::ostream& packingsolver::rectangle::operator<<(
         const BinType& bin_type)
 {
     os
-        << "bin type id " << bin_type.id
-        << " x " << bin_type.rect.x
+        << "x " << bin_type.rect.x
         << " y " << bin_type.rect.y
         << " copies " << bin_type.copies
         ;
@@ -131,8 +129,7 @@ std::ostream& packingsolver::rectangle::operator<<(
         const Defect& defect)
 {
     os
-        << "k " << defect.id
-        << " bin_type_id " << defect.bin_type_id
+        << "bin_type_id " << defect.bin_type_id
         << " pos " << defect.pos
         << " rect " << defect.rect
         ;

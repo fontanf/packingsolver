@@ -71,7 +71,7 @@ public:
             const SemiTrailerTruckData& semi_trailer_truck_data);
 
     /** Add a defect. */
-    void add_defect(
+    DefectId add_defect(
             BinTypeId bin_type_id,
             Length pos_x,
             Length pos_y,
