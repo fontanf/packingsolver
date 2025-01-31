@@ -59,6 +59,15 @@ if benchmark == "rectangleguillotine_roadef2018":
         result_columns = [fieldname for fieldname in reader.fieldnames
                           if "Solution value" in fieldname]
 
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
         out_rows = []
 
         # Initialize extra rows.
@@ -66,6 +75,7 @@ if benchmark == "rectangleguillotine_roadef2018":
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
 
         for row in reader:
 
@@ -104,6 +114,13 @@ if benchmark == "rectangleguillotine_roadef2018":
                 row[result_column] = waste
                 for row_id in extra_rows_to_update:
                     extra_rows[row_id][result_column] += waste
+
+                # Compute gap.
+                gap = (waste - row[bksv_field]) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+                for row_id in extra_rows_to_update:
+                    extra_rows[row_id][gap_column] += gap
 
             # Add current row.
             out_rows.append(row)
