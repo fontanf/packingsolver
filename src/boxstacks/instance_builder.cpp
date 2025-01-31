@@ -69,7 +69,6 @@ BinTypeId InstanceBuilder::add_bin_type(
     }
 
     BinType bin_type;
-    bin_type.id = instance_.bin_types_.size();
     bin_type.box.x = x;
     bin_type.box.y = y;
     bin_type.box.z = z;
@@ -77,7 +76,7 @@ BinTypeId InstanceBuilder::add_bin_type(
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
     instance_.bin_types_.push_back(bin_type);
-    return bin_type.id;
+    return instance_.bin_types_.size() - 1;
 }
 
 void InstanceBuilder::set_bin_type_maximum_weight(
@@ -101,7 +100,7 @@ void InstanceBuilder::set_bin_type_semi_trailer_truck_parameters(
     instance_.bin_types_[bin_type_id].semi_trailer_truck_data = semi_trailer_truck_data;
 }
 
-void InstanceBuilder::add_defect(
+DefectId InstanceBuilder::add_defect(
         BinTypeId bin_type_id,
         Length pos_x,
         Length pos_y,
@@ -120,13 +119,13 @@ void InstanceBuilder::add_defect(
     BinType& bin_type = instance_.bin_types_[bin_type_id];
 
     rectangle::Defect defect;
-    defect.id = bin_type.defects.size();
     defect.bin_type_id = bin_type_id;
     defect.pos.x = pos_x;
     defect.pos.y = pos_y;
     defect.rect.x = rect_x;
     defect.rect.y = rect_y;
     bin_type.defects.push_back(defect);
+    return bin_type.defects.size() - 1;
 }
 
 void InstanceBuilder::add_bin_type(
@@ -258,7 +257,6 @@ ItemTypeId InstanceBuilder::add_item_type(
     }
 
     ItemType item_type;
-    item_type.id = instance_.item_types_.size();
     item_type.box.x = x;
     item_type.box.y = y;
     item_type.box.z = z;
@@ -267,7 +265,7 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.group_id = group_id;
     item_type.rotations = rotations;
     instance_.item_types_.push_back(item_type);
-    return item_type.id;
+    return instance_.item_types_.size() - 1;
 }
 
 void InstanceBuilder::set_item_type_weight(
@@ -780,7 +778,6 @@ Instance InstanceBuilder::build()
         const ItemType& item_type = instance_.item_type(item_type_id);
         while ((GroupId)instance_.groups_.size() <= item_type.group_id) {
             Group group;
-            group.id = instance_.groups_.size();
             instance_.groups_.push_back(group);
         }
         Group& group = instance_.groups_[item_type.group_id];

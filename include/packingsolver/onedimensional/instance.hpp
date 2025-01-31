@@ -16,9 +16,6 @@ namespace onedimensional
  */
 struct ItemType
 {
-    /** Id of the item type. */
-    ItemTypeId id;
-
     /** Dimension of the item type. */
     Length length;
 
@@ -72,9 +69,6 @@ std::ostream& operator<<(
  */
 struct BinType
 {
-    /** Id of the bin type. */
-    BinTypeId id;
-
     /** Dimension of the bin type. */
     Length length;
 

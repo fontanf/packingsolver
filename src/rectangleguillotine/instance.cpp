@@ -151,8 +151,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         const ItemType& item_type)
 {
     os
-        << "item type id " << item_type.id
-        << " w " << item_type.rect.w
+        << "w " << item_type.rect.w
         << " h " << item_type.rect.h
         << " profit " << item_type.profit
         << " copies " << item_type.copies
@@ -167,8 +166,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         const BinType& bin_type)
 {
     os
-        << "bin type id " << bin_type.id
-        << " w " << bin_type.rect.w
+        << "w " << bin_type.rect.w
         << " h " << bin_type.rect.h
         << " copies " << bin_type.copies
         ;

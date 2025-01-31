@@ -136,14 +136,13 @@ BinTypeId InstanceBuilder::add_bin_type(
     }
 
     BinType bin_type;
-    bin_type.id = instance_.bin_types_.size();
     bin_type.rect.w = w;
     bin_type.rect.h = h;
     bin_type.cost = (cost == -1)? w * h: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
     instance_.bin_types_.push_back(bin_type);
-    return bin_type.id;
+    return instance_.bin_types_.size() - 1;
 }
 
 void InstanceBuilder::add_trims(
@@ -333,7 +332,6 @@ ItemTypeId InstanceBuilder::add_item_type(
         StackId stack_id)
 {
     ItemType item_type;
-    item_type.id = instance_.item_types_.size();
     item_type.rect.w = w;
     item_type.rect.h = h;
     item_type.profit = (p == -1)? w * h: p;
@@ -341,7 +339,7 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.stack_id = stack_id;
     item_type.oriented = oriented;
     instance_.item_types_.push_back(item_type);
-    return item_type.id;
+    return instance_.item_types_.size() - 1;
 }
 
 void InstanceBuilder::add_item_type(

@@ -19,8 +19,7 @@ std::ostream& packingsolver::boxstacks::operator<<(
         const ItemType& item_type)
 {
     os
-        << "item type id " << item_type.id
-        << " x " << item_type.box.x
+        << "x " << item_type.box.x
         << " y " << item_type.box.y
         << " z " << item_type.box.z
         << " profit " << item_type.profit
@@ -36,8 +35,7 @@ std::ostream& packingsolver::boxstacks::operator<<(
         const BinType& bin_type)
 {
     os
-        << "bin type id " << bin_type.id
-        << " x " << bin_type.box.x
+        << "x " << bin_type.box.x
         << " y " << bin_type.box.y
         << " z " << bin_type.box.z
         << " copies " << bin_type.copies

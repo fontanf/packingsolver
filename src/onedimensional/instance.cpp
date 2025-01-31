@@ -11,8 +11,7 @@ std::ostream& packingsolver::onedimensional::operator<<(
         const ItemType& item_type)
 {
     os
-        << "item type id " << item_type.id
-        << " length " << item_type.length
+        << "length " << item_type.length
         << " weight " << item_type.weight
         << " profit " << item_type.profit
         << " copies " << item_type.copies
@@ -25,8 +24,7 @@ std::ostream& packingsolver::onedimensional::operator<<(
         const BinType& bin_type)
 {
     os
-        << "bin type id " << bin_type.id
-        << " length " << bin_type.length
+        << "length " << bin_type.length
         << " weight " << bin_type.maximum_weight
         << " copies " << bin_type.copies
         ;

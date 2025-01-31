@@ -48,13 +48,12 @@ BinTypeId InstanceBuilder::add_bin_type(
     }
 
     BinType bin_type;
-    bin_type.id = instance_.bin_types_.size();
     bin_type.length = length;
     bin_type.cost = (cost == -1)? length: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
     instance_.bin_types_.push_back(bin_type);
-    return bin_type.id;
+    return instance_.bin_types_.size() - 1;
 }
 
 void InstanceBuilder::set_bin_type_maximum_weight(
@@ -124,12 +123,11 @@ ItemTypeId InstanceBuilder::add_item_type(
     }
 
     ItemType item_type;
-    item_type.id = instance_.item_types_.size();
     item_type.length = length;
     item_type.profit = (profit == -1)? length: profit;
     item_type.copies = copies;
     instance_.item_types_.push_back(item_type);
-    return item_type.id;
+    return instance_.item_types_.size() - 1;
 }
 
 void InstanceBuilder::set_item_type_weight(

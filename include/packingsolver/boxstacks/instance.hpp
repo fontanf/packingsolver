@@ -61,9 +61,6 @@ std::ostream& operator<<(
  */
 struct Group
 {
-    /** Id of the group. */
-    GroupId id;
-
     /** Item types belonging to this group. */
     std::vector<ItemTypeId> item_types;
 
@@ -76,9 +73,6 @@ struct Group
  */
 struct ItemType
 {
-    /** Id of the item type. */
-    ItemTypeId id;
-
     /** Dimensions of the item type. */
     Box box;
 
@@ -231,9 +225,6 @@ std::ostream& operator<<(
  */
 struct BinType
 {
-    /** Id of the bin type. */
-    BinTypeId id;
-
     /** Dimensions of the bin type. */
     Box box;
 

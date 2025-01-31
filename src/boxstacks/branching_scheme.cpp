@@ -817,7 +817,10 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         }
 
         // Defects.
-        for (const rectangle::Defect& defect: bin_type.defects) {
+        for (DefectId defect_id = 0;
+                defect_id < (DefectId)bin_type.defects.size();
+                ++defect_id) {
+            const rectangle::Defect& defect = bin_type.defects[defect_id];
             // Check if left of defect is after the uncovered items.
             Length xs = defect.x_start();
             Length ys = defect.y_start();
@@ -854,7 +857,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                                 rotation,
                                 0,  // new_bin
                                 -1,  // uncovered_item_pos
-                                defect.id);
+                                defect_id);
             }
         }
     }
@@ -905,7 +908,11 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         }
 
         // Defects.
-        for (const rectangle::Defect& defect: bin_type.defects) {
+        for (DefectId defect_id = 0;
+                defect_id < (DefectId)bin_type.defects.size();
+                ++defect_id) {
+            const rectangle::Defect& defect = bin_type.defects[defect_id];
+
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
                     ++item_type_id) {
@@ -924,7 +931,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                                 rotation,
                                 new_bin,
                                 -1,  // uncovered_item_pos
-                                defect.id);
+                                defect_id);
             }
         }
     }

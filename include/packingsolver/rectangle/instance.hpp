@@ -79,9 +79,6 @@ std::ostream& operator<<(
  */
 struct Group
 {
-    /** Id of the group. */
-    GroupId id;
-
     /** Item types belonging to this group. */
     std::vector<ItemTypeId> item_types;
 
@@ -96,9 +93,6 @@ struct ItemType
 {
     /** Dimensions of the item type. */
     Rectangle rect;
-
-    /** Id of the item type. */
-    ItemTypeId id;
 
     /** Profit of the item type. */
     Profit profit;
@@ -140,9 +134,6 @@ std::ostream& operator<<(
  */
 struct Defect
 {
-    /** Id of the defect. */
-    DefectId id;
-
     /** Bin type of the defect. */
     BinTypeId bin_type_id;
 
@@ -178,9 +169,6 @@ std::ostream& operator<<(
  */
 struct BinType
 {
-    /** Id of the bin type. */
-    BinTypeId id;
-
     /** Dimensions of the bin type. */
     Rectangle rect;
 
