@@ -53,6 +53,7 @@ void Solution::update_indicators(
     cost_ += bin.copies * bin_type.cost;
     full_area_ += bin.copies * bin_type.area();
     area_ = full_area_;
+    second_leftover_value_ = 0;
 
     width_ = 0;
     height_ = 0;
@@ -75,6 +76,14 @@ void Solution::update_indicators(
             width_ = node.r;
         if (node.t < bin_type.rect.h && height_ < node.t)
             height_ = node.t;
+
+        // Update second_leftover_value_.
+        if (node.d == 1 && node.item_type_id != -3)
+            second_leftover_value_ = 0;
+        if (node.d == 2 && node.item_type_id != -1)
+            second_leftover_value_ = 0;
+        if (node.d == 2 && node.item_type_id == -1)
+            second_leftover_value_ = (node.r - node.l) * (node.t - node.b);
 
         // Check minimum waste length.
         if (node.d >= 1
@@ -302,7 +311,9 @@ bool Solution::operator<(const Solution& solution) const
             return false;
         if (!full())
             return true;
-        return solution.waste() < waste();
+        if (solution.waste() != waste())
+            return solution.waste() < waste();
+        return solution.second_leftover_value() > second_leftover_value();
     } case Objective::OpenDimensionX: {
         if (!solution.full())
             return false;
@@ -402,6 +413,7 @@ nlohmann::json Solution::to_json() const
         {"FullWastePercentage", full_waste_percentage()},
         {"Width", width()},
         {"Height", height()},
+        {"SecondLeftoverValue", second_leftover_value()},
     };
 }
 
@@ -422,6 +434,7 @@ void Solution::format(
             << "Full waste:                " << full_waste() << " (" << 100 * full_waste_percentage() << "%)" << std::endl
             << "Width:                     " << width() << std::endl
             << "Height:                    " << height() << std::endl
+            << "Second leftover value:     " << second_leftover_value() << std::endl
             ;
     }
     if (verbosity_level >= 2) {

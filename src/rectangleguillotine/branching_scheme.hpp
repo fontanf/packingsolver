@@ -417,6 +417,20 @@ private:
     /** Get the height of a node. */
     inline Length height(const Node& node) const { return (instance_.parameters().number_of_stages == 3)? node.x1_curr: node.y2_curr; }
 
+    inline Area second_leftover_value(const Node& node) const
+    {
+        const Instance& instance = this->instance(node.first_stage_orientation);
+        BinPos i = node.number_of_bins - 1;
+        CutOrientation o = node.first_stage_orientation;
+        BinTypeId bin_type_id = instance.bin_type_id(i);
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        return (instance_.parameters().number_of_stages == 3)?
+            (node.x1_curr - node.x1_prev)
+            * (bin_type.rect.h - bin_type.top_trim - node.y2_curr):
+            (node.y2_curr - node.y2_prev)
+            * (bin_type.rect.w - bin_type.right_trim - node.x3_curr);
+    }
+
     /** Get the knapsack upper bound of a node. */
     inline Profit ubkp(const Node& node) const;
 
