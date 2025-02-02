@@ -190,32 +190,13 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 void Instance::write(
         const std::string& instance_path) const
 {
+    // Export items.
     std::string items_path = instance_path + "_items.csv";
-    std::string bins_path = instance_path + "_bins.csv";
-    std::string defects_path = instance_path + "_defects.csv";
-    std::string parameters_path = instance_path + "_parameters.csv";
     std::ofstream f_items(items_path);
-    std::ofstream f_bins(bins_path);
-    std::ofstream f_defects(defects_path);
-    std::ofstream f_parameters(parameters_path);
     if (!f_items.good()) {
         throw std::runtime_error(
                 "Unable to open file \"" + items_path + "\".");
     }
-    if (!f_bins.good()) {
-        throw std::runtime_error(
-                "Unable to open file \"" + bins_path + "\".");
-    }
-    if (number_of_defects() > 0 && !f_defects.good()) {
-        throw std::runtime_error(
-                "Unable to open file \"" + defects_path + "\".");
-    }
-    if (!f_parameters.good()) {
-        throw std::runtime_error(
-                "Unable to open file \"" + parameters_path + "\".");
-    }
-
-    // Export items.
     f_items <<
         "ID,"
         "WIDTH,"
@@ -239,6 +220,12 @@ void Instance::write(
     }
 
     // Export bins.
+    std::string bins_path = instance_path + "_bins.csv";
+    std::ofstream f_bins(bins_path);
+    if (!f_bins.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + bins_path + "\".");
+    }
     f_bins <<
         "ID,"
         "WIDTH,"
@@ -277,6 +264,12 @@ void Instance::write(
 
     // Export defects.
     if (number_of_defects() > 0) {
+        std::string defects_path = instance_path + "_defects.csv";
+        std::ofstream f_defects(defects_path);
+        if (number_of_defects() > 0 && !f_defects.good()) {
+            throw std::runtime_error(
+                    "Unable to open file \"" + defects_path + "\".");
+        }
         f_defects << "ID,BIN,X,Y,WIDTH,HEIGHT" << std::endl;
         for (BinTypeId bin_type_id = 0;
                 bin_type_id < number_of_bin_types();
@@ -298,6 +291,12 @@ void Instance::write(
     }
 
     // Export parameters.
+    std::string parameters_path = instance_path + "_parameters.csv";
+    std::ofstream f_parameters(parameters_path);
+    if (!f_parameters.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + parameters_path + "\".");
+    }
     f_parameters << "NAME,VALUE" << std::endl
         << "objective," << objective() << std::endl
         << "number_of_stages," << parameters().number_of_stages << std::endl
