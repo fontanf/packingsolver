@@ -392,7 +392,7 @@ void optimize_benders_decomposition(
 
 }
 
-const packingsolver::rectangle::Output packingsolver::rectangle::optimize(
+packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         const Instance& instance,
         const OptimizeParameters& parameters)
 {

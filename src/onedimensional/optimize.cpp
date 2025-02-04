@@ -425,7 +425,7 @@ void optimize_column_generation(
 
 }
 
-const packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
+packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
         const Instance& instance,
         const OptimizeParameters& parameters)
 {

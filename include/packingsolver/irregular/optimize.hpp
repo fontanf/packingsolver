@@ -83,7 +83,7 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     NodeId not_anytime_dichotomic_search_subproblem_queue_size = 128;
 };
 
-const Output optimize(
+Output optimize(
         const Instance& instance,
         const OptimizeParameters& parameters = {});
 
