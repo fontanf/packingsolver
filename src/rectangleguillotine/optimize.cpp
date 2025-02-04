@@ -380,7 +380,7 @@ void optimize_column_generation(
 
 }
 
-const packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::optimize(
+packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::optimize(
         const Instance& instance,
         const OptimizeParameters& parameters)
 {

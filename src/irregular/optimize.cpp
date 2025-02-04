@@ -360,7 +360,7 @@ void optimize_column_generation(
 
 }
 
-const packingsolver::irregular::Output packingsolver::irregular::optimize(
+packingsolver::irregular::Output packingsolver::irregular::optimize(
         const Instance& instance,
         const OptimizeParameters& parameters)
 {

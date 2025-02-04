@@ -14,7 +14,7 @@
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 
-const packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
+packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         const Instance& instance,
         const OptimizeParameters& parameters)
 {

@@ -125,7 +125,7 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
 };
 
-const Output optimize(
+Output optimize(
         const Instance& instance,
         const OptimizeParameters& parameters = {});
 
