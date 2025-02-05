@@ -12,13 +12,13 @@ def shape_path(path_x, path_y, shape, is_hole=False):
     # https://stackoverflow.com/questions/70965145/can-plotly-for-python-plot-a-polygon-with-one-or-multiple-holes-in-it
     for element in (shape if not is_hole else reversed(shape)):
         t = element["type"]
-        xs = element["xs"]
-        ys = element["ys"]
-        xe = element["xe"]
-        ye = element["ye"]
+        xs = element["start"]["x"]
+        ys = element["start"]["y"]
+        xe = element["end"]["x"]
+        ye = element["end"]["y"]
         if t == "CircularArc":
-            xc = element["xc"]
-            yc = element["yc"]
+            xc = element["center"]["x"]
+            yc = element["center"]["y"]
             anticlockwise = 1 if element["anticlockwise"] else 0
             rc = math.sqrt((xc - xs)**2 + (yc - ys)**2)
 
@@ -74,13 +74,13 @@ with open(args.csvpath, 'r') as f:
         shape_path(
                 bin_types_x[bin_type_id],
                 bin_types_y[bin_type_id],
-                bin_type["shape"])
+                bin_type["elements"])
         for defect in (bin_type["defects"]
                        if "defects" in bin_type else []):
             shape_path(
                     defects_x[bin_type_id],
                     defects_y[bin_type_id],
-                    defect["shape"])
+                    defect["elements"])
             for hole in defect["holes"]:
                 shape_path(
                         defects_x[bin_type_id],
@@ -90,11 +90,11 @@ with open(args.csvpath, 'r') as f:
     for item_type_id, item_type in enumerate(j["item_types"]):
         item_types_x.append([])
         item_types_y.append([])
-        for item_shape in item_type["item_shapes"]:
+        for item_shape in item_type["shapes"]:
             shape_path(
                     item_types_x[item_type_id],
                     item_types_y[item_type_id],
-                    item_shape["shape"])
+                    item_shape["elements"])
             for hole in (item_shape["holes"]
                          if "holes" in item_shape else []):
                 shape_path(
