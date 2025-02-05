@@ -22,13 +22,13 @@ BinTypeId InstanceBuilder::add_bin_type(
     if (copies != -1) {
         if (copies <= 0) {
             throw std::runtime_error(
-                    "'irregular::InstanceBuilder::add_bin_type'"
-                    " requires 'copies > 0' or 'copies == -1'.");
+                    "irregular::InstanceBuilder::add_bin_type: "
+                    "requires 'copies > 0' or 'copies == -1'.");
         }
         if (copies_min > copies) {
             throw std::runtime_error(
-                    "'irregular::InstanceBuilder::add_bin_type'"
-                    " requires 'copies_min <= copies' or 'copies == -1'.");
+                    "irregular::InstanceBuilder::add_bin_type: "
+                    "requires 'copies_min <= copies' or 'copies == -1'.");
         }
     }
 
@@ -107,6 +107,19 @@ ItemTypeId InstanceBuilder::add_item_type(
         ItemPos copies,
         const std::vector<std::pair<Angle, Angle>>& allowed_rotations)
 {
+    for (const ItemShape& item_shape: shapes) {
+        if (!item_shape.check()) {
+            throw std::runtime_error(
+                    "irregular::InstanceBuilder::add_item_type_type: "
+                    "invalid shape.");
+        }
+    }
+    if (copies <= 0) {
+        throw std::runtime_error(
+                "irregular::InstanceBuilder::add_item_type; "
+                "copies: " + std::to_string(copies) + ".");
+    }
+
     ItemType item_type;
     item_type.shapes = shapes;
     item_type.allowed_rotations = (!allowed_rotations.empty())?
@@ -248,7 +261,8 @@ void InstanceBuilder::read(
     std::ifstream file(instance_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + instance_path + "\".");
+                "irregular::InstanceBuilder::read: "
+                "unable to open file \"" + instance_path + "\".");
     }
 
     nlohmann ::json j;
@@ -450,16 +464,16 @@ Instance InstanceBuilder::build()
     if (instance_.objective() == Objective::OpenDimensionX
             && instance_.number_of_bins() != 1) {
         throw std::invalid_argument(
-                "irregular::InstanceBuilder::build."
-                " The instance has objective OpenDimensionX and contains " + std::to_string(instance_.number_of_bins()) + " bins;"
-                " an instance with objective OpenDimensionX must contain exactly one bin.");
+                "irregular::InstanceBuilder::build: "
+                "the instance has objective OpenDimensionX and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
+                "an instance with objective OpenDimensionX must contain exactly one bin.");
     }
     if (instance_.objective() == Objective::OpenDimensionY
             && instance_.number_of_bins() != 1) {
         throw std::invalid_argument(
-                "irregular::InstanceBuilder::build."
-                " The instance has objective OpenDimensionY and contains " + std::to_string(instance_.number_of_bins()) + " bins;"
-                " an instance with objective OpenDimensionY must contain exactly one bin.");
+                "irregular::InstanceBuilder::build: "
+                "the instance has objective OpenDimensionY and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
+                "an instance with objective OpenDimensionY must contain exactly one bin.");
     }
 
     return std::move(instance_);
