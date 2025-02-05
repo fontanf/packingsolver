@@ -1356,7 +1356,10 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
     std::vector<std::shared_ptr<Node>> cs(parent->children_insertions.size());
     for (Counter i = 0; i < (Counter)parent->children_insertions.size(); ++i) {
         cs[i] = std::make_shared<Node>(child_tmp(parent, parent->children_insertions[i]));
-        const BranchingSchemeBinType& bb_bin_type = bin_types_[(int)cs[i]->last_bin_direction][cs[i]->number_of_bins - 1];
+        //BinPos bin_pos = cs[i]->number_of_bins - 1;
+        //Direction o = cs[i]->last_bin_direction;
+        //BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+        //const BranchingSchemeBinType& bb_bin_type = bin_types_[(int)o][bin_type_id];
         //std::cout << cs[i]->id
         //    << " insertion " << parent->children_insertions[i]
         //    << " xs_max " << cs[i]->xs_max
