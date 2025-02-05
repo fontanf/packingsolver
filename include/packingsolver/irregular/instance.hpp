@@ -241,6 +241,8 @@ struct ItemShape
     /** Quality rule. */
     QualityRule quality_rule;
 
+    bool check() const;
+
     std::string to_string(Counter indentation) const;
 };
 

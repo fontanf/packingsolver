@@ -496,6 +496,9 @@ std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_length(
 
 bool Shape::check() const
 {
+    // Check that the shape is not empty.
+    if (elements.empty())
+        return false;
     // TODO
     return true;
 }
@@ -675,6 +678,16 @@ void irregular::write_svg(
     file << "</g>" << std::endl;
 
     file << "</svg>" << std::endl;
+}
+
+bool ItemShape::check() const
+{
+    if (!shape.check())
+        return false;
+    for (const Shape& hole: holes)
+        if (!hole.check())
+            return false;
+    return true;
 }
 
 std::string ItemShape::to_string(
