@@ -1325,19 +1325,18 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     }
     if (strictly_greater(node.ye_max, bin_type.y_max)) {
         throw std::runtime_error(
-                "irregular::BranchingScheme::child_tmp."
-                " node.ye_max: " + std::to_string(node.ye_max)
-                + "; bin_type.y_max: " + std::to_string(bin_type.y_max)
-                + "; insertions.trapezoid_set_id: " + std::to_string(insertion.trapezoid_set_id)
-                + "; insertions.x: " + std::to_string(insertion.x)
-                + "; insertions.y: " + std::to_string(insertion.y)
-                + "; trapezoid_set.x_min: " + std::to_string(trapezoid_set.x_min)
-                + "; trapezoid_set.x_max: " + std::to_string(trapezoid_set.x_max)
-                + "; trapezoid_set.y_min: " + std::to_string(trapezoid_set.y_min)
-                + "; trapezoid_set.y_max: " + std::to_string(trapezoid_set.y_max)
-                + "; bb_bin_type.x_max: " + std::to_string(bb_bin_type.x_max)
-                + "; bb_bin_type.y_max: " + std::to_string(bb_bin_type.y_max)
-                + ".");
+                "packingsolver::irregular::BranchingScheme::child_tmp; "
+                "node.ye_max: " + std::to_string(node.ye_max) + "; "
+                "bin_type.y_max: " + std::to_string(bin_type.y_max) + "; "
+                "insertions.trapezoid_set_id: " + std::to_string(insertion.trapezoid_set_id) + "; "
+                "insertions.x: " + std::to_string(insertion.x) + "; "
+                "insertions.y: " + std::to_string(insertion.y) + "; "
+                "trapezoid_set.x_min: " + std::to_string(trapezoid_set.x_min) + "; "
+                "trapezoid_set.x_max: " + std::to_string(trapezoid_set.x_max) + "; "
+                "trapezoid_set.y_min: " + std::to_string(trapezoid_set.y_min) + "; "
+                "trapezoid_set.y_max: " + std::to_string(trapezoid_set.y_max) + "; "
+                "bb_bin_type.x_max: " + std::to_string(bb_bin_type.x_max) + "; "
+                "bb_bin_type.y_max: " + std::to_string(bb_bin_type.y_max) + ".");
     }
 
     node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
@@ -2373,19 +2372,17 @@ Solution BranchingScheme::to_solution(
         if (!equal(node->xe_max, solution.x_max())) {
             solution.write("solution_irregular.json");
             throw std::runtime_error(
-                    "irregular::BranchingScheme::to_solution."
-                    " node->xe_max: " + std::to_string(node->xe_max)
-                    + "; solution.x_max(): " + std::to_string(solution.x_max())
-                    + "; d: " + std::to_string((int)node->last_bin_direction)
-                    + ".");
+                    "packingsolver::irregular::BranchingScheme::to_solution; "
+                    "node->xe_max: " + std::to_string(node->xe_max) + "; "
+                    "solution.x_max(): " + std::to_string(solution.x_max()) + "; "
+                    "d: " + std::to_string((int)node->last_bin_direction) + ".");
         }
         if (!equal(node->ye_max, solution.y_max())) {
             throw std::runtime_error(
-                    "irregular::BranchingScheme::to_solution."
-                    " node->ye_max: " + std::to_string(node->ye_max)
-                    + "; solution.y_max(): " + std::to_string(solution.y_max())
-                    + "; d: " + std::to_string((int)node->last_bin_direction)
-                    + ".");
+                    "packingsolver::irregular::BranchingScheme::to_solution; "
+                    "node->ye_max: " + std::to_string(node->ye_max) + "; "
+                    "solution.y_max(): " + std::to_string(solution.y_max()) + "; "
+                    "d: " + std::to_string((int)node->last_bin_direction) + ".");
         }
     }
     return solution;

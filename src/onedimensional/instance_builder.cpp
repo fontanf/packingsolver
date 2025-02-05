@@ -21,28 +21,28 @@ BinTypeId InstanceBuilder::add_bin_type(
 {
     if (length <= 0) {
         throw std::runtime_error(
-                "'onedimensional::InstanceBuilder::add_bin_type'"
-                " requires 'length > 0'.");
+                "packingsolver::onedimensional::InstanceBuilder::add_bin_type: "
+                "requires 'length > 0'.");
     }
     if (cost < 0 && cost != -1) {
         throw std::runtime_error(
-                "onedimensional::InstanceBuilder::add_bin_type: "
+                "packingsolver::onedimensional::InstanceBuilder::add_bin_type: "
                 "requires 'cost >= 0' or 'cost == -1'.");
     }
     if (copies_min < 0) {
         throw std::runtime_error(
-                "onedimensional::InstanceBuilder::add_bin_type: "
+                "packingsolver::onedimensional::InstanceBuilder::add_bin_type: "
                 "requires 'copies_min >= 0'.");
     }
     if (copies != -1) {
         if (copies <= 0) {
             throw std::runtime_error(
-                    "onedimensional::InstanceBuilder::add_bin_type: "
+                    "packingsolver::onedimensional::InstanceBuilder::add_bin_type: "
                     "requires 'copies > 0' or 'copies == -1'.");
         }
         if (copies_min > copies) {
             throw std::runtime_error(
-                    "onedimensional::InstanceBuilder::add_bin_type: "
+                    "packingsolver::onedimensional::InstanceBuilder::add_bin_type: "
                     "requires 'copies_min <= copies' or 'copies == -1'.");
         }
     }
@@ -117,7 +117,7 @@ ItemTypeId InstanceBuilder::add_item_type(
 {
     if (copies <= 0) {
         throw std::runtime_error(
-                "onedimensional::InstanceBuilder::add_item_type; "
+                "packingsolver::onedimensional::InstanceBuilder::add_item_type; "
                 "copies: " + std::to_string(copies) + ".");
     }
 
@@ -237,7 +237,7 @@ void InstanceBuilder::read_parameters(
     std::ifstream f(parameters_path);
     if (parameters_path != "" && !f.good()) {
         throw std::runtime_error(
-                "onedimensional::InstanceBuilder::read_parameters: "
+                "packingsolver::onedimensional::InstanceBuilder::read_parameters: "
                 "unable to open file \"" + parameters_path + "\".");
     }
 
@@ -274,7 +274,7 @@ void InstanceBuilder::read_bin_types(
     std::ifstream f(bins_path);
     if (!f.good()) {
         throw std::runtime_error(
-                "onedimensional::InstanceBuilder::read_bin_types: "
+                "packingsolver::onedimensional::InstanceBuilder::read_bin_types: "
                 "unable to open file \"" + bins_path + "\".");
     }
 
@@ -309,7 +309,7 @@ void InstanceBuilder::read_bin_types(
         }
         if (x == -1) {
             throw std::runtime_error(
-                    "onedimensional::InstanceBuilder::read_bin_types: "
+                    "packingsolver::onedimensional::InstanceBuilder::read_bin_types: "
                     "missing \"X\" column in \"" + bins_path + "\".");
         }
 
@@ -330,7 +330,7 @@ void InstanceBuilder::read_item_types(
     std::ifstream f(items_path);
     if (!f.good()) {
         throw std::runtime_error(
-                "onedimensional::InstanceBuilder::read_item_types: "
+                "packingsolver::onedimensional::InstanceBuilder::read_item_types: "
                 "unable to open file \"" + items_path + "\".");
     }
 
@@ -371,7 +371,7 @@ void InstanceBuilder::read_item_types(
 
         if (x == -1) {
             throw std::runtime_error(
-                    "onedimensional::InstanceBuilder::read_item_types: "
+                    "packingsolver::onedimensional::InstanceBuilder::read_item_types: "
                     "missing \"X\" column in \"" + items_path + "\".");
         }
 

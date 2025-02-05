@@ -12,11 +12,10 @@ void SolutionBuilder::add_bin(
 {
     if (bin_type_id >= solution_.instance().number_of_bin_types()) {
         throw std::invalid_argument(
-                "rectangleguillotine::SolutionBuilder::add_bin"
-                "; bin_type_id: " + std::to_string(bin_type_id)
-                + "; instance().number_of_bin_types(): "
-                + std::to_string(solution_.instance().number_of_bin_types())
-                + ".");
+                "packingsolver::rectangleguillotine::SolutionBuilder::add_bin: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance().number_of_bin_types(): " + std::to_string(solution_.instance().number_of_bin_types()) + ".");
     }
 
     //std::cout << "add_bin bin_type_id " << bin_type_id << " copies " << copies << " first_cut_orientation " << first_cut_orientation << std::endl;
@@ -167,18 +166,16 @@ void SolutionBuilder::set_last_node_item(
 {
     if (solution_.bins_.empty()) {
         throw std::logic_error(
-                "rectangleguillotine::SolutionBuilder::set_last_node_item: "
+                "packingsolver::rectangleguillotine::SolutionBuilder::set_last_node_item: "
                 "at least one bin must have been added to the solution.");
     }
     if (item_type_id < 0
             || item_type_id >= solution_.instance().number_of_item_types()) {
         throw std::logic_error(
-                "rectangleguillotine::SolutionBuilder::set_last_node_item: "
-                "wrong 'item_type_id' value"
-                "; item_type_id: " + std::to_string(item_type_id)
-                + "; solution_.instance().number_of_item_types(): "
-                + std::to_string(solution_.instance().number_of_item_types())
-                + ".");
+                "packingsolver::rectangleguillotine::SolutionBuilder::set_last_node_item: "
+                "wrong 'item_type_id' value; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "solution_.instance().number_of_item_types(): " + std::to_string(solution_.instance().number_of_item_types()) + ".");
     }
 
     const ItemType& item_type = solution_.instance().item_type(item_type_id);
@@ -191,16 +188,15 @@ void SolutionBuilder::set_last_node_item(
             || (node.r - node.l == item_type.rect.h && node.t - node.b == item_type.rect.w));
     if (!ok) {
         throw std::logic_error(
-                "rectangleguillotine::SolutionBuilder::set_last_node_item: "
-                "wrong item dimensions"
-                "; item_type_id: " + std::to_string(item_type_id)
-                + "; item_type.rect.w: " + std::to_string(item_type.rect.w)
-                + "; item_type.rect.h: " + std::to_string(item_type.rect.h)
-                + "; node.l: " + std::to_string(node.l)
-                + "; node.r: " + std::to_string(node.r)
-                + "; node.b: " + std::to_string(node.b)
-                + "; node.t: " + std::to_string(node.t)
-                + ".");
+                "packingsolver::rectangleguillotine::SolutionBuilder::set_last_node_item: "
+                "wrong item dimensions; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "item_type.rect.w: " + std::to_string(item_type.rect.w) + "; "
+                "item_type.rect.h: " + std::to_string(item_type.rect.h) + "; "
+                "node.l: " + std::to_string(node.l) + "; "
+                "node.r: " + std::to_string(node.r) + "; "
+                "node.b: " + std::to_string(node.b) + "; "
+                "node.t: " + std::to_string(node.t) + ".");
     }
 
     node.item_type_id = item_type_id;
@@ -214,13 +210,14 @@ void SolutionBuilder::add_node(
     //std::cout << "add_node depth " << depth << " cut_position " << cut_position << std::endl;
     if (solution_.bins_.empty()) {
         throw std::logic_error(
-                "rectangleguillotine::SolutionBuilder::add_node: "
+                "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
                 "at least one bin must have been added to the solution.");
     }
     if (depth < 1) {
         throw std::logic_error(
-                "rectangleguillotine::SolutionBuilder::add_node: "
-                "wrong depth: " + std::to_string(depth) + ".");
+                "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                "wrong 'depth'; "
+                "depth: " + std::to_string(depth) + ".");
     }
     SolutionBin& bin = solution_.bins_.back();
     //std::cout << "bin.nodes.size() " << bin.nodes.size() << std::endl;
@@ -229,10 +226,10 @@ void SolutionBuilder::add_node(
     //std::cout << "parent_id " << parent_id << " depth " << bin.nodes[parent_id].d << std::endl;
     if (depth > bin.nodes[parent_id].d + 1) {
         throw std::logic_error(
-                "rectangleguillotine::SolutionBuilder::add_node: "
-                "wrong depth: " + std::to_string(depth)
-                + "; parent.depth: " + std::to_string(bin.nodes[parent_id].d)
-                + ".");
+                "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                "wrong depth; "
+                "depth: " + std::to_string(depth) + "; "
+                "parent.depth: " + std::to_string(bin.nodes[parent_id].d) + ".");
     }
 
     while (bin.nodes[parent_id].d != depth - 1) {
@@ -273,7 +270,7 @@ void SolutionBuilder::add_node(
     SolutionNode& parent = bin.nodes[parent_id];
     if (parent.f != -1 && parent.item_type_id >= 0) {
         throw std::logic_error(
-                "rectangleguillotine::SolutionBuilder::add_node: "
+                "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
                 "cannot add a child to a node with an item.");
     }
     if (parent.f != -1)
@@ -292,23 +289,21 @@ void SolutionBuilder::add_node(
         child.t = parent.t;
         if (child.r <= child.l) {
             throw std::logic_error(
-                    "rectangleguillotine::SolutionBuilder::add_node: "
-                    "'cut_position' is too small"
-                    "; depth: " + std::to_string(depth)
-                    + "; cut_position: " + std::to_string(cut_position)
-                    + "; child.l: " + std::to_string(child.l)
-                    + "; child.r: " + std::to_string(child.r)
-                    + ".");
+                    "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                    "'cut_position' is too small; "
+                    "depth: " + std::to_string(depth) + "; "
+                    "cut_position: " + std::to_string(cut_position) + "; "
+                    "child.l: " + std::to_string(child.l) + "; "
+                    "child.r: " + std::to_string(child.r) + ".");
         }
         if (child.r > parent.r) {
             throw std::logic_error(
-                    "rectangleguillotine::SolutionBuilder::add_node: "
-                    "'cut_position' is too large"
-                    "; depth: " + std::to_string(depth)
-                    + "; cut_position: " + std::to_string(cut_position)
-                    + "; parent.r: " + std::to_string(parent.r)
-                    + "; child.r: " + std::to_string(child.r)
-                    + ".");
+                    "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                    "'cut_position' is too large; "
+                    "depth: " + std::to_string(depth) + "; "
+                    "cut_position: " + std::to_string(cut_position) + "; "
+                    "parent.r: " + std::to_string(parent.r) + "; "
+                    "child.r: " + std::to_string(child.r) + ".");
         }
     } else {
         child.l = parent.l;
@@ -317,23 +312,21 @@ void SolutionBuilder::add_node(
         child.t = cut_position;
         if (child.t <= child.b) {
             throw std::logic_error(
-                    "rectangleguillotine::SolutionBuilder::add_node: "
-                    "'cut_position' is too small"
-                    "; depth: " + std::to_string(depth)
-                    + "; cut_position: " + std::to_string(cut_position)
-                    + "; child.b: " + std::to_string(child.b)
-                    + "; child.t: " + std::to_string(child.t)
-                    + ".");
+                    "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                    "'cut_position' is too small; "
+                    "depth: " + std::to_string(depth) + "; "
+                    "cut_position: " + std::to_string(cut_position) + "; "
+                    "child.b: " + std::to_string(child.b) + "; "
+                    "child.t: " + std::to_string(child.t) + ".");
         }
         if (child.t > parent.t) {
             throw std::logic_error(
-                    "rectangleguillotine::SolutionBuilder::add_node: "
-                    "'cut_position' is too large"
-                    "; depth: " + std::to_string(depth)
-                    + "; cut_position: " + std::to_string(cut_position)
-                    + "; parent.t: " + std::to_string(parent.t)
-                    + "; child.t: " + std::to_string(child.t)
-                    + ".");
+                    "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                    "'cut_position' is too large; "
+                    "depth: " + std::to_string(depth) + "; "
+                    "cut_position: " + std::to_string(cut_position) + "; "
+                    "parent.t: " + std::to_string(parent.t) + "; "
+                    "child.t: " + std::to_string(child.t) + ".");
         }
     }
     child.item_type_id = -1;

@@ -49,15 +49,19 @@ void Solution::add_item(
         bool rotate)
 {
     if (bin_pos >= number_of_bins()) {
-        throw "";
+        throw std::invalid_argument(
+                "packingsolver::rectangle::Solution::add_item: "
+                "invalid 'bin_pos'; "
+                "bin_pos: " + std::to_string(bin_pos) + "; "
+                "number_of_bins(): " + std::to_string(number_of_bins()) + ".");
     }
 
     if (item_type_id < 0
             || item_type_id >= instance().number_of_item_types()) {
         throw std::invalid_argument(
-                "rectangle::Solution::add_item."
-                " Item type id " + std::to_string(item_type_id)
-                + " invalid.");
+                "packingsolver::rectangle::Solution::add_item: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + ".");
     }
 
     SolutionBin& bin = bins_[bin_pos];
@@ -67,9 +71,8 @@ void Solution::add_item(
 
     if (rotate && item_type.oriented) {
         throw std::invalid_argument(
-                "rectangle::Solution::add_item."
-                " Item type " + std::to_string(item_type_id)
-                + " cannot be rotated.");
+                "packingsolver::rectangle::Solution::add_item: "
+                "item type " + std::to_string(item_type_id) + " cannot be rotated.");
     }
 
     SolutionItem item;
@@ -150,7 +153,8 @@ Solution::Solution(
     std::ifstream file(certificate_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + certificate_path + "\".");
+                "packingsolver::rectangle::Solution::Solution: "
+                "unable to open file \"" + certificate_path + "\".");
     }
 
     std::string tmp;
@@ -273,8 +277,8 @@ bool Solution::operator<(const Solution& solution) const
         return solution.x_max() < x_max();
     } default: {
         std::stringstream ss;
-        ss << "Solution rectangle::Solution does not support objective \""
-            << instance().objective() << "\"";
+        ss << "packingsolver::rectangle::Solution::operator<: "
+            << "does not support objective \"" << instance().objective() << "\".";
         throw std::logic_error(ss.str());
     }
     }
@@ -288,7 +292,8 @@ void Solution::write(
     std::ofstream file(certificate_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + certificate_path + "\".");
+                "packingsolver::rectangle::Solution::write: "
+                "unable to open file \"" + certificate_path + "\".");
     }
 
     file << "TYPE,ID,COPIES,BIN,X,Y,LX,LY" << std::endl;

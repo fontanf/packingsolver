@@ -362,7 +362,9 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
         if (model_status == kHighsModelStatusInfeasible) {
             // Infeasible.
             // Something's wrong.
-            throw std::runtime_error("The model shouldn't be infeasible.");
+            throw std::runtime_error(
+                    "packingsolver::rectangle::benders_decomposition: "
+                    "the model shouldn't be infeasible.");
 
         } else if (model_status == kHighsModelStatusOptimal
                 || primal_solution_status == kHighsSolutionStatusFeasible) {

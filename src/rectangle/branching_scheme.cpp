@@ -23,7 +23,8 @@ bool BranchingScheme::dominates(
     } else if (parameters_.predecessor_strategy == 2) {
         return item_type_1.weight >= item_type_2.weight;
     } else {
-        throw std::invalid_argument("");
+        throw std::invalid_argument(
+                "packingsolver::rectangle::BranchingScheme::dominates");
         return false;
     }
 }
@@ -442,7 +443,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 << " r " << node_tmp->rotate
                 << std::endl;
         }
-        throw std::runtime_error("waste");
+        throw std::runtime_error(
+                "packingsolver::rectangle::BranchingScheme::child_tmp: "
+                "node.waste: " + std::to_string(node.waste) + ".");
     }
 
     node.leftover_value = bin_type.area() - node.xe_max * node.ye_max;
@@ -808,7 +811,8 @@ void BranchingScheme::insertion_item(
                 return;
         break;
     } default: {
-        throw std::logic_error("rectangle::BranchingScheme::insertion_item");
+        throw std::logic_error(
+                "packingsolver::rectangle::BranchingScheme::insertion_item");
     }
     }
 
@@ -944,7 +948,7 @@ void BranchingScheme::insertion_item_fixed(
         break;
     } default: {
         throw std::logic_error(
-                "rectangle::BranchingScheme::insertion_item_fixed");
+                "packingsolver::rectangle::BranchingScheme::insertion_item_fixed");
     }
     }
 
@@ -1036,7 +1040,7 @@ bool BranchingScheme::better(
             < node_2->middle_axle_overweight + node_2->rear_axle_overweight;
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'rectangle::BranchingScheme'"
+        ss << "packingsolver::rectangle::BranchingScheme::better: "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
@@ -1098,7 +1102,7 @@ bool BranchingScheme::bound(
         return false;
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'rectangle::BranchingScheme'"
+        ss << "packingsolver::rectangle::BranchingScheme::bound: "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
@@ -1150,9 +1154,9 @@ Solution BranchingScheme::to_solution(
             && node->last_bin_direction == Direction::Y
             && node->xe_max != solution.y_max()) {
         throw std::runtime_error(
-                "node->xe_max: " + std::to_string(node->xe_max)
-                + "; solution.y_max(): " + std::to_string(solution.y_max())
-                + ".");
+                "packingsolver::rectangle::BranchingScheme::to_solution; "
+                "node->xe_max: " + std::to_string(node->xe_max) + "; "
+                "solution.y_max(): " + std::to_string(solution.y_max()) + ".");
     }
     //if (node->waste != solution.waste()) {
     //    std::cout << node->xe_max << std::endl;
