@@ -53,9 +53,9 @@ void Solution::add_item(
     if (item_type_id < 0
             || item_type_id >= instance().number_of_item_types()) {
         throw std::invalid_argument(
-                "irregular::Solution::add_item."
-                " Item type id " + std::to_string(item_type_id)
-                + " invalid.");
+                "packingsolver::irregular::Solution::add_item: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + ".");
     }
 
     SolutionBin& bin = bins_[bin_pos];
@@ -70,17 +70,17 @@ void Solution::add_item(
             angle_ok = true;
     if (!angle_ok) {
         throw std::invalid_argument(
-                "irregular::Solution::add_item."
-                " Angle " + std::to_string(angle)
-                + " is not allowed for item type "
-                + std::to_string(item_type_id) + ".");
+                "packingsolver::irregular::Solution::add_item: "
+                "invalid 'angle'; "
+                "angle: " + std::to_string(angle) + "; "
+                "item_type_id: " + std::to_string(item_type_id) + ".");
     }
 
     if (mirror && !item_type.allow_mirroring) {
         throw std::invalid_argument(
-                "irregular::Solution::add_item."
-                " Mirroring is not allowed for item type "
-                + std::to_string(item_type_id) + ".");
+                "packingsolver::irregular::Solution::add_item: "
+                " mirroring is not allowed for this item type; "
+                "item_type_id: " + std::to_string(item_type_id) + ".");
     }
 
     SolutionItem item;
@@ -122,11 +122,10 @@ void Solution::append(
     // Check bin_pos.
     if (bin_pos >= solution.number_of_different_bins()) {
         throw std::invalid_argument(
-                "irregular::Solution::append."
-                " bin_pos: " + std::to_string(bin_pos)
-                + "; solution.number_of_different_bins(): "
-                + std::to_string(solution.number_of_different_bins())
-                + ".");
+                "packingsolver::irregular::Solution::append: "
+                "invalid 'bin_pos'; "
+                "bin_pos: " + std::to_string(bin_pos) + "; "
+                "solution.number_of_different_bins(): " + std::to_string(solution.number_of_different_bins()) + ".");
     }
 
     BinTypeId bin_type_id = (bin_type_ids.empty())?

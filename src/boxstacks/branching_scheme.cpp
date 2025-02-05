@@ -1119,7 +1119,8 @@ void BranchingScheme::insertion_item(
                 return;
         break;
     } default: {
-        throw std::logic_error("boxstacks::BranchingScheme::insertion_item");
+        throw std::logic_error(
+                "packingsolver::boxstacks::BranchingScheme::insertion_item");
     }
     }
 
@@ -1283,7 +1284,7 @@ void BranchingScheme::insertion_item_left(
         break;
     } default: {
         throw std::logic_error(
-                "boxstacks::BranchingScheme::insertion_item_left");
+                "packingsolver::boxstacks::BranchingScheme::insertion_item_left");
     }
     }
 

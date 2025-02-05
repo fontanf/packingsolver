@@ -52,10 +52,9 @@ StackId Solution::add_stack(
 {
     if (bin_pos >= number_of_bins()) {
         throw std::runtime_error(
-                "boxstacks::Solution::add_stack"
-                "; bin_pos: " + std::to_string(bin_pos)
-                + "; number_of_bins(): " + std::to_string(number_of_bins())
-                + ".");
+                "packingsolver::boxstacks::Solution::add_stack: "
+                "bin_pos: " + std::to_string(bin_pos) + "; "
+                "number_of_bins(): " + std::to_string(number_of_bins()) + ".");
     }
     SolutionBin& bin = bins_[bin_pos];
 
@@ -92,17 +91,15 @@ void Solution::add_item(
 {
     if (bin_pos >= number_of_bins()) {
         throw std::runtime_error(
-                "boxstacks::Solution::add_item"
-                "; bin_pos: " + std::to_string(bin_pos)
-                + "; number_of_bins(): " + std::to_string(number_of_bins())
-                + ".");
+                "packingsolver::boxstacks::Solution::add_item: "
+                "bin_pos: " + std::to_string(bin_pos) + "; "
+                "number_of_bins(): " + std::to_string(number_of_bins()) + ".");
     }
     if (item_type_id < 0 || item_type_id >= instance().number_of_item_types()) {
         throw std::runtime_error(
-                "boxstacks::Solution::add_item"
-                "; item_type_id: " + std::to_string(item_type_id)
-                + " / " + std::to_string(instance().number_of_item_types())
-                + ".");
+                "packingsolver::boxstacks::Solution::add_item: "
+                "item_type_id: " + std::to_string(item_type_id)
+                + " / " + std::to_string(instance().number_of_item_types()) + ".");
     }
     SolutionBin& bin = bins_[bin_pos];
 
@@ -123,47 +120,44 @@ void Solution::add_item(
 
     if (!item_type.can_rotate(rotation)) {
         throw std::runtime_error(
-                "boxstacks::Solution::add_item"
-                ": forbidden rotation"
-                "; item_type_id: " + std::to_string(item_type_id)
-                + "; item_type.rotations: " + std::to_string(item_type.rotations)
-                + "; rot: " + std::to_string(rotation)
-                + "; xj: " + std::to_string(xj)
-                + "; yj: " + std::to_string(yj)
-                + "; stack.x_start: " + std::to_string(stack.x_start)
-                + "; stack.x_end: " + std::to_string(stack.x_end)
-                + "; stack.y_start: " + std::to_string(stack.y_start)
-                + "; stack.y_end: " + std::to_string(stack.y_end)
-                + ".");
+                "packingsolver::boxstacks::Solution::add_item: "
+                "forbidden rotation; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "item_type.rotations: " + std::to_string(item_type.rotations) + "; "
+                "rot: " + std::to_string(rotation) + "; "
+                "xj: " + std::to_string(xj) + "; "
+                "yj: " + std::to_string(yj) + "; "
+                "stack.x_start: " + std::to_string(stack.x_start) + "; "
+                "stack.x_end: " + std::to_string(stack.x_end) + "; "
+                "stack.y_start: " + std::to_string(stack.y_start) + "; "
+                "stack.y_end: " + std::to_string(stack.y_end) + ".");
     }
     if (xj != stack.x_end - stack.x_start) {
         throw std::runtime_error(
-                "boxstacks::Solution::add_item"
-                "; item_type_id: " + std::to_string(item_type_id)
-                + "; z: " + std::to_string(stack.z_end)
-                + "; rot: " + std::to_string(rotation)
-                + "; xj: " + std::to_string(xj)
-                + "; yj: " + std::to_string(yj)
-                + "; zj: " + std::to_string(zj)
-                + "; stack.x_start: " + std::to_string(stack.x_start)
-                + "; stack.x_end: " + std::to_string(stack.x_end)
-                + "; stack.y_start: " + std::to_string(stack.y_start)
-                + "; stack.y_end: " + std::to_string(stack.y_end)
-                + ".");
+                "packingsolver::boxstacks::Solution::add_item; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "z: " + std::to_string(stack.z_end) + "; "
+                "rot: " + std::to_string(rotation) + "; "
+                "xj: " + std::to_string(xj) + "; "
+                "yj: " + std::to_string(yj) + "; "
+                "zj: " + std::to_string(zj) + "; "
+                "stack.x_start: " + std::to_string(stack.x_start) + "; "
+                "stack.x_end: " + std::to_string(stack.x_end) + "; "
+                "stack.y_start: " + std::to_string(stack.y_start) + "; "
+                "stack.y_end: " + std::to_string(stack.y_end) + ".");
     }
     if (yj != stack.y_end - stack.y_start) {
         throw std::runtime_error(
-                "boxstacks::Solution::add_item"
-                "; item_type_id: " + std::to_string(item_type_id)
-                + "; rot: " + std::to_string(rotation)
-                + "; xj: " + std::to_string(xj)
-                + "; yj: " + std::to_string(yj)
-                + "; zj: " + std::to_string(zj)
-                + "; stack.x_start: " + std::to_string(stack.x_start)
-                + "; stack.x_end: " + std::to_string(stack.x_end)
-                + "; stack.y_start: " + std::to_string(stack.y_start)
-                + "; stack.y_end: " + std::to_string(stack.y_end)
-                + ".");
+                "packingsolver::boxstacks::Solution::add_item: "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "rot: " + std::to_string(rotation) + "; "
+                "xj: " + std::to_string(xj) + "; "
+                "yj: " + std::to_string(yj) + "; "
+                "zj: " + std::to_string(zj) + "; "
+                "stack.x_start: " + std::to_string(stack.x_start) + "; "
+                "stack.x_end: " + std::to_string(stack.x_end) + "; "
+                "stack.y_start: " + std::to_string(stack.y_start) + "; "
+                "stack.y_end: " + std::to_string(stack.y_end) + ".");
     }
 
     SolutionItem item;

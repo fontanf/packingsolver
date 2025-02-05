@@ -446,22 +446,21 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.waste = node.current_area - node.item_area;
     if (node.waste < 0) {
         throw std::logic_error(
-                "rectangleguillotine::BranchingScheme::child_tmp"
-                "; node.waste: " + std::to_string(node.waste)
-                + "; node.current_area: " + std::to_string(node.current_area)
-                + "; node.item_area: " + std::to_string(node.item_area)
-                + "; parent.number_of_bins: " + std::to_string(parent.number_of_bins)
-                + "; node.number_of_bins: " + std::to_string(node.number_of_bins)
-                + "; node.df: " + std::to_string(node.df)
-                + "; node.number_of_items: " + std::to_string(node.number_of_items)
-                + "; node.item_type_id_1: " + std::to_string(node.item_type_id_1)
-                + "; node.item_type_id_2: " + std::to_string(node.item_type_id_2)
-                + "; w: " + std::to_string(w)
-                + "; h: " + std::to_string(h)
-                + "; node.x1_curr: " + std::to_string(node.x1_curr)
-                + "; node.y2_curr: " + std::to_string(node.y2_curr)
-                + "; node.x3_curr: " + std::to_string(node.x3_curr)
-                + ".");
+                "packingsolver::rectangleguillotine::BranchingScheme::child_tmp: "
+                "node.waste: " + std::to_string(node.waste) + "; "
+                "node.current_area: " + std::to_string(node.current_area) + "; "
+                "node.item_area: " + std::to_string(node.item_area) + "; "
+                "parent.number_of_bins: " + std::to_string(parent.number_of_bins) + "; "
+                "node.number_of_bins: " + std::to_string(node.number_of_bins) + "; "
+                "node.df: " + std::to_string(node.df) + "; "
+                "node.number_of_items: " + std::to_string(node.number_of_items) + "; "
+                "node.item_type_id_1: " + std::to_string(node.item_type_id_1) + "; "
+                "node.item_type_id_2: " + std::to_string(node.item_type_id_2) + "; "
+                "w: " + std::to_string(w) + "; "
+                "h: " + std::to_string(h) + "; "
+                "node.x1_curr: " + std::to_string(node.x1_curr) + "; "
+                "node.y2_curr: " + std::to_string(node.y2_curr) + "; "
+                "node.x3_curr: " + std::to_string(node.x3_curr) + ".");
     }
     return node;
 }
@@ -1456,7 +1455,7 @@ Solution BranchingScheme::to_solution(
     Solution solution = solution_builder.build();
     if (solution.profit() != node->profit) {
         throw std::logic_error(
-                "rectangleguillotine::BranchingScheme::to_solution");
+                "packingsolver::rectangleguillotine::BranchingScheme::to_solution");
     }
     return solution;
 }

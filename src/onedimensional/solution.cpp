@@ -90,9 +90,9 @@ void Solution::add_item(
     item_copies_[item.item_type_id] += bin.copies;
     if (item_copies_[item.item_type_id] > item_type.copies) {
         throw std::runtime_error(
-                "onedimensional::Solution::add_item"
-                "; item_copies_[item.item_type_id]: " + std::to_string(item_copies_[item.item_type_id])
-                + "; item_type.copies: " + std::to_string(item_type.copies));
+                "packingsolver::onedimensional::Solution::add_item; "
+                "item_copies_[item.item_type_id]: " + std::to_string(item_copies_[item.item_type_id]) + "; "
+                "item_type.copies: " + std::to_string(item_type.copies) + ".");
     }
     item_length_ += bin.copies * item_type.length;
     item_profit_ += bin.copies * item_type.profit;
@@ -114,9 +114,9 @@ void Solution::append(
     if (!bin_type_ids.empty()) {
         if (bin.bin_type_id >= (BinPos)bin_type_ids.size()) {
             throw std::runtime_error(
-                    "onedimensional::Solution::append"
-                    "; bin.bin_type_id: " + std::to_string(bin.bin_type_id)
-                    + "; bin_type_ids.size(): " + std::to_string(bin_type_ids.size()));
+                    "packingsolver::onedimensional::Solution::append; "
+                    "bin.bin_type_id: " + std::to_string(bin.bin_type_id) + "; "
+                    "bin_type_ids.size(): " + std::to_string(bin_type_ids.size()) + ".");
         }
     }
 

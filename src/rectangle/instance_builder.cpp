@@ -31,34 +31,34 @@ BinTypeId InstanceBuilder::add_bin_type(
 {
     if (x <= 0) {
         throw std::runtime_error(
-                "'rectangle::InstanceBuilder::add_bin_type'"
-                " requires 'x > 0'.");
+                "packingsolver::rectangle::InstanceBuilder::add_bin_type: "
+                "requires 'x > 0'.");
     }
     if (y <= 0) {
         throw std::runtime_error(
-                "'rectangle::InstanceBuilder::add_bin_type'"
-                " requires 'y > 0'.");
+                "packingsolver::rectangle::InstanceBuilder::add_bin_type: "
+                "requires 'y > 0'.");
     }
     if (cost < 0 && cost != -1) {
         throw std::runtime_error(
-                "'rectangle::InstanceBuilder::add_bin_type'"
-                " requires 'cost >= 0' or 'cost == -1'.");
+                "packingsolver::rectangle::InstanceBuilder::add_bin_type: "
+                "requires 'cost >= 0' or 'cost == -1'.");
     }
     if (copies_min < 0) {
         throw std::runtime_error(
-                "'rectangle::InstanceBuilder::add_bin_type'"
-                " requires 'copies_min >= 0'.");
+                "packingsolver::rectangle::InstanceBuilder::add_bin_type: "
+                "requires 'copies_min >= 0'.");
     }
     if (copies != -1) {
         if (copies <= 0) {
             throw std::runtime_error(
-                    "'rectangle::InstanceBuilder::add_bin_type'"
-                    " requires 'copies > 0' or 'copies == -1'.");
+                    "packingsolver::rectangle::InstanceBuilder::add_bin_type: "
+                    "requires 'copies > 0' or 'copies == -1'.");
         }
         if (copies_min > copies) {
             throw std::runtime_error(
-                    "'rectangle::InstanceBuilder::add_bin_type'"
-                    " requires 'copies_min <= copies' or 'copies == -1'.");
+                    "packingsolver::rectangle::InstanceBuilder::add_bin_type: "
+                    "requires 'copies_min <= copies' or 'copies == -1'.");
         }
     }
 
@@ -95,11 +95,10 @@ DefectId InstanceBuilder::add_defect(
 {
     if (bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
-                "rectangle::InstanceBuilder::add_defect"
-                ". bin_type_id: " + std::to_string(bin_type_id)
-                + "; instance_.bin_types_.size(): "
-                + std::to_string(instance_.bin_types_.size())
-                + ".");
+                "packingsolver::rectangle::InstanceBuilder::add_defect: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
     }
 
     BinType& bin_type = instance_.bin_types_[bin_type_id];
@@ -203,31 +202,23 @@ ItemTypeId InstanceBuilder::add_item_type(
 {
     if (x < 0) {
         throw std::invalid_argument(
-                "rectangle::InstanceBuilder::add_item_type."
-                " item type width "
-                + std::to_string(x)
-                + " must be >= 0.");
+                "packingsolver::rectangle::InstanceBuilder::add_item_type: "
+                "item type width " + std::to_string(x) + " must be >= 0.");
     }
     if (y < 0) {
         throw std::invalid_argument(
-                "rectangle::InstanceBuilder::add_item_type."
-                " item type height "
-                + std::to_string(y)
-                + " must be >= 0.");
+                "packingsolver::rectangle::InstanceBuilder::add_item_type: "
+                "item type height " + std::to_string(y) + " must be >= 0.");
     }
     if (copies <= 0) {
         throw std::invalid_argument(
-                "rectangle::InstanceBuilder::add_item_type."
-                " item type copies "
-                + std::to_string(copies)
-                + " must be >= 0.");
+                "packingsolver::rectangle::InstanceBuilder::add_item_type: "
+                "item type copies " + std::to_string(copies) + " must be >= 0.");
     }
     if (group_id < 0) {
         throw std::invalid_argument(
-                "rectangle::InstanceBuilder::add_item_type."
-                " item type group id "
-                + std::to_string(group_id)
-                + " must be >= 0.");
+                "packingsolver::rectangle::InstanceBuilder::add_item_type: "
+                "item type group id " + std::to_string(group_id) + " must be >= 0.");
     }
 
     ItemType item_type;
@@ -643,16 +634,16 @@ Instance InstanceBuilder::build()
     if (instance_.objective() == Objective::OpenDimensionX
             && instance_.number_of_bins() != 1) {
         throw std::invalid_argument(
-                "rectangle::InstanceBuilder::build."
-                " The instance has objective OpenDimensionX and contains " + std::to_string(instance_.number_of_bins()) + " bins;"
-                " an instance with objective OpenDimensionX must contain exactly one bin.");
+                "packingsolver::rectangle::InstanceBuilder::build: "
+                "the instance has objective OpenDimensionX and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
+                "an instance with objective OpenDimensionX must contain exactly one bin.");
     }
     if (instance_.objective() == Objective::OpenDimensionY
             && instance_.number_of_bins() != 1) {
         throw std::invalid_argument(
-                "rectangle::InstanceBuilder::build."
-                " The instance has objective OpenDimensionY and contains " + std::to_string(instance_.number_of_bins()) + " bins;"
-                " an instance with objective OpenDimensionY must contain exactly one bin.");
+                "packingsolver::rectangle::InstanceBuilder::build: "
+                "the instance has objective OpenDimensionY and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
+                "an instance with objective OpenDimensionY must contain exactly one bin.");
     }
 
     return std::move(instance_);
