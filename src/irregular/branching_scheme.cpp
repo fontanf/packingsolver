@@ -1988,7 +1988,8 @@ void BranchingScheme::insertion_trapezoid_set(
     if (state == State::Infeasible)
         return;
 
-    if (parent->parent != nullptr) {
+    if (parent->parent != nullptr
+            && new_bin_direction == Direction::Any) {
         LengthDbl ys_tmp = supporting_trapezoid.y_bottom()
             - item_shape_trapezoid.y_top()
             + trapezoid_set.y_min
