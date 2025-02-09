@@ -2,7 +2,7 @@
 
 #include "irregular/shape_convex_hull.hpp"
 #include "irregular/shape_trapezoidation.hpp"
-#include "irregular/polygon_simplification.hpp"
+#include "irregular/shape_simplification.hpp"
 #include "irregular/shape.hpp"
 
 #include <iostream>
@@ -64,9 +64,12 @@ void TrapezoidSet::write_svg(
 }
 
 BranchingScheme::BranchingScheme(
-        const Instance& instance,
+        const Instance& instance_orig,
         const Parameters& parameters):
-    instance_(instance),
+    instance_orig_(instance_orig),
+    instance_approx_(shape_simplification(
+            instance_orig,
+            parameters.maximum_approximation_ratio)),
     parameters_(parameters)
 {
     bool write_shapes = false;
@@ -74,7 +77,7 @@ BranchingScheme::BranchingScheme(
     // Compute branching scheme bin types.
     bin_types_ = std::vector<std::vector<BranchingSchemeBinType>>(
             8,
-            std::vector<BranchingSchemeBinType>(instance.number_of_bin_types()));
+            std::vector<BranchingSchemeBinType>(instance().number_of_bin_types()));
     trapezoid_sets_ = std::vector<std::vector<TrapezoidSet>>(8);
 
     for (Direction direction: {
@@ -87,10 +90,10 @@ BranchingScheme::BranchingScheme(
             Direction::TopToBottomThenLeftToRight,
             Direction::TopToBottomThenRightToLeft}) {
         for (BinTypeId bin_type_id = 0;
-                bin_type_id < instance.number_of_bin_types();
+                bin_type_id < instance().number_of_bin_types();
                 ++bin_type_id) {
             //std::cout << "bin_type_id " << bin_type_id << std::endl;
-            const BinType& bin_type = instance.bin_type(bin_type_id);
+            const BinType& bin_type = instance().bin_type(bin_type_id);
             BranchingSchemeBinType& bb_bin_type = bin_types_[(int)direction][bin_type_id];
             Shape bin_shape = bin_type.shape;
             if (direction == Direction::LeftToRightThenTopToBottom) {
@@ -127,7 +130,7 @@ BranchingScheme::BranchingScheme(
 
             GeneralizedTrapezoid trapezoid_bottom(
                     y_min,
-                    bb_bin_type.y_min + instance.parameters().item_bin_minimum_spacing,
+                    bb_bin_type.y_min + instance().parameters().item_bin_minimum_spacing,
                     bb_bin_type.x_min,
                     bb_bin_type.x_max,
                     bb_bin_type.x_min,
@@ -136,7 +139,7 @@ BranchingScheme::BranchingScheme(
             bb_bin_type.defects.push_back(defect_bottom);
 
             GeneralizedTrapezoid trapezoid_top(
-                    bb_bin_type.y_max - instance.parameters().item_bin_minimum_spacing,
+                    bb_bin_type.y_max - instance().parameters().item_bin_minimum_spacing,
                     y_max,
                     x_min,
                     x_max,
@@ -148,10 +151,10 @@ BranchingScheme::BranchingScheme(
     }
 
     for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
+            bin_type_id < instance().number_of_bin_types();
             ++bin_type_id) {
         //std::cout << "bin_type_id " << bin_type_id << std::endl;
-        const BinType& bin_type = instance.bin_type(bin_type_id);
+        const BinType& bin_type = instance().bin_type(bin_type_id);
         BranchingSchemeBinType& bb_bin_type_x = bin_types_[(int)Direction::LeftToRightThenBottomToTop][bin_type_id];
         BranchingSchemeBinType& bb_bin_type_y = bin_types_[(int)Direction::BottomToTopThenLeftToRight][bin_type_id];
 
@@ -164,7 +167,7 @@ BranchingScheme::BranchingScheme(
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 -1,
-                                trapezoid.clean().inflate(instance.parameters().item_bin_minimum_spacing));
+                                trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
                         bb_bin_type_x.defects.push_back(defect);
                     }
                 }
@@ -177,7 +180,7 @@ BranchingScheme::BranchingScheme(
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 -1,
-                                trapezoid.clean().inflate(instance.parameters().item_bin_minimum_spacing));
+                                trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
                         bb_bin_type_y.defects.push_back(defect);
                     }
                 }
@@ -194,7 +197,7 @@ BranchingScheme::BranchingScheme(
                 Shape cleaned_shape = clean_shape(defect.shape);
                 std::vector<Shape> cleaned_holes;
                 for (const Shape& hole: defect.holes)
-                    if (!strictly_lesser(hole.compute_area(), instance.smallest_item_area()))
+                    if (!strictly_lesser(hole.compute_area(), instance().smallest_item_area()))
                         cleaned_holes.push_back(clean_shape(hole));
                 {
                     auto trapezoids = trapezoidation(
@@ -203,7 +206,7 @@ BranchingScheme::BranchingScheme(
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 defect_id,
-                                trapezoid.clean().inflate(instance.parameters().item_bin_minimum_spacing));
+                                trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
                         bb_bin_type_x.defects.push_back(defect);
                     }
                 }
@@ -212,7 +215,7 @@ BranchingScheme::BranchingScheme(
                 Shape sym_shape = defect.shape.axial_symmetry_identity_line();
                 std::vector<Shape> sym_holes;
                 for (const Shape& hole: defect.holes)
-                    if (!strictly_lesser(hole.compute_area(), instance.smallest_item_area()))
+                    if (!strictly_lesser(hole.compute_area(), instance().smallest_item_area()))
                         sym_holes.push_back(hole.axial_symmetry_identity_line());
 
                 Shape cleaned_shape = clean_shape(sym_shape);
@@ -226,7 +229,7 @@ BranchingScheme::BranchingScheme(
                 for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                     UncoveredTrapezoid defect(
                             defect_id,
-                            trapezoid.clean().inflate(instance.parameters().item_bin_minimum_spacing));
+                            trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
                     bb_bin_type_y.defects.push_back(defect);
                 }
             }
@@ -237,10 +240,10 @@ BranchingScheme::BranchingScheme(
     std::vector<TrapezoidSet>& trapezoid_sets_x = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop];
     std::vector<TrapezoidSet>& trapezoid_sets_y = trapezoid_sets_[(int)Direction::BottomToTopThenLeftToRight];
     for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
+            item_type_id < instance().number_of_item_types();
             ++item_type_id) {
         //std::cout << "item_type_id " << item_type_id << std::endl;
-        const ItemType& item_type = instance.item_type(item_type_id);
+        const ItemType& item_type = instance().item_type(item_type_id);
 
         // Write item type.
         if (write_shapes) {
@@ -271,7 +274,7 @@ BranchingScheme::BranchingScheme(
                         item_shape.shape.axial_symmetry_y_axis();
                     std::vector<Shape> holes;
                     for (const Shape& hole: item_shape.holes) {
-                        if (strictly_lesser(hole.compute_area(), instance.smallest_item_area()))
+                        if (strictly_lesser(hole.compute_area(), instance().smallest_item_area()))
                             continue;
                         holes.push_back((!(mirror)?
                                 hole:
@@ -348,7 +351,7 @@ BranchingScheme::BranchingScheme(
                         item_shape.shape.axial_symmetry_y_axis();
                     std::vector<Shape> holes;
                     for (const Shape& hole: item_shape.holes) {
-                        if (strictly_lesser(hole.compute_area(), instance.smallest_item_area()))
+                        if (strictly_lesser(hole.compute_area(), instance().smallest_item_area()))
                             continue;
                         holes.push_back((!(mirror)?
                                 hole:
@@ -407,13 +410,6 @@ BranchingScheme::BranchingScheme(
             }
         }
     }
-
-    trapezoid_sets_x = polygon_simplification(
-            instance,
-            trapezoid_sets_x);
-    trapezoid_sets_y = polygon_simplification(
-            instance,
-            trapezoid_sets_y);
 
     for (TrapezoidSetId trapezoid_set_id = 0;
             trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_x.size();
@@ -513,7 +509,7 @@ BranchingScheme::BranchingScheme(
     }
 
     for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
+            bin_type_id < instance().number_of_bin_types();
             ++bin_type_id) {
         const BranchingSchemeBinType& bb_bin_type_ref = bin_types_[(int)Direction::LeftToRightThenBottomToTop][bin_type_id];
         {
@@ -607,7 +603,7 @@ BranchingScheme::BranchingScheme(
         }
     }
     for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
+            bin_type_id < instance().number_of_bin_types();
             ++bin_type_id) {
         const BranchingSchemeBinType& bb_bin_type_ref = bin_types_[(int)Direction::BottomToTopThenLeftToRight][bin_type_id];
         {
@@ -705,7 +701,7 @@ BranchingScheme::BranchingScheme(
     //        trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop].size();
     //        ++trapezoid_set_id) {
     //    const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop][trapezoid_set_id];
-    //    const ItemType& item_type = instance.item_type(trapezoid_set.item_type_id);
+    //    const ItemType& item_type = instance().item_type(trapezoid_set.item_type_id);
     //    std::cout << "item_type_id " << trapezoid_set.item_type_id
     //        << " angle " << trapezoid_set.angle
     //        << " mirror " << trapezoid_set.mirror
@@ -739,11 +735,11 @@ BranchingScheme::BranchingScheme(
     compute_inflated_trapezoid_sets();
 
     item_types_convex_hull_area_
-        = std::vector<AreaDbl>(instance.number_of_item_types(), 0.0);
+        = std::vector<AreaDbl>(instance().number_of_item_types(), 0.0);
     for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
+            item_type_id < instance().number_of_item_types();
             ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
+        const ItemType& item_type = instance().item_type(item_type_id);
         for (ItemShapePos item_shape_pos = 0;
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
@@ -1260,7 +1256,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     // Compute item_number_of_copies, number_of_items, items_area,
     // squared_item_area and profit.
     node.item_number_of_copies = parent.item_number_of_copies;
-    const ItemType& item_type = instance().item_type(trapezoid_set.item_type_id);
+    const ItemType& item_type = instance_orig_.item_type(trapezoid_set.item_type_id);
     node.item_number_of_copies[trapezoid_set.item_type_id]++;
     node.number_of_items = parent.number_of_items + 1;
     node.item_area = parent.item_area + item_type.area;
@@ -1273,7 +1269,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.xs_max = (insertion.new_bin_direction == Direction::Any)?  // Same bin
         std::max(parent.xs_max, insertion.x + trapezoid_set.x_min):
         insertion.x + trapezoid_set.x_min;
-    node.guide_area = instance_.previous_bin_area(bin_pos)
+    node.guide_area = instance().previous_bin_area(bin_pos)
         + (node.xs_max - bb_bin_type.x_min)
         * (bb_bin_type.y_max - bb_bin_type.y_min);
     for (auto it = node.all_trapezoids_skyline.rbegin(); it != node.all_trapezoids_skyline.rend(); ++it) {
@@ -2221,7 +2217,7 @@ void BranchingScheme::insertion_trapezoid_set(
 const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
 {
     BranchingScheme::Node node;
-    node.item_number_of_copies = std::vector<ItemPos>(instance_.number_of_item_types(), 0);
+    node.item_number_of_copies = std::vector<ItemPos>(instance().number_of_item_types(), 0);
     node.id = node_id_++;
     return std::make_shared<Node>(node);
 }
@@ -2230,7 +2226,7 @@ bool BranchingScheme::better(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    switch (instance_.objective()) {
+    switch (instance().objective()) {
     case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
         if (!leaf(node_1))
             return false;
@@ -2262,7 +2258,7 @@ bool BranchingScheme::better(
     } default: {
         std::stringstream ss;
         ss << "Branching scheme 'irregular::BranchingScheme'"
-            << "does not support objective '" << instance_.objective() << "'.";
+            << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
     }
@@ -2273,7 +2269,7 @@ bool BranchingScheme::bound(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    switch (instance_.objective()) {
+    switch (instance().objective()) {
     case Objective::Default: {
         return false;
     } case Objective::BinPacking: case Objective::VariableSizedBinPacking: {
@@ -2307,7 +2303,7 @@ bool BranchingScheme::bound(
     } default: {
         std::stringstream ss;
         ss << "Branching scheme 'irregular::BranchingScheme'"
-            << "does not support objective '" << instance_.objective() << "'.";
+            << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
     }
@@ -2330,7 +2326,7 @@ Solution BranchingScheme::to_solution(
     }
     std::reverse(descendents.begin(), descendents.end());
 
-    Solution solution(instance());
+    Solution solution(instance_orig_);
     BinPos bin_pos = -1;
     for (auto current_node: descendents) {
         if (current_node->number_of_bins > solution.number_of_bins())
