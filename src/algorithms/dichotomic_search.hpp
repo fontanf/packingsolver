@@ -148,7 +148,7 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
 
         // Build knapsack instance.
         //std::cout << "Build Knapsack instance..." << std::endl;
-        knapsacksolver::knapsack::InstanceBuilder kp_instance_builder;
+        knapsacksolver::knapsack::InstanceFromFloatProfitsBuilder kp_instance_builder;
         // Set knapsack capacity.
         //std::cout << "bin_space " << bin_space << std::endl;
         //std::cout << "bin_min_space " << bin_min_space << std::endl;
@@ -167,7 +167,7 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
             if (bin_type.space() > kp_capacity)
                 continue;
             for (BinPos pos = 0; pos < bin_type.copies; ++pos) {
-                kp_instance_builder.add_item(bin_type.space(), bin_type.cost);
+                kp_instance_builder.add_item(bin_type.cost, bin_type.space());
                 kp2ps.push_back(bin_type_id);
             }
         }
