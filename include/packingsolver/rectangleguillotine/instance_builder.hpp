@@ -55,7 +55,7 @@ public:
 
     void set_minimum_waste_length(Length minimum_waste_length) { instance_.parameters_.minimum_waste_length = minimum_waste_length; }
 
-    void set_maximum_number_2_cuts(bool maximum_number_2_cuts) { instance_.parameters_.maximum_number_2_cuts = maximum_number_2_cuts; }
+    void set_maximum_number_2_cuts(Counter maximum_number_2_cuts) { instance_.parameters_.maximum_number_2_cuts = maximum_number_2_cuts; }
 
     void set_cut_through_defects(bool cut_through_defects) { instance_.parameters_.cut_through_defects = cut_through_defects; }
 

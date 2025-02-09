@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
         ("minimum-distance-2-cuts,", po::value<Length>(), "")
         ("min-waste,", po::value<Length>(), "")
         ("minimum-waste-length,", po::value<Length>(), "")
-        ("maximum-number-2-cuts,", po::value<bool>(), "")
+        ("maximum-number-2-cuts,", po::value<Counter>(), "")
         ("cut-through-defects", po::value<bool>(), "")
         ("cut-thickness", po::value<Length>(), "")
 
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
     if (vm.count("minimum-waste-length"))
         instance_builder.set_minimum_waste_length(vm["minimum-waste-length"].as<Length>());
     if (vm.count("maximum-number-2-cuts"))
-        instance_builder.set_maximum_number_2_cuts(vm["maximum-number-2-cuts"].as<bool>());
+        instance_builder.set_maximum_number_2_cuts(vm["maximum-number-2-cuts"].as<Counter>());
     if (vm.count("cut-through-defects"))
         instance_builder.set_cut_through_defects(vm["cut-through-defects"].as<bool>());
     if (vm.count("cut-thickness"))
