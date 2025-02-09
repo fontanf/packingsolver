@@ -244,7 +244,7 @@ public:
             const Parameters& parameters);
 
     /** Get instance. */
-    inline const Instance& instance() const { return instance_; }
+    inline const Instance& instance() const { return instance_approx_; }
 
     /** Get parameters. */
     inline const Parameters& parameters() const { return parameters_; }
@@ -279,7 +279,7 @@ public:
     inline bool leaf(
             const std::shared_ptr<Node>& node) const
     {
-        return node->number_of_items == instance_.number_of_items();
+        return node->number_of_items == instance().number_of_items();
     }
 
     bool bound(
@@ -420,7 +420,9 @@ public:
 private:
 
     /** Instance. */
-    const Instance& instance_;
+    const Instance& instance_orig_;
+
+    Instance instance_approx_;
 
     /** Parameters. */
     Parameters parameters_;
@@ -445,16 +447,16 @@ private:
      */
 
     /** Get the percentage of item inserted into a node. */
-    inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }
+    inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance().number_of_items(); }
 
     /** Get the mean item area of a node; */
     inline double mean_item_area(const Node& node) const { return (double)node.item_area / node.number_of_items; }
 
     /** Get the mean remaining item area of a node. */
-    inline double mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance_.number_of_items() - node.number_of_items); }
+    inline double mean_remaining_item_area(const Node& node) const { return (double)remaining_item_area(node) / (instance().number_of_items() - node.number_of_items); }
 
     /** Get the remaining item area of a node. */
-    inline double remaining_item_area(const Node& node) const { return instance_.item_area() - node.item_area; }
+    inline double remaining_item_area(const Node& node) const { return instance().item_area() - node.item_area; }
 
     /** Get the area load of a node. */
     inline double area_load(const Node& node) const { return (double)node.item_area / instance().bin_area(); }

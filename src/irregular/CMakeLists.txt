@@ -8,8 +8,9 @@ target_sources(PackingSolver_irregular PRIVATE
     optimize.cpp
     shape.cpp
     shape_convex_hull.cpp
+    shape_self_intersections_removal.cpp
+    shape_simplification.cpp
     shape_trapezoidation.cpp
-    polygon_simplification.cpp
     branching_scheme.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
