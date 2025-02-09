@@ -390,7 +390,7 @@ void InstanceBuilder::read_bin_types(
             } else if (labels[i] == "HEIGHT") {
                 y = (Length)std::stol(line[i]);
             } else if (labels[i] == "COST") {
-                cost = (Profit)std::stol(line[i]);
+                cost = (Profit)std::stod(line[i]);
             } else if (labels[i] == "COPIES") {
                 copies = (BinPos)std::stol(line[i]);
             } else if (labels[i] == "COPIES_MIN") {
@@ -518,7 +518,7 @@ void InstanceBuilder::read_item_types(
             } else if (labels[i] == "HEIGHT") {
                 y = (Length)std::stol(line[i]);
             } else if (labels[i] == "PROFIT") {
-                profit = (Profit)std::stol(line[i]);
+                profit = (Profit)std::stod(line[i]);
             } else if (labels[i] == "COPIES") {
                 copies = (ItemPos)std::stol(line[i]);
             } else if (labels[i] == "ORIENTED") {
