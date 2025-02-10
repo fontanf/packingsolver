@@ -148,11 +148,14 @@ void InstanceBuilder::add_item_type(
         Profit profit,
         ItemPos copies)
 {
-    add_item_type(
+    ItemTypeId item_type_id = add_item_type(
             item_type.shapes,
             profit,
             copies,
             item_type.allowed_rotations);
+    set_item_type_allow_mirroring(
+            item_type_id,
+            item_type.allow_mirroring);
 }
 
 void InstanceBuilder::set_item_types_unweighted()
