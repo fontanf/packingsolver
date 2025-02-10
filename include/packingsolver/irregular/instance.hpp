@@ -239,7 +239,7 @@ struct ItemShape
     std::vector<Shape> holes;
 
     /** Quality rule. */
-    QualityRule quality_rule;
+    QualityRule quality_rule = 0;
 
     bool check() const;
 
