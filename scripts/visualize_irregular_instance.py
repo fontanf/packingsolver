@@ -22,6 +22,9 @@ def shape_path(path_x, path_y, shape, is_hole=False):
             anticlockwise = 1 if element["anticlockwise"] else 0
             rc = math.sqrt((xc - xs)**2 + (yc - ys)**2)
 
+        if is_hole:
+            xs, ys, xe, ye = xe, ye, xs, ys
+
         if len(path_x) == 0 or path_x[-1] is None:
             path_x.append(xs)
             path_y.append(ys)
@@ -85,7 +88,8 @@ with open(args.csvpath, 'r') as f:
                 shape_path(
                         defects_x[bin_type_id],
                         defects_y[bin_type_id],
-                        hole, True)
+                        hole["elements"],
+                        True)
 
     for item_type_id, item_type in enumerate(j["item_types"]):
         item_types_x.append([])
@@ -100,7 +104,7 @@ with open(args.csvpath, 'r') as f:
                 shape_path(
                         item_types_x[item_type_id],
                         item_types_y[item_type_id],
-                        hole,
+                        hole["elements"],
                         True)
 
 m = len(bin_types_x)
