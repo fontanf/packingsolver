@@ -131,9 +131,7 @@ Angle irregular::angle_radian(
         const Point& vector_1,
         const Point& vector_2)
 {
-    Angle a = std::atan2(
-            cross_product(vector_2, vector_1),
-            dot_product(vector_2, vector_1));
+    Angle a = atan2(vector_2.y, vector_2.x) - atan2(vector_1.y, vector_1.x);
     if (a < 0)
         a += 2 * M_PI;
     return a;
