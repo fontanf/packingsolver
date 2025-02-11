@@ -1097,28 +1097,28 @@ std::ostream& Instance::format(
         // Elements.
         os
             << std::endl
-            << std::setw(8) << "Object"
-            << std::setw(8) << "Shape"
-            << std::setw(8) << "Hole"
-            << std::setw(8) << "Element"
-            << std::setw(10) << "XS"
-            << std::setw(10) << "YS"
-            << std::setw(10) << "XE"
-            << std::setw(10) << "YE"
-            << std::setw(10) << "XC"
-            << std::setw(10) << "YC"
+            << std::setw(7) << "Object"
+            << std::setw(5) << "Sha."
+            << std::setw(5) << "Hole"
+            << std::setw(7) << "Elt."
+            << std::setw(12) << "XS"
+            << std::setw(12) << "YS"
+            << std::setw(12) << "XE"
+            << std::setw(12) << "YE"
+            << std::setw(12) << "XC"
+            << std::setw(12) << "YC"
             << std::setw(10) << "ACW"
             << std::endl
-            << std::setw(8) << "------"
-            << std::setw(8) << "-----"
-            << std::setw(8) << "----"
-            << std::setw(8) << "-------"
-            << std::setw(10) << "--"
-            << std::setw(10) << "--"
-            << std::setw(10) << "--"
-            << std::setw(10) << "--"
-            << std::setw(10) << "--"
-            << std::setw(10) << "--"
+            << std::setw(7) << "------"
+            << std::setw(5) << "----"
+            << std::setw(5) << "----"
+            << std::setw(7) << "----"
+            << std::setw(12) << "--"
+            << std::setw(12) << "--"
+            << std::setw(12) << "--"
+            << std::setw(12) << "--"
+            << std::setw(12) << "--"
+            << std::setw(12) << "--"
             << std::setw(10) << "---"
             << std::endl;
         // Bins.
@@ -1132,17 +1132,17 @@ std::ostream& Instance::format(
                 const ShapeElement& element = bin_type.shape.elements[element_pos];
                 os
                     << std::setw(2) << "B"
-                    << std::setw(6) << bin_type_id
-                    << std::setw(8) << -1
-                    << std::setw(8) << -1
-                    << std::setw(6) << element_pos
+                    << std::setw(5) << bin_type_id
+                    << std::setw(5) << -1
+                    << std::setw(5) << -1
+                    << std::setw(5) << element_pos
                     << std::setw(2) << element2char(element.type)
-                    << std::setw(10) << element.start.x
-                    << std::setw(10) << element.start.y
-                    << std::setw(10) << element.end.x
-                    << std::setw(10) << element.end.y
-                    << std::setw(10) << element.center.x
-                    << std::setw(10) << element.center.y
+                    << std::setw(12) << element.start.x
+                    << std::setw(12) << element.start.y
+                    << std::setw(12) << element.end.x
+                    << std::setw(12) << element.end.y
+                    << std::setw(12) << element.center.x
+                    << std::setw(12) << element.center.y
                     << std::setw(10) << element.anticlockwise
                     << std::endl;
             }
@@ -1155,17 +1155,17 @@ std::ostream& Instance::format(
                     const ShapeElement& element = bin_type.shape.elements[element_pos];
                     os
                         << std::setw(2) << "B"
-                        << std::setw(6) << bin_type_id
-                        << std::setw(8) << k
-                        << std::setw(8) << -1
-                        << std::setw(6) << element_pos
+                        << std::setw(5) << bin_type_id
+                        << std::setw(5) << k
+                        << std::setw(5) << -1
+                        << std::setw(5) << element_pos
                         << std::setw(2) << element2char(element.type)
-                        << std::setw(10) << element.start.x
-                        << std::setw(10) << element.start.y
-                        << std::setw(10) << element.end.x
-                        << std::setw(10) << element.end.y
-                        << std::setw(10) << element.center.x
-                        << std::setw(10) << element.center.y
+                        << std::setw(12) << element.start.x
+                        << std::setw(12) << element.start.y
+                        << std::setw(12) << element.end.x
+                        << std::setw(12) << element.end.y
+                        << std::setw(12) << element.center.x
+                        << std::setw(12) << element.center.y
                         << std::setw(10) << element.anticlockwise
                         << std::endl;
                 }
@@ -1179,17 +1179,17 @@ std::ostream& Instance::format(
                         const ShapeElement& element = hole.elements[element_pos];
                         os
                             << std::setw(2) << "I"
-                            << std::setw(6) << bin_type_id
-                            << std::setw(8) << k
-                            << std::setw(8) << hole_pos
-                            << std::setw(6) << element_pos
+                            << std::setw(5) << bin_type_id
+                            << std::setw(5) << k
+                            << std::setw(5) << hole_pos
+                            << std::setw(5) << element_pos
                             << std::setw(2) << element2char(element.type)
-                            << std::setw(10) << element.start.x
-                            << std::setw(10) << element.start.y
-                            << std::setw(10) << element.end.x
-                            << std::setw(10) << element.end.y
-                            << std::setw(10) << element.center.x
-                            << std::setw(10) << element.center.y
+                            << std::setw(12) << element.start.x
+                            << std::setw(12) << element.start.y
+                            << std::setw(12) << element.end.x
+                            << std::setw(12) << element.end.y
+                            << std::setw(12) << element.center.x
+                            << std::setw(12) << element.center.y
                             << std::setw(10) << element.anticlockwise
                             << std::endl;
                     }
@@ -1211,17 +1211,17 @@ std::ostream& Instance::format(
                     const ShapeElement& element = item_shape.shape.elements[element_pos];
                     os
                         << std::setw(2) << "I"
-                        << std::setw(6) << item_type_id
-                        << std::setw(8) << shape_pos
-                        << std::setw(8) << -1
-                        << std::setw(6) << element_pos
+                        << std::setw(5) << item_type_id
+                        << std::setw(5) << shape_pos
+                        << std::setw(5) << -1
+                        << std::setw(5) << element_pos
                         << std::setw(2) << element2char(element.type)
-                        << std::setw(10) << element.start.x
-                        << std::setw(10) << element.start.y
-                        << std::setw(10) << element.end.x
-                        << std::setw(10) << element.end.y
-                        << std::setw(10) << element.center.x
-                        << std::setw(10) << element.center.y
+                        << std::setw(12) << element.start.x
+                        << std::setw(12) << element.start.y
+                        << std::setw(12) << element.end.x
+                        << std::setw(12) << element.end.y
+                        << std::setw(12) << element.center.x
+                        << std::setw(12) << element.center.y
                         << std::setw(10) << element.anticlockwise
                         << std::endl;
                 }
@@ -1235,17 +1235,17 @@ std::ostream& Instance::format(
                         const ShapeElement& element = hole.elements[element_pos];
                         os
                             << std::setw(2) << "I"
-                            << std::setw(6) << item_type_id
-                            << std::setw(8) << shape_pos
-                            << std::setw(8) << hole_pos
-                            << std::setw(6) << element_pos
+                            << std::setw(5) << item_type_id
+                            << std::setw(5) << shape_pos
+                            << std::setw(5) << hole_pos
+                            << std::setw(5) << element_pos
                             << std::setw(2) << element2char(element.type)
-                            << std::setw(10) << element.start.x
-                            << std::setw(10) << element.start.y
-                            << std::setw(10) << element.end.x
-                            << std::setw(10) << element.end.y
-                            << std::setw(10) << element.center.x
-                            << std::setw(10) << element.center.y
+                            << std::setw(12) << element.start.x
+                            << std::setw(12) << element.start.y
+                            << std::setw(12) << element.end.x
+                            << std::setw(12) << element.end.y
+                            << std::setw(12) << element.center.x
+                            << std::setw(12) << element.center.y
                             << std::setw(10) << element.anticlockwise
                             << std::endl;
                     }
