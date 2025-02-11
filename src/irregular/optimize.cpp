@@ -17,6 +17,41 @@ using namespace packingsolver::irregular;
 namespace
 {
 
+void optimize_tree_search_worker(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter,
+        BranchingScheme::Parameters branching_scheme_parameters,
+        treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters)
+{
+    ibs_parameters.minimum_size_of_the_queue = 1;
+    ibs_parameters.maximum_size_of_the_queue = 1;
+    for (Counter iteration = 0;
+            ;
+            ++iteration) {
+
+        // Run tree search.
+        BranchingScheme branching_scheme(instance, branching_scheme_parameters);
+        treesearchsolver::iterative_beam_search_2<BranchingScheme>(
+                branching_scheme,
+                ibs_parameters);
+
+        // Check end.
+        if (parameters.timer.needs_to_end())
+            break;
+
+        // Update maximum approximation ratio.
+        branching_scheme_parameters.maximum_approximation_ratio
+            *= parameters.maximum_approximation_ratio_factor;;
+
+        // Update beam size.
+        ibs_parameters.minimum_size_of_the_queue = ((treesearchsolver::NodeId)(ibs_parameters.minimum_size_of_the_queue * 1.5) > ibs_parameters.minimum_size_of_the_queue)?
+            ibs_parameters.minimum_size_of_the_queue * 1.5:
+            ibs_parameters.minimum_size_of_the_queue + 1;
+        ibs_parameters.maximum_size_of_the_queue = ibs_parameters.minimum_size_of_the_queue;
+    }
+}
+
 void optimize_tree_search(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -69,6 +104,7 @@ void optimize_tree_search(
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         growth_factors = {1.5};
 
+    std::vector<BranchingScheme::Parameters> branching_scheme_parameters_list;
     std::vector<BranchingScheme> branching_schemes;
     std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
     std::vector<irregular::Output> outputs;
@@ -79,6 +115,14 @@ void optimize_tree_search(
                 BranchingScheme::Parameters branching_scheme_parameters;
                 branching_scheme_parameters.guide_id = guide_id;
                 branching_scheme_parameters.direction = direction;
+                if (parameters.optimization_mode == OptimizationMode::Anytime) {
+                    branching_scheme_parameters.maximum_approximation_ratio
+                        = parameters.initial_maximum_approximation_ratio;
+                } else {
+                    branching_scheme_parameters.maximum_approximation_ratio
+                        = parameters.not_anytime_maximum_approximation_ratio;
+                }
+                branching_scheme_parameters_list.push_back(branching_scheme_parameters);
                 branching_schemes.push_back(BranchingScheme(instance, branching_scheme_parameters));
                 treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
                 ibs_parameters.verbosity_level = 0;
@@ -126,7 +170,17 @@ void optimize_tree_search(
                     outputs[i].solution_pool.add(solution);
                 };
         }
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+        if (parameters.optimization_mode == OptimizationMode::Anytime) {
+            exception_ptr_list.push_front(std::exception_ptr());
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_tree_search_worker), optimize_tree_search_worker>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter),
+                        branching_scheme_parameters_list[i],
+                        ibs_parameters_list[i]));
+        } else if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>,

@@ -75,8 +75,11 @@ int main(int argc, char *argv[])
         ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
         ("use-column-generation,", po::value<bool>(), "enable column-generation")
         ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
+        ("initial-maximum-approximation-ratio,", po::value<double>(), "initial maximum approximation ratio")
+        ("maximum-approximation-ratio-factor,", po::value<double>(), "decrease factor for the maximum approximation ratio")
         ("sequential-value-correction-subproblem-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
         ("column-generation-subproblem-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
+        ("not-anytime-maximum-approximation-ratio,", po::value<double>(), "")
         ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
         ("not-anytime-sequential-single-knapsack-subproblem-queue-size,", po::value<Counter>(), "")
         ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
@@ -135,10 +138,16 @@ int main(int argc, char *argv[])
     if (vm.count("use-dichotomic-search"))
         parameters.use_dichotomic_search = vm["use-dichotomic-search"].as<bool>();
 
+    if (vm.count("initial-maximum-approximation-ratio"))
+        parameters.initial_maximum_approximation_ratio = vm["initial-maximum-approximation-ratio"].as<double>();
+    if (vm.count("maximum-approximation-ratio-factor"))
+        parameters.maximum_approximation_ratio_factor = vm["maximum-approximation-ratio-factor"].as<double>();
     if (vm.count("sequential-value-correction-subproblem-queue-size"))
         parameters.sequential_value_correction_subproblem_queue_size = vm["sequential-value-correction-subproblem-queue-size"].as<NodeId>();
     if (vm.count("column-generation-subproblem-queue-size"))
         parameters.column_generation_subproblem_queue_size = vm["column-generation-subproblem-queue-size"].as<NodeId>();
+    if (vm.count("not-anytime-maximum-approximation-ratio"))
+        parameters.not_anytime_maximum_approximation_ratio = vm["not-anytime-maximum-approximation-ratio"].as<double>();
     if (vm.count("not-anytime-tree-search-queue-size"))
         parameters.not_anytime_tree_search_queue_size = vm["not-anytime-tree-search-queue-size"].as<Counter>();
     if (vm.count("not-anytime-sequential-single-knapsack-subproblem-queue-size"))
