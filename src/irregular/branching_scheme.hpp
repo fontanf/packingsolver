@@ -234,6 +234,8 @@ public:
 
         /** Direction. */
         Direction direction = Direction::LeftToRightThenBottomToTop;
+
+        double maximum_approximation_ratio = 0.05;
     };
 
     /** Constructor. */

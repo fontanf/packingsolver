@@ -39,6 +39,12 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use column generation algorithm. */
     bool use_column_generation = false;
 
+    /** Initial maximum approximation ratio. */
+    double initial_maximum_approximation_ratio = 0.20;
+
+    /** Decrease factor for the maximum approximation ratio. */
+    double maximum_approximation_ratio_factor = 0.75;
+
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 
@@ -63,6 +69,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /*
      * Parameters for non-anytime mode
      */
+
+    /** Maximum approximation ratio. */
+    double not_anytime_maximum_approximation_ratio = 0.05;
 
     /** Size of the queue in the tree search algorithm. */
     NodeId not_anytime_tree_search_queue_size = 512;
