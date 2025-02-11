@@ -439,16 +439,18 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
         const Solution& sub_solution = sub_output.solution_pool.best();
 
         // Update solution.
-        Solution solution(instance);
-        solution.append(
-                sub_solution,
-                0,  // bin_pos
-                1,  // copies
-                {0},  // bin_type_ids
-                sub_to_orig);
-        std::stringstream ss;
-        ss << "BD it " << output.number_of_iterations;
-        algorithm_formatter.update_solution(solution, ss.str());
+        if (sub_solution.number_of_bins() > 0) {
+            Solution solution(instance);
+            solution.append(
+                    sub_solution,
+                    0,  // bin_pos
+                    1,  // copies
+                    {0},  // bin_type_ids
+                    sub_to_orig);
+            std::stringstream ss;
+            ss << "BD it " << output.number_of_iterations;
+            algorithm_formatter.update_solution(solution, ss.str());
+        }
 
         // Check end.
         if (parameters.timer.needs_to_end())
