@@ -75,6 +75,14 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             }
         }
 
+        Profit highest_profit = 0.0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance.item_type(item_type_id);
+            highest_profit = (std::max)(highest_profit, item_type.profit);
+        }
+
         // Objective: maximize the overall profit.
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
@@ -88,7 +96,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 column_lower_bounds.push_back(0);
                 column_upper_bounds.push_back(1);
                 column_types.push_back(1);
-                objective.push_back(item_type.profit);
+                objective.push_back(item_type.profit / highest_profit);
             }
         }
         // Set objective sense.
@@ -113,14 +121,14 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 for (ItemPos copy = 0;
                         copy < item_copies[item_type_id];
                         ++copy) {
-                    a_value.push_back(item_type.area());
+                    a_value.push_back((double)item_type.area() / bin_type.area());
                     a_index.push_back(x[item_type_id][copy]);
                     number_of_elements_in_rows.back()++;
                 }
             }
             // Add row bounds
             row_lower_bounds.push_back(0);
-            row_upper_bounds.push_back(bin_type.area());
+            row_upper_bounds.push_back(1);
         }
 
         // Constraints: dominated copies.
@@ -338,10 +346,14 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                     parameters.timer.remaining_time());
         }
 
-        // Reduce printout.
+        Highs_setStringOptionValue(
+                highs,
+                "parallel",
+                "off");
+
         Highs_setBoolOptionValue(
                 highs,
-                "log_to_console",
+                "mip_allow_restart",
                 false);
 
         // Solve the incumbent model
@@ -450,7 +462,11 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             std::stringstream ss;
             ss << "BD it " << output.number_of_iterations;
             algorithm_formatter.update_solution(solution, ss.str());
+            //std::cout << "it " << output.number_of_iterations
+            //    << " val " << solution.profit()
+            //    << std::endl;
         }
+        //sub_solution.format(std::cout, 1);
 
         // Check end.
         if (parameters.timer.needs_to_end())
