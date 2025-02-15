@@ -7,7 +7,7 @@ namespace packingsolver
 namespace irregular
 {
 
-Shape polygon_convex_hull(
+Shape convex_hull(
         const Shape& shape);
 
 }

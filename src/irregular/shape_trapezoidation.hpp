@@ -7,7 +7,7 @@ namespace packingsolver
 namespace irregular
 {
 
-std::vector<GeneralizedTrapezoid> polygon_trapezoidation(
+std::vector<GeneralizedTrapezoid> trapezoidation(
         const Shape& shape,
         const std::vector<Shape>& holes = {});
 

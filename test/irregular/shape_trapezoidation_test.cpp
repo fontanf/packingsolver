@@ -1,4 +1,4 @@
-#include "irregular/polygon_trapezoidation.hpp"
+#include "irregular/shape_trapezoidation.hpp"
 
 #include <gtest/gtest.h>
 
@@ -8,7 +8,7 @@ using namespace packingsolver::irregular;
 TEST(IrregularPolygonTrapezoidation, Triangle1)
 {
     Shape shape = build_polygon_shape({{0, 0}, {3, 0}, {1, 3}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
     //    std::cout << trapezoid << std::endl;
 
@@ -20,7 +20,7 @@ TEST(IrregularPolygonTrapezoidation, Triangle1)
 TEST(IrregularPolygonTrapezoidation, Triangle2)
 {
     Shape shape = build_polygon_shape({{2, 0}, {3, 3}, {0, 3}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
     //    std::cout << trapezoid << std::endl;
 
@@ -32,7 +32,7 @@ TEST(IrregularPolygonTrapezoidation, Triangle2)
 TEST(IrregularPolygonTrapezoidation, Square)
 {
     Shape shape = build_polygon_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
 
     EXPECT_EQ(trapezoids.size(), 1);
     GeneralizedTrapezoid trapezoid_1(0, 1, 0, 1, 0, 1);
@@ -42,7 +42,7 @@ TEST(IrregularPolygonTrapezoidation, Square)
 TEST(IrregularPolygonTrapezoidation, Trapezoid1)
 {
     Shape shape = build_polygon_shape({{0, 0}, {3, 0}, {2, 3}, {1, 3}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
 
     EXPECT_EQ(trapezoids.size(), 1);
     GeneralizedTrapezoid trapezoid_1(0, 3, 0, 3, 1, 2);
@@ -52,7 +52,7 @@ TEST(IrregularPolygonTrapezoidation, Trapezoid1)
 TEST(IrregularPolygonTrapezoidation, Trapezoid2)
 {
     Shape shape = build_polygon_shape({{1, 0}, {2, 0}, {3, 3}, {0, 3}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
 
     EXPECT_EQ(trapezoids.size(), 1);
     GeneralizedTrapezoid trapezoid_1(0, 3, 1, 2, 0, 3);
@@ -62,7 +62,7 @@ TEST(IrregularPolygonTrapezoidation, Trapezoid2)
 TEST(IrregularPolygonTrapezoidation, Triangle3)
 {
     Shape shape = build_polygon_shape({{4, 0}, {1, 3}, {0, 1}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
     //    std::cout << trapezoid << std::endl;
 
@@ -76,7 +76,7 @@ TEST(IrregularPolygonTrapezoidation, Triangle3)
 TEST(IrregularPolygonTrapezoidation, Trapezoid3)
 {
     Shape shape = build_polygon_shape({{5, 0}, {2, 3}, {1, 3}, {0, 1}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     for (const GeneralizedTrapezoid& trapezoid: trapezoids)
         std::cout << trapezoid << std::endl;
 
@@ -90,7 +90,7 @@ TEST(IrregularPolygonTrapezoidation, Trapezoid3)
 TEST(IrregularPolygonTrapezoidation, DoubleTrapezoid1)
 {
     Shape shape = build_polygon_shape({{0, 0}, {4, 0}, {2, 2}, {4, 4}, {0, 4}, {1, 2}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
     //    std::cout << trapezoid << std::endl;
 
@@ -104,7 +104,7 @@ TEST(IrregularPolygonTrapezoidation, DoubleTrapezoid1)
 TEST(IrregularPolygonTrapezoidation, DoubleTrapezoid2)
 {
     Shape shape = build_polygon_shape({{1, 0}, {2, 0}, {4, 2}, {2, 4}, {1, 4}, {0, 2}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
     //    std::cout << trapezoid << std::endl;
 
@@ -120,7 +120,7 @@ TEST(IrregularPolygonTrapezoidation, ReversedH)
     Shape shape = build_polygon_shape({
             {0, 0}, {3, 0}, {3, 1}, {2, 1}, {2, 2}, {3, 2},
             {3, 3}, {0, 3}, {0, 2}, {1, 2}, {1, 1}, {0, 1}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
     //    std::cout << trapezoid << std::endl;
 
@@ -138,7 +138,7 @@ TEST(IrregularPolygonTrapezoidation, Cross)
     Shape shape = build_polygon_shape({
             {1, 0}, {2, 0}, {2, 1}, {3, 1}, {3, 2}, {2, 2},
             {2, 3}, {1, 3}, {1, 2}, {0, 2}, {0, 1}, {1, 1}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
     //    std::cout << trapezoid << std::endl;
 
@@ -156,7 +156,7 @@ TEST(IrregularPolygonTrapezoidation, U)
     Shape shape = build_polygon_shape({
             {0, 0}, {3, 0}, {3, 3}, {2, 3},
             {2, 1}, {1, 1}, {1, 3}, {0, 3}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     //for (const GeneralizedTrapezoid& trapezoid: trapezoids)
     //    std::cout << trapezoid << std::endl;
 
@@ -175,7 +175,7 @@ TEST(IrregularPolygonTrapezoidation, W)
             {0, 0}, {5, 0}, {5, 3}, {4, 3},
             {4, 1}, {3, 1}, {3, 2}, {2, 2},
             {2, 1}, {1, 1}, {1, 3}, {0, 3}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     for (const GeneralizedTrapezoid& trapezoid: trapezoids)
         std::cout << trapezoid << std::endl;
 
@@ -200,7 +200,7 @@ TEST(IrregularPolygonTrapezoidation, Shape1)
             {0.0, 300.0},
             {0.0, 0.0},
             {300.0, 0.0}});
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
     for (const GeneralizedTrapezoid& trapezoid: trapezoids)
         std::cout << trapezoid << std::endl;
 
@@ -229,7 +229,7 @@ TEST(IrregularPolygonTrapezoidation, SquareRing)
             {2, 1},
             {2, 2},
             {1, 2}})};
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape, holes);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape, holes);
     for (const GeneralizedTrapezoid& trapezoid: trapezoids)
         std::cout << trapezoid << std::endl;
 
@@ -260,7 +260,7 @@ TEST(IrregularPolygonTrapezoidation, DiamondHole)
             {3, 2},
             {2, 3},
             {1, 2}})};
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape, holes);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape, holes);
     for (const GeneralizedTrapezoid& trapezoid: trapezoids)
         std::cout << trapezoid << std::endl;
 
@@ -297,7 +297,7 @@ TEST(IrregularPolygonTrapezoidation, ButterflyHole)
             {3, 3},
             {2, 2.5},
             {1, 3}})};
-    std::vector<GeneralizedTrapezoid> trapezoids = polygon_trapezoidation(shape, holes);
+    std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape, holes);
     for (const GeneralizedTrapezoid& trapezoid: trapezoids)
         std::cout << trapezoid << std::endl;
 

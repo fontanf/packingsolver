@@ -1,4 +1,4 @@
-#include "irregular/polygon_trapezoidation.hpp"
+#include "irregular/shape_trapezoidation.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -108,7 +108,7 @@ inline Point get_vertex(
 
 }
 
-std::vector<GeneralizedTrapezoid> packingsolver::irregular::polygon_trapezoidation(
+std::vector<GeneralizedTrapezoid> packingsolver::irregular::trapezoidation(
         const Shape& shape,
         const std::vector<Shape>& holes)
 {

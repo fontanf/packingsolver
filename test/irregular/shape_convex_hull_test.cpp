@@ -1,4 +1,4 @@
-#include "irregular/polygon_convex_hull.hpp"
+#include "irregular/shape_convex_hull.hpp"
 
 #include <gtest/gtest.h>
 
@@ -8,7 +8,7 @@ using namespace packingsolver::irregular;
 TEST(IrregularPolygonConvexHull, Triangle)
 {
     Shape shape = build_polygon_shape({{0, 0}, {3, 0}, {1, 3}});
-    Shape convex_hull = polygon_convex_hull(shape);
+    Shape convex_hull = irregular::convex_hull(shape);
 
     ASSERT_EQ(convex_hull.elements.size(), 3);
     EXPECT_EQ(convex_hull.elements[0].start.x, 0);
