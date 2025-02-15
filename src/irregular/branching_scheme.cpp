@@ -1,7 +1,7 @@
 #include "irregular/branching_scheme.hpp"
 
-#include "irregular/polygon_convex_hull.hpp"
-#include "irregular/polygon_trapezoidation.hpp"
+#include "irregular/shape_convex_hull.hpp"
+#include "irregular/shape_trapezoidation.hpp"
 #include "irregular/polygon_simplification.hpp"
 #include "irregular/shape.hpp"
 
@@ -160,7 +160,7 @@ BranchingScheme::BranchingScheme(
                 Shape cleaned_shape = clean_shape(shape_border);
                 //std::cout << cleaned_shape.to_string(0) << std::endl;
                 if (cleaned_shape.elements.size() > 2) {
-                    auto trapezoids = polygon_trapezoidation(cleaned_shape);
+                    auto trapezoids = trapezoidation(cleaned_shape);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 -1,
@@ -173,7 +173,7 @@ BranchingScheme::BranchingScheme(
                 Shape sym_shape = shape_border.axial_symmetry_identity_line();
                 Shape cleaned_shape = clean_shape(sym_shape);
                 if (cleaned_shape.elements.size() > 2) {
-                    auto trapezoids = polygon_trapezoidation(cleaned_shape);
+                    auto trapezoids = trapezoidation(cleaned_shape);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 -1,
@@ -197,7 +197,7 @@ BranchingScheme::BranchingScheme(
                     if (!strictly_lesser(hole.compute_area(), instance.smallest_item_area()))
                         cleaned_holes.push_back(clean_shape(hole));
                 {
-                    auto trapezoids = polygon_trapezoidation(
+                    auto trapezoids = trapezoidation(
                             cleaned_shape,
                             cleaned_holes);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
@@ -220,7 +220,7 @@ BranchingScheme::BranchingScheme(
                 for (const Shape& hole: sym_holes)
                     cleaned_holes.push_back(clean_shape(hole));
 
-                auto trapezoids = polygon_trapezoidation(
+                auto trapezoids = trapezoidation(
                         cleaned_shape,
                         cleaned_holes);
                 for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
@@ -325,7 +325,7 @@ BranchingScheme::BranchingScheme(
                                 name);
                     }
 
-                    auto trapezoids = polygon_trapezoidation(
+                    auto trapezoids = trapezoidation(
                             cleaned_shape,
                             cleaned_holes);
                     trapezoid_set_x.shapes.push_back({});
@@ -396,7 +396,7 @@ BranchingScheme::BranchingScheme(
                                 name);
                     }
 
-                    auto trapezoids = polygon_trapezoidation(
+                    auto trapezoids = trapezoidation(
                             cleaned_shape,
                             cleaned_holes);
                     trapezoid_set_y.shapes.push_back({});
@@ -748,7 +748,7 @@ BranchingScheme::BranchingScheme(
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
             const auto& item_shape = item_type.shapes[item_shape_pos];
-            Shape convex_hull = polygon_convex_hull(item_shape.shape);
+            Shape convex_hull = irregular::convex_hull(item_shape.shape);
             AreaDbl convex_hull_area = convex_hull.compute_area();
             item_types_convex_hull_area_[item_type_id] += convex_hull_area;
         }

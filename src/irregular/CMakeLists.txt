@@ -7,8 +7,8 @@ target_sources(PackingSolver_irregular PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     shape.cpp
-    polygon_convex_hull.cpp
-    polygon_trapezoidation.cpp
+    shape_convex_hull.cpp
+    shape_trapezoidation.cpp
     polygon_simplification.cpp
     branching_scheme.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC

@@ -2,8 +2,8 @@ add_executable(PackingSolver_irregular_test)
 target_sources(PackingSolver_irregular_test PRIVATE
     trapezoid_test.cpp
     shape_test.cpp
-    polygon_convex_hull_test.cpp
-    polygon_trapezoidation_test.cpp
+    shape_convex_hull_test.cpp
+    shape_trapezoidation_test.cpp
     irregular_test.cpp)
 target_include_directories(PackingSolver_irregular_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)

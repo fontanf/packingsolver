@@ -1,4 +1,4 @@
-#include "irregular/polygon_convex_hull.hpp"
+#include "irregular/shape_convex_hull.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -32,7 +32,7 @@ LengthDbl square_distance(
 
 }
 
-Shape irregular::polygon_convex_hull(
+Shape irregular::convex_hull(
         const Shape& shape)
 {
     //std::cout << "shape.elements.size() " << shape.elements.size() << std::endl;
