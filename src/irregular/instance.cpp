@@ -1152,7 +1152,7 @@ std::ostream& Instance::format(
                 for (Counter element_pos = 0;
                         element_pos < (Counter)defect.shape.elements.size();
                         ++element_pos) {
-                    const ShapeElement& element = bin_type.shape.elements[element_pos];
+                    const ShapeElement& element = defect.shape.elements[element_pos];
                     os
                         << std::setw(2) << "B"
                         << std::setw(5) << bin_type_id
