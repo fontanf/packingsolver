@@ -292,9 +292,10 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
 
                     auto bppl_solution = bppl_solution_pool.best();
 
-                    if (!(bppl_solution < kp_solution)) {
+                    Solution kp_solution_tmp(bppl_instance);
+                    kp_solution_tmp.append(kp_solution, 0, 1);
+                    if (!(bppl_solution < kp_solution_tmp))
                         kp_solution = bppl_solution;
-                    }
                 }
 
                 Solution kp_solution_orig(instance);
