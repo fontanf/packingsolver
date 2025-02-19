@@ -279,7 +279,7 @@ struct Defect
     std::vector<Shape> holes;
 
     /** Type of the defect. */
-    DefectTypeId type;
+    DefectTypeId type = -1;
 
     std::string to_string(Counter indentation) const;
 };
