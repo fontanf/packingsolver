@@ -24,13 +24,21 @@ void optimize_tree_search_worker(
         BranchingScheme::Parameters branching_scheme_parameters,
         treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters)
 {
-    ibs_parameters.minimum_size_of_the_queue = 1;
-    ibs_parameters.maximum_size_of_the_queue = 1;
+    Counter queue_size = 1;
+    double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
     for (Counter iteration = 0;
             ;
             ++iteration) {
 
+        if (parameters.optimization_mode != OptimizationMode::Anytime) {
+            queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_queue_size;
+            maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
+        }
+
         // Run tree search.
+        branching_scheme_parameters.maximum_approximation_ratio = maximum_approximation_ratio;
+        ibs_parameters.minimum_size_of_the_queue = queue_size;
+        ibs_parameters.maximum_size_of_the_queue = queue_size;
         BranchingScheme branching_scheme(instance, branching_scheme_parameters);
         treesearchsolver::iterative_beam_search_2<BranchingScheme>(
                 branching_scheme,
@@ -40,15 +48,15 @@ void optimize_tree_search_worker(
         if (parameters.timer.needs_to_end())
             break;
 
-        // Update maximum approximation ratio.
-        branching_scheme_parameters.maximum_approximation_ratio
-            *= parameters.maximum_approximation_ratio_factor;;
+        if (parameters.optimization_mode != OptimizationMode::Anytime)
+            break;
 
         // Update beam size.
-        ibs_parameters.minimum_size_of_the_queue = ((treesearchsolver::NodeId)(ibs_parameters.minimum_size_of_the_queue * 1.5) > ibs_parameters.minimum_size_of_the_queue)?
-            ibs_parameters.minimum_size_of_the_queue * 1.5:
-            ibs_parameters.minimum_size_of_the_queue + 1;
-        ibs_parameters.maximum_size_of_the_queue = ibs_parameters.minimum_size_of_the_queue;
+        queue_size = std::max(
+                queue_size + 1,
+                (NodeId)(queue_size * 1.5));
+        // Update maximum approximation ratio.
+        maximum_approximation_ratio *= parameters.maximum_approximation_ratio_factor;
     }
 }
 
@@ -213,13 +221,16 @@ void optimize_sequential_single_knapsack(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
     for (Counter queue_size = 1;;) {
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime) {
             queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_queue_size;
+            maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
+        }
 
         SequentialValueCorrectionFunction<Instance, Solution> kp_solve
-            = [&parameters, &queue_size](const Instance& kp_instance)
+            = [&parameters, queue_size, maximum_approximation_ratio](const Instance& kp_instance)
             {
                 OptimizeParameters kp_parameters;
                 kp_parameters.verbosity_level = 0;
@@ -228,6 +239,7 @@ void optimize_sequential_single_knapsack(
                     = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                     OptimizationMode::NotAnytimeSequential:
                     OptimizationMode::NotAnytime;
+                kp_parameters.not_anytime_maximum_approximation_ratio = maximum_approximation_ratio;
                 kp_parameters.not_anytime_tree_search_queue_size = queue_size;
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
@@ -255,9 +267,12 @@ void optimize_sequential_single_knapsack(
         if (parameters.optimization_mode != OptimizationMode::Anytime)
             break;
 
+        // Update beam size.
         queue_size = std::max(
                 queue_size + 1,
                 (NodeId)(queue_size * 2));
+        // Update maximum approximation ratio.
+        maximum_approximation_ratio *= parameters.maximum_approximation_ratio_factor;
     }
 }
 
@@ -276,6 +291,7 @@ void optimize_sequential_value_correction(
                 = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                 OptimizationMode::NotAnytimeSequential:
                 OptimizationMode::NotAnytime;
+            kp_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.sequential_value_correction_subproblem_queue_size;
             auto kp_output = optimize(kp_instance, kp_parameters);
@@ -304,13 +320,16 @@ void optimize_dichotomic_search(
         AlgorithmFormatter& algorithm_formatter)
 {
     double waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
+    double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
     for (Counter queue_size = 1;;) {
 
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
+        if (parameters.optimization_mode != OptimizationMode::Anytime) {
             queue_size = parameters.not_anytime_dichotomic_search_subproblem_queue_size;
+            maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
+        }
 
         DichotomicSearchFunction<Instance, Solution> bpp_solve
-            = [&parameters, &queue_size](const Instance& bpp_instance)
+            = [&parameters, queue_size, maximum_approximation_ratio](const Instance& bpp_instance)
             {
                 OptimizeParameters bpp_parameters;
                 bpp_parameters.verbosity_level = 0;
@@ -319,6 +338,7 @@ void optimize_dichotomic_search(
                     = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                     OptimizationMode::NotAnytimeSequential:
                     OptimizationMode::NotAnytime;
+                bpp_parameters.not_anytime_maximum_approximation_ratio = maximum_approximation_ratio;
                 bpp_parameters.use_tree_search = 1;
                 bpp_parameters.not_anytime_tree_search_queue_size = queue_size;
                 auto bpp_output = optimize(bpp_instance, bpp_parameters);
@@ -348,9 +368,13 @@ void optimize_dichotomic_search(
         if (parameters.optimization_mode != OptimizationMode::Anytime)
             break;
 
+        // Update beam size.
         queue_size = std::max(
                 queue_size + 1,
                 (NodeId)(queue_size * 2));
+        // Update maximum approximation ratio.
+        maximum_approximation_ratio *= parameters.maximum_approximation_ratio_factor;
+
         waste_percentage_upper_bound = ds_output.waste_percentage_upper_bound;
     }
 }
@@ -370,6 +394,7 @@ void optimize_column_generation(
                 = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                 OptimizationMode::NotAnytimeSequential:
                 OptimizationMode::NotAnytime;
+            kp_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.column_generation_subproblem_queue_size;
             return optimize(kp_instance, kp_parameters);
@@ -680,6 +705,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         last_bin_parameters.verbosity_level = 0;
         last_bin_parameters.timer = parameters.timer;
         last_bin_parameters.optimization_mode = OptimizationMode::NotAnytime;
+        last_bin_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
         last_bin_parameters.tree_search_guides = {2, 3};
         auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
