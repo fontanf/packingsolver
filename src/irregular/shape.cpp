@@ -175,7 +175,8 @@ bool irregular::operator==(
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)shape_2.elements.size();
             ++element_pos) {
-        if (!(shape_1.elements[element_pos] == shape_2.elements[element_pos + offset])) {
+        ElementPos element_pos_2 = (element_pos + offset) % shape_2.elements.size();
+        if (!(shape_1.elements[element_pos] == shape_2.elements[element_pos_2])) {
             return false;
         }
     }
