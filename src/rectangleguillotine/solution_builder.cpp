@@ -10,7 +10,8 @@ void SolutionBuilder::add_bin(
         BinPos copies,
         CutOrientation first_cut_orientation)
 {
-    if (bin_type_id >= solution_.instance().number_of_bin_types()) {
+    if (bin_type_id < 0
+            || bin_type_id >= solution_.instance().number_of_bin_types()) {
         throw std::invalid_argument(
                 "packingsolver::rectangleguillotine::SolutionBuilder::add_bin: "
                 "invalid 'bin_type_id'; "
