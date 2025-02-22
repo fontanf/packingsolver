@@ -404,7 +404,7 @@ void SolutionBuilder::read(
                 node_id < (SolutionNodeId)nodes[bin_pos].size();
                 ++node_id) {
             const SolutionNode& node = nodes[bin_pos][node_id];
-            if (node.d == 0 && bin_type_id < 0)
+            if (node.f == -1 && bin_type_id < 0)
                 bin_type_id = node.item_type_id;
             if (node.d == 1) {
                 const SolutionNode& parent = nodes[bin_pos][node.f];
@@ -420,6 +420,8 @@ void SolutionBuilder::read(
         }
         //std::cout << "bin_type_id " << bin_type_id << std::endl;
         //std::cout << "first_cut_orientation " << first_cut_orientation << std::endl;
+        if (bin_type_id < 0)
+            bin_type_id = solution_.instance().bin_type_id(bin_pos);
         add_bin(bin_type_id, 1, first_cut_orientation);
 
         for (SolutionNodeId node_id = 0;
