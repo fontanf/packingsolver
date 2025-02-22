@@ -249,7 +249,8 @@ void InstanceBuilder::add_item_type(
             item_type.rect.y,
             profit,
             copies,
-            item_type.oriented);
+            item_type.oriented,
+            item_type.group_id);
     set_item_type_weight(
             item_type_id,
             item_type.weight);
