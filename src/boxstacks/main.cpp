@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
     std::string instance_path = vm["items"].as<std::string>();
     if (fs::is_regular_file(instance_path)) {
         instance_path = "";
-    } if (fs::is_regular_file(instance_path + "_items.csv")) {
+    } else if (fs::is_regular_file(instance_path + "_items.csv")) {
         instance_path = instance_path + "_";
     } else if (fs::is_regular_file(instance_path + "items.csv")) {
         instance_path = instance_path;
