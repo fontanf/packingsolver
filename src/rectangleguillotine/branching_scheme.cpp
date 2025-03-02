@@ -1433,7 +1433,7 @@ void BranchingScheme::update(
         }
         if (((*it)->item_type_id_1 != -1 || (*it)->item_type_id_2 != -1)
                 && (insertion.item_type_id_1 == -1 || insertion.item_type_id_1 == (*it)->item_type_id_1 || insertion.item_type_id_1 == (*it)->item_type_id_2)
-                && (insertion.item_type_id_2 == -1 || insertion.item_type_id_2 == (*it)->item_type_id_2 || insertion.item_type_id_2 == (*it)->item_type_id_2)) {
+                && (insertion.item_type_id_2 == -1 || insertion.item_type_id_2 == (*it)->item_type_id_1 || insertion.item_type_id_2 == (*it)->item_type_id_2)) {
             if (dominates(front(**it), front(parent, insertion))) {
                 return;
             }
@@ -1469,7 +1469,7 @@ void BranchingScheme::update(
                     throw std::logic_error("");
                 if (((*it)->item_type_id_1 != -1 || (*it)->item_type_id_2 != -1)
                         && (cc->item_type_id_1 == -1 || cc->item_type_id_1 == (*it)->item_type_id_1 || cc->item_type_id_1 == (*it)->item_type_id_2)
-                        && (cc->item_type_id_2 == -1 || cc->item_type_id_2 == (*it)->item_type_id_2 || cc->item_type_id_2 == (*it)->item_type_id_2)) {
+                        && (cc->item_type_id_2 == -1 || cc->item_type_id_2 == (*it)->item_type_id_1 || cc->item_type_id_2 == (*it)->item_type_id_2)) {
                     if (dominates(front(**it), front(*cc))) {
                         dominated = true;
                         break;
