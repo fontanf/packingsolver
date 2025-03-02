@@ -44,6 +44,9 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness1)
 
     BranchingScheme::Insertion i0 = {0, -1, -1, 500, 500, 500, 6000, 3210, 1, 1};
     std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(branching_scheme.children(root));
+    std::cout << is0.size() << std::endl;
+    for (const BranchingScheme::Insertion& insertion: is0)
+        std::cout << insertion << std::endl;
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);
 

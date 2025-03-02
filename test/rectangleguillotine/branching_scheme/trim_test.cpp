@@ -238,7 +238,7 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
-        {0, -1, -1, 1000, 3180, 1000, 3500, 3190, 0, 0},
+        {0, -1, -1, 1000, 3180, 1000, 3500, 3210, 0, 0},
     };
 
     EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
@@ -325,7 +325,7 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
-        {0, -1, -1, 2970, 500, 2970, 2980, 3210, 0, 0},
+        {0, -1, -1, 2970, 500, 2970, 3000, 3210, 0, 0},
     };
 
     EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
@@ -400,10 +400,10 @@ TEST(RectangleGuillotineBranchingScheme, TrimAndDefect)
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
-        {0, -1, 2, 1225, 856, 1225, 3200, 2240, 0, 2},
-        {0, -1, 2, 1161, 920, 1161, 3200, 2240, 0, 2},
-        {0, -1, 1, 920, 912, 920, 3200, 2240, 0, 2},
-        {0, -1, 1, 856, 976, 856, 3200, 2240, 0, 2},
+        {0, -1, 2, 1225, 856, 1225, 3200, 2250, 0, 2},
+        {0, -1, 2, 1161, 920, 1161, 3200, 2250, 0, 2},
+        {0, -1, 1, 920, 912, 920, 3200, 2250, 0, 2},
+        {0, -1, 1, 856, 976, 856, 3200, 2250, 0, 2},
     };
 
     EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);

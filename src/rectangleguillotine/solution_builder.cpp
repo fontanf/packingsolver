@@ -36,14 +36,18 @@ void SolutionBuilder::add_bin(
     root.t = bin_type.rect.h;
     root.item_type_id = bin_type_id;
     bin.nodes.push_back(root);
+    bool left_trim = (bin_type.left_trim_type == TrimType::Hard && bin_type.left_trim > 0);
+    bool right_trim = (bin_type.right_trim_type == TrimType::Hard && bin_type.right_trim > 0);
+    bool bottom_trim = (bin_type.bottom_trim_type == TrimType::Hard && bin_type.bottom_trim > 0);
+    bool top_trim = (bin_type.top_trim_type == TrimType::Hard && bin_type.top_trim > 0);
 
     // Trims.
-    if (bin_type.left_trim > 0
-            || bin_type.right_trim > 0
-            || bin_type.bottom_trim > 0
-            || bin_type.top_trim > 0) {
+    if (left_trim
+            || right_trim
+            || bottom_trim
+            || top_trim) {
 
-        if (bin_type.left_trim != 0 && bin_type.bottom_trim != 0) {
+        if (left_trim && bottom_trim) {
             SolutionNode node;
             node.d = -1;
             node.f = 0;
@@ -56,7 +60,7 @@ void SolutionBuilder::add_bin(
             bin.nodes.push_back(node);
         }
 
-        if (bin_type.left_trim != 0 && bin_type.top_trim != 0) {
+        if (left_trim && top_trim) {
             SolutionNode node;
             node.d = -1;
             node.f = 0;
@@ -69,7 +73,7 @@ void SolutionBuilder::add_bin(
             bin.nodes.push_back(node);
         }
 
-        if (bin_type.right_trim != 0 && bin_type.bottom_trim != 0) {
+        if (right_trim && bottom_trim) {
             SolutionNode node;
             node.d = -1;
             node.f = 0;
@@ -82,7 +86,7 @@ void SolutionBuilder::add_bin(
             bin.nodes.push_back(node);
         }
 
-        if (bin_type.right_trim != 0 && bin_type.top_trim != 0) {
+        if (right_trim && bin_type.top_trim) {
             SolutionNode node;
             node.d = -1;
             node.f = 0;
@@ -95,25 +99,25 @@ void SolutionBuilder::add_bin(
             bin.nodes.push_back(node);
         }
 
-        if (bin_type.left_trim != 0) {
+        if (left_trim) {
             SolutionNode node;
             node.d = -1;
             node.f = 0;
             node.l = 0;
             node.r = bin_type.left_trim;
-            node.b = bin_type.bottom_trim;
-            node.t = bin_type.rect.h - bin_type.top_trim;
+            node.b = (!bottom_trim)? 0: bin_type.bottom_trim;
+            node.t = bin_type.rect.h - ((!top_trim)? 0: bin_type.top_trim);
             node.item_type_id = -1;
             root.children.push_back(bin.nodes.size());
             bin.nodes.push_back(node);
         }
 
-        if (bin_type.bottom_trim != 0) {
+        if (bottom_trim) {
             SolutionNode node;
             node.d = -1;
             node.f = 0;
-            node.l = bin_type.left_trim;
-            node.r = bin_type.rect.w - bin_type.right_trim;
+            node.l = (!left_trim)? 0: bin_type.left_trim;
+            node.r = bin_type.rect.w - ((!right_trim)? 0: bin_type.right_trim);
             node.b = 0;
             node.t = bin_type.bottom_trim;
             node.item_type_id = -1;
@@ -121,25 +125,25 @@ void SolutionBuilder::add_bin(
             bin.nodes.push_back(node);
         }
 
-        if (bin_type.right_trim != 0) {
+        if (right_trim) {
             SolutionNode node;
             node.d = -1;
             node.f = 0;
             node.l = bin_type.rect.w - bin_type.right_trim;
             node.r = bin_type.rect.w;
-            node.b = bin_type.bottom_trim;
-            node.t = bin_type.rect.h - bin_type.top_trim;
+            node.b = (!bottom_trim)? 0: bin_type.bottom_trim;
+            node.t = bin_type.rect.h - ((!top_trim)? 0: bin_type.top_trim);
             node.item_type_id = -1;
             root.children.push_back(bin.nodes.size());
             bin.nodes.push_back(node);
         }
 
-        if (bin_type.top_trim != 0) {
+        if (top_trim) {
             SolutionNode node;
             node.d = -1;
             node.f = 0;
-            node.l = bin_type.left_trim;
-            node.r = bin_type.rect.w - bin_type.right_trim;
+            node.l = (!left_trim)? 0: bin_type.left_trim;
+            node.r = bin_type.rect.w - ((!right_trim)? 0: bin_type.right_trim);
             node.b = bin_type.rect.h - bin_type.top_trim;
             node.t = bin_type.rect.h;
             node.item_type_id = -1;
@@ -150,10 +154,10 @@ void SolutionBuilder::add_bin(
         SolutionNode node;
         node.d = 0;
         node.f = 0;
-        node.l = bin_type.left_trim;
-        node.r = bin_type.rect.w - bin_type.right_trim;
-        node.b = bin_type.bottom_trim;
-        node.t = bin_type.rect.h - bin_type.top_trim;
+        node.l = (!left_trim)? 0: bin_type.left_trim;
+        node.r = bin_type.rect.w - ((!right_trim)? 0: bin_type.right_trim);
+        node.b = (!bottom_trim)? 0: bin_type.bottom_trim;
+        node.t = bin_type.rect.h - ((!top_trim)? 0: bin_type.top_trim);
         node.item_type_id = -1;
         root.children.push_back(bin.nodes.size());
         bin.nodes.push_back(node);

@@ -105,6 +105,18 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "users" / "2024-11-26" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "users" / "2024-11-26" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "users" / "2024-11-26" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_soft_trims_2nvo" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_soft_trims_2nvo" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_soft_trims_2nvo" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_soft_trims_2nvo" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_soft_trims_3evo" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_soft_trims_3evo" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_soft_trims_3evo" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_soft_trims_3evo" / "solution.csv",
             }}));
 
 

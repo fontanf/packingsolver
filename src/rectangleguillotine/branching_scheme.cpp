@@ -779,7 +779,9 @@ Length BranchingScheme::x1_max(const Node& node, Depth df) const
         const Instance& instance = this->instance(o);
         BinTypeId bin_type_id = instance.bin_type_id(i);
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        Length x = bin_type.rect.w - bin_type.right_trim;
+        Length x = (bin_type.right_trim_type == TrimType::Hard)?
+            bin_type.rect.w - bin_type.right_trim:
+            bin_type.rect.w;
         if (instance.parameters().maximum_distance_1_cuts != -1)
             if (x > x1_prev(node, df) + instance.parameters().maximum_distance_1_cuts)
                 x = x1_prev(node, df) + instance.parameters().maximum_distance_1_cuts;
@@ -806,7 +808,9 @@ Length BranchingScheme::x1_max(const Node& node, Depth df) const
         const Instance& instance = this->instance(df);
         BinTypeId bin_type_id = instance.bin_type_id(i);
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        Length x = bin_type.rect.w - bin_type.right_trim;
+        Length x = (bin_type.right_trim_type == TrimType::Hard)?
+            bin_type.rect.w - bin_type.right_trim:
+            bin_type.rect.w;
         if (instance.parameters().maximum_distance_1_cuts != -1)
             if (x > x1_prev(node, df) + instance.parameters().maximum_distance_1_cuts)
                 x = x1_prev(node, df) + instance.parameters().maximum_distance_1_cuts;
@@ -827,7 +831,9 @@ Length BranchingScheme::y2_max(
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Length y = (df == 2)?
         node.y2_max:
-        bin_type.rect.h - bin_type.top_trim;
+        (bin_type.top_trim_type == TrimType::Hard)?
+        bin_type.rect.h - bin_type.top_trim:
+        bin_type.rect.h;
     if (!instance.parameters().cut_through_defects)
         for (const Defect& defect: bin_type.defects)
             if (defect.left() < x3 + instance.parameters().cut_thickness
@@ -1011,9 +1017,6 @@ void BranchingScheme::insertion_defect(
     Length y = (mode != 2)?
         std::max(defect.top(), y_min):
         std::max(defect.bottom() + 1, y_min);
-    if (x > w || y > h) {
-        return;
-    }
 
     Insertion insertion {
         -1, -1, df,
@@ -1041,12 +1044,14 @@ void BranchingScheme::update(
     Length w = w_orig - bin_type.right_trim;
     Length h = h_orig - bin_type.top_trim;
     Length w_physical = (bin_type.right_trim_type == TrimType::Soft)? w_orig: w;
-    Length h_physical = (bin_type.top_trim_type == TrimType::Soft)?  h_orig: h;
+    Length h_physical = (bin_type.top_trim_type == TrimType::Soft)? h_orig: h;
+
+    //std::cout << "update  " << insertion << std::endl;
 
     // If there is no min_waste constraint, we set insertion.z1 and
     // insertion.z2 to 1 instead of 0 directly. This simplifies the handling of
     // the constraint when the cut thickness is non-null.
-    if (min_waste == 1) {
+    if (min_waste <= 1) {
         if (insertion.z1 == 0)
             insertion.z1 = 1;
         if (insertion.z2 == 0)
@@ -1054,6 +1059,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.x1 and insertion.z1 with respect to min1cut()
+    //std::cout << "update min1cut  " << insertion << std::endl;
     if ((insertion.item_type_id_1 != -1 || insertion.item_type_id_2 != -1)
             && insertion.x1 - x1_prev(parent, insertion.df) < instance.parameters().minimum_distance_1_cuts) {
         if (insertion.z1 == 0) {
@@ -1067,6 +1073,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.y2 and insertion.z2 with respect to min2cut()
+    //std::cout << "update min2cut  " << insertion << std::endl;
     if ((insertion.item_type_id_1 != -1 || insertion.item_type_id_2 != -1)
             && insertion.y2 - y2_prev(parent, insertion.df) < instance.parameters().minimum_distance_2_cuts) {
         if (insertion.z2 == 0) {
@@ -1082,6 +1089,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.y2 and insertion.z2 with respect to one2cut()
+    //std::cout << "update maximum_number_2_cuts  " << insertion << std::endl;
     if (instance.parameters().maximum_number_2_cuts != -1
             && insertion.df == 1
             && parent.subplate1curr_number_of_2_cuts == instance.parameters().maximum_number_2_cuts
@@ -1089,26 +1097,28 @@ void BranchingScheme::update(
         if (insertion.z2 == 0) {
             if (insertion.y2 + cut_thickness + min_waste > h_physical)
                 return;
-            insertion.y2 = h;
+            insertion.y2 = h_physical;
         } else if (insertion.z2 == 1) {
-            insertion.y2 = h;
+            insertion.y2 = h_physical;
         } else { // insertion.z2 == 2
             return;
         }
     }
 
     // Update insertion.x1 if 2-staged
-    if (instance.parameters().number_of_stages == 2 && insertion.x1 != w) {
+    //std::cout << "update 2-staged  " << insertion << std::endl;
+    if (instance.parameters().number_of_stages == 2 && insertion.x1 != w_physical) {
         if (insertion.z1 == 0) {
             if (insertion.x1 + cut_thickness + min_waste > w_physical)
                 return;
-            insertion.x1 = w;
+            insertion.x1 = w_physical;
         } else { // insertion.z1 == 1
-            insertion.x1 = w;
+            insertion.x1 = w_physical;
         }
     }
 
     // Update insertion.x1 and insertion.z1 with respect to x1_curr() and z1().
+    //std::cout << "update x1_curr  " << insertion << std::endl;
     if (insertion.df >= 1) {
         if (insertion.z1 == 0) {
             if (insertion.x1 + min_waste + cut_thickness <= parent.x1_curr) {
@@ -1141,6 +1151,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.y2 and insertion.z2 with respect to y2_curr() and z1().
+    //std::cout << "update y2_curr  " << insertion << std::endl;
     if (insertion.df == 2) {
         if (insertion.z2 == 0) {
             if (insertion.y2 + min_waste <= parent.y2_curr) {
@@ -1211,6 +1222,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.x1 and insertion.z1 with respect to defect intersections.
+    //std::cout << "update x1 defects  " << insertion << std::endl;
     if (!instance.parameters().cut_through_defects) {
         for (;;) {
             DefectId defect_id = instance.rect_intersects_defect(
@@ -1229,30 +1241,47 @@ void BranchingScheme::update(
         }
     }
 
-    // Check max width
-    if (insertion.x1 < w
-            && min_waste > 1
-            && insertion.x1 + cut_thickness > w_physical) {
-        return;
+    // Check right soft-trim.
+    //std::cout << "update right soft-trim  " << insertion << std::endl;
+    if (insertion.x1 > w) {
+        if (insertion.x1 == w_physical) {
+        } else if (insertion.x1 < w_physical) {
+            if (insertion.z1 == 1) {
+                insertion.x1 = w_physical;
+            } else {  // insertion.z1 == 0
+                if (insertion.x1 + min_waste <= w_physical) {
+                    insertion.x1 = w_physical;
+                } else {
+                    return;
+                }
+            }
+        } else {
+            return;
+        }
     }
 
     // Increase width if too close from border
-    if (insertion.x1 + cut_thickness < w
+    //std::cout << "update x border  " << insertion << std::endl;
+    if (insertion.x1 < w_physical
+            && min_waste > 0
             && insertion.x1 + cut_thickness + min_waste > w_physical) {
         if (insertion.z1 == 1) {
-            insertion.x1 = w;
+            insertion.x1 = w_physical;
             insertion.z1 = 0;
         } else { // insertion.z1 == 0
             return;
         }
     }
 
+
     // Check max width
+    //std::cout << "update max width  " << insertion << std::endl;
     if (insertion.x1 > insertion.x1_max) {
         return;
     }
 
     // Update insertion.y2 and insertion.z2 with respect to defect intersections.
+    //std::cout << "update y2 defects  " << insertion << std::endl;
     bool y2_fixed = (insertion.z2 == 2 || (insertion.df == 2 && parent.z2 == 2));
 
     for (;;) {
@@ -1339,11 +1368,34 @@ void BranchingScheme::update(
             break;
     }
 
-    // Now check bin's height
-    if (insertion.y2 + cut_thickness < h
+    // Check top soft-trim.
+    //std::cout << "update top soft-trim  " << insertion << std::endl;
+    if (insertion.y2 > h) {
+        if (insertion.y2 == h_physical) {
+        } else if (insertion.y2 < h_physical) {
+            if (insertion.z2 == 1) {
+                insertion.y2 = h_physical;
+            } else if (insertion.z2 == 0) {
+                if (insertion.y2 + min_waste <= h_physical) {
+                    insertion.y2 = h_physical;
+                } else {
+                    return;
+                }
+            } else {  // insertion.z2 == 2
+                return;
+            }
+        } else {
+            return;
+        }
+    }
+
+    // Increase height if too close from border
+    //std::cout << "update y border  " << insertion << std::endl;
+    if (insertion.y2 < h_physical
+            && min_waste > 0
             && insertion.y2 + cut_thickness + min_waste > h_physical) {
         if (insertion.z2 == 1) {
-            insertion.y2 = h;
+            insertion.y2 = h_physical;
             insertion.z2 = 0;
 
             if (insertion.df == 2) {
@@ -1386,13 +1438,7 @@ void BranchingScheme::update(
     }
 
     // Check max height
-    if (insertion.y2 < h
-            && min_waste > 1
-            && insertion.y2 + cut_thickness > h_physical) {
-        return;
-    }
-
-    // Check max height
+    //std::cout << "update y max  " << insertion << std::endl;
     if (insertion.y2 > insertion.y2_max) {
         return;
     }

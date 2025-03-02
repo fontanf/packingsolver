@@ -94,7 +94,8 @@ void Solution::update_indicators(
                         < instance().parameters().minimum_waste_length)
                     || (node.t - node.b
                         < instance().parameters().minimum_waste_length)) {
-                //std::cout << "minimum_waste_length_feasible_ = false" << std::endl;
+                std::cout << "minimum_waste_length_feasible_ = false" << std::endl;
+                std::cout << "bin_pos " << bin_pos << " node " << node << std::endl;
                 minimum_waste_length_feasible_ = false;
                 feasible_ = false;
             }
@@ -208,7 +209,7 @@ void Solution::update_indicators(
                     node.t,
                     bin_type);
             if (k != -1) {
-                std::cout << "defects_feasible = false" << std::endl;
+                //std::cout << "defects_feasible = false" << std::endl;
                 defects_feasible_ = false;
                 feasible_ = false;
             }
@@ -242,6 +243,13 @@ void Solution::update_indicators(
                 feasible_ = false;
             }
         }
+    }
+    if (!minimum_waste_length_feasible()) {
+        for (const SolutionNode& node: bin.nodes) {
+            std::cout << node << std::endl;
+        }
+        write("solution_rectangleguillotine.csv");
+        exit(1);
     }
 }
 
