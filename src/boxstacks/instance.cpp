@@ -57,10 +57,11 @@ std::ostream& Instance::format(
             << "Number of groups:      " << number_of_groups() << std::endl
             << "Number of defects:     " << number_of_defects() << std::endl
             << "Unloading constraint:  " << unloading_constraint() << std::endl
-            << "Item volume:           " << item_volume() << std::endl
-            << "Bin volume:            " << bin_volume() << std::endl
-            << "Item weight:           " << item_weight() << std::endl
-            << "Bin weight:            " << bin_weight() << std::endl
+            << "Total item volume:     " << item_volume() << std::endl
+            << "Total item profit:     " << item_profit() << std::endl
+            << "Total item weight:     " << item_weight() << std::endl
+            << "Total bin volume:      " << bin_volume() << std::endl
+            << "Total bin weight:      " << bin_weight() << std::endl
             ;
     }
 

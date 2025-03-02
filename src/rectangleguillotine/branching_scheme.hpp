@@ -595,7 +595,7 @@ inline Profit BranchingScheme::ubkp(const Node& node) const
     if (remaining_packabla_area >= remaining_item_area) {
         return instance_.item_profit();
     } else {
-        ItemTypeId j = instance_.max_efficiency_item_type_id();
+        ItemTypeId j = instance_.largest_efficiency_item_type_id();
         double e = (double)instance_.item_type(j).profit / instance_.item_type(j).rect.area();
         Profit p = node.profit + remaining_packabla_area * e;
         //std::cout << "j " << j << " " << instance_.item(j) << std::endl;

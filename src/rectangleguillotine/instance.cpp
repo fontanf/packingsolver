@@ -333,8 +333,12 @@ std::ostream& Instance::format(
             << "Maximum number of consecutive 2-cuts:  " << parameters().maximum_number_2_cuts << std::endl
             << "Cut through defects:                   " << parameters().cut_through_defects << std::endl
             << "Cut thickness:                         " << parameters().cut_thickness << std::endl
-            << "Maximum item copies:                   " << maximum_item_copies() << std::endl
-            << "Maximum bin cost:                      " << maximum_bin_cost() << std::endl
+            << "Total item area:                       " << item_area() << std::endl
+            << "Total item profit:                     " << item_profit() << std::endl
+            << "Largest item profit:                   " << largest_item_profit() << std::endl
+            << "Largest item copies:                   " << largest_item_copies() << std::endl
+            << "Total bin area:                        " << bin_area() << std::endl
+            << "Largest bin cost:                      " << largest_bin_cost() << std::endl
             ;
     }
 

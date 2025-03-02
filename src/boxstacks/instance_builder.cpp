@@ -717,13 +717,13 @@ Instance InstanceBuilder::build()
         instance_.item_volume_ += item_type.copies * item_type.volume();
         // Update item_weight_.
         instance_.item_weight_ += item_type.copies * item_type.weight;
-        // Update max_efficiency_item_type_.
-        if (instance_.max_efficiency_item_type_id_ == -1
-                || instance_.item_type(instance_.max_efficiency_item_type_id_).profit
-                / instance_.item_type(instance_.max_efficiency_item_type_id_).volume()
+        // Update largest_efficiency_item_type_.
+        if (instance_.largest_efficiency_item_type_id_ == -1
+                || instance_.item_type(instance_.largest_efficiency_item_type_id_).profit
+                / instance_.item_type(instance_.largest_efficiency_item_type_id_).volume()
                 < instance_.item_type(item_type_id).profit
                 / instance_.item_type(item_type_id).volume()) {
-            instance_.max_efficiency_item_type_id_ = item_type_id;
+            instance_.largest_efficiency_item_type_id_ = item_type_id;
         }
         // Update all_item_types_infinite_copies_.
         ItemPos c = (bin_types_volume_max - 1) / item_type.volume() + 1;
