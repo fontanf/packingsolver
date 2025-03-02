@@ -303,7 +303,7 @@ Profit BranchingScheme::ubkp(const Node& node) const
     if (remaining_length >= remaining_item_length) {
         return instance_.item_profit();
     } else {
-        ItemTypeId item_type_id = instance_.max_efficiency_item_type_id();
+        ItemTypeId item_type_id = instance_.largest_efficiency_item_type_id();
         return node.profit + remaining_length
             * instance_.item_type(item_type_id).profit
             / instance_.item_type(item_type_id).length;

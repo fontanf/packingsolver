@@ -967,12 +967,14 @@ std::ostream& Instance::format(
             << "Number of circular items:     " << number_of_circular_items_ << std::endl
             << "Item-bin minimum spacing:     " << parameters().item_bin_minimum_spacing << std::endl
             << "Item-item minimum spacing:    " << parameters().item_item_minimum_spacing << std::endl
-            << "Item area:                    " << item_area() << std::endl
+            << "Total item area:              " << item_area() << std::endl
             << "Smallest item area:           " << smallest_item_area() << std::endl
             << "Largest item area:            " << largest_item_area() << std::endl
-            << "Maximum item copies:          " << maximum_item_copies() << std::endl
-            << "Bin area:                     " << bin_area() << std::endl
-            << "Maximum bin cost:             " << maximum_bin_cost() << std::endl
+            << "Total item profit:            " << item_profit() << std::endl
+            << "Largest item profit:          " << largest_item_profit() << std::endl
+            << "Largest item copies:          " << largest_item_copies() << std::endl
+            << "Total bin area:               " << bin_area() << std::endl
+            << "Largest bin cost:             " << largest_bin_cost() << std::endl
             ;
     }
 

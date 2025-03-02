@@ -376,8 +376,8 @@ public:
     /** Get the total profit of the items. */
     inline Profit item_profit() const { return item_profit_; }
 
-    /** Get the id of the item type with maximum efficiency. */
-    inline ItemTypeId max_efficiency_item_type_id() const { return max_efficiency_item_type_id_; }
+    /** Get the id of the item type with largest efficiency. */
+    inline ItemTypeId largest_efficiency_item_type_id() const { return largest_efficiency_item_type_id_; }
 
     /** Return true iff all items have infinite copies. */
     inline bool unbounded_knapsack() const { return all_item_types_infinite_copies_; }
@@ -468,8 +468,8 @@ private:
     /** Total item profit. */
     Profit item_profit_ = 0;
 
-    /** Id of the item with maximum efficiency. */
-    ItemTypeId max_efficiency_item_type_id_ = -1;
+    /** Id of the item with largest efficiency. */
+    ItemTypeId largest_efficiency_item_type_id_ = -1;
 
     /** True iff all item types have an infinite number of copies. */
     bool all_item_types_infinite_copies_ = false;

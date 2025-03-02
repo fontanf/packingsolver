@@ -157,8 +157,8 @@ public:
     /** Get the total length of the bins before bin i_pos. */
     inline Area previous_bin_length(BinPos bin_pos) const { return previous_bins_length_[bin_pos]; }
 
-    /** Get the maximum cost of the bins. */
-    inline Profit maximum_bin_cost() const { return maximum_bin_cost_; }
+    /** Get the largest cost of the bins. */
+    inline Profit largest_bin_cost() const { return largest_bin_cost_; }
 
     /*
      * Getters: item types
@@ -182,11 +182,14 @@ public:
     /** Get the total profit of the items. */
     inline Profit item_profit() const { return item_profit_; }
 
-    /** Get the id of the item type with maximum efficiency. */
-    inline ItemTypeId max_efficiency_item_type_id() const { return max_efficiency_item_type_id_; }
+    /** Get the largest profit of the items. */
+    inline Profit largest_item_profit() const { return largest_item_profit_; }
 
-    /** Get the maximum number of copies of the items. */
-    inline ItemPos maximum_item_copies() const { return maximum_item_copies_; }
+    /** Get the id of the item type with largest efficiency. */
+    inline ItemTypeId largest_efficiency_item_type_id() const { return largest_efficiency_item_type_id_; }
+
+    /** Get the largest number of copies of the items. */
+    inline ItemPos largest_item_copies() const { return largest_item_copies_; }
 
     /** Return true iff all items have infinite copies. */
     inline bool unbounded_knapsack() const { return all_item_types_infinite_copies_; }
@@ -241,8 +244,8 @@ private:
     /** Total packable length. */
     Length bin_length_ = 0;
 
-    /** Maximum bin cost. */
-    Profit maximum_bin_cost_ = 0.0;
+    /** Largest bin cost. */
+    Profit largest_bin_cost_ = 0.0;
 
     /** Number of items. */
     ItemPos number_of_items_ = 0;
@@ -253,11 +256,14 @@ private:
     /** Total item profit. */
     Profit item_profit_ = 0;
 
-    /** Id of the item with maximum efficiency. */
-    ItemTypeId max_efficiency_item_type_id_ = -1;
+    /** Largest item profit. */
+    Profit largest_item_profit_ = 0.0;
 
-    /** Maximum item copies. */
-    ItemPos maximum_item_copies_ = 0;
+    /** Id of the item with maximum efficiency. */
+    ItemTypeId largest_efficiency_item_type_id_ = -1;
+
+    /** Largest item copies. */
+    ItemPos largest_item_copies_ = 0;
 
     /** True iff all item types have an infinite number of copies. */
     bool all_item_types_infinite_copies_ = false;

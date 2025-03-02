@@ -414,23 +414,25 @@ Instance InstanceBuilder::build()
         instance_.number_of_items_ += item_type.copies;
         // Update item_profit_.
         instance_.item_profit_ += item_type.copies * item_type.profit;
+        // Update largest_item_profit_.
+        instance_.largest_item_profit_ = std::max(instance_.largest_item_profit(), item_type.profit);
         // Update item_length_.
         instance_.item_length_ += item_type.copies * item_type.length;
-        // Update max_efficiency_item_type_.
-        if (instance_.max_efficiency_item_type_id_ == -1
-                || instance_.item_type(instance_.max_efficiency_item_type_id_).profit
-                / instance_.item_type(instance_.max_efficiency_item_type_id_).length
+        // Update largest_efficiency_item_type_.
+        if (instance_.largest_efficiency_item_type_id_ == -1
+                || instance_.item_type(instance_.largest_efficiency_item_type_id_).profit
+                / instance_.item_type(instance_.largest_efficiency_item_type_id_).length
                 < instance_.item_type(item_type_id).profit
                 / instance_.item_type(item_type_id).length) {
-            instance_.max_efficiency_item_type_id_ = item_type_id;
+            instance_.largest_efficiency_item_type_id_ = item_type_id;
         }
         // Update all_item_types_infinite_copies_.
         ItemPos c = (bin_types_length_max - 1) / item_type.length + 1;
         if (item_type.copies < c)
             instance_.all_item_types_infinite_copies_ = false;
-        // Update maximum_item_copies_.
-        if (instance_.maximum_item_copies_ < item_type.copies)
-            instance_.maximum_item_copies_ = item_type.copies;
+        // Update largest_item_copies_.
+        if (instance_.largest_item_copies_ < item_type.copies)
+            instance_.largest_item_copies_ = item_type.copies;
     }
 
     // Compute bin type attributes.
@@ -451,9 +453,9 @@ Instance InstanceBuilder::build()
             instance_.previous_bins_length_.push_back(previous_bins_length);
             previous_bins_length += bin_type.length;
         }
-        // Update maximum_bin_cost_.
-        if (instance_.maximum_bin_cost_ < bin_type.cost)
-            instance_.maximum_bin_cost_ = bin_type.cost;
+        // Update largest_bin_cost_.
+        if (instance_.largest_bin_cost_ < bin_type.cost)
+            instance_.largest_bin_cost_ = bin_type.cost;
     }
 
     // Compute bin_type.item_type_ids_.

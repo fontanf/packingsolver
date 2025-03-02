@@ -347,7 +347,7 @@ void optimize_column_generation(
         cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = 1;
     cgslds_parameters.dummy_column_objective_coefficient = (std::max)(
-            2 * instance.maximum_bin_cost() * instance.maximum_item_copies(),
+            2 * instance.largest_bin_cost() * instance.largest_item_copies(),
             (Profit)1);
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         cgslds_parameters.automatic_stop = true;
