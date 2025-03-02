@@ -72,10 +72,12 @@ void Solution::update_indicators(
             area_ -= (node.t - node.b) * (node.r - node.l);
 
         // Update width_ and height_.
-        if (node.r < bin_type.rect.w && width_ < node.r)
-            width_ = node.r;
-        if (node.t < bin_type.rect.h && height_ < node.t)
-            height_ = node.t;
+        if (node.d > 0 && node.item_type_id != -3) {
+            if (width_ < node.r)
+                width_ = node.r;
+            if (height_ < node.t)
+                height_ = node.t;
+        }
 
         // Update second_leftover_value_.
         if (node.d == 1 && node.item_type_id != -3)
