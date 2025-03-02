@@ -109,7 +109,7 @@ struct Parameters
     Length minimum_distance_2_cuts = 0;
 
     /** Minimum distance between two cuts. */
-    Length minimum_waste_length = 1;
+    Length minimum_waste_length = 0;
 
     /**
      * Maximum number of 2-cuts in a first-level sub-plate.

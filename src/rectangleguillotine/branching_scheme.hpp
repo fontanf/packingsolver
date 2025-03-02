@@ -257,6 +257,9 @@ public:
             const Insertion& insertion) const
     {
         return std::shared_ptr<Node>(new Node(child_tmp(parent, insertion)));
+        //auto node = std::shared_ptr<Node>(new Node(child_tmp(parent, insertion)));
+        //to_solution(node);
+        //return node;
     }
 
     const std::shared_ptr<Node> root() const;
