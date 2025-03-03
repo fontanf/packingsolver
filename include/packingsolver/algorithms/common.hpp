@@ -60,6 +60,20 @@ inline bool equal(double v1, double v2)
     return std::abs(v1 - v2) <= 1e-9 * (std::max)((std::max)(1e-5, std::abs(v1)), std::abs(v2));
 }
 
+template<typename T>
+double largest_power_of_two_lesser_or_equal(T value)
+{
+    double res = 1;
+    if (res > value) {
+        while (res > value)
+            res /= 2;
+    } else {
+        while (res * 2 < value)
+            res *= 2;
+    }
+    return res;
+}
+
 
 enum class OptimizationMode
 {

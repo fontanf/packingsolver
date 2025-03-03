@@ -15,6 +15,8 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
 {
     //std::cout << "benders_decomposition..." << std::endl;
     const BinType& bin_type = instance.bin_type(0);
+    double multiplier_area = largest_power_of_two_lesser_or_equal(bin_type.area());
+    double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
 
     BendersDecompositionOutput output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
@@ -96,7 +98,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 column_lower_bounds.push_back(0);
                 column_upper_bounds.push_back(1);
                 column_types.push_back(1);
-                objective.push_back(item_type.profit / highest_profit);
+                objective.push_back(item_type.profit / multiplier_profit);
             }
         }
         // Set objective sense.
@@ -121,14 +123,14 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 for (ItemPos copy = 0;
                         copy < item_copies[item_type_id];
                         ++copy) {
-                    a_value.push_back((double)item_type.area() / bin_type.area());
+                    a_value.push_back((double)item_type.area() / multiplier_area);
                     a_index.push_back(x[item_type_id][copy]);
                     number_of_elements_in_rows.back()++;
                 }
             }
             // Add row bounds
             row_lower_bounds.push_back(0);
-            row_upper_bounds.push_back(1);
+            row_upper_bounds.push_back((double)bin_type.area() / multiplier_area);
         }
 
         // Constraints: dominated copies.
