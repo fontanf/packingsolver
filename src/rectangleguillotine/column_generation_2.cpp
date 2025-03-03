@@ -95,6 +95,9 @@ Column solution_to_column(
     //solution.format(std::cout, 3);
     const Instance& instance = solution.instance();
     const BinType& bin_type = instance.bin_type(0);
+    double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
+    double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
+    Length cut_thickness = instance.parameters().cut_thickness;
 
     Column column;
     for (ItemTypeId item_type_id = 0;
@@ -107,7 +110,7 @@ Column solution_to_column(
             continue;
 
         if (instance.objective() == Objective::Knapsack)
-            column.objective_coefficient += copies * item_type.profit;
+            column.objective_coefficient += copies * item_type.profit / multiplier_profit;
 
         columngenerationsolver::LinearTerm element;
         element.row = item_type_id;
@@ -116,13 +119,11 @@ Column solution_to_column(
     }
     Length width = solution.width() - bin_type.left_trim;
     if (instance.objective() == Objective::OpenDimensionX) {
-        column.objective_coefficient = width
-            + instance.parameters().cut_thickness;
+        column.objective_coefficient = (double)(width + cut_thickness) / multiplier_length;
     } else {
         columngenerationsolver::LinearTerm element;
         element.row = instance.number_of_item_types();
-        element.coefficient = width
-            + instance.parameters().cut_thickness;
+        element.coefficient = (double)(width + cut_thickness) / multiplier_length;
         column.elements.push_back(element);
     }
     column.extra = std::shared_ptr<void>(new Solution(solution));
@@ -383,6 +384,7 @@ columngenerationsolver::Model get_model(
         const Instance& instance)
 {
     const BinType& bin_type = instance.bin_type(0);
+    double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
 
     columngenerationsolver::Model model;
 
@@ -408,10 +410,11 @@ columngenerationsolver::Model get_model(
 
         columngenerationsolver::Row row;
         row.lower_bound = 0;
-        row.upper_bound = bin_type.rect.w
+        row.upper_bound = (double)(bin_type.rect.w
             - bin_type.left_trim
             - bin_type.right_trim
-            + instance.parameters().cut_thickness;
+            + instance.parameters().cut_thickness)
+            / multiplier_length;
         row.coefficient_lower_bound = 0;
         row.coefficient_upper_bound = 1;
         model.rows.push_back(row);
@@ -501,6 +504,8 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initia
         const std::vector<std::pair<std::shared_ptr<const Column>, Value>>& fixed_columns)
 {
     //std::cout << "initialize_pricing " << fixed_columns.size() << std::endl;
+    const BinType& bin_type = instance_.bin_type(0);
+    double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
     std::fill(filled_demands_.begin(), filled_demands_.end(), 0);
     filled_width_ = 0;
     for (auto p: fixed_columns) {
@@ -519,7 +524,7 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initia
                             "filled_demands: " + std::to_string(filled_demands_[item_type_id]) + ".");
                 }
             } else {
-                filled_width_ += std::round(value) * std::round(element.coefficient);
+                filled_width_ += std::round(value) * multiplier_length * element.coefficient;
             }
         }
     }
@@ -534,6 +539,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
 {
     //std::cout << "generate_1e_patterns..." << std::endl;
     const BinType& bin_type = instance_.bin_type(0);
+    double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
     Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
@@ -558,7 +564,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
             }
             if (profit <= 0)
                 continue;
@@ -643,7 +649,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
             }
             if (profit <= 0)
                 continue;
@@ -674,6 +680,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
 {
     //std::cout << "generate_1n_patterns..." << std::endl;
     const BinType& bin_type = instance_.bin_type(0);
+    double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
     Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
@@ -698,7 +705,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -806,7 +813,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -837,6 +844,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
 {
     //std::cout << "generate_1ro_patterns..." << std::endl;
     const BinType& bin_type = instance_.bin_type(0);
+    double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
     Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
@@ -855,7 +863,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         if (instance_.objective() == Objective::OpenDimensionX) {
             profit = duals[item_type_id];
         } else if (instance_.objective() == Objective::Knapsack) {
-            profit = item_type.profit - duals[item_type_id];
+            profit = item_type.profit - duals[item_type_id] * multiplier_profit;
         }
         if (!strictly_greater(profit, 0.0))
             continue;
@@ -1072,7 +1080,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -1114,6 +1122,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
 {
     //std::cout << "generate_2ho_patterns..." << std::endl;
     const BinType& bin_type = instance_.bin_type(0);
+    double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
     Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
@@ -1138,8 +1147,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = instance_.item_type(item_type_id).profit
-                    - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -1281,7 +1289,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id];
+                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -1457,30 +1465,13 @@ void column_generation_2_vertical(
         const ColumnGeneration2Parameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    Length item_largest_length = 0;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        if (item_largest_length < item_type.rect.w)
-            item_largest_length = item_type.rect.w;
-        if (!item_type.oriented
-                && item_largest_length < item_type.rect.h) {
-            item_largest_length = item_type.rect.h;
-        }
-    }
-
     columngenerationsolver::Model cgs_model = get_model(instance);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = 0;
-    if (instance.objective() == Objective::OpenDimensionX) {
-        cgslds_parameters.dummy_column_objective_coefficient = 2 * item_largest_length;
-    } else {
-        cgslds_parameters.dummy_column_objective_coefficient = 1;
-    }
+    cgslds_parameters.dummy_column_objective_coefficient = 2;
     cgslds_parameters.automatic_stop = parameters.automatic_stop;
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
             const columngenerationsolver::Output& cgs_output)
