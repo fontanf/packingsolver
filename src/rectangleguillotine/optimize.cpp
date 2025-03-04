@@ -146,6 +146,8 @@ void optimize_column_generation_2(
     ColumnGeneration2Parameters cg_parameters;
     cg_parameters.verbosity_level = 0;
     cg_parameters.timer = parameters.timer;
+    cg_parameters.linear_programming_solver_name
+        = parameters.linear_programming_solver_name;
     if (parameters.optimization_mode == OptimizationMode::Anytime)
         cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     if (parameters.optimization_mode != OptimizationMode::Anytime)
@@ -374,7 +376,7 @@ void optimize_column_generation(
         }
     };
     cgslds_parameters.column_generation_parameters.solver_name
-        = parameters.solver_name;
+        = parameters.linear_programming_solver_name;
     columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
 }
 

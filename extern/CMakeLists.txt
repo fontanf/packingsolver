@@ -57,10 +57,11 @@ FetchContent_MakeAvailable(treesearchsolver)
 
 # Fetch fontanf/columngenerationsolver.
 set(COLUMNGENERATIONSOLVER_USE_CLP ON)
+set(COLUMNGENERATIONSOLVER_USE_HIGHS ON)
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
-    GIT_TAG 0a57d7ea85f5e06a4b911a37f3c4e939b0d616d9
+    GIT_TAG 6f449498593dfe846f6bbb72364394a4a0388b86
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../columngenerationsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(columngenerationsolver)
