@@ -51,7 +51,7 @@ std::istream& packingsolver::rectangleguillotine::operator>>(
 {
     std::string token;
     in >> token;
-    if (token == "s" || token == "H" || token == "hard" || token == "Hard" || token == "0") {
+    if (token == "h" || token == "H" || token == "hard" || token == "Hard" || token == "0") {
         trim_type = TrimType::Hard;
     } else if (token == "s" || token == "S" || token == "soft" || token == "Soft" || token == "1") {
         trim_type = TrimType::Soft;

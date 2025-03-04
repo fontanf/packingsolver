@@ -1,0 +1,10 @@
+NAME,VALUE
+objective,bin-packing-with-leftovers
+number_of_stages,3
+cut_type,exact
+first_stage_orientation,vertical
+min_waste,15
+min1cut,20
+max1cut,2500
+cut_thickness,0
+cut-through-defect,1
