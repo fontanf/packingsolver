@@ -2,7 +2,7 @@
 
 #include "packingsolver/rectangleguillotine/solution.hpp"
 
-#include "columngenerationsolver/linear_programming_solver.hpp"
+#include "columngenerationsolver/commons.hpp"
 
 namespace packingsolver
 {
@@ -21,7 +21,7 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
     /** Linear programming solver. */
-    columngenerationsolver::SolverName solver_name
+    columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
 
     /** Use tree search algorithm. */

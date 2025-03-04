@@ -1532,7 +1532,7 @@ void column_generation_2_vertical(
         }
     };
     cgslds_parameters.column_generation_parameters.solver_name
-        = parameters.solver_name;
+        = parameters.linear_programming_solver_name;
     columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
 }
 

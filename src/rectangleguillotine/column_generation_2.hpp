@@ -53,7 +53,7 @@
 
 #include "packingsolver/rectangleguillotine/solution.hpp"
 
-#include "columngenerationsolver/linear_programming_solver.hpp"
+#include "columngenerationsolver/commons.hpp"
 
 namespace packingsolver
 {
@@ -76,7 +76,7 @@ struct ColumnGeneration2Parameters: packingsolver::Parameters<Instance, Solution
     bool automatic_stop = false;
 
     /** Linear programming solver. */
-    columngenerationsolver::SolverName solver_name
+    columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
 };
 
