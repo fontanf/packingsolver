@@ -1059,7 +1059,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.x1 and insertion.z1 with respect to min1cut()
-    //std::cout << "update min1cut  " << insertion << std::endl;
+    //std::cout << "- update min1cut  " << insertion << std::endl;
     if ((insertion.item_type_id_1 != -1 || insertion.item_type_id_2 != -1)
             && insertion.x1 - x1_prev(parent, insertion.df) < instance.parameters().minimum_distance_1_cuts) {
         if (insertion.z1 == 0) {
@@ -1073,7 +1073,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.y2 and insertion.z2 with respect to min2cut()
-    //std::cout << "update min2cut  " << insertion << std::endl;
+    //std::cout << "- update min2cut  " << insertion << std::endl;
     if ((insertion.item_type_id_1 != -1 || insertion.item_type_id_2 != -1)
             && insertion.y2 - y2_prev(parent, insertion.df) < instance.parameters().minimum_distance_2_cuts) {
         if (insertion.z2 == 0) {
@@ -1089,7 +1089,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.y2 and insertion.z2 with respect to one2cut()
-    //std::cout << "update maximum_number_2_cuts  " << insertion << std::endl;
+    //std::cout << "- update maximum_number_2_cuts  " << insertion << std::endl;
     if (instance.parameters().maximum_number_2_cuts != -1
             && insertion.df == 1
             && parent.subplate1curr_number_of_2_cuts == instance.parameters().maximum_number_2_cuts
@@ -1106,7 +1106,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.x1 if 2-staged
-    //std::cout << "update 2-staged  " << insertion << std::endl;
+    //std::cout << "- update 2-staged  " << insertion << std::endl;
     if (instance.parameters().number_of_stages == 2 && insertion.x1 != w_physical) {
         if (insertion.z1 == 0) {
             if (insertion.x1 + cut_thickness + min_waste > w_physical)
@@ -1118,7 +1118,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.x1 and insertion.z1 with respect to x1_curr() and z1().
-    //std::cout << "update x1_curr  " << insertion << std::endl;
+    //std::cout << "- update x1_curr  " << insertion << std::endl;
     if (insertion.df >= 1) {
         if (insertion.z1 == 0) {
             if (insertion.x1 + min_waste + cut_thickness <= parent.x1_curr) {
@@ -1151,7 +1151,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.y2 and insertion.z2 with respect to y2_curr() and z1().
-    //std::cout << "update y2_curr  " << insertion << std::endl;
+    //std::cout << "- update y2_curr  " << insertion << std::endl;
     if (insertion.df == 2) {
         if (insertion.z2 == 0) {
             if (insertion.y2 + min_waste <= parent.y2_curr) {
@@ -1222,7 +1222,7 @@ void BranchingScheme::update(
     }
 
     // Update insertion.x1 and insertion.z1 with respect to defect intersections.
-    //std::cout << "update x1 defects  " << insertion << std::endl;
+    //std::cout << "- update x1 defects  " << insertion << std::endl;
     if (!instance.parameters().cut_through_defects) {
         for (;;) {
             DefectId defect_id = instance.rect_intersects_defect(
@@ -1242,7 +1242,7 @@ void BranchingScheme::update(
     }
 
     // Check right soft-trim.
-    //std::cout << "update right soft-trim  " << insertion << std::endl;
+    //std::cout << "- update right soft-trim  " << insertion << std::endl;
     if (insertion.x1 > w) {
         if (insertion.x1 == w_physical) {
         } else if (insertion.x1 < w_physical) {
@@ -1261,7 +1261,7 @@ void BranchingScheme::update(
     }
 
     // Increase width if too close from border
-    //std::cout << "update x border  " << insertion << std::endl;
+    //std::cout << "- update x border  " << insertion << std::endl;
     if (insertion.x1 < w_physical
             && min_waste > 0
             && insertion.x1 + cut_thickness + min_waste > w_physical) {
@@ -1275,13 +1275,13 @@ void BranchingScheme::update(
 
 
     // Check max width
-    //std::cout << "update max width  " << insertion << std::endl;
+    //std::cout << "- update max width  " << insertion << std::endl;
     if (insertion.x1 > insertion.x1_max) {
         return;
     }
 
     // Update insertion.y2 and insertion.z2 with respect to defect intersections.
-    //std::cout << "update y2 defects  " << insertion << std::endl;
+    //std::cout << "- update y2 defects  " << insertion << std::endl;
     bool y2_fixed = (insertion.z2 == 2 || (insertion.df == 2 && parent.z2 == 2));
 
     for (;;) {
@@ -1369,7 +1369,7 @@ void BranchingScheme::update(
     }
 
     // Check top soft-trim.
-    //std::cout << "update top soft-trim  " << insertion << std::endl;
+    //std::cout << "- update top soft-trim  " << insertion << std::endl;
     if (insertion.y2 > h) {
         if (insertion.y2 == h_physical) {
         } else if (insertion.y2 < h_physical) {
@@ -1390,7 +1390,7 @@ void BranchingScheme::update(
     }
 
     // Increase height if too close from border
-    //std::cout << "update y border  " << insertion << std::endl;
+    //std::cout << "- update y border  " << insertion << std::endl;
     if (insertion.y2 < h_physical
             && min_waste > 0
             && insertion.y2 + cut_thickness + min_waste > h_physical) {
@@ -1438,7 +1438,7 @@ void BranchingScheme::update(
     }
 
     // Check max height
-    //std::cout << "update y max  " << insertion << std::endl;
+    //std::cout << "- update y max  " << insertion << std::endl;
     if (insertion.y2 > insertion.y2_max) {
         return;
     }
@@ -1596,9 +1596,6 @@ Solution BranchingScheme::to_solution(
 
         const Node* current_node = descendents[node_pos];
         //std::cout << *current_node << std::endl;
-        BinPos i = current_node->number_of_bins - 1;
-        BinTypeId bin_type_id = instance().bin_type_id(i);
-        const BinType& bin_type = instance().bin_type(bin_type_id);
         bool has_item = (current_node->item_type_id_1 != -1 || current_node->item_type_id_2 != -1);
         Depth df_next = (node_pos < (SolutionNodeId)descendents.size() - 1)?
             descendents[node_pos + 1]->df: -1;
@@ -1609,12 +1606,18 @@ Solution BranchingScheme::to_solution(
                     (instance().parameters().number_of_stages == 3 && current_node->first_stage_orientation == CutOrientation::Vertical)
                     || (instance().parameters().number_of_stages == 2 && current_node->first_stage_orientation == CutOrientation::Horizontal))?
                     CutOrientation::Vertical: CutOrientation::Horizontal;
-            BinTypeId bin_type_id = instance().bin_type_id(number_of_bins);
+            number_of_bins++;
+            BinTypeId bin_type_id = instance().bin_type_id(number_of_bins - 1);
             solution_builder.add_bin(
                     bin_type_id,
                     1,
                     cut_orientation);
-            number_of_bins++;
+
+            const BinType& bin_type = instance().bin_type(bin_type_id);
+            if (bin_type.left_trim_type == TrimType::Soft
+                    && bin_type.left_trim > 0) {
+                solution_builder.add_node(1, bin_type.left_trim);
+            }
         }
 
         // Create a new first-level sub-plate.
@@ -1630,6 +1633,13 @@ Solution BranchingScheme::to_solution(
                     subplate1_curr_x1 = descendents[node_pos_2]->x1_curr;
                 }
                 solution_builder.add_node(1, subplate1_curr_x1);
+
+                BinTypeId bin_type_id = instance().bin_type_id(number_of_bins - 1);
+                const BinType& bin_type = instance().bin_type(bin_type_id);
+                if (bin_type.bottom_trim_type == TrimType::Soft
+                        && bin_type.bottom_trim > 0) {
+                    solution_builder.add_node(2, bin_type.bottom_trim);
+                }
             }
         }
 

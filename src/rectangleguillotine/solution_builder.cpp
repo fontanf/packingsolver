@@ -106,7 +106,7 @@ void SolutionBuilder::add_bin(
             node.l = 0;
             node.r = bin_type.left_trim;
             node.b = (!bottom_trim)? 0: bin_type.bottom_trim;
-            node.t = bin_type.rect.h - ((!top_trim)? 0: bin_type.top_trim);
+            node.t = (!top_trim)? bin_type.rect.h: bin_type.rect.h - bin_type.top_trim;
             node.item_type_id = -1;
             root.children.push_back(bin.nodes.size());
             bin.nodes.push_back(node);
@@ -117,7 +117,7 @@ void SolutionBuilder::add_bin(
             node.d = -1;
             node.f = 0;
             node.l = (!left_trim)? 0: bin_type.left_trim;
-            node.r = bin_type.rect.w - ((!right_trim)? 0: bin_type.right_trim);
+            node.r = (!right_trim)? bin_type.rect.w: bin_type.rect.w - bin_type.right_trim;
             node.b = 0;
             node.t = bin_type.bottom_trim;
             node.item_type_id = -1;
@@ -132,7 +132,7 @@ void SolutionBuilder::add_bin(
             node.l = bin_type.rect.w - bin_type.right_trim;
             node.r = bin_type.rect.w;
             node.b = (!bottom_trim)? 0: bin_type.bottom_trim;
-            node.t = bin_type.rect.h - ((!top_trim)? 0: bin_type.top_trim);
+            node.t = (!top_trim)? bin_type.rect.h: bin_type.rect.h - bin_type.top_trim;
             node.item_type_id = -1;
             root.children.push_back(bin.nodes.size());
             bin.nodes.push_back(node);
@@ -143,7 +143,7 @@ void SolutionBuilder::add_bin(
             node.d = -1;
             node.f = 0;
             node.l = (!left_trim)? 0: bin_type.left_trim;
-            node.r = bin_type.rect.w - ((!right_trim)? 0: bin_type.right_trim);
+            node.r = (!right_trim)? bin_type.rect.w: bin_type.rect.w - bin_type.right_trim;
             node.b = bin_type.rect.h - bin_type.top_trim;
             node.t = bin_type.rect.h;
             node.item_type_id = -1;
@@ -155,9 +155,9 @@ void SolutionBuilder::add_bin(
         node.d = 0;
         node.f = 0;
         node.l = (!left_trim)? 0: bin_type.left_trim;
-        node.r = bin_type.rect.w - ((!right_trim)? 0: bin_type.right_trim);
+        node.r = (!right_trim)? bin_type.rect.w: bin_type.rect.w - bin_type.right_trim;
         node.b = (!bottom_trim)? 0: bin_type.bottom_trim;
-        node.t = bin_type.rect.h - ((!top_trim)? 0: bin_type.top_trim);
+        node.t = (!top_trim)? bin_type.rect.h: bin_type.rect.h - bin_type.top_trim;
         node.item_type_id = -1;
         root.children.push_back(bin.nodes.size());
         bin.nodes.push_back(node);
