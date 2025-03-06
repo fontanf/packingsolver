@@ -408,11 +408,14 @@ void optimize_column_generation(
         const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
             = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
         if (instance.objective() == Objective::VariableSizedBinPacking) {
-            algorithm_formatter.update_variable_sized_bin_packing_bound(cgslds_output.bound);
+            double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
+            algorithm_formatter.update_variable_sized_bin_packing_bound(cgslds_output.bound * multiplier_cost);
         } else if (instance.objective() == Objective::Knapsack) {
-            algorithm_formatter.update_knapsack_bound(cgslds_output.bound);
+            double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
+            algorithm_formatter.update_knapsack_bound(cgslds_output.bound * multiplier_profit);
         } else if (instance.objective() == Objective::BinPacking) {
-            BinPos bin_packing_bound = std::ceil(cgslds_output.bound / instance.bin_type(0).space() - 0.001);
+            double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
+            BinPos bin_packing_bound = std::ceil(cgslds_output.bound * multiplier_cost / instance.bin_type(0).space() - 0.001);
             algorithm_formatter.update_bin_packing_bound(bin_packing_bound);
         }
     };
