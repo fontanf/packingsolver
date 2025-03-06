@@ -528,12 +528,22 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         }
     }
 
+    int last_algorithm =
+        (use_column_generation)? 5:
+        (use_dichotomic_search)? 4:
+        (use_sequential_value_correction)? 3:
+        (use_sequential_single_knapsack)? 2:
+        (use_benders_decomposition)? 1:
+        (use_tree_search)? 0:
+        -1;
+
     // Run selected algorithms.
-    if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
-        std::vector<std::thread> threads;
-        std::forward_list<std::exception_ptr> exception_ptr_list;
-        // Tree search.
-        if (use_tree_search) {
+    std::vector<std::thread> threads;
+    std::forward_list<std::exception_ptr> exception_ptr_list;
+    // Tree search.
+    if (use_tree_search) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 0) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_tree_search), optimize_tree_search>,
@@ -541,49 +551,17 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                         std::ref(instance),
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
+        } else {
+            optimize_tree_search(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
         }
-        // Sequential single knapsack.
-        if (use_sequential_single_knapsack) {
-            exception_ptr_list.push_front(std::exception_ptr());
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
-        }
-        // Sequential value correction.
-        if (use_sequential_value_correction) {
-            exception_ptr_list.push_front(std::exception_ptr());
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
-        }
-        // Dichotomic search.
-        if (use_dichotomic_search) {
-            exception_ptr_list.push_front(std::exception_ptr());
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
-        }
-        // Column generation.
-        if (use_column_generation) {
-            exception_ptr_list.push_front(std::exception_ptr());
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_column_generation), optimize_column_generation>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
-        }
-        // Benders decomposition.
-        if (use_benders_decomposition) {
+    }
+    // Bender's decomposition.
+    if (use_benders_decomposition) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 1) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_benders_decomposition), optimize_benders_decomposition>,
@@ -591,50 +569,90 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                         std::ref(instance),
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
-        }
-        for (Counter i = 0; i < (Counter)threads.size(); ++i)
-            threads[i].join();
-        for (std::exception_ptr exception_ptr: exception_ptr_list)
-            if (exception_ptr)
-                std::rethrow_exception(exception_ptr);
-    } else {
-        // Tree search.
-        if (use_tree_search)
-            optimize_tree_search(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
-        // Sequential single knapsack.
-        if (use_sequential_single_knapsack)
-            optimize_sequential_single_knapsack(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
-        // Sequential value correction.
-        if (use_sequential_value_correction)
-            optimize_sequential_value_correction(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
-        // Dichotomic search.
-        if (use_dichotomic_search)
-            optimize_dichotomic_search(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
-        // Column generation.
-        if (use_column_generation)
-            optimize_column_generation(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
-        // Benders decomposition.
-        if (use_benders_decomposition)
+        } else {
             optimize_benders_decomposition(
                     instance,
                     parameters,
                     algorithm_formatter);
+        }
     }
+    // Sequential single knapsack.
+    if (use_sequential_single_knapsack) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 2) {
+            exception_ptr_list.push_front(std::exception_ptr());
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        } else {
+            optimize_sequential_single_knapsack(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        }
+    }
+    // Sequential value correction.
+    if (use_sequential_value_correction) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 3) {
+            exception_ptr_list.push_front(std::exception_ptr());
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        } else {
+            optimize_sequential_value_correction(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        }
+    }
+    // Dichotomic search.
+    if (use_dichotomic_search) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 4) {
+            exception_ptr_list.push_front(std::exception_ptr());
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        } else {
+            optimize_dichotomic_search(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        }
+    }
+    // Column generation.
+    if (use_column_generation) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 5) {
+            exception_ptr_list.push_front(std::exception_ptr());
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_column_generation), optimize_column_generation>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        } else {
+            optimize_column_generation(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        }
+    }
+    for (Counter i = 0; i < (Counter)threads.size(); ++i)
+        threads[i].join();
+    for (std::exception_ptr exception_ptr: exception_ptr_list)
+        if (exception_ptr)
+            std::rethrow_exception(exception_ptr);
 
     const Solution& solution_best = output.solution_pool.best();
     if (instance.objective() == Objective::BinPackingWithLeftovers
