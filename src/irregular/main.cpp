@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
         ("verbosity-level,v", po::value<int>(), "Verbosity level")
         ("log2stderr,w", "Write log in stderr")
 
+        ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
         ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
         ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
         ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
@@ -124,6 +125,8 @@ int main(int argc, char *argv[])
 
     OptimizeParameters parameters;
     read_args(parameters, vm);
+    if (vm.count("linear-programming-solver"))
+        parameters.linear_programming_solver_name = vm["linear-programming-solver"].as<columngenerationsolver::SolverName>();
     if (vm.count("optimization-mode"))
         parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
 
