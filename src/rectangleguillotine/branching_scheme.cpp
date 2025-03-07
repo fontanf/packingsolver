@@ -1577,6 +1577,8 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
 Solution BranchingScheme::to_solution(
         const std::shared_ptr<Node>& node) const
 {
+    Length cut_thickness = instance_.parameters().cut_thickness;
+
     //std::cout << "to_solution " << *node << std::endl;
     std::vector<const BranchingScheme::Node*> descendents;
     for (const Node* current_node = node.get();
@@ -1616,7 +1618,7 @@ Solution BranchingScheme::to_solution(
             const BinType& bin_type = instance().bin_type(bin_type_id);
             if (bin_type.left_trim_type == TrimType::Soft
                     && bin_type.left_trim > 0) {
-                solution_builder.add_node(1, bin_type.left_trim);
+                solution_builder.add_node(1, bin_type.left_trim - cut_thickness);
             }
         }
 
@@ -1638,7 +1640,7 @@ Solution BranchingScheme::to_solution(
                 const BinType& bin_type = instance().bin_type(bin_type_id);
                 if (bin_type.bottom_trim_type == TrimType::Soft
                         && bin_type.bottom_trim > 0) {
-                    solution_builder.add_node(2, bin_type.bottom_trim);
+                    solution_builder.add_node(2, bin_type.bottom_trim - cut_thickness);
                 }
             }
         }

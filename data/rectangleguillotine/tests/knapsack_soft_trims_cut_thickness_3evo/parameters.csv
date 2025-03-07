@@ -1,0 +1,7 @@
+NAME,VALUE
+objective,knapsack
+number_of_stages,3
+cut_type,exact
+first_stage_orientation,vertical
+min_waste,4
+cut_thickness,1
