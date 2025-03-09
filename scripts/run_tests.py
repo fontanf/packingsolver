@@ -49,7 +49,7 @@ if args.tests is None or "rectangleguillotine-single-knapsack-tree-search" in ar
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective knapsack"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-tree-search 1"
                 + " --not-anytime-tree-search-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
@@ -95,7 +95,7 @@ if args.tests is None or "rectangleguillotine-strip-packing-tree-search" in args
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective open-dimension-x"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-tree-search 1"
                 + " --not-anytime-tree-search-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
@@ -141,7 +141,7 @@ if args.tests is None or "rectangleguillotine-bin-packing-tree-search" in args.t
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-tree-search 1"
                 + " --not-anytime-tree-search-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
@@ -180,7 +180,7 @@ if args.tests is None or "rectangleguillotine-bin-packing-sequential-single-knap
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-single-knapsack 1"
                 + " --not-anytime-sequential-single-knapsack-subproblem-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
@@ -223,7 +223,7 @@ if args.tests is None or "rectangleguillotine-bin-packing-sequential-value-corre
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-value-correction 1"
                 + " --sequential-value-correction-subproblem-queue-size 256"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"
@@ -277,7 +277,7 @@ if args.tests is None or "rectangleguillotine-bin-packing-with-leftovers-tree-se
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective bin-packing-with-leftovers"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-tree-search 1"
                 + " --not-anytime-tree-search-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
@@ -320,7 +320,7 @@ if args.tests is None or "rectangleguillotine-bin-packing-column-generation" in 
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-column-generation 1"
                 + " --column-generation-subproblem-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
@@ -362,7 +362,7 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-column-
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective variable-sized-bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-column-generation 1"
                 + " --column-generation-subproblem-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
@@ -400,7 +400,7 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-dichoto
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective variable-sized-bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-dichotomic-search 1"
                 + " --not-anytime-dichotomic-search-subproblem-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
@@ -439,7 +439,7 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-sequent
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective variable-sized-bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-single-knapsack 1"
                 + " --not-anytime-sequential-single-knapsack-subproblem-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
@@ -481,7 +481,7 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-sequent
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective variable-sized-bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-value-correction 1"
                 + " --sequential-value-correction-subproblem-queue-size 256"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"
@@ -531,7 +531,7 @@ if args.tests is None or "rectangle-single-knapsack-tree-search" in args.tests:
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective knapsack"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-tree-search 1"
                 + " --not-anytime-tree-search-queue-size 512"
                 + "  --output \"" + json_output_path + "\"")
@@ -577,7 +577,7 @@ if args.tests is None or "rectangle-strip-packing-tree-search" in args.tests:
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective open-dimension-y"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-tree-search 1"
                 + " --not-anytime-tree-search-queue-size 512"
                 + "  --output \"" + json_output_path + "\"")
@@ -623,7 +623,7 @@ if args.tests is None or "rectangle-bin-packing-tree-search" in args.tests:
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-tree-search 1"
                 + " --not-anytime-tree-search-queue-size 512"
                 + "  --output \"" + json_output_path + "\"")
@@ -662,7 +662,7 @@ if args.tests is None or "rectangle-bin-packing-sequential-single-knapsack" in a
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-single-knapsack 1"
                 + " --not-anytime-sequential-single-knapsack-subproblem-queue-size 512"
                 + "  --output \"" + json_output_path + "\"")
@@ -705,7 +705,7 @@ if args.tests is None or "rectangle-bin-packing-sequential-value-correction" in 
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-value-correction 1"
                 + " --sequential-value-correction-subproblem-queue-size 512"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"
@@ -759,7 +759,7 @@ if args.tests is None or "rectangle-bin-packing-with-leftovers-tree-search" in a
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective bin-packing-with-leftovers"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-tree-search 1"
                 + " --not-anytime-tree-search-queue-size 512"
                 + "  --output \"" + json_output_path + "\"")
@@ -802,7 +802,7 @@ if args.tests is None or "rectangle-bin-packing-column-generation" in args.tests
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-column-generation 1"
                 + " --column-generation-subproblem-queue-size 512"
                 + "  --output \"" + json_output_path + "\"")
@@ -844,7 +844,7 @@ if args.tests is None or "rectangle-variable-sized-bin-packing-column-generation
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective variable-sized-bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-column-generation 1"
                 + " --column-generation-subproblem-queue-size 512"
                 + "  --output \"" + json_output_path + "\"")
@@ -882,7 +882,7 @@ if args.tests is None or "rectangle-variable-sized-bin-packing-dichotomic-search
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective variable-sized-bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-dichotomic-search 1"
                 + " --not-anytime-dichotomic-search-subproblem-queue-size 512"
                 + "  --output \"" + json_output_path + "\"")
@@ -921,7 +921,7 @@ if args.tests is None or "rectangle-variable-sized-bin-packing-sequential-single
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective variable-sized-bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-single-knapsack 1"
                 + " --not-anytime-sequential-single-knapsack-subproblem-queue-size 512"
                 + "  --output \"" + json_output_path + "\"")
@@ -963,7 +963,7 @@ if args.tests is None or "rectangle-variable-sized-bin-packing-sequential-value-
                 + "  --items \"" + instance_path + "\""
                 + options
                 + " --objective variable-sized-bin-packing"
-                + "  --optimization-mode not-anytime"
+                + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-value-correction 1"
                 + " --sequential-value-correction-subproblem-queue-size 512"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"

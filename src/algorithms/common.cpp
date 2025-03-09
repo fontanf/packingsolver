@@ -14,6 +14,9 @@ std::istream& packingsolver::operator>>(
     } else if (token == "not-anytime"
             || token == "NotAnytime") {
         optimization_mode = OptimizationMode::NotAnytime;
+    } else if (token == "not-anytime-deterministic"
+            || token == "NotAnytimeDeterministic") {
+        optimization_mode = OptimizationMode::NotAnytimeDeterministic;
     } else if (token == "not-anytime-sequential"
             || token == "NotAnytimeSequential") {
         optimization_mode = OptimizationMode::NotAnytimeSequential;
@@ -33,6 +36,9 @@ std::ostream& packingsolver::operator<<(
         break;
     } case OptimizationMode::NotAnytime: {
         os << "Not anytime";
+        break;
+    } case OptimizationMode::NotAnytimeDeterministic: {
+        os << "Not anytime, deterministic";
         break;
     } case OptimizationMode::NotAnytimeSequential: {
         os << "Not anytime, sequential";

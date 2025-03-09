@@ -207,6 +207,15 @@ void AlgorithmFormatter::update_solution(
         print(s);
         output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
+
+        // Check optimality.
+        if (instance_.objective() == Objective::BinPacking) {
+            if (output_.solution_pool.best().full()
+                    && output_.bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
+                end_ = true;
+            }
+        }
+
     }
     mutex_.unlock();
 }

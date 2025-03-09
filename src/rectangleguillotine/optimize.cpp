@@ -58,11 +58,11 @@ void optimize_tree_search(
                 treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
                 ibs_parameters.verbosity_level = 0;
                 ibs_parameters.timer = parameters.timer;
-                if (parameters.optimization_mode == OptimizationMode::Anytime)
-                    ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+                ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
                 ibs_parameters.growth_factor = growth_factor;
                 if (parameters.optimization_mode != OptimizationMode::Anytime) {
-                    ibs_parameters.minimum_size_of_the_queue
+                    ibs_parameters.minimum_size_of_the_queue = 1;
+                    ibs_parameters.growth_factor
                         = parameters.not_anytime_tree_search_queue_size;
                     ibs_parameters.maximum_size_of_the_queue
                         = parameters.not_anytime_tree_search_queue_size + 1;
@@ -76,7 +76,7 @@ void optimize_tree_search(
     std::vector<std::thread> threads;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
-        if (parameters.optimization_mode == OptimizationMode::Anytime) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
             ibs_parameters_list[i].new_solution_callback
                 = [&algorithm_formatter, &branching_schemes, i](
                         const treesearchsolver::Output<BranchingScheme>& tss_output)
@@ -128,7 +128,7 @@ void optimize_tree_search(
     for (const std::exception_ptr& exception_ptr: exception_ptr_list)
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
-    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
         for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
             std::stringstream ss;
             ss << "TS g " << branching_schemes[i].parameters().guide_id
@@ -148,8 +148,7 @@ void optimize_column_generation_2(
     cg_parameters.timer = parameters.timer;
     cg_parameters.linear_programming_solver_name
         = parameters.linear_programming_solver_name;
-    if (parameters.optimization_mode == OptimizationMode::Anytime)
-        cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         cg_parameters.automatic_stop = true;
     cg_parameters.new_solution_callback = [&algorithm_formatter](
@@ -175,15 +174,16 @@ void optimize_sequential_single_knapsack(
             queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_queue_size;
 
         SequentialValueCorrectionFunction<Instance, Solution> kp_solve
-            = [&parameters, &queue_size](const Instance& kp_instance)
+            = [&algorithm_formatter, &parameters, &queue_size](const Instance& kp_instance)
             {
                 OptimizeParameters kp_parameters;
                 kp_parameters.verbosity_level = 0;
                 kp_parameters.timer = parameters.timer;
+                kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
                 kp_parameters.optimization_mode
                     = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                     OptimizationMode::NotAnytimeSequential:
-                    OptimizationMode::NotAnytime;
+                    OptimizationMode::NotAnytimeDeterministic;
                 kp_parameters.not_anytime_tree_search_queue_size = queue_size;
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
@@ -191,8 +191,7 @@ void optimize_sequential_single_knapsack(
         SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
-        if (parameters.optimization_mode == OptimizationMode::Anytime)
-            svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         svc_parameters.maximum_number_of_iterations = 1;
         svc_parameters.new_solution_callback = [
             &algorithm_formatter, &queue_size](
@@ -227,15 +226,16 @@ void optimize_sequential_value_correction(
         AlgorithmFormatter& algorithm_formatter)
 {
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
-        = [&parameters](const Instance& kp_instance)
+        = [&algorithm_formatter, &parameters](const Instance& kp_instance)
         {
             OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;
             kp_parameters.timer = parameters.timer;
+            kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
             kp_parameters.optimization_mode
                 = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                 OptimizationMode::NotAnytimeSequential:
-                OptimizationMode::NotAnytime;
+                OptimizationMode::NotAnytimeDeterministic;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.sequential_value_correction_subproblem_queue_size;
             auto kp_output = optimize(kp_instance, kp_parameters);
@@ -244,8 +244,7 @@ void optimize_sequential_value_correction(
     SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
     svc_parameters.verbosity_level = 0;
     svc_parameters.timer = parameters.timer;
-    if (parameters.optimization_mode == OptimizationMode::Anytime)
-        svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
     svc_parameters.new_solution_callback = [&algorithm_formatter](
@@ -272,15 +271,16 @@ void optimize_dichotomic_search(
             queue_size = parameters.not_anytime_dichotomic_search_subproblem_queue_size;
 
         DichotomicSearchFunction<Instance, Solution> bpp_solve
-            = [&parameters, &queue_size](const Instance& bpp_instance)
+            = [&algorithm_formatter, &parameters, &queue_size](const Instance& bpp_instance)
             {
                 OptimizeParameters bpp_parameters;
                 bpp_parameters.verbosity_level = 0;
                 bpp_parameters.timer = parameters.timer;
+                bpp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
                 bpp_parameters.optimization_mode
                     = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                     OptimizationMode::NotAnytimeSequential:
-                    OptimizationMode::NotAnytime;
+                    OptimizationMode::NotAnytimeDeterministic;
                 bpp_parameters.use_tree_search = 1;
                 bpp_parameters.not_anytime_tree_search_queue_size = queue_size;
                 auto bpp_output = optimize(bpp_instance, bpp_parameters);
@@ -289,8 +289,7 @@ void optimize_dichotomic_search(
         DichotomicSearchParameters<Instance, Solution> ds_parameters;
         ds_parameters.verbosity_level = 0;
         ds_parameters.timer = parameters.timer;
-        if (parameters.optimization_mode == OptimizationMode::Anytime)
-            ds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        ds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         ds_parameters.initial_waste_percentage_upper_bound = waste_percentage_upper_bound;
         ds_parameters.new_solution_callback = [
             &algorithm_formatter, &queue_size](
@@ -327,15 +326,16 @@ void optimize_column_generation(
         AlgorithmFormatter& algorithm_formatter)
 {
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution> pricing_function
-        = [&parameters](const Instance& kp_instance)
+        = [&algorithm_formatter, &parameters](const Instance& kp_instance)
         {
             OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;
             kp_parameters.timer = parameters.timer;
+            kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
             kp_parameters.optimization_mode
                 = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                 OptimizationMode::NotAnytimeSequential:
-                OptimizationMode::NotAnytime;
+                OptimizationMode::NotAnytimeDeterministic;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.column_generation_subproblem_queue_size;
             return optimize(kp_instance, kp_parameters);
@@ -345,8 +345,7 @@ void optimize_column_generation(
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
-    if (parameters.optimization_mode == OptimizationMode::Anytime)
-        cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = 1;
     cgslds_parameters.dummy_column_objective_coefficient = 2 * (double)instance.largest_item_copies();
     if (parameters.optimization_mode != OptimizationMode::Anytime)

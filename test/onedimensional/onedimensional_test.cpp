@@ -30,7 +30,7 @@ TEST(OneDimensional, Users_2023_08_01)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 
@@ -52,7 +52,7 @@ TEST(OneDimensional, Users_2024_04_06_t1)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 
@@ -74,7 +74,7 @@ TEST(OneDimensional, Users_2024_04_06_t2)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 
@@ -96,7 +96,7 @@ TEST(OneDimensional, Users_2024_04_06_t3)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_tree_search = 1;
     Output output = optimize(instance, optimize_parameters);
 
@@ -118,7 +118,7 @@ TEST(OneDimensional, Users_2024_04_07)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_sequential_value_correction = 1;
     optimize_parameters.verbosity_level = 2;
     Output output = optimize(instance, optimize_parameters);
@@ -141,7 +141,7 @@ TEST(OneDimensional, Users_2024_04_09)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_sequential_value_correction = 1;
     Output output = optimize(instance, optimize_parameters);
 
@@ -163,7 +163,7 @@ TEST(OneDimensional, Users_2024_04_21)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 

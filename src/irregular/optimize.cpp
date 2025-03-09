@@ -135,6 +135,7 @@ void optimize_tree_search(
                 treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
                 ibs_parameters.verbosity_level = 0;
                 ibs_parameters.timer = parameters.timer;
+                ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
                 ibs_parameters.growth_factor = growth_factor;
                 if (parameters.optimization_mode != OptimizationMode::Anytime) {
                     ibs_parameters.minimum_size_of_the_queue
@@ -151,7 +152,7 @@ void optimize_tree_search(
     std::vector<std::thread> threads;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
-        if (parameters.optimization_mode == OptimizationMode::Anytime) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
             ibs_parameters_list[i].new_solution_callback
                 = [&algorithm_formatter, &branching_schemes, i](
                         const treesearchsolver::Output<BranchingScheme>& tss_output)
@@ -206,7 +207,7 @@ void optimize_tree_search(
     for (const std::exception_ptr& exception_ptr: exception_ptr_list)
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
-    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
         for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
             std::stringstream ss;
             ss << "TS g " << branching_schemes[i].parameters().guide_id
@@ -230,15 +231,16 @@ void optimize_sequential_single_knapsack(
         }
 
         SequentialValueCorrectionFunction<Instance, Solution> kp_solve
-            = [&parameters, queue_size, maximum_approximation_ratio](const Instance& kp_instance)
+            = [&algorithm_formatter, &parameters, queue_size, maximum_approximation_ratio](const Instance& kp_instance)
             {
                 OptimizeParameters kp_parameters;
                 kp_parameters.verbosity_level = 0;
                 kp_parameters.timer = parameters.timer;
+                kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
                 kp_parameters.optimization_mode
                     = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                     OptimizationMode::NotAnytimeSequential:
-                    OptimizationMode::NotAnytime;
+                    OptimizationMode::NotAnytimeDeterministic;
                 kp_parameters.not_anytime_maximum_approximation_ratio = maximum_approximation_ratio;
                 kp_parameters.not_anytime_tree_search_queue_size = queue_size;
                 auto kp_output = optimize(kp_instance, kp_parameters);
@@ -282,15 +284,16 @@ void optimize_sequential_value_correction(
         AlgorithmFormatter& algorithm_formatter)
 {
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
-        = [&parameters](const Instance& kp_instance)
+        = [&algorithm_formatter, &parameters](const Instance& kp_instance)
         {
             OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;
             kp_parameters.timer = parameters.timer;
+            kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
             kp_parameters.optimization_mode
                 = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                 OptimizationMode::NotAnytimeSequential:
-                OptimizationMode::NotAnytime;
+                OptimizationMode::NotAnytimeDeterministic;
             kp_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.sequential_value_correction_subproblem_queue_size;
@@ -329,15 +332,16 @@ void optimize_dichotomic_search(
         }
 
         DichotomicSearchFunction<Instance, Solution> bpp_solve
-            = [&parameters, queue_size, maximum_approximation_ratio](const Instance& bpp_instance)
+            = [&algorithm_formatter, &parameters, queue_size, maximum_approximation_ratio](const Instance& bpp_instance)
             {
                 OptimizeParameters bpp_parameters;
                 bpp_parameters.verbosity_level = 0;
                 bpp_parameters.timer = parameters.timer;
+                bpp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
                 bpp_parameters.optimization_mode
                     = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                     OptimizationMode::NotAnytimeSequential:
-                    OptimizationMode::NotAnytime;
+                    OptimizationMode::NotAnytimeDeterministic;
                 bpp_parameters.not_anytime_maximum_approximation_ratio = maximum_approximation_ratio;
                 bpp_parameters.use_tree_search = 1;
                 bpp_parameters.not_anytime_tree_search_queue_size = queue_size;
@@ -385,15 +389,16 @@ void optimize_column_generation(
         AlgorithmFormatter& algorithm_formatter)
 {
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution> pricing_function
-        = [&parameters](const Instance& kp_instance)
+        = [&algorithm_formatter, &parameters](const Instance& kp_instance)
         {
             OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;
             kp_parameters.timer = parameters.timer;
+            kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
             kp_parameters.optimization_mode
                 = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                 OptimizationMode::NotAnytimeSequential:
-                OptimizationMode::NotAnytime;
+                OptimizationMode::NotAnytimeDeterministic;
             kp_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.column_generation_subproblem_queue_size;
@@ -708,7 +713,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         OptimizeParameters last_bin_parameters;
         last_bin_parameters.verbosity_level = 0;
         last_bin_parameters.timer = parameters.timer;
-        last_bin_parameters.optimization_mode = OptimizationMode::NotAnytime;
+        last_bin_parameters.optimization_mode = parameters.optimization_mode;
         last_bin_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
         last_bin_parameters.tree_search_guides = {2, 3};
