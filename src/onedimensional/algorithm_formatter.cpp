@@ -186,7 +186,7 @@ void AlgorithmFormatter::update_solution(
             if (equal(output_.knapsack_bound, output_.solution_pool.best().profit())) {
                 end_ = true;
             }
-       } else  if (instance_.objective() == Objective::BinPacking) {
+       } else if (instance_.objective() == Objective::BinPacking) {
             if (output_.solution_pool.best().full()
                     && output_.bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
                 end_ = true;
