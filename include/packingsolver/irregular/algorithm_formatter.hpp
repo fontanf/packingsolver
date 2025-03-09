@@ -42,6 +42,9 @@ public:
     /** Method to call at the end of the algorithm. */
     void end();
 
+    /** Get end boolean. */
+    bool& end_boolean() { return end_; };
+
 private:
 
     /** Instance. */
@@ -55,6 +58,9 @@ private:
 
     /** Output stream. */
     std::unique_ptr<optimizationtools::ComposeStream> os_;
+
+    /** End boolean. */
+    bool end_ = false;
 
     /** Mutex. */
     std::mutex mutex_;

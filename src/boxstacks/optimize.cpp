@@ -159,7 +159,8 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     ibs_parameters.verbosity_level = 0;
                     ibs_parameters.timer = parameters.timer;
                     if (parameters.optimization_mode != OptimizationMode::Anytime) {
-                        ibs_parameters.minimum_size_of_the_queue
+                        ibs_parameters.minimum_size_of_the_queue = 1;
+                        ibs_parameters.growth_factor
                             = parameters.not_anytime_tree_search_queue_size;
                         ibs_parameters.maximum_size_of_the_queue
                             = parameters.not_anytime_tree_search_queue_size;
@@ -227,15 +228,16 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
     } else {
 
         SequentialValueCorrectionFunction<Instance, Solution> kp_solve
-            = [&parameters, &output](const Instance& kp_instance)
+            = [&algorithm_formatter, &parameters, &output](const Instance& kp_instance)
             {
                 OptimizeParameters kp_parameters;
                 kp_parameters.verbosity_level = 0;
                 kp_parameters.timer = parameters.timer;
+                kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
                 kp_parameters.optimization_mode
                     = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                     OptimizationMode::NotAnytimeSequential:
-                    OptimizationMode::NotAnytime;
+                    OptimizationMode::NotAnytimeDeterministic;
                 kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
                 kp_parameters.not_anytime_tree_search_queue_size
                     = parameters.sequential_value_correction_subproblem_queue_size;

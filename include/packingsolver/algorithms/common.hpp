@@ -79,6 +79,7 @@ enum class OptimizationMode
 {
     Anytime,
     NotAnytime,
+    NotAnytimeDeterministic,
     NotAnytimeSequential,
     // AnytimeSequential doesn't exist.
 };

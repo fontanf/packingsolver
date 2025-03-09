@@ -20,7 +20,7 @@ TEST(RectangleGuillotine, BinPackingWithLeftoversA1)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_tree_search = true;
     Output output = optimize(instance, optimize_parameters);
 
@@ -39,7 +39,7 @@ TEST(RectangleGuillotine, BinPackingWithLeftoversA17)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_tree_search = true;
     Output output = optimize(instance, optimize_parameters);
 
@@ -58,7 +58,7 @@ TEST(RectangleGuillotine, BinPackingWithLeftoversA20)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_tree_search = true;
     optimize_parameters.not_anytime_tree_search_queue_size = 1e4;
     Output output = optimize(instance, optimize_parameters);
@@ -78,7 +78,7 @@ TEST(RectangleGuillotine, BinPackingWithLeftoversB5)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_tree_search = true;
     Output output = optimize(instance, optimize_parameters);
 
@@ -96,7 +96,7 @@ TEST(RectangleGuillotine, BinPackingWithLeftoversEmptyBinTreeSearch)
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
-    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytime;
+    optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     optimize_parameters.use_tree_search = true;
     Output output = optimize(instance, optimize_parameters);
 
