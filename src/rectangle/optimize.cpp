@@ -4,6 +4,7 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "rectangle/branching_scheme.hpp"
 #include "rectangle/benders_decomposition.hpp"
+#include "rectangle/dual_feasible_functions.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -17,6 +18,24 @@ using namespace packingsolver::rectangle;
 
 namespace
 {
+
+void optimize_dual_feasible_functions(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    DualFeasibleFunctionsParameters dff_parameters;
+    dff_parameters.verbosity_level = 0;
+    dff_parameters.timer = parameters.timer;
+    dff_parameters.new_solution_callback
+        = [&algorithm_formatter](
+                const packingsolver::Output<Instance, Solution>& dff_output)
+        {
+            algorithm_formatter.update_bin_packing_bound(
+                    dff_output.bin_packing_bound);
+        };
+    dual_feasible_functions(instance, dff_parameters);
+}
 
 void optimize_tree_search(
         const Instance& instance,
@@ -525,6 +544,16 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                     use_column_generation = true;
                 }
             }
+        }
+    }
+
+    if (instance.objective() == Objective::BinPacking) {
+        if (instance.number_of_bin_types() == 1
+                && instance.number_of_items() <= 100) {
+            optimize_dual_feasible_functions(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
         }
     }
 

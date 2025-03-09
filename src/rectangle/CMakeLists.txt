@@ -8,7 +8,8 @@ target_sources(PackingSolver_rectangle PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     branching_scheme.cpp
-    benders_decomposition.cpp)
+    benders_decomposition.cpp
+    dual_feasible_functions.cpp)
 target_include_directories(PackingSolver_rectangle PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_rectangle PRIVATE
