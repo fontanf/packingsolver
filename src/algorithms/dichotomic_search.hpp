@@ -166,7 +166,7 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
             const auto& bin_type = instance.bin_type(bin_type_id);
             if (bin_type.space() > kp_capacity)
                 continue;
-            for (BinPos pos = 0; pos < bin_type.copies; ++pos) {
+            for (BinPos pos = bin_type.copies_min; pos < bin_type.copies; ++pos) {
                 kp_instance_builder.add_item(bin_type.cost, bin_type.space());
                 kp2ps.push_back(bin_type_id);
             }
