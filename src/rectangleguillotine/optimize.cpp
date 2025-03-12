@@ -159,6 +159,7 @@ void optimize_column_generation_2(
         std::stringstream ss;
         ss << "CG";
         algorithm_formatter.update_solution(pscg_output.solution_pool.best(), ss.str());
+        algorithm_formatter.update_knapsack_bound(pscg_output.knapsack_bound);
     };
     column_generation_2(instance, cg_parameters);
 }
@@ -372,6 +373,24 @@ void optimize_column_generation(
             algorithm_formatter.update_solution(solution, ss.str());
         }
     };
+    cgslds_parameters.new_bound_callback = [&instance, &algorithm_formatter](
+            const columngenerationsolver::Output& cgs_output)
+    {
+        const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
+            = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
+        if (instance.objective() == Objective::VariableSizedBinPacking) {
+            double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
+            algorithm_formatter.update_variable_sized_bin_packing_bound(cgslds_output.bound * multiplier_cost);
+        } else if (instance.objective() == Objective::Knapsack) {
+            double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
+            algorithm_formatter.update_knapsack_bound(cgslds_output.bound * multiplier_profit);
+        } else if (instance.objective() == Objective::BinPacking) {
+            double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
+            BinPos bin_packing_bound = std::ceil(cgslds_output.bound * multiplier_cost / instance.bin_type(0).space() - 0.001);
+            std::cout << "bin_packing_bound " << bin_packing_bound << std::endl;
+            algorithm_formatter.update_bin_packing_bound(bin_packing_bound);
+        }
+    };
     cgslds_parameters.column_generation_parameters.solver_name
         = parameters.linear_programming_solver_name;
     columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
@@ -407,7 +426,10 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         if (!use_tree_search
                 && !use_column_generation_2) {
             use_tree_search = true;
-            //use_column_generation_2 = true;
+            //if (instance.number_of_stacks() != instance.number_of_item_types()
+            //        && instance.number_of_defects() == 0) {
+            //    use_column_generation_2 = true;
+            //}
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
