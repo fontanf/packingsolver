@@ -11,6 +11,9 @@
  * - "A theoretical and experimental study of fast lower bounds for the
  *   two-dimensional bin packing problem" (Serairi1 et Haouari, 2018)
  *   https://doi.org/10.1051/ro/2017019
+ * - "A new lower bound for the non-oriented two-dimensional bin-packing
+ *   problem☆" (Clautiaux et al., 2007)
+ *   https://doi.org/10.1016/j.orl.2006.07.001
  */
 
 #pragma once
