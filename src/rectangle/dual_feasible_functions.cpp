@@ -1,6 +1,7 @@
 #include "rectangle/dual_feasible_functions.hpp"
 
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
+#include "packingsolver/rectangle/instance_builder.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
@@ -92,8 +93,96 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
             break;
         }
     }
-    if (!all_items_oriented)
+    if (!all_items_oriented) {
+        // If there are some non-oriented items, we use the strategy from
+        // clautiaux2007:
+        // - Build a modified instance containing for each item of the original
+        //   instance, one item for each orientation.
+        // - Compute the bound on the modified instance.
+        // - Divide it by 2 to get the bound of the original instance.
+
+        BinPos bound = 0;
+        for (;;) {
+            // Build modified instance.
+            InstanceBuilder modified_instance_builder;
+            modified_instance_builder.set_objective(instance.objective());
+            modified_instance_builder.set_parameters(instance.parameters());
+            // Add bins and dummy items.
+            if (bin_type.rect.x == bin_type.rect.y) {
+                modified_instance_builder.add_bin_type(
+                        bin_type.rect.x,
+                        bin_type.rect.y,
+                        -1,
+                        2 * instance.number_of_items());
+            } else if (bin_type.rect.x > bin_type.rect.y) {
+                modified_instance_builder.add_bin_type(
+                        bin_type.rect.x,
+                        bin_type.rect.x,
+                        -1,
+                        2 * instance.number_of_items() + bound);
+                modified_instance_builder.add_item_type(
+                        bin_type.rect.x,
+                        bin_type.rect.x - bin_type.rect.y,
+                        -1,
+                        bound);
+            } else if (bin_type.rect.x < bin_type.rect.y) {
+                modified_instance_builder.add_bin_type(
+                        bin_type.rect.y,
+                        bin_type.rect.y,
+                        -1,
+                        2 * instance.number_of_items() + bound);
+                modified_instance_builder.add_item_type(
+                        bin_type.rect.y - bin_type.rect.x,
+                        bin_type.rect.y,
+                        -1,
+                        bound);
+            }
+            // Add items.
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                ItemType item_type = instance.item_type(item_type_id);
+                item_type.oriented = true;
+                if (item_type.rect.x == item_type.rect.y) {
+                    modified_instance_builder.add_item_type(
+                            item_type,
+                            item_type.profit,
+                            2 * item_type.copies);
+                } else {
+                    modified_instance_builder.add_item_type(
+                            item_type,
+                            item_type.profit,
+                            item_type.copies);
+                    item_type.rect.x = instance.item_type(item_type_id).rect.y;
+                    item_type.rect.y = instance.item_type(item_type_id).rect.x;
+                    modified_instance_builder.add_item_type(
+                            item_type,
+                            item_type.profit,
+                            item_type.copies);
+                }
+            }
+            Instance modified_instance = modified_instance_builder.build();
+
+            // Compute the bound on the modified instance.
+            DualFeasibleFunctionsParameters modified_parameters;
+            modified_parameters.verbosity_level = 0;
+            auto modified_output = dual_feasible_functions(
+                    modified_instance,
+                    modified_parameters);
+
+            // Retrieve the bound of the original instance.
+            BinPos bound_cur = (modified_output.bin_packing_bound - 1) / 2 + 1;
+            if (bound >= bound_cur)
+                break;
+            bound = bound_cur;
+            algorithm_formatter.update_bin_packing_bound(bound);
+
+            if (bin_type.rect.x == bin_type.rect.y)
+                break;
+        }
+        algorithm_formatter.end();
         return output;
+    }
 
     // Compute all distinct widths and heights.
     std::vector<Length> widths;
