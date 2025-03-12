@@ -1522,6 +1522,14 @@ void column_generation_2_vertical(
             //std::cout << "callback end" << std::endl;
         }
     };
+    cgslds_parameters.new_bound_callback = [&instance, &algorithm_formatter](
+            const columngenerationsolver::Output& cgs_output)
+    {
+        const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
+            = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
+        double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
+        algorithm_formatter.update_knapsack_bound(cgslds_output.bound * multiplier_profit);
+    };
     cgslds_parameters.column_generation_parameters.solver_name
         = parameters.linear_programming_solver_name;
     columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
@@ -1551,6 +1559,8 @@ void column_generation_2_horizontal(
             algorithm_formatter.update_solution(
                     solution,
                     ss.str());
+            algorithm_formatter.update_knapsack_bound(
+                    flipped_output.knapsack_bound);
         };
     column_generation_2(
             flipped_instance,
