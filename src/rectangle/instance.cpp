@@ -272,3 +272,109 @@ std::ostream& Instance::format(
 
     return os;
 }
+
+void Instance::write(
+        const std::string& instance_path) const
+{
+    // Export items.
+    std::string items_path = instance_path + "_items.csv";
+    std::ofstream f_items(items_path);
+    if (!f_items.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + items_path + "\".");
+    }
+    f_items <<
+        "ID,"
+        "WIDTH,"
+        "HEIGHT,"
+        "PROFIT,"
+        "COPIES,"
+        "ORIENTED,"
+        "GROUP_ID" << std::endl;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = this->item_type(item_type_id);
+        f_items
+            << item_type_id << ","
+            << item_type.rect.x << ","
+            << item_type.rect.y << ","
+            << item_type.profit << ","
+            << item_type.copies << ","
+            << item_type.oriented << ","
+            << item_type.group_id << std::endl;
+    }
+
+    // Export bins.
+    std::string bins_path = instance_path + "_bins.csv";
+    std::ofstream f_bins(bins_path);
+    if (!f_bins.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + bins_path + "\".");
+    }
+    f_bins <<
+        "ID,"
+        "WIDTH,"
+        "HEIGHT,"
+        "COST,"
+        "COPIES,"
+        "COPIES_MIN" << std::endl;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        f_bins
+            << bin_type_id << ","
+            << bin_type.rect.x << ","
+            << bin_type.rect.y << ","
+            << bin_type.cost << ","
+            << bin_type.copies << ","
+            << bin_type.copies_min << std::endl;
+    }
+
+    // Export defects.
+    if (number_of_defects() > 0) {
+        std::string defects_path = instance_path + "_defects.csv";
+        std::ofstream f_defects(defects_path);
+        if (number_of_defects() > 0 && !f_defects.good()) {
+            throw std::runtime_error(
+                    "Unable to open file \"" + defects_path + "\".");
+        }
+        f_defects <<
+            "ID,"
+            "BIN,"
+            "X,"
+            "Y,"
+            "WIDTH,"
+            "HEIGHT" << std::endl;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = this->bin_type(bin_type_id);
+            for (DefectId defect_id = 0;
+                    defect_id < (DefectId)bin_type.defects.size();
+                    ++defect_id) {
+                const Defect& defect = bin_type.defects[defect_id];
+                f_defects
+                    << defect_id << ","
+                    << bin_type_id << ","
+                    << defect.pos.x << ","
+                    << defect.pos.y << ","
+                    << defect.rect.x << ","
+                    << defect.rect.y << std::endl;
+            }
+        }
+    }
+
+    // Export parameters.
+    std::string parameters_path = instance_path + "_parameters.csv";
+    std::ofstream f_parameters(parameters_path);
+    if (!f_parameters.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + parameters_path + "\".");
+    }
+    f_parameters << "NAME,VALUE" << std::endl
+        << "objective," << objective() << std::endl
+        << "unloading_constraint" << unloading_constraint() << std::endl;
+
+}
