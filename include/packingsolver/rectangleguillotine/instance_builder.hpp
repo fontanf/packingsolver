@@ -72,8 +72,8 @@ public:
 
     /** Add a bin type. */
     BinTypeId add_bin_type(
-            Length w,
-            Length h,
+            Length width,
+            Length height,
             Profit cost = -1,
             BinPos copies = 1,
             BinPos copies_min = 0);
@@ -145,9 +145,9 @@ public:
 
     /** Add an item type. */
     ItemTypeId add_item_type(
-            Length w,
-            Length h,
-            Profit p = -1,
+            Length width,
+            Length height,
+            Profit profit = -1,
             ItemPos copies = 1,
             bool oriented = false,
             StackId stack_id = -1);

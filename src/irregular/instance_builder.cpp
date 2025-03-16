@@ -19,16 +19,31 @@ BinTypeId InstanceBuilder::add_bin_type(
         BinPos copies,
         BinPos copies_min)
 {
+    if (cost <= 0 && cost != -1) {
+        throw std::invalid_argument(
+                "packingsolver::irregular::InstanceBuilder::add_bin_type: "
+                "bin 'cost' must be > 0 (or == -1); "
+                "cost: " + std::to_string(cost) + ".");
+    }
+    if (copies_min < 0) {
+        throw std::invalid_argument(
+                "packingsolver::irregular::InstanceBuilder::add_bin_type: "
+                "bin 'copies_min' must be >= 0; "
+                "copies_min: " + std::to_string(copies_min) + ".");
+    }
     if (copies != -1) {
         if (copies <= 0) {
-            throw std::runtime_error(
+            throw std::invalid_argument(
                     "packingsolver::irregular::InstanceBuilder::add_bin_type: "
-                    "requires 'copies > 0' or 'copies == -1'.");
+                    "bin 'copies' must be > 0 (or == -1); "
+                    "copies: " + std::to_string(copies) + ".");
         }
         if (copies_min > copies) {
-            throw std::runtime_error(
+            throw std::invalid_argument(
                     "packingsolver::irregular::InstanceBuilder::add_bin_type: "
-                    "requires 'copies_min <= copies' or 'copies == -1'.");
+                    "bin 'copies_min' must be <= 'copies'; "
+                    "copies: " + std::to_string(copies) + "; "
+                    "copies_min: " + std::to_string(copies_min) + ".");
         }
     }
 
@@ -53,6 +68,14 @@ void InstanceBuilder::add_defect(
         const Shape& shape,
         const std::vector<Shape>& holes)
 {
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::irregular::InstanceBuilder::add_defect: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
     Defect defect;
     defect.type = type;
     defect.shape = shape;
@@ -115,8 +138,9 @@ ItemTypeId InstanceBuilder::add_item_type(
         }
     }
     if (copies <= 0) {
-        throw std::runtime_error(
-                "packingsolver::irregular::InstanceBuilder::add_item_type; "
+        throw std::invalid_argument(
+                "packingsolver::irregular::InstanceBuilder::add_item_type: "
+                "item 'copies' must be > 0; "
                 "copies: " + std::to_string(copies) + ".");
     }
 
@@ -140,6 +164,14 @@ void InstanceBuilder::set_item_type_allow_mirroring(
         ItemTypeId item_type_id,
         bool allow_mirroring)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::irregular::InstanceBuilder::set_item_type_allow_mirroring: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].allow_mirroring = allow_mirroring;
 }
 

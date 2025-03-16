@@ -20,30 +20,36 @@ BinTypeId InstanceBuilder::add_bin_type(
         BinPos copies_min)
 {
     if (length <= 0) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
                 "packingsolver::onedimensional::InstanceBuilder::add_bin_type: "
-                "requires 'length > 0'.");
+                "bin 'length' must be > 0; "
+                "length: " + std::to_string(length) + ".");
     }
-    if (cost < 0 && cost != -1) {
-        throw std::runtime_error(
+    if (cost <= 0 && cost != -1) {
+        throw std::invalid_argument(
                 "packingsolver::onedimensional::InstanceBuilder::add_bin_type: "
-                "requires 'cost >= 0' or 'cost == -1'.");
+                "bin 'cost' must be > 0 (or == -1); "
+                "cost: " + std::to_string(cost) + ".");
     }
     if (copies_min < 0) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
                 "packingsolver::onedimensional::InstanceBuilder::add_bin_type: "
-                "requires 'copies_min >= 0'.");
+                "bin 'copies_min' must be >= 0; "
+                "copies_min: " + std::to_string(copies_min) + ".");
     }
     if (copies != -1) {
         if (copies <= 0) {
-            throw std::runtime_error(
+            throw std::invalid_argument(
                     "packingsolver::onedimensional::InstanceBuilder::add_bin_type: "
-                    "requires 'copies > 0' or 'copies == -1'.");
+                    "bin 'copies' must be > 0 (or == -1); "
+                    "copies: " + std::to_string(copies) + ".");
         }
         if (copies_min > copies) {
-            throw std::runtime_error(
+            throw std::invalid_argument(
                     "packingsolver::onedimensional::InstanceBuilder::add_bin_type: "
-                    "requires 'copies_min <= copies' or 'copies == -1'.");
+                    "bin 'copies_min' must be <= 'copies'; "
+                    "copies: " + std::to_string(copies) + "; "
+                    "copies_min: " + std::to_string(copies_min) + ".");
         }
     }
 
@@ -60,6 +66,14 @@ void InstanceBuilder::set_bin_type_maximum_weight(
         BinTypeId bin_type_id,
         Weight maximum_weight)
 {
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::onedimensional::InstanceBuilder::set_bin_type_maximum_weight: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
     instance_.bin_types_[bin_type_id].maximum_weight = maximum_weight;
 }
 
@@ -67,6 +81,14 @@ void InstanceBuilder::add_bin_type_eligibility(
         BinTypeId bin_type_id,
         EligibilityId eligibility_id)
 {
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::onedimensional::InstanceBuilder::add_bin_type_eligibility: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
     instance_.bin_types_[bin_type_id].eligibility_ids.push_back(eligibility_id);
 }
 
@@ -116,8 +138,9 @@ ItemTypeId InstanceBuilder::add_item_type(
         ItemPos copies)
 {
     if (copies <= 0) {
-        throw std::runtime_error(
-                "packingsolver::onedimensional::InstanceBuilder::add_item_type; "
+        throw std::invalid_argument(
+                "packingsolver::onedimensional::InstanceBuilder::add_item_type: "
+                "item 'copies' must be > 0; "
                 "copies: " + std::to_string(copies) + ".");
     }
 
@@ -133,6 +156,14 @@ void InstanceBuilder::set_item_type_weight(
         ItemTypeId item_type_id,
         Weight weight)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::onedimensional::InstanceBuilder::set_item_type_weight: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].weight = weight;
 }
 
@@ -140,6 +171,14 @@ void InstanceBuilder::set_item_type_nesting_length(
         ItemTypeId item_type_id,
         Length nesting_length)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::onedimensional::InstanceBuilder::set_item_type_nesting_length: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].nesting_length = nesting_length;
 }
 
@@ -147,6 +186,14 @@ void InstanceBuilder::set_item_type_maximum_stackability(
         ItemTypeId item_type_id,
         ItemPos maximum_stackability)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::onedimensional::InstanceBuilder::set_item_type_maximum_stackability: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].maximum_stackability = maximum_stackability;
 }
 
@@ -154,6 +201,14 @@ void InstanceBuilder::set_item_type_maximum_weight_after(
         ItemTypeId item_type_id,
         Weight maximum_weight_after)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::onedimensional::InstanceBuilder::set_item_type_maximum_weight_after: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].maximum_weight_after = maximum_weight_after;
 }
 
@@ -161,6 +216,14 @@ void InstanceBuilder::set_item_type_eligibility(
         ItemTypeId item_type_id,
         EligibilityId eligibility_id)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::onedimensional::InstanceBuilder::set_item_type_eligibility: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].eligibility_id = eligibility_id;
 }
 
