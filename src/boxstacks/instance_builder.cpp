@@ -31,40 +31,48 @@ BinTypeId InstanceBuilder::add_bin_type(
         BinPos copies_min)
 {
     if (x <= 0) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
-                "requires 'x > 0'.");
+                "bin 'x' must be > 0; "
+                "x: " + std::to_string(x) + ".");
     }
     if (y <= 0) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
-                "requires 'y > 0'.");
+                "bin 'y' must be > 0; "
+                "y: " + std::to_string(y) + ".");
     }
     if (z <= 0) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
-                "requires 'z > 0'.");
+                "bin 'z' must be > 0; "
+                "z: " + std::to_string(z) + ".");
     }
-    if (cost < 0 && cost != -1) {
-        throw std::runtime_error(
+    if (cost <= 0 && cost != -1) {
+        throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
-                "requires 'cost >= 0' or 'cost == -1'.");
+                "bin 'cost' must be > 0 (or == -1); "
+                "cost: " + std::to_string(cost) + ".");
     }
     if (copies_min < 0) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
-                "requires 'copies_min >= 0'.");
+                "bin 'copies_min' must be >= 0; "
+                "copies_min: " + std::to_string(copies_min) + ".");
     }
     if (copies != -1) {
         if (copies <= 0) {
-            throw std::runtime_error(
+            throw std::invalid_argument(
                     "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
-                    "requires 'copies > 0' or 'copies == -1'.");
+                    "bin 'copies' must be > 0 (or == -1); "
+                    "copies: " + std::to_string(copies) + ".");
         }
         if (copies_min > copies) {
-            throw std::runtime_error(
+            throw std::invalid_argument(
                     "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
-                    "requires 'copies_min <= copies' or 'copies == -1'.");
+                    "bin 'copies_min' must be <= 'copies'; "
+                    "copies: " + std::to_string(copies) + "; "
+                    "copies_min: " + std::to_string(copies_min) + ".");
         }
     }
 
@@ -83,6 +91,14 @@ void InstanceBuilder::set_bin_type_maximum_weight(
         BinTypeId bin_type_id,
         Weight maximum_weight)
 {
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::boxstacks::InstanceBuilder::set_bin_type_maximum_weight: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
     instance_.bin_types_[bin_type_id].maximum_weight = maximum_weight;
 }
 
@@ -90,6 +106,14 @@ void InstanceBuilder::set_bin_type_maximum_stack_density(
         BinTypeId bin_type_id,
         double maximum_stack_density)
 {
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::boxstacks::InstanceBuilder::set_bin_type_maximum_stack_density: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
     instance_.bin_types_[bin_type_id].maximum_stack_density = maximum_stack_density;
 }
 
@@ -97,6 +121,14 @@ void InstanceBuilder::set_bin_type_semi_trailer_truck_parameters(
         BinTypeId bin_type_id,
         const SemiTrailerTruckData& semi_trailer_truck_data)
 {
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::boxstacks::InstanceBuilder::set_bin_type_semi_trailer_truck_parameters: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
     instance_.bin_types_[bin_type_id].semi_trailer_truck_data = semi_trailer_truck_data;
 }
 
@@ -107,7 +139,7 @@ DefectId InstanceBuilder::add_defect(
         Length rect_x,
         Length rect_y)
 {
-    if (bin_type_id >= instance_.bin_types_.size()) {
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_defect; "
                 "bin_type_id: " + std::to_string(bin_type_id) + "; "
@@ -221,27 +253,32 @@ ItemTypeId InstanceBuilder::add_item_type(
     if (x < 0) {
         throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_item_type: "
-                "item type x " + std::to_string(x) + " must be >= 0.");
+                "item 'x' must be > 0; "
+                "x: " + std::to_string(x) + ".");
     }
     if (y < 0) {
         throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_item_type: "
-                "item type y " + std::to_string(y) + " must be >= 0.");
+                "item 'y' must be > 0; "
+                "y: " + std::to_string(y) + ".");
     }
     if (z < 0) {
         throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_item_type: "
-                "item type z " + std::to_string(y) + " must be >= 0.");
+                "item 'z' must be > 0; "
+                "z: " + std::to_string(z) + ".");
     }
     if (copies <= 0) {
         throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_item_type: "
-                "item type copies " + std::to_string(copies) + " must be >= 0.");
+                "item 'copies' must be > 0; "
+                "copies: " + std::to_string(copies) + ".");
     }
     if (group_id < 0) {
         throw std::invalid_argument(
                 "packingsolver::boxstacks::InstanceBuilder::add_item_type: "
-                "item type group id " + std::to_string(group_id) + " must be >= 0.");
+                "item 'group_id' must be >= 0; "
+                "group_id: " + std::to_string(group_id) + ".");
     }
 
     ItemType item_type;
@@ -260,6 +297,14 @@ void InstanceBuilder::set_item_type_weight(
         ItemTypeId item_type_id,
         Weight weight)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::boxstacks::InstanceBuilder::set_item_type_weight: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].weight = weight;
 }
 
@@ -267,6 +312,14 @@ void InstanceBuilder::set_item_type_stackability_id(
         ItemTypeId item_type_id,
         StackabilityId stackability_id)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::boxstacks::InstanceBuilder::set_item_type_stackability_id: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].stackability_id = stackability_id;
 }
 
@@ -274,6 +327,14 @@ void InstanceBuilder::set_item_type_nesting_height(
         ItemTypeId item_type_id,
         Length nesting_height)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::boxstacks::InstanceBuilder::set_item_type_nesting_height: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].nesting_height = nesting_height;
 }
 
@@ -281,6 +342,14 @@ void InstanceBuilder::set_item_type_maximum_stackability(
         ItemTypeId item_type_id,
         ItemPos maximum_stackability)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::boxstacks::InstanceBuilder::set_item_type_maximum_stackability: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].maximum_stackability = maximum_stackability;
 }
 
@@ -288,6 +357,14 @@ void InstanceBuilder::set_item_type_maximum_weight_above(
         ItemTypeId item_type_id,
         Weight maximum_weight_above)
 {
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::boxstacks::InstanceBuilder::set_item_type_maximum_weight_above: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
     instance_.item_types_[item_type_id].maximum_weight_above = maximum_weight_above;
 }
 

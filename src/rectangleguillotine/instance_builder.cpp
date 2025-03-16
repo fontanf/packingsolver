@@ -96,49 +96,56 @@ void InstanceBuilder::set_roadef2018()
 ////////////////////////////////////////////////////////////////////////////////
 
 BinTypeId InstanceBuilder::add_bin_type(
-        Length w,
-        Length h,
+        Length width,
+        Length height,
         Profit cost,
         BinPos copies,
         BinPos copies_min)
 {
-    if (w <= 0) {
-        throw std::runtime_error(
+    if (width <= 0) {
+        throw std::invalid_argument(
                 "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
-                "requires 'w > 0'.");
+                "bin 'width' must be > 0; "
+                "width: " + std::to_string(width) + ".");
     }
-    if (h <= 0) {
-        throw std::runtime_error(
+    if (height <= 0) {
+        throw std::invalid_argument(
                 "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
-                "requires 'h > 0'.");
+                "bin 'height' must be > 0; "
+                "height: " + std::to_string(height) + ".");
     }
-    if (cost < 0 && cost != -1) {
-        throw std::runtime_error(
+    if (cost <= 0 && cost != -1) {
+        throw std::invalid_argument(
                 "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
-                "requires 'cost >= 0' or 'cost == -1'.");
+                "bin 'cost' must be > 0 (or == -1); "
+                "cost: " + std::to_string(cost) + ".");
     }
     if (copies_min < 0) {
-        throw std::runtime_error(
+        throw std::invalid_argument(
                 "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
-                "requires 'copies_min >= 0'.");
+                "bin 'copies_min' must be >= 0; "
+                "copies_min: " + std::to_string(copies_min) + ".");
     }
     if (copies != -1) {
         if (copies <= 0) {
-            throw std::runtime_error(
+            throw std::invalid_argument(
                     "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
-                    "requires 'copies > 0' or 'copies == -1'.");
+                    "bin 'copies' must be > 0 (or == -1); "
+                    "copies: " + std::to_string(copies) + ".");
         }
         if (copies_min > copies) {
-            throw std::runtime_error(
+            throw std::invalid_argument(
                     "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
-                    "requires 'copies_min <= copies' or 'copies == -1'.");
+                    "bin 'copies_min' must be <= 'copies'; "
+                    "copies: " + std::to_string(copies) + "; "
+                    "copies_min: " + std::to_string(copies_min) + ".");
         }
     }
 
     BinType bin_type;
-    bin_type.rect.w = w;
-    bin_type.rect.h = h;
-    bin_type.cost = (cost == -1)? w * h: cost;
+    bin_type.rect.w = width;
+    bin_type.rect.h = height;
+    bin_type.cost = (cost == -1)? width * height: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
     instance_.bin_types_.push_back(bin_type);
@@ -156,7 +163,22 @@ void InstanceBuilder::add_trims(
         Length top_trim,
         TrimType top_trim_type)
 {
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::rectangleguillotine::InstanceBuilder::add_trims: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
     BinType& bin_type = instance_.bin_types_[bin_type_id];
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::rectangle::InstanceBuilder::add_defect: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
 
     if (bottom_trim < 0) {
         throw std::invalid_argument(
@@ -219,7 +241,7 @@ void InstanceBuilder::add_defect(
         Length w,
         Length h)
 {
-    if (bin_type_id >= instance_.bin_types_.size()) {
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
                 "packingsolver::rectangleguillotine::InstanceBuilder::add_defect: "
                 "invalid 'bin_type_id'; "
@@ -323,17 +345,36 @@ void InstanceBuilder::set_bin_types_unweighted()
 ////////////////////////////////////////////////////////////////////////////////
 
 ItemTypeId InstanceBuilder::add_item_type(
-        Length w,
-        Length h,
-        Profit p,
+        Length width,
+        Length height,
+        Profit profit,
         ItemPos copies,
         bool oriented,
         StackId stack_id)
 {
+    if (width < 0) {
+        throw std::invalid_argument(
+                "packingsolver::rectangleguillotine::InstanceBuilder::add_item_type: "
+                "item 'width' must be > 0; "
+                "width: " + std::to_string(width) + ".");
+    }
+    if (height < 0) {
+        throw std::invalid_argument(
+                "packingsolver::rectangleguillotine::InstanceBuilder::add_item_type: "
+                "item 'height' must be > 0; "
+                "height: " + std::to_string(height) + ".");
+    }
+    if (copies <= 0) {
+        throw std::invalid_argument(
+                "packingsolver::rectangleguillotine::InstanceBuilder::add_item_type: "
+                "item 'copies' must be > 0; "
+                "copies: " + std::to_string(copies) + ".");
+    }
+
     ItemType item_type;
-    item_type.rect.w = w;
-    item_type.rect.h = h;
-    item_type.profit = (p == -1)? w * h: p;
+    item_type.rect.w = width;
+    item_type.rect.h = height;
+    item_type.profit = (profit == -1)? width * height: profit;
     item_type.copies = copies;
     item_type.stack_id = stack_id;
     item_type.oriented = oriented;
