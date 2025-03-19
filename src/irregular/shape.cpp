@@ -1252,3 +1252,101 @@ bool irregular::equal(
 
     return true;
 }
+
+Shape irregular::inflate(
+        const Shape& shape,
+        LengthDbl value)
+{
+    Shape inflated_shape;
+    inflated_shape.elements.reserve(shape.elements.size());
+
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)shape.elements.size();
+            ++element_pos) {
+        const ShapeElement& element = shape.elements[element_pos];
+        ElementPos element_next_pos = (element_pos + 1) % shape.elements.size();
+        const ShapeElement& element_next = shape.elements[element_next_pos];
+
+        // calculate the normal vector of the current edge
+        LengthDbl dx = element.end.x - element.start.x;
+        LengthDbl dy = element.end.y - element.start.y;
+        LengthDbl length = std::sqrt(dx * dx + dy * dy);
+        LengthDbl nx = dy / length;
+        LengthDbl ny = -dx / length;
+
+        // calculate the normal vector of the next edge
+        LengthDbl dx_next = element_next.end.x - element_next.start.x;
+        LengthDbl dy_next = element_next.end.y - element_next.start.y;
+        LengthDbl length_next = std::sqrt(dx_next * dx_next + dy_next * dy_next);
+        LengthDbl nx_next = dy_next / length_next;
+        LengthDbl ny_next = -dx_next / length_next;
+
+        // calculate the average normal vector of the vertex
+        LengthDbl nx_avg = (nx + nx_next) / 2;
+        LengthDbl ny_avg = (ny + ny_next) / 2;
+        LengthDbl length_avg = std::sqrt(nx_avg * nx_avg + ny_avg * ny_avg);
+        nx_avg /= length_avg;
+        ny_avg /= length_avg;
+
+        // create a new edge
+        ShapeElement new_element;
+        new_element.type = element.type;
+        new_element.start = Point{
+            element.start.x + nx * value,
+            element.start.y + ny * value
+        };
+        new_element.end = Point{
+            element.end.x + nx * value,
+            element.end.y + ny * value
+        };
+
+        // add the arc at the vertex
+        if (element_pos > 0) {
+            ShapeElement arc_element;
+            arc_element.type = ShapeElementType::CircularArc;
+            arc_element.start = Point{
+                element.start.x + nx_avg * value,
+                element.start.y + ny_avg * value
+            };
+            arc_element.end = new_element.start;
+            inflated_shape.elements.push_back(arc_element);
+        }
+
+        inflated_shape.elements.push_back(new_element);
+    }
+
+    // add the arc at the last vertex
+    if (!shape.elements.empty()) {
+        const ShapeElement& first_element = shape.elements.front();
+        const ShapeElement& last_element = shape.elements.back();
+        
+        LengthDbl dx_first = first_element.end.x - first_element.start.x;
+        LengthDbl dy_first = first_element.end.y - first_element.start.y;
+        LengthDbl length_first = std::sqrt(dx_first * dx_first + dy_first * dy_first);
+        LengthDbl nx_first = dy_first / length_first;
+        LengthDbl ny_first = -dx_first / length_first;
+
+        LengthDbl dx_last = last_element.end.x - last_element.start.x;
+        LengthDbl dy_last = last_element.end.y - last_element.start.y;
+        LengthDbl length_last = std::sqrt(dx_last * dx_last + dy_last * dy_last);
+        LengthDbl nx_last = dy_last / length_last;
+        LengthDbl ny_last = -dx_last / length_last;
+
+        LengthDbl nx_avg = (nx_first + nx_last) / 2;
+        LengthDbl ny_avg = (ny_first + ny_last) / 2;
+        LengthDbl length_avg = std::sqrt(nx_avg * nx_avg + ny_avg * ny_avg);
+        nx_avg /= length_avg;
+        ny_avg /= length_avg;
+
+        ShapeElement arc_element;
+        arc_element.type = ShapeElementType::CircularArc;
+        arc_element.start = Point{
+            first_element.start.x + nx_avg * value,
+            first_element.start.y + ny_avg * value
+        };
+        arc_element.end = inflated_shape.elements.front().start;
+        inflated_shape.elements.push_back(arc_element);
+    }
+
+    return inflated_shape;
+}

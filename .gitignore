@@ -8,6 +8,7 @@ checker/*
 OLD
 instances/*
 output/*
+build/*
 data/rectangle/imahori2010
 data/rectangle_raw/imahori2010
 data/irregular/cgshop2024

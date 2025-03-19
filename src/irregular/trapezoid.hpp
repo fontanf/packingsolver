@@ -513,30 +513,67 @@ public:
     GeneralizedTrapezoid inflate(
             LengthDbl value) const
     {
+        // calculate the normal vector
         LengthDbl l_left = std::sqrt(
                 (x_top_left() - x_bottom_left()) * (x_top_left() - x_bottom_left())
                 + height() * height());
-        LengthDbl xbl = x_left(y_bottom() - value) - value * l_left / height();
-        LengthDbl xtl = x_left(y_top() + value) - value * l_left / height();
-        //std::cout << "l_left " << l_left << std::endl;
-        //std::cout << "cos_left " << cos_left << std::endl;
-        //std::cout << "xbl_ " << xbl_ << " -> " << xbl << std::endl;
         LengthDbl l_right = std::sqrt(
                 (x_top_right() - x_bottom_right()) * (x_top_right() - x_bottom_right())
                 + height() * height());
-        LengthDbl xbr = x_right(y_bottom() - value) + value * l_right / height();
-        LengthDbl xtr = x_right(y_top() + value) + value * l_right / height();
+
+        // calculate the unit normal vector (reference the implementation of Clipper2)
+        LengthDbl dx_left = x_top_left() - x_bottom_left();
+        LengthDbl dy_left = height();
+        LengthDbl inverse_hypot_left = 1.0 / l_left;
+        LengthDbl nx_left = dy_left * inverse_hypot_left;
+        LengthDbl ny_left = -dx_left * inverse_hypot_left;
+
+        LengthDbl dx_right = x_top_right() - x_bottom_right();
+        LengthDbl dy_right = height();
+        LengthDbl inverse_hypot_right = 1.0 / l_right;
+        LengthDbl nx_right = -dy_right * inverse_hypot_right;
+        LengthDbl ny_right = dx_right * inverse_hypot_right;
+
+        // calculate the new vertex positions
+        LengthDbl xbl = x_bottom_left() + value * nx_left;
+        LengthDbl ybl = y_bottom() + value * ny_left;
+        LengthDbl xtl = x_top_left() + value * nx_left;
+        LengthDbl ytl = y_top() + value * ny_left;
+        LengthDbl xbr = x_bottom_right() + value * nx_right;
+        LengthDbl ybr = y_bottom() + value * ny_right;
+        LengthDbl xtr = x_top_right() + value * nx_right;
+        LengthDbl ytr = y_top() + value * ny_right;
+
+        // calculate the new trapezoid parameters
+        LengthDbl yb = std::min(ybl, ybr);
+        LengthDbl yt = std::max(ytl, ytr);
+        
+        // calculate the new slopes
+        double a_left_new = (xtl - xbl) / (ytl - ybl);
+        double a_right_new = (xtr - xbr) / (ytr - ybr);
+
+        // calculate the new x coordinates
+        LengthDbl xbl_new = xbl + (yb - ybl) * a_left_new;
+        LengthDbl xbr_new = xbr + (yb - ybr) * a_right_new;
+        LengthDbl xtl_new = xtl + (yt - ytl) * a_left_new;
+        LengthDbl xtr_new = xtr + (yt - ytr) * a_right_new;
+
+        // keep the original output
+        //std::cout << "l_left " << l_left << std::endl;
+        //std::cout << "cos_left " << cos_left << std::endl;
+        //std::cout << "xbl_ " << xbl_ << " -> " << xbl << std::endl;
         //std::cout << "a_right " << a_right() << std::endl;
         //std::cout << "l_right " << l_right << std::endl;
         //std::cout << "cos_right " << cos_right << std::endl;
         //std::cout << " xbr " << xbr_ << " -> " << xbr << std::endl;
+
         return GeneralizedTrapezoid(
-                y_bottom() - value,
-                y_top() + value,
-                xbl,
-                xbr,
-                xtl,
-                xtr);
+                yb,
+                yt,
+                xbl_new,
+                xbr_new,
+                xtl_new,
+                xtr_new);
     }
 
     GeneralizedTrapezoid axial_symmetry_x_axis() const

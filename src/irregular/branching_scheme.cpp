@@ -789,6 +789,9 @@ Point BranchingScheme::convert_point_back(
 
 void BranchingScheme::compute_inflated_trapezoid_sets()
 {
+    // initialize the inflated trapezoid sets
+    trapezoid_sets_inflated_.clear();
+    
     for (Direction direction: {
             Direction::LeftToRightThenBottomToTop,
             Direction::LeftToRightThenTopToBottom,
@@ -806,20 +809,53 @@ void BranchingScheme::compute_inflated_trapezoid_sets()
             const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)direction][trapezoid_set_id];
             trapezoid_sets_inflated_.back().push_back({});
 
-            // Loop through rectangles of the rectangle set.
+            // get the original item type
+            ItemTypeId item_type_id = trapezoid_set.item_type_id;
+            const ItemType& item_type = instance().item_type(item_type_id);
+
+            // process the item shape
             for (ItemShapePos item_shape_pos = 0;
                     item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
                     ++item_shape_pos) {
-                const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
                 trapezoid_sets_inflated_.back().back().push_back({});
-
-                for (TrapezoidPos item_shape_trapezoid_pos = 0;
-                        item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
-                        ++item_shape_trapezoid_pos) {
-                    const auto& item_shape_trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
-                    trapezoid_sets_inflated_.back().back().back().push_back(
-                            item_shape_trapezoid.inflate(instance().parameters().item_item_minimum_spacing));
+                
+                // get the original shape
+                const ItemShape& item_shape = item_type.shapes[item_shape_pos];
+                
+                // adjust the shape according to the direction
+                Shape adjusted_shape = item_shape.shape;
+                if (direction == Direction::LeftToRightThenTopToBottom) {
+                    adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
+                } else if (direction == Direction::RightToLeftThenBottomToTop) {
+                    adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
+                } else if (direction == Direction::RightToLeftThenTopToBottom) {
+                    adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
+                    adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
+                } else if (direction == Direction::BottomToTopThenLeftToRight) {
+                    adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
+                } else if (direction == Direction::BottomToTopThenRightToLeft) {
+                    adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
+                    adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
+                } else if (direction == Direction::TopToBottomThenLeftToRight) {
+                    adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
+                    adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
+                } else if (direction == Direction::TopToBottomThenRightToLeft) {
+                    adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
+                    adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
+                    adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
                 }
+                
+                // clean the shape
+                Shape cleaned_shape = clean_shape(adjusted_shape);
+                
+                // inflate the shape
+                Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_item_minimum_spacing);
+                
+                // then perform the trapezoidation on the inflated shape
+                std::vector<GeneralizedTrapezoid> inflated_trapezoids = trapezoidation(inflated_shape);
+                
+                // store the trapezoidation result
+                trapezoid_sets_inflated_.back().back().back() = inflated_trapezoids;
             }
         }
     }
