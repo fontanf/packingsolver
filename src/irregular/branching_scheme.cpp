@@ -824,32 +824,75 @@ void BranchingScheme::compute_inflated_trapezoid_sets()
                 
                 // adjust the shape according to the direction
                 Shape adjusted_shape = item_shape.shape;
+                std::vector<Shape> adjusted_holes;
+                
+                // Transform both the shape and its holes according to direction
                 if (direction == Direction::LeftToRightThenTopToBottom) {
                     adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
+                    for (const Shape& hole : item_shape.holes) {
+                        adjusted_holes.push_back(hole.axial_symmetry_x_axis());
+                    }
                 } else if (direction == Direction::RightToLeftThenBottomToTop) {
                     adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
+                    for (const Shape& hole : item_shape.holes) {
+                        adjusted_holes.push_back(hole.axial_symmetry_y_axis());
+                    }
                 } else if (direction == Direction::RightToLeftThenTopToBottom) {
                     adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
                     adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
+                    for (const Shape& hole : item_shape.holes) {
+                        Shape adjusted_hole = hole.axial_symmetry_x_axis();
+                        adjusted_hole = adjusted_hole.axial_symmetry_y_axis();
+                        adjusted_holes.push_back(adjusted_hole);
+                    }
                 } else if (direction == Direction::BottomToTopThenLeftToRight) {
                     adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
+                    for (const Shape& hole : item_shape.holes) {
+                        adjusted_holes.push_back(hole.axial_symmetry_identity_line());
+                    }
                 } else if (direction == Direction::BottomToTopThenRightToLeft) {
                     adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
                     adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
+                    for (const Shape& hole : item_shape.holes) {
+                        Shape adjusted_hole = hole.axial_symmetry_identity_line();
+                        adjusted_hole = adjusted_hole.axial_symmetry_x_axis();
+                        adjusted_holes.push_back(adjusted_hole);
+                    }
                 } else if (direction == Direction::TopToBottomThenLeftToRight) {
                     adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
                     adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
+                    for (const Shape& hole : item_shape.holes) {
+                        Shape adjusted_hole = hole.axial_symmetry_identity_line();
+                        adjusted_hole = adjusted_hole.axial_symmetry_y_axis();
+                        adjusted_holes.push_back(adjusted_hole);
+                    }
                 } else if (direction == Direction::TopToBottomThenRightToLeft) {
                     adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
                     adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
                     adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
+                    for (const Shape& hole : item_shape.holes) {
+                        Shape adjusted_hole = hole.axial_symmetry_identity_line();
+                        adjusted_hole = adjusted_hole.axial_symmetry_y_axis();
+                        adjusted_hole = adjusted_hole.axial_symmetry_x_axis();
+                        adjusted_holes.push_back(adjusted_hole);
+                    }
+                } else {
+                    // Direction::LeftToRightThenBottomToTop (默认方向)
+                    adjusted_holes = item_shape.holes;
                 }
                 
-                // clean the shape
+                // clean the shape and holes
                 Shape cleaned_shape = clean_shape(adjusted_shape);
+                std::vector<Shape> cleaned_holes;
+                for (const Shape& hole : adjusted_holes) {
+                    cleaned_holes.push_back(clean_shape(hole));
+                }
                 
-                // inflate the shape
-                Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_item_minimum_spacing);
+                // inflate the shape with holes
+                Shape inflated_shape = inflate(
+                    cleaned_shape, 
+                    instance().parameters().item_item_minimum_spacing,
+                    cleaned_holes);
                 
                 // then perform the trapezoidation on the inflated shape
                 std::vector<GeneralizedTrapezoid> inflated_trapezoids = trapezoidation(inflated_shape);

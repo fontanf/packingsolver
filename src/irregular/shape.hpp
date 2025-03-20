@@ -32,7 +32,8 @@ bool operator==(
 
 Shape inflate(
         const Shape& shape,
-        LengthDbl value);
+        LengthDbl value,
+        const std::vector<Shape>& holes = {});
 
 }
 }

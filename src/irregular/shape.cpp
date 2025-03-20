@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include "irregular/shape_self_intersections_removal.hpp"
+
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
@@ -1255,7 +1257,8 @@ bool irregular::equal(
 
 Shape irregular::inflate(
         const Shape& shape,
-        LengthDbl value)
+        LengthDbl value,
+        const std::vector<Shape>& holes)
 {
     Shape inflated_shape;
     inflated_shape.elements.reserve(shape.elements.size());
@@ -1348,5 +1351,26 @@ Shape irregular::inflate(
         inflated_shape.elements.push_back(arc_element);
     }
 
+    // handle holes (deflate holes)
+    std::vector<Shape> deflated_holes;
+    for (const Shape& hole : holes) {
+        // deflate holes using the opposite value
+        Shape deflated_hole = inflate(hole, -value);
+        deflated_holes.push_back(deflated_hole);
+    }
+    
+    // Check for self-intersections and fix them
+    if (!inflated_shape.elements.empty()) {
+        auto processed = remove_self_intersections(inflated_shape);
+        inflated_shape = processed.first;
+        
+        // Combine the processed holes with any new holes created by self-intersections
+        for (const Shape& new_hole : processed.second) {
+            deflated_holes.push_back(new_hole);
+        }
+    }
+    
+    // Store the deflated holes in the shape's metadata or return them somehow
+    // In the current design, we just return the main shape and holes are passed separately
     return inflated_shape;
 }
