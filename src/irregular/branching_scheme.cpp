@@ -143,11 +143,14 @@ BranchingScheme::BranchingScheme(
                 Shape cleaned_shape = clean_shape(shape_border);
                 //std::cout << cleaned_shape.to_string(0) << std::endl;
                 if (cleaned_shape.elements.size() > 2) {
-                    auto trapezoids = trapezoidation(cleaned_shape);
+                    // inflate shape first
+                    Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing);
+                    // then trapezoidate the inflated shape
+                    auto trapezoids = trapezoidation(inflated_shape);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 -1,
-                                trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
+                                trapezoid.clean());
                         bb_bin_type_x.defects.push_back(defect);
                     }
                 }
@@ -156,11 +159,14 @@ BranchingScheme::BranchingScheme(
                 Shape sym_shape = shape_border.axial_symmetry_identity_line();
                 Shape cleaned_shape = clean_shape(sym_shape);
                 if (cleaned_shape.elements.size() > 2) {
-                    auto trapezoids = trapezoidation(cleaned_shape);
+                    // inflate shape first
+                    Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing);
+                    // then trapezoidate the inflated shape
+                    auto trapezoids = trapezoidation(inflated_shape);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 -1,
-                                trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
+                                trapezoid.clean());
                         bb_bin_type_y.defects.push_back(defect);
                     }
                 }
@@ -180,13 +186,14 @@ BranchingScheme::BranchingScheme(
                     if (!strictly_lesser(hole.compute_area(), instance().smallest_item_area()))
                         cleaned_holes.push_back(clean_shape(hole));
                 {
-                    auto trapezoids = trapezoidation(
-                            cleaned_shape,
-                            cleaned_holes);
+                    // inflate shape first, and pass holes
+                    Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing, cleaned_holes);
+                    // then trapezoidate the inflated shape
+                    auto trapezoids = trapezoidation(inflated_shape);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 defect_id,
-                                trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
+                                trapezoid.clean());
                         bb_bin_type_x.defects.push_back(defect);
                     }
                 }
@@ -203,13 +210,14 @@ BranchingScheme::BranchingScheme(
                 for (const Shape& hole: sym_holes)
                     cleaned_holes.push_back(clean_shape(hole));
 
-                auto trapezoids = trapezoidation(
-                        cleaned_shape,
-                        cleaned_holes);
+                // inflate shape first, and pass holes
+                Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing, cleaned_holes);
+                // then trapezoidate the inflated shape
+                auto trapezoids = trapezoidation(inflated_shape);
                 for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                     UncoveredTrapezoid defect(
                             defect_id,
-                            trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
+                            trapezoid.clean());
                     bb_bin_type_y.defects.push_back(defect);
                 }
             }
