@@ -7,6 +7,7 @@ target_sources(PackingSolver_irregular_test PRIVATE
     shape_extract_borders_test.cpp
     shape_self_intersections_removal_test.cpp
     shape_trapezoidation_test.cpp
+    shape_inflate_test.cpp
     irregular_test.cpp)
 target_include_directories(PackingSolver_irregular_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
