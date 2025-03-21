@@ -3,7 +3,6 @@
 #include "irregular/shape_convex_hull.hpp"
 #include "irregular/shape_trapezoidation.hpp"
 #include "irregular/shape_simplification.hpp"
-#include "irregular/shape.hpp"
 
 #include <iostream>
 
