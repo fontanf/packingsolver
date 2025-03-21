@@ -1,8 +1,12 @@
-#include "packingsolver/irregular/shape.hpp"
-
+#include "irregular/shape.hpp"
+#include "irregular/shape_self_intersections_removal.hpp"
+#include "irregular/shape_closure.hpp"
 #include <cmath>
 
-#include "irregular/shape_self_intersections_removal.hpp"
+// Define M_PI (if not provided by the system)
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -1255,122 +1259,372 @@ bool irregular::equal(
     return true;
 }
 
-Shape irregular::inflate(
+// Check if a point is inside the shape
+bool is_point_inside_shape(const Point& point, const Shape& shape) {
+    if (shape.elements.empty()) {
+        return false;
+    }
+    
+    // Use ray-casting algorithm to determine if the point is inside the polygon
+    // Cast a ray from the point to the right, count the number of intersections with shape boundaries
+    // If the number of intersections is odd, the point is inside; if even, it's outside
+    
+    int intersection_count = 0;
+    
+    for (const ShapeElement& element : shape.elements) {
+        if (element.type == ShapeElementType::LineSegment) {
+            // Line segment check
+            // The point is within the vertical range of the segment and to the left of the segment
+            if (((element.start.y > point.y) != (element.end.y > point.y)) &&
+                (point.x < element.start.x + (element.end.x - element.start.x) * 
+                 (point.y - element.start.y) / (element.end.y - element.start.y))) {
+                intersection_count++;
+            }
+        } else if (element.type == ShapeElementType::CircularArc) {
+            // Circular arc check is more complex, need to consider intersections between the arc and the ray
+            // Using a simplified algorithm here
+            
+            // Calculate the vector from the center to the point
+            LengthDbl dx = point.x - element.center.x;
+            LengthDbl dy = point.y - element.center.y;
+            
+            // Calculate the distance from the point to the center
+            LengthDbl distance = std::sqrt(dx * dx + dy * dy);
+            
+            // Calculate the radius of the arc
+            LengthDbl radius = std::sqrt(
+                std::pow(element.start.x - element.center.x, 2) + 
+                std::pow(element.start.y - element.center.y, 2)
+            );
+            
+            // If the point is inside the circle and the ray from the point to the right intersects with the arc
+            // Initial filtering by treating the arc as a complete circle
+            if (distance < radius && point.x < element.center.x) {
+                // Point is inside the circle and to the left of the center, possibly has intersection with the arc
+                
+                // Calculate the start and end angles of the arc
+                LengthDbl start_angle = std::atan2(
+                    element.start.y - element.center.y, 
+                    element.start.x - element.center.x
+                );
+                LengthDbl end_angle = std::atan2(
+                    element.end.y - element.center.y, 
+                    element.end.x - element.center.x
+                );
+                
+                // Ensure angles are in the correct range
+                if (element.anticlockwise && end_angle <= start_angle) {
+                    end_angle += 2 * M_PI;
+                } else if (!element.anticlockwise && start_angle <= end_angle) {
+                    start_angle += 2 * M_PI;
+                }
+                
+                // Calculate the angle of the point
+                LengthDbl point_angle = std::atan2(dy, dx);
+                
+                // Check if the point's angle is within the arc range
+                bool in_arc_range;
+                if (element.anticlockwise) {
+                    in_arc_range = (point_angle >= start_angle && point_angle <= end_angle);
+                } else {
+                    in_arc_range = (point_angle <= start_angle && point_angle >= end_angle);
+                }
+                
+                if (in_arc_range) {
+                    intersection_count++;
+                }
+            }
+        }
+    }
+    
+    // If the number of intersections is odd, the point is inside the shape
+    return (intersection_count % 2 == 1);
+}
+
+// Check if an arc is covered by adjacent elements
+bool is_arc_covered_by_adjacent_elements(
+        const ShapeElement& prev_element,
+        const ShapeElement& arc_element,
+        const ShapeElement& next_element,
+        LengthDbl value)
+{
+    // If the inflation value is zero or negative, it cannot be covered
+    if (value <= 0) {
+        return false;
+    }
+    
+    // If adjacent elements are both line segments and the angle between them is small, they may cover the arc
+    if (prev_element.type == ShapeElementType::LineSegment && 
+        next_element.type == ShapeElementType::LineSegment) {
+        
+        // Calculate the direction vector of the previous segment
+        LengthDbl dx1 = prev_element.end.x - prev_element.start.x;
+        LengthDbl dy1 = prev_element.end.y - prev_element.start.y;
+        LengthDbl length1 = std::sqrt(dx1 * dx1 + dy1 * dy1);
+        
+        // Calculate the direction vector of the next segment
+        LengthDbl dx2 = next_element.end.x - next_element.start.x;
+        LengthDbl dy2 = next_element.end.y - next_element.start.y;
+        LengthDbl length2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
+        
+        if (length1 > 0 && length2 > 0) {
+            // Calculate unit direction vectors
+            LengthDbl dir1_x = dx1 / length1;
+            LengthDbl dir1_y = dy1 / length1;
+            LengthDbl dir2_x = dx2 / length2;
+            LengthDbl dir2_y = dy2 / length2;
+            
+            // Calculate dot product to determine the angle
+            LengthDbl dot_product = dir1_x * dir2_x + dir1_y * dir2_y;
+            
+            // If the two segments are almost parallel (dot product close to 1 or -1), and the inflation value is large enough
+            // This is a simplified check, an actual implementation would need more precise geometric calculations
+            if (std::abs(std::abs(dot_product) - 1.0) < 0.1) {
+                // Calculate the arc radius
+                LengthDbl radius = std::sqrt(
+                    std::pow(arc_element.start.x - arc_element.center.x, 2) + 
+                    std::pow(arc_element.start.y - arc_element.center.y, 2)
+                );
+                
+                // If the inflation value is greater than the radius, it may be covered
+                return value > radius;
+            }
+        }
+    }
+    
+    // By default, assume it's not covered
+    return false;
+}
+
+Shape irregular::inflate_shape_without_holes(
+        const Shape& shape,
+        LengthDbl value)
+{
+    if (shape.elements.empty()) {
+        return shape;
+    }
+
+    // For a standard quadrilateral shape (like rectangle), we can detect and handle it directly
+    if (shape.elements.size() == 4 && 
+        shape.elements[0].type == ShapeElementType::LineSegment &&
+        shape.elements[1].type == ShapeElementType::LineSegment &&
+        shape.elements[2].type == ShapeElementType::LineSegment &&
+        shape.elements[3].type == ShapeElementType::LineSegment) {
+        
+        // Check if it's a rectangle (all angles are 90 degrees)
+        bool is_horizontal_1 = equal(shape.elements[0].start.y, shape.elements[0].end.y);
+        bool is_vertical_2 = equal(shape.elements[1].start.x, shape.elements[1].end.x);
+        bool is_horizontal_3 = equal(shape.elements[2].start.y, shape.elements[2].end.y);
+        bool is_vertical_4 = equal(shape.elements[3].start.x, shape.elements[3].end.x);
+        
+        if (is_horizontal_1 && is_vertical_2 && is_horizontal_3 && is_vertical_4) {
+            // This is a rectangle, we can easily inflate/deflate it
+            Shape inflated_shape;
+            
+            // Find the bounding box
+            LengthDbl min_x = std::numeric_limits<LengthDbl>::max();
+            LengthDbl min_y = std::numeric_limits<LengthDbl>::max();
+            LengthDbl max_x = std::numeric_limits<LengthDbl>::lowest();
+            LengthDbl max_y = std::numeric_limits<LengthDbl>::lowest();
+            
+            for (const ShapeElement& element : shape.elements) {
+                min_x = std::min({min_x, element.start.x, element.end.x});
+                min_y = std::min({min_y, element.start.y, element.end.y});
+                max_x = std::max({max_x, element.start.x, element.end.x});
+                max_y = std::max({max_y, element.start.y, element.end.y});
+            }
+            
+            // Inflate or deflate the bounding box
+            LengthDbl new_min_x = min_x - value;
+            LengthDbl new_min_y = min_y - value;
+            LengthDbl new_max_x = max_x + value;
+            LengthDbl new_max_y = max_y + value;
+            
+            // Create new rectangle with the inflated/deflated dimensions
+            ShapeElement bottom_edge;
+            bottom_edge.type = ShapeElementType::LineSegment;
+            bottom_edge.start = Point{new_min_x, new_min_y};
+            bottom_edge.end = Point{new_max_x, new_min_y};
+            
+            ShapeElement right_edge;
+            right_edge.type = ShapeElementType::LineSegment;
+            right_edge.start = Point{new_max_x, new_min_y};
+            right_edge.end = Point{new_max_x, new_max_y};
+            
+            ShapeElement top_edge;
+            top_edge.type = ShapeElementType::LineSegment;
+            top_edge.start = Point{new_max_x, new_max_y};
+            top_edge.end = Point{new_min_x, new_max_y};
+            
+            ShapeElement left_edge;
+            left_edge.type = ShapeElementType::LineSegment;
+            left_edge.start = Point{new_min_x, new_max_y};
+            left_edge.end = Point{new_min_x, new_min_y};
+            
+            inflated_shape.elements.push_back(bottom_edge);
+            inflated_shape.elements.push_back(right_edge);
+            inflated_shape.elements.push_back(top_edge);
+            inflated_shape.elements.push_back(left_edge);
+            
+            return inflated_shape;
+        }
+    }
+
+    // If it's not a simple rectangle or we couldn't process it specially,
+    // fall back to the general approach
+    std::vector<ShapeElement> inflated_elements;
+    inflated_elements.reserve(shape.elements.size());
+
+    for (size_t i = 0; i < shape.elements.size(); ++i) {
+        const ShapeElement& element = shape.elements[i];
+        const ShapeElement& prev_element = shape.elements[(i + shape.elements.size() - 1) % shape.elements.size()];
+        const ShapeElement& next_element = shape.elements[(i + 1) % shape.elements.size()];
+        
+        // Process based on element type
+        if (element.type == ShapeElementType::LineSegment) {
+            // LineSegment processing
+            LengthDbl dx = element.end.x - element.start.x;
+            LengthDbl dy = element.end.y - element.start.y;
+            LengthDbl length = std::sqrt(dx * dx + dy * dy);
+            
+            // Avoid division by zero
+            if (length > 0) {
+                // For lines, we need the normal vector pointing outward from the shape
+                LengthDbl nx = dy / length;  // Normal x
+                LengthDbl ny = -dx / length; // Normal y
+                
+                // Create new line segment
+                ShapeElement new_element;
+                new_element.type = ShapeElementType::LineSegment;
+                new_element.start = Point{
+                    element.start.x + nx * value,
+                    element.start.y + ny * value
+                };
+                new_element.end = Point{
+                    element.end.x + nx * value,
+                    element.end.y + ny * value
+                };
+
+                inflated_elements.push_back(new_element);
+            }
+        } else if (element.type == ShapeElementType::CircularArc) {
+            // CircularArc processing
+            
+            // Calculate the current radius of the arc
+            LengthDbl radius = std::sqrt(
+                std::pow(element.start.x - element.center.x, 2) + 
+                std::pow(element.start.y - element.center.y, 2)
+            );
+            
+            // Determine if the center is inside the shape
+            bool center_inside = is_point_inside_shape(element.center, shape);
+            
+            // Calculate new radius 
+            LengthDbl new_radius;
+            if (center_inside) {
+                // If center is inside, positive value increases radius (expands),
+                // negative value decreases radius (contracts)
+                new_radius = radius + value;
+            } else {
+                // If center is outside, positive value decreases radius (contracts),
+                // negative value increases radius (expands)
+                new_radius = radius - value;
+            }
+            
+            // Skip if radius becomes too small
+            if (new_radius <= 0.01) {
+                continue;
+            }
+            
+            // Calculate the original arc's start and end angles
+            LengthDbl start_angle = std::atan2(
+                element.start.y - element.center.y, 
+                element.start.x - element.center.x
+            );
+            LengthDbl end_angle = std::atan2(
+                element.end.y - element.center.y, 
+                element.end.x - element.center.x
+            );
+            
+            // Ensure angles are in the correct range
+            if (element.anticlockwise && end_angle <= start_angle) {
+                end_angle += 2 * M_PI;
+            } else if (!element.anticlockwise && start_angle <= end_angle) {
+                start_angle += 2 * M_PI;
+            }
+            
+            // Create the inflated arc
+            ShapeElement new_arc;
+            new_arc.type = ShapeElementType::CircularArc;
+            new_arc.center = element.center; // Keep the center unchanged
+            new_arc.anticlockwise = element.anticlockwise; // Keep rotation direction unchanged
+            
+            // Calculate new start and end points
+            new_arc.start = Point{
+                element.center.x + new_radius * std::cos(start_angle),
+                element.center.y + new_radius * std::sin(start_angle)
+            };
+            new_arc.end = Point{
+                element.center.x + new_radius * std::cos(end_angle),
+                element.center.y + new_radius * std::sin(end_angle)
+            };
+            
+            inflated_elements.push_back(new_arc);
+        }
+    }
+    
+    // Close the inflated elements (using a separate closure function)
+    Shape inflated_shape = close_inflated_elements(inflated_elements);
+    
+    return inflated_shape;
+}
+
+std::pair<Shape, std::vector<Shape>> irregular::inflate(
         const Shape& shape,
         LengthDbl value,
         const std::vector<Shape>& holes)
 {
-    Shape inflated_shape;
-    inflated_shape.elements.reserve(shape.elements.size());
-
-    for (ElementPos element_pos = 0;
-            element_pos < (ElementPos)shape.elements.size();
-            ++element_pos) {
-        const ShapeElement& element = shape.elements[element_pos];
-        ElementPos element_next_pos = (element_pos + 1) % shape.elements.size();
-        const ShapeElement& element_next = shape.elements[element_next_pos];
-
-        // calculate the normal vector of the current edge
-        LengthDbl dx = element.end.x - element.start.x;
-        LengthDbl dy = element.end.y - element.start.y;
-        LengthDbl length = std::sqrt(dx * dx + dy * dy);
-        LengthDbl nx = dy / length;
-        LengthDbl ny = -dx / length;
-
-        // calculate the normal vector of the next edge
-        LengthDbl dx_next = element_next.end.x - element_next.start.x;
-        LengthDbl dy_next = element_next.end.y - element_next.start.y;
-        LengthDbl length_next = std::sqrt(dx_next * dx_next + dy_next * dy_next);
-        LengthDbl nx_next = dy_next / length_next;
-        LengthDbl ny_next = -dx_next / length_next;
-
-        // calculate the average normal vector of the vertex
-        LengthDbl nx_avg = (nx + nx_next) / 2;
-        LengthDbl ny_avg = (ny + ny_next) / 2;
-        LengthDbl length_avg = std::sqrt(nx_avg * nx_avg + ny_avg * ny_avg);
-        nx_avg /= length_avg;
-        ny_avg /= length_avg;
-
-        // create a new edge
-        ShapeElement new_element;
-        new_element.type = element.type;
-        new_element.start = Point{
-            element.start.x + nx * value,
-            element.start.y + ny * value
-        };
-        new_element.end = Point{
-            element.end.x + nx * value,
-            element.end.y + ny * value
-        };
-
-        // add the arc at the vertex
-        if (element_pos > 0) {
-            ShapeElement arc_element;
-            arc_element.type = ShapeElementType::CircularArc;
-            arc_element.start = Point{
-                element.start.x + nx_avg * value,
-                element.start.y + ny_avg * value
-            };
-            arc_element.end = new_element.start;
-            inflated_shape.elements.push_back(arc_element);
-        }
-
-        inflated_shape.elements.push_back(new_element);
+    if (shape.elements.empty()) {
+        return {shape, {}};
     }
 
-    // add the arc at the last vertex
-    if (!shape.elements.empty()) {
-        const ShapeElement& first_element = shape.elements.front();
-        const ShapeElement& last_element = shape.elements.back();
-        
-        LengthDbl dx_first = first_element.end.x - first_element.start.x;
-        LengthDbl dy_first = first_element.end.y - first_element.start.y;
-        LengthDbl length_first = std::sqrt(dx_first * dx_first + dy_first * dy_first);
-        LengthDbl nx_first = dy_first / length_first;
-        LengthDbl ny_first = -dx_first / length_first;
-
-        LengthDbl dx_last = last_element.end.x - last_element.start.x;
-        LengthDbl dy_last = last_element.end.y - last_element.start.y;
-        LengthDbl length_last = std::sqrt(dx_last * dx_last + dy_last * dy_last);
-        LengthDbl nx_last = dy_last / length_last;
-        LengthDbl ny_last = -dx_last / length_last;
-
-        LengthDbl nx_avg = (nx_first + nx_last) / 2;
-        LengthDbl ny_avg = (ny_first + ny_last) / 2;
-        LengthDbl length_avg = std::sqrt(nx_avg * nx_avg + ny_avg * ny_avg);
-        nx_avg /= length_avg;
-        ny_avg /= length_avg;
-
-        ShapeElement arc_element;
-        arc_element.type = ShapeElementType::CircularArc;
-        arc_element.start = Point{
-            first_element.start.x + nx_avg * value,
-            first_element.start.y + ny_avg * value
-        };
-        arc_element.end = inflated_shape.elements.front().start;
-        inflated_shape.elements.push_back(arc_element);
-    }
-
-    // handle holes (deflate holes)
-    std::vector<Shape> deflated_holes;
-    for (const Shape& hole : holes) {
-        // deflate holes using the opposite value
-        Shape deflated_hole = inflate(hole, -value);
-        deflated_holes.push_back(deflated_hole);
-    }
+    // Step 1: Perform basic inflation on the main shape (without handling holes and self-intersections)
+    Shape inflated_shape = inflate_shape_without_holes(shape, value);
     
-    // Check for self-intersections and fix them
+    // Step 2: Handle self-intersections
+    // std::vector<Shape> new_holes;
     if (!inflated_shape.elements.empty()) {
         auto processed = remove_self_intersections(inflated_shape);
         inflated_shape = processed.first;
         
-        // Combine the processed holes with any new holes created by self-intersections
-        for (const Shape& new_hole : processed.second) {
-            deflated_holes.push_back(new_hole);
-        }
+        // Merge new holes produced by self-intersections
+        // for (const Shape& new_hole : processed.second) {
+        //     new_holes.push_back(new_hole);
+        // }
     }
     
-    // Store the deflated holes in the shape's metadata or return them somehow
-    // In the current design, we just return the main shape and holes are passed separately
-    return inflated_shape;
+    // Step 3: Process original holes (using reverse inflation value)
+    std::vector<Shape> deflated_holes;
+    for (const Shape& hole : holes) {
+        // Deflate the hole shape (using opposite value) - not recursive
+        Shape deflated_hole = inflate_shape_without_holes(hole, -value);
+        
+        // // Handle possible self-intersections in holes
+        // if (!deflated_hole.elements.empty()) {
+        //     auto processed = remove_self_intersections(deflated_hole);
+        //     deflated_hole = processed.first;
+            
+        //     // Note: Self-intersections in holes might produce new sub-holes, which should be discarded
+        //     // as they are actually part of the original shape
+        //     // More complex logic is needed here if nested holes need to be handled
+        // }
+        
+        deflated_holes.push_back(deflated_hole);
+    }
+    
+    // Merge all holes (from self-intersections and original)
+    // deflated_holes.insert(deflated_holes.end(), new_holes.begin(), new_holes.end());
+    
+    // Return the inflated shape and processed holes
+    return {inflated_shape, deflated_holes};
 }

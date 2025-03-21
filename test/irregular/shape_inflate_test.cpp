@@ -2,6 +2,7 @@
 #include "irregular/shape_self_intersections_removal.hpp"
 
 #include <gtest/gtest.h>
+#include <iostream>
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -10,10 +11,10 @@ using namespace packingsolver::irregular;
 Shape build_square(LengthDbl x, LengthDbl y, LengthDbl size)
 {
     return build_polygon_shape({
-        {x, y},
-        {x + size, y},
-        {x + size, y + size},
-        {x, y + size}
+        {x, y},                // bottom-left
+        {x + size, y},         // bottom-right
+        {x + size, y + size},  // top-right
+        {x, y + size}          // top-left
     });
 }
 
@@ -35,7 +36,8 @@ TEST(IrregularShapeInflate, BasicInflate)
     
     // inflate shape
     LengthDbl inflation_value = 2.0;
-    Shape inflated_square = inflate(square, inflation_value);
+    auto inflation_result = inflate(square, inflation_value);
+    Shape inflated_square = inflation_result.first;
     
     // verify the inflated shape
     // the square's edges should be moved outwards by inflation_value units
@@ -85,7 +87,9 @@ TEST(IrregularShapeInflate, InflateWithHoles)
     
     // inflate the shape with the hole
     LengthDbl inflation_value = 2.0;
-    Shape inflated_shape = inflate(outer_square, inflation_value, {hole});
+    auto inflation_result = inflate(outer_square, inflation_value, {hole});
+    Shape inflated_shape = inflation_result.first;
+    std::vector<Shape> inflated_holes = inflation_result.second;
     
     // verify the inflated shape
     // the outer boundary should be expanded, and the hole should be contracted
@@ -121,6 +125,9 @@ TEST(IrregularShapeInflate, InflateWithHoles)
     EXPECT_TRUE(contains_outer_min_y);
     EXPECT_TRUE(contains_outer_max_x);
     EXPECT_TRUE(contains_outer_max_y);
+    
+    // Also verify the inflated holes if needed
+    EXPECT_FALSE(inflated_holes.empty());
 }
 
 // test 3: test the case that may cause self-intersections
@@ -140,7 +147,8 @@ TEST(IrregularShapeInflate, SelfIntersectingInflate)
     
     // use a larger inflation value, ensure self-intersections will be produced
     LengthDbl inflation_value = 2.0;
-    Shape inflated_shape = inflate(u_shape, inflation_value);
+    auto inflation_result = inflate(u_shape, inflation_value);
+    Shape inflated_shape = inflation_result.first;
     
     // verify the inflated shape has no self-intersections
     // first check if the self-intersections removal function works properly
@@ -164,7 +172,19 @@ TEST(IrregularShapeInflate, Deflate)
     
     // deflate shape (use negative inflation value)
     LengthDbl deflation_value = -5.0;
-    Shape deflated_square = inflate(square, deflation_value);
+    auto inflation_result = inflate(square, deflation_value);
+    Shape deflated_square = inflation_result.first;
+    
+    // Print the vertices of the deflated shape for debugging
+    std::cout << "Deflated shape vertices:" << std::endl;
+    for (const ShapeElement& element : deflated_square.elements) {
+        std::cout << "  Start: (" << element.start.x << ", " << element.start.y << ")";
+        std::cout << "  End: (" << element.end.x << ", " << element.end.y << ")";
+        if (element.type == ShapeElementType::CircularArc) {
+            std::cout << "  Center: (" << element.center.x << ", " << element.center.y << ")";
+        }
+        std::cout << std::endl;
+    }
     
     // verify the deflated shape
     // the square's edges should be moved inwards by |deflation_value| units
@@ -205,7 +225,8 @@ TEST(IrregularShapeInflate, TinyShape)
     
     // inflate shape
     LengthDbl inflation_value = 0.5;
-    Shape inflated_square = inflate(tiny_square, inflation_value);
+    auto inflation_result = inflate(tiny_square, inflation_value);
+    Shape inflated_square = inflation_result.first;
     
     // verify the inflated shape
     EXPECT_GT(inflated_square.elements.size(), 0);
@@ -219,7 +240,8 @@ TEST(IrregularShapeInflate, LargeInflation)
     
     // use a large inflation value
     LengthDbl inflation_value = 100.0;
-    Shape inflated_square = inflate(square, inflation_value);
+    auto inflation_result = inflate(square, inflation_value);
+    Shape inflated_square = inflation_result.first;
     
     // verify the inflated shape
     EXPECT_GT(inflated_square.elements.size(), 0);
