@@ -102,8 +102,13 @@ std::vector<Point> compute_intersections(
             return {{xp, yp}};
         }
     } else {
-        throw std::invalid_argument(
-                "irregular::compute_intersections");
+        // skip the arc type intersection calculation
+        // return empty set to avoid throwing an exception
+        // TODO: add arc type intersection calculation
+        return {};
+        
+        // throw std::invalid_argument(
+        //         "irregular::compute_intersections");
     }
     return {};
 }
