@@ -30,7 +30,11 @@ bool operator==(
         const Shape& shape_1,
         const Shape& shape_2);
 
-Shape inflate(
+Shape inflate_shape_without_holes(
+        const Shape& shape,
+        LengthDbl value);
+
+std::pair<Shape, std::vector<Shape>> inflate(
         const Shape& shape,
         LengthDbl value,
         const std::vector<Shape>& holes = {});

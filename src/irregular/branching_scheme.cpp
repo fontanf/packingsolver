@@ -163,7 +163,7 @@ BranchingScheme::BranchingScheme(
                 //std::cout << cleaned_shape.to_string(0) << std::endl;
                 if (cleaned_shape.elements.size() > 2) {
                     // inflate shape first
-                    Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing);
+                    Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing).first;
                     // then trapezoidate the inflated shape
                     auto trapezoids = trapezoidation(inflated_shape);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
@@ -179,7 +179,7 @@ BranchingScheme::BranchingScheme(
                 Shape cleaned_shape = clean_shape(sym_shape);
                 if (cleaned_shape.elements.size() > 2) {
                     // inflate shape first
-                    Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing);
+                    Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing).first;
                     // then trapezoidate the inflated shape
                     auto trapezoids = trapezoidation(inflated_shape);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
@@ -206,9 +206,10 @@ BranchingScheme::BranchingScheme(
                         cleaned_holes.push_back(clean_shape(hole));
                 {
                     // inflate shape first, and pass holes
-                    Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing, cleaned_holes);
+                    auto inflation_result = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing, cleaned_holes);
+                    Shape inflated_shape = inflation_result.first;
                     // then trapezoidate the inflated shape
-                    auto trapezoids = trapezoidation(inflated_shape);
+                    auto trapezoids = trapezoidation(inflated_shape, inflation_result.second);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 defect_id,
@@ -230,9 +231,10 @@ BranchingScheme::BranchingScheme(
                     cleaned_holes.push_back(clean_shape(hole));
 
                 // inflate shape first, and pass holes
-                Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing, cleaned_holes);
+                auto inflation_result = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing, cleaned_holes);
+                Shape inflated_shape = inflation_result.first;
                 // then trapezoidate the inflated shape
-                auto trapezoids = trapezoidation(inflated_shape);
+                auto trapezoids = trapezoidation(inflated_shape, inflation_result.second);
                 for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                     UncoveredTrapezoid defect(
                             defect_id,
@@ -864,13 +866,15 @@ void BranchingScheme::compute_inflated_trapezoid_sets()
                 }
                 
                 // inflate the shape with holes
-                Shape inflated_shape = inflate(
+                auto inflation_result = inflate(
                     cleaned_shape, 
                     instance().parameters().item_item_minimum_spacing,
                     cleaned_holes);
+                Shape inflated_shape = inflation_result.first;
+                std::vector<Shape> inflated_holes = inflation_result.second;
                 
                 // then perform the trapezoidation on the inflated shape
-                std::vector<GeneralizedTrapezoid> inflated_trapezoids = trapezoidation(inflated_shape);
+                std::vector<GeneralizedTrapezoid> inflated_trapezoids = trapezoidation(inflated_shape, inflated_holes);
                 
                 // store the trapezoidation result
                 trapezoid_sets_inflated_.back().back().back() = inflated_trapezoids;
