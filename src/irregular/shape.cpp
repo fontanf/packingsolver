@@ -591,18 +591,26 @@ void Shape::write_svg(
     file << "</svg>" << std::endl;
 }
 
-Shape packingsolver::irregular::build_polygon_shape(
-        const std::vector<Point>& points)
+Shape packingsolver::irregular::build_shape(
+        const std::vector<BuildShapeElement>& points)
 {
     Shape shape;
-    ElementPos pos_prev = points.size() - 1;
+    Point point_prev = {points.back().x, points.back().y};
+    bool anticlockwise = false;
+    Point center = {0, 0};
     for (ElementPos pos = 0; pos < (ElementPos)points.size(); ++pos) {
-        ShapeElement element;
-        element.type = ShapeElementType::LineSegment;
-        element.start = points[pos_prev];
-        element.end = points[pos];
-        shape.elements.push_back(element);
-        pos_prev = pos;
+        const BuildShapeElement point = points[pos];
+        if (point.type == 0) {
+            ShapeElement element;
+            element.type = ShapeElementType::LineSegment;
+            element.start = point_prev;
+            element.end = {points[pos].x, points[pos].y};
+            shape.elements.push_back(element);
+            point_prev = element.end;
+        } else {
+            anticlockwise = (point.type == 1);
+            center = {points[pos].x, points[pos].y};
+        }
     }
     return shape;
 }

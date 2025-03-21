@@ -212,7 +212,36 @@ struct Shape
             const std::string& file_path) const;
 };
 
-Shape build_polygon_shape(const std::vector<Point>& points);
+struct BuildShapeElement
+{
+    LengthDbl x = 0;
+    LengthDbl y = 0;
+
+    /**
+     * Type of point:
+     * - 0: point of the shape
+     * - 1: center of an anticlockwise circular arc
+     * - -1: center of a clockwise circular arc
+     */
+    int type = 0;
+};
+
+/**
+ * Function to help build a shape easily.
+ *
+ * Espacially useful to write tests.
+ *
+ * Examples:
+ *
+ * Build a polygon:
+ *
+ * Build a right triangle where the hypotenuse is an inflated circular arc
+ * build_shape({{0, 0}, {1, 0}, {0, 0, 1}, {1, 1}})
+ *
+ * Build a right triangle where the hypotenuse is a drilled circular arc
+ * build_shape({{0, 0}, {1, 0}, {0, 0, -1}, {1, 1}})
+ */
+Shape build_shape(const std::vector<BuildShapeElement>& points);
 
 double compute_svg_factor(double width);
 

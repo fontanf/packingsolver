@@ -7,7 +7,7 @@ using namespace packingsolver::irregular;
 
 TEST(IrregularShapeSelfIntersectionRemoval, Shape1)
 {
-    Shape shape = build_polygon_shape({
+    Shape shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
@@ -47,7 +47,7 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape1)
 
 TEST(IrregularShapeSelfIntersectionRemoval, Shape2)
 {
-    Shape shape = build_polygon_shape({
+    Shape shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 3},
@@ -60,7 +60,7 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape2)
             {0, 3}});
     //shape.write_svg("irregular_shape_self_intersection_removal_test_1.svg");
 
-    Shape expected_shape = build_polygon_shape({
+    Shape expected_shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 3},
@@ -73,7 +73,7 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape2)
             {1, 3},
             {0, 3}});
     std::vector<Shape> expected_holes = {
-        build_polygon_shape({
+        build_shape({
                 {1, 1},
                 {3, 1},
                 {2, 2.5}})};
@@ -100,7 +100,7 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape2)
 
 TEST(IrregularShapeSelfIntersectionRemoval, Shape3)
 {
-    Shape shape = build_polygon_shape({
+    Shape shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
@@ -113,13 +113,13 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape3)
             {0, 4}});
     //shape.write_svg("irregular_shape_self_intersection_removal_test_1.svg");
 
-    Shape expected_shape = build_polygon_shape({
+    Shape expected_shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
             {0, 4} });
     std::vector<Shape> expected_holes = {
-        build_polygon_shape({
+        build_shape({
                 {1, 1},
                 {3, 1},
                 {3, 3},
@@ -148,7 +148,7 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape3)
 
 TEST(IrregularShapeSelfIntersectionRemoval, Shape4)
 {
-    Shape shape = build_polygon_shape({
+    Shape shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
@@ -161,13 +161,13 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape4)
             {0, 4}});
     //shape.write_svg("irregular_shape_self_intersection_removal_test_1.svg");
 
-    Shape expected_shape = build_polygon_shape({
+    Shape expected_shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
             {0, 4} });
     std::vector<Shape> expected_holes = {
-        build_polygon_shape({
+        build_shape({
                 {1, 1},
                 {3, 1},
                 {3, 3},
@@ -196,7 +196,7 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape4)
 
 TEST(IrregularShapeSelfIntersectionRemoval, Shape5)
 {
-    Shape shape = build_polygon_shape({
+    Shape shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
@@ -210,17 +210,17 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape5)
             {0, 4}});
     //shape.write_svg("irregular_shape_self_intersection_removal_test_1.svg");
 
-    Shape expected_shape = build_polygon_shape({
+    Shape expected_shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
             {0, 4} });
     std::vector<Shape> expected_holes = {
-        build_polygon_shape({
+        build_shape({
                 {3, 1},
                 {3, 3},
                 {2, 4}}),
-        build_polygon_shape({
+        build_shape({
                 {1, 1},
                 {2, 4},
                 {1, 3}})};
@@ -247,7 +247,7 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape5)
 
 TEST(IrregularShapeSelfIntersectionRemoval, Shape6)
 {
-    Shape shape = build_polygon_shape({
+    Shape shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
@@ -262,13 +262,13 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape6)
             {0, 4}});
     //shape.write_svg("irregular_shape_self_intersection_removal_test_1.svg");
 
-    Shape expected_shape = build_polygon_shape({
+    Shape expected_shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
             {0, 4} });
     std::vector<Shape> expected_holes = {
-        build_polygon_shape({
+        build_shape({
                 {1, 1},
                 {3, 1},
                 {3, 3},
@@ -296,7 +296,7 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape6)
 
 TEST(IrregularShapeSelfIntersectionRemoval, Shape7)
 {
-    Shape shape = build_polygon_shape({
+    Shape shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
@@ -307,7 +307,7 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape7)
             {0, 4}});
     //shape.write_svg("irregular_shape_self_intersection_removal_test_1.svg");
 
-    Shape expected_shape = build_polygon_shape({
+    Shape expected_shape = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
@@ -336,7 +336,7 @@ TEST(IrregularShapeSelfIntersectionRemoval, Shape7)
 
 TEST(IrregularShapeSelfIntersectionExtractAllHoles, Shape1)
 {
-    Shape hole = build_polygon_shape({
+    Shape hole = build_shape({
             {0, 0},
             {4, 0},
             {4, 4},
@@ -372,7 +372,7 @@ TEST(IrregularShapeSelfIntersectionExtractAllHoles, Shape1)
 
 TEST(IrregularShapeSelfIntersectionExtractAllHoles, Shape2)
 {
-    Shape hole = build_polygon_shape({
+    Shape hole = build_shape({
             {0, 0},
             {4, 0},
             {0, 2},
@@ -382,11 +382,11 @@ TEST(IrregularShapeSelfIntersectionExtractAllHoles, Shape2)
     //shape.write_svg("irregular_shape_self_intersection_removal_test_1.svg");
 
     std::vector<Shape> expected_holes = {
-        build_polygon_shape({
+        build_shape({
                 {0, 0},
                 {4, 0},
                 {2, 1}}),
-        build_polygon_shape({
+        build_shape({
                 {2, 3},
                 {4, 4},
                 {0, 4}})};
