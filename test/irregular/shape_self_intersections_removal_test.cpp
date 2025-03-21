@@ -1,7 +1,5 @@
 #include "irregular/shape_self_intersections_removal.hpp"
 
-#include "irregular/shape.hpp"
-
 #include <gtest/gtest.h>
 
 using namespace packingsolver;

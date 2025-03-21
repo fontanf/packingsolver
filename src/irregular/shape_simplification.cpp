@@ -2,7 +2,6 @@
 
 #include "packingsolver/irregular/instance_builder.hpp"
 
-#include "irregular/shape.hpp"
 #include "irregular/shape_self_intersections_removal.hpp"
 
 #include "optimizationtools/containers/indexed_binary_heap.hpp"

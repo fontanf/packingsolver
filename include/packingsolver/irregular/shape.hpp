@@ -1,0 +1,254 @@
+#pragma once
+
+#include "packingsolver/algorithms/common.hpp"
+
+namespace packingsolver
+{
+namespace irregular
+{
+
+using LengthDbl = double;
+using AreaDbl = double;
+using ElementPos = int64_t;
+using ItemShapePos = int64_t;
+using ShapePos = int64_t;
+using Counter = int64_t;
+
+/**
+ * Structure for a point.
+ */
+struct Point
+{
+    /** x-coordinate. */
+    LengthDbl x;
+
+    /** y-coordiante. */
+    LengthDbl y;
+
+    /*
+     * Transformations
+     */
+
+    Point& shift(
+            LengthDbl x,
+            LengthDbl y);
+
+    Point rotate(Angle angle) const;
+
+    Point axial_symmetry_identity_line() const;
+
+    Point axial_symmetry_y_axis() const;
+
+    Point axial_symmetry_x_axis() const;
+
+    /*
+     * Export
+     */
+
+    std::string to_string() const;
+
+    /*
+     * Others
+     */
+
+    bool operator==(const Point& point) const { return x == point.x && y == point.y; }
+};
+
+Point operator+(
+        const Point& point_1,
+        const Point& point_2);
+
+Point operator-(
+        const Point& point_1,
+        const Point& point_2);
+
+LengthDbl norm(
+        const Point& vector);
+
+LengthDbl distance(
+        const Point& point_1,
+        const Point& point_2);
+
+LengthDbl dot_product(
+        const Point& vector_1,
+        const Point& vector_2);
+
+LengthDbl cross_product(
+        const Point& vector_1,
+        const Point& vector_2);
+
+Angle angle_radian(
+        const Point& vector);
+
+/**
+ * Return the angle between two vectors.
+ *
+ * The angle is measured anticlockwise and always belongs to [0, 2 * pi[.
+ */
+Angle angle_radian(
+        const Point& vector_1,
+        const Point& vector_2);
+
+enum class ShapeElementType
+{
+    LineSegment,
+    CircularArc,
+};
+
+std::string element2str(ShapeElementType type);
+ShapeElementType str2element(const std::string& str);
+
+char element2char(ShapeElementType type);
+
+/**
+ * Structure for the elementary elements composing a shape.
+ */
+struct ShapeElement
+{
+    /** Type of element. */
+    ShapeElementType type;
+
+    /** Start point of the element. */
+    Point start;
+
+    /** End point of the element. */
+    Point end;
+
+    /** If the element is a CircularArc, center of the circle. */
+    Point center = {0, 0};
+
+    /** If the element is a CircularArc, direction of the rotation. */
+    bool anticlockwise = true;
+
+    /** Length of the element. */
+    LengthDbl length() const;
+
+    ShapeElement rotate(Angle angle) const;
+
+    ShapeElement axial_symmetry_identity_line() const;
+
+    ShapeElement axial_symmetry_x_axis() const;
+
+    ShapeElement axial_symmetry_y_axis() const;
+
+    std::string to_string() const;
+};
+
+enum class ShapeType
+{
+    Circle,
+    Square,
+    Rectangle,
+    Polygon,
+    MultiPolygon,
+    PolygonWithHoles,
+    MultiPolygonWithHoles,
+    GeneralShape,
+};
+
+std::string shape2str(ShapeType type);
+
+/**
+ * Structure for a shape.
+ *
+ * A shape is connected and provided in anticlockwise direction.
+ */
+struct Shape
+{
+    /**
+     * List of elements.
+     *
+     * The end point of an element must be the start point of the next element.
+     */
+    std::vector<ShapeElement> elements;
+
+    /** Return true iff the shape is a circle. */
+    bool is_circle() const;
+
+    /** Return true iff the shape is a square. */
+    bool is_square() const;
+
+    /** Return true iff the shape is a rectangle. */
+    bool is_rectangle() const;
+
+    /** Return true iff the shape is a polygon. */
+    bool is_polygon() const;
+
+    /** Compute the area of the shape. */
+    AreaDbl compute_area() const;
+
+    /** Compute the smallest and greatest x and y of the shape. */
+    std::pair<Point, Point> compute_min_max(
+            Angle angle = 0.0,
+            bool mirror = false) const;
+
+    /** Compute the width and length of the shape. */
+    std::pair<LengthDbl, LengthDbl> compute_width_and_length(
+            Angle angle = 0.0,
+            bool mirror = false) const;
+
+    /* Check if the shape is connected and in anticlockwise direction. */
+    bool check() const;
+
+    Shape& shift(
+            LengthDbl x,
+            LengthDbl y);
+
+    Shape rotate(Angle angle) const;
+
+    Shape axial_symmetry_identity_line() const;
+
+    Shape axial_symmetry_y_axis() const;
+
+    Shape axial_symmetry_x_axis() const;
+
+    Shape reverse() const;
+
+    std::string to_string(Counter indentation) const;
+
+    std::string to_svg(double factor) const;
+
+    void write_svg(
+            const std::string& file_path) const;
+};
+
+Shape build_polygon_shape(const std::vector<Point>& points);
+
+double compute_svg_factor(double width);
+
+std::string to_svg(
+        const Shape& shape,
+        const std::vector<Shape>& holes,
+        double factor,
+        const std::string& fill_color = "blue");
+
+void write_svg(
+        const Shape& shape,
+        const std::vector<Shape>& holes,
+        const std::string& file_path);
+
+std::pair<bool, Shape> remove_redundant_vertices(
+        const Shape& shape);
+
+std::pair<bool, Shape> remove_aligned_vertices(
+        const Shape& shape);
+
+std::pair<bool, Shape> equalize_close_y(
+        const Shape& shape);
+
+Shape clean_shape(
+        const Shape& shape);
+
+std::vector<Shape> borders(
+        const Shape& shape);
+
+bool operator==(
+        const ShapeElement& element_1,
+        const ShapeElement& element_2);
+
+bool operator==(
+        const Shape& shape_1,
+        const Shape& shape_2);
+
+}
+}
