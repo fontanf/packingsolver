@@ -203,10 +203,11 @@ AreaDbl compute_approximation_cost(
                     return std::numeric_limits<Angle>::infinity();
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
-                AreaDbl cost = shape.copies * build_polygon_shape({
-                        element.element.start,
+                AreaDbl cost = shape.copies * build_shape({
+                        {element.element.start.x}, {element.element.start.y},
                         {xp, yp},
-                        element.element.end}).compute_area();
+                        {element.element.end.x, element.element.end.y}
+                        }).compute_area();
                 if (cost < 0)
                     return std::numeric_limits<Angle>::infinity();
                 return cost;
@@ -216,10 +217,11 @@ AreaDbl compute_approximation_cost(
             }
         } else {
             // angle_next < M_PI
-            Angle cost = shape.copies * build_polygon_shape({
-                    element.element.start,
-                    element_next.element.end,
-                    element.element.end}).compute_area();
+            Angle cost = shape.copies * build_shape({
+                    {element.element.start.x, element.element.start.y},
+                    {element_next.element.end.x, element_next.element.end.y},
+                    {element.element.end.x, element.element.end.y}
+                    }).compute_area();
             if (cost < 0) {
                 throw std::runtime_error(
                         "irregular::compute_approximation_cost: outer; "
@@ -257,9 +259,9 @@ AreaDbl compute_approximation_cost(
                     return std::numeric_limits<Angle>::infinity();
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
-                AreaDbl cost = shape.copies * build_polygon_shape({
-                        element.element.start,
-                        element.element.end,
+                AreaDbl cost = shape.copies * build_shape({
+                        {element.element.start.x, element.element.start.y},
+                        {element.element.end.x, element.element.end.y},
                         {xp, yp}}).compute_area();
                 if (cost < 0)
                     return std::numeric_limits<Angle>::infinity();
@@ -270,10 +272,11 @@ AreaDbl compute_approximation_cost(
             }
         } else {
             // angle_next < M_PI
-            Angle cost = shape.copies * build_polygon_shape({
-                    element.element.start,
-                    element.element.end,
-                    element_next.element.end}).compute_area();
+            Angle cost = shape.copies * build_shape({
+                    {element.element.start.x, element.element.start.y},
+                    {element.element.end.x, element.element.end.y},
+                    {element_next.element.end.x, element_next.element.end.y}
+                    }).compute_area();
             if (cost < 0) {
                 throw std::runtime_error(
                         "irregular::compute_approximation_cost: inner; "
@@ -380,9 +383,9 @@ void apply_approximation(
                 }
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
-                AreaDbl cost = build_polygon_shape({
-                        element.element.start,
-                        element.element.end,
+                AreaDbl cost = build_shape({
+                        {element.element.start.x, element.element.start.y},
+                        {element.element.end.x, element.element.end.y},
                         {xp, yp}}).compute_area();
                 element_prev.element.end = {xp, yp};
                 element_next.element.start = {xp, yp};
@@ -769,7 +772,7 @@ Instance irregular::shape_simplification(
             ++bin_type_id) {
         const BinType& bin_type = instance.bin_type(bin_type_id);
         BinType new_bin_type = bin_type;
-        new_bin_type.shape = build_polygon_shape({
+        new_bin_type.shape = build_shape({
                 {bin_type.x_min, bin_type.y_min},
                 {bin_type.x_max, bin_type.y_min},
                 {bin_type.x_max, bin_type.y_max},
