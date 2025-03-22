@@ -10,6 +10,7 @@ target_sources(PackingSolver_irregular PRIVATE
     shape_element_intersections.cpp
     shape_convex_hull.cpp
     shape_extract_borders.cpp
+    shape_inflate.cpp
     shape_self_intersections_removal.cpp
     shape_simplification.cpp
     shape_trapezoidation.cpp

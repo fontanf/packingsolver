@@ -5,6 +5,7 @@
 #include "irregular/shape_extract_borders.hpp"
 #include "irregular/shape_trapezoidation.hpp"
 #include "irregular/shape_simplification.hpp"
+#include "irregular/shape_inflate.hpp"
 
 #include <iostream>
 

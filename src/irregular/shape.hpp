@@ -30,18 +30,5 @@ bool operator==(
         const Shape& shape_1,
         const Shape& shape_2);
 
-Shape inflate_shape_without_holes(
-        const Shape& shape,
-        LengthDbl value);
-
-std::pair<Shape, std::vector<Shape>> inflate(
-        const Shape& shape,
-        LengthDbl value,
-        const std::vector<Shape>& holes = {});
-
-ShapeElement offset_element(const ShapeElement& element, LengthDbl value);
-
-bool is_degenerate_element(const ShapeElement& element);
-
 }
 }
