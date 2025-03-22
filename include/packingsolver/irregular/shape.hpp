@@ -14,6 +14,10 @@ using ItemShapePos = int64_t;
 using ShapePos = int64_t;
 using Counter = int64_t;
 
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// Point /////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
 /**
  * Structure for a point.
  */
@@ -88,6 +92,21 @@ Angle angle_radian(
 Angle angle_radian(
         const Point& vector_1,
         const Point& vector_2);
+
+inline AreaDbl compute_area(
+        const Point& point_1,
+        const Point& point_2,
+        const Point& point_3)
+{
+    // https://en.wikipedia.org/wiki/Area_of_a_triangle#Using_coordinates
+    return 0.5 * (
+            (point_1.x - point_3.x) * (point_2.y - point_1.y)
+            - (point_1.x - point_2.x) * (point_3.y - point_1.y));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// ShapeElement /////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 enum class ShapeElementType
 {
