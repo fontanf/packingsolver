@@ -268,9 +268,6 @@ std::pair<bool, Shape> equalize_close_y(
 Shape clean_shape(
         const Shape& shape);
 
-std::vector<Shape> borders(
-        const Shape& shape);
-
 bool operator==(
         const ShapeElement& element_1,
         const ShapeElement& element_2);

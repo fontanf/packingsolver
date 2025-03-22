@@ -1,6 +1,7 @@
 #include "irregular/branching_scheme.hpp"
 
 #include "irregular/shape_convex_hull.hpp"
+#include "irregular/shape_extract_borders.hpp"
 #include "irregular/shape_trapezoidation.hpp"
 #include "irregular/shape_simplification.hpp"
 
@@ -157,7 +158,7 @@ BranchingScheme::BranchingScheme(
         BranchingSchemeBinType& bb_bin_type_x = bin_types_[(int)Direction::LeftToRightThenBottomToTop][bin_type_id];
         BranchingSchemeBinType& bb_bin_type_y = bin_types_[(int)Direction::BottomToTopThenLeftToRight][bin_type_id];
 
-        for (const Shape& shape_border: borders(bin_type.shape)) {
+        for (const Shape& shape_border: extract_borders(bin_type.shape)) {
             {
                 Shape cleaned_shape = clean_shape(shape_border);
                 //std::cout << cleaned_shape.to_string(0) << std::endl;
