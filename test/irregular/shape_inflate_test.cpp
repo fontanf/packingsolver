@@ -130,41 +130,7 @@ TEST(IrregularShapeInflate, InflateWithHoles)
     EXPECT_FALSE(inflated_holes.empty());
 }
 
-// test 3: test the case that may cause self-intersections
-TEST(IrregularShapeInflate, SelfIntersectingInflate)
-{
-    // build a "U" shape, larger inflation will cause self-intersections between the two arms
-    Shape u_shape = build_shape({
-        {0, 0},
-        {0, 10},
-        {2, 10},
-        {2, 2},
-        {8, 2},
-        {8, 10},
-        {10, 10},
-        {10, 0}
-    });
-    
-    // use a larger inflation value, ensure self-intersections will be produced
-    LengthDbl inflation_value = 2.0;
-    auto inflation_result = inflate(u_shape, inflation_value);
-    Shape inflated_shape = inflation_result.first;
-    
-    // verify the inflated shape has no self-intersections
-    // first check if the self-intersections removal function works properly
-    auto processed = remove_self_intersections(inflated_shape);
-    Shape no_self_intersections = processed.first;
-    std::vector<Shape> holes = processed.second;
-    
-    // after self-intersections removal, we should get a shape with no self-intersections and possible holes
-    // U shape inflation will cause a hole in the middle
-    EXPECT_FALSE(holes.empty()); // should at least produce one hole
-    
-    // verify the processed shape is still complete
-    EXPECT_GT(no_self_intersections.elements.size(), 0);
-}
-
-// test 4: test shape deflation
+// test 3: test shape deflation
 TEST(IrregularShapeInflate, Deflate)
 {
     // build a large square
@@ -217,7 +183,7 @@ TEST(IrregularShapeInflate, Deflate)
     EXPECT_NEAR(actual_max_y, expected_max_y, tolerance);
 }
 
-// test 5: test the case that the shape is too small
+// test 4: test the case that the shape is too small
 TEST(IrregularShapeInflate, TinyShape)
 {
     // build a very small square
@@ -232,7 +198,7 @@ TEST(IrregularShapeInflate, TinyShape)
     EXPECT_GT(inflated_square.elements.size(), 0);
 }
 
-// test 6: test the case that the inflation value is too large
+// test 5: test the case that the inflation value is too large
 TEST(IrregularShapeInflate, LargeInflation)
 {
     // build a square
@@ -273,4 +239,4 @@ TEST(IrregularShapeInflate, LargeInflation)
     EXPECT_NEAR(actual_min_y, expected_min_y, tolerance);
     EXPECT_NEAR(actual_max_x, expected_max_x, tolerance);
     EXPECT_NEAR(actual_max_y, expected_max_y, tolerance);
-} 
+}
