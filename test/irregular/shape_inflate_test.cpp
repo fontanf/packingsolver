@@ -10,7 +10,7 @@ using namespace packingsolver::irregular;
 // build square
 Shape build_square(LengthDbl x, LengthDbl y, LengthDbl size)
 {
-    return build_polygon_shape({
+    return build_shape({
         {x, y},                // bottom-left
         {x + size, y},         // bottom-right
         {x + size, y + size},  // top-right
@@ -21,7 +21,7 @@ Shape build_square(LengthDbl x, LengthDbl y, LengthDbl size)
 // build triangle
 Shape build_triangle(LengthDbl x, LengthDbl y, LengthDbl size)
 {
-    return build_polygon_shape({
+    return build_shape({
         {x, y},
         {x + size, y},
         {x + size / 2, y + size}
@@ -134,7 +134,7 @@ TEST(IrregularShapeInflate, InflateWithHoles)
 TEST(IrregularShapeInflate, SelfIntersectingInflate)
 {
     // build a "U" shape, larger inflation will cause self-intersections between the two arms
-    Shape u_shape = build_polygon_shape({
+    Shape u_shape = build_shape({
         {0, 0},
         {0, 10},
         {2, 10},
