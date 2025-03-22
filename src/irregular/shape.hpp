@@ -39,5 +39,9 @@ std::pair<Shape, std::vector<Shape>> inflate(
         LengthDbl value,
         const std::vector<Shape>& holes = {});
 
+ShapeElement offset_element(const ShapeElement& element, LengthDbl value);
+
+bool is_degenerate_element(const ShapeElement& element);
+
 }
 }
