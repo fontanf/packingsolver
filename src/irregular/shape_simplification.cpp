@@ -2,6 +2,7 @@
 
 #include "packingsolver/irregular/instance_builder.hpp"
 
+#include "irregular/shape_extract_borders.hpp"
 #include "irregular/shape_self_intersections_removal.hpp"
 
 #include "optimizationtools/containers/indexed_binary_heap.hpp"
@@ -203,11 +204,10 @@ AreaDbl compute_approximation_cost(
                     return std::numeric_limits<Angle>::infinity();
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
-                AreaDbl cost = shape.copies * build_shape({
-                        {element.element.start.x}, {element.element.start.y},
+                AreaDbl cost = shape.copies * compute_area(
+                        element.element.start,
                         {xp, yp},
-                        {element.element.end.x, element.element.end.y}
-                        }).compute_area();
+                        element.element.end);
                 if (cost < 0)
                     return std::numeric_limits<Angle>::infinity();
                 return cost;
@@ -217,11 +217,10 @@ AreaDbl compute_approximation_cost(
             }
         } else {
             // angle_next < M_PI
-            Angle cost = shape.copies * build_shape({
-                    {element.element.start.x, element.element.start.y},
-                    {element_next.element.end.x, element_next.element.end.y},
-                    {element.element.end.x, element.element.end.y}
-                    }).compute_area();
+            Angle cost = shape.copies * compute_area(
+                    element.element.start,
+                    element_next.element.end,
+                    element.element.end);
             if (cost < 0) {
                 throw std::runtime_error(
                         "irregular::compute_approximation_cost: outer; "
@@ -259,10 +258,10 @@ AreaDbl compute_approximation_cost(
                     return std::numeric_limits<Angle>::infinity();
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
-                AreaDbl cost = shape.copies * build_shape({
-                        {element.element.start.x, element.element.start.y},
-                        {element.element.end.x, element.element.end.y},
-                        {xp, yp}}).compute_area();
+                AreaDbl cost = shape.copies * compute_area(
+                        element.element.start,
+                        element.element.end,
+                        {xp, yp});
                 if (cost < 0)
                     return std::numeric_limits<Angle>::infinity();
                 return cost;
@@ -272,11 +271,10 @@ AreaDbl compute_approximation_cost(
             }
         } else {
             // angle_next < M_PI
-            Angle cost = shape.copies * build_shape({
-                    {element.element.start.x, element.element.start.y},
-                    {element.element.end.x, element.element.end.y},
-                    {element_next.element.end.x, element_next.element.end.y}
-                    }).compute_area();
+            Angle cost = shape.copies * compute_area(
+                    element.element.start,
+                    element.element.end,
+                    element_next.element.end);
             if (cost < 0) {
                 throw std::runtime_error(
                         "irregular::compute_approximation_cost: inner; "
@@ -383,10 +381,10 @@ void apply_approximation(
                 }
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
-                AreaDbl cost = build_shape({
-                        {element.element.start.x, element.element.start.y},
-                        {element.element.end.x, element.element.end.y},
-                        {xp, yp}}).compute_area();
+                AreaDbl cost = compute_area(
+                        element.element.start,
+                        element.element.end,
+                        {xp, yp});
                 element_prev.element.end = {xp, yp};
                 element_next.element.start = {xp, yp};
             } else {
@@ -430,7 +428,7 @@ Instance irregular::shape_simplification(
         ApproximatedBinType approximated_bin_type;
 
         total_bin_area += bin_type.copies * (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min);
-        auto bin_borders = borders(bin_type.shape);
+        auto bin_borders = extract_borders(bin_type.shape);
 
         // Borders.
         for (DefectId border_pos = 0;

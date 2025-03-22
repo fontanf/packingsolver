@@ -5,117 +5,88 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
-TEST(IrregularShape, CleanShapeRedundant)
+struct CleanShapeTestParams
 {
-    Shape shape = build_shape({{0, 0}, {0, 0}, {100, 0}, {100, 100}});
+    Shape shape;
+    Shape expected_shape;
+};
 
-    Shape cleaned_shape = clean_shape(shape);
+class IrregularCleanShapeTest: public testing::TestWithParam<CleanShapeTestParams> { };
+
+TEST_P(IrregularCleanShapeTest, CleanShape)
+{
+    CleanShapeTestParams test_params = GetParam();
+    Shape cleaned_shape = clean_shape(test_params.shape);
     std::cout << cleaned_shape.to_string(0) << std::endl;
-
-    Shape expected_shape = build_shape({{0, 0}, {100, 0}, {100, 100}});
-    EXPECT_EQ(expected_shape, cleaned_shape);
+    EXPECT_EQ(test_params.expected_shape, cleaned_shape);
 }
 
-TEST(IrregularShape, CleanShapeAligned)
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        IrregularCleanShapeTest,
+        testing::ValuesIn(std::vector<CleanShapeTestParams>{
+            {
+                build_shape({{0, 0}, {0, 0}, {100, 0}, {100, 100}}),
+                build_shape({{0, 0}, {100, 0}, {100, 100}})
+            }, {
+                build_shape({{50, 50}, {0, 0}, {100, 0}, {100, 100}}),
+                build_shape({{0, 0}, {100, 0}, {100, 100}})
+            }, {
+                build_shape({{0, 0}, {100, 0}, {100, 100}, {50, 50}}),
+                build_shape({{0, 0}, {100, 0}, {100, 100}})
+            }}));
+
+
+struct ApproximateCircularArcByLineSegmentsTestParams
 {
-    Shape shape = build_shape({{50, 50}, {0, 0}, {100, 0}, {100, 100}});
+    ShapeElement circular_arc;
+    ElementPos number_of_line_segments;
+    bool outer;
+    std::vector<ShapeElement> expected_line_segments;
+};
 
-    Shape cleaned_shape = clean_shape(shape);
+class IrregularApproximateCircularArcByLineSegmentsTest: public testing::TestWithParam<ApproximateCircularArcByLineSegmentsTestParams> { };
 
-    Shape expected_shape = build_shape({{0, 0}, {100, 0}, {100, 100}});
-    EXPECT_EQ(expected_shape, cleaned_shape);
-}
-
-TEST(IrregularShape, CleanShapeAligned2)
+TEST_P(IrregularApproximateCircularArcByLineSegmentsTest, ApproximateCircularArcByLineSegments)
 {
-    Shape shape = build_shape({{0, 0}, {100, 0}, {100, 100}, {50, 50}});
+    ApproximateCircularArcByLineSegmentsTestParams test_params = GetParam();
+    std::cout << "circular_arc" << std::endl;
+    std::cout << test_params.circular_arc.to_string() << std::endl;
+    std::cout << "expected_line_segments" << std::endl;
+    for (const ShapeElement& line_segment: test_params.expected_line_segments)
+        std::cout << line_segment.to_string() << std::endl;
+    std::vector<ShapeElement> line_segments = approximate_circular_arc_by_line_segments(
+            test_params.circular_arc,
+            test_params.number_of_line_segments,
+            test_params.outer);
+    std::cout << "line_segments" << std::endl;
+    for (const ShapeElement& line_segment: line_segments)
+        std::cout << line_segment.to_string() << std::endl;
 
-    Shape cleaned_shape = clean_shape(shape);
-
-    Shape expected_shape = build_shape({{0, 0}, {100, 0}, {100, 100}});
-    EXPECT_EQ(expected_shape, cleaned_shape);
-}
-
-TEST(IrregularShape, Borders0)
-{
-    Shape shape = build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}});
-    std::vector<Shape> expected_borders = {};
-
-    std::vector<Shape> shape_borders = borders(shape);
-    for (const Shape& border: shape_borders)
-        std::cout << border.to_string(0) << std::endl;
-
-    EXPECT_EQ(shape_borders.size(), expected_borders.size());
-    for (const Shape& expected_border: expected_borders) {
-        EXPECT_NE(std::find(
-                    shape_borders.begin(),
-                    shape_borders.end(),
-                    expected_border),
-                shape_borders.end());
+    ASSERT_EQ(line_segments.size(), test_params.number_of_line_segments);
+    for (ElementPos pos = 0; pos < test_params.number_of_line_segments; ++pos) {
+        //std::cout << std::setprecision (15) << line_segments[pos].start.x << std::endl;
+        EXPECT_TRUE(near(line_segments[pos], test_params.expected_line_segments[pos]));
     }
 }
 
-TEST(IrregularShape, Borders1)
-{
-    Shape shape = build_shape({{2, 0}, {3, 1}, {0, 1}});
-    std::vector<Shape> expected_borders = {
-        build_shape({{3, 0}, {3, 1}, {2, 0}}),
-        build_shape({{0, 0}, {2, 0}, {0, 1}}),
-    };
-
-    std::vector<Shape> shape_borders = borders(shape);
-    for (const Shape& border: shape_borders)
-        std::cout << border.to_string(0) << std::endl;
-
-    EXPECT_EQ(shape_borders.size(), expected_borders.size());
-    for (const Shape& expected_border: expected_borders) {
-        EXPECT_NE(std::find(
-                    shape_borders.begin(),
-                    shape_borders.end(),
-                    expected_border),
-                shape_borders.end());
-    }
-}
-
-TEST(IrregularShape, Borders2)
-{
-    Shape shape = build_shape({{0, 0}, {3, 1}, {0, 1}});
-    std::vector<Shape> expected_borders = {
-        build_shape({{3, 0}, {3, 1}, {0, 0}}),
-    };
-
-    std::vector<Shape> shape_borders = borders(shape);
-    for (const Shape& border: shape_borders)
-        std::cout << border.to_string(0) << std::endl;
-
-    EXPECT_EQ(shape_borders.size(), expected_borders.size());
-    for (const Shape& expected_border: expected_borders) {
-        EXPECT_NE(std::find(
-                    shape_borders.begin(),
-                    shape_borders.end(),
-                    expected_border),
-                shape_borders.end());
-    }
-}
-
-TEST(IrregularShape, Borders3)
-{
-    Shape shape = build_shape({{0, 0}, {50, 0}, {30, 30}});
-    std::vector<Shape> expected_borders = {
-        build_shape({{0, 0}, {30, 30}, {0, 30}}),
-        build_shape({{30, 30}, {50, 0}, {50, 30}}),
-    };
-
-    std::vector<Shape> shape_borders = borders(shape);
-    for (const Shape& border: shape_borders)
-        std::cout << border.to_string(0) << std::endl;
-
-    EXPECT_EQ(shape_borders.size(), expected_borders.size());
-    for (const Shape& expected_border: expected_borders) {
-        EXPECT_NE(std::find(
-                    shape_borders.begin(),
-                    shape_borders.end(),
-                    expected_border),
-                shape_borders.end());
-    }
-}
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        IrregularApproximateCircularArcByLineSegmentsTest,
+        testing::ValuesIn(std::vector<ApproximateCircularArcByLineSegmentsTestParams>{
+            {
+                build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
+                1,
+                false,
+                build_shape({{1, 0}, {0, 1}}, true).elements
+            }, {
+                build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
+                2,
+                true,
+                build_shape({{1, 0}, {1, 1}, {0, 1}}, true).elements
+            }, {
+                build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
+                3,
+                true,
+                build_shape({{1, 0}, {1, 0.414213562373095}, {0.414213562373095, 1}, {0, 1}}, true).elements
+            }}));

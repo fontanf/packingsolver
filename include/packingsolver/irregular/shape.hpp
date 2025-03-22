@@ -14,6 +14,10 @@ using ItemShapePos = int64_t;
 using ShapePos = int64_t;
 using Counter = int64_t;
 
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// Point /////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
 /**
  * Structure for a point.
  */
@@ -46,12 +50,6 @@ struct Point
      */
 
     std::string to_string() const;
-
-    /*
-     * Others
-     */
-
-    bool operator==(const Point& point) const { return x == point.x && y == point.y; }
 };
 
 Point operator+(
@@ -88,6 +86,21 @@ Angle angle_radian(
 Angle angle_radian(
         const Point& vector_1,
         const Point& vector_2);
+
+inline AreaDbl compute_area(
+        const Point& point_1,
+        const Point& point_2,
+        const Point& point_3)
+{
+    // https://en.wikipedia.org/wiki/Area_of_a_triangle#Using_coordinates
+    return 0.5 * (
+            (point_1.x - point_3.x) * (point_2.y - point_1.y)
+            - (point_1.x - point_2.x) * (point_3.y - point_1.y));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// ShapeElement /////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 enum class ShapeElementType
 {
@@ -133,6 +146,19 @@ struct ShapeElement
 
     std::string to_string() const;
 };
+
+/**
+ * Convert a shape element of type CircularArc into multiple shape elements
+ * of type LineSegment.
+ */
+std::vector<ShapeElement> approximate_circular_arc_by_line_segments(
+        const ShapeElement& circular_arc,
+        ElementPos number_of_line_segments,
+        bool outer);
+
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// Shape /////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 enum class ShapeType
 {
@@ -241,7 +267,9 @@ struct BuildShapeElement
  * Build a right triangle where the hypotenuse is a drilled circular arc
  * build_shape({{0, 0}, {1, 0}, {0, 0, -1}, {1, 1}})
  */
-Shape build_shape(const std::vector<BuildShapeElement>& points);
+Shape build_shape(
+        const std::vector<BuildShapeElement>& points,
+        bool path = false);
 
 double compute_svg_factor(double width);
 
@@ -268,14 +296,33 @@ std::pair<bool, Shape> equalize_close_y(
 Shape clean_shape(
         const Shape& shape);
 
-std::vector<Shape> borders(
-        const Shape& shape);
+inline bool operator==(
+        const Point& point_1,
+        const Point& point_2)
+{
+    return (point_1.x == point_2.x) && (point_1.y == point_2.y);
+}
+
+inline bool near(
+        const Point& point_1,
+        const Point& point_2)
+{
+    return equal(point_1.x, point_2.x) && equal(point_1.y, point_2.y);
+}
 
 bool operator==(
         const ShapeElement& element_1,
         const ShapeElement& element_2);
 
+bool near(
+        const ShapeElement& element_1,
+        const ShapeElement& element_2);
+
 bool operator==(
+        const Shape& shape_1,
+        const Shape& shape_2);
+
+bool near(
         const Shape& shape_1,
         const Shape& shape_2);
 

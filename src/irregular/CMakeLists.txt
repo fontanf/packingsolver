@@ -8,6 +8,7 @@ target_sources(PackingSolver_irregular PRIVATE
     optimize.cpp
     shape.cpp
     shape_convex_hull.cpp
+    shape_extract_borders.cpp
     shape_self_intersections_removal.cpp
     shape_simplification.cpp
     shape_trapezoidation.cpp
