@@ -1,4 +1,5 @@
 #include "irregular/shape.hpp"
+#include "irregular/shape_inflate.hpp"
 #include "irregular/shape_self_intersections_removal.hpp"
 
 #include <gtest/gtest.h>
