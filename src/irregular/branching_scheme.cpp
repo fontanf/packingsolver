@@ -1,5 +1,6 @@
 #include "irregular/branching_scheme.hpp"
 
+#include "irregular/shape.hpp"
 #include "irregular/shape_convex_hull.hpp"
 #include "irregular/shape_extract_borders.hpp"
 #include "irregular/shape_trapezoidation.hpp"
