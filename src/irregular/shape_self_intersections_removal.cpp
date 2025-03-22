@@ -426,3 +426,280 @@ std::vector<Shape> irregular::extract_all_holes_from_self_intersecting_hole(
     //std::cout << "extract_all_holes_from_self_intersecting_shape end" << std::endl;
     return new_holes;
 }
+
+std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segments(
+        const std::vector<ShapeElement>& elements,
+        bool is_deflating)
+{
+    if (elements.empty()) {
+        return elements;
+    }
+    
+    //std::cout << "\n------ Debug: remove_intersections_segments ------" << std::endl;
+    //std::cout << "Input elements: " << elements.size() << std::endl;
+    //std::cout << "Is deflating: " << (is_deflating ? "true" : "false") << std::endl;
+    
+    // Copy input elements for processing
+    std::vector<ShapeElement> working_elements = elements;
+    
+    // Extend line segments to ensure intersection
+    for (size_t i = 0; i < working_elements.size(); ++i) {
+        if (working_elements[i].type != ShapeElementType::LineSegment) {
+            continue;
+        }
+        
+        LengthDbl dx = working_elements[i].end.x - working_elements[i].start.x;
+        LengthDbl dy = working_elements[i].end.y - working_elements[i].start.y;
+        LengthDbl length = std::sqrt(dx*dx + dy*dy);
+        
+        if (length > 1e-6) {
+            // Extend by 10%
+            LengthDbl extension_ratio = 0.1;
+            Point original_end = working_elements[i].end;
+            
+            working_elements[i].end.x = original_end.x + dx * extension_ratio;
+            working_elements[i].end.y = original_end.y + dy * extension_ratio;
+            
+            //std::cout << "Extended element " << i << " from ("
+            //        << original_end.x << "," << original_end.y << ") to ("
+            //        << working_elements[i].end.x << "," << working_elements[i].end.y << ")" << std::endl;
+        }
+    }
+    
+    // Find all intersections
+    std::vector<std::vector<Point>> intersections(working_elements.size());
+    
+    for (size_t i = 0; i < working_elements.size(); ++i) {
+        for (size_t j = i + 1; j < working_elements.size(); ++j) {
+            std::vector<Point> points = compute_intersections(working_elements[i], working_elements[j]);
+            
+            for (size_t k = 0; k < points.size(); ++k) {
+                intersections[i].push_back(points[k]);
+                intersections[j].push_back(points[k]);
+                //std::cout << "Found intersection between elements " << i << " and " << j
+                //        << " at (" << points[k].x << "," << points[k].y << ")" << std::endl;
+            }
+        }
+    }
+    
+    // Find the bounding box of all intersection points
+    Point min_point = {std::numeric_limits<LengthDbl>::max(), std::numeric_limits<LengthDbl>::max()};
+    Point max_point = {std::numeric_limits<LengthDbl>::lowest(), std::numeric_limits<LengthDbl>::lowest()};
+    
+    bool has_intersections = false;
+    for (size_t i = 0; i < intersections.size(); ++i) {
+        for (size_t j = 0; j < intersections[i].size(); ++j) {
+            const Point& p = intersections[i][j];
+            min_point.x = std::min(min_point.x, p.x);
+            min_point.y = std::min(min_point.y, p.y);
+            max_point.x = std::max(max_point.x, p.x);
+            max_point.y = std::max(max_point.y, p.y);
+            has_intersections = true;
+        }
+    }
+    
+    if (has_intersections) {
+        //std::cout << "Intersection bounding box: (" << min_point.x << "," << min_point.y
+        //        << ") to (" << max_point.x << "," << max_point.y << ")" << std::endl;
+    }
+    
+    // Process results
+    std::vector<ShapeElement> result;
+    
+    for (size_t i = 0; i < elements.size(); ++i) {
+        const ShapeElement& element = elements[i];
+        
+        // Skip degenerate elements
+        LengthDbl element_length = std::sqrt(
+            std::pow(element.end.x - element.start.x, 2) +
+            std::pow(element.end.y - element.start.y, 2));
+            
+        if (element_length < 1e-6) {
+            continue;
+        }
+        
+        // Get intersections for this element
+        std::vector<Point> element_intersections = intersections[i];
+        
+        // If no intersections, handle based on deflation mode
+        if (element_intersections.empty()) {
+            if (is_deflating) {
+                // In deflation mode, need to check if this element should be included
+                bool is_inside_bbox = is_point_inside_box(element.start, min_point, max_point) &&
+                                     is_point_inside_box(element.end, min_point, max_point);
+                if (is_inside_bbox) {
+                    result.push_back(element);
+                    //std::cout << "Kept element with no intersections (inside bbox)" << std::endl;
+                } else {
+                    //std::cout << "Skipped element with no intersections (outside bbox)" << std::endl;
+                }
+            } else {
+                // For inflation, keep all elements
+                result.push_back(element);
+            }
+            continue;
+        }
+        
+        // Sort intersections by distance from start
+        std::sort(element_intersections.begin(), element_intersections.end(),
+            [&element](const Point& p1, const Point& p2) {
+                LengthDbl d1 = std::sqrt(
+                    std::pow(p1.x - element.start.x, 2) +
+                    std::pow(p1.y - element.start.y, 2));
+                LengthDbl d2 = std::sqrt(
+                    std::pow(p2.x - element.start.x, 2) +
+                    std::pow(p2.y - element.start.y, 2));
+                return d1 < d2;
+            });
+        
+        // Remove endpoints
+        std::vector<Point> filtered_intersections;
+        for (size_t j = 0; j < element_intersections.size(); ++j) {
+            const Point& p = element_intersections[j];
+            LengthDbl d_start = std::sqrt(
+                std::pow(p.x - element.start.x, 2) +
+                std::pow(p.y - element.start.y, 2));
+            LengthDbl d_end = std::sqrt(
+                std::pow(p.x - element.end.x, 2) +
+                std::pow(p.y - element.end.y, 2));
+                
+            if (d_start > 1e-6 && d_end > 1e-6) {
+                filtered_intersections.push_back(p);
+            }
+        }
+        
+        // Remove close points
+        std::vector<Point> final_intersections;
+        for (size_t j = 0; j < filtered_intersections.size(); ++j) {
+            bool should_add = true;
+            for (size_t k = 0; k < final_intersections.size(); ++k) {
+                LengthDbl d = std::sqrt(
+                    std::pow(filtered_intersections[j].x - final_intersections[k].x, 2) +
+                    std::pow(filtered_intersections[j].y - final_intersections[k].y, 2));
+                if (d < 1e-6) {
+                    should_add = false;
+                    break;
+                }
+            }
+            if (should_add) {
+                final_intersections.push_back(filtered_intersections[j]);
+            }
+        }
+        
+        // If no intersections after filtering, handle same as earlier
+        if (final_intersections.empty()) {
+            if (is_deflating) {
+                // In deflation mode, need to check if this element should be included
+                bool is_inside_bbox = is_point_inside_box(element.start, min_point, max_point) &&
+                                     is_point_inside_box(element.end, min_point, max_point);
+                if (is_inside_bbox) {
+                    result.push_back(element);
+                    //std::cout << "Kept element with no valid intersections (inside bbox)" << std::endl;
+                } else {
+                    //std::cout << "Skipped element with no valid intersections (outside bbox)" << std::endl;
+                }
+            } else {
+                // For inflation, keep all elements
+                result.push_back(element);
+            }
+            continue;
+        }
+        
+        //std::cout << "Element " << i << " has " << final_intersections.size() << " valid intersection points" << std::endl;
+        
+        // Generate sub-segments
+        Point prev_point = element.start;
+        for (size_t j = 0; j < final_intersections.size(); ++j) {
+            const Point& current_point = final_intersections[j];
+            
+            // Check if point is within original element
+            LengthDbl original_length = std::sqrt(
+                std::pow(element.end.x - element.start.x, 2) +
+                std::pow(element.end.y - element.start.y, 2));
+            LengthDbl point_dist = std::sqrt(
+                std::pow(current_point.x - element.start.x, 2) +
+                std::pow(current_point.y - element.start.y, 2));
+            
+            if (point_dist > original_length) {
+                //std::cout << "Skipping intersection point beyond original element end" << std::endl;
+                continue;
+            }
+            
+            // Create new segment
+            ShapeElement new_segment = element;
+            new_segment.start = prev_point;
+            new_segment.end = current_point;
+            
+            // Add only non-degenerate segments
+            LengthDbl segment_length = std::sqrt(
+                std::pow(new_segment.end.x - new_segment.start.x, 2) +
+                std::pow(new_segment.end.y - new_segment.start.y, 2));
+            
+            if (segment_length > 1e-6) {
+                if (is_deflating) {
+                    // For deflation, check if segment is inside the bounding box
+                    // For partial segments, only keep the part inside the box
+                    bool start_inside = is_point_inside_box(new_segment.start, min_point, max_point);
+                    bool end_inside = is_point_inside_box(new_segment.end, min_point, max_point);
+                    
+                    if (start_inside && end_inside) {
+                        // Segment is fully inside, keep it
+                        result.push_back(new_segment);
+                        //std::cout << "Added segment (fully inside bbox) from (" 
+                        //        << new_segment.start.x << "," << new_segment.start.y
+                        //        << ") to (" << new_segment.end.x << "," << new_segment.end.y << ")" << std::endl;
+                    }
+                    // Note: For deflation, we skip segments that are partially or fully outside
+                } else {
+                    // For inflation, keep all segments
+                    result.push_back(new_segment);
+                    //std::cout << "Added segment from (" << new_segment.start.x << "," << new_segment.start.y
+                    //        << ") to (" << new_segment.end.x << "," << new_segment.end.y << ")" << std::endl;
+                }
+            }
+            
+            prev_point = current_point;
+        }
+        
+        // Add final segment
+        ShapeElement last_segment = element;
+        last_segment.start = prev_point;
+        last_segment.end = element.end;
+        
+        // Add only non-degenerate segments
+        LengthDbl last_segment_length = std::sqrt(
+            std::pow(last_segment.end.x - last_segment.start.x, 2) +
+            std::pow(last_segment.end.y - last_segment.start.y, 2));
+        
+        if (last_segment_length > 1e-6) {
+            if (is_deflating) {
+                // For deflation, check if segment is inside the bounding box
+                bool start_inside = is_point_inside_box(last_segment.start, min_point, max_point);
+                bool end_inside = is_point_inside_box(last_segment.end, min_point, max_point);
+                
+                if (start_inside && end_inside) {
+                    // Segment is fully inside, keep it
+                    result.push_back(last_segment);
+                    //std::cout << "Added final segment (fully inside bbox) from (" 
+                    //        << last_segment.start.x << "," << last_segment.start.y
+                    //        << ") to (" << last_segment.end.x << "," << last_segment.end.y << ")" << std::endl;
+                }
+                // Skip segments that are partially or fully outside
+            } else {
+                // For inflation, keep all segments
+                result.push_back(last_segment);
+                //std::cout << "Added final segment from (" << last_segment.start.x << "," << last_segment.start.y
+                //        << ") to (" << last_segment.end.x << "," << last_segment.end.y << ")" << std::endl;
+            }
+        }
+    }
+    
+    //std::cout << "Final output elements: " << result.size() << std::endl;
+    return result;
+}
+
+// Helper function to check if a point is inside a box
+bool packingsolver::irregular::is_point_inside_box(const Point& p, const Point& min_corner, const Point& max_corner) {
+    return p.x >= min_corner.x && p.x <= max_corner.x && 
+           p.y >= min_corner.y && p.y <= max_corner.y;
+}

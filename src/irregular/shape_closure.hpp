@@ -7,7 +7,7 @@ namespace packingsolver
 namespace irregular
 {
 
-Shape close_inflated_elements(const std::vector<ShapeElement>& inflated_elements);
+Shape close_inflated_elements(const std::vector<ShapeElement>& inflated_elements, bool is_deflating = false);
 
 LengthDbl euclidean_distance(const Point& p1, const Point& p2);
 
