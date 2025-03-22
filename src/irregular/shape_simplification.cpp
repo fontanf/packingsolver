@@ -2,6 +2,7 @@
 
 #include "packingsolver/irregular/instance_builder.hpp"
 
+#include "irregular/shape_extract_borders.hpp"
 #include "irregular/shape_self_intersections_removal.hpp"
 
 #include "optimizationtools/containers/indexed_binary_heap.hpp"
@@ -430,7 +431,7 @@ Instance irregular::shape_simplification(
         ApproximatedBinType approximated_bin_type;
 
         total_bin_area += bin_type.copies * (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min);
-        auto bin_borders = borders(bin_type.shape);
+        auto bin_borders = extract_borders(bin_type.shape);
 
         // Borders.
         for (DefectId border_pos = 0;
