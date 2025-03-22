@@ -249,6 +249,95 @@ char irregular::element2char(ShapeElementType type)
     return ' ';
 }
 
+std::vector<ShapeElement> irregular::approximate_circular_arc_by_line_segments(
+        const ShapeElement& circular_arc,
+        ElementPos number_of_line_segments,
+        bool outer)
+{
+    if (circular_arc.type != ShapeElementType::CircularArc) {
+        throw std::runtime_error(
+                "packingsolver::irregular::circular_arc_to_line_segments: "
+                "input element must be of type CircularArc; "
+                "circular_arc.type: " + element2str(circular_arc.type) + ".");
+    }
+    if (!outer && number_of_line_segments < 1) {
+        throw std::runtime_error(
+                "packingsolver::irregular::circular_arc_to_line_segments: "
+                "at least 1 line segment is needed to inner approximate a circular arc; "
+                "outer: " + std::to_string(outer) + "; "
+                "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
+    }
+
+    Angle angle = angle_radian(
+            circular_arc.start - circular_arc.center,
+            circular_arc.end - circular_arc.center);
+    if (outer) {
+        if (angle < M_PI && number_of_line_segments < 2) {
+            throw std::runtime_error(
+                    "packingsolver::irregular::circular_arc_to_line_segments: "
+                    "at least 2 line segments are needed to outer approximate a circular arc with an angle <= PI; "
+                    "outer: " + std::to_string(outer) + "; "
+                    "angle: " + std::to_string(angle) + "; "
+                    "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
+        } else if (angle >= M_PI && number_of_line_segments < 3) {
+            throw std::runtime_error(
+                    "packingsolver::irregular::circular_arc_to_line_segments: "
+                    "at least 3 line segments are needed to outer approximate a circular arc with an angle >= PI; "
+                    "outer: " + std::to_string(outer) + "; "
+                    "angle: " + std::to_string(angle) + "; "
+                    "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
+        }
+    }
+
+    std::vector<ShapeElement> line_segments;
+    Length radius = distance(circular_arc.center, circular_arc.start);
+    Point point_prev = circular_arc.start;
+    Point point_circle_prev = circular_arc.start;
+    for (ElementPos line_segment_id = 0;
+            line_segment_id < number_of_line_segments - 1;
+            ++line_segment_id) {
+        Angle angle_cur = (angle * (line_segment_id + 1)) / (number_of_line_segments - 1);
+        Point point_circle;
+        point_circle.x = circular_arc.center.x + radius * std::cos(angle_cur);
+        point_circle.y = circular_arc.center.y + radius * std::sin(angle_cur);
+        Point point_cur;
+        if (!outer) {
+            point_cur = point_circle;
+        } else {
+            // https://en.wikipedia.org/wiki/Tangent_lines_to_circles#Cartesian_equation
+            // https://en.wikipedia.org/wiki/Intersection_(geometry)#Two_lines
+            // The tangent line of the circle at (x1, y1) has Cartesian equation
+            // (x - x1)(x1 - xc) + (y - y1)(y1 - yc) = 0
+            // (x1 - xc) * x + (y1 - yc) * y - x1 * (x1 - xc) - y1 * (y1 - yc) = 0
+            // At (x2, y2)
+            // (x2 - xc) * x + (y2 - yc) * y - x2 * (x2 - xc) - y2 * (y1 - yc) = 0
+            LengthDbl a1 = (point_circle_prev.x - circular_arc.center.x);
+            LengthDbl b1 = (point_circle_prev.y - circular_arc.center.y);
+            LengthDbl c1 = point_circle_prev.x * (point_circle_prev.x - circular_arc.center.x)
+                + point_circle_prev.y * (point_circle_prev.y - circular_arc.center.y);
+            LengthDbl a2 = (point_circle.x - circular_arc.center.x);
+            LengthDbl b2 = (point_circle.y - circular_arc.center.y);
+            LengthDbl c2 = point_circle.x * (point_circle.x - circular_arc.center.x)
+                + point_circle.y * (point_circle.y - circular_arc.center.y);
+            point_cur.x = (c1 * b2 - c2 * b1) / (a1 * b2 - a2 * b1);
+            point_cur.y = (a1 * c2 - a2 * c1) / (a1 * b2 - a2 * b1);
+        }
+        ShapeElement line_segment;
+        line_segment.start = point_prev;
+        line_segment.end = point_cur;
+        line_segment.type = ShapeElementType::LineSegment;
+        line_segments.push_back(line_segment);
+        point_prev = point_cur;
+        point_circle_prev = point_circle;
+    }
+    ShapeElement line_segment;
+    line_segment.start = point_prev;
+    line_segment.end = circular_arc.end;
+    line_segment.type = ShapeElementType::LineSegment;
+    line_segments.push_back(line_segment);
+    return line_segments;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Shape /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -592,24 +681,29 @@ void Shape::write_svg(
 }
 
 Shape packingsolver::irregular::build_shape(
-        const std::vector<BuildShapeElement>& points)
+        const std::vector<BuildShapeElement>& points,
+        bool path)
 {
     Shape shape;
     Point point_prev = {points.back().x, points.back().y};
+    ShapeElementType type = ShapeElementType::LineSegment;
     bool anticlockwise = false;
     Point center = {0, 0};
     for (ElementPos pos = 0; pos < (ElementPos)points.size(); ++pos) {
-        const BuildShapeElement point = points[pos];
+        const BuildShapeElement& point = points[pos];
         if (point.type == 0) {
             ShapeElement element;
-            element.type = ShapeElementType::LineSegment;
+            element.type = type;
             element.start = point_prev;
             element.end = {points[pos].x, points[pos].y};
-            shape.elements.push_back(element);
+            if (!path || pos > 0)
+                shape.elements.push_back(element);
             point_prev = element.end;
+            type = ShapeElementType::LineSegment;
         } else {
             anticlockwise = (point.type == 1);
             center = {points[pos].x, points[pos].y};
+            type = ShapeElementType::CircularArc;
         }
     }
     return shape;
@@ -834,6 +928,25 @@ bool irregular::operator==(
     return true;
 }
 
+bool irregular::near(
+        const ShapeElement& element_1,
+        const ShapeElement& element_2)
+{
+    if (element_1.type != element_2.type)
+        return false;
+    if (!near(element_1.start, element_2.start))
+        return false;
+    if (!near(element_1.end, element_2.end))
+        return false;
+    if (element_1.type == ShapeElementType::CircularArc) {
+        if (!near(element_1.center, element_2.center))
+            return false;
+        if (element_1.anticlockwise != element_2.anticlockwise)
+            return false;
+    }
+    return true;
+}
+
 bool irregular::operator==(
         const Shape& shape_1,
         const Shape& shape_2)
@@ -859,6 +972,38 @@ bool irregular::operator==(
             ++element_pos) {
         ElementPos element_pos_2 = (element_pos + offset) % shape_2.elements.size();
         if (!(shape_1.elements[element_pos] == shape_2.elements[element_pos_2])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool irregular::near(
+        const Shape& shape_1,
+        const Shape& shape_2)
+{
+    // First, check if both shapes have the same number of elements.
+    if (shape_1.elements.size() != shape_2.elements.size())
+        return false;
+
+    ElementPos offset = -1;
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)shape_2.elements.size();
+            ++element_pos) {
+        if (near(shape_2.elements[element_pos], shape_1.elements[0])) {
+            offset = element_pos;
+            break;
+        }
+    }
+    if (offset == -1)
+        return false;
+
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)shape_2.elements.size();
+            ++element_pos) {
+        ElementPos element_pos_2 = (element_pos + offset) % shape_2.elements.size();
+        if (!near(shape_1.elements[element_pos], shape_2.elements[element_pos_2])) {
             return false;
         }
     }
