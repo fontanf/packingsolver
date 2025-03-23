@@ -227,176 +227,164 @@ Shape close_inflated_elements(const std::vector<ShapeElement>& inflated_elements
                 }
                 
                 if (need_connector) {
-                    // For small gaps, prefer line segment connectors
-                    if (gap_distance < 0.1) {
-                        //std::cout << "  Using line segment connector for small gap (< 0.1)" << std::endl;
-                        ShapeElement connector;
-                        connector.type = ShapeElementType::LineSegment;
-                        connector.start = current.end;
-                        connector.end = next.start;
-                        inflated_shape.elements.push_back(connector);
-                        //std::cout << "  Added line connector: (" << connector.start.x << "," << connector.start.y 
-                        //          << ") to (" << connector.end.x << "," << connector.end.y << ")" << std::endl;
-                    } else {
-                        // Add a circular arc connector
-                        //std::cout << "  Using circular arc connector for larger gap (>= 0.1)" << std::endl;
-                        ShapeElement connector;
-                        connector.type = ShapeElementType::CircularArc;
-                        connector.start = current.end;
-                        connector.end = next.start;
+                    // Add a circular arc connector
+                    //std::cout << "  Using circular arc connector for larger gap (>= 0.1)" << std::endl;
+                    ShapeElement connector;
+                    connector.type = ShapeElementType::CircularArc;
+                    connector.start = current.end;
+                    connector.end = next.start;
+                    
+                    // Calculate the direction vector of the current element
+                    LengthDbl current_dx = current.end.x - current.start.x;
+                    LengthDbl current_dy = current.end.y - current.start.y;
+                    if (current.type == ShapeElementType::CircularArc) {
+                        // For arcs, need to calculate the tangent direction at the end point
+                        LengthDbl end_angle = std::atan2(
+                            current.end.y - current.center.y,
+                            current.end.x - current.center.x
+                        );
                         
-                        // Calculate the direction vector of the current element
-                        LengthDbl current_dx = current.end.x - current.start.x;
-                        LengthDbl current_dy = current.end.y - current.start.y;
-                        if (current.type == ShapeElementType::CircularArc) {
-                            // For arcs, need to calculate the tangent direction at the end point
-                            LengthDbl end_angle = std::atan2(
-                                current.end.y - current.center.y,
-                                current.end.x - current.center.x
-                            );
-                            
-                            if (current.anticlockwise) {
-                                current_dx = -std::sin(end_angle);
-                                current_dy = std::cos(end_angle);
-                            } else {
-                                current_dx = std::sin(end_angle);
-                                current_dy = -std::cos(end_angle);
-                            }
-                        }
-                        
-                        // Calculate the direction vector of the next element
-                        LengthDbl next_dx = next.end.x - next.start.x;
-                        LengthDbl next_dy = next.end.y - next.start.y;
-                        if (next.type == ShapeElementType::CircularArc) {
-                            // For arcs, need to calculate the tangent direction at the start point
-                            LengthDbl start_angle = std::atan2(
-                                next.start.y - next.center.y,
-                                next.start.x - next.center.x
-                            );
-                            
-                            if (next.anticlockwise) {
-                                next_dx = -std::sin(start_angle);
-                                next_dy = std::cos(start_angle);
-                            } else {
-                                next_dx = std::sin(start_angle);
-                                next_dy = -std::cos(start_angle);
-                            }
-                        }
-                        
-                        //std::cout << "  Current direction: (" << current_dx << "," << current_dy << ")" << std::endl;
-                        //std::cout << "  Next direction: (" << next_dx << "," << next_dy << ")" << std::endl;
-                        
-                        // Normalize direction vectors
-                        LengthDbl current_length = std::sqrt(current_dx * current_dx + current_dy * current_dy);
-                        LengthDbl next_length = std::sqrt(next_dx * next_dx + next_dy * next_dy);
-                        
-                        if (current_length > 0 && next_length > 0) {
-                            current_dx /= current_length;
-                            current_dy /= current_length;
-                            next_dx /= next_length;
-                            next_dy /= next_length;
-                            
-                            //std::cout << "  Normalized current direction: (" << current_dx << "," << current_dy << ")" << std::endl;
-                            //std::cout << "  Normalized next direction: (" << next_dx << "," << next_dy << ")" << std::endl;
-                            
-                            // Calculate the middle vector at the connection point
-                            LengthDbl mid_dx = current_dx + next_dx;
-                            LengthDbl mid_dy = current_dy + next_dy;
-                            LengthDbl mid_length = std::sqrt(mid_dx * mid_dx + mid_dy * mid_dy);
-                            
-                            //std::cout << "  Middle vector: (" << mid_dx << "," << mid_dy << "), length: " << mid_length << std::endl;
-                            
-                            if (mid_length > 0.01) {  // Ensure the middle vector is valid
-                                mid_dx /= mid_length;
-                                mid_dy /= mid_length;
-                                
-                                // Calculate the normal vector to the middle vector
-                                LengthDbl normal_dx = -mid_dy;
-                                LengthDbl normal_dy = mid_dx;
-                                
-                                //std::cout << "  Normalized middle vector: (" << mid_dx << "," << mid_dy << ")" << std::endl;
-                                //std::cout << "  Normal vector: (" << normal_dx << "," << normal_dy << ")" << std::endl;
-                                
-                                // Detect whether the shape is concave or convex at this point
-                                // Calculate the turning from current direction to next direction
-                                LengthDbl cross_product = current_dx * next_dy - current_dy * next_dx;
-                                
-                                // cross_product > 0 indicates counterclockwise turning (concave), < 0 indicates clockwise turning (convex)
-                                bool is_concave = cross_product > 0;
-                                
-                                //std::cout << "  Cross product: " << cross_product << ", is_concave: " << (is_concave ? "true" : "false") << std::endl;
-                                
-                                // Calculate the chord length connecting the two points
-                                LengthDbl dx = connector.end.x - connector.start.x;
-                                LengthDbl dy = connector.end.y - connector.start.y;
-                                LengthDbl chord_length = std::sqrt(dx * dx + dy * dy);
-                                
-                                // Calculate the midpoint of the connection
-                                LengthDbl mid_x = (connector.start.x + connector.end.x) / 2;
-                                LengthDbl mid_y = (connector.start.y + connector.end.y) / 2;
-                                
-                                //std::cout << "  Chord length: " << chord_length << std::endl;
-                                //std::cout << "  Midpoint: (" << mid_x << "," << mid_y << ")" << std::endl;
-                                
-                                // Determine center position based on concavity/convexity (normal vector direction)
-                                if (is_concave) {
-                                    // Concave point, center should be inside the shape, reverse the normal vector
-                                    normal_dx = -normal_dx;
-                                    normal_dy = -normal_dy;
-                                    connector.anticlockwise = false;  // Clockwise direction
-                                    //std::cout << "  Concave point, reversed normal: (" << normal_dx << "," << normal_dy << ")" << std::endl;
-                                } else {
-                                    // Convex point, center should be outside the shape
-                                    connector.anticlockwise = true;   // Counterclockwise direction
-                                    //std::cout << "  Convex point, normal unchanged" << std::endl;
-                                }
-                                
-                                // Calculate arc radius
-                                // Use chord length and angle to determine an appropriate radius
-                                LengthDbl angle_between = std::acos(std::max(-0.999, std::min(0.999, current_dx * next_dx + current_dy * next_dy)));
-                                if (angle_between < 0.01) angle_between = 0.01;  // Avoid division by values close to zero
-                                
-                                //std::cout << "  Angle between directions: " << angle_between << " radians (" << (angle_between * 180.0 / M_PI) << " degrees)" << std::endl;
-                                
-                                LengthDbl radius = chord_length / (2 * std::sin(angle_between / 2));
-                                
-                                //std::cout << "  Initial radius calculation: " << radius << std::endl;
-                                
-                                // Adaptive radius limitation based on gap distance
-                                LengthDbl min_radius = chord_length / 2;
-                                LengthDbl max_radius = chord_length * 5;
-                                
-                                // Limit radius to a reasonable range
-                                if (radius < min_radius) radius = min_radius;
-                                if (radius > max_radius) radius = max_radius;
-                                
-                                //std::cout << "  Final radius after limits: " << radius << " (min: " << min_radius << ", max: " << max_radius << ")" << std::endl;
-                                
-                                // Calculate center
-                                connector.center = Point{
-                                    mid_x + normal_dx * radius,
-                                    mid_y + normal_dy * radius
-                                };
-                                
-                                //std::cout << "  Arc center: (" << connector.center.x << "," << connector.center.y << "), anticlockwise: " << (connector.anticlockwise ? "true" : "false") << std::endl;
-                                
-                                inflated_shape.elements.push_back(connector);
-                            } else {
-                                // Fallback to line segment if middle vector is invalid
-                                ShapeElement line_connector;
-                                line_connector.type = ShapeElementType::LineSegment;
-                                line_connector.start = current.end;
-                                line_connector.end = next.start;
-                                inflated_shape.elements.push_back(line_connector);
-                            }
+                        if (current.anticlockwise) {
+                            current_dx = -std::sin(end_angle);
+                            current_dy = std::cos(end_angle);
                         } else {
-                            // Fallback to line segment if direction calculation fails
+                            current_dx = std::sin(end_angle);
+                            current_dy = -std::cos(end_angle);
+                        }
+                    }
+                    
+                    // Calculate the direction vector of the next element
+                    LengthDbl next_dx = next.end.x - next.start.x;
+                    LengthDbl next_dy = next.end.y - next.start.y;
+                    if (next.type == ShapeElementType::CircularArc) {
+                        // For arcs, need to calculate the tangent direction at the start point
+                        LengthDbl start_angle = std::atan2(
+                            next.start.y - next.center.y,
+                            next.start.x - next.center.x
+                        );
+                        
+                        if (next.anticlockwise) {
+                            next_dx = -std::sin(start_angle);
+                            next_dy = std::cos(start_angle);
+                        } else {
+                            next_dx = std::sin(start_angle);
+                            next_dy = -std::cos(start_angle);
+                        }
+                    }
+                    
+                    //std::cout << "  Current direction: (" << current_dx << "," << current_dy << ")" << std::endl;
+                    //std::cout << "  Next direction: (" << next_dx << "," << next_dy << ")" << std::endl;
+                    
+                    // Normalize direction vectors
+                    LengthDbl current_length = std::sqrt(current_dx * current_dx + current_dy * current_dy);
+                    LengthDbl next_length = std::sqrt(next_dx * next_dx + next_dy * next_dy);
+                    
+                    if (current_length > 0 && next_length > 0) {
+                        current_dx /= current_length;
+                        current_dy /= current_length;
+                        next_dx /= next_length;
+                        next_dy /= next_length;
+                        
+                        //std::cout << "  Normalized current direction: (" << current_dx << "," << current_dy << ")" << std::endl;
+                        //std::cout << "  Normalized next direction: (" << next_dx << "," << next_dy << ")" << std::endl;
+                        
+                        // Calculate the middle vector at the connection point
+                        LengthDbl mid_dx = current_dx + next_dx;
+                        LengthDbl mid_dy = current_dy + next_dy;
+                        LengthDbl mid_length = std::sqrt(mid_dx * mid_dx + mid_dy * mid_dy);
+                        
+                        //std::cout << "  Middle vector: (" << mid_dx << "," << mid_dy << "), length: " << mid_length << std::endl;
+                        
+                        if (mid_length > 0.01) {  // Ensure the middle vector is valid
+                            mid_dx /= mid_length;
+                            mid_dy /= mid_length;
+                            
+                            // Calculate the normal vector to the middle vector
+                            LengthDbl normal_dx = -mid_dy;
+                            LengthDbl normal_dy = mid_dx;
+                            
+                            //std::cout << "  Normalized middle vector: (" << mid_dx << "," << mid_dy << ")" << std::endl;
+                            //std::cout << "  Normal vector: (" << normal_dx << "," << normal_dy << ")" << std::endl;
+                            
+                            // Detect whether the shape is concave or convex at this point
+                            // Calculate the turning from current direction to next direction
+                            LengthDbl cross_product = current_dx * next_dy - current_dy * next_dx;
+                            
+                            // cross_product > 0 indicates counterclockwise turning (concave), < 0 indicates clockwise turning (convex)
+                            bool is_concave = cross_product > 0;
+                            
+                            //std::cout << "  Cross product: " << cross_product << ", is_concave: " << (is_concave ? "true" : "false") << std::endl;
+                            
+                            // Calculate the chord length connecting the two points
+                            LengthDbl dx = connector.end.x - connector.start.x;
+                            LengthDbl dy = connector.end.y - connector.start.y;
+                            LengthDbl chord_length = std::sqrt(dx * dx + dy * dy);
+                            
+                            // Calculate the midpoint of the connection
+                            LengthDbl mid_x = (connector.start.x + connector.end.x) / 2;
+                            LengthDbl mid_y = (connector.start.y + connector.end.y) / 2;
+                            
+                            //std::cout << "  Chord length: " << chord_length << std::endl;
+                            //std::cout << "  Midpoint: (" << mid_x << "," << mid_y << ")" << std::endl;
+                            
+                            // Determine center position based on concavity/convexity (normal vector direction)
+                            if (is_concave) {
+                                // Concave point, center should be inside the shape, reverse the normal vector
+                                normal_dx = -normal_dx;
+                                normal_dy = -normal_dy;
+                                connector.anticlockwise = false;  // Clockwise direction
+                                //std::cout << "  Concave point, reversed normal: (" << normal_dx << "," << normal_dy << ")" << std::endl;
+                            } else {
+                                // Convex point, center should be outside the shape
+                                connector.anticlockwise = true;   // Counterclockwise direction
+                                //std::cout << "  Convex point, normal unchanged" << std::endl;
+                            }
+                            
+                            // Calculate arc radius
+                            // Use chord length and angle to determine an appropriate radius
+                            LengthDbl angle_between = std::acos(std::max(-0.999, std::min(0.999, current_dx * next_dx + current_dy * next_dy)));
+                            if (angle_between < 0.01) angle_between = 0.01;  // Avoid division by values close to zero
+                            
+                            //std::cout << "  Angle between directions: " << angle_between << " radians (" << (angle_between * 180.0 / M_PI) << " degrees)" << std::endl;
+                            
+                            LengthDbl radius = chord_length / (2 * std::sin(angle_between / 2));
+                            
+                            //std::cout << "  Initial radius calculation: " << radius << std::endl;
+                            
+                            // Adaptive radius limitation based on gap distance
+                            LengthDbl min_radius = chord_length / 2;
+                            LengthDbl max_radius = chord_length * 5;
+                            
+                            // Limit radius to a reasonable range
+                            if (radius < min_radius) radius = min_radius;
+                            if (radius > max_radius) radius = max_radius;
+                            
+                            //std::cout << "  Final radius after limits: " << radius << " (min: " << min_radius << ", max: " << max_radius << ")" << std::endl;
+                            
+                            // Calculate center
+                            connector.center = Point{
+                                mid_x + normal_dx * radius,
+                                mid_y + normal_dy * radius
+                            };
+                            
+                            //std::cout << "  Arc center: (" << connector.center.x << "," << connector.center.y << "), anticlockwise: " << (connector.anticlockwise ? "true" : "false") << std::endl;
+                            
+                            inflated_shape.elements.push_back(connector);
+                        } else {
+                            // Fallback to line segment if middle vector is invalid
                             ShapeElement line_connector;
                             line_connector.type = ShapeElementType::LineSegment;
                             line_connector.start = current.end;
                             line_connector.end = next.start;
                             inflated_shape.elements.push_back(line_connector);
                         }
+                    } else {
+                        // Fallback to line segment if direction calculation fails
+                        ShapeElement line_connector;
+                        line_connector.type = ShapeElementType::LineSegment;
+                        line_connector.start = current.end;
+                        line_connector.end = next.start;
+                        inflated_shape.elements.push_back(line_connector);
                     }
                 }
             }
