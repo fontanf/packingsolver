@@ -124,19 +124,19 @@ std::pair<Shape, std::vector<Shape>> inflate(
         return {shape, {}};
     }
 
-    // 使用已改进的inflate_shape_without_holes函数处理主形状
-    // (内部已实现元素间相交检测和闭合处理)
+    // use the improved inflate_shape_without_holes function to process the main shape
+    // (internal implementation of intersection detection and closure processing)
     Shape inflated_shape = inflate_shape_without_holes(shape, value);
     
-    // 处理原始孔洞(使用相反的膨胀值)
+    // process the original holes (using the opposite inflation value)
     std::vector<Shape> deflated_holes;
     for (const Shape& hole : holes) {
-        // 对孔洞形状进行收缩/膨胀处理(使用相反值)
+        // process the original holes (using the opposite inflation value)
         Shape deflated_hole = inflate_shape_without_holes(hole, -value);
         deflated_holes.push_back(deflated_hole);
     }
     
-    // 返回膨胀后的形状和处理后的孔洞
+    // return the inflated shape and processed holes
     return {inflated_shape, deflated_holes};
 }
 
