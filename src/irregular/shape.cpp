@@ -161,7 +161,8 @@ std::string ShapeElement::to_string() const
     } case ShapeElementType::CircularArc: {
         return "CircularArc start " + start.to_string()
             + " end " + end.to_string()
-            + " center " + center.to_string();
+            + " center " + center.to_string()
+            + ((anticlockwise)? " anticlockwise": " clockwise");
     }
     }
     return "";
@@ -268,21 +269,28 @@ std::vector<ShapeElement> irregular::approximate_circular_arc_by_line_segments(
                 "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
     }
 
-    Angle angle = angle_radian(
+    Angle angle = (circular_arc.anticlockwise)?
+        angle_radian(
             circular_arc.start - circular_arc.center,
-            circular_arc.end - circular_arc.center);
-    if (outer) {
+            circular_arc.end - circular_arc.center):
+        angle_radian(
+            circular_arc.end - circular_arc.center,
+            circular_arc.start - circular_arc.center);
+    if ((outer && circular_arc.anticlockwise)
+            || (!outer && !circular_arc.anticlockwise)) {
         if (angle < M_PI && number_of_line_segments < 2) {
             throw std::runtime_error(
                     "packingsolver::irregular::circular_arc_to_line_segments: "
-                    "at least 2 line segments are needed to outer approximate a circular arc with an angle <= PI; "
+                    "at least 2 line segments are needed to approximate the circular arc; "
+                    "circular_arc: " + circular_arc.to_string() + "; "
                     "outer: " + std::to_string(outer) + "; "
                     "angle: " + std::to_string(angle) + "; "
                     "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
         } else if (angle >= M_PI && number_of_line_segments < 3) {
             throw std::runtime_error(
                     "packingsolver::irregular::circular_arc_to_line_segments: "
-                    "at least 3 line segments are needed to outer approximate a circular arc with an angle >= PI; "
+                    "at least 3 line segments are needed to approximate the circular arc; "
+                    "circular_arc: " + circular_arc.to_string() + "; "
                     "outer: " + std::to_string(outer) + "; "
                     "angle: " + std::to_string(angle) + "; "
                     "number_of_line_segments: " + std::to_string(number_of_line_segments) + ".");
@@ -297,11 +305,17 @@ std::vector<ShapeElement> irregular::approximate_circular_arc_by_line_segments(
             line_segment_id < number_of_line_segments - 1;
             ++line_segment_id) {
         Angle angle_cur = (angle * (line_segment_id + 1)) / (number_of_line_segments - 1);
+        if (!circular_arc.anticlockwise)
+            angle_cur *= -1;
         Point point_circle;
-        point_circle.x = circular_arc.center.x + radius * std::cos(angle_cur);
-        point_circle.y = circular_arc.center.y + radius * std::sin(angle_cur);
+        point_circle.x = circular_arc.center.x
+            + std::cos(angle_cur) * (circular_arc.start.x - circular_arc.center.x)
+            - std::sin(angle_cur) * (circular_arc.start.y - circular_arc.center.y);
+        point_circle.y = circular_arc.center.y
+            + std::sin(angle_cur) * (circular_arc.start.x - circular_arc.center.x)
+            + std::cos(angle_cur) * (circular_arc.start.y - circular_arc.center.y);
         Point point_cur;
-        if (!outer) {
+        if ((outer && !circular_arc.anticlockwise) || (!outer && circular_arc.anticlockwise)) {
             point_cur = point_circle;
         } else {
             // https://en.wikipedia.org/wiki/Tangent_lines_to_circles#Cartesian_equation
@@ -696,9 +710,13 @@ Shape packingsolver::irregular::build_shape(
             element.type = type;
             element.start = point_prev;
             element.end = {points[pos].x, points[pos].y};
+            element.center = center;
+            element.anticlockwise = anticlockwise;
             if (!path || pos > 0)
                 shape.elements.push_back(element);
             point_prev = element.end;
+            anticlockwise = true;
+            center = {0, 0};
             type = ShapeElementType::LineSegment;
         } else {
             anticlockwise = (point.type == 1);
