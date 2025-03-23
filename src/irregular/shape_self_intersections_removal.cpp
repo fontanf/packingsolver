@@ -452,7 +452,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
         LengthDbl dy = working_elements[i].end.y - working_elements[i].start.y;
         LengthDbl length = std::sqrt(dx*dx + dy*dy);
         
-        if (length > 1e-6) {
+        if (!equal(length, 0.0)) {
             // Extend by 10%
             LengthDbl extension_ratio = 0.1;
             Point original_end = working_elements[i].end;
@@ -514,7 +514,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
             std::pow(element.end.x - element.start.x, 2) +
             std::pow(element.end.y - element.start.y, 2));
             
-        if (element_length < 1e-6) {
+        if (equal(element_length, 0.0)) {
             continue;
         }
         
@@ -563,7 +563,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
                 std::pow(p.x - element.end.x, 2) +
                 std::pow(p.y - element.end.y, 2));
                 
-            if (d_start > 1e-6 && d_end > 1e-6) {
+            if (!equal(d_start, 0.0) && !equal(d_end, 0.0)) {
                 filtered_intersections.push_back(p);
             }
         }
@@ -576,7 +576,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
                 LengthDbl d = std::sqrt(
                     std::pow(filtered_intersections[j].x - final_intersections[k].x, 2) +
                     std::pow(filtered_intersections[j].y - final_intersections[k].y, 2));
-                if (d < 1e-6) {
+                if (equal(d, 0.0)) {
                     should_add = false;
                     break;
                 }
@@ -635,7 +635,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
                 std::pow(new_segment.end.x - new_segment.start.x, 2) +
                 std::pow(new_segment.end.y - new_segment.start.y, 2));
             
-            if (segment_length > 1e-6) {
+            if (!equal(segment_length, 0.0)) {
                 if (is_deflating) {
                     // For deflation, check if segment is inside the bounding box
                     // For partial segments, only keep the part inside the box
@@ -671,7 +671,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
             std::pow(last_segment.end.x - last_segment.start.x, 2) +
             std::pow(last_segment.end.y - last_segment.start.y, 2));
         
-        if (last_segment_length > 1e-6) {
+        if (!equal(last_segment_length, 0.0)) {
             if (is_deflating) {
                 // For deflation, check if segment is inside the bounding box
                 bool start_inside = is_point_inside_box(last_segment.start, min_point, max_point);

@@ -44,7 +44,7 @@ bool are_line_segments_collinear(
         LengthDbl dot_product = dir1_x * dir2_x + dir1_y * dir2_y;
         
         // If dot product is close to ±1, vectors are parallel or antiparallel
-        return std::abs(std::abs(dot_product) - 1.0) < 1e-6;
+        return equal(std::abs(dot_product), 1.0);
     }
     
     return false;
@@ -79,7 +79,7 @@ bool is_line_segment_tangent_to_arc(
         LengthDbl dot_product = line_dir_x * arc_normal_x + line_dir_y * arc_normal_y;
         
         // If close to zero, the line segment is parallel to the arc tangent, i.e., tangent
-        return std::abs(dot_product) < 1e-6;
+        return equal(dot_product, 0.0);
     }
     
     return false;
@@ -127,7 +127,7 @@ bool are_arcs_tangent(const ShapeElement& arc1, const ShapeElement& arc2)
                           arc1_end_tangent_y * arc2_start_tangent_y;
     
     // If close to 1 or -1, the two arcs are tangent
-    return std::abs(std::abs(dot_product) - 1.0) < 1e-6;
+    return equal(std::abs(dot_product), 1.0);
 }
 
 Shape close_inflated_elements(const std::vector<ShapeElement>& inflated_elements, bool is_deflating)
@@ -169,7 +169,7 @@ Shape close_inflated_elements(const std::vector<ShapeElement>& inflated_elements
         LengthDbl gap_distance = euclidean_distance(current.end, next.start);
         //std::cout << "  Gap distance: " << gap_distance << std::endl;
         
-        if (gap_distance > 1e-6) {
+        if (!equal(gap_distance, 0.0)) {
             // The end point of the current element and the start point of the next element don't coincide, need to add a connector
             //std::cout << "  Need connector (gap > 1e-6)" << std::endl;
             
@@ -409,7 +409,7 @@ Shape close_inflated_elements(const std::vector<ShapeElement>& inflated_elements
         cleaned_elements.reserve(inflated_shape.elements.size());
         
         for (const ShapeElement& element : inflated_shape.elements) {
-            if (euclidean_distance(element.start, element.end) > 1e-6) {
+            if (!equal(euclidean_distance(element.start, element.end), 0.0)) {
                 cleaned_elements.push_back(element);
             }
         }
