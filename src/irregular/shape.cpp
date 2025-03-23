@@ -1319,17 +1319,11 @@ bool irregular::is_point_strictly_inside_shape(const Point& point, const Shape& 
             // If the point is on the circle
             if (equal(distance, radius)) {
                 // Calculate the point's angle
-                LengthDbl point_angle = std::atan2(dy, dx);
+                LengthDbl point_angle = angle_radian({dx, dy});
                 
                 // Calculate the start and end angles of the arc
-                LengthDbl start_angle = std::atan2(
-                    element.start.y - element.center.y, 
-                    element.start.x - element.center.x
-                );
-                LengthDbl end_angle = std::atan2(
-                    element.end.y - element.center.y, 
-                    element.end.x - element.center.x
-                );
+                LengthDbl start_angle = angle_radian({element.start.x - element.center.x, element.start.y - element.center.y});
+                LengthDbl end_angle = angle_radian({element.end.x - element.center.x, element.end.y - element.center.y});
                 
                 // Ensure angles are in the correct range
                 if (element.anticlockwise && end_angle <= start_angle) {
@@ -1392,14 +1386,8 @@ bool irregular::is_point_strictly_inside_shape(const Point& point, const Shape& 
             
             // If the point is inside the circle and to the left of the center, there may be intersections with a ray to the right
             if (strictly_lesser(distance, radius) && strictly_lesser(point.x, element.center.x)) {
-                LengthDbl start_angle = std::atan2(
-                    element.start.y - element.center.y, 
-                    element.start.x - element.center.x
-                );
-                LengthDbl end_angle = std::atan2(
-                    element.end.y - element.center.y, 
-                    element.end.x - element.center.x
-                );
+                LengthDbl start_angle = angle_radian({element.start.x - element.center.x, element.start.y - element.center.y});
+                LengthDbl end_angle = angle_radian({element.end.x - element.center.x, element.end.y - element.center.y});
                 
                 // Ensure angles are in the correct range
                 if (element.anticlockwise && end_angle <= start_angle) {
@@ -1409,7 +1397,7 @@ bool irregular::is_point_strictly_inside_shape(const Point& point, const Shape& 
                 }
                 
                 // Calculate the point's line-of-sight angle (angle between the line from point to center and the horizontal)
-                LengthDbl point_angle = std::atan2(dy, dx);
+                LengthDbl point_angle = angle_radian({dx, dy});
                 if (strictly_lesser(point_angle, 0)) {
                     point_angle += 2 * M_PI;  // Adjust angle to [0, 2π)
                 }

@@ -93,10 +93,7 @@ bool are_arcs_tangent(const ShapeElement& arc1, const ShapeElement& arc2)
     }
     
     // Calculate the tangent vector at the end point of the first arc
-    LengthDbl arc1_end_angle = std::atan2(
-        arc1.end.y - arc1.center.y,
-        arc1.end.x - arc1.center.x
-    );
+    LengthDbl arc1_end_angle = angle_radian({arc1.end.x - arc1.center.x, arc1.end.y - arc1.center.y});
     
     LengthDbl arc1_end_tangent_x, arc1_end_tangent_y;
     if (arc1.anticlockwise) {
@@ -108,10 +105,7 @@ bool are_arcs_tangent(const ShapeElement& arc1, const ShapeElement& arc2)
     }
     
     // Calculate the tangent vector at the start point of the second arc
-    LengthDbl arc2_start_angle = std::atan2(
-        arc2.start.y - arc2.center.y,
-        arc2.start.x - arc2.center.x
-    );
+    LengthDbl arc2_start_angle = angle_radian({arc2.start.x - arc2.center.x, arc2.start.y - arc2.center.y});
     
     LengthDbl arc2_start_tangent_x, arc2_start_tangent_y;
     if (arc2.anticlockwise) {
@@ -239,10 +233,7 @@ Shape close_inflated_elements(const std::vector<ShapeElement>& inflated_elements
                     LengthDbl current_dy = current.end.y - current.start.y;
                     if (current.type == ShapeElementType::CircularArc) {
                         // For arcs, need to calculate the tangent direction at the end point
-                        LengthDbl end_angle = std::atan2(
-                            current.end.y - current.center.y,
-                            current.end.x - current.center.x
-                        );
+                        LengthDbl end_angle = angle_radian({current.end.x - current.center.x, current.end.y - current.center.y});
                         
                         if (current.anticlockwise) {
                             current_dx = -std::sin(end_angle);
@@ -258,10 +249,7 @@ Shape close_inflated_elements(const std::vector<ShapeElement>& inflated_elements
                     LengthDbl next_dy = next.end.y - next.start.y;
                     if (next.type == ShapeElementType::CircularArc) {
                         // For arcs, need to calculate the tangent direction at the start point
-                        LengthDbl start_angle = std::atan2(
-                            next.start.y - next.center.y,
-                            next.start.x - next.center.x
-                        );
+                        LengthDbl start_angle = angle_radian({next.start.x - next.center.x, next.start.y - next.center.y});
                         
                         if (next.anticlockwise) {
                             next_dx = -std::sin(start_angle);

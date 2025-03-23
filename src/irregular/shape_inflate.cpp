@@ -205,14 +205,8 @@ ShapeElement offset_element(const ShapeElement& element, LengthDbl value)
         }
         
         // Calculate the original arc's start and end angles
-        LengthDbl start_angle = std::atan2(
-            element.start.y - element.center.y, 
-            element.start.x - element.center.x
-        );
-        LengthDbl end_angle = std::atan2(
-            element.end.y - element.center.y, 
-            element.end.x - element.center.x
-        );
+        LengthDbl start_angle = angle_radian({element.start.x - element.center.x, element.start.y - element.center.y});
+        LengthDbl end_angle = angle_radian({element.end.x - element.center.x, element.end.y - element.center.y});
         
         // Ensure angles are in the correct range
         if (element.anticlockwise && end_angle <= start_angle) {
