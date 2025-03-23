@@ -3,6 +3,11 @@
 #include "shape_self_intersections_removal.hpp"
 #include <cmath>
 
+// Define M_PI (if not provided by the system)
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 namespace packingsolver
 {
 namespace irregular
@@ -248,7 +253,7 @@ bool is_degenerate_element(const ShapeElement& element)
         LengthDbl dx = element.end.x - element.start.x;
         LengthDbl dy = element.end.y - element.start.y;
         LengthDbl length = std::sqrt(dx * dx + dy * dy);
-        return length < 1e-6;
+        return equal(length, 0.0);
     } else if (element.type == ShapeElementType::CircularArc) {
         LengthDbl radius = std::sqrt(
             std::pow(element.start.x - element.center.x, 2) + 
@@ -256,7 +261,7 @@ bool is_degenerate_element(const ShapeElement& element)
         );
         
         // If the radius is very small, consider it degenerate
-        if (radius < 1e-6) {
+        if (equal(radius, 0.0)) {
             return true;
         }
         
@@ -264,7 +269,7 @@ bool is_degenerate_element(const ShapeElement& element)
         LengthDbl dx = element.end.x - element.start.x;
         LengthDbl dy = element.end.y - element.start.y;
         LengthDbl chord_length = std::sqrt(dx * dx + dy * dy);
-        return chord_length < 1e-6;
+        return equal(chord_length, 0.0);
     }
     
     return false;
