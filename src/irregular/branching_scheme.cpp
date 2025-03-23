@@ -1,11 +1,9 @@
 #include "irregular/branching_scheme.hpp"
 
-#include "irregular/shape.hpp"
 #include "irregular/shape_convex_hull.hpp"
 #include "irregular/shape_extract_borders.hpp"
 #include "irregular/shape_trapezoidation.hpp"
 #include "irregular/shape_simplification.hpp"
-#include "irregular/shape_inflate.hpp"
 
 #include <iostream>
 
@@ -145,14 +143,11 @@ BranchingScheme::BranchingScheme(
                 Shape cleaned_shape = clean_shape(shape_border);
                 //std::cout << cleaned_shape.to_string(0) << std::endl;
                 if (cleaned_shape.elements.size() > 2) {
-                    // inflate shape first
-                    Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing).first;
-                    // then trapezoidate the inflated shape
-                    auto trapezoids = trapezoidation(inflated_shape);
+                    auto trapezoids = trapezoidation(cleaned_shape);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 -1,
-                                trapezoid.clean());
+                                trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
                         bb_bin_type_x.defects.push_back(defect);
                     }
                 }
@@ -161,14 +156,11 @@ BranchingScheme::BranchingScheme(
                 Shape sym_shape = shape_border.axial_symmetry_identity_line();
                 Shape cleaned_shape = clean_shape(sym_shape);
                 if (cleaned_shape.elements.size() > 2) {
-                    // inflate shape first
-                    Shape inflated_shape = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing).first;
-                    // then trapezoidate the inflated shape
-                    auto trapezoids = trapezoidation(inflated_shape);
+                    auto trapezoids = trapezoidation(cleaned_shape);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 -1,
-                                trapezoid.clean());
+                                trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
                         bb_bin_type_y.defects.push_back(defect);
                     }
                 }
@@ -188,15 +180,13 @@ BranchingScheme::BranchingScheme(
                     if (!strictly_lesser(hole.compute_area(), instance().smallest_item_area()))
                         cleaned_holes.push_back(clean_shape(hole));
                 {
-                    // inflate shape first, and pass holes
-                    auto inflation_result = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing, cleaned_holes);
-                    Shape inflated_shape = inflation_result.first;
-                    // then trapezoidate the inflated shape
-                    auto trapezoids = trapezoidation(inflated_shape, inflation_result.second);
+                    auto trapezoids = trapezoidation(
+                            cleaned_shape,
+                            cleaned_holes);
                     for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                         UncoveredTrapezoid defect(
                                 defect_id,
-                                trapezoid.clean());
+                                trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
                         bb_bin_type_x.defects.push_back(defect);
                     }
                 }
@@ -213,15 +203,13 @@ BranchingScheme::BranchingScheme(
                 for (const Shape& hole: sym_holes)
                     cleaned_holes.push_back(clean_shape(hole));
 
-                // inflate shape first, and pass holes
-                auto inflation_result = inflate(cleaned_shape, instance().parameters().item_bin_minimum_spacing, cleaned_holes);
-                Shape inflated_shape = inflation_result.first;
-                // then trapezoidate the inflated shape
-                auto trapezoids = trapezoidation(inflated_shape, inflation_result.second);
+                auto trapezoids = trapezoidation(
+                        cleaned_shape,
+                        cleaned_holes);
                 for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                     UncoveredTrapezoid defect(
                             defect_id,
-                            trapezoid.clean());
+                            trapezoid.clean().inflate(instance().parameters().item_bin_minimum_spacing));
                     bb_bin_type_y.defects.push_back(defect);
                 }
             }
@@ -801,9 +789,6 @@ Point BranchingScheme::convert_point_back(
 
 void BranchingScheme::compute_inflated_trapezoid_sets()
 {
-    // initialize the inflated trapezoid sets
-    trapezoid_sets_inflated_.clear();
-    
     for (Direction direction: {
             Direction::LeftToRightThenBottomToTop,
             Direction::LeftToRightThenTopToBottom,
@@ -821,98 +806,20 @@ void BranchingScheme::compute_inflated_trapezoid_sets()
             const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)direction][trapezoid_set_id];
             trapezoid_sets_inflated_.back().push_back({});
 
-            // get the original item type
-            ItemTypeId item_type_id = trapezoid_set.item_type_id;
-            const ItemType& item_type = instance().item_type(item_type_id);
-
-            // process the item shape
+            // Loop through rectangles of the rectangle set.
             for (ItemShapePos item_shape_pos = 0;
                     item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
                     ++item_shape_pos) {
+                const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
                 trapezoid_sets_inflated_.back().back().push_back({});
-                
-                // get the original shape
-                const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                
-                // adjust the shape according to the direction
-                Shape adjusted_shape = item_shape.shape;
-                std::vector<Shape> adjusted_holes;
-                
-                // Transform both the shape and its holes according to direction
-                if (direction == Direction::LeftToRightThenTopToBottom) {
-                    adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
-                    for (const Shape& hole : item_shape.holes) {
-                        adjusted_holes.push_back(hole.axial_symmetry_x_axis());
-                    }
-                } else if (direction == Direction::RightToLeftThenBottomToTop) {
-                    adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
-                    for (const Shape& hole : item_shape.holes) {
-                        adjusted_holes.push_back(hole.axial_symmetry_y_axis());
-                    }
-                } else if (direction == Direction::RightToLeftThenTopToBottom) {
-                    adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
-                    adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
-                    for (const Shape& hole : item_shape.holes) {
-                        Shape adjusted_hole = hole.axial_symmetry_x_axis();
-                        adjusted_hole = adjusted_hole.axial_symmetry_y_axis();
-                        adjusted_holes.push_back(adjusted_hole);
-                    }
-                } else if (direction == Direction::BottomToTopThenLeftToRight) {
-                    adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
-                    for (const Shape& hole : item_shape.holes) {
-                        adjusted_holes.push_back(hole.axial_symmetry_identity_line());
-                    }
-                } else if (direction == Direction::BottomToTopThenRightToLeft) {
-                    adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
-                    adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
-                    for (const Shape& hole : item_shape.holes) {
-                        Shape adjusted_hole = hole.axial_symmetry_identity_line();
-                        adjusted_hole = adjusted_hole.axial_symmetry_x_axis();
-                        adjusted_holes.push_back(adjusted_hole);
-                    }
-                } else if (direction == Direction::TopToBottomThenLeftToRight) {
-                    adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
-                    adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
-                    for (const Shape& hole : item_shape.holes) {
-                        Shape adjusted_hole = hole.axial_symmetry_identity_line();
-                        adjusted_hole = adjusted_hole.axial_symmetry_y_axis();
-                        adjusted_holes.push_back(adjusted_hole);
-                    }
-                } else if (direction == Direction::TopToBottomThenRightToLeft) {
-                    adjusted_shape = adjusted_shape.axial_symmetry_identity_line();
-                    adjusted_shape = adjusted_shape.axial_symmetry_y_axis();
-                    adjusted_shape = adjusted_shape.axial_symmetry_x_axis();
-                    for (const Shape& hole : item_shape.holes) {
-                        Shape adjusted_hole = hole.axial_symmetry_identity_line();
-                        adjusted_hole = adjusted_hole.axial_symmetry_y_axis();
-                        adjusted_hole = adjusted_hole.axial_symmetry_x_axis();
-                        adjusted_holes.push_back(adjusted_hole);
-                    }
-                } else {
-                    // Direction::LeftToRightThenBottomToTop (默认方向)
-                    adjusted_holes = item_shape.holes;
+
+                for (TrapezoidPos item_shape_trapezoid_pos = 0;
+                        item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
+                        ++item_shape_trapezoid_pos) {
+                    const auto& item_shape_trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
+                    trapezoid_sets_inflated_.back().back().back().push_back(
+                            item_shape_trapezoid.inflate(instance().parameters().item_item_minimum_spacing));
                 }
-                
-                // clean the shape and holes
-                Shape cleaned_shape = clean_shape(adjusted_shape);
-                std::vector<Shape> cleaned_holes;
-                for (const Shape& hole : adjusted_holes) {
-                    cleaned_holes.push_back(clean_shape(hole));
-                }
-                
-                // inflate the shape with holes
-                auto inflation_result = inflate(
-                    cleaned_shape, 
-                    instance().parameters().item_item_minimum_spacing,
-                    cleaned_holes);
-                Shape inflated_shape = inflation_result.first;
-                std::vector<Shape> inflated_holes = inflation_result.second;
-                
-                // then perform the trapezoidation on the inflated shape
-                std::vector<GeneralizedTrapezoid> inflated_trapezoids = trapezoidation(inflated_shape, inflated_holes);
-                
-                // store the trapezoidation result
-                trapezoid_sets_inflated_.back().back().back() = inflated_trapezoids;
             }
         }
     }
