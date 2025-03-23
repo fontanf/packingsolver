@@ -1263,36 +1263,51 @@ bool irregular::equal(
     return true;
 }
 
-// Check if a point is inside the shape
-bool is_point_inside_shape(const Point& point, const Shape& shape) {
+// Check if a point is on a line segment
+bool irregular::is_point_on_line_segment(const Point& p, const Point& start, const Point& end) {
+    // Calculate the squared length of the line segment
+    LengthDbl line_length_squared = std::pow(end.x - start.x, 2) + std::pow(end.y - start.y, 2);
+    
+    // If the line segment is actually a point
+    if (equal(line_length_squared, 0.0)) {
+        return equal(p.x, start.x) && equal(p.y, start.y);
+    }
+    
+    // Calculate parameter t, representing the position of the point on the line segment (between 0 and 1 indicates on the segment)
+    LengthDbl t = ((p.x - start.x) * (end.x - start.x) + (p.y - start.y) * (end.y - start.y)) / line_length_squared;
+    
+    // If t is outside the [0,1] range, the point is not on the line segment
+    if (strictly_lesser(t, 0.0) || strictly_greater(t, 1.0)) {
+        return false;
+    }
+    
+    // Calculate the projection point
+    Point projection;
+    projection.x = start.x + t * (end.x - start.x);
+    projection.y = start.y + t * (end.y - start.y);
+    
+    // Check if the distance to the projection point is small enough
+    LengthDbl distance_squared = std::pow(p.x - projection.x, 2) + std::pow(p.y - projection.y, 2);
+    return equal(distance_squared, 0.0);
+}
+
+// Check if a point is strictly inside a shape (excluding the boundary)
+bool irregular::is_point_strictly_inside_shape(const Point& point, const Shape& shape) {
     if (shape.elements.empty()) {
         return false;
     }
     
-    // Use ray-casting algorithm to determine if the point is inside the polygon
-    // Cast a ray from the point to the right, count the number of intersections with shape boundaries
-    // If the number of intersections is odd, the point is inside; if even, it's outside
-    
-    int intersection_count = 0;
-    
+    // First check if the point lies on any boundary
     for (const ShapeElement& element : shape.elements) {
         if (element.type == ShapeElementType::LineSegment) {
-            // Line segment check
-            // The point is within the vertical range of the segment and to the left of the segment
-            if (((element.start.y > point.y) != (element.end.y > point.y)) &&
-                (point.x < element.start.x + (element.end.x - element.start.x) * 
-                 (point.y - element.start.y) / (element.end.y - element.start.y))) {
-                intersection_count++;
+            // Check if the point is on the line segment
+            if (is_point_on_line_segment(point, element.start, element.end)) {
+                return false; // Point is on the boundary, not strictly inside
             }
         } else if (element.type == ShapeElementType::CircularArc) {
-            // Circular arc check is more complex, need to consider intersections between the arc and the ray
-            // Using a simplified algorithm here
-            
-            // Calculate the vector from the center to the point
+            // Check if the point is on the circular arc
             LengthDbl dx = point.x - element.center.x;
             LengthDbl dy = point.y - element.center.y;
-            
-            // Calculate the distance from the point to the center
             LengthDbl distance = std::sqrt(dx * dx + dy * dy);
             
             // Calculate the radius of the arc
@@ -1301,10 +1316,10 @@ bool is_point_inside_shape(const Point& point, const Shape& shape) {
                 std::pow(element.start.y - element.center.y, 2)
             );
             
-            // If the point is inside the circle and the ray from the point to the right intersects with the arc
-            // Initial filtering by treating the arc as a complete circle
-            if (distance < radius && point.x < element.center.x) {
-                // Point is inside the circle and to the left of the center, possibly has intersection with the arc
+            // If the point is on the circle
+            if (equal(distance, radius)) {
+                // Calculate the point's angle
+                LengthDbl point_angle = std::atan2(dy, dx);
                 
                 // Calculate the start and end angles of the arc
                 LengthDbl start_angle = std::atan2(
@@ -1323,18 +1338,94 @@ bool is_point_inside_shape(const Point& point, const Shape& shape) {
                     start_angle += 2 * M_PI;
                 }
                 
-                // Calculate the angle of the point
-                LengthDbl point_angle = std::atan2(dy, dx);
-                
                 // Check if the point's angle is within the arc range
                 bool in_arc_range;
                 if (element.anticlockwise) {
-                    in_arc_range = (point_angle >= start_angle && point_angle <= end_angle);
+                    in_arc_range = (!strictly_lesser(point_angle, start_angle) && !strictly_greater(point_angle, end_angle));
                 } else {
-                    in_arc_range = (point_angle <= start_angle && point_angle >= end_angle);
+                    in_arc_range = (!strictly_greater(point_angle, start_angle) && !strictly_lesser(point_angle, end_angle));
                 }
                 
                 if (in_arc_range) {
+                    return false; // Point is on the arc, not strictly inside
+                }
+            }
+        }
+    }
+    
+    // Then use the ray-casting algorithm to check if the point is inside
+    int intersection_count = 0;
+    
+    for (const ShapeElement& element : shape.elements) {
+        if (element.type == ShapeElementType::LineSegment) {
+            // Handle the special case of horizontal line segments
+            if (equal(element.start.y, element.end.y)) {
+                // Horizontal line segment: if the point's y coordinate equals the segment's y coordinate,
+                // and the x coordinate is within the segment range, the point is on the segment
+                if (equal(point.y, element.start.y) && 
+                    (!strictly_lesser(point.x, std::min(element.start.x, element.end.x))) && 
+                    (!strictly_greater(point.x, std::max(element.start.x, element.end.x)))) {
+                    // Already checked in the previous section, no need to handle here
+                    continue;
+                }
+            }
+            
+            // Standard ray-casting algorithm for line segment checking
+            // Cast a ray to the right from the point, count intersections with segments
+            bool cond1 = (strictly_greater(element.start.y, point.y) != strictly_greater(element.end.y, point.y));
+            bool cond2 = strictly_lesser(point.x, (element.end.x - element.start.x) * (point.y - element.start.y) / 
+                        (element.end.y - element.start.y) + element.start.x);
+            
+            if (cond1 && cond2) {
+                intersection_count++;
+            }
+        } else if (element.type == ShapeElementType::CircularArc) {
+            // Circular arc checking is more complex
+            LengthDbl dx = point.x - element.center.x;
+            LengthDbl dy = point.y - element.center.y;
+            LengthDbl distance = std::sqrt(dx * dx + dy * dy);
+            
+            LengthDbl radius = std::sqrt(
+                std::pow(element.start.x - element.center.x, 2) + 
+                std::pow(element.start.y - element.center.y, 2)
+            );
+            
+            // If the point is inside the circle and to the left of the center, there may be intersections with a ray to the right
+            if (strictly_lesser(distance, radius) && strictly_lesser(point.x, element.center.x)) {
+                LengthDbl start_angle = std::atan2(
+                    element.start.y - element.center.y, 
+                    element.start.x - element.center.x
+                );
+                LengthDbl end_angle = std::atan2(
+                    element.end.y - element.center.y, 
+                    element.end.x - element.center.x
+                );
+                
+                // Ensure angles are in the correct range
+                if (element.anticlockwise && end_angle <= start_angle) {
+                    end_angle += 2 * M_PI;
+                } else if (!element.anticlockwise && start_angle <= end_angle) {
+                    start_angle += 2 * M_PI;
+                }
+                
+                // Calculate the point's line-of-sight angle (angle between the line from point to center and the horizontal)
+                LengthDbl point_angle = std::atan2(dy, dx);
+                if (strictly_lesser(point_angle, 0)) {
+                    point_angle += 2 * M_PI;  // Adjust angle to [0, 2π)
+                }
+                
+                // Calculate the intersection angle of the ray to the right with the circle
+                LengthDbl ray_angle = 0; // Angle of ray to the right is 0
+                
+                // Check if the ray intersects the arc
+                bool intersects_arc;
+                if (element.anticlockwise) {
+                    intersects_arc = (!strictly_lesser(ray_angle, start_angle) && !strictly_greater(ray_angle, end_angle));
+                } else {
+                    intersects_arc = (!strictly_greater(ray_angle, start_angle) && !strictly_lesser(ray_angle, end_angle));
+                }
+                
+                if (intersects_arc) {
                     intersection_count++;
                 }
             }
