@@ -729,5 +729,9 @@ void Instance::write(
         }
     }
 
+    // Export parameters.
+    json["parameters"]["item_item_minimum_spacing"] = parameters().item_item_minimum_spacing;
+    json["parameters"]["item_bin_minimum_spacing"] = parameters().item_bin_minimum_spacing;
+
     file << std::setw(4) << json << std::endl;
 }
