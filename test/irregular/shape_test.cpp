@@ -80,13 +80,28 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
                 build_shape({{1, 0}, {0, 1}}, true).elements
             }, {
+                build_shape({{1, 0}, {1, 1, -1}, {0, 1}}, true).elements.front(),
+                1,
+                true,
+                build_shape({{1, 0}, {0, 1}}, true).elements
+            }, {
                 build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
                 2,
                 true,
                 build_shape({{1, 0}, {1, 1}, {0, 1}}, true).elements
             }, {
+                build_shape({{1, 0}, {1, 1, -1}, {0, 1}}, true).elements.front(),
+                2,
+                false,
+                build_shape({{1, 0}, {0, 0}, {0, 1}}, true).elements
+            }, {
                 build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
                 3,
                 true,
                 build_shape({{1, 0}, {1, 0.414213562373095}, {0.414213562373095, 1}, {0, 1}}, true).elements
+            }, {
+                build_shape({{1, 0}, {1, 1, -1}, {0, 1}}, true).elements.front(),
+                3,
+                false,
+                build_shape({{1, 0}, {0.585786437626905, 0}, {0, 0.585786437626905}, {0, 1}}, true).elements
             }}));
