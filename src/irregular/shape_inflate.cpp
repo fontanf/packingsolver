@@ -1,6 +1,7 @@
-#include "shape_inflate.hpp"
-#include "shape_closure.hpp"
-#include "shape_self_intersections_removal.hpp"
+#include "packingsolver/irregular/shape.hpp"
+#include "irregular/shape_inflate.hpp"
+#include "irregular/shape_closure.hpp"
+#include "irregular/shape_self_intersections_removal.hpp"
 #include <cmath>
 
 // Define M_PI (if not provided by the system)
