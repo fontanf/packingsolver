@@ -1,9 +1,7 @@
-#include "irregular/shape.hpp"
-#include "irregular/shape_closure.hpp"
-#include "irregular/shape_self_intersections_removal.hpp"
+#include "packingsolver/irregular/shape.hpp"
+
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <limits>
 #include <vector>
 

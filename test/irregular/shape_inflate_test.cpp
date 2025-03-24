@@ -1,4 +1,4 @@
-#include "irregular/shape.hpp"
+#include "packingsolver/irregular/shape.hpp"
 #include "irregular/shape_inflate.hpp"
 #include "irregular/shape_self_intersections_removal.hpp"
 
@@ -141,17 +141,6 @@ TEST(IrregularShapeInflate, Deflate)
     LengthDbl deflation_value = -5.0;
     auto inflation_result = inflate(square, deflation_value);
     Shape deflated_square = inflation_result.first;
-    
-    // Print the vertices of the deflated shape for debugging
-    std::cout << "Deflated shape vertices:" << std::endl;
-    for (const ShapeElement& element : deflated_square.elements) {
-        std::cout << "  Start: (" << element.start.x << ", " << element.start.y << ")";
-        std::cout << "  End: (" << element.end.x << ", " << element.end.y << ")";
-        if (element.type == ShapeElementType::CircularArc) {
-            std::cout << "  Center: (" << element.center.x << ", " << element.center.y << ")";
-        }
-        std::cout << std::endl;
-    }
     
     // verify the deflated shape
     // the square's edges should be moved inwards by |deflation_value| units
