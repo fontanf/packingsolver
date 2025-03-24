@@ -31,7 +31,7 @@ void optimize_tree_search_worker(
             ++iteration) {
 
         if (parameters.optimization_mode != OptimizationMode::Anytime) {
-            queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_queue_size;
+            queue_size = parameters.not_anytime_tree_search_queue_size;
             maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         }
 
@@ -39,8 +39,13 @@ void optimize_tree_search_worker(
         branching_scheme_parameters.maximum_approximation_ratio = maximum_approximation_ratio;
         ibs_parameters.minimum_size_of_the_queue = queue_size;
         ibs_parameters.maximum_size_of_the_queue = queue_size;
+        if (!parameters.json_search_tree_path.empty()) {
+            ibs_parameters.json_search_tree_path = parameters.json_search_tree_path
+                + "_guide_" + std::to_string(branching_scheme_parameters.guide_id)
+                + "_d_" + std::to_string((int)branching_scheme_parameters.direction);
+        }
         BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-        treesearchsolver::iterative_beam_search_2<BranchingScheme>(
+        auto ibs_output = treesearchsolver::iterative_beam_search_2<BranchingScheme>(
                 branching_scheme,
                 ibs_parameters);
 
@@ -143,8 +148,6 @@ void optimize_tree_search(
                     ibs_parameters.maximum_size_of_the_queue
                         = parameters.not_anytime_tree_search_queue_size;
                 }
-                if (!parameters.json_search_tree_path.empty())
-                    ibs_parameters.write_json_search_tree = true;
                 ibs_parameters_list.push_back(ibs_parameters);
                 outputs.push_back(irregular::Output(instance));
             }
@@ -182,7 +185,7 @@ void optimize_tree_search(
                     outputs[i].solution_pool.add(solution);
                 };
         }
-        if (parameters.optimization_mode == OptimizationMode::Anytime) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_tree_search_worker), optimize_tree_search_worker>,
@@ -192,16 +195,12 @@ void optimize_tree_search(
                         std::ref(algorithm_formatter),
                         branching_scheme_parameters_list[i],
                         ibs_parameters_list[i]));
-        } else if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
-            exception_ptr_list.push_front(std::exception_ptr());
-            threads.push_back(std::thread(
-                        wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(branching_schemes[i]),
-                        ibs_parameters_list[i]));
         } else {
-            treesearchsolver::iterative_beam_search_2<BranchingScheme>(
-                    branching_schemes[i],
+            optimize_tree_search_worker(
+                    instance,
+                    parameters,
+                    algorithm_formatter,
+                    branching_scheme_parameters_list[i],
                     ibs_parameters_list[i]);
         }
     }
@@ -217,23 +216,6 @@ void optimize_tree_search(
                 << " d " << (int)branching_schemes[i].parameters().direction;
             algorithm_formatter.update_solution(outputs[i].solution_pool.best(), ss.str());
         }
-    }
-
-    if (!parameters.json_search_tree_path.empty()) {
-        nlohmann::json json_search_tree;
-        for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
-            std::string key = "guide_"
-                + std::to_string(branching_schemes[i].parameters().guide_id)
-                + "_d_" + std::to_string((int)branching_schemes[i].parameters().direction);
-            json_search_tree[i] = ibs_outputs[i]->json_search_tree;
-            json_search_tree[i]["Name"] = key;
-        }
-        std::ofstream file(parameters.json_search_tree_path);
-        if (!file.good()) {
-            throw std::runtime_error(
-                    "Unable to open file \"" + parameters.json_search_tree_path + "\".");
-        }
-        file << std::setw(4) << json_search_tree << std::endl;
     }
 }
 
