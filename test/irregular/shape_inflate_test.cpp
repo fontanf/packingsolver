@@ -19,6 +19,47 @@ Shape build_square(LengthDbl x, LengthDbl y, LengthDbl size)
     });
 }
 
+// build rounded square (for inflated shapes)
+Shape build_rounded_square(LengthDbl x, LengthDbl y, LengthDbl width, LengthDbl height, LengthDbl radius)
+{
+    // Create a rounded rectangle to represent the inflated shape
+    // A rounded rectangle consists of 8 elements: 4 circular arcs (four corners) and 4 line segments
+    
+    std::vector<BuildShapeElement> elements;
+    
+    // Add the four corner arcs
+    // Bottom-left corner arc
+    elements.push_back({x + radius, y});
+    elements.push_back({x, y + radius});
+    elements.push_back({x + radius, y + radius, 1}); // Center, counterclockwise
+    
+    // Add bottom edge
+    elements.push_back({x + width - radius, y});
+    
+    // Bottom-right corner arc
+    elements.push_back({x + width, y + radius});
+    elements.push_back({x + width - radius, y + radius, 1}); // Center, counterclockwise
+    
+    // Add right edge
+    elements.push_back({x + width, y + height - radius});
+    
+    // Top-right corner arc
+    elements.push_back({x + width - radius, y + height});
+    elements.push_back({x + width - radius, y + height - radius, 1}); // Center, counterclockwise
+    
+    // Add top edge
+    elements.push_back({x + radius, y + height});
+    
+    // Top-left corner arc
+    elements.push_back({x, y + height - radius});
+    elements.push_back({x + radius, y + height - radius, 1}); // Center, counterclockwise
+    
+    // Add left edge, connecting back to start
+    elements.push_back({x, y + radius});
+    
+    return build_shape(elements);
+}
+
 // build triangle
 Shape build_triangle(LengthDbl x, LengthDbl y, LengthDbl size)
 {
@@ -42,7 +83,22 @@ TEST(IrregularShapeInflate, BasicInflate)
     
     // verify the inflated shape
     // the square's edges should be moved outwards by inflation_value units
-    EXPECT_EQ(inflated_square.elements.size(), square.elements.size() * 2);
+    
+    // Check element count - inflated square becomes a rounded rectangle
+    // 4 edges + 4 circular arcs
+    EXPECT_EQ(inflated_square.elements.size(), 8);
+    
+    // Build the expected inflated rounded rectangle shape
+    Shape expected_inflated_square = build_rounded_square(
+        -inflation_value, -inflation_value,
+        10 + 2 * inflation_value, 10 + 2 * inflation_value,
+        inflation_value);
+    
+    // Compare shapes element by element using the near() function
+    ASSERT_EQ(inflated_square.elements.size(), expected_inflated_square.elements.size());
+    for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
+        EXPECT_TRUE(near(inflated_square.elements[i], expected_inflated_square.elements[i]));
+    }
     
     // expected new boundary coordinates
     LengthDbl expected_min_x = -inflation_value;
@@ -91,6 +147,35 @@ TEST(IrregularShapeInflate, InflateWithHoles)
     auto inflation_result = inflate(outer_square, inflation_value, {hole});
     Shape inflated_shape = inflation_result.first;
     std::vector<Shape> inflated_holes = inflation_result.second;
+    
+    // Check the external shape after inflation
+    // Build the expected external inflated rounded rectangle shape
+    Shape expected_inflated_outer = build_rounded_square(
+        -inflation_value, -inflation_value,
+        20 + 2 * inflation_value, 20 + 2 * inflation_value,
+        inflation_value);
+    
+    // Compare external shape element by element using the near() function
+    ASSERT_EQ(inflated_shape.elements.size(), expected_inflated_outer.elements.size());
+    for (size_t i = 0; i < inflated_shape.elements.size(); ++i) {
+        EXPECT_TRUE(near(inflated_shape.elements[i], expected_inflated_outer.elements[i]));
+    }
+    
+    // Verify the hole shape - should still be a square after contraction
+    EXPECT_FALSE(inflated_holes.empty());
+    if (!inflated_holes.empty()) {
+        // Contracted hole should still be a square, not rounded
+        Shape expected_inflated_hole = build_square(
+            5 + inflation_value, 
+            5 + inflation_value, 
+            10 - 2 * inflation_value);
+            
+        // Compare hole shape element by element using the near() function
+        ASSERT_EQ(inflated_holes[0].elements.size(), expected_inflated_hole.elements.size());
+        for (size_t i = 0; i < inflated_holes[0].elements.size(); ++i) {
+            EXPECT_TRUE(near(inflated_holes[0].elements[i], expected_inflated_hole.elements[i]));
+        }
+    }
     
     // verify the inflated shape
     // the outer boundary should be expanded, and the hole should be contracted
@@ -142,6 +227,18 @@ TEST(IrregularShapeInflate, Deflate)
     auto inflation_result = inflate(square, deflation_value);
     Shape deflated_square = inflation_result.first;
     
+    // Build the expected contracted rectangle shape (remains rectangular, not rounded)
+    Shape expected_deflated_square = build_square(
+        -deflation_value, 
+        -deflation_value, 
+        20 + 2 * deflation_value);
+    
+    // Compare shapes element by element using the near() function
+    ASSERT_EQ(deflated_square.elements.size(), expected_deflated_square.elements.size());
+    for (size_t i = 0; i < deflated_square.elements.size(); ++i) {
+        EXPECT_TRUE(near(deflated_square.elements[i], expected_deflated_square.elements[i]));
+    }
+    
     // verify the deflated shape
     // the square's edges should be moved inwards by |deflation_value| units
     
@@ -184,6 +281,18 @@ TEST(IrregularShapeInflate, TinyShape)
     auto inflation_result = inflate(tiny_square, inflation_value);
     Shape inflated_square = inflation_result.first;
     
+    // Build the expected inflated rounded rectangle shape
+    Shape expected_inflated_square = build_rounded_square(
+        -inflation_value, -inflation_value,
+        0.1 + 2 * inflation_value, 0.1 + 2 * inflation_value,
+        inflation_value);
+    
+    // Compare shapes element by element using the near() function
+    ASSERT_EQ(inflated_square.elements.size(), expected_inflated_square.elements.size());
+    for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
+        EXPECT_TRUE(near(inflated_square.elements[i], expected_inflated_square.elements[i]));
+    }
+    
     // verify the inflated shape
     EXPECT_GT(inflated_square.elements.size(), 0);
 }
@@ -198,6 +307,18 @@ TEST(IrregularShapeInflate, LargeInflation)
     LengthDbl inflation_value = 100.0;
     auto inflation_result = inflate(square, inflation_value);
     Shape inflated_square = inflation_result.first;
+    
+    // Build the expected inflated rounded rectangle shape
+    Shape expected_inflated_square = build_rounded_square(
+        -inflation_value, -inflation_value,
+        10 + 2 * inflation_value, 10 + 2 * inflation_value,
+        inflation_value);
+    
+    // Compare shapes element by element using the near() function
+    ASSERT_EQ(inflated_square.elements.size(), expected_inflated_square.elements.size());
+    for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
+        EXPECT_TRUE(near(inflated_square.elements[i], expected_inflated_square.elements[i]));
+    }
     
     // verify the inflated shape
     EXPECT_GT(inflated_square.elements.size(), 0);
