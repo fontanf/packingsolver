@@ -22,42 +22,74 @@ Shape build_square(LengthDbl x, LengthDbl y, LengthDbl size)
 // build rounded square (for inflated shapes)
 Shape build_rounded_square(LengthDbl x, LengthDbl y, LengthDbl width, LengthDbl height, LengthDbl radius)
 {
-    // Create a rounded rectangle to represent the inflated shape
-    // A rounded rectangle consists of 8 elements: 4 circular arcs (four corners) and 4 line segments
+    // Directly create Shape object and its elements
+    Shape shape;
+
+    // Element 0: Left edge - LineSegment
+    ShapeElement left;
+    left.type = ShapeElementType::LineSegment;
+    left.start = {x, y + height - radius};
+    left.end = {x, y + radius};
+    shape.elements.push_back(left);
     
-    std::vector<BuildShapeElement> elements;
+    // Element 1: Bottom-left corner - CircularArc
+    ShapeElement bottom_left_corner;
+    bottom_left_corner.type = ShapeElementType::CircularArc;
+    bottom_left_corner.start = {x, y + radius};
+    bottom_left_corner.end = {x + radius, y};
+    bottom_left_corner.center = {x + radius, y + radius};
+    bottom_left_corner.anticlockwise = true; // Counterclockwise
+    shape.elements.push_back(bottom_left_corner);
     
-    // Add the four corner arcs
-    // Bottom-left corner arc
-    elements.push_back({x + radius, y});
-    elements.push_back({x, y + radius});
-    elements.push_back({x + radius, y + radius, 1}); // Center, counterclockwise
+    // Element 2: Bottom edge - LineSegment
+    ShapeElement bottom;
+    bottom.type = ShapeElementType::LineSegment;
+    bottom.start = {x + radius, y};
+    bottom.end = {x + width - radius, y};
+    shape.elements.push_back(bottom);
     
-    // Add bottom edge
-    elements.push_back({x + width - radius, y});
+    // Element 3: Bottom-right corner - CircularArc
+    ShapeElement bottom_right_corner;
+    bottom_right_corner.type = ShapeElementType::CircularArc;
+    bottom_right_corner.start = {x + width - radius, y};
+    bottom_right_corner.end = {x + width, y + radius};
+    bottom_right_corner.center = {x + width - radius, y + radius};
+    bottom_right_corner.anticlockwise = true; // Counterclockwise
+    shape.elements.push_back(bottom_right_corner);
     
-    // Bottom-right corner arc
-    elements.push_back({x + width, y + radius});
-    elements.push_back({x + width - radius, y + radius, 1}); // Center, counterclockwise
+    // Element 4: Right edge - LineSegment
+    ShapeElement right;
+    right.type = ShapeElementType::LineSegment;
+    right.start = {x + width, y + radius};
+    right.end = {x + width, y + height - radius};
+    shape.elements.push_back(right);
     
-    // Add right edge
-    elements.push_back({x + width, y + height - radius});
+    // Element 5: Top-right corner - CircularArc
+    ShapeElement top_right_corner;
+    top_right_corner.type = ShapeElementType::CircularArc;
+    top_right_corner.start = {x + width, y + height - radius};
+    top_right_corner.end = {x + width - radius, y + height};
+    top_right_corner.center = {x + width - radius, y + height - radius};
+    top_right_corner.anticlockwise = true; // Counterclockwise
+    shape.elements.push_back(top_right_corner);
     
-    // Top-right corner arc
-    elements.push_back({x + width - radius, y + height});
-    elements.push_back({x + width - radius, y + height - radius, 1}); // Center, counterclockwise
+    // Element 6: Top edge - LineSegment
+    ShapeElement top;
+    top.type = ShapeElementType::LineSegment;
+    top.start = {x + width - radius, y + height};
+    top.end = {x + radius, y + height};
+    shape.elements.push_back(top);
     
-    // Add top edge
-    elements.push_back({x + radius, y + height});
+    // Element 7: Top-left corner - CircularArc
+    ShapeElement top_left_corner;
+    top_left_corner.type = ShapeElementType::CircularArc;
+    top_left_corner.start = {x + radius, y + height};
+    top_left_corner.end = {x, y + height - radius};
+    top_left_corner.center = {x + radius, y + height - radius};
+    top_left_corner.anticlockwise = true; // Counterclockwise
+    shape.elements.push_back(top_left_corner);
     
-    // Top-left corner arc
-    elements.push_back({x, y + height - radius});
-    elements.push_back({x + radius, y + height - radius, 1}); // Center, counterclockwise
-    
-    // Add left edge, connecting back to start
-    elements.push_back({x, y + radius});
-    
-    return build_shape(elements);
+    return shape;
 }
 
 // build triangle
@@ -94,8 +126,42 @@ TEST(IrregularShapeInflate, BasicInflate)
         10 + 2 * inflation_value, 10 + 2 * inflation_value,
         inflation_value);
     
+
+    
+    // Debug output: print each element
+    std::cout << "\nActual shape elements:\n";
+    for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
+        const auto& element = inflated_square.elements[i];
+        std::cout << "Element " << i << ": ";
+        if (element.type == ShapeElementType::CircularArc) {
+            std::cout << "CircularArc start (" << element.start.x << ", " << element.start.y 
+                      << ") end (" << element.end.x << ", " << element.end.y 
+                      << ") center (" << element.center.x << ", " << element.center.y 
+                      << ") " << (element.anticlockwise ? "anticlockwise" : "clockwise") << "\n";
+        } else {
+            std::cout << "LineSegment start (" << element.start.x << ", " << element.start.y 
+                      << ") end (" << element.end.x << ", " << element.end.y << ")\n";
+        }
+    }
+    
+    std::cout << "\nExpected shape elements:\n";
+    for (size_t i = 0; i < expected_inflated_square.elements.size(); ++i) {
+        const auto& element = expected_inflated_square.elements[i];
+        std::cout << "Element " << i << ": ";
+        if (element.type == ShapeElementType::CircularArc) {
+            std::cout << "CircularArc start (" << element.start.x << ", " << element.start.y 
+                      << ") end (" << element.end.x << ", " << element.end.y 
+                      << ") center (" << element.center.x << ", " << element.center.y 
+                      << ") " << (element.anticlockwise ? "anticlockwise" : "clockwise") << "\n";
+        } else {
+            std::cout << "LineSegment start (" << element.start.x << ", " << element.start.y 
+                      << ") end (" << element.end.x << ", " << element.end.y << ")\n";
+        }
+    }
+    
     // Compare shapes element by element using the near() function
     ASSERT_EQ(inflated_square.elements.size(), expected_inflated_square.elements.size());
+
     for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
         EXPECT_TRUE(near(inflated_square.elements[i], expected_inflated_square.elements[i]));
     }

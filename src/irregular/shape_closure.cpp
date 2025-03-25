@@ -299,7 +299,7 @@ Shape close_inflated_elements(const std::vector<ShapeElement>& inflated_elements
                             LengthDbl cross_product = current_dx * next_dy - current_dy * next_dx;
                             
                             // cross_product > 0 indicates counterclockwise turning (concave), < 0 indicates clockwise turning (convex)
-                            bool is_concave = cross_product > 0;
+                            bool is_concave = cross_product < 0;
                             
                             //std::cout << "  Cross product: " << cross_product << ", is_concave: " << (is_concave ? "true" : "false") << std::endl;
                             
