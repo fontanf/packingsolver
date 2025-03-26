@@ -3,6 +3,7 @@
 #include "irregular/shape_closure.hpp"
 #include "irregular/shape_self_intersections_removal.hpp"
 #include <cmath>
+#include <iostream>
 
 // Define M_PI (if not provided by the system)
 #ifndef M_PI
@@ -92,29 +93,94 @@ Shape inflate_shape_without_holes(
     std::vector<ShapeElement> inflated_elements;
     inflated_elements.reserve(original_shape.elements.size());
     
+    // Store the mapping between original shape elements and inflated elements
+    std::vector<std::pair<ShapeElement, ShapeElement>> original_to_inflated_mapping;
+    original_to_inflated_mapping.reserve(original_shape.elements.size());
+    
+    std::cout << "\n==== Debug: Creating Shape Inflation Mapping ====" << std::endl;
+    std::cout << "Original shape element count: " << original_shape.elements.size() << std::endl;
+    
     for (size_t i = 0; i < original_shape.elements.size(); ++i) {
         const ShapeElement& element = original_shape.elements[i];
         ShapeElement inflated_element = offset_element(element, value);
+        
+        std::cout << "Original element " << i << ": ";
+        if (element.type == ShapeElementType::LineSegment) {
+            std::cout << "Line Segment";
+        } else {
+            std::cout << "Circular Arc";
+        }
+        std::cout << " start(" << element.start.x << ", " << element.start.y 
+                  << "), end(" << element.end.x << ", " << element.end.y << ")";
+        
+        if (element.type == ShapeElementType::CircularArc) {
+            std::cout << ", center(" << element.center.x << ", " << element.center.y 
+                      << "), " << (element.anticlockwise ? "counterclockwise" : "clockwise");
+        }
+        std::cout << std::endl;
+        
         if (!is_degenerate_element(inflated_element)) {
             inflated_elements.push_back(inflated_element);
+            original_to_inflated_mapping.push_back({element, inflated_element});
+            
+            std::cout << "  Inflated element: ";
+            if (inflated_element.type == ShapeElementType::LineSegment) {
+                std::cout << "Line Segment";
+            } else {
+                std::cout << "Circular Arc";
+            }
+            std::cout << " start(" << inflated_element.start.x << ", " << inflated_element.start.y 
+                      << "), end(" << inflated_element.end.x << ", " << inflated_element.end.y << ")";
+            
+            if (inflated_element.type == ShapeElementType::CircularArc) {
+                std::cout << ", center(" << inflated_element.center.x << ", " << inflated_element.center.y 
+                          << "), " << (inflated_element.anticlockwise ? "counterclockwise" : "clockwise");
+            }
+            std::cout << std::endl;
+        } else {
+            std::cout << "  This element is degenerate after inflation, ignored" << std::endl;
         }
     }
     
     //std::cout << "Created " << inflated_elements.size() << " inflated elements" << std::endl;
+    std::cout << "Inflated element count: " << inflated_elements.size() << std::endl;
+    std::cout << "Mapping relationship count: " << original_to_inflated_mapping.size() << std::endl;
     
     // For deflation (value < 0), remove intersections before closure
     // For inflation (value >= 0), also remove intersections before closure
     if (!inflated_elements.empty()) {
         //std::cout << "Removing intersections..." << std::endl;
-        inflated_elements = remove_intersections_segments(inflated_elements, is_deflating);
+        std::cout << "\n==== Debug: Removing Intersections ====" << std::endl;
+        
+        // If there are intersection points, regenerate the mapping relationship
+        auto new_inflated_elements = remove_intersections_segments(inflated_elements, is_deflating);
+        
+        std::cout << "Element count before intersection removal: " << inflated_elements.size() << std::endl;
+        std::cout << "Element count after intersection removal: " << new_inflated_elements.size() << std::endl;
+        
+        // Even if the shape elements change after processing, keep the mapping relationship
+        // The intersection point processing may change the number of elements, but the original non-tangent points are still valid reference points
+        // No longer clear the mapping relationship, let the subsequent closure process try to find the original non-tangent points
+        /*
+        if (new_inflated_elements.size() != inflated_elements.size()) {
+            original_to_inflated_mapping.clear();
+        }
+        */
+        
+        inflated_elements = new_inflated_elements;
         //std::cout << "After intersection removal: " << inflated_elements.size() << " elements" << std::endl;
     }
     
     // Close the shape (connect elements where needed)
     if (!inflated_elements.empty()) {
         //std::cout << "Closing inflated elements..." << std::endl;
-        Shape inflated_shape = close_inflated_elements(inflated_elements, is_deflating);
+        std::cout << "\n==== Debug: Closing Shape ====" << std::endl;
+        std::cout << "Mapping relationship count before closing: " << original_to_inflated_mapping.size() << std::endl;
+        
+        Shape inflated_shape = close_inflated_elements(inflated_elements, original_to_inflated_mapping, is_deflating);
         //std::cout << "Closed shape has " << inflated_shape.elements.size() << " elements" << std::endl;
+        std::cout << "Element count after closing: " << inflated_shape.elements.size() << std::endl;
+        
         return inflated_shape;
     }
     
