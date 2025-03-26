@@ -441,11 +441,6 @@ bool Shape::is_rectangle() const
         it_prev = it;
     }
     return true;
-    if (!equal(elements[0].length(), elements[2].length()))
-        return false;
-    if (!equal(elements[1].length(), elements[3].length()))
-        return false;
-    return true;
 }
 
 bool Shape::is_polygon() const
