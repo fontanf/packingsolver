@@ -973,18 +973,18 @@ bool irregular::operator==(
     return true;
 }
 
-bool irregular::near(
+bool irregular::equal(
         const ShapeElement& element_1,
         const ShapeElement& element_2)
 {
     if (element_1.type != element_2.type)
         return false;
-    if (!near(element_1.start, element_2.start))
+    if (!equal(element_1.start, element_2.start))
         return false;
-    if (!near(element_1.end, element_2.end))
+    if (!equal(element_1.end, element_2.end))
         return false;
     if (element_1.type == ShapeElementType::CircularArc) {
-        if (!near(element_1.center, element_2.center))
+        if (!equal(element_1.center, element_2.center))
             return false;
         if (element_1.anticlockwise != element_2.anticlockwise)
             return false;
@@ -1024,7 +1024,7 @@ bool irregular::operator==(
     return true;
 }
 
-bool irregular::near(
+bool irregular::equal(
         const Shape& shape_1,
         const Shape& shape_2)
 {
@@ -1036,7 +1036,7 @@ bool irregular::near(
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)shape_2.elements.size();
             ++element_pos) {
-        if (near(shape_2.elements[element_pos], shape_1.elements[0])) {
+        if (equal(shape_2.elements[element_pos], shape_1.elements[0])) {
             offset = element_pos;
             break;
         }
@@ -1048,7 +1048,7 @@ bool irregular::near(
             element_pos < (ElementPos)shape_2.elements.size();
             ++element_pos) {
         ElementPos element_pos_2 = (element_pos + offset) % shape_2.elements.size();
-        if (!near(shape_1.elements[element_pos], shape_2.elements[element_pos_2])) {
+        if (!equal(shape_1.elements[element_pos], shape_2.elements[element_pos_2])) {
             return false;
         }
     }

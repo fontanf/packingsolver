@@ -14,6 +14,8 @@ using ItemShapePos = int64_t;
 using ShapePos = int64_t;
 using Counter = int64_t;
 
+using packingsolver::equal;
+
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Point /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -307,7 +309,7 @@ inline bool operator==(
     return (point_1.x == point_2.x) && (point_1.y == point_2.y);
 }
 
-inline bool near(
+inline bool equal(
         const Point& point_1,
         const Point& point_2)
 {
@@ -318,7 +320,7 @@ bool operator==(
         const ShapeElement& element_1,
         const ShapeElement& element_2);
 
-bool near(
+bool equal(
         const ShapeElement& element_1,
         const ShapeElement& element_2);
 
@@ -326,7 +328,7 @@ bool operator==(
         const Shape& shape_1,
         const Shape& shape_2);
 
-bool near(
+bool equal(
         const Shape& shape_1,
         const Shape& shape_2);
 

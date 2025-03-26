@@ -66,7 +66,7 @@ TEST_P(IrregularApproximateCircularArcByLineSegmentsTest, ApproximateCircularArc
     ASSERT_EQ(line_segments.size(), test_params.number_of_line_segments);
     for (ElementPos pos = 0; pos < test_params.number_of_line_segments; ++pos) {
         //std::cout << std::setprecision (15) << line_segments[pos].start.x << std::endl;
-        EXPECT_TRUE(near(line_segments[pos], test_params.expected_line_segments[pos]));
+        EXPECT_TRUE(equal(line_segments[pos], test_params.expected_line_segments[pos]));
     }
 }
 
