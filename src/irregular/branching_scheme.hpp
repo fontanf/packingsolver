@@ -413,9 +413,17 @@ public:
     Solution to_solution(
             const std::shared_ptr<Node>& node) const;
 
+    std::string to_svg(
+            const std::shared_ptr<Node>& node) const;
+
     void write_svg(
             const std::shared_ptr<Node>& node,
             const std::string& file_path) const;
+
+    nlohmann::json json_export_init() const;
+
+    nlohmann::json json_export(
+            const std::shared_ptr<Node>& node) const;
 
 private:
 
@@ -438,6 +446,10 @@ private:
 
     std::vector<AreaDbl> item_types_convex_hull_area_;
 
+    mutable std::vector<std::vector<std::unordered_map<Angle, Counter>>> json_items_init_ids_;
+
+    mutable std::vector<Counter> json_bins_init_ids_;
+
     mutable Counter node_id_ = 0;
 
     mutable std::vector<GeneralizedTrapezoid> uncovered_trapezoids_cur_;
@@ -445,6 +457,14 @@ private:
     /*
      * Private methods
      */
+
+    Shape convert_shape(
+            Shape shape,
+            Direction direction) const;
+
+    Point convert_point_back(
+            const Point& point,
+            Direction direction) const;
 
     /** Get the percentage of item inserted into a node. */
     inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance().number_of_items(); }
