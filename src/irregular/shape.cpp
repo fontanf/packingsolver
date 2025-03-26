@@ -147,7 +147,11 @@ LengthDbl ShapeElement::length() const
         return distance(this->start, this->end);
     case ShapeElementType::CircularArc:
         LengthDbl r = distance(center, start);
-        return angle_radian(start - center, end - center) * r;
+        if (anticlockwise) {
+            return angle_radian(start - center, end - center) * r;
+        } else {
+            return angle_radian(end - center, start - center) * r;
+        }
     }
     return -1;
 }
