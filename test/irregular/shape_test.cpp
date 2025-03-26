@@ -5,6 +5,30 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
+struct ShapeElementLengthTestParams
+{
+    ShapeElement element;
+    LengthDbl expected_length;
+};
+
+class IrregularShapeElementLengthTest: public testing::TestWithParam<ShapeElementLengthTestParams> { };
+
+TEST_P(IrregularShapeElementLengthTest, ShapeElementLength)
+{
+    ShapeElementLengthTestParams test_params = GetParam();
+    EXPECT_TRUE(equal(test_params.element.length(), test_params.expected_length));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        IrregularShapeElementLengthTest,
+        testing::ValuesIn(std::vector<ShapeElementLengthTestParams>{
+            {build_shape({{0, 0}, {0, 1}}, true).elements.front(), 1 },
+            {build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(), M_PI / 2 },
+            {build_shape({{1, 0}, {0, 0, -1}, {0, -1}}, true).elements.front(), M_PI / 2 },
+            }));
+
+
 struct CleanShapeTestParams
 {
     Shape shape;
