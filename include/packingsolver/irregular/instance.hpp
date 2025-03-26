@@ -9,26 +9,6 @@ namespace packingsolver
 namespace irregular
 {
 
-struct ItemShape
-{
-    /** Main shape. */
-    Shape shape;
-
-    /**
-     * Holes.
-     *
-     * Holes are shapes contained inside the main shape.
-     */
-    std::vector<Shape> holes;
-
-    /** Quality rule. */
-    QualityRule quality_rule = 0;
-
-    bool check() const;
-
-    std::string to_string(Counter indentation) const;
-};
-
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -114,6 +94,26 @@ struct BinType
 
     void write_svg(
             const std::string& file_path) const;
+};
+
+struct ItemShape
+{
+    /** Main shape. */
+    Shape shape;
+
+    /**
+     * Holes.
+     *
+     * Holes are shapes contained inside the main shape.
+     */
+    std::vector<Shape> holes;
+
+    /** Quality rule. */
+    QualityRule quality_rule = 0;
+
+    bool check() const;
+
+    std::string to_string(Counter indentation) const;
 };
 
 /**
