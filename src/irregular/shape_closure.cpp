@@ -11,12 +11,6 @@ namespace packingsolver
 namespace irregular
 {
 
-LengthDbl euclidean_distance(const Point& p1, const Point& p2) {
-    LengthDbl dx = p2.x - p1.x;
-    LengthDbl dy = p2.y - p1.y;
-    return std::sqrt(dx * dx + dy * dy);
-}
-
 Shape close_inflated_elements(
         const std::vector<ShapeElement>& inflated_elements, 
         const std::vector<std::pair<ShapeElement, ShapeElement>>& original_to_inflated_mapping,
@@ -56,7 +50,7 @@ Shape close_inflated_elements(
         //          << "), end=(" << next.end.x << "," << next.end.y << ")" << std::endl;
         
         // Check if a connector element is needed
-        LengthDbl gap_distance = euclidean_distance(current.end, next.start);
+        LengthDbl gap_distance = distance(current.end, next.start);
         //std::cout << "  Gap distance: " << gap_distance << std::endl;
         
         if (!equal(gap_distance, 0.0)) {
@@ -113,7 +107,7 @@ Shape close_inflated_elements(
         cleaned_elements.reserve(inflated_shape.elements.size());
         
         for (const ShapeElement& element : inflated_shape.elements) {
-            if (!equal(euclidean_distance(element.start, element.end), 0.0)) {
+            if (!equal(distance(element.start, element.end), 0.0)) {
                 cleaned_elements.push_back(element);
             }
         }
