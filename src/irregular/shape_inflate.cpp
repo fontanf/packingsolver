@@ -3,7 +3,6 @@
 #include "irregular/shape_closure.hpp"
 #include "irregular/shape_self_intersections_removal.hpp"
 #include <cmath>
-#include <iostream>
 
 // Define M_PI (if not provided by the system)
 #ifndef M_PI
@@ -34,12 +33,12 @@ bool is_arc_covered_by_adjacent_elements(
         // Calculate the direction vector of the previous segment
         LengthDbl dx1 = prev_element.end.x - prev_element.start.x;
         LengthDbl dy1 = prev_element.end.y - prev_element.start.y;
-        LengthDbl length1 = std::sqrt(dx1 * dx1 + dy1 * dy1);
+        LengthDbl length1 = distance(prev_element.start, prev_element.end);
         
         // Calculate the direction vector of the next segment
         LengthDbl dx2 = next_element.end.x - next_element.start.x;
         LengthDbl dy2 = next_element.end.y - next_element.start.y;
-        LengthDbl length2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
+        LengthDbl length2 = distance(next_element.start, next_element.end);
         
         if (length1 > 0 && length2 > 0) {
             // Calculate unit direction vectors
@@ -55,10 +54,7 @@ bool is_arc_covered_by_adjacent_elements(
             // This is a simplified check, an actual implementation would need more precise geometric calculations
             if (std::abs(std::abs(dot_product) - 1.0) < 0.1) {
                 // Calculate the arc radius
-                LengthDbl radius = std::sqrt(
-                    std::pow(arc_element.start.x - arc_element.center.x, 2) + 
-                    std::pow(arc_element.start.y - arc_element.center.y, 2)
-                );
+                LengthDbl radius = distance(arc_element.center, arc_element.start);
                 
                 // If the inflation value is greater than the radius, it may be covered
                 return value > radius;
@@ -97,66 +93,66 @@ Shape inflate_shape_without_holes(
     std::vector<std::pair<ShapeElement, ShapeElement>> original_to_inflated_mapping;
     original_to_inflated_mapping.reserve(original_shape.elements.size());
     
-    std::cout << "\n==== Debug: Creating Shape Inflation Mapping ====" << std::endl;
-    std::cout << "Original shape element count: " << original_shape.elements.size() << std::endl;
+    // std::cout << "\n==== Debug: Creating Shape Inflation Mapping ====" << std::endl;
+    // std::cout << "Original shape element count: " << original_shape.elements.size() << std::endl;
     
     for (size_t i = 0; i < original_shape.elements.size(); ++i) {
         const ShapeElement& element = original_shape.elements[i];
         ShapeElement inflated_element = offset_element(element, value);
         
-        std::cout << "Original element " << i << ": ";
-        if (element.type == ShapeElementType::LineSegment) {
-            std::cout << "Line Segment";
-        } else {
-            std::cout << "Circular Arc";
-        }
-        std::cout << " start(" << element.start.x << ", " << element.start.y 
-                  << "), end(" << element.end.x << ", " << element.end.y << ")";
+        // std::cout << "Original element " << i << ": ";
+        // if (element.type == ShapeElementType::LineSegment) {
+        //     std::cout << "Line Segment";
+        // } else {
+        //     std::cout << "Circular Arc";
+        // }
+        // std::cout << " start(" << element.start.x << ", " << element.start.y 
+        //           << "), end(" << element.end.x << ", " << element.end.y << ")";
         
-        if (element.type == ShapeElementType::CircularArc) {
-            std::cout << ", center(" << element.center.x << ", " << element.center.y 
-                      << "), " << (element.anticlockwise ? "counterclockwise" : "clockwise");
-        }
+        // if (element.type == ShapeElementType::CircularArc) {
+        //     std::cout << ", center(" << element.center.x << ", " << element.center.y 
+        //               << "), " << (element.anticlockwise ? "counterclockwise" : "clockwise");
+        // }
         std::cout << std::endl;
         
         if (!is_degenerate_element(inflated_element)) {
             inflated_elements.push_back(inflated_element);
             original_to_inflated_mapping.push_back({element, inflated_element});
             
-            std::cout << "  Inflated element: ";
-            if (inflated_element.type == ShapeElementType::LineSegment) {
-                std::cout << "Line Segment";
-            } else {
-                std::cout << "Circular Arc";
-            }
-            std::cout << " start(" << inflated_element.start.x << ", " << inflated_element.start.y 
-                      << "), end(" << inflated_element.end.x << ", " << inflated_element.end.y << ")";
+            // std::cout << "  Inflated element: ";
+            // if (inflated_element.type == ShapeElementType::LineSegment) {
+            //     std::cout << "Line Segment";
+            // } else {
+            //     std::cout << "Circular Arc";
+            // }
+            // std::cout << " start(" << inflated_element.start.x << ", " << inflated_element.start.y 
+            //           << "), end(" << inflated_element.end.x << ", " << inflated_element.end.y << ")";
             
-            if (inflated_element.type == ShapeElementType::CircularArc) {
-                std::cout << ", center(" << inflated_element.center.x << ", " << inflated_element.center.y 
-                          << "), " << (inflated_element.anticlockwise ? "counterclockwise" : "clockwise");
-            }
-            std::cout << std::endl;
+            // if (inflated_element.type == ShapeElementType::CircularArc) {
+            //     std::cout << ", center(" << inflated_element.center.x << ", " << inflated_element.center.y 
+            //               << "), " << (inflated_element.anticlockwise ? "counterclockwise" : "clockwise");
+            // }
+            // std::cout << std::endl;
         } else {
-            std::cout << "  This element is degenerate after inflation, ignored" << std::endl;
+            // std::cout << "  This element is degenerate after inflation, ignored" << std::endl;
         }
     }
     
     //std::cout << "Created " << inflated_elements.size() << " inflated elements" << std::endl;
-    std::cout << "Inflated element count: " << inflated_elements.size() << std::endl;
-    std::cout << "Mapping relationship count: " << original_to_inflated_mapping.size() << std::endl;
+    // std::cout << "Inflated element count: " << inflated_elements.size() << std::endl;
+    // std::cout << "Mapping relationship count: " << original_to_inflated_mapping.size() << std::endl;
     
     // For deflation (value < 0), remove intersections before closure
     // For inflation (value >= 0), also remove intersections before closure
     if (!inflated_elements.empty()) {
         //std::cout << "Removing intersections..." << std::endl;
-        std::cout << "\n==== Debug: Removing Intersections ====" << std::endl;
+        // std::cout << "\n==== Debug: Removing Intersections ====" << std::endl;
         
         // If there are intersection points, regenerate the mapping relationship
         auto new_inflated_elements = remove_intersections_segments(inflated_elements, is_deflating);
         
-        std::cout << "Element count before intersection removal: " << inflated_elements.size() << std::endl;
-        std::cout << "Element count after intersection removal: " << new_inflated_elements.size() << std::endl;
+        // std::cout << "Element count before intersection removal: " << inflated_elements.size() << std::endl;
+        // std::cout << "Element count after intersection removal: " << new_inflated_elements.size() << std::endl;
         
         // Even if the shape elements change after processing, keep the mapping relationship
         // The intersection point processing may change the number of elements, but the original non-tangent points are still valid reference points
@@ -174,12 +170,12 @@ Shape inflate_shape_without_holes(
     // Close the shape (connect elements where needed)
     if (!inflated_elements.empty()) {
         //std::cout << "Closing inflated elements..." << std::endl;
-        std::cout << "\n==== Debug: Closing Shape ====" << std::endl;
-        std::cout << "Mapping relationship count before closing: " << original_to_inflated_mapping.size() << std::endl;
+        // std::cout << "\n==== Debug: Closing Shape ====" << std::endl;
+        // std::cout << "Mapping relationship count before closing: " << original_to_inflated_mapping.size() << std::endl;
         
         Shape inflated_shape = close_inflated_elements(inflated_elements, original_to_inflated_mapping, is_deflating);
         //std::cout << "Closed shape has " << inflated_shape.elements.size() << " elements" << std::endl;
-        std::cout << "Element count after closing: " << inflated_shape.elements.size() << std::endl;
+        // std::cout << "Element count after closing: " << inflated_shape.elements.size() << std::endl;
         
         return inflated_shape;
     }
@@ -222,7 +218,7 @@ ShapeElement offset_element(const ShapeElement& element, LengthDbl value)
         // LineSegment processing
         LengthDbl dx = element.end.x - element.start.x;
         LengthDbl dy = element.end.y - element.start.y;
-        LengthDbl length = std::sqrt(dx * dx + dy * dy);
+        LengthDbl length = distance(element.start, element.end);
         
         // Avoid division by zero
         if (length > 0) {
@@ -249,10 +245,7 @@ ShapeElement offset_element(const ShapeElement& element, LengthDbl value)
         // CircularArc processing
         
         // Calculate the current radius of the arc
-        LengthDbl radius = std::sqrt(
-            std::pow(element.start.x - element.center.x, 2) + 
-            std::pow(element.start.y - element.center.y, 2)
-        );
+        LengthDbl radius = distance(element.center, element.start);
         
         // Calculate new radius based on arc direction
         LengthDbl new_radius;
@@ -311,15 +304,10 @@ ShapeElement offset_element(const ShapeElement& element, LengthDbl value)
 bool is_degenerate_element(const ShapeElement& element)
 {
     if (element.type == ShapeElementType::LineSegment) {
-        LengthDbl dx = element.end.x - element.start.x;
-        LengthDbl dy = element.end.y - element.start.y;
-        LengthDbl length = std::sqrt(dx * dx + dy * dy);
+        LengthDbl length = distance(element.start, element.end);
         return equal(length, 0.0);
     } else if (element.type == ShapeElementType::CircularArc) {
-        LengthDbl radius = std::sqrt(
-            std::pow(element.start.x - element.center.x, 2) + 
-            std::pow(element.start.y - element.center.y, 2)
-        );
+        LengthDbl radius = distance(element.center, element.start);
         
         // If the radius is very small, consider it degenerate
         if (equal(radius, 0.0)) {
@@ -327,9 +315,7 @@ bool is_degenerate_element(const ShapeElement& element)
         }
         
         // If start and end points are too close, consider it degenerate
-        LengthDbl dx = element.end.x - element.start.x;
-        LengthDbl dy = element.end.y - element.start.y;
-        LengthDbl chord_length = std::sqrt(dx * dx + dy * dy);
+        LengthDbl chord_length = distance(element.start, element.end);
         return equal(chord_length, 0.0);
     }
     
