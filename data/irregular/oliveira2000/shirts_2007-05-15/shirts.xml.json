@@ -482,7 +482,7 @@
         },
         {
             "type": "general",
-            "copies": 1,
+            "copies": 15,
             "allowed_rotations": [
                 {
                     "start": 0.0,
