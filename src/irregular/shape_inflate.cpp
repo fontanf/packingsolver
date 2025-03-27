@@ -96,8 +96,8 @@ Shape inflate_shape_without_holes(
     // std::cout << "\n==== Debug: Creating Shape Inflation Mapping ====" << std::endl;
     // std::cout << "Original shape element count: " << original_shape.elements.size() << std::endl;
     
-    for (size_t i = 0; i < original_shape.elements.size(); ++i) {
-        const ShapeElement& element = original_shape.elements[i];
+    for (ElementPos element_pos = 0; element_pos < (ElementPos)original_shape.elements.size(); ++element_pos) {
+        const ShapeElement& element = original_shape.elements[element_pos];
         ShapeElement inflated_element = offset_element(element, value);
         
         // std::cout << "Original element " << i << ": ";
