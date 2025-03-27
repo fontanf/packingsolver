@@ -41,7 +41,7 @@
 				</orientation>
 				<component idPolygon="polygon4" type="0" xOffset="0" yOffset="0" />
 			</piece>
-			<piece id="piece4" quantity="1">
+			<piece id="piece4" quantity="15">
 				<orientation>
 					<enumeration angle="0" />
 					<enumeration angle="180" />
