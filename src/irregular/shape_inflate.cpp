@@ -14,58 +14,6 @@ namespace packingsolver
 namespace irregular
 {
 
-// Check if an arc is covered by adjacent elements
-bool is_arc_covered_by_adjacent_elements(
-        const ShapeElement& prev_element,
-        const ShapeElement& arc_element,
-        const ShapeElement& next_element,
-        LengthDbl value)
-{
-    // If the inflation value is zero or negative, it cannot be covered
-    if (value <= 0) {
-        return false;
-    }
-    
-    // If adjacent elements are both line segments and the angle between them is small, they may cover the arc
-    if (prev_element.type == ShapeElementType::LineSegment && 
-        next_element.type == ShapeElementType::LineSegment) {
-        
-        // Calculate the direction vector of the previous segment
-        LengthDbl dx1 = prev_element.end.x - prev_element.start.x;
-        LengthDbl dy1 = prev_element.end.y - prev_element.start.y;
-        LengthDbl length1 = distance(prev_element.start, prev_element.end);
-        
-        // Calculate the direction vector of the next segment
-        LengthDbl dx2 = next_element.end.x - next_element.start.x;
-        LengthDbl dy2 = next_element.end.y - next_element.start.y;
-        LengthDbl length2 = distance(next_element.start, next_element.end);
-        
-        if (length1 > 0 && length2 > 0) {
-            // Calculate unit direction vectors
-            LengthDbl dir1_x = dx1 / length1;
-            LengthDbl dir1_y = dy1 / length1;
-            LengthDbl dir2_x = dx2 / length2;
-            LengthDbl dir2_y = dy2 / length2;
-            
-            // Calculate dot product to determine the angle
-            LengthDbl dot_product = dir1_x * dir2_x + dir1_y * dir2_y;
-            
-            // If the two segments are almost parallel (dot product close to 1 or -1), and the inflation value is large enough
-            // This is a simplified check, an actual implementation would need more precise geometric calculations
-            if (std::abs(std::abs(dot_product) - 1.0) < 0.1) {
-                // Calculate the arc radius
-                LengthDbl radius = distance(arc_element.center, arc_element.start);
-                
-                // If the inflation value is greater than the radius, it may be covered
-                return value > radius;
-            }
-        }
-    }
-    
-    // By default, assume it's not covered
-    return false;
-}
-
 Shape inflate_shape_without_holes(
         const Shape& original_shape,
         LengthDbl value)
