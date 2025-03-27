@@ -3,7 +3,6 @@
 #include "irregular/shape_self_intersections_removal.hpp"
 
 #include <gtest/gtest.h>
-#include <iostream>
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -128,36 +127,36 @@ TEST(IrregularShapeInflate, BasicInflate)
     
 
     
-    // Debug output: print each element
-    std::cout << "\nActual shape elements:\n";
-    for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
-        const auto& element = inflated_square.elements[i];
-        std::cout << "Element " << i << ": ";
-        if (element.type == ShapeElementType::CircularArc) {
-            std::cout << "CircularArc start (" << element.start.x << ", " << element.start.y 
-                      << ") end (" << element.end.x << ", " << element.end.y 
-                      << ") center (" << element.center.x << ", " << element.center.y 
-                      << ") " << (element.anticlockwise ? "anticlockwise" : "clockwise") << "\n";
-        } else {
-            std::cout << "LineSegment start (" << element.start.x << ", " << element.start.y 
-                      << ") end (" << element.end.x << ", " << element.end.y << ")\n";
-        }
-    }
+    // // Debug output: print each element
+    // std::cout << "\nActual shape elements:\n";
+    // for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
+    //     const auto& element = inflated_square.elements[i];
+    //     std::cout << "Element " << i << ": ";
+    //     if (element.type == ShapeElementType::CircularArc) {
+    //         std::cout << "CircularArc start (" << element.start.x << ", " << element.start.y 
+    //                   << ") end (" << element.end.x << ", " << element.end.y 
+    //                   << ") center (" << element.center.x << ", " << element.center.y 
+    //                   << ") " << (element.anticlockwise ? "anticlockwise" : "clockwise") << "\n";
+    //     } else {
+    //         std::cout << "LineSegment start (" << element.start.x << ", " << element.start.y 
+    //                   << ") end (" << element.end.x << ", " << element.end.y << ")\n";
+    //     }
+    // }
     
-    std::cout << "\nExpected shape elements:\n";
-    for (size_t i = 0; i < expected_inflated_square.elements.size(); ++i) {
-        const auto& element = expected_inflated_square.elements[i];
-        std::cout << "Element " << i << ": ";
-        if (element.type == ShapeElementType::CircularArc) {
-            std::cout << "CircularArc start (" << element.start.x << ", " << element.start.y 
-                      << ") end (" << element.end.x << ", " << element.end.y 
-                      << ") center (" << element.center.x << ", " << element.center.y 
-                      << ") " << (element.anticlockwise ? "anticlockwise" : "clockwise") << "\n";
-        } else {
-            std::cout << "LineSegment start (" << element.start.x << ", " << element.start.y 
-                      << ") end (" << element.end.x << ", " << element.end.y << ")\n";
-        }
-    }
+    // std::cout << "\nExpected shape elements:\n";
+    // for (size_t i = 0; i < expected_inflated_square.elements.size(); ++i) {
+    //     const auto& element = expected_inflated_square.elements[i];
+    //     std::cout << "Element " << i << ": ";
+    //     if (element.type == ShapeElementType::CircularArc) {
+    //         std::cout << "CircularArc start (" << element.start.x << ", " << element.start.y 
+    //                   << ") end (" << element.end.x << ", " << element.end.y 
+    //                   << ") center (" << element.center.x << ", " << element.center.y 
+    //                   << ") " << (element.anticlockwise ? "anticlockwise" : "clockwise") << "\n";
+    //     } else {
+    //         std::cout << "LineSegment start (" << element.start.x << ", " << element.start.y 
+    //                   << ") end (" << element.end.x << ", " << element.end.y << ")\n";
+    //     }
+    // }
     
     // Compare shapes element by element using the near() function
     ASSERT_EQ(inflated_square.elements.size(), expected_inflated_square.elements.size());
@@ -353,14 +352,100 @@ TEST(IrregularShapeInflate, TinyShape)
         0.1 + 2 * inflation_value, 0.1 + 2 * inflation_value,
         inflation_value);
     
+    // Debug output: print each element
+    // std::cout << "\nActual shape elements:\n";
+    // for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
+    //     const auto& element = inflated_square.elements[i];
+    //     std::cout << "Element " << i << ": ";
+    //     if (element.type == ShapeElementType::CircularArc) {
+    //         std::cout << "CircularArc start (" << element.start.x << ", " << element.start.y 
+    //                   << ") end (" << element.end.x << ", " << element.end.y 
+    //                   << ") center (" << element.center.x << ", " << element.center.y 
+    //                   << ") " << (element.anticlockwise ? "anticlockwise" : "clockwise") << "\n";
+    //     } else {
+    //         std::cout << "LineSegment start (" << element.start.x << ", " << element.start.y 
+    //                   << ") end (" << element.end.x << ", " << element.end.y << ")\n";
+    //     }
+    // }
+    
+    // std::cout << "\nExpected shape elements:\n";
+    // for (size_t i = 0; i < expected_inflated_square.elements.size(); ++i) {
+    //     const auto& element = expected_inflated_square.elements[i];
+    //     std::cout << "Element " << i << ": ";
+    //     if (element.type == ShapeElementType::CircularArc) {
+    //         std::cout << "CircularArc start (" << element.start.x << ", " << element.start.y 
+    //                   << ") end (" << element.end.x << ", " << element.end.y 
+    //                   << ") center (" << element.center.x << ", " << element.center.y 
+    //                   << ") " << (element.anticlockwise ? "anticlockwise" : "clockwise") << "\n";
+    //     } else {
+    //         std::cout << "LineSegment start (" << element.start.x << ", " << element.start.y 
+    //                   << ") end (" << element.end.x << ", " << element.end.y << ")\n";
+    //     }
+    // }
+    
     // Compare shapes element by element using the near() function
     ASSERT_EQ(inflated_square.elements.size(), expected_inflated_square.elements.size());
     for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
         EXPECT_TRUE(near(inflated_square.elements[i], expected_inflated_square.elements[i]));
     }
     
-    // verify the inflated shape
-    EXPECT_GT(inflated_square.elements.size(), 0);
+    // expected new boundary coordinates
+    LengthDbl expected_min_x = -inflation_value;
+    LengthDbl expected_min_y = -inflation_value;
+    LengthDbl expected_max_x = 0.1 + inflation_value;
+    LengthDbl expected_max_y = 0.1 + inflation_value;
+    
+    // check if the inflated shape contains the expected external points
+    bool contains_min_x = false;
+    bool contains_min_y = false;
+    bool contains_max_x = false;
+    bool contains_max_y = false;
+    
+    for (const ShapeElement& element : inflated_square.elements) {
+        if (element.start.x <= expected_min_x || element.end.x <= expected_min_x) {
+            contains_min_x = true;
+        }
+        if (element.start.y <= expected_min_y || element.end.y <= expected_min_y) {
+            contains_min_y = true;
+        }
+        if (element.start.x >= expected_max_x || element.end.x >= expected_max_x) {
+            contains_max_x = true;
+        }
+        if (element.start.y >= expected_max_y || element.end.y >= expected_max_y) {
+            contains_max_y = true;
+        }
+    }
+    
+    EXPECT_TRUE(contains_min_x);
+    EXPECT_TRUE(contains_min_y);
+    EXPECT_TRUE(contains_max_x);
+    EXPECT_TRUE(contains_max_y);
+    
+    // Also check the actual boundary coordinates
+    LengthDbl actual_min_x = std::numeric_limits<LengthDbl>::max();
+    LengthDbl actual_min_y = std::numeric_limits<LengthDbl>::max();
+    LengthDbl actual_max_x = std::numeric_limits<LengthDbl>::lowest();
+    LengthDbl actual_max_y = std::numeric_limits<LengthDbl>::lowest();
+    
+    for (const ShapeElement& element : inflated_square.elements) {
+        actual_min_x = std::min({actual_min_x, element.start.x, element.end.x});
+        actual_min_y = std::min({actual_min_y, element.start.y, element.end.y});
+        actual_max_x = std::max({actual_max_x, element.start.x, element.end.x});
+        actual_max_y = std::max({actual_max_y, element.start.y, element.end.y});
+    }
+    
+    // allow some tolerance for tiny shapes
+    const LengthDbl tolerance = 0.01;
+    
+    // std::cout << "Actual boundaries: min_x=" << actual_min_x << ", min_y=" << actual_min_y
+    //           << ", max_x=" << actual_max_x << ", max_y=" << actual_max_y << std::endl;
+    // std::cout << "Expected boundaries: min_x=" << expected_min_x << ", min_y=" << expected_min_y
+    //           << ", max_x=" << expected_max_x << ", max_y=" << expected_max_y << std::endl;
+              
+    EXPECT_NEAR(actual_min_x, expected_min_x, tolerance);
+    EXPECT_NEAR(actual_min_y, expected_min_y, tolerance);
+    EXPECT_NEAR(actual_max_x, expected_max_x, tolerance);
+    EXPECT_NEAR(actual_max_y, expected_max_y, tolerance);
 }
 
 // test 5: test the case that the inflation value is too large
