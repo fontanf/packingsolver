@@ -120,22 +120,26 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
                         bin_type.rect.x,
                         -1,
                         2 * instance.number_of_items() + bound);
-                modified_instance_builder.add_item_type(
-                        bin_type.rect.x,
-                        bin_type.rect.x - bin_type.rect.y,
-                        -1,
-                        bound);
+                if (bound > 0) {
+                    modified_instance_builder.add_item_type(
+                            bin_type.rect.x,
+                            bin_type.rect.x - bin_type.rect.y,
+                            -1,
+                            bound);
+                }
             } else if (bin_type.rect.x < bin_type.rect.y) {
                 modified_instance_builder.add_bin_type(
                         bin_type.rect.y,
                         bin_type.rect.y,
                         -1,
                         2 * instance.number_of_items() + bound);
-                modified_instance_builder.add_item_type(
-                        bin_type.rect.y - bin_type.rect.x,
-                        bin_type.rect.y,
-                        -1,
-                        bound);
+                if (bound > 0) {
+                    modified_instance_builder.add_item_type(
+                            bin_type.rect.y - bin_type.rect.x,
+                            bin_type.rect.y,
+                            -1,
+                            bound);
+                }
             }
             // Add items.
             for (ItemTypeId item_type_id = 0;
