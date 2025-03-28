@@ -450,9 +450,9 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
         
         LengthDbl dx = working_elements[i].end.x - working_elements[i].start.x;
         LengthDbl dy = working_elements[i].end.y - working_elements[i].start.y;
-        LengthDbl length = std::sqrt(dx*dx + dy*dy);
+        // LengthDbl length = std::sqrt(dx*dx + dy*dy);
         
-        if (!equal(length, 0.0)) {
+        if (!equal(working_elements[i].start, working_elements[i].end)) {
             // Extend by 10%
             LengthDbl extension_ratio = 0.1;
             Point original_end = working_elements[i].end;
@@ -510,11 +510,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
         const ShapeElement& element = elements[i];
         
         // Skip degenerate elements
-        LengthDbl element_length = std::sqrt(
-            std::pow(element.end.x - element.start.x, 2) +
-            std::pow(element.end.y - element.start.y, 2));
-            
-        if (equal(element_length, 0.0)) {
+        if (equal(element.start, element.end)) {
             continue;
         }
         
@@ -556,14 +552,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
         std::vector<Point> filtered_intersections;
         for (size_t j = 0; j < element_intersections.size(); ++j) {
             const Point& p = element_intersections[j];
-            LengthDbl d_start = std::sqrt(
-                std::pow(p.x - element.start.x, 2) +
-                std::pow(p.y - element.start.y, 2));
-            LengthDbl d_end = std::sqrt(
-                std::pow(p.x - element.end.x, 2) +
-                std::pow(p.y - element.end.y, 2));
-                
-            if (!equal(d_start, 0.0) && !equal(d_end, 0.0)) {
+            if (!equal(p, element.start) && !equal(p, element.end)) {
                 filtered_intersections.push_back(p);
             }
         }
@@ -573,10 +562,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
         for (size_t j = 0; j < filtered_intersections.size(); ++j) {
             bool should_add = true;
             for (size_t k = 0; k < final_intersections.size(); ++k) {
-                LengthDbl d = std::sqrt(
-                    std::pow(filtered_intersections[j].x - final_intersections[k].x, 2) +
-                    std::pow(filtered_intersections[j].y - final_intersections[k].y, 2));
-                if (equal(d, 0.0)) {
+                if (equal(filtered_intersections[j], final_intersections[k])) {
                     should_add = false;
                     break;
                 }
@@ -631,11 +617,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
             new_segment.end = current_point;
             
             // Add only non-degenerate segments
-            LengthDbl segment_length = std::sqrt(
-                std::pow(new_segment.end.x - new_segment.start.x, 2) +
-                std::pow(new_segment.end.y - new_segment.start.y, 2));
-            
-            if (!equal(segment_length, 0.0)) {
+            if (!equal(new_segment.start, new_segment.end)) {
                 if (is_deflating) {
                     // For deflation, check if segment is inside the bounding box
                     // For partial segments, only keep the part inside the box
@@ -667,11 +649,7 @@ std::vector<ShapeElement> packingsolver::irregular::remove_intersections_segment
         last_segment.end = element.end;
         
         // Add only non-degenerate segments
-        LengthDbl last_segment_length = std::sqrt(
-            std::pow(last_segment.end.x - last_segment.start.x, 2) +
-            std::pow(last_segment.end.y - last_segment.start.y, 2));
-        
-        if (!equal(last_segment_length, 0.0)) {
+        if (!equal(last_segment.start, last_segment.end)) {
             if (is_deflating) {
                 // For deflation, check if segment is inside the bounding box
                 bool start_inside = is_point_inside_box(last_segment.start, min_point, max_point);
