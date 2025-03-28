@@ -310,10 +310,6 @@ ShapeElement offset_element(const ShapeElement& element, LengthDbl value)
             new_radius = radius - value;
         }
         
-        // Skip if radius becomes too small
-        if (new_radius <= 0.01) {
-            return new_element; // Return empty/invalid element
-        }
         
         // Calculate the original arc's start and end angles
         Angle start_angle = angle_radian(element.start - element.center);
