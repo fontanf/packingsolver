@@ -52,10 +52,7 @@ Shape close_inflated_elements(
         //          << "), end=(" << next.end.x << "," << next.end.y << ")" << std::endl;
         
         // Check if a connector element is needed
-        LengthDbl gap_distance = distance(current.end, next.start);
-        //std::cout << "  Gap distance: " << gap_distance << std::endl;
-        
-        if (!equal(gap_distance, 0.0)) {
+        if (!equal(current.end, next.start)) {
             // The end point of the current element and the start point of the next element don't coincide, need to add a connector
             //std::cout << "  Need connector (gap > 1e-6)" << std::endl;
             
@@ -109,7 +106,7 @@ Shape close_inflated_elements(
         cleaned_elements.reserve(inflated_shape.elements.size());
         
         for (const ShapeElement& element : inflated_shape.elements) {
-            if (!equal(distance(element.start, element.end), 0.0)) {
+            if (!equal(element.start, element.end)) {
                 cleaned_elements.push_back(element);
             }
         }
@@ -319,8 +316,6 @@ ShapeElement offset_element(const ShapeElement& element, LengthDbl value)
         }
         
         // Calculate the original arc's start and end angles
-        LengthDbl start_angle = angle_radian({element.start.x - element.center.x, element.start.y - element.center.y});
-        LengthDbl end_angle = angle_radian({element.end.x - element.center.x, element.end.y - element.center.y});
         Angle start_angle = angle_radian(element.start - element.center);
         Angle end_angle = angle_radian(element.end - element.center);
         
@@ -360,19 +355,16 @@ ShapeElement offset_element(const ShapeElement& element, LengthDbl value)
 bool is_degenerate_element(const ShapeElement& element)
 {
     if (element.type == ShapeElementType::LineSegment) {
-        LengthDbl length = distance(element.start, element.end);
-        return equal(length, 0.0);
+        return equal(element.start, element.end);
     } else if (element.type == ShapeElementType::CircularArc) {
-        LengthDbl radius = distance(element.center, element.start);
-        
         // If the radius is very small, consider it degenerate
-        if (equal(radius, 0.0)) {
+        if (equal(element.center, element.end)) {
             return true;
         }
-        
         // If start and end points are too close, consider it degenerate
-        LengthDbl chord_length = distance(element.start, element.end);
-        return equal(chord_length, 0.0);
+        if (equal(element.start, element.end)) {
+            return true;
+        }
     }
     
     return false;

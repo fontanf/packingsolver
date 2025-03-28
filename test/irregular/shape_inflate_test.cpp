@@ -158,11 +158,11 @@ TEST(IrregularShapeInflate, BasicInflate)
     //     }
     // }
     
-    // Compare shapes element by element using the near() function
+    // Compare shapes element by element using the equal() function
     ASSERT_EQ(inflated_square.elements.size(), expected_inflated_square.elements.size());
 
     for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
-        EXPECT_TRUE(near(inflated_square.elements[i], expected_inflated_square.elements[i]));
+        EXPECT_TRUE(equal(inflated_square.elements[i], expected_inflated_square.elements[i]));
     }
     
     // expected new boundary coordinates
@@ -220,10 +220,10 @@ TEST(IrregularShapeInflate, InflateWithHoles)
         20 + 2 * inflation_value, 20 + 2 * inflation_value,
         inflation_value);
     
-    // Compare external shape element by element using the near() function
+    // Compare external shape element by element using the equal() function
     ASSERT_EQ(inflated_shape.elements.size(), expected_inflated_outer.elements.size());
     for (size_t i = 0; i < inflated_shape.elements.size(); ++i) {
-        EXPECT_TRUE(near(inflated_shape.elements[i], expected_inflated_outer.elements[i]));
+        EXPECT_TRUE(equal(inflated_shape.elements[i], expected_inflated_outer.elements[i]));
     }
     
     // Verify the hole shape - should still be a square after contraction
@@ -235,10 +235,10 @@ TEST(IrregularShapeInflate, InflateWithHoles)
             5 + inflation_value, 
             10 - 2 * inflation_value);
             
-        // Compare hole shape element by element using the near() function
+        // Compare hole shape element by element using the equal() function
         ASSERT_EQ(inflated_holes[0].elements.size(), expected_inflated_hole.elements.size());
         for (size_t i = 0; i < inflated_holes[0].elements.size(); ++i) {
-            EXPECT_TRUE(near(inflated_holes[0].elements[i], expected_inflated_hole.elements[i]));
+            EXPECT_TRUE(equal(inflated_holes[0].elements[i], expected_inflated_hole.elements[i]));
         }
     }
     
@@ -298,10 +298,10 @@ TEST(IrregularShapeInflate, Deflate)
         -deflation_value, 
         20 + 2 * deflation_value);
     
-    // Compare shapes element by element using the near() function
+    // Compare shapes element by element using the equal() function
     ASSERT_EQ(deflated_square.elements.size(), expected_deflated_square.elements.size());
     for (size_t i = 0; i < deflated_square.elements.size(); ++i) {
-        EXPECT_TRUE(near(deflated_square.elements[i], expected_deflated_square.elements[i]));
+        EXPECT_TRUE(equal(deflated_square.elements[i], expected_deflated_square.elements[i]));
     }
     
     // verify the deflated shape
@@ -326,13 +326,10 @@ TEST(IrregularShapeInflate, Deflate)
         actual_max_y = std::max({actual_max_y, element.start.y, element.end.y});
     }
     
-    // allow some tolerance
-    const LengthDbl tolerance = 0.01;
-    
-    EXPECT_NEAR(actual_min_x, expected_min_x, tolerance);
-    EXPECT_NEAR(actual_min_y, expected_min_y, tolerance);
-    EXPECT_NEAR(actual_max_x, expected_max_x, tolerance);
-    EXPECT_NEAR(actual_max_y, expected_max_y, tolerance);
+    EXPECT_TRUE(equal(actual_min_x, expected_min_x));
+    EXPECT_TRUE(equal(actual_min_y, expected_min_y));
+    EXPECT_TRUE(equal(actual_max_x, expected_max_x));
+    EXPECT_TRUE(equal(actual_max_y, expected_max_y));
 }
 
 // test 4: test the case that the shape is too small
@@ -383,10 +380,10 @@ TEST(IrregularShapeInflate, TinyShape)
     //     }
     // }
     
-    // Compare shapes element by element using the near() function
+    // Compare shapes element by element using the equal() function
     ASSERT_EQ(inflated_square.elements.size(), expected_inflated_square.elements.size());
     for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
-        EXPECT_TRUE(near(inflated_square.elements[i], expected_inflated_square.elements[i]));
+        EXPECT_TRUE(equal(inflated_square.elements[i], expected_inflated_square.elements[i]));
     }
     
     // expected new boundary coordinates
@@ -434,18 +431,15 @@ TEST(IrregularShapeInflate, TinyShape)
         actual_max_y = std::max({actual_max_y, element.start.y, element.end.y});
     }
     
-    // allow some tolerance for tiny shapes
-    const LengthDbl tolerance = 0.01;
-    
     // std::cout << "Actual boundaries: min_x=" << actual_min_x << ", min_y=" << actual_min_y
     //           << ", max_x=" << actual_max_x << ", max_y=" << actual_max_y << std::endl;
     // std::cout << "Expected boundaries: min_x=" << expected_min_x << ", min_y=" << expected_min_y
     //           << ", max_x=" << expected_max_x << ", max_y=" << expected_max_y << std::endl;
               
-    EXPECT_NEAR(actual_min_x, expected_min_x, tolerance);
-    EXPECT_NEAR(actual_min_y, expected_min_y, tolerance);
-    EXPECT_NEAR(actual_max_x, expected_max_x, tolerance);
-    EXPECT_NEAR(actual_max_y, expected_max_y, tolerance);
+    EXPECT_TRUE(equal(actual_min_x, expected_min_x));
+    EXPECT_TRUE(equal(actual_min_y, expected_min_y));
+    EXPECT_TRUE(equal(actual_max_x, expected_max_x));
+    EXPECT_TRUE(equal(actual_max_y, expected_max_y));
 }
 
 // test 5: test the case that the inflation value is too large
@@ -465,10 +459,10 @@ TEST(IrregularShapeInflate, LargeInflation)
         10 + 2 * inflation_value, 10 + 2 * inflation_value,
         inflation_value);
     
-    // Compare shapes element by element using the near() function
+    // Compare shapes element by element using the equal() function
     ASSERT_EQ(inflated_square.elements.size(), expected_inflated_square.elements.size());
     for (size_t i = 0; i < inflated_square.elements.size(); ++i) {
-        EXPECT_TRUE(near(inflated_square.elements[i], expected_inflated_square.elements[i]));
+        EXPECT_TRUE(equal(inflated_square.elements[i], expected_inflated_square.elements[i]));
     }
     
     // verify the inflated shape
@@ -494,11 +488,9 @@ TEST(IrregularShapeInflate, LargeInflation)
         actual_max_y = std::max({actual_max_y, element.start.y, element.end.y});
     }
     
-    // allow some tolerance
-    const LengthDbl tolerance = 0.1;
-    
-    EXPECT_NEAR(actual_min_x, expected_min_x, tolerance);
-    EXPECT_NEAR(actual_min_y, expected_min_y, tolerance);
-    EXPECT_NEAR(actual_max_x, expected_max_x, tolerance);
-    EXPECT_NEAR(actual_max_y, expected_max_y, tolerance);
+
+    EXPECT_TRUE(equal(actual_min_x, expected_min_x));
+    EXPECT_TRUE(equal(actual_min_y, expected_min_y));
+    EXPECT_TRUE(equal(actual_max_x, expected_max_x));
+    EXPECT_TRUE(equal(actual_max_y, expected_max_y));
 }
