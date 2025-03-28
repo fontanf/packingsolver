@@ -41,6 +41,8 @@ struct Point
 
     Point rotate(Angle angle) const;
 
+    Point rotate_radians(Angle angle) const;
+
     Point axial_symmetry_identity_line() const;
 
     Point axial_symmetry_y_axis() const;

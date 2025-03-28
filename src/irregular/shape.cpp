@@ -93,6 +93,15 @@ Point Point::rotate(
     }
 }
 
+Point Point::rotate_radians(
+        Angle angle) const
+{
+    Point point_out;
+    point_out.x = std::cos(angle) * x - std::sin(angle) * y;
+    point_out.y = std::sin(angle) * x + std::cos(angle) * y;
+    return point_out;
+}
+
 Point Point::axial_symmetry_identity_line() const
 {
     Point point_out;
