@@ -13,6 +13,36 @@ namespace packingsolver
 namespace irregular
 {
 
+// Determine vertex type (convex/concave/regular)
+enum class VertexType {
+    Convex,   // Convex vertex (outer angle < 180 degrees)
+    Concave,  // Concave vertex (outer angle > 180 degrees)
+    Regular   // Non-corner vertex
+};
+
+// Detect vertex type by analyzing adjacent elements
+VertexType detect_vertex_type(const Point& prev_end, const Point& curr_start, const Point& curr_end) {
+    // Ensure the current point is a corner point
+    if (equal(prev_end, curr_start) && !equal(prev_end, curr_end)) {
+        // Calculate vectors
+        Point v1 = {prev_end.x - curr_start.x, prev_end.y - curr_start.y};
+        Point v2 = {curr_end.x - curr_start.x, curr_end.y - curr_start.y};
+        
+        // Use cross product to determine vertex type
+        LengthDbl cross = cross_product(v1, v2);
+        
+        if (std::abs(cross) < 1e-10) {
+            return VertexType::Regular;  // Collinear point
+        } else if (cross > 0) {
+            return VertexType::Convex;   // Convex vertex (outer angle < 180 degrees)
+        } else {
+            return VertexType::Concave;  // Concave vertex (outer angle > 180 degrees)
+        }
+    }
+    
+    return VertexType::Regular;
+}
+
 Shape close_inflated_elements(
         const std::vector<ShapeElement>& inflated_elements, 
         const std::vector<std::pair<ShapeElement, ShapeElement>>& original_to_inflated_mapping,
@@ -55,48 +85,20 @@ Shape close_inflated_elements(
         if (!equal(current.end, next.start)) {
             // The end point of the current element and the start point of the next element don't coincide, need to add a connector
             //std::cout << "  Need connector (gap > 1e-6)" << std::endl;
-            
-            // For deflation, we handle connectors differently
+            ShapeElement connector;
+            connector.type = ShapeElementType::CircularArc;
+            connector.start = current.end;
+            connector.end = next.start;
+            const ShapeElement& current_orig_elem = original_to_inflated_mapping[i].first;
+            connector.center = current_orig_elem.end;
             if (is_deflating) {
-                // In deflation mode, simply add a straight line connector for all cases
-                // This avoids adding circular arcs which could extend beyond the desired boundary
-                ShapeElement connector;
-                connector.type = ShapeElementType::LineSegment;
-                connector.start = current.end;
-                connector.end = next.start;
-                inflated_shape.elements.push_back(connector);
-                //std::cout << "  Deflation mode: adding straight line connector from ("
-                //          << connector.start.x << "," << connector.start.y << ") to ("
-                //          << connector.end.x << "," << connector.end.y << ")" << std::endl;
+                // for deflation, add a clockwise circular arc connector on corner points
+                connector.anticlockwise = false;
             } else {
-                // For inflation, add a circular arc connector on corner points
-                bool need_connector = true;
-                if (current.end == next.start) {
-                    // The end point of the current element and the start point of the next element coincide, no connector needed
-                    need_connector = false;
-                }
-                
-                if (need_connector) {
-                    // Add a circular arc connector
-                    ShapeElement connector;
-                    connector.type = ShapeElementType::CircularArc;
-                    connector.start = current.end;
-                    connector.end = next.start;
-                    
-                    // std::cout << "\n==== Debug: Adding Arc Connector ====" << std::endl;
-                    // std::cout << "Connection points: start(" << current.end.x << ", " << current.end.y 
-                    //           << "), end(" << next.start.x << ", " << next.start.y << ")" << std::endl;
-                    
-                    // Try to find the original corner point (discontinuous slope point) as the center
-                    // Point center_point;
-                    // now to find the original corner point (discontinuous slope point) as the center
-                    const ShapeElement& current_orig_elem = original_to_inflated_mapping[i].first;
-                    // const ShapeElement& next_orig_elem = original_to_inflated_mapping[i+1].first;
-                    connector.center = current_orig_elem.end;
-                    connector.anticlockwise = true;
-                    inflated_shape.elements.push_back(connector);
-                }
+                // For inflation, add a anti-clockwise circular arc connector on corner points
+                connector.anticlockwise = true;
             }
+            inflated_shape.elements.push_back(connector);
         }
     }
     
@@ -127,111 +129,183 @@ Shape inflate_shape_without_holes(
     
     bool is_deflating = value < 0;
     
-    //std::cout << "\n------ Debug: inflate_shape_without_holes ------" << std::endl;
-    //std::cout << "Inflation value: " << value << std::endl;
-    //std::cout << "Is deflating: " << (is_deflating ? "true" : "false") << std::endl;
+    // Create new shape
+    Shape inflated_shape;
+    std::vector<ShapeElement> temp_elements;
+    temp_elements.reserve(original_shape.elements.size() * 2); // Reserve space for potential additional arcs
     
-    // To inflate a shape, we need to:
-    // 1. Offset all elements by the inflation value
-    // 2. Handle intersections (intersections should be removed)
-    // 3. Close any gaps (e.g., at corners)
-    
-    // Create inflated elements by offsetting each element
-    std::vector<ShapeElement> inflated_elements;
-    inflated_elements.reserve(original_shape.elements.size());
-    
-    // Store the mapping between original shape elements and inflated elements
-    std::vector<std::pair<ShapeElement, ShapeElement>> original_to_inflated_mapping;
-    original_to_inflated_mapping.reserve(original_shape.elements.size());
-    
-    // std::cout << "\n==== Debug: Creating Shape Inflation Mapping ====" << std::endl;
-    // std::cout << "Original shape element count: " << original_shape.elements.size() << std::endl;
-    
-    for (ElementPos element_pos = 0; element_pos < (ElementPos)original_shape.elements.size(); ++element_pos) {
-        const ShapeElement& element = original_shape.elements[element_pos];
-        ShapeElement inflated_element = offset_element(element, value);
+    // If shape is too small for deflation, return empty shape
+    if (is_deflating) {
+        // Calculate minimum edge length or radius to ensure shape won't disappear
+        LengthDbl min_size = std::numeric_limits<LengthDbl>::max();
+        for (const auto& element : original_shape.elements) {
+            if (element.type == ShapeElementType::LineSegment) {
+                min_size = std::min(min_size, distance(element.start, element.end));
+            } else if (element.type == ShapeElementType::CircularArc) {
+                min_size = std::min(min_size, distance(element.center, element.start));
+            }
+        }
         
-        // std::cout << "Original element " << i << ": ";
-        // if (element.type == ShapeElementType::LineSegment) {
-        //     std::cout << "Line Segment";
-        // } else {
-        //     std::cout << "Circular Arc";
-        // }
-        // std::cout << " start(" << element.start.x << ", " << element.start.y 
-        //           << "), end(" << element.end.x << ", " << element.end.y << ")";
-        
-        // if (element.type == ShapeElementType::CircularArc) {
-        //     std::cout << ", center(" << element.center.x << ", " << element.center.y 
-        //               << "), " << (element.anticlockwise ? "counterclockwise" : "clockwise");
-        // }
-        std::cout << std::endl;
-        
-        if (!is_degenerate_element(inflated_element)) {
-            inflated_elements.push_back(inflated_element);
-            original_to_inflated_mapping.push_back({element, inflated_element});
-            
-            // std::cout << "  Inflated element: ";
-            // if (inflated_element.type == ShapeElementType::LineSegment) {
-            //     std::cout << "Line Segment";
-            // } else {
-            //     std::cout << "Circular Arc";
-            // }
-            // std::cout << " start(" << inflated_element.start.x << ", " << inflated_element.start.y 
-            //           << "), end(" << inflated_element.end.x << ", " << inflated_element.end.y << ")";
-            
-            // if (inflated_element.type == ShapeElementType::CircularArc) {
-            //     std::cout << ", center(" << inflated_element.center.x << ", " << inflated_element.center.y 
-            //               << "), " << (inflated_element.anticlockwise ? "counterclockwise" : "clockwise");
-            // }
-            // std::cout << std::endl;
-        } else {
-            // std::cout << "  This element is degenerate after inflation, ignored" << std::endl;
+        // If deflation value is too large, return empty shape
+        if (std::abs(value) >= min_size / 2) {
+            return Shape();
         }
     }
     
-    //std::cout << "Created " << inflated_elements.size() << " inflated elements" << std::endl;
-    // std::cout << "Inflated element count: " << inflated_elements.size() << std::endl;
-    // std::cout << "Mapping relationship count: " << original_to_inflated_mapping.size() << std::endl;
+    // Step 1: Detect vertex types for all vertices
+    std::vector<VertexType> vertex_types;
+    vertex_types.reserve(original_shape.elements.size());
     
-    // For deflation (value < 0), remove intersections before closure
-    // For inflation (value >= 0), also remove intersections before closure
-    if (!inflated_elements.empty()) {
-        //std::cout << "Removing intersections..." << std::endl;
-        // std::cout << "\n==== Debug: Removing Intersections ====" << std::endl;
+    // Pre-process closed shape special cases
+    const size_t num_elements = original_shape.elements.size();
+    for (size_t i = 0; i < num_elements; ++i) {
+        const ShapeElement& curr_element = original_shape.elements[i];
+        const ShapeElement& prev_element = original_shape.elements[(i + num_elements - 1) % num_elements];
         
-        // If there are intersection points, regenerate the mapping relationship
-        auto new_inflated_elements = remove_intersections_segments(inflated_elements, is_deflating);
+        // Detect current vertex type
+        VertexType vtype = detect_vertex_type(prev_element.end, curr_element.start, curr_element.end);
+        vertex_types.push_back(vtype);
+    }
+    
+    // Step 2: Process each element for inflation/deflation
+    for (size_t i = 0; i < num_elements; ++i) {
+        const ShapeElement& element = original_shape.elements[i];
+        const VertexType curr_vertex_type = vertex_types[i];
+        const VertexType next_vertex_type = vertex_types[(i + 1) % num_elements];
         
-        // std::cout << "Element count before intersection removal: " << inflated_elements.size() << std::endl;
-        // std::cout << "Element count after intersection removal: " << new_inflated_elements.size() << std::endl;
+        // Offset current element
+        ShapeElement offset_elem = offset_element(element, value);
         
-        // Even if the shape elements change after processing, keep the mapping relationship
-        // The intersection point processing may change the number of elements, but the original non-tangent points are still valid reference points
-        // No longer clear the mapping relationship, let the subsequent closure process try to find the original non-tangent points
-        /*
-        if (new_inflated_elements.size() != inflated_elements.size()) {
-            original_to_inflated_mapping.clear();
+        // If element is valid, add to temporary elements list
+        if (!is_degenerate_element(offset_elem)) {
+            temp_elements.push_back(offset_elem);
+            
+            // Based on next vertex type, decide whether to add connecting arc
+            if (next_vertex_type != VertexType::Regular) {
+                bool need_arc = false;
+                bool arc_anticlockwise = true;
+                
+                if (is_deflating) {
+                    // For deflation, add clockwise arc at concave points
+                    if (next_vertex_type == VertexType::Concave) {
+                        need_arc = true;
+                        arc_anticlockwise = false; // Clockwise
+                    }
+                } else {
+                    // For inflation, add counterclockwise arc at convex points
+                    if (next_vertex_type == VertexType::Convex) {
+                        need_arc = true;
+                        arc_anticlockwise = true; // Counterclockwise
+                    }
+                }
+                
+                // If need to add arc
+                if (need_arc) {
+                    // Get next offset element
+                    const ShapeElement& next_element = original_shape.elements[(i + 1) % num_elements];
+                    ShapeElement next_offset = offset_element(next_element, value);
+                    
+                    // Check next element is degenerate
+                    if (is_degenerate_element(next_offset)) {
+                        // Find next non-degenerate element
+                        size_t next_valid_idx = (i + 1) % num_elements;
+                        ShapeElement next_valid_offset;
+                        const ShapeElement* next_valid_element = nullptr;
+                        bool found_valid = false;
+                        
+                        // Search backward until find a non-degenerate element
+                        for (size_t j = 1; j < num_elements; ++j) {
+                            next_valid_idx = (i + j) % num_elements;
+                            const ShapeElement& candidate = original_shape.elements[next_valid_idx];
+                            next_valid_offset = offset_element(candidate, value);
+                            
+                            if (!is_degenerate_element(next_valid_offset)) {
+                                found_valid = true;
+                                next_valid_element = &candidate;
+                                break;
+                            }
+                        }
+                        
+                        // If no valid next element, skip arc addition
+                        if (!found_valid) {
+                            continue;
+                        }
+                        
+                        // Calculate vector from current point to next valid element start point
+                        Point direction = {
+                            next_valid_element->start.x - element.end.x,
+                            next_valid_element->start.y - element.end.y
+                        };
+                        LengthDbl dir_length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+                        if (dir_length < 1e-10) continue;  // If vector too short, skip
+                        
+                        // Calculate normal direction (right-hand normal)
+                        Point normal = {
+                            -direction.y / dir_length,
+                            direction.x / dir_length
+                        };
+                        
+                        // Calculate first arc end point (intersection of ray and circle)
+                        Point arc1_end = {
+                            element.end.x + std::abs(value) * normal.x,
+                            element.end.y + std::abs(value) * normal.y
+                        };
+                        
+                        // Add first arc
+                        ShapeElement arc1;
+                        arc1.type = ShapeElementType::CircularArc;
+                        arc1.start = offset_elem.end;
+                        arc1.end = arc1_end;
+                        arc1.center = element.end;
+                        arc1.anticlockwise = arc_anticlockwise;
+                        
+                        // Add second arc
+                        ShapeElement arc2;
+                        arc2.type = ShapeElementType::CircularArc;
+                        arc2.start = arc1_end;
+                        arc2.end = next_valid_offset.start;
+                        arc2.center = next_valid_element->start;
+                        arc2.anticlockwise = arc_anticlockwise;
+                        
+                        // Only add arc if it's not degenerate
+                        if (!is_degenerate_element(arc1)) {
+                            temp_elements.push_back(arc1);
+                        }
+                        if (!is_degenerate_element(arc2)) {
+                            temp_elements.push_back(arc2);
+                        }
+                    } else {
+                        // Normal processing logic
+                        ShapeElement arc;
+                        arc.type = ShapeElementType::CircularArc;
+                        arc.start = offset_elem.end;
+                        arc.end = next_offset.start;
+                        arc.center = element.end;
+                        arc.anticlockwise = arc_anticlockwise;
+                        
+                        // Only add arc if it's not degenerate
+                        if (!is_degenerate_element(arc)) {
+                            temp_elements.push_back(arc);
+                        }
+                    }
+                }
+            }
         }
-        */
-        
-        inflated_elements = new_inflated_elements;
-        //std::cout << "After intersection removal: " << inflated_elements.size() << " elements" << std::endl;
     }
     
-    // Close the shape (connect elements where needed)
-    if (!inflated_elements.empty()) {
-        //std::cout << "Closing inflated elements..." << std::endl;
-        // std::cout << "\n==== Debug: Closing Shape ====" << std::endl;
-        // std::cout << "Mapping relationship count before closing: " << original_to_inflated_mapping.size() << std::endl;
-        
-        Shape inflated_shape = close_inflated_elements(inflated_elements, original_to_inflated_mapping, is_deflating);
-        //std::cout << "Closed shape has " << inflated_shape.elements.size() << " elements" << std::endl;
-        // std::cout << "Element count after closing: " << inflated_shape.elements.size() << std::endl;
-        
-        return inflated_shape;
+    // If no valid elements, return original shape
+    if (temp_elements.empty()) {
+        return original_shape;
     }
     
-    return original_shape;  // Return original shape if inflation failed
+    // Step 3: Handle self-intersections
+    std::vector<ShapeElement> non_intersecting_elements = 
+        remove_intersections_segments(temp_elements, is_deflating);
+    
+    // Build final shape
+    inflated_shape.elements = non_intersecting_elements;
+    
+    return inflated_shape;
 }
 
 std::pair<Shape, std::vector<Shape>> inflate(
@@ -367,4 +441,19 @@ bool is_degenerate_element(const ShapeElement& element)
 }
 
 }
-} 
+}
+
+
+/*
+ * Minkowski sum implementation:
+ * 1. First detect convex/concave vertices on the original shape
+ * 2. Then offset each original element along its normal direction
+ * 3. Based on inflation/deflation value:
+ *    - For positive value (inflation): 
+ *      - Add counterclockwise arcs at convex points
+ *      - No special handling for concave points
+ *    - For negative value (deflation):
+ *      - Add clockwise arcs at concave points
+ *      - No special handling for convex points
+ * 4. Finally detect and remove self-intersections
+ */
