@@ -66,6 +66,10 @@ std::istream& packingsolver::operator>>(
             || token == "OneDimensional"
             || token == "1") {
         problem_type = ProblemType::OneDimensional;
+    } else if (token == "box"
+            || token == "Box"
+            || token == "B") {
+        problem_type = ProblemType::Box;
     } else if (token == "boxstacks"
             || token == "BoxStacks"
             || token == "BS") {
@@ -93,6 +97,9 @@ std::ostream& packingsolver::operator<<(
         break;
     } case ProblemType::OneDimensional: {
         os << "OneDimensional";
+        break;
+    } case ProblemType::Box: {
+        os << "Box";
         break;
     } case ProblemType::BoxStacks: {
         os << "BoxStacks";
@@ -130,6 +137,10 @@ std::istream& packingsolver::operator>>(
             || token == "OpenDimensionY"
             || token == "ODY") {
         objective = Objective::OpenDimensionY;
+    } else if (token == "open-dimension-z"
+            || token == "OpenDimensionZ"
+            || token == "ODZ") {
+        objective = Objective::OpenDimensionZ;
     } else if (token == "knapsack"
             || token == "Knapsack"
             || token == "KP") {
@@ -167,6 +178,9 @@ std::ostream& packingsolver::operator<<(
         break;
     } case Objective::OpenDimensionY: {
         os << "OpenDimensionY";
+        break;
+    } case Objective::OpenDimensionZ: {
+        os << "OpenDimensionZ";
         break;
     } case Objective::OpenDimensionXY: {
         os << "OpenDimensionXY";
