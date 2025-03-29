@@ -1,4 +1,5 @@
 add_subdirectory(algorithms)
+add_subdirectory(box)
 add_subdirectory(boxstacks)
 add_subdirectory(irregular)
 add_subdirectory(onedimensional)

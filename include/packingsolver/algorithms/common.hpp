@@ -102,6 +102,7 @@ enum class ProblemType
     RectangleGuillotine,
     Rectangle,
     OneDimensional,
+    Box,
     BoxStacks,
     Irregular,
 };
@@ -122,6 +123,7 @@ enum class Objective
     BinPackingWithLeftovers,
     OpenDimensionX,
     OpenDimensionY,
+    OpenDimensionZ,
     OpenDimensionXY,
     Knapsack,
     VariableSizedBinPacking,
