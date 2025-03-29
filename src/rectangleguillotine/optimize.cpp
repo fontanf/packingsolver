@@ -4,6 +4,8 @@
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "rectangleguillotine/branching_scheme.hpp"
 #include "rectangleguillotine/column_generation_2.hpp"
+#include "rectangle/dual_feasible_functions.hpp"
+#include "packingsolver/rectangle/instance_builder.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -17,6 +19,48 @@ using namespace packingsolver::rectangleguillotine;
 
 namespace
 {
+
+void optimize_dual_feasible_functions(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    rectangle::InstanceBuilder rectangle_instance_builder;
+    rectangle_instance_builder.set_objective(instance.objective());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        BinType bin_type = instance.bin_type(bin_type_id);
+        rectangle_instance_builder.add_bin_type(
+                bin_type.rect.w,
+                bin_type.rect.h,
+                bin_type.cost,
+                bin_type.copies);
+    }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        ItemType item_type = instance.item_type(item_type_id);
+        rectangle_instance_builder.add_item_type(
+                item_type.rect.w,
+                item_type.rect.h,
+                item_type.profit,
+                item_type.copies);
+    }
+    rectangle::Instance rectangle_instance = rectangle_instance_builder.build();
+
+    rectangle::DualFeasibleFunctionsParameters dff_parameters;
+    dff_parameters.verbosity_level = 0;
+    dff_parameters.timer = parameters.timer;
+    dff_parameters.new_solution_callback
+        = [&algorithm_formatter](
+                const packingsolver::Output<rectangle::Instance, rectangle::Solution>& dff_output)
+        {
+            algorithm_formatter.update_bin_packing_bound(
+                    dff_output.bin_packing_bound);
+        };
+    rectangle::dual_feasible_functions(rectangle_instance, dff_parameters);
+}
 
 void optimize_tree_search(
         const Instance& instance,
@@ -535,6 +579,16 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     use_column_generation = true;
                 }
             }
+        }
+    }
+
+    if (instance.objective() == Objective::BinPacking) {
+        if (instance.number_of_bin_types() == 1
+                && instance.number_of_items() <= 100) {
+            optimize_dual_feasible_functions(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
         }
     }
 
