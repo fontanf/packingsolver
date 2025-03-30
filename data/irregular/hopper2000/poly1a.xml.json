@@ -1,0 +1,996 @@
+{
+    "objective": "open-dimension-x",
+    "bin_types": [
+        {
+            "type": "general",
+            "copies": 1,
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 500.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 500.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 500.0,
+                        "y": 40.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 500.0,
+                        "y": 40.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 40.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 40.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 10.0,
+                        "y": 2.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 10.0,
+                        "y": 2.0
+                    },
+                    "end": {
+                        "x": 8.0,
+                        "y": 5.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 8.0,
+                        "y": 5.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 4.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 4.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 7.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 7.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 5.0,
+                        "y": 7.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 5.0,
+                        "y": 7.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 1.0
+                    },
+                    "end": {
+                        "x": 3.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 3.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 7.0,
+                        "y": 2.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 7.0,
+                        "y": 2.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 5.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 5.0
+                    },
+                    "end": {
+                        "x": 1.0,
+                        "y": 3.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1.0,
+                        "y": 3.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 1.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 3.0
+                    },
+                    "end": {
+                        "x": 6.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 6.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 7.0,
+                        "y": 7.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 7.0,
+                        "y": 7.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 10.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 10.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 3.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 10.0,
+                        "y": 1.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 10.0,
+                        "y": 1.0
+                    },
+                    "end": {
+                        "x": 13.0,
+                        "y": 3.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 13.0,
+                        "y": 3.0
+                    },
+                    "end": {
+                        "x": 12.0,
+                        "y": 5.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 12.0,
+                        "y": 5.0
+                    },
+                    "end": {
+                        "x": 5.0,
+                        "y": 7.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 5.0,
+                        "y": 7.0
+                    },
+                    "end": {
+                        "x": 1.0,
+                        "y": 5.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1.0,
+                        "y": 5.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 2.0
+                    },
+                    "end": {
+                        "x": 5.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 5.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 4.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 4.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 3.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 3.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 2.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 6.0,
+                        "y": 7.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 6.0,
+                        "y": 7.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 4.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 4.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 7.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 7.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 9.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 9.0
+                    },
+                    "end": {
+                        "x": 1.0,
+                        "y": 6.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1.0,
+                        "y": 6.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 4.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 4.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 6.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 6.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 8.0,
+                        "y": 2.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 8.0,
+                        "y": 2.0
+                    },
+                    "end": {
+                        "x": 3.0,
+                        "y": 7.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 3.0,
+                        "y": 7.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 3.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 11.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 11.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 11.0,
+                        "y": 3.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 11.0,
+                        "y": 3.0
+                    },
+                    "end": {
+                        "x": 3.0,
+                        "y": 7.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 3.0,
+                        "y": 7.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 5.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 5.0
+                    },
+                    "end": {
+                        "x": 3.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 8.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 8.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 3.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 3.0
+                    },
+                    "end": {
+                        "x": 7.0,
+                        "y": 6.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 7.0,
+                        "y": 6.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 5.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 5.0
+                    },
+                    "end": {
+                        "x": 1.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 6.0,
+                        "y": 2.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 6.0,
+                        "y": 2.0
+                    },
+                    "end": {
+                        "x": 9.0,
+                        "y": 1.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 9.0,
+                        "y": 1.0
+                    },
+                    "end": {
+                        "x": 7.0,
+                        "y": 3.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 7.0,
+                        "y": 3.0
+                    },
+                    "end": {
+                        "x": 3.0,
+                        "y": 5.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 3.0,
+                        "y": 5.0
+                    },
+                    "end": {
+                        "x": 5.0,
+                        "y": 7.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 5.0,
+                        "y": 7.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 8.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 8.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 6.0
+                    },
+                    "end": {
+                        "x": 3.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 3.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 9.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 9.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 2.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 2.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 6.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 10.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 10.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 9.0,
+                        "y": 4.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 9.0,
+                        "y": 4.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 2.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 2.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 3.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 3.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 3.0
+                    },
+                    "end": {
+                        "x": 5.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 5.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 7.0,
+                        "y": 2.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 7.0,
+                        "y": 2.0
+                    },
+                    "end": {
+                        "x": 8.0,
+                        "y": 4.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 8.0,
+                        "y": 4.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 5.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 5.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 3.0
+                    }
+                }
+            ]
+        }
+    ]
+}

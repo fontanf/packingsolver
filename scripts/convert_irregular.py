@@ -623,7 +623,9 @@ def convert_cgshop2024():
                 write_dict(dic, path)
 
 
-def convert_oliveira2000(filename):
+def convert_oliveira2000(
+        filename,
+        url = "http://www.fe.up.pt/~esicup/nesting.xsd"):
     path = os.path.join("data", "irregular_raw", filename)
 
     dic = {
@@ -635,7 +637,7 @@ def convert_oliveira2000(filename):
     tree = ET.parse(path)
     root = tree.getroot()
 
-    ns = '{http://www.fe.up.pt/~esicup/nesting.xsd}'
+    ns = '{' + url + '}'
 
     # Read polygons.
     polygons = {}
@@ -687,12 +689,31 @@ def convert_oliveira2000(filename):
 
 if __name__ == "__main__":
 
-    convert_packomania_coop()
-    convert_cgshop2024()
+    # convert_packomania_coop()
+    # convert_cgshop2024()
 
+    convert_oliveira2000(os.path.join("albano1980", "albano_2007-05-15", "albano.xml"))
+    convert_oliveira2000(os.path.join("bounsaythip1997", "mao_2007-04-23", "mao.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe1.xml"))
+    convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe2.xml"))
+    convert_oliveira2000(os.path.join("fujita1993", "fu_2007-05-15", "fu.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("han1996", "han_2007-04-23", "han.xml"))
+    convert_oliveira2000(os.path.join("hopper2000", "poly1a.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly2a.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly2b.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly3a.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly3b.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly4a.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly4b.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly5a.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly5b.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs1.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs2.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("marques1991", "marques_2007-05-15", "marques.xml"), "http://globalnest.fe.up.pt/nesting")
     convert_oliveira2000(os.path.join("oliveira2000", "blaz_2007-04-23", "blaz.xml"))
     convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes0.xml"))
     convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes1.xml"))
     convert_oliveira2000(os.path.join("oliveira2000", "shirts_2007-05-15", "shirts.xml"))
     convert_oliveira2000(os.path.join("oliveira2000", "swim_2007-05-15", "swim.xml"))
     convert_oliveira2000(os.path.join("oliveira2000", "trousers_2007-05-15", "trousers.xml"))
+    convert_oliveira2000(os.path.join("ratanapan1997", "dagli_2007-05-15", "dagli.xml"), "http://globalnest.fe.up.pt/nesting")

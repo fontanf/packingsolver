@@ -1,0 +1,876 @@
+{
+    "objective": "open-dimension-x",
+    "bin_types": [
+        {
+            "type": "general",
+            "copies": 1,
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 400.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 400.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 400.0,
+                        "y": 104.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 400.0,
+                        "y": 104.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 104.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 104.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "type": "general",
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 90.0,
+                    "end": 90.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                },
+                {
+                    "start": 270.0,
+                    "end": 270.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 21.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 21.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 21.0,
+                        "y": 22.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 21.0,
+                        "y": 22.0
+                    },
+                    "end": {
+                        "x": 14.0,
+                        "y": 28.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 14.0,
+                        "y": 28.0
+                    },
+                    "end": {
+                        "x": 7.0,
+                        "y": 28.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 7.0,
+                        "y": 28.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 22.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 22.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 90.0,
+                    "end": 90.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                },
+                {
+                    "start": 270.0,
+                    "end": 270.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 5.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 11.0,
+                        "y": 2.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 11.0,
+                        "y": 2.0
+                    },
+                    "end": {
+                        "x": 19.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 19.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 21.0,
+                        "y": 5.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 21.0,
+                        "y": 5.0
+                    },
+                    "end": {
+                        "x": 17.0,
+                        "y": 4.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 17.0,
+                        "y": 4.0
+                    },
+                    "end": {
+                        "x": 11.0,
+                        "y": 6.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 11.0,
+                        "y": 6.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 4.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 4.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 5.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 2,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 90.0,
+                    "end": 90.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                },
+                {
+                    "start": 270.0,
+                    "end": 270.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 33.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 33.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 33.0,
+                        "y": 14.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 33.0,
+                        "y": 14.0
+                    },
+                    "end": {
+                        "x": 30.0,
+                        "y": 14.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 30.0,
+                        "y": 14.0
+                    },
+                    "end": {
+                        "x": 26.0,
+                        "y": 17.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 26.0,
+                        "y": 17.0
+                    },
+                    "end": {
+                        "x": 13.0,
+                        "y": 15.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 13.0,
+                        "y": 15.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 17.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 17.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 2,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 90.0,
+                    "end": 90.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                },
+                {
+                    "start": 270.0,
+                    "end": 270.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 39.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 39.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 39.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 39.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 90.0,
+                    "end": 90.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                },
+                {
+                    "start": 270.0,
+                    "end": 270.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 10.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 10.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 10.0,
+                        "y": 11.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 10.0,
+                        "y": 11.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 11.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 11.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 90.0,
+                    "end": 90.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                },
+                {
+                    "start": 270.0,
+                    "end": 270.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 20.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 18.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 18.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 10.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 10.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 2.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 2.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 10.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 10.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 20.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 2,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 90.0,
+                    "end": 90.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                },
+                {
+                    "start": 270.0,
+                    "end": 270.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 29.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 29.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 27.0,
+                        "y": 12.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 27.0,
+                        "y": 12.0
+                    },
+                    "end": {
+                        "x": 29.0,
+                        "y": 22.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 29.0,
+                        "y": 22.0
+                    },
+                    "end": {
+                        "x": 25.0,
+                        "y": 26.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 25.0,
+                        "y": 26.0
+                    },
+                    "end": {
+                        "x": 25.0,
+                        "y": 33.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 25.0,
+                        "y": 33.0
+                    },
+                    "end": {
+                        "x": 18.0,
+                        "y": 37.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 18.0,
+                        "y": 37.0
+                    },
+                    "end": {
+                        "x": 16.0,
+                        "y": 35.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 16.0,
+                        "y": 35.0
+                    },
+                    "end": {
+                        "x": 14.0,
+                        "y": 35.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 14.0,
+                        "y": 35.0
+                    },
+                    "end": {
+                        "x": 12.0,
+                        "y": 37.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 12.0,
+                        "y": 37.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 34.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 34.0
+                    },
+                    "end": {
+                        "x": 4.0,
+                        "y": 26.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 4.0,
+                        "y": 26.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 22.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 22.0
+                    },
+                    "end": {
+                        "x": 2.0,
+                        "y": 12.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2.0,
+                        "y": 12.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 2,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 90.0,
+                    "end": 90.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                },
+                {
+                    "start": 270.0,
+                    "end": 270.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 33.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 33.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 37.0,
+                        "y": 6.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 37.0,
+                        "y": 6.0
+                    },
+                    "end": {
+                        "x": 35.0,
+                        "y": 13.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 35.0,
+                        "y": 13.0
+                    },
+                    "end": {
+                        "x": 28.0,
+                        "y": 13.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 28.0,
+                        "y": 13.0
+                    },
+                    "end": {
+                        "x": 25.0,
+                        "y": 15.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 25.0,
+                        "y": 15.0
+                    },
+                    "end": {
+                        "x": 14.0,
+                        "y": 13.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 14.0,
+                        "y": 13.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 15.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 15.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        }
+    ]
+}

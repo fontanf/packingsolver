@@ -1,0 +1,823 @@
+{
+    "objective": "open-dimension-x",
+    "bin_types": [
+        {
+            "type": "general",
+            "copies": 1,
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 29000.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 29000.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 29000.0,
+                        "y": 4900.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 29000.0,
+                        "y": 4900.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 4900.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 4900.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "type": "general",
+            "copies": 2,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 86.0
+                    },
+                    "end": {
+                        "x": 966.0,
+                        "y": 142.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 966.0,
+                        "y": 142.0
+                    },
+                    "end": {
+                        "x": 1983.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1983.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 2185.0,
+                        "y": 238.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2185.0,
+                        "y": 238.0
+                    },
+                    "end": {
+                        "x": 2734.0,
+                        "y": 217.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2734.0,
+                        "y": 217.0
+                    },
+                    "end": {
+                        "x": 3000.0,
+                        "y": 767.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 3000.0,
+                        "y": 767.0
+                    },
+                    "end": {
+                        "x": 2819.0,
+                        "y": 900.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2819.0,
+                        "y": 900.0
+                    },
+                    "end": {
+                        "x": 2819.0,
+                        "y": 1360.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2819.0,
+                        "y": 1360.0
+                    },
+                    "end": {
+                        "x": 3000.0,
+                        "y": 1493.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 3000.0,
+                        "y": 1493.0
+                    },
+                    "end": {
+                        "x": 2734.0,
+                        "y": 2043.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2734.0,
+                        "y": 2043.0
+                    },
+                    "end": {
+                        "x": 2185.0,
+                        "y": 2022.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2185.0,
+                        "y": 2022.0
+                    },
+                    "end": {
+                        "x": 1983.0,
+                        "y": 2260.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1983.0,
+                        "y": 2260.0
+                    },
+                    "end": {
+                        "x": 966.0,
+                        "y": 2118.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 966.0,
+                        "y": 2118.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 2174.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 2174.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 86.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 2,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 3034.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 3034.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 3034.0,
+                        "y": 261.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 3034.0,
+                        "y": 261.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 261.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 261.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 173.0
+                    },
+                    "end": {
+                        "x": 1761.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1761.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 2183.0,
+                        "y": 650.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2183.0,
+                        "y": 650.0
+                    },
+                    "end": {
+                        "x": 2183.0,
+                        "y": 1010.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2183.0,
+                        "y": 1010.0
+                    },
+                    "end": {
+                        "x": 1761.0,
+                        "y": 1660.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1761.0,
+                        "y": 1660.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 1487.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 1487.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 173.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 74.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 870.0,
+                        "y": 119.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 870.0,
+                        "y": 119.0
+                    },
+                    "end": {
+                        "x": 1666.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1666.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 1740.0,
+                        "y": 125.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1740.0,
+                        "y": 125.0
+                    },
+                    "end": {
+                        "x": 870.0,
+                        "y": 305.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 870.0,
+                        "y": 305.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 125.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 125.0
+                    },
+                    "end": {
+                        "x": 74.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 411.0,
+                        "y": 65.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 411.0,
+                        "y": 65.0
+                    },
+                    "end": {
+                        "x": 800.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 800.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 1189.0,
+                        "y": 65.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1189.0,
+                        "y": 65.0
+                    },
+                    "end": {
+                        "x": 1600.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1600.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 1500.0,
+                        "y": 368.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1500.0,
+                        "y": 368.0
+                    },
+                    "end": {
+                        "x": 800.0,
+                        "y": 286.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 800.0,
+                        "y": 286.0
+                    },
+                    "end": {
+                        "x": 100.0,
+                        "y": 368.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 100.0,
+                        "y": 368.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 4,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 936.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 936.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 936.0,
+                        "y": 659.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 936.0,
+                        "y": 659.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 659.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 659.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 2,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 56.0,
+                        "y": 73.0
+                    },
+                    "end": {
+                        "x": 1066.0,
+                        "y": 143.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1066.0,
+                        "y": 143.0
+                    },
+                    "end": {
+                        "x": 1891.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1891.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 2186.0,
+                        "y": 288.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2186.0,
+                        "y": 288.0
+                    },
+                    "end": {
+                        "x": 2573.0,
+                        "y": 241.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2573.0,
+                        "y": 241.0
+                    },
+                    "end": {
+                        "x": 2676.0,
+                        "y": 926.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2676.0,
+                        "y": 926.0
+                    },
+                    "end": {
+                        "x": 2594.0,
+                        "y": 1366.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2594.0,
+                        "y": 1366.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 1366.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 1366.0
+                    },
+                    "end": {
+                        "x": 56.0,
+                        "y": 73.0
+                    }
+                }
+            ]
+        },
+        {
+            "type": "general",
+            "copies": 2,
+            "allowed_rotations": [
+                {
+                    "start": 0.0,
+                    "end": 0.0
+                },
+                {
+                    "start": 180.0,
+                    "end": 180.0
+                }
+            ],
+            "elements": [
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 2499.0,
+                        "y": 0.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2499.0,
+                        "y": 0.0
+                    },
+                    "end": {
+                        "x": 2705.0,
+                        "y": 387.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2705.0,
+                        "y": 387.0
+                    },
+                    "end": {
+                        "x": 2622.0,
+                        "y": 934.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2622.0,
+                        "y": 934.0
+                    },
+                    "end": {
+                        "x": 2148.0,
+                        "y": 967.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 2148.0,
+                        "y": 967.0
+                    },
+                    "end": {
+                        "x": 1920.0,
+                        "y": 1152.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1920.0,
+                        "y": 1152.0
+                    },
+                    "end": {
+                        "x": 1061.0,
+                        "y": 1059.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 1061.0,
+                        "y": 1059.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 1125.0
+                    }
+                },
+                {
+                    "type": "line_segment",
+                    "start": {
+                        "x": 0.0,
+                        "y": 1125.0
+                    },
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    }
+                }
+            ]
+        }
+    ]
+}
