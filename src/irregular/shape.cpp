@@ -497,7 +497,7 @@ std::pair<Point, Point> Shape::compute_min_max(
         y_max = std::max(y_max, point.y);
 
         if (element.type == ShapeElementType::CircularArc) {
-            LengthDbl radius = distance(elements.front().center, elements.front().start);
+            LengthDbl radius = distance(element.center, element.start);
             Angle starting_angle = irregular::angle_radian(element.start - element.center);
             Angle ending_angle = irregular::angle_radian(element.end - element.center);
             if (!element.anticlockwise)
