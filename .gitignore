@@ -1,4 +1,5 @@
 bazel-*
+build/*
 .vscode
 checker/checker
 checker/logs/*
