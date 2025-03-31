@@ -106,6 +106,11 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 0}, {0, 2}}, true).elements.front(),
                 false,
                 {{0, 1}},
+            }, {  // Intersecting line segment and circular arc.
+                build_shape({{-1, 0}, {0, 0, -1}, {1, 0}}, true).elements.front(),
+                build_shape({{0, 0}, {0, 2}}, true).elements.front(),
+                false,
+                {{0, 1}},
             }, {  // Touching line segment and circular arc.
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 build_shape({{-1, 1}, {1, 1}}, true).elements.front(),
@@ -124,6 +129,16 @@ INSTANTIATE_TEST_SUITE_P(
             }, {  // Intersecting circular arcs.
                 build_shape({{3, 0}, {1, 0, 1}, {-1, 0}}, true).elements.front(),
                 build_shape({{1, 0}, {-1, 0, 1}, {-3, 0}}, true).elements.front(),
+                false,
+                {{0, 1.73205080756888}},
+            }, {  // Intersecting circular arcs.
+                build_shape({{3, 0}, {1, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{-3, 0}, {-1, 0, -1}, {1, 0}}, true).elements.front(),
+                false,
+                {{0, 1.73205080756888}},
+            }, {  // Intersecting circular arcs.
+                build_shape({{-1, 0}, {1, 0, -1}, {3, 0}}, true).elements.front(),
+                build_shape({{-3, 0}, {-1, 0, -1}, {1, 0}}, true).elements.front(),
                 false,
                 {{0, 1.73205080756888}},
             }, {  // Touching circular arcs.
