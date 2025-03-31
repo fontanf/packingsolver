@@ -21,6 +21,7 @@ TEST_P(IrregularComputeIntersectionsTest, IrregularComputeIntersections)
     IrregularComputeIntersectionsTestParams test_params = GetParam();
     std::cout << "element_1 " << test_params.element_1.to_string() << std::endl;
     std::cout << "element_2 " << test_params.element_2.to_string() << std::endl;
+    std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_intersections" << std::endl;
     for (const Point& point: test_params.expected_intersections)
         std::cout << "- " << point.to_string() << std::endl;
@@ -75,6 +76,11 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 0}, {0, 2}}, true).elements.front(),
                 false,
                 {{0, 0}, {0, 2}},
+            }, {  // Two identical line segments (reversed).
+                build_shape({{0, 0}, {0, 2}}, true).elements.front(),
+                build_shape({{2, 0}, {0, 0}}, true).elements.front(),
+                false,
+                {{0, 0}, {0, 2}},
             }, {  // Two identical line segments.
                 build_shape({{0, 0}, {0, 2}}, true).elements.front(),
                 build_shape({{0, 0}, {0, 2}}, true).elements.front(),
@@ -95,6 +101,21 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{2, 0}, {2, 2}}, true).elements.front(),
                 false,
                 {},
+            }, {  // Intersecting line segment and circular arc.
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{0, 0}, {0, 2}}, true).elements.front(),
+                false,
+                {{0, 1}},
+            }, {  // Touching line segment and circular arc.
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{-1, 1}, {1, 1}}, true).elements.front(),
+                false,
+                {{0, 1}},
+            }, {  // Touching line segment and circular arc.
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{-1, 1}, {1, 1}}, true).elements.front(),
+                true,
+                {},
             }, {  // Non-intersecting circular arcs.
                 build_shape({{2, 0}, {0, 0, 1}, {0, 2}}, true).elements.front(),
                 build_shape({{3, 0}, {1, 0, 1}, {1, 2}}, true).elements.front(),
@@ -105,4 +126,44 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{1, 0}, {-1, 0, 1}, {-3, 0}}, true).elements.front(),
                 false,
                 {{0, 1.73205080756888}},
+            }, {  // Touching circular arcs.
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{-1, 0}, {0, 0, 1}, {1, 0}}, true).elements.front(),
+                false,
+                {{1, 0}, {-1, 0}},
+            }, {  // Touching circular arcs.
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{-1, 0}, {0, 0, 1}, {1, 0}}, true).elements.front(),
+                true,
+                {},
+            }, {  // Identical circular arcs.
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                false,
+                {{1, 0}, {-1, 0}},
+            }, {  // Identical circular arcs.
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                true,
+                {},
+            }, {  // Identical circular arcs (reversed).
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{-1, 0}, {0, 0, -1}, {1, 0}}, true).elements.front(),
+                false,
+                {{1, 0}, {-1, 0}},
+            }, {  // Identical circular arcs (reversed).
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{-1, 0}, {0, 0, -1}, {1, 0}}, true).elements.front(),
+                true,
+                {},
+            }, {  // Overlapping circular arcs.
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{0, 1}, {0, 0, 1}, {0, -1}}, true).elements.front(),
+                false,
+                {{0, 1}, {-1, 0}},
+            }, {  // Overlapping circular arcs.
+                build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{0, 1}, {0, 0, 1}, {0, -1}}, true).elements.front(),
+                true,
+                {},
             }}));
