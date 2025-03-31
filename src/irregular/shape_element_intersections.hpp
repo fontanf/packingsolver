@@ -9,7 +9,8 @@ namespace irregular
 
 std::vector<Point> compute_intersections(
         const ShapeElement& element_1,
-        const ShapeElement& element_2);
+        const ShapeElement& element_2,
+        bool strict = false);
 
 }
 }

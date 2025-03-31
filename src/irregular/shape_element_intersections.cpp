@@ -11,18 +11,20 @@ namespace
 {
 
 // Helper function to check if a point lies on an arc
-bool is_point_on_arc(const Point& p, const ShapeElement& arc)
+bool is_point_on_arc(
+        const Point& p,
+        const ShapeElement& arc)
 {
     // Check if point lies on circle
     if (!equal(distance(p, arc.center), distance(arc.start, arc.center))) {
         return false;
     }
-    
+
     // Calculate angles
     Angle point_angle = angle_radian(p - arc.center);
     Angle start_angle = angle_radian(arc.start - arc.center);
     Angle end_angle = angle_radian(arc.end - arc.center);
-    
+
     // Normalize angles
     if (arc.anticlockwise) {
         if (end_angle <= start_angle) {
@@ -46,7 +48,8 @@ bool is_point_on_arc(const Point& p, const ShapeElement& arc)
 // Helper function to compute line-line intersections
 std::vector<Point> compute_line_line_intersections(
         const ShapeElement& line1,
-        const ShapeElement& line2)
+        const ShapeElement& line2,
+        bool strict)
 {
     LengthDbl x1 = line1.start.x;
     LengthDbl y1 = line1.start.y;
@@ -133,44 +136,48 @@ std::vector<Point> compute_line_line_intersections(
 // Helper function to compute line-arc intersections
 std::vector<Point> compute_line_arc_intersections(
         const ShapeElement& line,
-        const ShapeElement& arc)
+        const ShapeElement& arc,
+        bool strict)
 {
     // Transform line to quadratic equation coefficients
     LengthDbl dx = line.end.x - line.start.x;
     LengthDbl dy = line.end.y - line.start.y;
     LengthDbl length = distance(line.start, line.end);
-    
-    if (equal(length, 0.0)) return {};
-    
+
+    if (equal(length, 0.0))
+        return {};
+
     // Normalize direction vector
     dx /= length;
     dy /= length;
-    
+
     // Line equation: P = P0 + t*d, where P0 is start point, d is direction
     // Circle equation: (x - cx)² + (y - cy)² = r²
     // Substituting line into circle gives quadratic equation
     LengthDbl cx = arc.center.x;
     LengthDbl cy = arc.center.y;
     LengthDbl r = distance(arc.center, arc.start);
-    
+
     // Calculate quadratic equation coefficients
     LengthDbl px = line.start.x - cx;
     LengthDbl py = line.start.y - cy;
-    
+
     LengthDbl a = dx * dx + dy * dy;  // Should be 1.0 due to normalization
     LengthDbl b = 2.0 * (px * dx + py * dy);
     LengthDbl c = px * px + py * py - r * r;
-    
+
     // Solve quadratic equation
     LengthDbl discriminant = b * b - 4 * a * c;
-    if (discriminant < 0) return {};
-    
+    if (discriminant < 0)
+        return {};
+
     std::vector<Point> intersections;
     if (equal(discriminant, 0.0)) {
         // One intersection
         LengthDbl t = -b / (2 * a);
-        if (t < 0 || t > length) return {};
-        
+        if (t < 0 || t > length)
+            return {};
+
         // Check if intersection is at endpoint of line segment
         if (equal(t, 0.0)) {
             // Intersection is at start point of line
@@ -179,7 +186,7 @@ std::vector<Point> compute_line_arc_intersections(
             }
             return {};
         }
-        
+
         if (equal(t, length)) {
             // Intersection is at end point of line
             if (is_point_on_arc(line.end, arc)) {
@@ -187,7 +194,7 @@ std::vector<Point> compute_line_arc_intersections(
             }
             return {};
         }
-        
+
         // Standard intersection point
         Point p = {
             line.start.x + t * dx,
@@ -200,7 +207,7 @@ std::vector<Point> compute_line_arc_intersections(
         // Two intersections
         LengthDbl t1 = (-b + std::sqrt(discriminant)) / (2 * a);
         LengthDbl t2 = (-b - std::sqrt(discriminant)) / (2 * a);
-        
+
         // Check first intersection
         if (t1 >= 0 && t1 <= length) {
             if (equal(t1, 0.0)) {
@@ -224,7 +231,7 @@ std::vector<Point> compute_line_arc_intersections(
                 }
             }
         }
-        
+
         // Check second intersection
         if (t2 >= 0 && t2 <= length) {
             if (equal(t2, 0.0)) {
@@ -261,7 +268,7 @@ std::vector<Point> compute_line_arc_intersections(
             }
         }
     }
-    
+
     // Check if any intersection coincides with an arc endpoint
     for (size_t i = 0; i < intersections.size(); ++i) {
         if (equal(intersections[i].x, arc.start.x) && equal(intersections[i].y, arc.start.y)) {
@@ -272,32 +279,33 @@ std::vector<Point> compute_line_arc_intersections(
             intersections[i] = arc.end;
         }
     }
-    
+
     return intersections;
 }
 
 // Helper function to compute arc-arc intersections
 std::vector<Point> compute_arc_arc_intersections(
         const ShapeElement& arc1,
-        const ShapeElement& arc2)
+        const ShapeElement& arc2,
+        bool strict)
 {
     // Get circle centers and radii
     LengthDbl x1 = arc1.center.x;
     LengthDbl y1 = arc1.center.y;
     LengthDbl r1 = distance(arc1.center, arc1.start);
-    
+
     LengthDbl x2 = arc2.center.x;
     LengthDbl y2 = arc2.center.y;
     LengthDbl r2 = distance(arc2.center, arc2.start);
-    
+
     // Calculate distance between centers
     LengthDbl d = distance(arc1.center, arc2.center);
-    
+
     // Check if circles are too far apart or one inside another
     if (d > r1 + r2 || d < std::abs(r1 - r2) || equal(d, 0.0)) {
         return {};
     }
-    
+
     // Special case: circles touch externally or internally
     if (equal(d, r1 + r2) || equal(d, std::abs(r1 - r2))) {
         // Circles touch at exactly one point
@@ -315,37 +323,37 @@ std::vector<Point> compute_arc_arc_intersections(
                 y1 + r1 * (y2 - y1) / d
             };
         }
-        
+
         // Check if the touching point lies on both arcs
         if (is_point_on_arc(touching_point, arc1) && is_point_on_arc(touching_point, arc2)) {
             return {touching_point};
         }
         return {};
     }
-    
+
     // Calculate intersection points of circles
     LengthDbl a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
     LengthDbl h = std::sqrt(r1 * r1 - a * a);
-    
+
     // Calculate the point P2 that lies on the line between the centers
     LengthDbl x3 = x1 + a * (x2 - x1) / d;
     LengthDbl y3 = y1 + a * (y2 - y1) / d;
-    
+
     // Calculate the intersection points
     std::vector<Point> intersections;
-    
+
     // First intersection point
     Point p1 = {
         x3 + h * (y2 - y1) / d,
         y3 - h * (x2 - x1) / d
     };
-    
+
     // Second intersection point
     Point p2 = {
         x3 - h * (y2 - y1) / d,
         y3 + h * (x2 - x1) / d
     };
-    
+
     // Check if points lie on both arcs
     if (is_point_on_arc(p1, arc1) && is_point_on_arc(p1, arc2)) {
         // Check if p1 coincides with arc endpoints
@@ -361,7 +369,7 @@ std::vector<Point> compute_arc_arc_intersections(
             intersections.push_back(p1);
         }
     }
-    
+
     if (is_point_on_arc(p2, arc1) && is_point_on_arc(p2, arc2)) {
         // Check if p2 coincides with arc endpoints
         if (equal(distance(p2, arc1.start), 0.0)) {
@@ -387,7 +395,7 @@ std::vector<Point> compute_arc_arc_intersections(
             }
         }
     }
-    
+
     return intersections;
 }
 
@@ -395,27 +403,26 @@ std::vector<Point> compute_arc_arc_intersections(
 
 std::vector<Point> irregular::compute_intersections(
         const ShapeElement& element_1,
-        const ShapeElement& element_2)
+        const ShapeElement& element_2,
+        bool strict)
 {
-    // Line segment - Line segment intersection
     if (element_1.type == ShapeElementType::LineSegment
             && element_2.type == ShapeElementType::LineSegment) {
-        return compute_line_line_intersections(element_1, element_2);
-    }
-    // Line segment - Circular arc intersection
-    else if (element_1.type == ShapeElementType::LineSegment
+        // Line segment - Line segment intersection
+        return compute_line_line_intersections(element_1, element_2, strict);
+    } else if (element_1.type == ShapeElementType::LineSegment
             && element_2.type == ShapeElementType::CircularArc) {
-        return compute_line_arc_intersections(element_1, element_2);
-    }
-    else if (element_1.type == ShapeElementType::CircularArc
+        // Line segment - Circular arc intersection
+        return compute_line_arc_intersections(element_1, element_2, strict);
+    } else if (element_1.type == ShapeElementType::CircularArc
             && element_2.type == ShapeElementType::LineSegment) {
-        return compute_line_arc_intersections(element_2, element_1);
-    }
-    // Circular arc - Circular arc intersection
-    else if (element_1.type == ShapeElementType::CircularArc
+        return compute_line_arc_intersections(element_2, element_1, strict);
+    } else if (element_1.type == ShapeElementType::CircularArc
             && element_2.type == ShapeElementType::CircularArc) {
-        return compute_arc_arc_intersections(element_1, element_2);
+        // Circular arc - Circular arc intersection
+        return compute_arc_arc_intersections(element_1, element_2, strict);
     }
-    
+
     throw std::invalid_argument("irregular::compute_intersections: Invalid element types");
+    return {};
 }
