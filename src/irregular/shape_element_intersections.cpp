@@ -63,6 +63,9 @@ std::vector<Point> compute_line_line_intersections(
     // Check if both line segments are colinear.
     LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
     if (equal(denom, 0.0)) {
+        if (strict)
+            return {};
+
         // If they are colinear, check if they are aligned.
         LengthDbl denom_2 = (x1 - x2) * (y3 - y1) - (y1 - y2) * (x3 - x1);
         if (!equal(denom_2, 0.0))
@@ -114,23 +117,37 @@ std::vector<Point> compute_line_line_intersections(
     LengthDbl t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
     LengthDbl u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
 
-    if (t < 0 || t > 1 || u < 0 || u > 1) {
-        // No intersection.
-        return {};
-    } else if (equal(t, 0.0)) {
-        return {line1.start};
-    } else if (equal(t, 1.0)) {
-        return {line1.end};
-    } else if (equal(u, 0.0)) {
-        return {line2.start};
-    } else if (equal(u, 1.0)) {
-        return {line2.end};
+    // Edge cases.
+    if (strict) {
+        if (!strictly_greater(t, 0)
+                || !strictly_lesser(t, 1)
+                || !strictly_greater(u, 0)
+                || !strictly_lesser(u, 1)) {
+            // No intersection.
+            return {};
+        }
     } else {
-        // Standard intersection.
-        LengthDbl xp = x1 + t * (x2 - x1);
-        LengthDbl yp = y1 + t * (y2 - y1);
-        return {{xp, yp}};
+        if (strictly_lesser(t, 0)
+                || strictly_greater(t, 1)
+                || strictly_lesser(u, 0)
+                || strictly_greater(u, 1)) {
+            // No intersection.
+            return {};
+        } else if (equal(t, 0.0)) {
+            return {line1.start};
+        } else if (equal(t, 1.0)) {
+            return {line1.end};
+        } else if (equal(u, 0.0)) {
+            return {line2.start};
+        } else if (equal(u, 1.0)) {
+            return {line2.end};
+        }
     }
+
+    // Standard intersection.
+    LengthDbl xp = x1 + t * (x2 - x1);
+    LengthDbl yp = y1 + t * (y2 - y1);
+    return {{xp, yp}};
 }
 
 // Helper function to compute line-arc intersections

@@ -30,15 +30,18 @@ TEST_P(IrregularComputeIntersectionsTest, IrregularComputeIntersections)
             test_params.element_2,
             test_params.strict);
     std::cout << "intersections" << std::endl;
-    for (const Point& point: intersections)
-        std::cout << "- " << point.to_string() << std::endl;
+    for (const Point& point: intersections) {
+        std::cout << "- " << std::setprecision(15) << point.x
+            << " " << std::setprecision(15) << point.y
+            << std::endl;
+    }
 
     ASSERT_EQ(intersections.size(), test_params.expected_intersections.size());
     for (const Point& expected_intersection: test_params.expected_intersections) {
-        EXPECT_NE(std::find(
+        EXPECT_NE(std::find_if(
                     intersections.begin(),
                     intersections.end(),
-                    expected_intersection),
+                    [&expected_intersection](const Point& point) { return equal(point, expected_intersection); }),
                 intersections.end());
     }
 }
@@ -62,31 +65,31 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 1}, {2, 1}}, true).elements.front(),
                 false,
                 {{0, 1}},
-            //}, {  // One line segment touching another.
-            //    build_shape({{0, 0}, {0, 2}}, true).elements.front(),
-            //    build_shape({{0, 1}, {2, 1}}, true).elements.front(),
-            //    true,
-            //    {},
+            }, {  // One line segment touching another.
+                build_shape({{0, 0}, {0, 2}}, true).elements.front(),
+                build_shape({{0, 1}, {2, 1}}, true).elements.front(),
+                true,
+                {},
             }, {  // Two identical line segments.
                 build_shape({{0, 0}, {0, 2}}, true).elements.front(),
                 build_shape({{0, 0}, {0, 2}}, true).elements.front(),
                 false,
                 {{0, 0}, {0, 2}},
-            //}, {  // Two identical line segments.
-            //    build_shape({{0, 0}, {0, 2}}, true).elements.front(),
-            //    build_shape({{0, 0}, {0, 2}}, true).elements.front(),
-            //    true,
-            //    {},
+            }, {  // Two identical line segments.
+                build_shape({{0, 0}, {0, 2}}, true).elements.front(),
+                build_shape({{0, 0}, {0, 2}}, true).elements.front(),
+                true,
+                {},
             }, {  // Two overlapping line segments.
                 build_shape({{0, 0}, {0, 3}}, true).elements.front(),
                 build_shape({{0, 1}, {0, 4}}, true).elements.front(),
                 false,
                 {{0, 1}, {0, 3}},
-            //}, {  // Two overlapping line segments.
-            //    build_shape({{0, 0}, {0, 3}}, true).elements.front(),
-            //    build_shape({{0, 1}, {0, 4}}, true).elements.front(),
-            //    true,
-            //    {},
+            }, {  // Two overlapping line segments.
+                build_shape({{0, 0}, {0, 3}}, true).elements.front(),
+                build_shape({{0, 1}, {0, 4}}, true).elements.front(),
+                true,
+                {},
             }, {  // Non-intersecting line segment and circular arc.
                 build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
                 build_shape({{2, 0}, {2, 2}}, true).elements.front(),
@@ -97,4 +100,9 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{3, 0}, {1, 0, 1}, {1, 2}}, true).elements.front(),
                 false,
                 {},
+            }, {  // Intersecting circular arcs.
+                build_shape({{3, 0}, {1, 0, 1}, {-1, 0}}, true).elements.front(),
+                build_shape({{1, 0}, {-1, 0, 1}, {-3, 0}}, true).elements.front(),
+                false,
+                {{0, 1.73205080756888}},
             }}));
