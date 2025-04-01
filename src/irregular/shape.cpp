@@ -327,7 +327,7 @@ std::vector<ShapeElement> irregular::approximate_circular_arc_by_line_segments(
     }
 
     std::vector<ShapeElement> line_segments;
-    Length radius = distance(circular_arc.center, circular_arc.start);
+    LengthDbl radius = distance(circular_arc.center, circular_arc.start);
     Point point_prev = circular_arc.start;
     Point point_circle_prev = circular_arc.start;
     for (ElementPos line_segment_id = 0;
