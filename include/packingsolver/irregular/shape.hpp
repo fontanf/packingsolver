@@ -222,6 +222,11 @@ struct Shape
             Angle angle = 0.0,
             bool mirror = false) const;
 
+    /** Check if the shape contains a given point. */
+    bool contains(
+            const Point& point,
+            bool strict = false) const;
+
     /* Check if the shape is connected and in anticlockwise direction. */
     bool check() const;
 

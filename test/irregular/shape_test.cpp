@@ -61,6 +61,85 @@ INSTANTIATE_TEST_SUITE_P(
             }}));
 
 
+struct ShapeContainsTestParams
+{
+    Shape shape;
+    Point point;
+    bool strict;
+    bool expected_contained;
+};
+
+class IrregularShapeContainsTest: public testing::TestWithParam<ShapeContainsTestParams> { };
+
+TEST_P(IrregularShapeContainsTest, ShapeContains)
+{
+    ShapeContainsTestParams test_params = GetParam();
+    std::cout << "shape" << std::endl;
+    std::cout << test_params.shape.to_string(0) << std::endl;
+    std::cout << "point " << test_params.point.to_string() << std::endl;
+    std::cout << "strict " << test_params.strict << std::endl;
+    std::cout << "expected_contained " << test_params.expected_contained << std::endl;
+
+    bool contained = test_params.shape.contains(
+            test_params.point,
+            test_params.strict);
+    std::cout << "contained " << contained << std::endl;
+
+    ASSERT_EQ(contained, test_params.expected_contained);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        IrregularShapeContainsTest,
+        testing::ValuesIn(std::vector<ShapeContainsTestParams>{
+            {  // Point oustide of polygon
+                build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+                {2, 2},
+                false,
+                false,
+            }, {  // Point inside polygon
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                {1, 1},
+                false,
+                true,
+            }, {  // Point on polygon
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                {2, 2},
+                false,
+                true,
+            }, {  // Point on polygon (strict)
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                {2, 2},
+                true,
+                false,
+            //}, {  // Point inside circle
+            //    build_shape({{0, 2}, {0, 0, 1}, {0, 2}}),
+            //    {1, 0},
+            //    false,
+            //    true,
+            }, {  // Point outside of shape
+                build_shape({{0, 2}, {0, 0, 1}, {0, -2}}),
+                {0, 3},
+                false,
+                false,
+            }, {  // Point inside shape
+                build_shape({{0, 2}, {0, 0, 1}, {0, -2}}),
+                {0, 1},
+                false,
+                true,
+            }, {  // Point on shape
+                build_shape({{0, 2}, {0, 0, 1}, {0, -2}}),
+                {0, 2},
+                false,
+                true,
+            }, {  // Point on shape (strict)
+                build_shape({{0, 2}, {0, 0, 1}, {0, -2}}),
+                {0, 2},
+                true,
+                false,
+            }}));
+
+
 struct ApproximateCircularArcByLineSegmentsTestParams
 {
     ShapeElement circular_arc;

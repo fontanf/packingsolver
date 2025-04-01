@@ -599,6 +599,95 @@ std::pair<Point, Point> Shape::compute_min_max(
     return {{x_min, y_min}, {x_max, y_max}};
 }
 
+bool Shape::contains(
+        const Point& point,
+        bool strict) const
+{
+    if (this->elements.empty())
+        return false;
+
+    // First check if the point lies on any boundary.
+    for (const ShapeElement& element : this->elements)
+        if (element.contains(point))
+            return (strict)? false: true;
+
+    // Then use the ray-casting algorithm to check if the point is inside
+    int intersection_count = 0;
+    for (const ShapeElement& element: this->elements) {
+        if (element.type == ShapeElementType::LineSegment) {
+            // Handle the special case of horizontal line segments
+            if (equal(element.start.y, element.end.y)) {
+                // Horizontal line segment: if the point's y coordinate equals the segment's y coordinate,
+                // and the x coordinate is within the segment range, the point is on the segment
+                if (equal(point.y, element.start.y)
+                        && (!strictly_lesser(point.x, std::min(element.start.x, element.end.x)))
+                        && (!strictly_greater(point.x, std::max(element.start.x, element.end.x)))) {
+                    // Already checked in the previous section, no need to handle here
+                    continue;
+                }
+            }
+
+            // Standard ray-casting algorithm for line segment checking
+            // Cast a ray to the right from the point, count intersections with segments
+            bool cond1 = (strictly_greater(element.start.y, point.y) != strictly_greater(element.end.y, point.y));
+            bool cond2 = strictly_lesser(
+                    point.x,
+                    (element.end.x - element.start.x) * (point.y - element.start.y)
+                    / (element.end.y - element.start.y) + element.start.x);
+
+            if (cond1 && cond2) {
+                intersection_count++;
+            }
+        } else if (element.type == ShapeElementType::CircularArc) {
+            // Circular arc checking is more complex
+            LengthDbl dx = point.x - element.center.x;
+            LengthDbl dy = point.y - element.center.y;
+            LengthDbl distance = std::sqrt(dx * dx + dy * dy);
+
+            LengthDbl radius = std::sqrt(
+                std::pow(element.start.x - element.center.x, 2)
+                + std::pow(element.start.y - element.center.y, 2));
+
+            // If the point is inside the circle and to the left of the center, there may be intersections with a ray to the right
+            if (strictly_lesser(distance, radius) && strictly_lesser(point.x, element.center.x)) {
+                LengthDbl start_angle = angle_radian({element.start.x - element.center.x, element.start.y - element.center.y});
+                LengthDbl end_angle = angle_radian({element.end.x - element.center.x, element.end.y - element.center.y});
+
+                // Ensure angles are in the correct range
+                if (element.anticlockwise && end_angle <= start_angle) {
+                    end_angle += 2 * M_PI;
+                } else if (!element.anticlockwise && start_angle <= end_angle) {
+                    start_angle += 2 * M_PI;
+                }
+
+                // Calculate the point's line-of-sight angle (angle between the line from point to center and the horizontal)
+                LengthDbl point_angle = angle_radian({dx, dy});
+                if (strictly_lesser(point_angle, 0)) {
+                    point_angle += 2 * M_PI;  // Adjust angle to [0, 2π)
+                }
+
+                // Calculate the intersection angle of the ray to the right with the circle
+                LengthDbl ray_angle = 0; // Angle of ray to the right is 0
+
+                // Check if the ray intersects the arc
+                bool intersects_arc;
+                if (element.anticlockwise) {
+                    intersects_arc = (!strictly_lesser(ray_angle, start_angle) && !strictly_greater(ray_angle, end_angle));
+                } else {
+                    intersects_arc = (!strictly_greater(ray_angle, start_angle) && !strictly_lesser(ray_angle, end_angle));
+                }
+
+                if (intersects_arc) {
+                    intersection_count++;
+                }
+            }
+        }
+    }
+
+    // If the number of intersections is odd, the point is inside the shape
+    return (intersection_count % 2 == 1);
+}
+
 Shape& Shape::shift(
         LengthDbl x,
         LengthDbl y)
