@@ -140,6 +140,9 @@ struct ShapeElement
     /** Length of the element. */
     LengthDbl length() const;
 
+    /** Check if a point is on the element. */
+    bool contains(const Point& point) const;
+
     ShapeElement rotate(Angle angle) const;
 
     ShapeElement axial_symmetry_identity_line() const;

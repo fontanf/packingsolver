@@ -55,6 +55,68 @@ LengthDbl irregular::cross_product(
     return vector_1.x * vector_2.y - vector_2.x * vector_1.y;
 }
 
+bool ShapeElement::contains(const Point& point) const
+{
+    switch (type) {
+    case ShapeElementType::LineSegment: {
+        // Calculate the squared length of the line segment
+        LengthDbl line_length_squared = std::pow(end.x - start.x, 2) + std::pow(end.y - start.y, 2);
+
+        // If the line segment is actually a point
+        if (equal(line_length_squared, 0.0)) {
+            return equal(point.x, start.x) && equal(point.y, start.y);
+        }
+
+        // Calculate parameter t, representing the position of the point on the line segment (between 0 and 1 indicates on the segment)
+        LengthDbl t = ((point.x - start.x) * (end.x - start.x) + (point.y - start.y) * (end.y - start.y)) / line_length_squared;
+
+        // If t is outside the [0,1] range, the point is not on the line segment
+        if (strictly_lesser(t, 0.0) || strictly_greater(t, 1.0)) {
+            return false;
+        }
+
+        // Calculate the projection point
+        Point projection;
+        projection.x = start.x + t * (end.x - start.x);
+        projection.y = start.y + t * (end.y - start.y);
+
+        // Check if the distance to the projection point is small enough
+        LengthDbl distance_squared = std::pow(point.x - projection.x, 2) + std::pow(point.y - projection.y, 2);
+        return equal(distance_squared, 0.0);
+    } case ShapeElementType::CircularArc: {
+        // Check if point lies on circle
+        if (!equal(distance(point, this->center), distance(this->start, this->center))) {
+            return false;
+        }
+
+        // Calculate angles
+        Angle point_angle = angle_radian(point - this->center);
+        Angle start_angle = angle_radian(this->start - this->center);
+        Angle end_angle = angle_radian(this->end - this->center);
+
+        // Normalize angles
+        if (this->anticlockwise) {
+            if (end_angle <= start_angle) {
+                end_angle += 2 * M_PI;
+            }
+            if (point_angle < start_angle) {
+                point_angle += 2 * M_PI;
+            }
+            return point_angle >= start_angle && point_angle <= end_angle;
+        } else {
+            if (start_angle <= end_angle) {
+                start_angle += 2 * M_PI;
+            }
+            if (point_angle < end_angle) {
+                point_angle += 2 * M_PI;
+            }
+            return point_angle >= end_angle && point_angle <= start_angle;
+        }
+    }
+    }
+    return -1;
+}
+
 Point& Point::shift(
         LengthDbl x,
         LengthDbl y)

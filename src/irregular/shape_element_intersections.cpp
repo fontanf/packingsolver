@@ -10,41 +10,6 @@ using namespace packingsolver::irregular;
 namespace
 {
 
-// Helper function to check if a point lies on an arc
-bool is_point_on_arc(
-        const Point& p,
-        const ShapeElement& arc)
-{
-    // Check if point lies on circle
-    if (!equal(distance(p, arc.center), distance(arc.start, arc.center))) {
-        return false;
-    }
-
-    // Calculate angles
-    Angle point_angle = angle_radian(p - arc.center);
-    Angle start_angle = angle_radian(arc.start - arc.center);
-    Angle end_angle = angle_radian(arc.end - arc.center);
-
-    // Normalize angles
-    if (arc.anticlockwise) {
-        if (end_angle <= start_angle) {
-            end_angle += 2 * M_PI;
-        }
-        if (point_angle < start_angle) {
-            point_angle += 2 * M_PI;
-        }
-        return point_angle >= start_angle && point_angle <= end_angle;
-    } else {
-        if (start_angle <= end_angle) {
-            start_angle += 2 * M_PI;
-        }
-        if (point_angle < end_angle) {
-            point_angle += 2 * M_PI;
-        }
-        return point_angle >= end_angle && point_angle <= start_angle;
-    }
-}
-
 // Helper function to compute line-line intersections
 std::vector<Point> compute_line_line_intersections(
         const ShapeElement& line1,
@@ -198,7 +163,7 @@ std::vector<Point> compute_line_arc_intersections(
         // Check if intersection is at endpoint of line segment
         if (equal(t, 0.0)) {
             // Intersection is at start point of line
-            if (is_point_on_arc(line.start, arc)) {
+            if (arc.contains(line.start)) {
                 return {line.start};
             }
             return {};
@@ -206,7 +171,7 @@ std::vector<Point> compute_line_arc_intersections(
 
         if (equal(t, length)) {
             // Intersection is at end point of line
-            if (is_point_on_arc(line.end, arc)) {
+            if (arc.contains(line.end)) {
                 return {line.end};
             }
             return {};
@@ -217,7 +182,7 @@ std::vector<Point> compute_line_arc_intersections(
             line.start.x + t * dx,
             line.start.y + t * dy
         };
-        if (is_point_on_arc(p, arc)) {
+        if (arc.contains(p)) {
             intersections.push_back(p);
         }
     } else {
@@ -229,12 +194,12 @@ std::vector<Point> compute_line_arc_intersections(
         if (t1 >= 0 && t1 <= length) {
             if (equal(t1, 0.0)) {
                 // Intersection at start point
-                if (is_point_on_arc(line.start, arc)) {
+                if (arc.contains(line.start)) {
                     intersections.push_back(line.start);
                 }
             } else if (equal(t1, length)) {
                 // Intersection at end point
-                if (is_point_on_arc(line.end, arc)) {
+                if (arc.contains(line.end)) {
                     intersections.push_back(line.end);
                 }
             } else {
@@ -243,7 +208,7 @@ std::vector<Point> compute_line_arc_intersections(
                     line.start.x + t1 * dx,
                     line.start.y + t1 * dy
                 };
-                if (is_point_on_arc(p1, arc)) {
+                if (arc.contains(p1)) {
                     intersections.push_back(p1);
                 }
             }
@@ -253,14 +218,18 @@ std::vector<Point> compute_line_arc_intersections(
         if (t2 >= 0 && t2 <= length) {
             if (equal(t2, 0.0)) {
                 // Intersection at start point
-                if (is_point_on_arc(line.start, arc) && 
-                    (intersections.empty() || !equal(intersections[0].x, line.start.x) || !equal(intersections[0].y, line.start.y))) {
+                if (arc.contains(line.start)
+                        && (intersections.empty()
+                            || !equal(intersections[0].x, line.start.x)
+                            || !equal(intersections[0].y, line.start.y))) {
                     intersections.push_back(line.start);
                 }
             } else if (equal(t2, length)) {
                 // Intersection at end point
-                if (is_point_on_arc(line.end, arc) && 
-                    (intersections.empty() || !equal(intersections[0].x, line.end.x) || !equal(intersections[0].y, line.end.y))) {
+                if (arc.contains(line.end)
+                        && (intersections.empty()
+                            || !equal(intersections[0].x, line.end.x)
+                            || !equal(intersections[0].y, line.end.y))) {
                     intersections.push_back(line.end);
                 }
             } else {
@@ -269,7 +238,7 @@ std::vector<Point> compute_line_arc_intersections(
                     line.start.x + t2 * dx,
                     line.start.y + t2 * dy
                 };
-                if (is_point_on_arc(p2, arc)) {
+                if (arc.contains(p2)) {
                     // Ensure we're not adding a duplicate point
                     bool is_duplicate = false;
                     for (const auto& p : intersections) {
@@ -342,7 +311,7 @@ std::vector<Point> compute_arc_arc_intersections(
         }
 
         // Check if the touching point lies on both arcs
-        if (is_point_on_arc(touching_point, arc1) && is_point_on_arc(touching_point, arc2)) {
+        if (arc1.contains(touching_point) && arc2.contains(touching_point)) {
             return {touching_point};
         }
         return {};
@@ -372,7 +341,7 @@ std::vector<Point> compute_arc_arc_intersections(
     };
 
     // Check if points lie on both arcs
-    if (is_point_on_arc(p1, arc1) && is_point_on_arc(p1, arc2)) {
+    if (arc1.contains(p1) && arc2.contains(p1)) {
         // Check if p1 coincides with arc endpoints
         if (equal(distance(p1, arc1.start), 0.0)) {
             intersections.push_back(arc1.start);
@@ -387,7 +356,7 @@ std::vector<Point> compute_arc_arc_intersections(
         }
     }
 
-    if (is_point_on_arc(p2, arc1) && is_point_on_arc(p2, arc2)) {
+    if (arc1.contains(p2) && arc2.contains(p2)) {
         // Check if p2 coincides with arc endpoints
         if (equal(distance(p2, arc1.start), 0.0)) {
             if (intersections.empty() || !equal(distance(intersections[0], arc1.start), 0.0)) {
