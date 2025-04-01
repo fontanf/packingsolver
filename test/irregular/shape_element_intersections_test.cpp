@@ -66,7 +66,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 1}, {2, 1}}, true).elements.front(),
                 false,
                 {{0, 1}},
-            }, {  // One line segment touching another.
+            }, {  // One line segment touching another (strict).
                 build_shape({{0, 0}, {0, 2}}, true).elements.front(),
                 build_shape({{0, 1}, {2, 1}}, true).elements.front(),
                 true,
@@ -81,7 +81,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{2, 0}, {0, 0}}, true).elements.front(),
                 false,
                 {{0, 0}, {0, 2}},
-            }, {  // Two identical line segments.
+            }, {  // Two identical line segments (reversed) (strict).
                 build_shape({{0, 0}, {0, 2}}, true).elements.front(),
                 build_shape({{0, 0}, {0, 2}}, true).elements.front(),
                 true,
@@ -91,7 +91,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 1}, {0, 4}}, true).elements.front(),
                 false,
                 {{0, 1}, {0, 3}},
-            }, {  // Two overlapping line segments.
+            }, {  // Two overlapping line segments (strict).
                 build_shape({{0, 0}, {0, 3}}, true).elements.front(),
                 build_shape({{0, 1}, {0, 4}}, true).elements.front(),
                 true,
@@ -121,7 +121,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{-1, 1}, {1, 1}}, true).elements.front(),
                 false,
                 {{0, 1}},
-            }, {  // Touching line segment and circular arc.
+            }, {  // Touching line segment and circular arc (strict).
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 build_shape({{-1, 1}, {1, 1}}, true).elements.front(),
                 true,
@@ -131,7 +131,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 false,
                 {{1, 0}, {-1, 0}},
-            }, {  // Touching line segment and circular arc at two points.
+            }, {  // Touching line segment and circular arc at two points (strict).
                 build_shape({{2, 0}, {-2, 0}}, true).elements.front(),
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 true,
@@ -166,7 +166,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{-1, 0}, {0, 0, 1}, {1, 0}}, true).elements.front(),
                 false,
                 {{1, 0}, {-1, 0}},
-            }, {  // Touching circular arcs.
+            }, {  // Touching circular arcs (strict).
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 build_shape({{-1, 0}, {0, 0, 1}, {1, 0}}, true).elements.front(),
                 true,
@@ -176,7 +176,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 false,
                 {{1, 0}, {-1, 0}},
-            }, {  // Identical circular arcs.
+            }, {  // Identical circular arcs (strict).
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 true,
@@ -186,7 +186,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{-1, 0}, {0, 0, -1}, {1, 0}}, true).elements.front(),
                 false,
                 {{1, 0}, {-1, 0}},
-            }, {  // Identical circular arcs (reversed).
+            }, {  // Identical circular arcs (reversed) (strict).
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 build_shape({{-1, 0}, {0, 0, -1}, {1, 0}}, true).elements.front(),
                 true,
@@ -196,7 +196,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 1}, {0, 0, 1}, {0, -1}}, true).elements.front(),
                 false,
                 {{0, 1}, {-1, 0}},
-            }, {  // Overlapping circular arcs.
+            }, {  // Overlapping circular arcs (strict).
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 build_shape({{0, 1}, {0, 0, 1}, {0, -1}}, true).elements.front(),
                 true,
