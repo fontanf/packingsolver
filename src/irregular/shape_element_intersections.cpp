@@ -161,18 +161,20 @@ std::vector<Point> compute_line_arc_intersections(
             return {};
 
         // Check if intersection is at endpoint of line segment
-        if (equal(t, 0.0)) {
-            // Intersection is at start point of line
-            if (arc.contains(line.start)) {
-                return {line.start};
+        if (equal(t, 0.0) || equal(t, length)) {
+            // Skip endpoints in strict mode
+            if (strict) {
+                return {};
             }
-            return {};
-        }
-
-        if (equal(t, length)) {
-            // Intersection is at end point of line
-            if (arc.contains(line.end)) {
-                return {line.end};
+            
+            // Intersection is at an endpoint of line
+            Point endpoint = equal(t, 0.0) ? line.start : line.end;
+            if (arc.contains(endpoint)) {
+                // Check if it's also an endpoint of the arc
+                if (strict && (equal(distance(endpoint, arc.start), 0.0) || equal(distance(endpoint, arc.end), 0.0))) {
+                    return {};
+                }
+                return {endpoint};
             }
             return {};
         }
@@ -182,7 +184,12 @@ std::vector<Point> compute_line_arc_intersections(
             line.start.x + t * dx,
             line.start.y + t * dy
         };
+        
         if (arc.contains(p)) {
+            // In strict mode, check if p is an endpoint of the arc
+            if (strict && (equal(distance(p, arc.start), 0.0) || equal(distance(p, arc.end), 0.0))) {
+                return {};
+            }
             intersections.push_back(p);
         }
     } else {
@@ -192,15 +199,16 @@ std::vector<Point> compute_line_arc_intersections(
 
         // Check first intersection
         if (t1 >= 0 && t1 <= length) {
-            if (equal(t1, 0.0)) {
-                // Intersection at start point
-                if (arc.contains(line.start)) {
-                    intersections.push_back(line.start);
-                }
-            } else if (equal(t1, length)) {
-                // Intersection at end point
-                if (arc.contains(line.end)) {
-                    intersections.push_back(line.end);
+            // Handle endpoint cases
+            if (equal(t1, 0.0) || equal(t1, length)) {
+                if (!strict) {
+                    Point endpoint = equal(t1, 0.0) ? line.start : line.end;
+                    if (arc.contains(endpoint)) {
+                        // Check if it's also an endpoint of the arc in strict mode
+                        if (!(strict && (equal(distance(endpoint, arc.start), 0.0) || equal(distance(endpoint, arc.end), 0.0)))) {
+                            intersections.push_back(endpoint);
+                        }
+                    }
                 }
             } else {
                 // Standard intersection
@@ -209,28 +217,34 @@ std::vector<Point> compute_line_arc_intersections(
                     line.start.y + t1 * dy
                 };
                 if (arc.contains(p1)) {
-                    intersections.push_back(p1);
+                    // In strict mode, check if p1 is an endpoint of the arc
+                    if (!strict || (!equal(distance(p1, arc.start), 0.0) && !equal(distance(p1, arc.end), 0.0))) {
+                        intersections.push_back(p1);
+                    }
                 }
             }
         }
 
         // Check second intersection
         if (t2 >= 0 && t2 <= length) {
-            if (equal(t2, 0.0)) {
-                // Intersection at start point
-                if (arc.contains(line.start)
-                        && (intersections.empty()
-                            || !equal(intersections[0].x, line.start.x)
-                            || !equal(intersections[0].y, line.start.y))) {
-                    intersections.push_back(line.start);
-                }
-            } else if (equal(t2, length)) {
-                // Intersection at end point
-                if (arc.contains(line.end)
-                        && (intersections.empty()
-                            || !equal(intersections[0].x, line.end.x)
-                            || !equal(intersections[0].y, line.end.y))) {
-                    intersections.push_back(line.end);
+            // Handle endpoint cases
+            if (equal(t2, 0.0) || equal(t2, length)) {
+                if (!strict) {
+                    Point endpoint = equal(t2, 0.0) ? line.start : line.end;
+                    if (arc.contains(endpoint)) {
+                        // Check for duplicates
+                        bool is_duplicate = false;
+                        for (const auto& p : intersections) {
+                            if (equal(distance(p, endpoint), 0.0)) {
+                                is_duplicate = true;
+                                break;
+                            }
+                        }
+                        // Add if not a duplicate and not an arc endpoint in strict mode
+                        if (!is_duplicate && !(strict && (equal(distance(endpoint, arc.start), 0.0) || equal(distance(endpoint, arc.end), 0.0)))) {
+                            intersections.push_back(endpoint);
+                        }
+                    }
                 }
             } else {
                 // Standard intersection
@@ -239,16 +253,21 @@ std::vector<Point> compute_line_arc_intersections(
                     line.start.y + t2 * dy
                 };
                 if (arc.contains(p2)) {
-                    // Ensure we're not adding a duplicate point
-                    bool is_duplicate = false;
-                    for (const auto& p : intersections) {
-                        if (equal(p.x, p2.x) && equal(p.y, p2.y)) {
-                            is_duplicate = true;
-                            break;
+                    // In strict mode, check if p2 is an endpoint of the arc
+                    if (strict && (equal(distance(p2, arc.start), 0.0) || equal(distance(p2, arc.end), 0.0))) {
+                        // Skip arc endpoints in strict mode
+                    } else {
+                        // Ensure we're not adding a duplicate point
+                        bool is_duplicate = false;
+                        for (const auto& p : intersections) {
+                            if (equal(distance(p, p2), 0.0)) {
+                                is_duplicate = true;
+                                break;
+                            }
                         }
-                    }
-                    if (!is_duplicate) {
-                        intersections.push_back(p2);
+                        if (!is_duplicate) {
+                            intersections.push_back(p2);
+                        }
                     }
                 }
             }
@@ -606,13 +625,21 @@ std::vector<Point> compute_arc_arc_intersections(
     if (arc1.contains(p1) && arc2.contains(p1)) {
         // Check if p1 coincides with arc endpoints
         if (equal(distance(p1, arc1.start), 0.0)) {
-            intersections.push_back(arc1.start);
+            if (!strict) {
+                intersections.push_back(arc1.start);
+            }
         } else if (equal(distance(p1, arc1.end), 0.0)) {
-            intersections.push_back(arc1.end);
+            if (!strict) {
+                intersections.push_back(arc1.end);
+            }
         } else if (equal(distance(p1, arc2.start), 0.0)) {
-            intersections.push_back(arc2.start);
+            if (!strict) {
+                intersections.push_back(arc2.start);
+            }
         } else if (equal(distance(p1, arc2.end), 0.0)) {
-            intersections.push_back(arc2.end);
+            if (!strict) {
+                intersections.push_back(arc2.end);
+            }
         } else {
             intersections.push_back(p1);
         }
@@ -621,19 +648,19 @@ std::vector<Point> compute_arc_arc_intersections(
     if (arc1.contains(p2) && arc2.contains(p2)) {
         // Check if p2 coincides with arc endpoints
         if (equal(distance(p2, arc1.start), 0.0)) {
-            if (intersections.empty() || !equal(distance(intersections[0], arc1.start), 0.0)) {
+            if (!strict && (intersections.empty() || !equal(distance(intersections[0], arc1.start), 0.0))) {
                 intersections.push_back(arc1.start);
             }
         } else if (equal(distance(p2, arc1.end), 0.0)) {
-            if (intersections.empty() || !equal(distance(intersections[0], arc1.end), 0.0)) {
+            if (!strict && (intersections.empty() || !equal(distance(intersections[0], arc1.end), 0.0))) {
                 intersections.push_back(arc1.end);
             }
         } else if (equal(distance(p2, arc2.start), 0.0)) {
-            if (intersections.empty() || !equal(distance(intersections[0], arc2.start), 0.0)) {
+            if (!strict && (intersections.empty() || !equal(distance(intersections[0], arc2.start), 0.0))) {
                 intersections.push_back(arc2.start);
             }
         } else if (equal(distance(p2, arc2.end), 0.0)) {
-            if (intersections.empty() || !equal(distance(intersections[0], arc2.end), 0.0)) {
+            if (!strict && (intersections.empty() || !equal(distance(intersections[0], arc2.end), 0.0))) {
                 intersections.push_back(arc2.end);
             }
         } else {
