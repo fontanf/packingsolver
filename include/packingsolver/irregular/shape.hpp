@@ -43,6 +43,8 @@ struct Point
 
     Point rotate_radians(Angle angle) const;
 
+    Point rotate_radians(const Point& center, Angle angle) const;
+
     Point axial_symmetry_identity_line() const;
 
     Point axial_symmetry_y_axis() const;
@@ -67,7 +69,14 @@ Point operator-(
 LengthDbl norm(
         const Point& vector);
 
+LengthDbl squared_norm(
+        const Point& vector);
+
 LengthDbl distance(
+        const Point& point_1,
+        const Point& point_2);
+
+LengthDbl squared_distance(
         const Point& point_1,
         const Point& point_2);
 
@@ -101,6 +110,11 @@ inline AreaDbl compute_area(
             (point_1.x - point_3.x) * (point_2.y - point_1.y)
             - (point_1.x - point_2.x) * (point_3.y - point_1.y));
 }
+
+int counter_clockwise(
+        const Point& point_1,
+        const Point& point_2,
+        const Point& point_3);
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// ShapeElement /////////////////////////////////

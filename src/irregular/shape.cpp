@@ -34,11 +34,24 @@ LengthDbl irregular::norm(
     return std::sqrt(vector.x * vector.x + vector.y * vector.y);
 }
 
+LengthDbl irregular::squared_norm(
+        const Point& vector)
+{
+    return vector.x * vector.x + vector.y * vector.y;
+}
+
 LengthDbl irregular::distance(
         const Point& point_1,
         const Point& point_2)
 {
     return norm(point_2 - point_1);
+}
+
+LengthDbl irregular::squared_distance(
+        const Point& point_1,
+        const Point& point_2)
+{
+    return squared_norm(point_2 - point_1);
 }
 
 LengthDbl irregular::dot_product(
@@ -102,6 +115,20 @@ Point Point::rotate_radians(
     return point_out;
 }
 
+Point Point::rotate_radians(
+        const Point& center,
+        Angle angle) const
+{
+    Point point_out;
+    point_out.x = center.x
+        + std::cos(angle) * (this->x - center.x)
+        - std::sin(angle) * (this->y - center.y);
+    point_out.y = center.y
+        + std::sin(angle) * (this->x - center.x)
+        + std::cos(angle) * (this->y - center.y);
+    return point_out;
+}
+
 Point Point::axial_symmetry_identity_line() const
 {
     Point point_out;
@@ -143,6 +170,21 @@ Angle irregular::angle_radian(
     if (a < 0)
         a += 2 * M_PI;
     return a;
+}
+
+int irregular::counter_clockwise(
+        const Point& point_1,
+        const Point& point_2,
+        const Point& point_3)
+{
+    AreaDbl area = (point_2.x - point_1.x) * (point_3.y - point_1.y)
+        - (point_2.y - point_1.y) * (point_3.x - point_1.x);
+    if (strictly_greater(area, 0)) {
+        return -1;
+    } else if (strictly_lesser(area, 0)) {
+        return 1;
+    }
+    return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -398,13 +440,9 @@ std::vector<ShapeElement> irregular::approximate_circular_arc_by_line_segments(
         Angle angle_cur = (angle * (line_segment_id + 1)) / (number_of_line_segments - 1);
         if (!circular_arc.anticlockwise)
             angle_cur *= -1;
-        Point point_circle;
-        point_circle.x = circular_arc.center.x
-            + std::cos(angle_cur) * (circular_arc.start.x - circular_arc.center.x)
-            - std::sin(angle_cur) * (circular_arc.start.y - circular_arc.center.y);
-        point_circle.y = circular_arc.center.y
-            + std::sin(angle_cur) * (circular_arc.start.x - circular_arc.center.x)
-            + std::cos(angle_cur) * (circular_arc.start.y - circular_arc.center.y);
+        Point point_circle = circular_arc.start.rotate_radians(
+                circular_arc.center,
+                angle_cur);
         Point point_cur;
         if ((outer && !circular_arc.anticlockwise) || (!outer && circular_arc.anticlockwise)) {
             point_cur = point_circle;

@@ -3,35 +3,6 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
-namespace
-{
-
-int counter_clockwise(
-        const Point& point_1,
-        const Point& point_2,
-        const Point& point_3)
-{
-    AreaDbl area = (point_2.x - point_1.x) * (point_3.y - point_1.y)
-        - (point_2.y - point_1.y) * (point_3.x - point_1.x);
-    if (strictly_greater(area, 0)) {
-        return -1;
-    } else if (strictly_lesser(area, 0)) {
-        return 1;
-    }
-    return 0;
-}
-
-LengthDbl square_distance(
-        const Point& point_1,
-        const Point& point_2)
-{
-    LengthDbl dx = point_1.x - point_2.x;
-    LengthDbl dy = point_1.y - point_2.y;
-    return dx * dx + dy * dy;
-}
-
-}
-
 Shape irregular::convex_hull(
         const Shape& shape)
 {
@@ -71,8 +42,8 @@ Shape irregular::convex_hull(
                         point_2);
                 if (order != 0)
                     return (order == -1);
-                return square_distance(point_least_y, point_1)
-                    < square_distance(point_least_y, point_2);
+                return squared_distance(point_least_y, point_1)
+                    < squared_distance(point_least_y, point_2);
             });
 
     std::vector<Point> convex_hull;
