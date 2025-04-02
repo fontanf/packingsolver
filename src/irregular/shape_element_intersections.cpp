@@ -115,6 +115,45 @@ std::vector<Point> compute_line_line_intersections(
     return {{xp, yp}};
 }
 
+// Helper function to check if a point is a tangent point between line and arc
+bool is_tangent_point(const ShapeElement& line, const ShapeElement& arc, const Point& point) {
+    // A tangent point has its tangent vector perpendicular to the line direction
+    // Calculate the tangent vector at the point on the circle
+    Point tangent_vector;
+    if (arc.anticlockwise) {
+        tangent_vector = {
+            -(point.y - arc.center.y),
+            point.x - arc.center.x
+        };
+    } else {
+        tangent_vector = {
+            point.y - arc.center.y,
+            -(point.x - arc.center.x)
+        };
+    }
+    
+    // Calculate line direction vector
+    Point line_direction = {
+        line.end.x - line.start.x,
+        line.end.y - line.start.y
+    };
+    
+    // Normalize vectors
+    LengthDbl tangent_length = std::sqrt(tangent_vector.x * tangent_vector.x + tangent_vector.y * tangent_vector.y);
+    tangent_vector.x /= tangent_length;
+    tangent_vector.y /= tangent_length;
+    
+    LengthDbl line_length = std::sqrt(line_direction.x * line_direction.x + line_direction.y * line_direction.y);
+    line_direction.x /= line_length;
+    line_direction.y /= line_length;
+    
+    // Calculate dot product - if they're perpendicular, dot product will be close to 0
+    LengthDbl dot_product = tangent_vector.x * line_direction.x + tangent_vector.y * line_direction.y;
+    
+    // If dot product is close to 0, they're perpendicular (tangent)
+    return std::abs(dot_product) < 1e-10;
+}
+
 // Helper function to compute line-arc intersections
 std::vector<Point> compute_line_arc_intersections(
         const ShapeElement& line,
@@ -155,7 +194,7 @@ std::vector<Point> compute_line_arc_intersections(
 
     std::vector<Point> intersections;
     if (equal(discriminant, 0.0)) {
-        // One intersection
+        // One intersection - this is a tangent point
         LengthDbl t = -b / (2 * a);
         if (t < 0 || t > length)
             return {};
@@ -190,6 +229,13 @@ std::vector<Point> compute_line_arc_intersections(
             if (strict && (equal(distance(p, arc.start), 0.0) || equal(distance(p, arc.end), 0.0))) {
                 return {};
             }
+            
+            // In strict mode, also check if this is a tangent point (line touches circle)
+            if (strict && equal(discriminant, 0.0)) {
+                // For tangent points, we skip in strict mode
+                return {};
+            }
+            
             intersections.push_back(p);
         }
     } else {
@@ -219,7 +265,10 @@ std::vector<Point> compute_line_arc_intersections(
                 if (arc.contains(p1)) {
                     // In strict mode, check if p1 is an endpoint of the arc
                     if (!strict || (!equal(distance(p1, arc.start), 0.0) && !equal(distance(p1, arc.end), 0.0))) {
-                        intersections.push_back(p1);
+                        // Check if this is a tangent point
+                        if (!strict || !is_tangent_point(line, arc, p1)) {
+                            intersections.push_back(p1);
+                        }
                     }
                 }
             }
@@ -257,16 +306,19 @@ std::vector<Point> compute_line_arc_intersections(
                     if (strict && (equal(distance(p2, arc.start), 0.0) || equal(distance(p2, arc.end), 0.0))) {
                         // Skip arc endpoints in strict mode
                     } else {
-                        // Ensure we're not adding a duplicate point
-                        bool is_duplicate = false;
-                        for (const auto& p : intersections) {
-                            if (equal(distance(p, p2), 0.0)) {
-                                is_duplicate = true;
-                                break;
+                        // Check if this is a tangent point
+                        if (!strict || !is_tangent_point(line, arc, p2)) {
+                            // Ensure we're not adding a duplicate point
+                            bool is_duplicate = false;
+                            for (const auto& p : intersections) {
+                                if (equal(distance(p, p2), 0.0)) {
+                                    is_duplicate = true;
+                                    break;
+                                }
                             }
-                        }
-                        if (!is_duplicate) {
-                            intersections.push_back(p2);
+                            if (!is_duplicate) {
+                                intersections.push_back(p2);
+                            }
                         }
                     }
                 }

@@ -125,7 +125,7 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
                 build_shape({{-1, 1}, {1, 1}}, true).elements.front(),
                 true,
-                {{0, 1}},
+                {},
             }, {  // Touching line segment and circular arc at two points.
                 build_shape({{2, 0}, {-2, 0}}, true).elements.front(),
                 build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(),
