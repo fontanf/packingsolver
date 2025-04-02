@@ -3,10 +3,6 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
 namespace
 {
 
@@ -27,13 +23,13 @@ std::vector<Point> compute_line_line_intersections(
 
     // Check if both line segments are colinear.
     LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-    if (equal(denom, 0.0)) {
+    if (denom == 0.0) {
         if (strict)
             return {};
 
         // If they are colinear, check if they are aligned.
         LengthDbl denom_2 = (x1 - x2) * (y3 - y1) - (y1 - y2) * (x3 - x1);
-        if (!equal(denom_2, 0.0))
+        if (denom_2 != 0.0)
             return {};
 
         // If they are aligned, check if they overlap.
@@ -131,25 +127,25 @@ bool is_tangent_point(const ShapeElement& line, const ShapeElement& arc, const P
             -(point.x - arc.center.x)
         };
     }
-    
+
     // Calculate line direction vector
     Point line_direction = {
         line.end.x - line.start.x,
         line.end.y - line.start.y
     };
-    
+
     // Normalize vectors
     LengthDbl tangent_length = std::sqrt(tangent_vector.x * tangent_vector.x + tangent_vector.y * tangent_vector.y);
     tangent_vector.x /= tangent_length;
     tangent_vector.y /= tangent_length;
-    
+
     LengthDbl line_length = std::sqrt(line_direction.x * line_direction.x + line_direction.y * line_direction.y);
     line_direction.x /= line_length;
     line_direction.y /= line_length;
-    
+
     // Calculate dot product - if they're perpendicular, dot product will be close to 0
     LengthDbl dot_product = tangent_vector.x * line_direction.x + tangent_vector.y * line_direction.y;
-    
+
     // If dot product is close to 0, they're perpendicular (tangent)
     return std::abs(dot_product) < 1e-10;
 }
@@ -205,7 +201,7 @@ std::vector<Point> compute_line_arc_intersections(
             if (strict) {
                 return {};
             }
-            
+
             // Intersection is at an endpoint of line
             Point endpoint = equal(t, 0.0) ? line.start : line.end;
             if (arc.contains(endpoint)) {
@@ -223,19 +219,19 @@ std::vector<Point> compute_line_arc_intersections(
             line.start.x + t * dx,
             line.start.y + t * dy
         };
-        
+
         if (arc.contains(p)) {
             // In strict mode, check if p is an endpoint of the arc
             if (strict && (equal(distance(p, arc.start), 0.0) || equal(distance(p, arc.end), 0.0))) {
                 return {};
             }
-            
+
             // In strict mode, also check if this is a tangent point (line touches circle)
             if (strict && equal(discriminant, 0.0)) {
                 // For tangent points, we skip in strict mode
                 return {};
             }
-            
+
             intersections.push_back(p);
         }
     } else {
@@ -343,34 +339,34 @@ std::vector<Point> compute_line_arc_intersections(
 // Helper function to check if two arcs overlap
 bool arcs_overlap(const ShapeElement& arc1, const ShapeElement& arc2) {
     // If centers or radii are different, they can only overlap at intersection points
-    if (!equal(distance(arc1.center, arc2.center), 0.0) || 
+    if (!equal(distance(arc1.center, arc2.center), 0.0) ||
         !equal(distance(arc1.center, arc1.start), distance(arc2.center, arc2.start))) {
         return false;
     }
-    
+
     // Calculate angles for all endpoints
     auto calculate_angle = [](const Point& center, const Point& point) {
         return std::atan2(point.y - center.y, point.x - center.x);
     };
-    
+
     LengthDbl start_angle_1 = calculate_angle(arc1.center, arc1.start);
     LengthDbl end_angle_1 = calculate_angle(arc1.center, arc1.end);
     LengthDbl start_angle_2 = calculate_angle(arc2.center, arc2.start);
     LengthDbl end_angle_2 = calculate_angle(arc2.center, arc2.end);
-    
+
     // Normalize angles based on anticlockwise/clockwise
     if (!arc1.anticlockwise && end_angle_1 > start_angle_1) {
         end_angle_1 -= 2 * M_PI;
     } else if (arc1.anticlockwise && end_angle_1 < start_angle_1) {
         end_angle_1 += 2 * M_PI;
     }
-    
+
     if (!arc2.anticlockwise && end_angle_2 > start_angle_2) {
         end_angle_2 -= 2 * M_PI;
     } else if (arc2.anticlockwise && end_angle_2 < start_angle_2) {
         end_angle_2 += 2 * M_PI;
     }
-    
+
     // Check for overlap by seeing if any endpoint of one arc lies on the other arc
     if (!arc1.anticlockwise) {
         if ((start_angle_1 >= start_angle_2 && start_angle_1 <= end_angle_2) ||
@@ -387,7 +383,7 @@ bool arcs_overlap(const ShapeElement& arc1, const ShapeElement& arc2) {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -408,16 +404,16 @@ std::vector<Point> compute_arc_arc_intersections(
 
     // Calculate distance between centers
     LengthDbl d = distance(arc1.center, arc2.center);
-    
+
     // Check for arc overlap case (only if not strict)
     if (!strict && arcs_overlap(arc1, arc2)) {
         std::vector<Point> intersections;
-        
+
         // For overlapping arcs, we return all endpoints that are contained in the other arc
         if (arc2.contains(arc1.start)) {
             intersections.push_back(arc1.start);
         }
-        
+
         if (arc2.contains(arc1.end)) {
             // Check if the point is already in the intersections
             bool is_duplicate = false;
@@ -431,7 +427,7 @@ std::vector<Point> compute_arc_arc_intersections(
                 intersections.push_back(arc1.end);
             }
         }
-        
+
         if (arc1.contains(arc2.start)) {
             // Check if the point is already in the intersections
             bool is_duplicate = false;
@@ -445,7 +441,7 @@ std::vector<Point> compute_arc_arc_intersections(
                 intersections.push_back(arc2.start);
             }
         }
-        
+
         if (arc1.contains(arc2.end)) {
             // Check if the point is already in the intersections
             bool is_duplicate = false;
@@ -459,7 +455,7 @@ std::vector<Point> compute_arc_arc_intersections(
                 intersections.push_back(arc2.end);
             }
         }
-        
+
         return intersections;
     }
 
@@ -468,12 +464,12 @@ std::vector<Point> compute_arc_arc_intersections(
         // If centers are the same and radii are the same, arcs may overlap
         if (equal(r1, r2) && !strict) {
             std::vector<Point> intersections;
-            
+
             // For overlapping arcs, we need to return all endpoints that lie on both arcs
             if (arc2.contains(arc1.start)) {
                 intersections.push_back(arc1.start);
             }
-            
+
             if (arc2.contains(arc1.end)) {
                 // Check if the point is already in the intersections
                 bool is_duplicate = false;
@@ -487,7 +483,7 @@ std::vector<Point> compute_arc_arc_intersections(
                     intersections.push_back(arc1.end);
                 }
             }
-            
+
             if (arc1.contains(arc2.start)) {
                 // Check if the point is already in the intersections
                 bool is_duplicate = false;
@@ -501,7 +497,7 @@ std::vector<Point> compute_arc_arc_intersections(
                     intersections.push_back(arc2.start);
                 }
             }
-            
+
             if (arc1.contains(arc2.end)) {
                 // Check if the point is already in the intersections
                 bool is_duplicate = false;
@@ -515,7 +511,7 @@ std::vector<Point> compute_arc_arc_intersections(
                     intersections.push_back(arc2.end);
                 }
             }
-            
+
             return intersections;
         }
         return {};
@@ -532,38 +528,38 @@ std::vector<Point> compute_arc_arc_intersections(
         // For this to happen, the distance between centers must be less than 2*r
         if (d < 2 * r1) {
             std::vector<Point> intersections;
-            
+
             // Calculate standard intersection points
             LengthDbl a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
             LengthDbl h = std::sqrt(r1 * r1 - a * a);
-            
+
             // Calculate the point P2 that lies on the line between the centers
             LengthDbl x3 = x1 + a * (x2 - x1) / d;
             LengthDbl y3 = y1 + a * (y2 - y1) / d;
-            
+
             // First intersection point
             Point p1 = {
                 x3 + h * (y2 - y1) / d,
                 y3 - h * (x2 - x1) / d
             };
-            
+
             // Second intersection point
             Point p2 = {
                 x3 - h * (y2 - y1) / d,
                 y3 + h * (x2 - x1) / d
             };
-            
+
             // Add intersection points if they lie on both arcs
             if (arc1.contains(p1) && arc2.contains(p1)) {
                 intersections.push_back(p1);
             }
-            
+
             if (arc1.contains(p2) && arc2.contains(p2)) {
                 if (intersections.empty() || !equal(distance(p2, intersections[0]), 0.0)) {
                     intersections.push_back(p2);
                 }
             }
-            
+
             // Also check if any endpoints of one arc lie on the other arc
             if (arc2.contains(arc1.start)) {
                 // Check if the point is already in the intersections
@@ -578,7 +574,7 @@ std::vector<Point> compute_arc_arc_intersections(
                     intersections.push_back(arc1.start);
                 }
             }
-            
+
             if (arc2.contains(arc1.end)) {
                 // Check if the point is already in the intersections
                 bool is_duplicate = false;
@@ -592,7 +588,7 @@ std::vector<Point> compute_arc_arc_intersections(
                     intersections.push_back(arc1.end);
                 }
             }
-            
+
             if (arc1.contains(arc2.start)) {
                 // Check if the point is already in the intersections
                 bool is_duplicate = false;
@@ -606,7 +602,7 @@ std::vector<Point> compute_arc_arc_intersections(
                     intersections.push_back(arc2.start);
                 }
             }
-            
+
             if (arc1.contains(arc2.end)) {
                 // Check if the point is already in the intersections
                 bool is_duplicate = false;
@@ -620,7 +616,7 @@ std::vector<Point> compute_arc_arc_intersections(
                     intersections.push_back(arc2.end);
                 }
             }
-            
+
             return intersections;
         }
     }
