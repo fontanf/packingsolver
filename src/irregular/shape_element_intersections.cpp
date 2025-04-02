@@ -269,6 +269,57 @@ std::vector<Point> compute_line_arc_intersections(
     return intersections;
 }
 
+// Helper function to check if two arcs overlap
+bool arcs_overlap(const ShapeElement& arc1, const ShapeElement& arc2) {
+    // If centers or radii are different, they can only overlap at intersection points
+    if (!equal(distance(arc1.center, arc2.center), 0.0) || 
+        !equal(distance(arc1.center, arc1.start), distance(arc2.center, arc2.start))) {
+        return false;
+    }
+    
+    // Calculate angles for all endpoints
+    auto calculate_angle = [](const Point& center, const Point& point) {
+        return std::atan2(point.y - center.y, point.x - center.x);
+    };
+    
+    LengthDbl start_angle_1 = calculate_angle(arc1.center, arc1.start);
+    LengthDbl end_angle_1 = calculate_angle(arc1.center, arc1.end);
+    LengthDbl start_angle_2 = calculate_angle(arc2.center, arc2.start);
+    LengthDbl end_angle_2 = calculate_angle(arc2.center, arc2.end);
+    
+    // Normalize angles based on anticlockwise/clockwise
+    if (!arc1.anticlockwise && end_angle_1 > start_angle_1) {
+        end_angle_1 -= 2 * M_PI;
+    } else if (arc1.anticlockwise && end_angle_1 < start_angle_1) {
+        end_angle_1 += 2 * M_PI;
+    }
+    
+    if (!arc2.anticlockwise && end_angle_2 > start_angle_2) {
+        end_angle_2 -= 2 * M_PI;
+    } else if (arc2.anticlockwise && end_angle_2 < start_angle_2) {
+        end_angle_2 += 2 * M_PI;
+    }
+    
+    // Check for overlap by seeing if any endpoint of one arc lies on the other arc
+    if (!arc1.anticlockwise) {
+        if ((start_angle_1 >= start_angle_2 && start_angle_1 <= end_angle_2) ||
+            (end_angle_1 >= start_angle_2 && end_angle_1 <= end_angle_2) ||
+            (start_angle_2 >= end_angle_1 && start_angle_2 <= start_angle_1) ||
+            (end_angle_2 >= end_angle_1 && end_angle_2 <= start_angle_1)) {
+            return true;
+        }
+    } else {
+        if ((start_angle_1 <= start_angle_2 && start_angle_2 <= end_angle_1) ||
+            (start_angle_1 <= end_angle_2 && end_angle_2 <= end_angle_1) ||
+            (start_angle_2 <= start_angle_1 && start_angle_1 <= end_angle_2) ||
+            (start_angle_2 <= end_angle_1 && end_angle_1 <= end_angle_2)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 // Helper function to compute arc-arc intersections
 std::vector<Point> compute_arc_arc_intersections(
         const ShapeElement& arc1,
@@ -286,10 +337,135 @@ std::vector<Point> compute_arc_arc_intersections(
 
     // Calculate distance between centers
     LengthDbl d = distance(arc1.center, arc2.center);
+    
+    // Check for arc overlap case (only if not strict)
+    if (!strict && arcs_overlap(arc1, arc2)) {
+        std::vector<Point> intersections;
+        
+        // For overlapping arcs, we return all endpoints that are contained in the other arc
+        if (arc2.contains(arc1.start)) {
+            intersections.push_back(arc1.start);
+        }
+        
+        if (arc2.contains(arc1.end)) {
+            intersections.push_back(arc1.end);
+        }
+        
+        if (arc1.contains(arc2.start) && 
+            (intersections.empty() || !equal(distance(arc2.start, intersections[0]), 0.0))) {
+            intersections.push_back(arc2.start);
+        }
+        
+        if (arc1.contains(arc2.end) &&
+            (intersections.empty() || !equal(distance(arc2.end, intersections[0]), 0.0)) &&
+            (intersections.size() < 2 || !equal(distance(arc2.end, intersections[1]), 0.0))) {
+            intersections.push_back(arc2.end);
+        }
+        
+        return intersections;
+    }
 
-    // Check if circles are too far apart or one inside another
-    if (d > r1 + r2 || d < std::abs(r1 - r2) || equal(d, 0.0)) {
+    // Check for concentric arcs (same center)
+    if (equal(d, 0.0)) {
+        // If centers are the same and radii are the same, arcs may overlap
+        if (equal(r1, r2) && !strict) {
+            std::vector<Point> intersections;
+            
+            // For overlapping arcs, we need to return all endpoints that lie on both arcs
+            if (arc2.contains(arc1.start)) {
+                intersections.push_back(arc1.start);
+            }
+            
+            if (arc2.contains(arc1.end)) {
+                intersections.push_back(arc1.end);
+            }
+            
+            if (arc1.contains(arc2.start) && 
+                (intersections.empty() || !equal(distance(arc2.start, intersections[0]), 0.0))) {
+                intersections.push_back(arc2.start);
+            }
+            
+            if (arc1.contains(arc2.end) &&
+                (intersections.empty() || !equal(distance(arc2.end, intersections[0]), 0.0)) &&
+                (intersections.size() < 2 || !equal(distance(arc2.end, intersections[1]), 0.0))) {
+                intersections.push_back(arc2.end);
+            }
+            
+            return intersections;
+        }
         return {};
+    }
+
+    // Check if circles are too far apart or one inside another with no intersection
+    if (d > r1 + r2 || d < std::abs(r1 - r2)) {
+        return {};
+    }
+
+    // Handle overlapping arcs with same radius when centers are different but arc parts overlap
+    if (equal(r1, r2) && !strict) {
+        // Check if the arcs might overlap along their path (not just at intersection points)
+        // For this to happen, the distance between centers must be less than 2*r
+        if (d < 2 * r1) {
+            std::vector<Point> intersections;
+            
+            // Calculate standard intersection points
+            LengthDbl a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
+            LengthDbl h = std::sqrt(r1 * r1 - a * a);
+            
+            // Calculate the point P2 that lies on the line between the centers
+            LengthDbl x3 = x1 + a * (x2 - x1) / d;
+            LengthDbl y3 = y1 + a * (y2 - y1) / d;
+            
+            // First intersection point
+            Point p1 = {
+                x3 + h * (y2 - y1) / d,
+                y3 - h * (x2 - x1) / d
+            };
+            
+            // Second intersection point
+            Point p2 = {
+                x3 - h * (y2 - y1) / d,
+                y3 + h * (x2 - x1) / d
+            };
+            
+            // Add intersection points if they lie on both arcs
+            if (arc1.contains(p1) && arc2.contains(p1)) {
+                intersections.push_back(p1);
+            }
+            
+            if (arc1.contains(p2) && arc2.contains(p2)) {
+                if (intersections.empty() || !equal(distance(p2, intersections[0]), 0.0)) {
+                    intersections.push_back(p2);
+                }
+            }
+            
+            // Also check if any endpoints of one arc lie on the other arc
+            if (arc2.contains(arc1.start) && 
+                (intersections.empty() || !equal(distance(arc1.start, intersections[0]), 0.0)) &&
+                (intersections.size() < 2 || !equal(distance(arc1.start, intersections[1]), 0.0))) {
+                intersections.push_back(arc1.start);
+            }
+            
+            if (arc2.contains(arc1.end) && 
+                (intersections.empty() || !equal(distance(arc1.end, intersections[0]), 0.0)) &&
+                (intersections.size() < 2 || !equal(distance(arc1.end, intersections[1]), 0.0))) {
+                intersections.push_back(arc1.end);
+            }
+            
+            if (arc1.contains(arc2.start) && 
+                (intersections.empty() || !equal(distance(arc2.start, intersections[0]), 0.0)) &&
+                (intersections.size() < 2 || !equal(distance(arc2.start, intersections[1]), 0.0))) {
+                intersections.push_back(arc2.start);
+            }
+            
+            if (arc1.contains(arc2.end) && 
+                (intersections.empty() || !equal(distance(arc2.end, intersections[0]), 0.0)) &&
+                (intersections.size() < 2 || !equal(distance(arc2.end, intersections[1]), 0.0))) {
+                intersections.push_back(arc2.end);
+            }
+            
+            return intersections;
+        }
     }
 
     // Special case: circles touch externally or internally

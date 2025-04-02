@@ -28,6 +28,92 @@ std::vector<ShapeElement> compute_splitted_elements(
             auto intersection_points = compute_intersections(
                     element_1,
                     element_2);
+            
+            // Special handling for potentially overlapping circular arcs
+            if (element_1.type == ShapeElementType::CircularArc && 
+                element_2.type == ShapeElementType::CircularArc) {
+                // Check if arcs are on the same circle (concentric with same radius)
+                bool same_circle = equal(distance(element_1.center, element_2.center), 0.0) && 
+                                   equal(distance(element_1.center, element_1.start), 
+                                         distance(element_2.center, element_2.start));
+                
+                // Find additional points to handle overlaps correctly
+                if (same_circle) {
+                    // For overlapping arcs, check if any part of one arc lies inside the other
+                    // Find points along the arcs to properly handle overlapping regions
+                    LengthDbl radius = distance(element_1.center, element_1.start);
+                    
+                    // Calculate the angle of each endpoint relative to center
+                    auto calculate_angle = [](const Point& center, const Point& point) {
+                        return std::atan2(point.y - center.y, point.x - center.x);
+                    };
+                    
+                    LengthDbl start_angle_1 = calculate_angle(element_1.center, element_1.start);
+                    LengthDbl end_angle_1 = calculate_angle(element_1.center, element_1.end);
+                    LengthDbl start_angle_2 = calculate_angle(element_2.center, element_2.start);
+                    LengthDbl end_angle_2 = calculate_angle(element_2.center, element_2.end);
+                    
+                    // Adjust angles for proper arc representation
+                    if (!element_1.anticlockwise && end_angle_1 > start_angle_1) {
+                        end_angle_1 -= 2 * M_PI;
+                    } else if (element_1.anticlockwise && end_angle_1 < start_angle_1) {
+                        end_angle_1 += 2 * M_PI;
+                    }
+                    
+                    if (!element_2.anticlockwise && end_angle_2 > start_angle_2) {
+                        end_angle_2 -= 2 * M_PI;
+                    } else if (element_2.anticlockwise && end_angle_2 < start_angle_2) {
+                        end_angle_2 += 2 * M_PI;
+                    }
+                    
+                    // Check if start point of arc2 lies on arc1
+                    if (element_1.anticlockwise) {
+                        if (start_angle_1 <= start_angle_2 && start_angle_2 <= end_angle_1 &&
+                            std::find(intersection_points.begin(), intersection_points.end(), element_2.start) == intersection_points.end()) {
+                            intersection_points.push_back(element_2.start);
+                        }
+                        
+                        if (start_angle_1 <= end_angle_2 && end_angle_2 <= end_angle_1 &&
+                            std::find(intersection_points.begin(), intersection_points.end(), element_2.end) == intersection_points.end()) {
+                            intersection_points.push_back(element_2.end);
+                        }
+                    } else {
+                        if (end_angle_1 <= start_angle_2 && start_angle_2 <= start_angle_1 &&
+                            std::find(intersection_points.begin(), intersection_points.end(), element_2.start) == intersection_points.end()) {
+                            intersection_points.push_back(element_2.start);
+                        }
+                        
+                        if (end_angle_1 <= end_angle_2 && end_angle_2 <= start_angle_1 &&
+                            std::find(intersection_points.begin(), intersection_points.end(), element_2.end) == intersection_points.end()) {
+                            intersection_points.push_back(element_2.end);
+                        }
+                    }
+                    
+                    // Check if start point of arc1 lies on arc2
+                    if (element_2.anticlockwise) {
+                        if (start_angle_2 <= start_angle_1 && start_angle_1 <= end_angle_2 &&
+                            std::find(intersection_points.begin(), intersection_points.end(), element_1.start) == intersection_points.end()) {
+                            intersection_points.push_back(element_1.start);
+                        }
+                        
+                        if (start_angle_2 <= end_angle_1 && end_angle_1 <= end_angle_2 &&
+                            std::find(intersection_points.begin(), intersection_points.end(), element_1.end) == intersection_points.end()) {
+                            intersection_points.push_back(element_1.end);
+                        }
+                    } else {
+                        if (end_angle_2 <= start_angle_1 && start_angle_1 <= start_angle_2 &&
+                            std::find(intersection_points.begin(), intersection_points.end(), element_1.start) == intersection_points.end()) {
+                            intersection_points.push_back(element_1.start);
+                        }
+                        
+                        if (end_angle_2 <= end_angle_1 && end_angle_1 <= start_angle_2 &&
+                            std::find(intersection_points.begin(), intersection_points.end(), element_1.end) == intersection_points.end()) {
+                            intersection_points.push_back(element_1.end);
+                        }
+                    }
+                }
+            }
+            
             for (const Point& point: intersection_points) {
                 //std::cout << "element_pos_1 " << element_pos_1
                 //    << " " << element_1.to_string()
