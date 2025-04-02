@@ -1,112 +1,12 @@
 #include "irregular/shape_self_intersections_removal.hpp"
 
+#include "irregular/shape_element_intersections.hpp"
+
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
 namespace
 {
-
-std::vector<Point> compute_intersections(
-        const ShapeElement& element_1,
-        const ShapeElement& element_2)
-{
-    if (element_1.type == ShapeElementType::LineSegment
-            && element_2.type == ShapeElementType::LineSegment) {
-        LengthDbl x1 = element_1.start.x;
-        LengthDbl y1 = element_1.start.y;
-        LengthDbl x2 = element_1.end.x;
-        LengthDbl y2 = element_1.end.y;
-        LengthDbl x3 = element_2.start.x;
-        LengthDbl y3 = element_2.start.y;
-        LengthDbl x4 = element_2.end.x;
-        LengthDbl y4 = element_2.end.y;
-
-        // Check if both line segments are colinear.
-        LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-        if (denom == 0) {
-            // If they are colinear, check if they are aligned.
-            LengthDbl denom_2 = (x1 - x2) * (y3 - y1) - (y1 - y2) * (x3 - x1);
-            if (denom_2 != 0)
-                return {};
-
-            // If they are aligned, check if they overlap.
-            std::array<ElementPos, 4> sorted_points = {0, 1, 2, 3};
-            std::sort(
-                    sorted_points.begin(),
-                    sorted_points.end(),
-                    [&element_1, &element_2](
-                        ElementPos point_pos_1,
-                        ElementPos point_pos_2)
-                    {
-                        const Point& point_1 =
-                            (point_pos_1 == 0)? element_1.start:
-                            (point_pos_1 == 1)? element_1.end:
-                            (point_pos_1 == 2)? element_2.start:
-                            element_2.end;
-                        const Point& point_2 =
-                            (point_pos_2 == 0)? element_1.start:
-                            (point_pos_2 == 1)? element_1.end:
-                            (point_pos_2 == 2)? element_2.start:
-                            element_2.end;
-                        if (point_1.x != point_2.x)
-                            return point_1.x < point_2.x;
-                        return point_1.y < point_2.y;
-                    });
-            if (sorted_points[0] + sorted_points[1] == 1
-                    || sorted_points[0] + sorted_points[1] == 5) {
-                return {};
-            }
-            for (ElementPos i = 0; i < 4; ++i) {
-                ElementPos pos = sorted_points[i];
-                const Point& point =
-                    (pos == 0)? element_1.start:
-                    (pos == 1)? element_1.end:
-                    (pos == 2)? element_2.start:
-                    element_2.end;
-                //std::cout << i << ": " << pos << " " << point.to_string() << std::endl;
-
-            }
-            // Return the two interior points.
-            const Point& point_1 =
-                (sorted_points[1] == 0)? element_1.start:
-                (sorted_points[1] == 1)? element_1.end:
-                (sorted_points[1] == 2)? element_2.start:
-                element_2.end;
-            const Point& point_2 =
-                (sorted_points[2] == 0)? element_1.start:
-                (sorted_points[2] == 1)? element_1.end:
-                (sorted_points[2] == 2)? element_2.start:
-                element_2.end;
-            return {point_1, point_2};
-        }
-
-        // Otherwise, compute intersection.
-        LengthDbl t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
-        LengthDbl u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
-        //std::cout << "t " << t << " u " << u << std::endl;
-        if (t < 0 || t > 1 || u < 0 || u > 1) {
-            // No intersection.
-            return {};
-        } else if (t == 0) {
-            return {element_1.start};
-        } else if (t == 1) {
-            return {element_1.end};
-        } else if (u == 0) {
-            return {element_2.start};
-        } else if (u == 1) {
-            return {element_2.end};
-        } else {
-            // Standard intersection.
-            LengthDbl xp = x1 + t * (x2 - x1);
-            LengthDbl yp = y1 + t * (y2 - y1);
-            return {{xp, yp}};
-        }
-    } else {
-        throw std::invalid_argument(
-                "irregular::compute_intersections");
-    }
-    return {};
-}
 
 std::vector<ShapeElement> compute_splitted_elements(
         const std::vector<ShapeElement>& elements)
