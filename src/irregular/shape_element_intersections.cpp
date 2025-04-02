@@ -348,18 +348,45 @@ std::vector<Point> compute_arc_arc_intersections(
         }
         
         if (arc2.contains(arc1.end)) {
-            intersections.push_back(arc1.end);
+            // Check if the point is already in the intersections
+            bool is_duplicate = false;
+            for (const auto& p : intersections) {
+                if (equal(distance(p, arc1.end), 0.0)) {
+                    is_duplicate = true;
+                    break;
+                }
+            }
+            if (!is_duplicate) {
+                intersections.push_back(arc1.end);
+            }
         }
         
-        if (arc1.contains(arc2.start) && 
-            (intersections.empty() || !equal(distance(arc2.start, intersections[0]), 0.0))) {
-            intersections.push_back(arc2.start);
+        if (arc1.contains(arc2.start)) {
+            // Check if the point is already in the intersections
+            bool is_duplicate = false;
+            for (const auto& p : intersections) {
+                if (equal(distance(p, arc2.start), 0.0)) {
+                    is_duplicate = true;
+                    break;
+                }
+            }
+            if (!is_duplicate) {
+                intersections.push_back(arc2.start);
+            }
         }
         
-        if (arc1.contains(arc2.end) &&
-            (intersections.empty() || !equal(distance(arc2.end, intersections[0]), 0.0)) &&
-            (intersections.size() < 2 || !equal(distance(arc2.end, intersections[1]), 0.0))) {
-            intersections.push_back(arc2.end);
+        if (arc1.contains(arc2.end)) {
+            // Check if the point is already in the intersections
+            bool is_duplicate = false;
+            for (const auto& p : intersections) {
+                if (equal(distance(p, arc2.end), 0.0)) {
+                    is_duplicate = true;
+                    break;
+                }
+            }
+            if (!is_duplicate) {
+                intersections.push_back(arc2.end);
+            }
         }
         
         return intersections;
@@ -377,18 +404,45 @@ std::vector<Point> compute_arc_arc_intersections(
             }
             
             if (arc2.contains(arc1.end)) {
-                intersections.push_back(arc1.end);
+                // Check if the point is already in the intersections
+                bool is_duplicate = false;
+                for (const auto& p : intersections) {
+                    if (equal(distance(p, arc1.end), 0.0)) {
+                        is_duplicate = true;
+                        break;
+                    }
+                }
+                if (!is_duplicate) {
+                    intersections.push_back(arc1.end);
+                }
             }
             
-            if (arc1.contains(arc2.start) && 
-                (intersections.empty() || !equal(distance(arc2.start, intersections[0]), 0.0))) {
-                intersections.push_back(arc2.start);
+            if (arc1.contains(arc2.start)) {
+                // Check if the point is already in the intersections
+                bool is_duplicate = false;
+                for (const auto& p : intersections) {
+                    if (equal(distance(p, arc2.start), 0.0)) {
+                        is_duplicate = true;
+                        break;
+                    }
+                }
+                if (!is_duplicate) {
+                    intersections.push_back(arc2.start);
+                }
             }
             
-            if (arc1.contains(arc2.end) &&
-                (intersections.empty() || !equal(distance(arc2.end, intersections[0]), 0.0)) &&
-                (intersections.size() < 2 || !equal(distance(arc2.end, intersections[1]), 0.0))) {
-                intersections.push_back(arc2.end);
+            if (arc1.contains(arc2.end)) {
+                // Check if the point is already in the intersections
+                bool is_duplicate = false;
+                for (const auto& p : intersections) {
+                    if (equal(distance(p, arc2.end), 0.0)) {
+                        is_duplicate = true;
+                        break;
+                    }
+                }
+                if (!is_duplicate) {
+                    intersections.push_back(arc2.end);
+                }
             }
             
             return intersections;
@@ -440,28 +494,60 @@ std::vector<Point> compute_arc_arc_intersections(
             }
             
             // Also check if any endpoints of one arc lie on the other arc
-            if (arc2.contains(arc1.start) && 
-                (intersections.empty() || !equal(distance(arc1.start, intersections[0]), 0.0)) &&
-                (intersections.size() < 2 || !equal(distance(arc1.start, intersections[1]), 0.0))) {
-                intersections.push_back(arc1.start);
+            if (arc2.contains(arc1.start)) {
+                // Check if the point is already in the intersections
+                bool is_duplicate = false;
+                for (const auto& p : intersections) {
+                    if (equal(distance(p, arc1.start), 0.0)) {
+                        is_duplicate = true;
+                        break;
+                    }
+                }
+                if (!is_duplicate) {
+                    intersections.push_back(arc1.start);
+                }
             }
             
-            if (arc2.contains(arc1.end) && 
-                (intersections.empty() || !equal(distance(arc1.end, intersections[0]), 0.0)) &&
-                (intersections.size() < 2 || !equal(distance(arc1.end, intersections[1]), 0.0))) {
-                intersections.push_back(arc1.end);
+            if (arc2.contains(arc1.end)) {
+                // Check if the point is already in the intersections
+                bool is_duplicate = false;
+                for (const auto& p : intersections) {
+                    if (equal(distance(p, arc1.end), 0.0)) {
+                        is_duplicate = true;
+                        break;
+                    }
+                }
+                if (!is_duplicate) {
+                    intersections.push_back(arc1.end);
+                }
             }
             
-            if (arc1.contains(arc2.start) && 
-                (intersections.empty() || !equal(distance(arc2.start, intersections[0]), 0.0)) &&
-                (intersections.size() < 2 || !equal(distance(arc2.start, intersections[1]), 0.0))) {
-                intersections.push_back(arc2.start);
+            if (arc1.contains(arc2.start)) {
+                // Check if the point is already in the intersections
+                bool is_duplicate = false;
+                for (const auto& p : intersections) {
+                    if (equal(distance(p, arc2.start), 0.0)) {
+                        is_duplicate = true;
+                        break;
+                    }
+                }
+                if (!is_duplicate) {
+                    intersections.push_back(arc2.start);
+                }
             }
             
-            if (arc1.contains(arc2.end) && 
-                (intersections.empty() || !equal(distance(arc2.end, intersections[0]), 0.0)) &&
-                (intersections.size() < 2 || !equal(distance(arc2.end, intersections[1]), 0.0))) {
-                intersections.push_back(arc2.end);
+            if (arc1.contains(arc2.end)) {
+                // Check if the point is already in the intersections
+                bool is_duplicate = false;
+                for (const auto& p : intersections) {
+                    if (equal(distance(p, arc2.end), 0.0)) {
+                        is_duplicate = true;
+                        break;
+                    }
+                }
+                if (!is_duplicate) {
+                    intersections.push_back(arc2.end);
+                }
             }
             
             return intersections;
