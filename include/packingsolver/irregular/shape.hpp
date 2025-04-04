@@ -165,6 +165,12 @@ struct ShapeElement
 
     ShapeElement axial_symmetry_y_axis() const;
 
+    /** Get the middle point on the element. */
+    Point middle() const;
+
+    /** Compute the smallest and greatest x and y of the shape. */
+    std::pair<Point, Point> min_max() const;
+
     std::string to_string() const;
 
     nlohmann::json to_json() const;

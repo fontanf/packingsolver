@@ -5,27 +5,72 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
-struct ShapeElementLengthTestParams
+struct IrregularShapeElementLengthTestParams
 {
     ShapeElement element;
     LengthDbl expected_length;
 };
 
-class IrregularShapeElementLengthTest: public testing::TestWithParam<ShapeElementLengthTestParams> { };
+class IrregularShapeElementLengthTest: public testing::TestWithParam<IrregularShapeElementLengthTestParams> { };
 
-TEST_P(IrregularShapeElementLengthTest, ShapeElementLength)
+TEST_P(IrregularShapeElementLengthTest, IrregularShapeElementLength)
 {
-    ShapeElementLengthTestParams test_params = GetParam();
+    IrregularShapeElementLengthTestParams test_params = GetParam();
     EXPECT_TRUE(equal(test_params.element.length(), test_params.expected_length));
 }
 
 INSTANTIATE_TEST_SUITE_P(
         Irregular,
         IrregularShapeElementLengthTest,
-        testing::ValuesIn(std::vector<ShapeElementLengthTestParams>{
+        testing::ValuesIn(std::vector<IrregularShapeElementLengthTestParams>{
             {build_shape({{0, 0}, {0, 1}}, true).elements.front(), 1 },
             {build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(), M_PI / 2 },
             {build_shape({{1, 0}, {0, 0, -1}, {0, -1}}, true).elements.front(), M_PI / 2 },
+            }));
+
+
+struct IrregularShapeElementMinMaxTestParams
+{
+    ShapeElement element;
+    LengthDbl expected_x_min;
+    LengthDbl expected_y_min;
+    LengthDbl expected_x_max;
+    LengthDbl expected_y_max;
+};
+
+class IrregularShapeElementMinMaxTest: public testing::TestWithParam<IrregularShapeElementMinMaxTestParams> { };
+
+TEST_P(IrregularShapeElementMinMaxTest, IrregularShapeElementMinMax)
+{
+    IrregularShapeElementMinMaxTestParams test_params = GetParam();
+    std::cout << "element " << test_params.element.to_string() << std::endl;
+    std::cout << "expected x_min " << test_params.expected_x_min
+        << " y_min " << test_params.expected_y_min
+        << " x_max " << test_params.expected_x_max
+        << " y_max " << test_params.expected_y_max << std::endl;
+    auto mm = test_params.element.min_max();
+    std::cout << "x_min " << mm.first.x
+        << " y_min " << mm.first.y
+        << " x_max " << mm.second.x
+        << " y_max " << mm.second.y << std::endl;
+    EXPECT_TRUE(equal(mm.first.x, test_params.expected_x_min));
+    EXPECT_TRUE(equal(mm.second.x, test_params.expected_x_max));
+    EXPECT_TRUE(equal(mm.first.y, test_params.expected_y_min));
+    EXPECT_TRUE(equal(mm.second.y, test_params.expected_y_max));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Irregular,
+        IrregularShapeElementMinMaxTest,
+        testing::ValuesIn(std::vector<IrregularShapeElementMinMaxTestParams>{
+            {build_shape({{0, 1}, {2, 3}}, true).elements.front(), 0, 1, 2, 3 },
+            {build_shape({{1, 0}, {0, 0, 1}, {-1, 0}}, true).elements.front(), -1, 0, 1, 1 },
+            {build_shape({{1, 0}, {0, 0, -1}, {-1, 0}}, true).elements.front(), -1, -1, 1, 0 },
+
+            {build_shape({{0, 1}, {0, 0, 1}, {1, 0}}, true).elements.front(), -1, -1, 1, 1 },
+            {build_shape({{-1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(), -1, -1, 1, 1 },
+            {build_shape({{0, -1}, {0, 0, 1}, {-1, 0}}, true).elements.front(), -1, -1, 1, 1 },
+            {build_shape({{1, 0}, {0, 0, 1}, {0, -1}}, true).elements.front(), -1, -1, 1, 1 },
             }));
 
 
@@ -61,7 +106,7 @@ INSTANTIATE_TEST_SUITE_P(
             }}));
 
 
-struct ShapeContainsTestParams
+struct IrregularShapeContainsTestParams
 {
     Shape shape;
     Point point;
@@ -69,11 +114,11 @@ struct ShapeContainsTestParams
     bool expected_contained;
 };
 
-class IrregularShapeContainsTest: public testing::TestWithParam<ShapeContainsTestParams> { };
+class IrregularShapeContainsTest: public testing::TestWithParam<IrregularShapeContainsTestParams> { };
 
-TEST_P(IrregularShapeContainsTest, ShapeContains)
+TEST_P(IrregularShapeContainsTest, IrregularShapeContains)
 {
-    ShapeContainsTestParams test_params = GetParam();
+    IrregularShapeContainsTestParams test_params = GetParam();
     std::cout << "shape" << std::endl;
     std::cout << test_params.shape.to_string(0) << std::endl;
     std::cout << "point " << test_params.point.to_string() << std::endl;
@@ -91,7 +136,7 @@ TEST_P(IrregularShapeContainsTest, ShapeContains)
 INSTANTIATE_TEST_SUITE_P(
         Irregular,
         IrregularShapeContainsTest,
-        testing::ValuesIn(std::vector<ShapeContainsTestParams>{
+        testing::ValuesIn(std::vector<IrregularShapeContainsTestParams>{
             {  // Point oustide of polygon
                 build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
                 {2, 2},
@@ -140,7 +185,7 @@ INSTANTIATE_TEST_SUITE_P(
             }}));
 
 
-struct ApproximateCircularArcByLineSegmentsTestParams
+struct IrregularApproximateCircularArcByLineSegmentsTestParams
 {
     ShapeElement circular_arc;
     ElementPos number_of_line_segments;
@@ -148,11 +193,11 @@ struct ApproximateCircularArcByLineSegmentsTestParams
     std::vector<ShapeElement> expected_line_segments;
 };
 
-class IrregularApproximateCircularArcByLineSegmentsTest: public testing::TestWithParam<ApproximateCircularArcByLineSegmentsTestParams> { };
+class IrregularApproximateCircularArcByLineSegmentsTest: public testing::TestWithParam<IrregularApproximateCircularArcByLineSegmentsTestParams> { };
 
-TEST_P(IrregularApproximateCircularArcByLineSegmentsTest, ApproximateCircularArcByLineSegments)
+TEST_P(IrregularApproximateCircularArcByLineSegmentsTest, IrregularApproximateCircularArcByLineSegments)
 {
-    ApproximateCircularArcByLineSegmentsTestParams test_params = GetParam();
+    IrregularApproximateCircularArcByLineSegmentsTestParams test_params = GetParam();
     std::cout << "circular_arc" << std::endl;
     std::cout << test_params.circular_arc.to_string() << std::endl;
     std::cout << "expected_line_segments" << std::endl;
@@ -176,7 +221,7 @@ TEST_P(IrregularApproximateCircularArcByLineSegmentsTest, ApproximateCircularArc
 INSTANTIATE_TEST_SUITE_P(
         Irregular,
         IrregularApproximateCircularArcByLineSegmentsTest,
-        testing::ValuesIn(std::vector<ApproximateCircularArcByLineSegmentsTestParams>{
+        testing::ValuesIn(std::vector<IrregularApproximateCircularArcByLineSegmentsTestParams>{
             {
                 build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
                 1,
