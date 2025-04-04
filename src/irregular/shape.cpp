@@ -172,6 +172,77 @@ Angle irregular::angle_radian(
     return a;
 }
 
+Point ShapeElement::middle() const
+{
+    switch (type) {
+    case ShapeElementType::LineSegment: {
+        Point point;
+        point.x = (this->start.x + this->end.x) / 2;
+        point.y = (this->start.y + this->end.y) / 2;
+        return point;
+    } case ShapeElementType::CircularArc: {
+        Angle angle = (this->anticlockwise)?
+            angle_radian(
+                    this->start - this->center,
+                    this->end - this->center):
+            angle_radian(
+                    this->end - this->center,
+                    this->start - this->center);
+        return this->start.rotate_radians(this->center, angle);
+    }
+    }
+    return {0, 0};
+}
+
+std::pair<Point, Point> ShapeElement::min_max() const
+{
+    LengthDbl x_min = (std::min)(this->start.x, this->end.x);
+    LengthDbl x_max = (std::max)(this->start.x, this->end.x);
+    LengthDbl y_min = (std::min)(this->start.y, this->end.y);
+    LengthDbl y_max = (std::max)(this->start.y, this->end.y);
+
+    if (this->type == ShapeElementType::CircularArc) {
+        LengthDbl radius = distance(this->center, this->start);
+        Angle starting_angle = irregular::angle_radian(this->start - this->center);
+        Angle ending_angle = irregular::angle_radian(this->end - this->center);
+        if (!this->anticlockwise)
+            std::swap(starting_angle, ending_angle);
+        //std::cout << "starting_angle " << starting_angle << " ending_angle " << ending_angle << std::endl;
+        if (starting_angle <= ending_angle) {
+            if (starting_angle <= M_PI
+                    && ending_angle >= M_PI) {
+                x_min = std::min(x_min, this->center.x - radius);
+            }
+            if (starting_angle == 0)
+                x_max = std::max(x_max, this->center.x + radius);
+            if (starting_angle <= 3 * M_PI / 2
+                    && ending_angle >= 3 * M_PI / 2 ) {
+                y_min = std::min(y_min, this->center.y - radius);
+            }
+            if (starting_angle <= M_PI / 2
+                    && ending_angle >= M_PI / 2) {
+                y_max = std::max(y_max, this->center.y + radius);
+            }
+        } else {  // starting_angle > ending_angle
+            if (starting_angle <= M_PI
+                    || ending_angle >= M_PI) {
+                x_min = std::min(x_min, this->center.x - radius);
+            }
+            x_max = std::max(x_max, this->center.x + radius);
+            if (starting_angle <= 3 * M_PI / 2
+                    || ending_angle >= 3 * M_PI / 2) {
+                y_min = std::min(y_min, this->center.y - radius);
+            }
+            if (starting_angle <= M_PI / 2
+                    || ending_angle >= M_PI / 2) {
+                y_max = std::max(y_max, this->center.y + radius);
+            }
+        }
+    }
+
+    return {{x_min, y_min}, {x_max, y_max}};
+}
+
 int irregular::counter_clockwise(
         const Point& point_1,
         const Point& point_2,
@@ -587,52 +658,15 @@ std::pair<Point, Point> Shape::compute_min_max(
     LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
-    for (const ShapeElement& element: elements) {
-        Point point = (!mirror)?
-            element.start.rotate(angle):
-            element.start.axial_symmetry_y_axis().rotate(angle);
-        x_min = std::min(x_min, point.x);
-        x_max = std::max(x_max, point.x);
-        y_min = std::min(y_min, point.y);
-        y_max = std::max(y_max, point.y);
-
-        if (element.type == ShapeElementType::CircularArc) {
-            LengthDbl radius = distance(element.center, element.start);
-            Angle starting_angle = irregular::angle_radian(element.start - element.center);
-            Angle ending_angle = irregular::angle_radian(element.end - element.center);
-            if (!element.anticlockwise)
-                std::swap(starting_angle, ending_angle);
-            if (starting_angle <= ending_angle) {
-                if (starting_angle <= M_PI
-                        && M_PI <= ending_angle) {
-                    x_min = std::min(x_min, element.center.x - radius);
-                }
-                if (starting_angle == 0)
-                    x_max = std::max(x_max, element.center.x + radius);
-                if (starting_angle <= 3 * M_PI / 2
-                        && 3 * M_PI / 2 <= ending_angle) {
-                    y_min = std::min(y_min, element.center.y - radius);
-                }
-                if (starting_angle <= M_PI / 2
-                        && M_PI / 2 <= ending_angle) {
-                    y_max = std::max(y_max, element.center.y + radius);
-                }
-            } else {  // starting_angle > ending_angle
-                if (starting_angle <= M_PI
-                        || ending_angle <= M_PI) {
-                    x_min = std::min(x_min, element.center.x - radius);
-                }
-                x_max = std::max(x_max, element.center.x + radius);
-                if (starting_angle <= 3 * M_PI / 4
-                        || ending_angle <= 3 * M_PI / 4) {
-                    y_min = std::min(y_min, element.center.y - radius);
-                }
-                if (starting_angle <= M_PI / 2
-                        || ending_angle <= M_PI / 2) {
-                    y_max = std::max(y_max, element.center.y + radius);
-                }
-            }
-        }
+    for (const ShapeElement& element_orig: elements) {
+        ShapeElement element = (!mirror)?
+            element_orig.rotate(angle):
+            element_orig.axial_symmetry_y_axis().rotate(angle);
+        auto mm = element.min_max();
+        x_min = std::min(x_min, mm.first.x);
+        x_max = std::max(x_max, mm.second.x);
+        y_min = std::min(y_min, mm.first.y);
+        y_max = std::max(y_max, mm.second.y);
     }
     return {{x_min, y_min}, {x_max, y_max}};
 }

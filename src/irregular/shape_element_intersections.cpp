@@ -749,3 +749,32 @@ std::vector<Point> irregular::compute_intersections(
     throw std::invalid_argument("irregular::compute_intersections: Invalid element types");
     return {};
 }
+
+bool irregular::intersect(
+        const Shape& shape_1,
+        const Shape& shape_2,
+        bool strict)
+{
+    for (const ShapeElement& element_1: shape_1.elements) {
+        for (const ShapeElement& element_2: shape_2.elements) {
+            auto intersections = compute_intersections(
+                    element_1,
+                    element_2,
+                    strict);
+            if (!intersections.empty())
+                return true;
+        }
+    }
+    for (const ShapeElement& element_1: shape_1.elements) {
+        Point middle = element_1.middle();
+        if (shape_2.contains(middle, strict))
+            return true;
+    }
+    for (const ShapeElement& element_2: shape_2.elements) {
+        Point middle = element_2.middle();
+        if (shape_1.contains(middle, strict))
+            return true;
+    }
+
+    return false;
+}
