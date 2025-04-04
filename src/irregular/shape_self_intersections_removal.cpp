@@ -332,6 +332,22 @@ std::pair<Shape, std::vector<Shape>> packingsolver::irregular::remove_self_inter
     return {new_shape, new_holes};
 }
 
+std::pair<Shape, std::vector<Shape>> irregular::compute_union(
+        const Shape& shape_1,
+        const Shape& shape_2)
+{
+    Shape shape_tmp;
+    shape_tmp.elements.insert(
+            shape_tmp.elements.end(),
+            shape_1.elements.begin(),
+            shape_1.elements.end());
+    shape_tmp.elements.insert(
+            shape_tmp.elements.end(),
+            shape_2.elements.begin(),
+            shape_2.elements.end());
+    return remove_self_intersections(shape_tmp);
+}
+
 std::vector<Shape> irregular::extract_all_holes_from_self_intersecting_hole(
         const Shape& shape)
 {
