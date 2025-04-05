@@ -10,6 +10,15 @@ FetchContent_Declare(
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(optimizationtools)
 
+# Fetch fontanf/shape.
+FetchContent_Declare(
+    shape
+    GIT_REPOSITORY https://github.com/fontanf/shape.git
+    GIT_TAG 77f0d7b2b1cbcf1d53042a886b9221644202d1f6
+    #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../shape/"
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(shape)
+
 # Fetch fontanf/mathoptsolverscmake.
 set(MATHOPTSOLVERSCMAKE_USE_CLP ON)
 FetchContent_Declare(

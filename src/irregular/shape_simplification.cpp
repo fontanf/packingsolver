@@ -2,8 +2,8 @@
 
 #include "packingsolver/irregular/instance_builder.hpp"
 
-#include "irregular/shape_extract_borders.hpp"
-#include "irregular/shape_self_intersections_removal.hpp"
+#include "shape/extract_borders.hpp"
+#include "shape/self_intersections_removal.hpp"
 
 #include "optimizationtools/containers/indexed_binary_heap.hpp"
 
@@ -184,7 +184,7 @@ AreaDbl compute_approximation_cost(
     if (type == ApproximatedShapeType::ItemShape
             || type == ApproximatedShapeType::Defect) {
         // Outer approximation.
-        if (equal(angle_next, M_PI)) {
+        if (shape::equal(angle_next, M_PI)) {
             return 0.0;
         } else if (angle_next > M_PI) {
             if (angle_prev > M_PI) {
@@ -200,7 +200,7 @@ AreaDbl compute_approximation_cost(
                 LengthDbl y4 = element_next.element.end.y;
                 LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
                 // If no intersection, no approximation possible.
-                if (equal(denom, 0.0))
+                if (shape::equal(denom, 0.0))
                     return std::numeric_limits<Angle>::infinity();
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
@@ -238,7 +238,7 @@ AreaDbl compute_approximation_cost(
         }
     } else {
         // Inner approximation.
-        if (equal(angle_next, M_PI)) {
+        if (shape::equal(angle_next, M_PI)) {
             return 0.0;
         } else if (angle_next < M_PI) {
             if (angle_prev < M_PI) {
@@ -254,7 +254,7 @@ AreaDbl compute_approximation_cost(
                 LengthDbl y4 = element_next.element.end.y;
                 LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
                 // If no intersection, no approximation possible.
-                if (equal(denom, 0.0))
+                if (shape::equal(denom, 0.0))
                     return std::numeric_limits<Angle>::infinity();
                 LengthDbl xp = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
                 LengthDbl yp = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
@@ -314,7 +314,7 @@ void apply_approximation(
     if (type == ApproximatedShapeType::ItemShape
             || type == ApproximatedShapeType::Defect) {
         // Outer approximation.
-        if (equal(angle_next, M_PI)) {
+        if (shape::equal(angle_next, M_PI)) {
             element_next.element.start = element.element.start;
         } else if (angle_next > M_PI) {
             if (angle_prev > M_PI) {
@@ -329,7 +329,7 @@ void apply_approximation(
                 LengthDbl x4 = element_next.element.end.x;
                 LengthDbl y4 = element_next.element.end.y;
                 LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-                if (equal(denom, 0.0)) {
+                if (shape::equal(denom, 0.0)) {
                     throw std::runtime_error(
                             "irregular::apply_approximation: outer; "
                             "element_prev.element: " + element_prev.element.to_string() + "; "
@@ -359,7 +359,7 @@ void apply_approximation(
         }
     } else {
         // Inner approximation.
-        if (equal(angle_next, M_PI)) {
+        if (shape::equal(angle_next, M_PI)) {
             element_next.element.start = element.element.start;
         } else if (angle_next < M_PI) {
             if (angle_prev < M_PI) {
@@ -374,7 +374,7 @@ void apply_approximation(
                 LengthDbl x4 = element_next.element.end.x;
                 LengthDbl y4 = element_next.element.end.y;
                 LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-                if (equal(denom, 0.0)) {
+                if (shape::equal(denom, 0.0)) {
                     throw std::runtime_error(
                             "irregular::apply_approximation: inner; "
                             "denom: " + std::to_string(denom) + ".");
