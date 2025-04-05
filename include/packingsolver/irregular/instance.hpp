@@ -2,12 +2,14 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
-#include "packingsolver/irregular/shape.hpp"
+#include "shape/shape.hpp"
 
 namespace packingsolver
 {
 namespace irregular
 {
+
+using namespace shape;
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Item type, Bin type, Defect //////////////////////////

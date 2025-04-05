@@ -1,7 +1,8 @@
 #pragma once
 
 #include "packingsolver/irregular/solution.hpp"
-#include "irregular/trapezoid.hpp"
+
+#include "shape/trapezoid.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
 
