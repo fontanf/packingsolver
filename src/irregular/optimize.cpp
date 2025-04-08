@@ -185,8 +185,8 @@ void optimize_tree_search(
                     outputs[i].solution_pool.add(solution);
                 };
         }
+        exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
-            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_tree_search_worker), optimize_tree_search_worker>,
                         std::ref(exception_ptr_list.front()),
@@ -196,12 +196,16 @@ void optimize_tree_search(
                         branching_scheme_parameters_list[i],
                         ibs_parameters_list[i]));
         } else {
-            optimize_tree_search_worker(
-                    instance,
-                    parameters,
-                    algorithm_formatter,
-                    branching_scheme_parameters_list[i],
-                    ibs_parameters_list[i]);
+            try {
+                optimize_tree_search_worker(
+                        instance,
+                        parameters,
+                        algorithm_formatter,
+                        branching_scheme_parameters_list[i],
+                        ibs_parameters_list[i]);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
         }
     }
     for (Counter i = 0; i < (Counter)threads.size(); ++i)
@@ -580,9 +584,9 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     std::forward_list<std::exception_ptr> exception_ptr_list;
     // Tree search.
     if (use_tree_search) {
+        exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 0) {
-            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_tree_search), optimize_tree_search>,
                         std::ref(exception_ptr_list.front()),
@@ -590,17 +594,21 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
         } else {
-            optimize_tree_search(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
+            try {
+                optimize_tree_search(
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
         }
     }
     // Sequential single knapsack.
     if (use_sequential_single_knapsack) {
+        exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 1) {
-            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>,
                         std::ref(exception_ptr_list.front()),
@@ -608,17 +616,21 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
         } else {
-            optimize_sequential_single_knapsack(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
+            try {
+                optimize_sequential_single_knapsack(
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
         }
     }
     // Sequential value correction.
     if (use_sequential_value_correction) {
+        exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 2) {
-            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>,
                         std::ref(exception_ptr_list.front()),
@@ -626,17 +638,21 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
         } else {
-            optimize_sequential_value_correction(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
+            try {
+                optimize_sequential_value_correction(
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
         }
     }
     // Dichotomic search.
     if (use_dichotomic_search) {
+        exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 3) {
-            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>,
                         std::ref(exception_ptr_list.front()),
@@ -644,17 +660,21 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
         } else {
-            optimize_dichotomic_search(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
+            try {
+                optimize_dichotomic_search(
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
         }
     }
     // Column generation.
     if (use_column_generation) {
+        exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 4) {
-            exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_column_generation), optimize_column_generation>,
                         std::ref(exception_ptr_list.front()),
@@ -662,10 +682,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
         } else {
-            optimize_column_generation(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
+            try {
+                optimize_column_generation(
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
         }
     }
     for (Counter i = 0; i < (Counter)threads.size(); ++i)

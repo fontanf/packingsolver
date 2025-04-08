@@ -187,17 +187,21 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                             << " " << tssibs_output.maximum_size_of_the_queue;
                         algorithm_formatter.update_solution(solution, ss.str());
                     };
+                exception_ptr_list.push_front(std::exception_ptr());
                 if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
-                    exception_ptr_list.push_front(std::exception_ptr());
                     threads.push_back(std::thread(
                                 wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>,
                                 std::ref(exception_ptr_list.front()),
                                 std::ref(branching_schemes[i]),
                                 ibs_parameters_list[i]));
                 } else {
-                    treesearchsolver::iterative_beam_search_2<BranchingScheme>(
-                            branching_schemes[i],
-                            ibs_parameters_list[i]);
+                    try {
+                        treesearchsolver::iterative_beam_search_2<BranchingScheme>(
+                                branching_schemes[i],
+                                ibs_parameters_list[i]);
+                    } catch (...) {
+                        exception_ptr_list.front() = std::current_exception();
+                    }
                 }
             }
             for (Counter i = 0; i < (Counter)threads.size(); ++i)
