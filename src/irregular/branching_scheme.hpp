@@ -120,6 +120,18 @@ public:
         LengthDbl y_max;
     };
 
+    struct DirectionData
+    {
+        /** Bin types in each direction. */
+        std::vector<BranchingSchemeBinType> bin_types;
+
+        /** Trapezoid sets in each direction. */
+        std::vector<TrapezoidSet> trapezoid_sets;
+
+        /** Inflated trapezoid sets in each direction. */
+        std::vector<std::vector<std::vector<GeneralizedTrapezoid>>> trapezoid_sets_inflated;
+    };
+
     struct Insertion
     {
         /** Id of the inserted rectangle set. */
@@ -431,21 +443,14 @@ private:
     /** Instance. */
     const Instance& instance_orig_;
 
-    Instance instance_approx_;
-
     /** Parameters. */
     Parameters parameters_;
 
-    /** Bin types in each direction. */
-    std::vector<std::vector<BranchingSchemeBinType>> bin_types_;
-
-    /** Trapezoid sets in each direction. */
-    std::vector<std::vector<TrapezoidSet>> trapezoid_sets_;
-
-    /** Inflated trapezoid sets in each direction. */
-    std::vector<std::vector<std::vector<std::vector<GeneralizedTrapezoid>>>> trapezoid_sets_inflated_;
+    Instance instance_approx_;
 
     std::vector<AreaDbl> item_types_convex_hull_area_;
+
+    DirectionData directions_data_[8];
 
     mutable std::vector<std::vector<std::unordered_map<Angle, Counter>>> json_items_init_ids_;
 

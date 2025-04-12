@@ -75,12 +75,6 @@ BranchingScheme::BranchingScheme(
 {
     bool write_shapes = false;
 
-    // Compute branching scheme bin types.
-    bin_types_ = std::vector<std::vector<BranchingSchemeBinType>>(
-            8,
-            std::vector<BranchingSchemeBinType>(instance().number_of_bin_types()));
-    trapezoid_sets_ = std::vector<std::vector<TrapezoidSet>>(8);
-
     for (Direction direction: {
             Direction::LeftToRightThenBottomToTop,
             Direction::LeftToRightThenTopToBottom,
@@ -90,12 +84,14 @@ BranchingScheme::BranchingScheme(
             Direction::BottomToTopThenRightToLeft,
             Direction::TopToBottomThenLeftToRight,
             Direction::TopToBottomThenRightToLeft}) {
+        DirectionData& direction_data = directions_data_[(int)direction];
+        direction_data.bin_types = std::vector<BranchingSchemeBinType>(instance().number_of_bin_types());
         for (BinTypeId bin_type_id = 0;
                 bin_type_id < instance().number_of_bin_types();
                 ++bin_type_id) {
             //std::cout << "bin_type_id " << bin_type_id << std::endl;
             const BinType& bin_type = instance().bin_type(bin_type_id);
-            BranchingSchemeBinType& bb_bin_type = bin_types_[(int)direction][bin_type_id];
+            BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
             Shape bin_shape = convert_shape(bin_type.shape, direction);
 
             auto mm = bin_shape.compute_min_max();
@@ -136,8 +132,8 @@ BranchingScheme::BranchingScheme(
             ++bin_type_id) {
         //std::cout << "bin_type_id " << bin_type_id << std::endl;
         const BinType& bin_type = instance().bin_type(bin_type_id);
-        BranchingSchemeBinType& bb_bin_type_x = bin_types_[(int)Direction::LeftToRightThenBottomToTop][bin_type_id];
-        BranchingSchemeBinType& bb_bin_type_y = bin_types_[(int)Direction::BottomToTopThenLeftToRight][bin_type_id];
+        BranchingSchemeBinType& bb_bin_type_x = directions_data_[(int)Direction::LeftToRightThenBottomToTop].bin_types[bin_type_id];
+        BranchingSchemeBinType& bb_bin_type_y = directions_data_[(int)Direction::BottomToTopThenLeftToRight].bin_types[bin_type_id];
 
         for (const Shape& shape_border: extract_borders(bin_type.shape)) {
             {
@@ -218,8 +214,8 @@ BranchingScheme::BranchingScheme(
     }
 
     // Compute item_types_trapezoidss_.
-    std::vector<TrapezoidSet>& trapezoid_sets_x = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop];
-    std::vector<TrapezoidSet>& trapezoid_sets_y = trapezoid_sets_[(int)Direction::BottomToTopThenLeftToRight];
+    std::vector<TrapezoidSet>& trapezoid_sets_x = directions_data_[(int)Direction::LeftToRightThenBottomToTop].trapezoid_sets;
+    std::vector<TrapezoidSet>& trapezoid_sets_y = directions_data_[(int)Direction::BottomToTopThenLeftToRight].trapezoid_sets;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance().number_of_item_types();
             ++item_type_id) {
@@ -492,9 +488,9 @@ BranchingScheme::BranchingScheme(
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance().number_of_bin_types();
             ++bin_type_id) {
-        const BranchingSchemeBinType& bb_bin_type_ref = bin_types_[(int)Direction::LeftToRightThenBottomToTop][bin_type_id];
+        const BranchingSchemeBinType& bb_bin_type_ref = directions_data_[(int)Direction::LeftToRightThenBottomToTop].bin_types[bin_type_id];
         {
-            BranchingSchemeBinType& bb_bin_type = bin_types_[(int)Direction::LeftToRightThenTopToBottom][bin_type_id];
+            BranchingSchemeBinType& bb_bin_type = directions_data_[(int)Direction::LeftToRightThenTopToBottom].bin_types[bin_type_id];
             for (auto it_ref = bb_bin_type_ref.defects.begin() + bb_bin_type.defects.size();
                     it_ref != bb_bin_type_ref.defects.end();
                     ++it_ref) {
@@ -506,7 +502,7 @@ BranchingScheme::BranchingScheme(
             }
         }
         {
-            BranchingSchemeBinType& bb_bin_type = bin_types_[(int)Direction::RightToLeftThenBottomToTop][bin_type_id];
+            BranchingSchemeBinType& bb_bin_type = directions_data_[(int)Direction::RightToLeftThenBottomToTop].bin_types[bin_type_id];
             for (auto it_ref = bb_bin_type_ref.defects.begin() + bb_bin_type.defects.size();
                     it_ref != bb_bin_type_ref.defects.end();
                     ++it_ref) {
@@ -518,7 +514,7 @@ BranchingScheme::BranchingScheme(
             }
         }
         {
-            BranchingSchemeBinType& bb_bin_type = bin_types_[(int)Direction::RightToLeftThenTopToBottom][bin_type_id];
+            BranchingSchemeBinType& bb_bin_type = directions_data_[(int)Direction::RightToLeftThenTopToBottom].bin_types[bin_type_id];
             for (auto it_ref = bb_bin_type_ref.defects.begin() + bb_bin_type.defects.size();
                     it_ref != bb_bin_type_ref.defects.end();
                     ++it_ref) {
@@ -533,7 +529,7 @@ BranchingScheme::BranchingScheme(
     for (TrapezoidSetId trapezoid_set_id = 0;
             trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_x.size();
             ++trapezoid_set_id) {
-        const TrapezoidSet& trapezoid_set_ref = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop][trapezoid_set_id];
+        const TrapezoidSet& trapezoid_set_ref = directions_data_[(int)Direction::LeftToRightThenBottomToTop].trapezoid_sets[trapezoid_set_id];
         {
             TrapezoidSet trapezoid_set;
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
@@ -548,7 +544,7 @@ BranchingScheme::BranchingScheme(
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
                     trapezoid_set.shapes.back().push_back(shape_ref.axial_symmetry_x_axis());
             }
-            trapezoid_sets_[(int)Direction::LeftToRightThenTopToBottom].push_back(trapezoid_set);
+            directions_data_[(int)Direction::LeftToRightThenTopToBottom].trapezoid_sets.push_back(trapezoid_set);
         }
         {
             TrapezoidSet trapezoid_set;
@@ -564,7 +560,7 @@ BranchingScheme::BranchingScheme(
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
                     trapezoid_set.shapes.back().push_back(shape_ref.axial_symmetry_y_axis());
             }
-            trapezoid_sets_[(int)Direction::RightToLeftThenBottomToTop].push_back(trapezoid_set);
+            directions_data_[(int)Direction::RightToLeftThenBottomToTop].trapezoid_sets.push_back(trapezoid_set);
         }
         {
             TrapezoidSet trapezoid_set;
@@ -580,15 +576,15 @@ BranchingScheme::BranchingScheme(
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
                     trapezoid_set.shapes.back().push_back(shape_ref.axial_symmetry_x_axis().axial_symmetry_y_axis());
             }
-            trapezoid_sets_[(int)Direction::RightToLeftThenTopToBottom].push_back(trapezoid_set);
+            directions_data_[(int)Direction::RightToLeftThenTopToBottom].trapezoid_sets.push_back(trapezoid_set);
         }
     }
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance().number_of_bin_types();
             ++bin_type_id) {
-        const BranchingSchemeBinType& bb_bin_type_ref = bin_types_[(int)Direction::BottomToTopThenLeftToRight][bin_type_id];
+        const BranchingSchemeBinType& bb_bin_type_ref = directions_data_[(int)Direction::BottomToTopThenLeftToRight].bin_types[bin_type_id];
         {
-            BranchingSchemeBinType& bb_bin_type = bin_types_[(int)Direction::BottomToTopThenRightToLeft][bin_type_id];
+            BranchingSchemeBinType& bb_bin_type = directions_data_[(int)Direction::BottomToTopThenRightToLeft].bin_types[bin_type_id];
             for (auto it_ref = bb_bin_type_ref.defects.begin() + bb_bin_type.defects.size();
                     it_ref != bb_bin_type_ref.defects.end();
                     ++it_ref) {
@@ -600,7 +596,7 @@ BranchingScheme::BranchingScheme(
             }
         }
         {
-            BranchingSchemeBinType& bb_bin_type = bin_types_[(int)Direction::TopToBottomThenLeftToRight][bin_type_id];
+            BranchingSchemeBinType& bb_bin_type = directions_data_[(int)Direction::TopToBottomThenLeftToRight].bin_types[bin_type_id];
             for (auto it_ref = bb_bin_type_ref.defects.begin() + bb_bin_type.defects.size();
                     it_ref != bb_bin_type_ref.defects.end();
                     ++it_ref) {
@@ -612,7 +608,7 @@ BranchingScheme::BranchingScheme(
             }
         }
         {
-            BranchingSchemeBinType& bb_bin_type = bin_types_[(int)Direction::TopToBottomThenRightToLeft][bin_type_id];
+            BranchingSchemeBinType& bb_bin_type = directions_data_[(int)Direction::TopToBottomThenRightToLeft].bin_types[bin_type_id];
             for (auto it_ref = bb_bin_type_ref.defects.begin() + bb_bin_type.defects.size();
                     it_ref != bb_bin_type_ref.defects.end();
                     ++it_ref) {
@@ -627,7 +623,7 @@ BranchingScheme::BranchingScheme(
     for (TrapezoidSetId trapezoid_set_id = 0;
             trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_x.size();
             ++trapezoid_set_id) {
-        const TrapezoidSet& trapezoid_set_ref = trapezoid_sets_[(int)Direction::BottomToTopThenLeftToRight][trapezoid_set_id];
+        const TrapezoidSet& trapezoid_set_ref = directions_data_[(int)Direction::BottomToTopThenLeftToRight].trapezoid_sets[trapezoid_set_id];
         {
             TrapezoidSet trapezoid_set;
             trapezoid_set.item_type_id = trapezoid_set_ref.item_type_id;
@@ -642,7 +638,7 @@ BranchingScheme::BranchingScheme(
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
                     trapezoid_set.shapes.back().push_back(shape_ref.axial_symmetry_x_axis());
             }
-            trapezoid_sets_[(int)Direction::BottomToTopThenRightToLeft].push_back(trapezoid_set);
+            directions_data_[(int)Direction::BottomToTopThenRightToLeft].trapezoid_sets.push_back(trapezoid_set);
         }
         {
             TrapezoidSet trapezoid_set;
@@ -658,7 +654,7 @@ BranchingScheme::BranchingScheme(
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
                     trapezoid_set.shapes.back().push_back(shape_ref.axial_symmetry_y_axis());
             }
-            trapezoid_sets_[(int)Direction::TopToBottomThenLeftToRight].push_back(trapezoid_set);
+            directions_data_[(int)Direction::TopToBottomThenLeftToRight].trapezoid_sets.push_back(trapezoid_set);
         }
         {
             TrapezoidSet trapezoid_set;
@@ -674,7 +670,7 @@ BranchingScheme::BranchingScheme(
                 for (const GeneralizedTrapezoid& shape_ref: shapes_ref)
                     trapezoid_set.shapes.back().push_back(shape_ref.axial_symmetry_x_axis().axial_symmetry_y_axis());
             }
-            trapezoid_sets_[(int)Direction::TopToBottomThenRightToLeft].push_back(trapezoid_set);
+            directions_data_[(int)Direction::TopToBottomThenRightToLeft].trapezoid_sets.push_back(trapezoid_set);
         }
     }
 
@@ -799,26 +795,26 @@ void BranchingScheme::compute_inflated_trapezoid_sets()
             Direction::BottomToTopThenRightToLeft,
             Direction::TopToBottomThenLeftToRight,
             Direction::TopToBottomThenRightToLeft}) {
-        trapezoid_sets_inflated_.push_back({});
+        DirectionData& direction_data = directions_data_[(int)direction];
 
         for (TrapezoidSetId trapezoid_set_id = 0;
-                trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_[(int)direction].size();
+                trapezoid_set_id < (TrapezoidSetId)direction_data.trapezoid_sets.size();
                 ++trapezoid_set_id) {
-            const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)direction][trapezoid_set_id];
-            trapezoid_sets_inflated_.back().push_back({});
+            const TrapezoidSet& trapezoid_set = direction_data.trapezoid_sets[trapezoid_set_id];
+            direction_data.trapezoid_sets_inflated.push_back({});
 
             // Loop through rectangles of the rectangle set.
             for (ItemShapePos item_shape_pos = 0;
                     item_shape_pos < (ItemShapePos)trapezoid_set.shapes.size();
                     ++item_shape_pos) {
                 const auto& item_shape_trapezoids = trapezoid_set.shapes[item_shape_pos];
-                trapezoid_sets_inflated_.back().back().push_back({});
+                direction_data.trapezoid_sets_inflated.back().push_back({});
 
                 for (TrapezoidPos item_shape_trapezoid_pos = 0;
                         item_shape_trapezoid_pos < (TrapezoidPos)item_shape_trapezoids.size();
                         ++item_shape_trapezoid_pos) {
                     const auto& item_shape_trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
-                    trapezoid_sets_inflated_.back().back().back().push_back(
+                    direction_data.trapezoid_sets_inflated.back().back().push_back(
                             item_shape_trapezoid.inflate(instance().parameters().item_item_minimum_spacing));
                 }
             }
@@ -1090,7 +1086,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_direction = parent.last_bin_direction;
     }
 
-    const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)node.last_bin_direction][insertion.trapezoid_set_id];
+    const DirectionData& direction_data = directions_data_[(int)node.last_bin_direction];
+    const TrapezoidSet& trapezoid_set = direction_data.trapezoid_sets[insertion.trapezoid_set_id];
     const auto& item_shape_trapezoids = trapezoid_set.shapes[insertion.item_shape_pos];
     const GeneralizedTrapezoid& shape_trapezoid = item_shape_trapezoids[insertion.item_shape_trapezoid_pos];
     //std::cout << "shape_trapezoid " << shape_trapezoid << std::endl;
@@ -1099,7 +1096,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     Direction o = node.last_bin_direction;
     BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
     const BinType& bin_type = instance().bin_type(bin_type_id);
-    const BranchingSchemeBinType& bb_bin_type = bin_types_[(int)o][bin_type_id];
+    const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
 
     // Reserve for uncovered_trapezoids and extra_trapezoids.
     ItemPos p = -1;
@@ -1150,7 +1147,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             //std::cout << "insertion " << insertion << std::endl;
             //std::cout << "add extra_trapezoid " << item_shape_trapezoids[item_shape_trapezoid_pos] << std::endl;
             GeneralizedTrapezoid trapezoid
-                = trapezoid_sets_inflated_[(int)node.last_bin_direction][node.trapezoid_set_id][item_shape_pos][item_shape_trapezoid_pos];
+                = direction_data.trapezoid_sets_inflated[node.trapezoid_set_id][item_shape_pos][item_shape_trapezoid_pos];
             //std::cout << "inflate " << trapezoid << std::endl;
             trapezoid.shift_right(insertion.x);
             trapezoid.shift_top(insertion.y);
@@ -1407,7 +1404,8 @@ void BranchingScheme::insertions(
     uncovered_trapezoids_cur_.clear();
     if (parent->number_of_bins > 0) {
         BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
-        const BranchingSchemeBinType& bb_bin_type = bin_types_[(int)parent->last_bin_direction][bin_type_id];
+        const DirectionData& direction_data = directions_data_[(int)parent->last_bin_direction];
+        const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
         for (ItemPos uncovered_trapezoid_pos_cur = 0;
                 uncovered_trapezoid_pos_cur < (ItemPos)parent->uncovered_trapezoids.size();
                 ++uncovered_trapezoid_pos_cur) {
@@ -1443,7 +1441,7 @@ void BranchingScheme::insertions(
         for (const Insertion& insertion: parent->parent->children_insertions) {
             if (!strictly_lesser(insertion.ys, parent->ye)
                     || !strictly_greater(insertion.ye, parent->ys)) {
-                ItemTypeId item_type_id = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop][insertion.trapezoid_set_id].item_type_id;
+                ItemTypeId item_type_id = directions_data_[(int)Direction::LeftToRightThenBottomToTop].trapezoid_sets[insertion.trapezoid_set_id].item_type_id;
                 const ItemType& item_type = instance().item_type(item_type_id);
                 if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                     continue;
@@ -1457,9 +1455,9 @@ void BranchingScheme::insertions(
     // Check number of items for each rectangle set.
     std::vector<TrapezoidSetId> valid_trapezoid_set_ids;
     for (TrapezoidSetId trapezoid_set_id = 0;
-            trapezoid_set_id < (TrapezoidSetId)trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop].size();
+            trapezoid_set_id < (TrapezoidSetId)directions_data_[(int)Direction::LeftToRightThenBottomToTop].trapezoid_sets.size();
             ++trapezoid_set_id) {
-        const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop][trapezoid_set_id];
+        const TrapezoidSet& trapezoid_set = directions_data_[(int)Direction::LeftToRightThenBottomToTop].trapezoid_sets[trapezoid_set_id];
 
         if (parent->item_number_of_copies[trapezoid_set.item_type_id] + 1
                 <= instance().item_type(trapezoid_set.item_type_id).copies) {
@@ -1471,7 +1469,7 @@ void BranchingScheme::insertions(
     if (parent->number_of_bins > 0) {
         BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
         const BinType& bin_type = instance().bin_type(bin_type_id);
-        const std::vector<TrapezoidSet>& trapezoid_sets = trapezoid_sets_[(int)parent->last_bin_direction];
+        const std::vector<TrapezoidSet>& trapezoid_sets = directions_data_[(int)parent->last_bin_direction].trapezoid_sets;
 
         // Loop through rectangle sets.
         for (TrapezoidSetId trapezoid_set_id: valid_trapezoid_set_ids) {
@@ -1530,8 +1528,9 @@ void BranchingScheme::insertions(
         if (new_bin_direction == Direction::Any)
             new_bin_direction = Direction::LeftToRightThenBottomToTop;
 
-        const std::vector<TrapezoidSet>& trapezoid_sets = trapezoid_sets_[(int)new_bin_direction];
-        const BranchingSchemeBinType& bb_bin_type = bin_types_[(int)new_bin_direction][bin_type_id];
+        const DirectionData& direction_data = directions_data_[(int)new_bin_direction];
+        const std::vector<TrapezoidSet>& trapezoid_sets = direction_data.trapezoid_sets;
+        const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
         // Loop through rectangle sets.
         for (TrapezoidSetId trapezoid_set_id: valid_trapezoid_set_ids) {
             //std::cout << "trapezoid_set_id " << trapezoid_set_id << std::endl;
@@ -1965,8 +1964,9 @@ void BranchingScheme::insertion_trapezoid_set(
         parent->last_bin_direction:
         new_bin_direction;
 
-    const std::vector<TrapezoidSet>& trapezoid_sets = trapezoid_sets_[(int)o];
-    const BranchingSchemeBinType& bb_bin_type = bin_types_[(int)o][bin_type_id];
+    const DirectionData& direction_data = directions_data_[(int)o];
+    const std::vector<TrapezoidSet>& trapezoid_sets = direction_data.trapezoid_sets;
+    const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
     const std::vector<UncoveredTrapezoid>& extra_trapezoids = (new_bin_direction == Direction::Any)?
         parent->extra_trapezoids:
         bb_bin_type.defects;
@@ -2365,7 +2365,8 @@ Solution BranchingScheme::to_solution(
         if (current_node->number_of_bins > solution.number_of_bins())
             bin_pos = solution.add_bin(instance().bin_type_id(current_node->number_of_bins - 1), 1);
 
-        const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)current_node->last_bin_direction][current_node->trapezoid_set_id];
+        const DirectionData& direction_data = directions_data_[(int)current_node->last_bin_direction];
+        const TrapezoidSet& trapezoid_set = direction_data.trapezoid_sets[current_node->trapezoid_set_id];
         Point bl_corner = convert_point_back({current_node->x, current_node->y}, current_node->last_bin_direction);
         //std::cout << "bin_pos " << bin_pos
         //    << " item_type_id " << trapezoid_set.item_type_id
@@ -2407,7 +2408,7 @@ Solution BranchingScheme::to_solution(
 
 nlohmann::json BranchingScheme::json_export_init() const
 {
-    const auto& trapezoid_sets = trapezoid_sets_[(int)Direction::LeftToRightThenBottomToTop];
+    const auto& trapezoid_sets = directions_data_[(int)Direction::LeftToRightThenBottomToTop].trapezoid_sets;
     nlohmann::json json_init;
     Counter i = 0;
 
@@ -2485,7 +2486,8 @@ nlohmann::json BranchingScheme::json_export_init() const
 nlohmann::json BranchingScheme::json_export(
         const std::shared_ptr<Node>& node) const
 {
-    const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)node->last_bin_direction][node->trapezoid_set_id];
+    const DirectionData& direction_data = directions_data_[(int)node->last_bin_direction];
+    const TrapezoidSet& trapezoid_set = direction_data.trapezoid_sets[node->trapezoid_set_id];
     Point bl_orig = convert_point_back({node->x, node->y}, node->last_bin_direction);
     nlohmann::json json = {
         {"Id", node->id},
@@ -2522,7 +2524,8 @@ nlohmann::json BranchingScheme::json_export(
     for (std::shared_ptr<const Node> node_tmp = node;
             node_tmp->number_of_bins == node->number_of_bins;
             node_tmp = node_tmp->parent) {
-        const TrapezoidSet& trapezoid_set = trapezoid_sets_[(int)node_tmp->last_bin_direction][node_tmp->trapezoid_set_id];
+        const DirectionData& direction_data = directions_data_[(int)node_tmp->last_bin_direction];
+        const TrapezoidSet& trapezoid_set = direction_data.trapezoid_sets[node_tmp->trapezoid_set_id];
         Point bl_corner = convert_point_back({node_tmp->x, node_tmp->y}, node_tmp->last_bin_direction);
         plot[i] = {
             {"Id", json_items_init_ids_[trapezoid_set.item_type_id][trapezoid_set.mirror].at(trapezoid_set.angle)},
@@ -2552,7 +2555,8 @@ void BranchingScheme::write_svg(
     BinPos bin_pos = node->number_of_bins - 1;
     BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
     const BinType& bin_type = instance().bin_type(bin_type_id);
-    const BranchingSchemeBinType& bb_bin_type = bin_types_[(int)node->last_bin_direction][bin_type_id];
+    const DirectionData& direction_data = directions_data_[(int)node->last_bin_direction];
+    const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
     LengthDbl width = (bb_bin_type.x_max - bb_bin_type.x_min);
     LengthDbl height = (bb_bin_type.y_max - bb_bin_type.y_min);
 
