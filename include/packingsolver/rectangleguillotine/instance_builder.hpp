@@ -180,8 +180,8 @@ public:
      */
     void set_item_types_unweighted();
 
-    /** For each item type, set 'oriented' to 'true'. */
-    void set_item_types_oriented();
+    /** For each item type, set its 'oriented' attribute. */
+    void set_item_types_oriented(bool oriented = true);
 
     /*
      * Build
