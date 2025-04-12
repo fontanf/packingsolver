@@ -67,9 +67,10 @@ void InstanceBuilder::set_predefined(std::string str)
     }
     switch (str[3]) {
     case 'R': {
+        set_item_types_oriented(false);
         break;
     } case 'O': {
-        set_item_types_oriented();
+        set_item_types_oriented(true);
         break;
     } default: {
         // TODO
@@ -440,12 +441,12 @@ void InstanceBuilder::set_item_types_unweighted()
     }
 }
 
-void InstanceBuilder::set_item_types_oriented()
+void InstanceBuilder::set_item_types_oriented(bool oriented)
 {
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
-        instance_.item_types_[item_type_id].oriented = true;
+        instance_.item_types_[item_type_id].oriented = oriented;
     }
 }
 
