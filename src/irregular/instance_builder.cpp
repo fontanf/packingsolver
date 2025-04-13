@@ -1,5 +1,8 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 
+#include "shape/offset.hpp"
+#include "shape/extract_borders.hpp"
+
 #include <sstream>
 
 using namespace packingsolver;
@@ -433,7 +436,31 @@ Instance InstanceBuilder::build()
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
-        const ItemType& item_type = instance_.item_type(item_type_id);
+        ItemType& item_type = instance_.item_types_[item_type_id];
+
+        // Compute inflated shapes.
+        for (ShapePos shape_pos = 0;
+                shape_pos < (ShapePos)item_type.shapes.size();
+                ++shape_pos) {
+            ItemShape& item_shape = item_type.shapes[shape_pos];
+            if (item_shape.shape_inflated.elements.empty()) {
+                auto inflated_item_shape = inflate(
+                        item_shape.shape,
+                        instance_.parameters().item_item_minimum_spacing);
+                item_shape.shape_inflated = inflated_item_shape.first;
+                for (const Shape& hole: inflated_item_shape.second)
+                    item_shape.holes_deflated.push_back(hole);
+
+                for (const Shape& hole: item_shape.holes) {
+                    auto deflated_hole = deflate(
+                            hole,
+                            instance_.parameters().item_item_minimum_spacing);
+                    for (const Shape& hole: deflated_hole)
+                        item_shape.holes_deflated.push_back(hole);
+                }
+            }
+        }
+
         // Update number_of_items_.
         instance_.number_of_items_ += item_type.copies;
         if (item_type.shape_type() == ShapeType::Square
@@ -479,7 +506,44 @@ Instance InstanceBuilder::build()
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
-        const BinType& bin_type = instance_.bin_type(bin_type_id);
+        BinType& bin_type = instance_.bin_types_[bin_type_id];
+
+        // Compute inflated defects.
+        for (Defect& defect: bin_type.defects) {
+            if (defect.shape_inflated.elements.empty()) {
+
+                auto inflated_defect_shape = inflate(
+                        defect.shape,
+                        instance_.parameters().item_bin_minimum_spacing);
+                defect.shape_inflated = inflated_defect_shape.first;
+                for (const Shape& hole: inflated_defect_shape.second)
+                    defect.holes_deflated.push_back(hole);
+
+                for (const Shape& hole: defect.holes) {
+                    auto deflated_hole = deflate(
+                            hole,
+                            instance_.parameters().item_bin_minimum_spacing);
+                    for (const Shape& hole: deflated_hole)
+                        defect.holes_deflated.push_back(hole);
+                }
+            }
+        }
+        // Compute inflated borders.
+        if (bin_type.borders.empty()) {
+            for (const Shape& shape_border: extract_borders(bin_type.shape)) {
+                auto inflated_shape_border = inflate(
+                        shape_border,
+                        instance_.parameters().item_bin_minimum_spacing);
+                Defect border;
+                border.type = -2;
+                border.shape = shape_border;
+                border.shape_inflated = inflated_shape_border.first;
+                for (const Shape& hole: inflated_shape_border.second)
+                    border.holes_deflated.push_back(hole);
+                bin_type.borders.push_back(border);
+            }
+        }
+
         // Update bin_type.copies.
         if (bin_type.copies == -1)
             instance_.bin_types_[bin_type_id].copies = instance_.number_of_items();
