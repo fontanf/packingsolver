@@ -554,8 +554,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.uncovered_items[insertion.uncovered_item_pos].maximum_number_of_items = std::min(
                 parent.uncovered_items[insertion.uncovered_item_pos].maximum_number_of_items,
                 item_type.maximum_stackability);
-        node.uncovered_items[insertion.uncovered_item_pos].remaiing_weight = std::min(
-                parent.uncovered_items[insertion.uncovered_item_pos].remaiing_weight - item_type.weight,
+        node.uncovered_items[insertion.uncovered_item_pos].remaining_weight = std::min(
+                parent.uncovered_items[insertion.uncovered_item_pos].remaining_weight - item_type.weight,
                 item_type.maximum_weight_above);
     } else if (insertion.new_bin > 0) {  // New bin.
         if (ys > 0) {
@@ -571,7 +571,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             uncovered_item.item_type_ids.push_back(insertion.item_type_id);
             uncovered_item.weight = item_type.weight;
             uncovered_item.maximum_number_of_items = item_type.maximum_stackability;
-            uncovered_item.remaiing_weight = item_type.maximum_weight_above;
+            uncovered_item.remaining_weight = item_type.maximum_weight_above;
             uncovered_item.ze = zj;
             uncovered_item.xs = xs;
             uncovered_item.xe = xe;
@@ -603,7 +603,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 new_uncovered_item_2.item_type_ids.push_back(insertion.item_type_id);
                 new_uncovered_item_2.weight = item_type.weight;
                 new_uncovered_item_2.maximum_number_of_items = item_type.maximum_stackability;
-                new_uncovered_item_2.remaiing_weight = item_type.maximum_weight_above;
+                new_uncovered_item_2.remaining_weight = item_type.maximum_weight_above;
                 new_uncovered_item_2.ze = zj;
                 new_uncovered_item_2.xs = xs;
                 new_uncovered_item_2.xe = xe;
@@ -988,7 +988,7 @@ void BranchingScheme::insertion_item_above(
         return;
     }
     // Check maximum weight above.
-    if (item_type.weight > uncovered_item.remaiing_weight) {
+    if (item_type.weight > uncovered_item.remaining_weight) {
         return;
     }
     // Check unloading constraints.
