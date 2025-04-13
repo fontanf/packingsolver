@@ -39,7 +39,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_number_of_items = 1;
         node.last_bin_weight = item_type.weight;
         node.last_bin_maximum_number_of_items = item_type.maximum_stackability;
-        node.last_bin_remaiing_weight = item_type.maximum_weight_after;
+        node.last_bin_remaining_weight = item_type.maximum_weight_after;
     } else {  // Same bin.
         node.number_of_bins = parent.number_of_bins;
         node.last_bin_length = parent.last_bin_length + item_type.length - item_type.nesting_length;
@@ -49,8 +49,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_maximum_number_of_items = std::min(
                 parent.last_bin_maximum_number_of_items,
                 item_type.maximum_stackability);
-        node.last_bin_remaiing_weight = std::min(
-                parent.last_bin_remaiing_weight - item_type.weight,
+        node.last_bin_remaining_weight = std::min(
+                parent.last_bin_remaining_weight - item_type.weight,
                 item_type.maximum_weight_after);
     }
 
@@ -138,7 +138,7 @@ void BranchingScheme::insertion_item_same_bin(
     if (parent->last_bin_number_of_items + 1 > last_bin_maximum_number_of_items)
         return;
     // Check maximum weight above.
-    if (item_type.weight > parent->last_bin_remaiing_weight * PSTOL)
+    if (item_type.weight > parent->last_bin_remaining_weight * PSTOL)
         return;
 
     Insertion insertion;

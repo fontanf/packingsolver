@@ -45,7 +45,7 @@ public:
          * Remaining weight allowed in the stack to satisfy the maximum weight
          * above constraint.
          */
-        Weight remaiing_weight = -1;
+        Weight remaining_weight = -1;
 
         /** Start x-coordiante. */
         Length xs;
@@ -367,8 +367,8 @@ public:
             }
             if (uncovered_item_1.ze > uncovered_item_2.ze)
                 return false;
-            if (uncovered_item_1.remaiing_weight < instance().item_weight()
-                    && uncovered_item_1.remaiing_weight < uncovered_item_2.remaiing_weight)
+            if (uncovered_item_1.remaining_weight < instance().item_weight()
+                    && uncovered_item_1.remaining_weight < uncovered_item_2.remaining_weight)
                 return false;
             if (uncovered_item_1.maximum_number_of_items < instance().number_of_items()
                     && uncovered_item_1.maximum_number_of_items < uncovered_item_2.maximum_number_of_items)

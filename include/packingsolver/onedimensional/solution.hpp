@@ -40,7 +40,7 @@ struct SolutionBin
      * Remaining weight allowed in the bin to satisfy the maximum
      * weight after constraint.
      */
-    Weight remaiing_weight = -1;
+    Weight remaining_weight = -1;
 };
 
 /**

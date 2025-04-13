@@ -102,7 +102,7 @@ public:
          * Remaining weight allowed in the last bin to satisfy the maximum
          * weight after constraint.
          */
-        Weight last_bin_remaiing_weight = -1;
+        Weight last_bin_remaining_weight = -1;
 
     };
 

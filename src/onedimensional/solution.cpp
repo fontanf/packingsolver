@@ -70,19 +70,19 @@ void Solution::add_item(
     // Update bin.maximum_number_of_items and bin.maximum_number_of_items.
     if (bin.items.size() == 1) {
         bin.maximum_number_of_items = item_type.maximum_stackability;
-        bin.remaiing_weight = item_type.maximum_weight_after;
+        bin.remaining_weight = item_type.maximum_weight_after;
     } else {
         bin.maximum_number_of_items = std::min(
                 bin.maximum_number_of_items,
                 item_type.maximum_stackability);
-        bin.remaiing_weight = std::min(
-                bin.remaiing_weight - item_type.weight,
+        bin.remaining_weight = std::min(
+                bin.remaining_weight - item_type.weight,
                 item_type.maximum_weight_after);
     }
     if (bin.items.size() > bin.maximum_number_of_items) {
         feasible_ = false;
     }
-    if (bin.remaiing_weight < 0) {
+    if (bin.remaining_weight < 0) {
         feasible_ = false;
     }
 
