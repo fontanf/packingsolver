@@ -1093,10 +1093,10 @@ bool BranchingScheme::bound(
     } case Objective::OpenDimensionX: case Objective::OpenDimensionY: {
         if (!leaf(node_2))
             return false;
-        return (std::max(
-                    node_1->xe_max,
-                    node_1->waste + instance().item_area() - 1)
-                / (instance().bin_type(0).rect.x))
+        return std::max(
+                node_1->xe_max,
+                (node_1->waste + instance().item_area() - 1)
+                / (instance().bin_type(0).rect.y + 1))
             >= node_2->xe_max;
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         return false;
