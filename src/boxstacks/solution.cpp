@@ -444,15 +444,17 @@ void Solution::write(
     }
 
     file << "TYPE,ID,COPIES,BIN,STACK,X,Y,Z,LX,LY,LZ" << std::endl;
-    for (BinPos i = 0; i < (BinPos)bins_.size(); ++i) {
-        const SolutionBin& bin = bins_[i];
+    for (BinPos bin_pos = 0;
+            bin_pos < number_of_different_bins();
+            ++bin_pos) {
+        const SolutionBin& bin = bins_[bin_pos];
         BinTypeId bin_type_id = bin.bin_type_id;
         const BinType& bin_type = instance().bin_type(bin_type_id);
         file
             << "BIN,"
             << bin_type_id << ","
             << bin.copies << ","
-            << i << ","
+            << bin_pos << ","
             << "-1,"
             << "0,"
             << "0,"
@@ -469,7 +471,7 @@ void Solution::write(
                 << "DEFECT,"
                 << defect_id << ","
                 << bin.copies << ","
-                << i << ","
+                << bin_pos << ","
                 << "-1,"
                 << defect.pos.x << ","
                 << defect.pos.y << ","
@@ -486,7 +488,7 @@ void Solution::write(
                 << "STACK,"
                 << stack_id << ","
                 << bin.copies << ","
-                << i << ","
+                << bin_pos << ","
                 << stack_id << ","
                 << stack.x_start << ","
                 << stack.y_start << ","
@@ -501,7 +503,7 @@ void Solution::write(
                     << "ITEM,"
                     << item.item_type_id << ","
                     << bin.copies << ","
-                    << i << ","
+                    << bin_pos << ","
                     << stack_id << ","
                     << stack.x_start << ","
                     << stack.y_start << ","
@@ -555,9 +557,9 @@ void Solution::format(
             << "Number of stacks:  " << number_of_stacks() << std::endl
             << "Stack area:        " << stack_area() << std::endl
             << "Number of bins:    " << optimizationtools::Ratio<BinPos>(number_of_bins(), instance().number_of_bins()) << std::endl
-            << "Bin volume:        " << optimizationtools::Ratio<BinPos>(bin_volume(), instance().bin_volume()) << std::endl
-            << "Bin area:          " << optimizationtools::Ratio<BinPos>(bin_area(), instance().bin_area()) << std::endl
-            << "Bin weight:        " << optimizationtools::Ratio<BinPos>(bin_weight(), instance().bin_weight()) << std::endl
+            << "Bin volume:        " << optimizationtools::Ratio<Volume>(bin_volume(), instance().bin_volume()) << std::endl
+            << "Bin area:          " << optimizationtools::Ratio<Area>(bin_area(), instance().bin_area()) << std::endl
+            << "Bin weight:        " << optimizationtools::Ratio<Weight>(bin_weight(), instance().bin_weight()) << std::endl
             << "Bin cost:          " << cost() << std::endl
             << "Waste:             " << waste() << std::endl
             << "Waste (%):         " << 100 * waste_percentage() << std::endl

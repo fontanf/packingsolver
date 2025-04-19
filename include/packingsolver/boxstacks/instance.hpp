@@ -131,7 +131,7 @@ struct ItemType
     ItemPos maximum_stackability = std::numeric_limits<ItemPos>::max();
 
     /** Maximum weight of the items packed above items of this type. */
-    Weight maximum_weight_above = std::numeric_limits<Weight>::max();
+    Weight maximum_weight_above = std::numeric_limits<Weight>::infinity();
 
     /*
      * Computed attributes

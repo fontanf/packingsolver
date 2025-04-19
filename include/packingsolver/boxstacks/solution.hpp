@@ -339,7 +339,7 @@ private:
     Area stack_area_ = 0;
 
     /** Total weight of the bins of the solution. */
-    Volume bin_weight_ = 0;
+    Weight bin_weight_ = 0;
 
     /** Cost of the solution. */
     Profit bin_cost_ = 0;

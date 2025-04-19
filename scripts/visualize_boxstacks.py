@@ -26,6 +26,9 @@ items_z = []
 items_i = []
 items_j = []
 items_k = []
+item_borders_x = []
+item_borders_y = []
+item_borders_z = []
 items_colors = []
 item_ids_x = []
 item_ids_y = []
@@ -68,6 +71,9 @@ with open(args.csvpath, newline='') as csvfile:
             items_j.append([])
             items_k.append([])
             items_colors.append([])
+            item_borders_x.append([])
+            item_borders_y.append([])
+            item_borders_z.append([])
             item_ids_x.append([])
             item_ids_y.append([])
             item_ids_z.append([])
@@ -109,6 +115,9 @@ with open(args.csvpath, newline='') as csvfile:
             items_i[i][k] = [a + 0, a + 3, a + 4, a + 7, a + 0, a + 5, a + 2, a + 7, a + 0, a + 6, a + 1, a + 7]
             items_j[i][k] = [a + 1, a + 1, a + 5, a + 5, a + 1, a + 1, a + 3, a + 3, a + 2, a + 2, a + 3, a + 3]
             items_k[i][k] = [a + 2, a + 2, a + 6, a + 6, a + 4, a + 4, a + 6, a + 6, a + 4, a + 4, a + 5, a + 5]
+            item_borders_x[i] += [x1, x1, x2, x2, x2, x2, x1, x1, x1, None, x1, x1, x2, x2, x2, x2, x1, x1, x1, None]
+            item_borders_y[i] += [y1, y1, y1, y1, y2, y2, y2, y2, y1, None, y1, y1, y1, y1, y2, y2, y2, y2, y1, None]
+            item_borders_z[i] += [z1, z2, z2, z1, z1, z2, z2, z1, z1, None, z2, z1, z1, z2, z2, z1, z1, z2, z2, None]
             item_ids_x[i].append((x1 + x2) / 2)
             item_ids_y[i].append((y1 + y2) / 2)
             item_ids_z[i].append((z1 + z2) / 2)
@@ -169,9 +178,22 @@ for i in range(0, m):
             legendgroup="items",
             showlegend=(i == 0 and k == 0),
             opacity=1,
+            flatshading=True,
             color=colors[(int(item_ids[i][k]) % len(colors))]),
             row=i + 1,
             col=1)
+
+    fig.add_trace(go.Scatter3d(
+        x=item_borders_x[i],
+        y=item_borders_y[i],
+        z=item_borders_z[i],
+        name="Item borders",
+        legendgroup="items",
+        showlegend=False,
+        mode="lines",
+        line=dict(color="black", width=10)),
+        row=i + 1,
+        col=1)
 
     fig.add_trace(go.Scatter3d(
         x=item_ids_x[i],
