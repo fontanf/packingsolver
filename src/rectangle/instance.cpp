@@ -7,6 +7,46 @@ using namespace packingsolver::rectangle;
 
 std::istream& rectangle::operator>>(
         std::istream& in,
+        Direction& o)
+{
+    std::string token;
+    in >> token;
+    if (token == "x"
+            || token == "X") {
+        o = Direction::X;
+    } else if (token == "y"
+            || token == "Y") {
+        o = Direction::Y;
+    } else if (token == "any"
+            || token == "Any") {
+        o = Direction::Any;
+    } else  {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& rectangle::operator<<(
+        std::ostream& os,
+        Direction o)
+{
+    switch (o) {
+    case Direction::X: {
+        os << "X";
+        break;
+    } case Direction::Y: {
+        os << "Y";
+        break;
+    } case Direction::Any: {
+        os << "Any";
+        break;
+    }
+    }
+    return os;
+}
+
+std::istream& rectangle::operator>>(
+        std::istream& in,
         UnloadingConstraint& unloading_constraint)
 {
     std::string token;

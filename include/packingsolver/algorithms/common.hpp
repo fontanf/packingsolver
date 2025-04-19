@@ -139,17 +139,6 @@ std::ostream& operator<<(
         Objective objective);
 
 
-enum class Direction { X, Y, Any };
-
-std::istream& operator>>(
-        std::istream& in,
-        Direction& o);
-
-std::ostream& operator<<(
-        std::ostream& os,
-        Direction o);
-
-
 struct AbstractBinType
 {
     BinTypeId id;

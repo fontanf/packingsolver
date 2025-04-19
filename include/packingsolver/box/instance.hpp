@@ -7,6 +7,18 @@ namespace packingsolver
 namespace box
 {
 
+
+enum class Direction { X, Y, Z, Any };
+
+std::istream& operator>>(
+        std::istream& in,
+        Direction& o);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        Direction o);
+
+
 struct Point
 {
     /** x-coordinate. */

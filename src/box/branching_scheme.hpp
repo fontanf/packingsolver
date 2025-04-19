@@ -344,8 +344,11 @@ private:
     /** Instance. */
     const Instance& instance_;
 
-    /** Instance flipper. */
-    InstanceFlipper instance_flipper_;
+    /** Instance flipper in Y direction. */
+    InstanceFlipper instance_flipper_y_;
+
+    /** Instance flipper in Z direction. */
+    InstanceFlipper instance_flipper_z_;
 
     /** Parameters. */
     Parameters parameters_;
@@ -370,9 +373,51 @@ private:
      * Private methods
      */
 
-    const Instance& instance(Direction direction) const { return (direction == Direction::X)? instance_: instance_flipper_.flipped_instance(); }
+    const Instance& instance(Direction direction) const
+    {
+        switch (direction) {
+        case Direction::X: {
+            return instance_;
+        } case Direction::Y: {
+            return instance_flipper_y_.flipped_instance();
+        } case Direction::Z: {
+            return instance_flipper_z_.flipped_instance();
+        } case Direction::Any: {
+            throw std::invalid_argument("");
+            return instance_;
+        }
+        }
+        throw std::invalid_argument("");
+        return instance_;
+    }
 
-    const Instance& instance(int new_bin) const { return (new_bin % 2 == 1)? instance_: instance_flipper_.flipped_instance(); }
+    Direction direction(int new_bin) const
+    {
+        int v = new_bin % 3;
+        if (v == 1) {
+            return Direction::X;
+        } else if (v == 2) {
+            return Direction::Y;
+        } else if (v == 0) {
+            return Direction::Z;
+        }
+        throw std::logic_error("");
+        return Direction::X;
+    }
+
+    const Instance& instance(int new_bin) const
+    {
+        int v = new_bin % 3;
+        if (v == 1) {
+            return instance_;
+        } else if (v == 2) {
+            return instance_flipper_y_.flipped_instance();
+        } else if (v == 0) {
+            return instance_flipper_z_.flipped_instance();
+        }
+        throw std::logic_error("");
+        return instance_;
+    }
 
     /** Get the percentage of item inserted into a node. */
     inline double item_percentage(const Node& node) const { return (double)node.number_of_items / instance_.number_of_items(); }

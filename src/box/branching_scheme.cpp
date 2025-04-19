@@ -23,7 +23,8 @@ BranchingScheme::BranchingScheme(
         const Instance& instance_orig,
         const Parameters& parameters):
     instance_(instance_orig),
-    instance_flipper_(instance_orig),
+    instance_flipper_y_(instance_orig, Direction::Y),
+    instance_flipper_z_(instance_orig, Direction::Z),
     parameters_(parameters),
     predecessors_(instance_orig.number_of_item_types())
 {
@@ -240,9 +241,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     // Update number_of_bins and last_bin_direction.
     if (insertion.new_bin > 0) {  // New bin.
         node.number_of_bins = parent.number_of_bins + 1;
-        node.last_bin_direction = (insertion.new_bin == 1)?
-            Direction::X:
-            Direction::Y;
+        node.last_bin_direction = this->direction(insertion.new_bin);
     } else {  // Same bin.
         node.number_of_bins = parent.number_of_bins;
         node.last_bin_direction = parent.last_bin_direction;
@@ -465,13 +464,17 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             new_bin = 1;
         } else if (parameters_.direction == Direction::Y) {
             new_bin = 2;
+        } else if (parameters_.direction == Direction::Z) {
+            new_bin = 3;
         } else {
             BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins);
             const BinType& bin_type = instance().bin_type(bin_type_id);
-            if (bin_type.box.x >= bin_type.box.y) {
+            if (bin_type.box.x >= std::max(bin_type.box.y, bin_type.box.z)) {
                 new_bin = 1;
-            } else {
+            } else if (bin_type.box.y >= bin_type.box.z) {
                 new_bin = 2;
+            } else {
+                new_bin = 3;
             }
         }
         //std::cout << "new bin " << (int)new_bin << std::endl;
@@ -528,10 +531,9 @@ void BranchingScheme::insertion_item(
     //    << " z_uncovered_item_pos " << z_uncovered_item_pos
     //    << std::endl;
 
-    Direction o = (new_bin == 0)?
-        parent->last_bin_direction:
-        ((new_bin == 1)? Direction::X: Direction::Y);
-    const Instance& instance = this->instance(o);
+    const Instance& instance = (new_bin == 0)?
+        this->instance(parent->last_bin_direction):
+        this->instance(new_bin);
     const ItemType& item_type = instance.item_type(item_type_id);
     BinTypeId bin_type_id = (new_bin == 0)?
         instance.bin_type_id(parent->number_of_bins - 1):
@@ -789,6 +791,9 @@ Solution BranchingScheme::to_solution(
         if (current_node->last_bin_direction == Direction::Y) {
             x = current_node->y;
             y = current_node->x;
+        } else if (current_node->last_bin_direction == Direction::Z) {
+            x = current_node->z;
+            z = current_node->x;
         }
         //std::cout
         //    << " item_type_id " << current_node->item_type_id
