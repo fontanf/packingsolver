@@ -8,6 +8,17 @@ namespace packingsolver
 namespace rectangle
 {
 
+enum class Direction { X, Y, Any };
+
+std::istream& operator>>(
+        std::istream& in,
+        Direction& o);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        Direction o);
+
+
 enum class UnloadingConstraint
 {
     None,

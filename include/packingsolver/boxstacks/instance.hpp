@@ -9,6 +9,8 @@ namespace packingsolver
 namespace boxstacks
 {
 
+using Direction = rectangle::Direction;
+
 struct Point
 {
     /** x-coordinate. */

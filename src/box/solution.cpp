@@ -354,6 +354,7 @@ nlohmann::json Solution::to_json() const
         {"WeightLoad", weight_load()},
         {"XMax", x_max()},
         {"YMax", y_max()},
+        {"ZMax", z_max()},
     };
 }
 
@@ -383,6 +384,7 @@ void Solution::format(
             << "Weight load:       " << weight_load() << std::endl
             << "X max:             " << x_max() << std::endl
             << "Y max:             " << y_max() << std::endl
+            << "Z max:             " << z_max() << std::endl
             ;
     }
 }

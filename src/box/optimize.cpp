@@ -36,8 +36,10 @@ void optimize_tree_search(
         directions = {Direction::X};
     } else if (instance.objective() == Objective::OpenDimensionY) {
         directions = {Direction::Y};
+    } else if (instance.objective() == Objective::OpenDimensionZ) {
+        directions = {Direction::Z};
     } else if (instance.number_of_bin_types() == 1) {
-        directions = {Direction::X, Direction::Y};
+        directions = {Direction::X, Direction::Y, Direction::Z};
     } else {
         directions = {Direction::Any};
     }

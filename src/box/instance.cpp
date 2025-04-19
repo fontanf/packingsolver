@@ -6,6 +6,52 @@
 using namespace packingsolver;
 using namespace packingsolver::box;
 
+std::istream& box::operator>>(
+        std::istream& in,
+        Direction& o)
+{
+    std::string token;
+    in >> token;
+    if (token == "x"
+            || token == "X") {
+        o = Direction::X;
+    } else if (token == "y"
+            || token == "Y") {
+        o = Direction::Y;
+    } else if (token == "z"
+            || token == "Z") {
+        o = Direction::Z;
+    } else if (token == "any"
+            || token == "Any") {
+        o = Direction::Any;
+    } else  {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& box::operator<<(
+        std::ostream& os,
+        Direction o)
+{
+    switch (o) {
+    case Direction::X: {
+        os << "X";
+        break;
+    } case Direction::Y: {
+        os << "Y";
+        break;
+    } case Direction::Z: {
+        os << "Z";
+        break;
+    } case Direction::Any: {
+        os << "Any";
+        break;
+    }
+    }
+    return os;
+}
+
 std::ostream& box::operator<<(
         std::ostream& os,
         Point xyz)
