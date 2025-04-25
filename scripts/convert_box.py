@@ -41,7 +41,7 @@ def convert_bischoff1995(filename):
         line = f.readline().strip().split(" ")
         number_of_item_types = int(line[0])
         for j in range(number_of_item_types):
-            line = f.readline().strip().split(" ")
+            line = f.readline().replace("\t", " ").strip().split(" ")
             if len(line) == 8:
                 items["X"].append(int(line[1]))
                 items["Y"].append(int(line[3]))
@@ -99,6 +99,8 @@ def convert_egeblad2009(filename):
 if __name__ == "__main__":
 
     for f in ["bischoff1995/BR" + str(i) + ".txt" for i in range(1, 8)]:
+        convert_bischoff1995(f)
+    for f in ["davies1999/BR" + str(i) + ".txt" for i in [0] + list(range(8, 16))]:
         convert_bischoff1995(f)
     convert_bischoff1995("loh1992/thpack8.txt")
     convert_bischoff1995("ivancic1989/thpack9.txt")
