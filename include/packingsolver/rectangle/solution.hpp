@@ -139,7 +139,7 @@ public:
     inline Profit profit() const { return item_profit_; }
 
     /** Get the number of copies of item 'j' in the solution. */
-    inline ItemPos item_copies(ItemTypeId j) const { return item_copies_[j]; }
+    inline ItemPos item_copies(ItemTypeId item_type_id) const { return item_copies_[item_type_id]; }
 
     /** Get the total weight of the items of the solution. */
     inline Weight item_weight() const { return item_weight_; }
@@ -284,4 +284,3 @@ std::ostream& operator<<(
 
 }
 }
-

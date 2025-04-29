@@ -396,6 +396,34 @@ void Solution::format(
         os
             << std::right << std::endl
             << std::setw(12) << "Bin"
+            << std::setw(12) << "Type"
+            << std::setw(12) << "Copies"
+            << std::setw(12) << "Weight"
+            << std::setw(12) << "# items"
+            << std::endl
+            << std::setw(12) << "---"
+            << std::setw(12) << "----"
+            << std::setw(12) << "------"
+            << std::setw(12) << "------"
+            << std::setw(12) << "-------"
+            << std::endl;
+        for (BinPos bin_pos = 0;
+                bin_pos < number_of_different_bins();
+                ++bin_pos) {
+            os
+                << std::setw(12) << bin_pos
+                << std::setw(12) << bin(bin_pos).bin_type_id
+                << std::setw(12) << bin(bin_pos).copies
+                << std::setw(12) << bin(bin_pos).weight[0]
+                << std::setw(12) << bin(bin_pos).items.size()
+                << std::endl;
+        }
+    }
+
+    if (verbosity_level >= 3) {
+        os
+            << std::right << std::endl
+            << std::setw(12) << "Bin"
             << std::setw(12) << "Item"
             << std::setw(12) << "Rotate"
             << std::setw(12) << "X"
@@ -430,6 +458,35 @@ void Solution::format(
                     << std::setw(12) << item_type.weight
                     << std::endl;
             }
+        }
+    }
+
+    if (verbosity_level >= 3) {
+        os
+            << std::right << std::endl
+            << std::setw(12) << "Item type"
+            << std::setw(12) << "X"
+            << std::setw(12) << "Y"
+            << std::setw(12) << "Weight"
+            << std::setw(12) << "Copies"
+            << std::endl
+            << std::setw(12) << "---------"
+            << std::setw(12) << "-"
+            << std::setw(12) << "-"
+            << std::setw(12) << "------"
+            << std::setw(12) << "------"
+            << std::endl;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance().number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance().item_type(item_type_id);
+            os
+                << std::setw(12) << item_type_id
+                << std::setw(12) << item_type.rect.x
+                << std::setw(12) << item_type.rect.y
+                << std::setw(12) << item_type.weight
+                << std::setw(12) << item_copies(item_type_id)
+                << std::endl;
         }
     }
 }
