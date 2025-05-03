@@ -43,6 +43,10 @@ struct Defect
     /** Holes. */
     std::vector<Shape> holes;
 
+    Shape shape_inflated;
+
+    std::vector<Shape> holes_deflated;
+
     /** Type of the defect. */
     DefectTypeId type = -1;
 
@@ -68,6 +72,9 @@ struct BinType
 
     /** Defects of the bin type. */
     std::vector<Defect> defects;
+
+    /** Borders. */
+    std::vector<Defect> borders;
 
     /*
      * Computed attributes.
@@ -109,6 +116,10 @@ struct ItemShape
      * Holes are shapes contained inside the main shape.
      */
     std::vector<Shape> holes;
+
+    Shape shape_inflated;
+
+    std::vector<Shape> holes_deflated;
 
     /** Quality rule. */
     QualityRule quality_rule = 0;
@@ -157,7 +168,8 @@ struct ItemType
 
     std::pair<Point, Point> compute_min_max(
             Angle angle = 0.0,
-            bool mirror = false) const;
+            bool mirror = false,
+            bool inflated = false) const;
 
     bool has_full_continuous_rotations() const;
 

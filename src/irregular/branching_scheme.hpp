@@ -2,6 +2,8 @@
 
 #include "packingsolver/irregular/solution.hpp"
 
+#include "shape_simplification.hpp"
+
 #include "shape/trapezoid.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
@@ -18,13 +20,26 @@ using TrapezoidSetId = int64_t;
 
 struct TrapezoidSet
 {
+    /** Item type. */
     ItemTypeId item_type_id;
 
+    /** Angle. */
     Angle angle;
 
+    /** Mirror. */
     bool mirror;
 
+    /** Shapes. */
     std::vector<std::vector<GeneralizedTrapezoid>> shapes;
+
+    /** Inflated shapes. */
+    std::vector<std::vector<GeneralizedTrapezoid>> shapes_inflated;
+
+    /** Supporting parts of the trapezoid set. */
+    std::vector<ShapePos> supporting_parts;
+
+    /** Supported parts of the trapezoid set. */
+    std::vector<ShapePos> supported_parts;
 
     LengthDbl x_min;
 
@@ -114,10 +129,27 @@ public:
         /** Trapezoids of the defects. */
         std::vector<UncoveredTrapezoid> defects;
 
+        /** Supporting parts of the bin (includes supporting parts of defects). */
+        std::vector<ShapePos> supporting_parts;
+
         LengthDbl x_min;
         LengthDbl x_max;
         LengthDbl y_min;
         LengthDbl y_max;
+    };
+
+    struct Support
+    {
+        Shape shape;
+
+        TrapezoidSetId trapezoid_set_id = -1;
+        ItemShapePos item_shape_pos = -1;
+        ShapePos hole_pos = -1;
+        BinTypeId bin_type_id = -1;
+        DefectId defect_id = -1;
+
+        Point min = {0, 0};
+        Point max = {0, 0};
     };
 
     struct DirectionData
@@ -128,24 +160,45 @@ public:
         /** Trapezoid sets in each direction. */
         std::vector<TrapezoidSet> trapezoid_sets;
 
-        /** Inflated trapezoid sets in each direction. */
-        std::vector<std::vector<std::vector<GeneralizedTrapezoid>>> trapezoid_sets_inflated;
+        /*
+         * Supports
+         */
+
+        /** Supporting parts. */
+        std::vector<Support> supporting_parts;
+
+        /** Supported parts. */
+        std::vector<Support> supported_parts;
     };
 
     struct Insertion
     {
-        /** Id of the inserted rectangle set. */
-        TrapezoidSetId trapezoid_set_id = -1;
-
-        ItemShapePos item_shape_pos = -1;
-
-        TrapezoidPos item_shape_trapezoid_pos = -1;
-
         /**
          * - -1: the item is inserted in the last bin
          * - Otherwise, direction
          */
         Direction new_bin_direction = Direction::Any;
+
+        /** Id of the inserted rectangle set. */
+        TrapezoidSetId trapezoid_set_id = -1;
+
+        /** Supporting part. */
+        ShapePos supporting_part_pos = -1;
+
+        /** Supporting part element. */
+        ElementPos supporting_part_element_pos = -1;
+
+        /** x-coordinate of the supporting part. */
+        LengthDbl supporting_part_x = 0.0;
+
+        /** y-coordinate of the supporting part. */
+        LengthDbl supporting_part_y = 0.0;
+
+        /** Supported part. */
+        ShapePos supported_part_pos = -1;
+
+        /** Supported part element. */
+        ElementPos supported_part_element_pos = -1;
 
         /** x-coordinate of the point of interest. */
         LengthDbl x = 0.0;
@@ -257,7 +310,7 @@ public:
             const Parameters& parameters);
 
     /** Get instance. */
-    inline const Instance& instance() const { return instance_approx_; }
+    inline const Instance& instance() const { return instance_; }
 
     /** Get parameters. */
     inline const Parameters& parameters() const { return parameters_; }
@@ -441,12 +494,12 @@ public:
 private:
 
     /** Instance. */
-    const Instance& instance_orig_;
+    const Instance& instance_;
 
     /** Parameters. */
     Parameters parameters_;
 
-    Instance instance_approx_;
+    SimplifiedInstance simplified_instance_;
 
     std::vector<AreaDbl> item_types_convex_hull_area_;
 
@@ -468,6 +521,17 @@ private:
             Shape shape,
             Direction direction) const;
 
+    Shape convert_shape(
+            const Shape& shape,
+            Angle angle,
+            bool mirror) const;
+
+    Shape convert_shape(
+            const Shape& shape,
+            Angle angle,
+            bool mirror,
+            Direction direction) const;
+
     Point convert_point_back(
             const Point& point,
             Direction direction) const;
@@ -487,8 +551,6 @@ private:
     /** Get the area load of a node. */
     inline double area_load(const Node& node) const { return (double)node.item_area / instance().bin_area(); }
 
-    void compute_inflated_trapezoid_sets();
-
     std::vector<UncoveredTrapezoid> add_trapezoid_to_skyline(
             const std::vector<UncoveredTrapezoid>& uncovered_trapezoids,
             ItemTypeId item_type_id,
@@ -499,73 +561,31 @@ private:
     void check_skyline(
             const std::vector<UncoveredTrapezoid>& uncovered_trapezoids) const;
 
-    enum class State
-    {
-        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
-        // Only if item_shape_trapezoid.right_side_increasing_not_vertical()
-        // Only if item_shape_trapezoid.a_right() < supporting_trapezoid.a_right()
-        ItemShapeTrapezoidRightSupportingTrapezoidBottomLeft,
-
-        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
-        // Only if item_shape_trapezoid.right_side_increasing_not_vertical()
-        // Only if item_shape_trapezoid.a_right() >= supporting_trapezoid.a_right()
-        ItemShapeTrapezoidTopRightSupportingTrapezoidLeft,
-
-        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
-        //
-        // Only if !item_shape_trapezoid.right_side_increasing_not_vertical()
-        // or
-        // if item_shape_trapezoid.right_side_increasing_not_vertical()
-        //   and item_shape_trapezoid.a_right() < supporting_trapezoid.a_right()
-        ItemShapeTrapezoidBottomRightSupportingTrapezoidLeft,
-
-        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
-        // Only if item_shape_trapezoid.right_side_increasing_not_vertical()
-        // Only if item_shape_trapezoid.a_right() > supporting_trapezoid.a_right()
-        ItemShapeTrapezoidRightSupportingTrapezoidTopLeft,
-
-        ItemShapeTrapezoidBottomRightSupportingTrapezoidTop,
-
-        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
-        ItemShapeTrapezoidLeftSupportingTrapezoidTopRight,
-
-        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
-        ItemShapeTrapezoidTopLeftSupportingTrapezoidRight,
-
-        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
-        ItemShapeTrapezoidBottomLeftSupportingTrapezoidRight,
-
-        // Only if supporting_trapezoid.left_side_increasing_not_vertical()
-        ItemShapeTrapezoidLeftSupportingTrapezoidBottomRight,
-
-        Infeasible,
-    };
-
-    void init_position(
-            const GeneralizedTrapezoid& item_shape_trapezoid,
-            const GeneralizedTrapezoid& supporting_trapezoid,
-            State& state,
-            LengthDbl& xs,
-            LengthDbl& ys) const;
+    LengthDbl compute_direction(
+            const ShapeElement& supporting_element,
+            const ShapeElement& supported_element) const;
 
     bool update_position(
-            const GeneralizedTrapezoid& item_shape_trapezoid,
-            const GeneralizedTrapezoid& supporting_trapezoid,
+            Insertion& insertion,
+            const Shape& supporting_shape,
+            const Shape& supported_shape,
             const GeneralizedTrapezoid& trapezoid_to_avoid,
-            GeneralizedTrapezoid& current_trapezoid,
-            State& state,
-            LengthDbl& xs,
-            LengthDbl& ys) const;
+            GeneralizedTrapezoid& current_trapezoid) const;
+
+    /** Update insertion. */
+    void update_insertion(
+            const std::shared_ptr<Node>& parent,
+            const Insertion& insertion) const;
 
     /** Insertion of one item. */
     void insertion_trapezoid_set(
             const std::shared_ptr<Node>& parent,
             TrapezoidSetId trapezoid_set_id,
-            ItemShapePos item_shape_pos,
-            TrapezoidPos item_shape_trapezoid_pos,
-            Direction new_bin_direction,
-            ItemPos uncovered_trapezoid_pos,
-            ItemPos extra_trapezoid_pos) const;
+            ShapePos supporting_part_pos,
+            LengthDbl supporting_part_x,
+            LengthDbl supporting_part_y,
+            ShapePos supported_part_pos,
+            Direction new_bin_direction) const;
 
 };
 

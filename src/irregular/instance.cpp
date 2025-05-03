@@ -105,14 +105,17 @@ ShapeType ItemType::shape_type() const
 
 std::pair<Point, Point> ItemType::compute_min_max(
         Angle angle,
-        bool mirror) const
+        bool mirror,
+        bool inflated) const
 {
     LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
     for (const ItemShape& item_shape: shapes) {
-        auto points = item_shape.shape.compute_min_max(angle, mirror);
+        auto points = (!inflated)?
+            item_shape.shape.compute_min_max(angle, mirror):
+            item_shape.shape_inflated.compute_min_max(angle, mirror);
         x_min = std::min(x_min, points.first.x);
         x_max = std::max(x_max, points.second.x);
         y_min = std::min(y_min, points.first.y);
@@ -174,7 +177,7 @@ void ItemType::write_svg(
                 "Unable to open file \"" + file_path + "\".");
     }
 
-    auto mm = compute_min_max(0.0);
+    auto mm = compute_min_max(0.0, false, true);
     LengthDbl width = (mm.second.x - mm.first.x);
     LengthDbl height = (mm.second.y - mm.first.y);
 
@@ -194,7 +197,8 @@ void ItemType::write_svg(
             ++item_shape_pos) {
         const auto& item_shape = shapes[item_shape_pos];
         file << "<g>" << std::endl;
-        file << to_svg(item_shape.shape, item_shape.holes, factor);
+        file << to_svg(item_shape.shape, item_shape.holes, factor, "blue");
+        file << to_svg(item_shape.shape_inflated, item_shape.holes_deflated, factor, "red");
         //file << "<text x=\"" << std::to_string(x * factor)
         //    << "\" y=\"" << std::to_string(-y * factor)
         //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
