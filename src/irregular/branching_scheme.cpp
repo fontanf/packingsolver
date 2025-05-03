@@ -5,6 +5,7 @@
 #include "shape/convex_hull.hpp"
 #include "shape/trapezoidation.hpp"
 #include "shape/supports.hpp"
+#include "shape/element_intersections.hpp"
 
 #include <iostream>
 
@@ -851,6 +852,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     const DirectionData& direction_data = directions_data_[(int)node.last_bin_direction];
     const TrapezoidSet& trapezoid_set = direction_data.trapezoid_sets[insertion.trapezoid_set_id];
     const Support& supporting_part = direction_data.supporting_parts[insertion.supporting_part_pos];
+    Shape supporting_shape = supporting_part.shape;
+    supporting_shape.shift(insertion.supporting_part_x, insertion.supporting_part_y);
+
     //std::cout << "shape_trapezoid " << shape_trapezoid << std::endl;
 
     BinPos bin_pos = node.number_of_bins - 1;
@@ -923,15 +927,39 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
 
             if (!trapezoid.left_side_increasing_not_vertical()) {
+                ShapeElement element_1;
+                element_1.type = ShapeElementType::LineSegment;
+                element_1.start = {trapezoid.x_top_left(), trapezoid.y_top()};
+                element_1.end = {trapezoid.x_bottom_left(), trapezoid.y_bottom()};
+                ShapeElement element_2;
+                element_2.type = ShapeElementType::LineSegment;
+                element_2.start = {trapezoid.x_bottom_left(), trapezoid.y_bottom()};
+                element_2.end = {trapezoid.x_bottom_right(), trapezoid.y_bottom()};
+                ShapeElement element_3;
+                element_3.type = ShapeElementType::LineSegment;
+                element_3.start = {trapezoid.x_bottom_right(), trapezoid.y_bottom()};
+                element_3.end = {trapezoid.x_top_right(), trapezoid.y_top()};
+
                 bool add_to_skyline = false;
-                for (ElementPos supporting_part_element_pos = 0;
-                        supporting_part_element_pos < supporting_part.shape.elements.size();
-                        ++supporting_part_element_pos) {
-                    const ShapeElement& supporting_part_element = supporting_part.shape.elements[supporting_part_element_pos];
-                    if (equal(trapezoid.x_bottom_left(), supporting_part_element.start.x)
-                            && equal(trapezoid.y_bottom(), supporting_part_element.start.y)) {
-                        //std::cout << supporting_part.shape.to_string(0) << std::endl;
-                        //std::cout << supporting_part_element.to_string() << std::endl;
+                for (ElementPos supporting_shape_element_pos = 0;
+                        supporting_shape_element_pos < supporting_shape.elements.size();
+                        ++supporting_shape_element_pos) {
+                    const ShapeElement& supporting_shape_element = supporting_shape.elements[supporting_shape_element_pos];
+                    if (!shape::compute_intersections(supporting_shape_element, element_1, false).empty()) {
+                        //std::cout << "supporting_shape_element " << supporting_shape_element.to_string() << std::endl;
+                        //std::cout << "element_1 " << element_1.to_string() << std::endl;
+                        add_to_skyline = true;
+                        break;
+                    }
+                    if (!shape::compute_intersections(supporting_shape_element, element_2, false).empty()) {
+                        //std::cout << "supporting_shape_element " << supporting_shape_element.to_string() << std::endl;
+                        //std::cout << "element_2 " << element_2.to_string() << std::endl;
+                        add_to_skyline = true;
+                        break;
+                    }
+                    if (!shape::compute_intersections(supporting_shape_element, element_3, false).empty()) {
+                        //std::cout << "supporting_shape_element " << supporting_shape_element.to_string() << std::endl;
+                        //std::cout << "element_3 " << element_3.to_string() << std::endl;
                         add_to_skyline = true;
                         break;
                     }
@@ -1145,6 +1173,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         - (node.xe_max - bin_type.x_min) * (node.ye_max - bin_type.y_min);
 
     node.id = node_id_++;
+    //std::cout << "node.id " << node.id << std::endl;
     return node;
 }
 
