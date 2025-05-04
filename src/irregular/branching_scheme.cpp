@@ -927,7 +927,6 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                     item_shape_trapezoid_pos,
                     trapezoid);
 
-
             if (!trapezoid.left_side_increasing_not_vertical()) {
                 ShapeElement element_1;
                 element_1.type = ShapeElementType::LineSegment;
@@ -1021,68 +1020,6 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             node.extra_trapezoids.push_back(extra_trapezoid);
         }
     }
-
-    // Update extra rectangles.
-    if (insertion.new_bin_direction == Direction::Any) {  // Same bin
-
-        // Don't add extra rectangles which are behind the skyline.
-        //std::cout << "check previous extra trapezoids:" << std::endl;
-        for (const UncoveredTrapezoid& extra_trapezoid: parent.extra_trapezoids) {
-            if (extra_trapezoid.trapezoid.y_top() >= bb_bin_type.y_max + (bb_bin_type.y_max - bb_bin_type.y_min)
-                    || extra_trapezoid.trapezoid.y_bottom() <= bb_bin_type.y_min - (bb_bin_type.y_max - bb_bin_type.y_min)) {
-                node.extra_trapezoids.push_back(extra_trapezoid);
-                continue;
-            }
-            //std::cout << "extra_trapezoid " << extra_trapezoid << std::endl;
-            LengthDbl covered_length = 0.0;
-            for (const UncoveredTrapezoid& uncovered_trapezoid: node.uncovered_trapezoids) {
-                if (uncovered_trapezoid.trapezoid.y_bottom() >= extra_trapezoid.trapezoid.y_top())
-                    continue;
-                if (uncovered_trapezoid.trapezoid.y_top() <= extra_trapezoid.trapezoid.y_bottom())
-                    continue;
-                //std::cout << "uncovered_trapezoid " << uncovered_trapezoid << std::endl;
-                LengthDbl yb = std::max(
-                        extra_trapezoid.trapezoid.y_bottom(),
-                        uncovered_trapezoid.trapezoid.y_bottom());
-                LengthDbl yt = std::min(
-                        extra_trapezoid.trapezoid.y_top(),
-                        uncovered_trapezoid.trapezoid.y_top());
-                LengthDbl y = (yb + yt) / 2;
-                LengthDbl x_extra = extra_trapezoid.trapezoid.x_right(y);
-                LengthDbl x_uncov = uncovered_trapezoid.trapezoid.x_right(y);
-                //std::cout << "yb " << yb << " yt " << yt << " y " << y << std::endl;
-                //std::cout << "x_extra " << x_extra << " x_uncov " << x_uncov << std::endl;
-                if (!strictly_greater(x_extra, x_uncov)) {
-                    //std::cout << "covers" << std::endl;
-                    covered_length += (yt - yb);
-                }
-            }
-            //std::cout << "length " << extra_trapezoid.trapezoid.height()
-            //    << " covered " << covered_length
-            //    << std::endl;
-            if (strictly_lesser(covered_length, extra_trapezoid.trapezoid.height())) {
-                //std::cout << "add " << extra_trapezoid << std::endl;
-                node.extra_trapezoids.push_back(extra_trapezoid);
-            }
-        }
-    }
-
-    // Sort extra_trapezoids.
-    std::sort(
-            node.extra_trapezoids.begin(),
-            node.extra_trapezoids.end(),
-            [](
-                const UncoveredTrapezoid& uncovered_trapezoid_1,
-                const UncoveredTrapezoid& uncovered_trapezoid_2)
-            {
-                const GeneralizedTrapezoid& trapezoid_1 = uncovered_trapezoid_1.trapezoid;
-                const GeneralizedTrapezoid& trapezoid_2 = uncovered_trapezoid_2.trapezoid;
-                if (trapezoid_1.y_bottom() != trapezoid_2.y_bottom())
-                    return trapezoid_1.y_bottom() < trapezoid_2.y_bottom();
-                if (trapezoid_1.y_top() != trapezoid_2.y_top())
-                    return trapezoid_1.y_top() < trapezoid_2.y_top();
-                return trapezoid_1.x_bottom_left() < trapezoid_2.x_bottom_left();
-            });
 
     //std::cout << "extra_trapezoids:" << std::endl;
     //for (const UncoveredTrapezoid& extra_trapezoid: node.extra_trapezoids)
@@ -1179,11 +1116,83 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     return node;
 }
 
+void BranchingScheme::update_extra_trapezoids(Node& node) const
+{
+    if (node.parent != nullptr
+            && node.number_of_bins == node.parent->number_of_bins) {  // Same bin
+        const Node& parent = *node.parent;
+        const DirectionData& direction_data = directions_data_[(int)node.last_bin_direction];
+        BinPos bin_pos = node.number_of_bins - 1;
+        BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+        const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
+
+        // Don't add extra rectangles which are behind the skyline.
+        //std::cout << "check previous extra trapezoids:" << std::endl;
+        for (const UncoveredTrapezoid& extra_trapezoid: parent.extra_trapezoids) {
+            if (extra_trapezoid.trapezoid.y_top() >= bb_bin_type.y_max + (bb_bin_type.y_max - bb_bin_type.y_min)
+                    || extra_trapezoid.trapezoid.y_bottom() <= bb_bin_type.y_min - (bb_bin_type.y_max - bb_bin_type.y_min)) {
+                node.extra_trapezoids.push_back(extra_trapezoid);
+                continue;
+            }
+            //std::cout << "extra_trapezoid " << extra_trapezoid << std::endl;
+            LengthDbl covered_length = 0.0;
+            for (const UncoveredTrapezoid& uncovered_trapezoid: node.uncovered_trapezoids) {
+                if (uncovered_trapezoid.trapezoid.y_bottom() >= extra_trapezoid.trapezoid.y_top())
+                    continue;
+                if (uncovered_trapezoid.trapezoid.y_top() <= extra_trapezoid.trapezoid.y_bottom())
+                    continue;
+                //std::cout << "uncovered_trapezoid " << uncovered_trapezoid << std::endl;
+                LengthDbl yb = std::max(
+                        extra_trapezoid.trapezoid.y_bottom(),
+                        uncovered_trapezoid.trapezoid.y_bottom());
+                LengthDbl yt = std::min(
+                        extra_trapezoid.trapezoid.y_top(),
+                        uncovered_trapezoid.trapezoid.y_top());
+                LengthDbl y = (yb + yt) / 2;
+                LengthDbl x_extra = extra_trapezoid.trapezoid.x_right(y);
+                LengthDbl x_uncov = uncovered_trapezoid.trapezoid.x_right(y);
+                //std::cout << "yb " << yb << " yt " << yt << " y " << y << std::endl;
+                //std::cout << "x_extra " << x_extra << " x_uncov " << x_uncov << std::endl;
+                if (!strictly_greater(x_extra, x_uncov)) {
+                    //std::cout << "covers" << std::endl;
+                    covered_length += (yt - yb);
+                }
+            }
+            //std::cout << "length " << extra_trapezoid.trapezoid.height()
+            //    << " covered " << covered_length
+            //    << std::endl;
+            if (strictly_lesser(covered_length, extra_trapezoid.trapezoid.height())) {
+                //std::cout << "add " << extra_trapezoid << std::endl;
+                node.extra_trapezoids.push_back(extra_trapezoid);
+            }
+        }
+    }
+
+    // Sort extra_trapezoids.
+    std::sort(
+            node.extra_trapezoids.begin(),
+            node.extra_trapezoids.end(),
+            [](
+                const UncoveredTrapezoid& uncovered_trapezoid_1,
+                const UncoveredTrapezoid& uncovered_trapezoid_2)
+            {
+                const GeneralizedTrapezoid& trapezoid_1 = uncovered_trapezoid_1.trapezoid;
+                const GeneralizedTrapezoid& trapezoid_2 = uncovered_trapezoid_2.trapezoid;
+                if (trapezoid_1.y_bottom() != trapezoid_2.y_bottom())
+                    return trapezoid_1.y_bottom() < trapezoid_2.y_bottom();
+                if (trapezoid_1.y_top() != trapezoid_2.y_top())
+                    return trapezoid_1.y_top() < trapezoid_2.y_top();
+                return trapezoid_1.x_bottom_left() < trapezoid_2.x_bottom_left();
+            });
+
+}
+
 std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
         const std::shared_ptr<Node>& parent) const
 {
     //if (parent->number_of_items == 20)
     //    exit(0);
+    update_extra_trapezoids(*parent);
     insertions(parent);
     std::vector<std::shared_ptr<Node>> cs;
     cs.reserve(parent->children_insertions.size());
