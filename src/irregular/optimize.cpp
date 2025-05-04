@@ -26,6 +26,7 @@ void optimize_tree_search_worker(
 {
     Counter queue_size = 1;
     double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
+    std::shared_ptr<BranchingScheme::Node> cutoff = nullptr;
     for (Counter iteration = 0;
             ;
             ++iteration) {
@@ -37,6 +38,7 @@ void optimize_tree_search_worker(
 
         // Run tree search.
         branching_scheme_parameters.maximum_approximation_ratio = maximum_approximation_ratio;
+        ibs_parameters.cutoff = cutoff;
         ibs_parameters.minimum_size_of_the_queue = queue_size;
         ibs_parameters.maximum_size_of_the_queue = queue_size;
         if (!parameters.json_search_tree_path.empty()) {
@@ -55,6 +57,10 @@ void optimize_tree_search_worker(
 
         if (parameters.optimization_mode != OptimizationMode::Anytime)
             break;
+
+        if (cutoff != nullptr)
+            ibs_output.solution_pool.add(cutoff);
+        cutoff = ibs_output.solution_pool.best();
 
         // Update beam size.
         queue_size = std::max(
@@ -110,12 +116,14 @@ void optimize_tree_search(
     } else {
         directions = {BranchingScheme::Direction::Any};
     }
+    //directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
 
     std::vector<double> growth_factors = {1.5};
     if (guides.size() * directions.size() * 2 <= 4)
         growth_factors = {1.33, 1.5};
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         growth_factors = {1.5};
+    //growth_factors = {1.5};
 
     std::vector<BranchingScheme::Parameters> branching_scheme_parameters_list;
     std::vector<BranchingScheme> branching_schemes;
