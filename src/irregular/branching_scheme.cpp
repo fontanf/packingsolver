@@ -1189,18 +1189,7 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
     cs.reserve(parent->children_insertions.size());
     for (Counter i = 0; i < (Counter)parent->children_insertions.size(); ++i) {
         const Insertion& insertion = parent->children_insertions[i];
-        bool dominated = false;
-        for (Counter i2 = 0; i2 < i; ++i2) {
-            const Insertion& insertion_2 = parent->children_insertions[i2];
-            if (insertion_2.trapezoid_set_id == insertion.trapezoid_set_id
-                    && equal(insertion_2.x, insertion.x)
-                    && equal(insertion_2.y, insertion.y)) {
-                dominated = true;
-                break;
-            }
-        }
-        if (dominated)
-            continue;
+
         //std::cout << "- insertion " << insertion << std::endl;
         cs.push_back(std::make_shared<Node>(child_tmp(parent, insertion)));
         //BinPos bin_pos = cs.back()->number_of_bins - 1;
