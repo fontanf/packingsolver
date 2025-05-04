@@ -561,6 +561,8 @@ private:
     void check_skyline(
             const std::vector<UncoveredTrapezoid>& uncovered_trapezoids) const;
 
+    void update_extra_trapezoids(Node& node) const;
+
     LengthDbl compute_direction(
             const ShapeElement& supporting_element,
             const ShapeElement& supported_element) const;
