@@ -96,6 +96,7 @@ BranchingScheme::BranchingScheme(
                 ++bin_type_id) {
             //std::cout << "bin_type_id " << bin_type_id << std::endl;
             const BinType& bin_type = instance.bin_type(bin_type_id);
+            const SimplifiedBinType& simplified_bin_type = simplified_instance_.bin_types[bin_type_id];
             BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
             Shape shape = convert_shape(bin_type.shape, direction);
 
@@ -150,11 +151,15 @@ BranchingScheme::BranchingScheme(
                 bb_bin_type.supporting_parts.push_back(supporting_part_pos);
             }
 
-            for (const SimplifiedShape& shape_border: simplified_instance_.bin_types[bin_type_id].borders) {
-                Shape shape = clean_shape(shape_border.shape_inflated, true);
+            for (DefectId border_pos = 0;
+                    border_pos < (DefectId)simplified_bin_type.borders.size();
+                    ++border_pos) {
+                const Shape& simplified_inflated_shape = simplified_bin_type.borders[border_pos].shape_inflated;
+                Shape shape_inflated = convert_shape(simplified_inflated_shape, direction);
+                shape_inflated = clean_shape(shape_inflated, true);
 
                 // Supports.
-                shape::ShapeSupports supports = shape::compute_shape_supports(shape, false);
+                shape::ShapeSupports supports = shape::compute_shape_supports(shape_inflated, false);
                 for (const Shape& supporting_part: supports.supporting_parts) {
                     ShapePos supporting_part_pos = direction_data.supporting_parts.size();
                     Support support;
@@ -166,29 +171,26 @@ BranchingScheme::BranchingScheme(
                 }
 
                 // Trapezoidation.
-                if (shape.elements.size() > 2) {
-                    auto trapezoids = trapezoidation(shape);
-                    for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
-                        UncoveredTrapezoid defect(
-                                -1,
-                                trapezoid);
-                        bb_bin_type.defects.push_back(defect);
-                    }
+                auto trapezoids = trapezoidation(shape_inflated);
+                for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
+                    UncoveredTrapezoid defect(
+                            -1,
+                            trapezoid);
+                    bb_bin_type.defects.push_back(defect);
                 }
             }
 
             // Bin defects.
             for (DefectId defect_id = 0;
-                    defect_id < (DefectId)bin_type.defects.size();
+                    defect_id < (DefectId)simplified_bin_type.defects.size();
                     ++defect_id) {
                 //std::cout << "defect_id " << defect_id << std::endl;
-                const Defect& defect = bin_type.defects[defect_id];
-                const Shape& simplified_inflated_shape = simplified_instance_.bin_types[bin_type_id].defects[defect_id].shape_inflated;
+                const Shape& simplified_inflated_shape = simplified_bin_type.defects[defect_id].shape_inflated;
                 Shape shape_inflated = convert_shape(simplified_inflated_shape, direction);
                 shape_inflated = clean_shape(shape_inflated, true);
 
                 // Supports.
-                shape::ShapeSupports supports = shape::compute_shape_supports(shape, false);
+                shape::ShapeSupports supports = shape::compute_shape_supports(shape_inflated, false);
                 for (const Shape& supporting_part: supports.supporting_parts) {
                     ShapePos supporting_part_pos = direction_data.supporting_parts.size();
                     Support support;
@@ -201,29 +203,28 @@ BranchingScheme::BranchingScheme(
 
                 std::vector<Shape> holes_deflated;
                 for (ShapePos hole_pos = 0;
-                        hole_pos < (ShapePos)defect.holes.size();
+                        hole_pos < (ShapePos)simplified_bin_type.defects[defect_id].holes_deflated.size();
                         ++hole_pos) {
-                    const Shape& hole = defect.holes[hole_pos];
-                    if (!strictly_lesser(hole.compute_area(), instance.smallest_item_area())) {
-                        const Shape& simplified_deflated_shape = simplified_instance_.bin_types[bin_type_id].defects[defect_id].holes_deflated[hole_pos];
-                        Shape shape_deflated = convert_shape(simplified_deflated_shape, direction);
-                        shape_deflated = clean_shape(shape_deflated, false);
+                    const Shape& simplified_deflated_shape = simplified_bin_type.defects[defect_id].holes_deflated[hole_pos];
+                    if (strictly_lesser(simplified_deflated_shape.compute_area(), instance.smallest_item_area()))
+                        continue;
+                    Shape shape_deflated = convert_shape(simplified_deflated_shape, direction);
+                    shape_deflated = clean_shape(shape_deflated, false);
 
-                        // Update trapezoidation input.
-                        holes_deflated.push_back(shape_deflated);
+                    // Update trapezoidation input.
+                    holes_deflated.push_back(shape_deflated);
 
-                        // Supports.
-                        shape::ShapeSupports supports = shape::compute_shape_supports(shape_deflated, true);
-                        for (const Shape& supporting_part: supports.supporting_parts) {
-                            ShapePos supporting_part_pos = direction_data.supporting_parts.size();
-                            Support support;
-                            support.bin_type_id = bin_type_id;
-                            support.defect_id = defect_id;
-                            support.hole_pos = hole_pos;
-                            support.shape = supporting_part;
-                            direction_data.supporting_parts.push_back(support);
-                            bb_bin_type.supporting_parts.push_back(supporting_part_pos);
-                        }
+                    // Supports.
+                    shape::ShapeSupports supports = shape::compute_shape_supports(shape_deflated, true);
+                    for (const Shape& supporting_part: supports.supporting_parts) {
+                        ShapePos supporting_part_pos = direction_data.supporting_parts.size();
+                        Support support;
+                        support.bin_type_id = bin_type_id;
+                        support.defect_id = defect_id;
+                        support.hole_pos = hole_pos;
+                        support.shape = supporting_part;
+                        direction_data.supporting_parts.push_back(support);
+                        bb_bin_type.supporting_parts.push_back(supporting_part_pos);
                     }
                 }
 
@@ -245,6 +246,7 @@ BranchingScheme::BranchingScheme(
                 ++item_type_id) {
             //std::cout << "item_type_id " << item_type_id << std::endl;
             const ItemType& item_type = instance.item_type(item_type_id);
+            const SimplifiedItemType& simplified_item_type = simplified_instance_.item_types[item_type_id];
 
             // Write item type.
             if (write_shapes) {
@@ -269,8 +271,8 @@ BranchingScheme::BranchingScheme(
                             item_shape_pos < (ItemShapePos)item_type.shapes.size();
                             ++item_shape_pos) {
                         const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                        const Shape& simplified_shape = simplified_instance_.item_types[item_type_id].shapes[item_shape_pos].shape;
-                        const Shape& simplified_inflated_shape = simplified_instance_.item_types[item_type_id].shapes[item_shape_pos].shape_inflated;
+                        const Shape& simplified_shape = simplified_item_type.shapes[item_shape_pos].shape;
+                        const Shape& simplified_inflated_shape = simplified_item_type.shapes[item_shape_pos].shape_inflated;
 
                         if (write_shapes) {
                             simplified_inflated_shape.write_svg(
@@ -316,9 +318,9 @@ BranchingScheme::BranchingScheme(
 
                         std::vector<Shape> holes;
                         for (ShapePos hole_pos = 0;
-                                hole_pos < (ShapePos)simplified_instance_.item_types[item_type_id].shapes[item_shape_pos].holes.size();
+                                hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].holes.size();
                                 ++hole_pos) {
-                            const Shape& simplified_shape = simplified_instance_.item_types[item_type_id].shapes[item_shape_pos].holes[hole_pos];
+                            const Shape& simplified_shape = simplified_item_type.shapes[item_shape_pos].holes[hole_pos];
                             if (strictly_lesser(simplified_shape.compute_area(), instance.smallest_item_area()))
                                 continue;
 
@@ -345,9 +347,9 @@ BranchingScheme::BranchingScheme(
 
                         std::vector<Shape> holes_deflated;
                         for (ShapePos hole_pos = 0;
-                                hole_pos < (ShapePos)simplified_instance_.item_types[item_type_id].shapes[item_shape_pos].holes_deflated.size();
+                                hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].holes_deflated.size();
                                 ++hole_pos) {
-                            const Shape& simplified_deflated_shape = simplified_instance_.item_types[item_type_id].shapes[item_shape_pos].holes_deflated[hole_pos];
+                            const Shape& simplified_deflated_shape = simplified_item_type.shapes[item_shape_pos].holes_deflated[hole_pos];
                             if (strictly_lesser(simplified_deflated_shape.compute_area(), instance.smallest_item_area()))
                                 continue;
 

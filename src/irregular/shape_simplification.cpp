@@ -276,7 +276,7 @@ SimplifiedInstance irregular::shape_simplification(
             simplified_instance.bin_types[key.bin_type_id].defects[key.defect_id].shape_inflated
                 = simplified_shape.shape;
             for (const auto& s: simplified_shape.holes)
-                simplified_instance.bin_types[key.bin_type_id].borders[key.defect_id].holes_deflated.push_back(s);
+                simplified_instance.bin_types[key.bin_type_id].defects[key.defect_id].holes_deflated.push_back(s);
 
         } else if (key.type == ApproximatedShapeType::DefectHoleDeflated) {
             for (const auto& s: simplified_shape.holes)
