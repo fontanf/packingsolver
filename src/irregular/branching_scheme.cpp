@@ -275,16 +275,27 @@ BranchingScheme::BranchingScheme(
                         const Shape& simplified_inflated_shape = simplified_item_type.shapes[item_shape_pos].shape_inflated;
 
                         if (write_shapes) {
+                            simplified_shape.write_svg(
+                                    "item_type_" + std::to_string(item_type_id)
+                                    + "_shape_pos_" + std::to_string(item_shape_pos)
+                                    + "_simplified.svg");
                             simplified_inflated_shape.write_svg(
                                     "item_type_" + std::to_string(item_type_id)
                                     + "_shape_pos_" + std::to_string(item_shape_pos)
-                                    + "_simplified_inflated.svg");
+                                    + "_inflated_simplified.svg");
                         }
 
                         Shape shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
                         Shape shape_inflated = convert_shape(simplified_inflated_shape, angle_range.first, mirror, direction);
                         shape = clean_shape(shape, true);
                         shape_inflated = clean_shape(shape_inflated, true);
+
+                        if (write_shapes) {
+                            simplified_inflated_shape.write_svg(
+                                    "item_type_" + std::to_string(item_type_id)
+                                    + "_shape_pos_" + std::to_string(item_shape_pos)
+                                    + "_inflated_simplified_cleaned.svg");
+                        }
 
                         // Supports.
                         // Supporting parts are computed on inflated shapes.
