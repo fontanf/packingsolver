@@ -154,6 +154,9 @@ SimplifiedInstance irregular::shape_simplification(
                 ++item_shape_pos) {
             const ItemShape& item_shape = item_type.shapes[item_shape_pos];
             total_item_area += item_type.copies * item_shape.shape.compute_area();
+            //std::cout << "item_type_id " << item_type_id
+            //    << " item_shape_pos " << item_shape_pos
+            //    << std::endl;
 
             {
                 bool outer = true;
@@ -172,7 +175,15 @@ SimplifiedInstance irregular::shape_simplification(
             {
                 bool outer = true;
                 Shape shape = shape::approximate_by_line_segments(item_shape.shape_inflated, 100, outer);
+                //shape.write_svg(
+                //        "item_type_" + std::to_string(item_type_id)
+                //        + "_shape_pos_" + std::to_string(item_shape_pos)
+                //        + "_inflated_approximated.svg");
                 shape = shape::clean_shape(shape, outer);
+                //shape.write_svg(
+                //        "item_type_" + std::to_string(item_type_id)
+                //        + "_shape_pos_" + std::to_string(item_shape_pos)
+                //        + "_inflated_approximated_cleaned.svg");
                 SimplifyInputShape simplify_input_shape;
                 simplify_input_shape.shape = shape;
                 simplify_input_shape.copies = item_type.copies;
