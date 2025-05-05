@@ -136,7 +136,7 @@ ItemTypeId InstanceBuilder::add_item_type(
     for (const ItemShape& item_shape: shapes) {
         if (!item_shape.check()) {
             throw std::runtime_error(
-                    "packingsolver::irregular::InstanceBuilder::add_item_type_type: "
+                    "packingsolver::irregular::InstanceBuilder::add_item_type: "
                     "invalid shape.");
         }
     }

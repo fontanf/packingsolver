@@ -1105,9 +1105,11 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     if (strictly_greater(node.ye_max, bin_type.y_max)) {
         std::cout << "toto" << std::endl;
         throw std::runtime_error(
-                "packingsolver::irregular::BranchingScheme::child_tmp; "
+                "packingsolver::irregular::BranchingScheme::child_tmp: "
+                "node.ye_max > bin_type.y_max; "
                 "node.ye_max: " + std::to_string(node.ye_max) + "; "
                 "bin_type.y_max: " + std::to_string(bin_type.y_max) + "; "
+                "node.last_bin_direction: " + std::to_string((int)node.last_bin_direction) + "; "
                 "insertion.trapezoid_set_id: " + std::to_string(insertion.trapezoid_set_id) + "; "
                 "insertion.x: " + std::to_string(insertion.x) + "; "
                 "insertion.y: " + std::to_string(insertion.y) + "; "
