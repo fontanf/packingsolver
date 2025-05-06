@@ -98,7 +98,7 @@ BranchingScheme::BranchingScheme(
             const BinType& bin_type = instance.bin_type(bin_type_id);
             const SimplifiedBinType& simplified_bin_type = simplified_instance_.bin_types[bin_type_id];
             BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
-            Shape shape = convert_shape(bin_type.shape, direction);
+            Shape shape = convert_shape(bin_type.shape_scaled, direction);
 
             auto mm = shape.compute_min_max();
             bb_bin_type.x_min = mm.first.x;
@@ -113,7 +113,7 @@ BranchingScheme::BranchingScheme(
 
             GeneralizedTrapezoid trapezoid_bottom(
                     y_min,
-                    bb_bin_type.y_min + instance.parameters().item_bin_minimum_spacing,
+                    bb_bin_type.y_min + instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing,
                     bb_bin_type.x_min,
                     bb_bin_type.x_max,
                     bb_bin_type.x_min,
@@ -122,7 +122,7 @@ BranchingScheme::BranchingScheme(
             bb_bin_type.defects.push_back(defect_bottom);
 
             GeneralizedTrapezoid trapezoid_top(
-                    bb_bin_type.y_max - instance.parameters().item_bin_minimum_spacing,
+                    bb_bin_type.y_max - instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing,
                     y_max,
                     x_min,
                     x_max,
@@ -136,10 +136,10 @@ BranchingScheme::BranchingScheme(
             {
                 ShapeElement element;
                 element.type = ShapeElementType::LineSegment;
-                element.start.x = bb_bin_type.x_min + instance.parameters().item_bin_minimum_spacing;
-                element.start.y = bb_bin_type.y_min + instance.parameters().item_bin_minimum_spacing;
-                element.end.x = bb_bin_type.x_max - instance.parameters().item_bin_minimum_spacing;
-                element.end.y = bb_bin_type.y_min + instance.parameters().item_bin_minimum_spacing;
+                element.start.x = bb_bin_type.x_min + instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing;
+                element.start.y = bb_bin_type.y_min + instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing;
+                element.end.x = bb_bin_type.x_max - instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing;
+                element.end.y = bb_bin_type.y_min + instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing;
                 Shape supporting_shape;
                 supporting_shape.elements.push_back(element);
 
@@ -206,8 +206,6 @@ BranchingScheme::BranchingScheme(
                         hole_pos < (ShapePos)simplified_bin_type.defects[defect_id].holes_deflated.size();
                         ++hole_pos) {
                     const Shape& simplified_deflated_shape = simplified_bin_type.defects[defect_id].holes_deflated[hole_pos];
-                    if (strictly_lesser(simplified_deflated_shape.compute_area(), instance.smallest_item_area()))
-                        continue;
                     Shape shape_deflated = convert_shape(simplified_deflated_shape, direction);
                     shape_deflated = clean_shape(shape_deflated, false);
 
@@ -332,8 +330,6 @@ BranchingScheme::BranchingScheme(
                                 hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].holes.size();
                                 ++hole_pos) {
                             const Shape& simplified_shape = simplified_item_type.shapes[item_shape_pos].holes[hole_pos];
-                            if (strictly_lesser(simplified_shape.compute_area(), instance.smallest_item_area()))
-                                continue;
 
                             Shape shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
                             shape = clean_shape(shape, true);
@@ -361,8 +357,6 @@ BranchingScheme::BranchingScheme(
                                 hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].holes_deflated.size();
                                 ++hole_pos) {
                             const Shape& simplified_deflated_shape = simplified_item_type.shapes[item_shape_pos].holes_deflated[hole_pos];
-                            if (strictly_lesser(simplified_deflated_shape.compute_area(), instance.smallest_item_area()))
-                                continue;
 
                             Shape shape_deflated = convert_shape(simplified_deflated_shape, angle_range.first, mirror, direction);
                             shape_deflated = clean_shape(shape_deflated, true);
@@ -511,7 +505,7 @@ BranchingScheme::BranchingScheme(
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
             const auto& item_shape = item_type.shapes[item_shape_pos];
-            Shape convex_hull = shape::convex_hull(item_shape.shape);
+            Shape convex_hull = shape::convex_hull(item_shape.shape_orig);
             AreaDbl convex_hull_area = convex_hull.compute_area();
             item_types_convex_hull_area_[item_type_id] += convex_hull_area;
         }
@@ -842,6 +836,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     //std::cout << "child_tmp"
     //    << " parent " << pparent->id
     //    << " insertion " << insertion << std::endl;
+
     const Node& parent = *pparent;
     Node node;
 
@@ -892,9 +887,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                     bb_bin_type.y_min,
                     bb_bin_type.y_max,
                     bb_bin_type.x_min,
-                    bb_bin_type.x_min + instance().parameters().item_bin_minimum_spacing,
+                    bb_bin_type.x_min + instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing,
                     bb_bin_type.x_min,
-                    bb_bin_type.x_min + instance().parameters().item_bin_minimum_spacing));
+                    bb_bin_type.x_min + instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing));
         node.uncovered_trapezoids.push_back(uncovered_trapezoid);
         node.all_trapezoids_skyline.push_back(uncovered_trapezoid);
 
@@ -1042,7 +1037,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     const ItemType& item_type = instance_.item_type(trapezoid_set.item_type_id);
     node.item_number_of_copies[trapezoid_set.item_type_id]++;
     node.number_of_items = parent.number_of_items + 1;
-    node.item_area = parent.item_area + item_type.area;
+    node.item_area = parent.item_area + item_type.area_orig;
     //std::cout << "parent.item_area " << parent.item_area << " item_area " << item_type.area << std::endl;
     node.profit = parent.profit + item_type.profit;
     node.item_convex_hull_area = parent.item_convex_hull_area
@@ -1092,6 +1087,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         x = -node.y;
         y = -node.x;
     }
+    x = (1.0 / instance().parameters().scale_value) * x;
+    y = (1.0 / instance().parameters().scale_value) * y;
     auto mm = item_type.compute_min_max(
             trapezoid_set.angle,
             trapezoid_set.mirror);
@@ -1534,10 +1531,10 @@ void BranchingScheme::update_insertion(
 
     LengthDbl ys_tmp = supporting_part.min.y + insertion.supporting_part_y
         - (supported_part.max.y - trapezoid_set.y_min)
-        - instance().parameters().item_item_minimum_spacing;
+        - instance_.parameters().scale_value * instance().parameters().item_item_minimum_spacing;
     LengthDbl ye_tmp = supporting_part.max.y + insertion.supporting_part_y
         + (trapezoid_set.y_max - supported_part.min.y)
-        + instance().parameters().item_item_minimum_spacing;
+        + instance_.parameters().scale_value * instance().parameters().item_item_minimum_spacing;
     if (strictly_greater(ys_tmp, parent->ye)
             || strictly_lesser(ye_tmp, parent->ys)) {
         parent->children_insertions.push_back(insertion);
@@ -1576,7 +1573,7 @@ void BranchingScheme::update_insertion(
                     }
                     if (b) {
                         stop = false;
-                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
                             return;
                     }
                 }
@@ -1609,7 +1606,7 @@ void BranchingScheme::update_insertion(
                         return;
                     }
                     if (b) {
-                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
                             return;
                         stop = false;
                     }
@@ -1622,7 +1619,7 @@ void BranchingScheme::update_insertion(
     }
 
     // Check bin width.
-    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing)) {
+    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing)) {
         return;
     }
 
@@ -1693,11 +1690,11 @@ void BranchingScheme::insertion_trapezoid_set(
     //    LengthDbl ys_tmp = supporting_part.min.y + supporting_part_y
     //        - supported_part.max.y
     //        + trapezoid_set.y_min
-    //        - instance().parameters().item_item_minimum_spacing;
+    //        - instance_.parameters().scale_value * instance().parameters().item_item_minimum_spacing;
     //    LengthDbl ye_tmp = supporting_part.max.y + supporting_part_y
     //        - supported_part.min.y
     //        + trapezoid_set.y_max
-    //        + instance().parameters().item_item_minimum_spacing;
+    //        + instance_.parameters().scale_value * instance().parameters().item_item_minimum_spacing;
     //    if (strictly_greater(ys_tmp, parent->ye)
     //            || strictly_lesser(ye_tmp, parent->ys)) {
     //        return;
@@ -1706,7 +1703,7 @@ void BranchingScheme::insertion_trapezoid_set(
 
     //xs = (std::max)(xs, bb_bin_type.x_min - item_shape_trapezoid.x_max());
 
-    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
         return;
     //if (strictly_greater(ys + trapezoid_set.y_max, bb_bin_type.y_max))
     //    return;
@@ -1739,11 +1736,11 @@ void BranchingScheme::insertion_trapezoid_set(
                         std::min(
                             bb_bin_type.x_min - (bb_bin_type.x_max - bb_bin_type.x_min),
                             item_shape_trapezoid_cur.x_min()),
-                        bb_bin_type.x_min + instance().parameters().item_bin_minimum_spacing,
+                        bb_bin_type.x_min + instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing,
                         std::min(
                             bb_bin_type.x_min - (bb_bin_type.x_max - bb_bin_type.x_min),
                             item_shape_trapezoid_cur.x_min()),
-                        bb_bin_type.x_min + instance().parameters().item_bin_minimum_spacing);
+                        bb_bin_type.x_min + instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing);
 
                 bool b = update_position(
                         insertion,
@@ -1757,7 +1754,7 @@ void BranchingScheme::insertion_trapezoid_set(
                 }
                 if (b) {
                     stop = false;
-                    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+                    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
                         return;
                 }
             }
@@ -1801,7 +1798,7 @@ void BranchingScheme::insertion_trapezoid_set(
                         }
                         if (b) {
                             stop = false;
-                            if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+                            if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
                                 return;
                         }
                     }
@@ -1836,7 +1833,7 @@ void BranchingScheme::insertion_trapezoid_set(
                         return;
                     }
                     if (b) {
-                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing))
+                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
                             return;
                         stop = false;
                     }
@@ -1849,16 +1846,16 @@ void BranchingScheme::insertion_trapezoid_set(
     }
 
     // Check bin width.
-    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance().parameters().item_bin_minimum_spacing)) {
+    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing)) {
         return;
     }
 
     insertion.ys = supporting_part.min.y + supporting_part_y
         - (trapezoid_set.y_max - trapezoid_set.y_min)
-        - instance().parameters().item_item_minimum_spacing;
+        - instance_.parameters().scale_value * instance().parameters().item_item_minimum_spacing;
     insertion.ye = supporting_part.max.y + supporting_part_y
         + (trapezoid_set.y_max - trapezoid_set.y_min)
-        + instance().parameters().item_item_minimum_spacing;
+        + instance_.parameters().scale_value * instance().parameters().item_item_minimum_spacing;
     parent->children_insertions.push_back(insertion);
     //std::cout << "- insertion " << insertion
     //    << " -> ok" << std::endl;
@@ -1989,6 +1986,7 @@ Solution BranchingScheme::to_solution(
         const DirectionData& direction_data = directions_data_[(int)current_node->last_bin_direction];
         const TrapezoidSet& trapezoid_set = direction_data.trapezoid_sets[current_node->trapezoid_set_id];
         Point bl_corner = convert_point_back({current_node->x, current_node->y}, current_node->last_bin_direction);
+        bl_corner = (1.0 / instance().parameters().scale_value) * bl_corner;
         //std::cout << "bin_pos " << bin_pos
         //    << " item_type_id " << trapezoid_set.item_type_id
         //    << " bl_corner " << bl_corner.to_string()
@@ -2002,22 +2000,24 @@ Solution BranchingScheme::to_solution(
                 trapezoid_set.mirror);
     }
 
-    if (node->last_bin_direction == Direction::LeftToRightThenBottomToTop
-            || node->last_bin_direction == Direction::BottomToTopThenLeftToRight) {
-        if (!equal(node->xe_max, solution.x_max())) {
-            solution.write("solution_irregular.json");
-            throw std::runtime_error(
-                    "packingsolver::irregular::BranchingScheme::to_solution; "
-                    "node->xe_max: " + std::to_string(node->xe_max) + "; "
-                    "solution.x_max(): " + std::to_string(solution.x_max()) + "; "
-                    "d: " + std::to_string((int)node->last_bin_direction) + ".");
-        }
-        if (!equal(node->ye_max, solution.y_max())) {
-            throw std::runtime_error(
-                    "packingsolver::irregular::BranchingScheme::to_solution; "
-                    "node->ye_max: " + std::to_string(node->ye_max) + "; "
-                    "solution.y_max(): " + std::to_string(solution.y_max()) + "; "
-                    "d: " + std::to_string((int)node->last_bin_direction) + ".");
+    if (node->number_of_bins > 0) {
+        if (node->last_bin_direction == Direction::LeftToRightThenBottomToTop
+                || node->last_bin_direction == Direction::BottomToTopThenLeftToRight) {
+            if (!equal(node->xe_max, solution.x_max())) {
+                solution.write("solution_irregular.json");
+                throw std::runtime_error(
+                        "packingsolver::irregular::BranchingScheme::to_solution; "
+                        "node->xe_max: " + std::to_string(node->xe_max) + "; "
+                        "solution.x_max(): " + std::to_string(solution.x_max()) + "; "
+                        "d: " + std::to_string((int)node->last_bin_direction) + ".");
+            }
+            if (!equal(node->ye_max, solution.y_max())) {
+                throw std::runtime_error(
+                        "packingsolver::irregular::BranchingScheme::to_solution; "
+                        "node->ye_max: " + std::to_string(node->ye_max) + "; "
+                        "solution.y_max(): " + std::to_string(solution.y_max()) + "; "
+                        "d: " + std::to_string((int)node->last_bin_direction) + ".");
+            }
         }
     }
     return solution;
@@ -2045,7 +2045,7 @@ nlohmann::json BranchingScheme::json_export_init() const
 
         json_bins_init_ids_[bin_type_id] = i;
         json_init[i][0] = {
-            {"Shape", bin_type.shape.to_json()},
+            {"Shape", bin_type.shape_orig.to_json()},
             {"FillColor", ""},
         };
         for (DefectId defect_id = 0;
@@ -2053,13 +2053,13 @@ nlohmann::json BranchingScheme::json_export_init() const
                 ++defect_id) {
             const Defect& defect = bin_type.defects[defect_id];
             json_init[i][defect_id + 1] = {
-                {"Shape", bin_type.shape.to_json()},
+                {"Shape", bin_type.shape_orig.to_json()},
                 {"FillColor", "red"},
             };
             for (Counter hole_pos = 0;
-                    hole_pos < (Counter)defect.holes.size();
+                    hole_pos < (Counter)defect.holes_orig.size();
                     ++hole_pos) {
-                const Shape& hole = defect.holes[hole_pos];
+                const Shape& hole = defect.holes_orig[hole_pos];
                 json_init[i][hole_pos]["Holes"][hole_pos] = hole.to_json();
             }
         }
@@ -2084,15 +2084,15 @@ nlohmann::json BranchingScheme::json_export_init() const
                         item_shape_pos < (ItemShapePos)item_type.shapes.size();
                         ++item_shape_pos) {
                     const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                    Shape shape = convert_shape(item_shape.shape, angle_range.first, mirror);
+                    Shape shape = convert_shape(item_shape.shape_orig, angle_range.first, mirror);
                     json_init[i][item_shape_pos] = {
                         {"Shape", shape.to_json()},
                         {"FillColor", "blue"},
                     };
                     for (Counter hole_pos = 0;
-                            hole_pos < (Counter)item_shape.holes.size();
+                            hole_pos < (Counter)item_shape.holes_orig.size();
                             ++hole_pos) {
-                        const Shape& hole = item_shape.holes[hole_pos];
+                        const Shape& hole = item_shape.holes_orig[hole_pos];
                         json_init[i][item_shape_pos]["Holes"][hole_pos] = hole.to_json();
                     }
                 }
@@ -2118,6 +2118,7 @@ nlohmann::json BranchingScheme::json_export(
 
     const TrapezoidSet& trapezoid_set = direction_data.trapezoid_sets[node->trapezoid_set_id];
     Point bl_orig = convert_point_back({node->x, node->y}, node->last_bin_direction);
+    bl_orig = (1.0 / instance().parameters().scale_value) * bl_orig;
     nlohmann::json json = {
         {"Id", node->id},
         {"ParentId", (node->parent == nullptr)? -1: node->parent->id},
@@ -2156,6 +2157,7 @@ nlohmann::json BranchingScheme::json_export(
         const DirectionData& direction_data = directions_data_[(int)node_tmp->last_bin_direction];
         const TrapezoidSet& trapezoid_set = direction_data.trapezoid_sets[node_tmp->trapezoid_set_id];
         Point bl_corner = convert_point_back({node_tmp->x, node_tmp->y}, node_tmp->last_bin_direction);
+        bl_corner = (1.0 / instance().parameters().scale_value) * bl_corner;
         plot[i] = {
             {"Id", json_items_init_ids_[trapezoid_set.item_type_id][trapezoid_set.mirror].at(trapezoid_set.angle)},
             {"X", bl_corner.x},

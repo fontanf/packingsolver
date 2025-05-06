@@ -201,10 +201,10 @@ private:
     Profit bin_cost_ = 0;
 
     /** Maximum x of the solution. */
-    LengthDbl x_max_ = 0;
+    LengthDbl x_max_ = -std::numeric_limits<LengthDbl>::infinity();
 
     /** Maximum y of the solution. */
-    LengthDbl y_max_ = 0;
+    LengthDbl y_max_ = -std::numeric_limits<LengthDbl>::infinity();
 
     /** Number of copies of each bin type in the solution. */
     std::vector<BinPos> bin_copies_;

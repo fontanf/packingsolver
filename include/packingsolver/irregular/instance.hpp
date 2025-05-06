@@ -30,6 +30,9 @@ struct Parameters
 
     /** Minimum distance between and item and a bin. */
     LengthDbl item_bin_minimum_spacing = 0.0;
+
+    /** Scale value. */
+    LengthDbl scale_value = std::numeric_limits<LengthDbl>::infinity();
 };
 
 /**
@@ -38,13 +41,21 @@ struct Parameters
 struct Defect
 {
     /** Shape. */
-    Shape shape;
+    Shape shape_orig;
+
+    /** Scaled shape. */
+    Shape shape_scaled;
 
     /** Holes. */
-    std::vector<Shape> holes;
+    std::vector<Shape> holes_orig;
 
+    /** Scaled oles. */
+    std::vector<Shape> holes_scaled;
+
+    /** Inflated (scaled) shape. */
     Shape shape_inflated;
 
+    /** Inflated (scaled) holes. */
     std::vector<Shape> holes_deflated;
 
     /** Type of the defect. */
@@ -68,7 +79,10 @@ struct BinType
     BinPos copies_min;
 
     /** Shape of the bin type. */
-    Shape shape;
+    Shape shape_orig;
+
+    /** Scaled shape. */
+    Shape shape_scaled;
 
     /** Defects of the bin type. */
     std::vector<Defect> defects;
@@ -81,7 +95,10 @@ struct BinType
      */
 
     /** Area of the bin type. */
-    AreaDbl area = 0.0;
+    AreaDbl area_orig = 0.0;
+
+    /** Scaled area of the bin type. */
+    AreaDbl area_scaled = 0.0;
 
     /** Minimum x of the item type. */
     LengthDbl x_min;
@@ -95,7 +112,7 @@ struct BinType
     /** Maximum y of the item type. */
     LengthDbl y_max;
 
-    AreaDbl space() const { return area; }
+    AreaDbl space() const { return area_orig; }
 
     AreaDbl packable_area(QualityRule quality_rule) const { (void)quality_rule; return 0; } // TODO
 
@@ -108,17 +125,25 @@ struct BinType
 struct ItemShape
 {
     /** Main shape. */
-    Shape shape;
+    Shape shape_orig;
 
     /**
      * Holes.
      *
      * Holes are shapes contained inside the main shape.
      */
-    std::vector<Shape> holes;
+    std::vector<Shape> holes_orig;
 
+    /** Scaled shape. */
+    Shape shape_scaled;
+
+    /** Scaled Holes. */
+    std::vector<Shape> holes_scaled;
+
+    /** Inflated (scaled) shape. */
     Shape shape_inflated;
 
+    /** Inflated (scaled) holes. */
     std::vector<Shape> holes_deflated;
 
     /** Quality rule. */
@@ -159,9 +184,12 @@ struct ItemType
      */
 
     /** Area of the item type. */
-    AreaDbl area = 0;
+    AreaDbl area_orig = 0;
 
-    AreaDbl space() const { return area; }
+    /** Area of the item type. */
+    AreaDbl area_scaled = 0;
+
+    AreaDbl space() const { return area_orig; }
 
     /** Return type of shape of the item type. */
     ShapeType shape_type() const;
@@ -169,7 +197,7 @@ struct ItemType
     std::pair<Point, Point> compute_min_max(
             Angle angle = 0.0,
             bool mirror = false,
-            bool inflated = false) const;
+            int type = 0) const;
 
     bool has_full_continuous_rotations() const;
 
