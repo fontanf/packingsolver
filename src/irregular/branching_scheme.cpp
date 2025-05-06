@@ -1060,44 +1060,17 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     }
 
     // Compute node.xe_max and node.ye_max.
-    LengthDbl x = 0.0;
-    LengthDbl y = 0.0;
-    if (node.last_bin_direction == Direction::LeftToRightThenBottomToTop) {
-        x = node.x;
-        y = node.y;
-    } else if (node.last_bin_direction == Direction::LeftToRightThenTopToBottom) {
-        x = node.x;
-        y = -node.y;
-    } else if (node.last_bin_direction == Direction::RightToLeftThenBottomToTop) {
-        x = -node.x;
-        y = node.y;
-    } else if (node.last_bin_direction == Direction::RightToLeftThenTopToBottom) {
-        x = -node.x;
-        y = -node.y;
-    } else if (node.last_bin_direction == Direction::BottomToTopThenLeftToRight) {
-        x = node.y;
-        y = node.x;
-    } else if (node.last_bin_direction == Direction::TopToBottomThenLeftToRight) {
-        x = node.y;
-        y = -node.x;
-    } else if (node.last_bin_direction == Direction::BottomToTopThenRightToLeft) {
-        x = -node.y;
-        y = node.x;
-    } else if (node.last_bin_direction == Direction::TopToBottomThenRightToLeft) {
-        x = -node.y;
-        y = -node.x;
-    }
-    x = (1.0 / instance().parameters().scale_value) * x;
-    y = (1.0 / instance().parameters().scale_value) * y;
+    Point xy = convert_point_back({node.x, node.y}, node.last_bin_direction);
+    xy = (1.0 / instance().parameters().scale_value) * xy;
     auto mm = item_type.compute_min_max(
             trapezoid_set.angle,
             trapezoid_set.mirror);
     if (insertion.new_bin_direction == Direction::Any) {  // Same bin
-        node.xe_max = std::max(parent.xe_max, x + mm.second.x);
-        node.ye_max = std::max(parent.ye_max, y + mm.second.y);
+        node.xe_max = std::max(parent.xe_max, xy.x + mm.second.x);
+        node.ye_max = std::max(parent.ye_max, xy.y + mm.second.y);
     } else {
-        node.xe_max = x + mm.second.x;
-        node.ye_max = y + mm.second.y;
+        node.xe_max = xy.x + mm.second.x;
+        node.ye_max = xy.y + mm.second.y;
     }
 
     node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
