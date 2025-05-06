@@ -36,9 +36,10 @@ BinPos Solution::add_bin(
     bin_copies_[bin_type_id] += copies;
     number_of_bins_ += copies;
     bin_cost_ += copies * bin_type.cost;
-    bin_area_ += copies * bin_type.area;
-    x_max_ = 0;
-    y_max_ = 0;
+    bin_area_ += copies * bin_type.area_orig;
+    auto mm = bin_type.shape_orig.compute_min_max();
+    x_max_ = mm.first.x;
+    y_max_ = mm.first.y;
 
     return bins_.size() - 1;
 }
@@ -90,7 +91,7 @@ void Solution::add_item(
     item.mirror = mirror;
     bin.items.push_back(item);
 
-    item_area_ += bin.copies * item_type.area;
+    item_area_ += bin.copies * item_type.area_orig;
     item_profit_ += bin.copies * item_type.profit;
     number_of_items_ += bin.copies;
     item_copies_[item_type_id] += bin.copies;
@@ -247,9 +248,9 @@ void Solution::write(
         json["bins"][bin_pos]["id"] = bin.bin_type_id;
         // Bin shape.
         for (Counter element_pos = 0;
-                element_pos < (Counter)bin_type.shape.elements.size();
+                element_pos < (Counter)bin_type.shape_orig.elements.size();
                 ++element_pos) {
-            const ShapeElement& element = bin_type.shape.elements[element_pos];
+            const ShapeElement& element = bin_type.shape_orig.elements[element_pos];
             json["bins"][bin_pos]["shape"][element_pos]["type"] = element2str(element.type);
             json["bins"][bin_pos]["shape"][element_pos]["xs"] = element.start.x;
             json["bins"][bin_pos]["shape"][element_pos]["ys"] = element.start.y;
@@ -267,9 +268,9 @@ void Solution::write(
                 ++defect_id) {
             const Defect& defect = bin_type.defects[defect_id];
             for (Counter element_pos = 0;
-                    element_pos < (Counter)defect.shape.elements.size();
+                    element_pos < (Counter)defect.shape_orig.elements.size();
                     ++element_pos) {
-                const ShapeElement& element = defect.shape.elements[element_pos];
+                const ShapeElement& element = defect.shape_orig.elements[element_pos];
                 json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["type"] = element2str(element.type);
                 json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["xs"] = element.start.x;
                 json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["ys"] = element.start.y;
@@ -281,9 +282,9 @@ void Solution::write(
                     json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
                 }
                 for (Counter hole_pos = 0;
-                        hole_pos < (Counter)defect.holes.size();
+                        hole_pos < (Counter)defect.holes_orig.size();
                         ++hole_pos) {
-                    const Shape& hole = defect.holes[hole_pos];
+                    const Shape& hole = defect.holes_orig[hole_pos];
                     for (Counter element_pos = 0;
                             element_pos < (Counter)hole.elements.size();
                             ++element_pos) {
@@ -317,7 +318,7 @@ void Solution::write(
                     item_shape_pos < (Counter)item_type.shapes.size();
                     ++item_shape_pos) {
                 const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                Shape shape = item_shape.shape;
+                Shape shape = item_shape.shape_orig;
                 if (item.mirror)
                     shape = shape.axial_symmetry_y_axis();
                 shape = shape.rotate(item.angle);
@@ -337,9 +338,9 @@ void Solution::write(
                     }
                 }
                 for (Counter hole_pos = 0;
-                        hole_pos < (Counter)item_shape.holes.size();
+                        hole_pos < (Counter)item_shape.holes_orig.size();
                         ++hole_pos) {
-                    Shape hole = item_shape.holes[hole_pos];
+                    Shape hole = item_shape.holes_orig[hole_pos];
                     if (item.mirror)
                         hole = hole.axial_symmetry_y_axis();
                     hole = hole.rotate(item.angle);
@@ -395,9 +396,9 @@ void Solution::write_svg(
 
     // Write bin.
     file << "<g>" << std::endl;
-    file << to_svg(bin_type.shape, {}, factor, "white");
+    file << to_svg(bin_type.shape_scaled, {}, factor, "white");
     for (const Defect& defect: bin_type.defects)
-        file << to_svg(defect.shape, defect.holes, factor, "red");
+        file << to_svg(defect.shape_scaled, defect.holes_scaled, factor, "red");
     file << "</g>" << std::endl;
 
     // Write items.
@@ -411,8 +412,8 @@ void Solution::write_svg(
 
         file << "<g>" << std::endl;
         for (const ItemShape& item_shape: item_type.shapes) {
-            Shape shape = item_shape.shape;
-            std::vector<Shape> holes = item_shape.holes;
+            Shape shape = item_shape.shape_scaled;
+            std::vector<Shape> holes = item_shape.holes_scaled;
 
             // Apply mirroring.
             if (item.mirror)
@@ -423,7 +424,7 @@ void Solution::write_svg(
             shape.shift(item.bl_corner.x, item.bl_corner.y);
 
             for (Counter hole_pos = 0;
-                    hole_pos < (Counter)item_shape.holes.size();
+                    hole_pos < (Counter)item_shape.holes_scaled.size();
                     ++hole_pos) {
                 // Apply mirroring.
                 if (item.mirror)

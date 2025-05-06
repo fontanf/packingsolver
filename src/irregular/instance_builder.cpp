@@ -51,14 +51,14 @@ BinTypeId InstanceBuilder::add_bin_type(
     }
 
     BinType bin_type;
-    bin_type.shape = shape;
-    bin_type.area = shape.compute_area();
+    bin_type.shape_orig = shape;
+    bin_type.area_orig = shape.compute_area();
     auto points = shape.compute_min_max();
     bin_type.x_min = points.first.x;
     bin_type.x_max = points.second.x;
     bin_type.y_min = points.first.y;
     bin_type.y_max = points.second.y;
-    bin_type.cost = (cost == -1)? bin_type.area: cost;
+    bin_type.cost = (cost == -1)? bin_type.area_orig: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
     instance_.bin_types_.push_back(bin_type);
@@ -81,8 +81,8 @@ void InstanceBuilder::add_defect(
 
     Defect defect;
     defect.type = type;
-    defect.shape = shape;
-    defect.holes = holes;
+    defect.shape_orig = shape;
+    defect.holes_orig = holes;
     instance_.bin_types_[bin_type_id].defects.push_back(defect);
 }
 
@@ -92,7 +92,7 @@ void InstanceBuilder::add_bin_type(
         BinPos copies_min)
 {
     BinTypeId bin_type_id = add_bin_type(
-            bin_type.shape,
+            bin_type.shape_orig,
             bin_type.cost,
             copies,
             copies_min);
@@ -100,8 +100,8 @@ void InstanceBuilder::add_bin_type(
         add_defect(
                 bin_type_id,
                 defect.type,
-                defect.shape,
-                defect.holes);
+                defect.shape_orig,
+                defect.holes_orig);
     }
 }
 
@@ -119,7 +119,7 @@ void InstanceBuilder::set_bin_types_unweighted()
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
-        instance_.bin_types_[bin_type_id].cost = instance_.bin_types_[bin_type_id].area;
+        instance_.bin_types_[bin_type_id].cost = instance_.bin_types_[bin_type_id].area_orig;
     }
 }
 
@@ -151,13 +151,17 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.shapes = shapes;
     item_type.allowed_rotations = (!allowed_rotations.empty())?
         allowed_rotations: std::vector<std::pair<Angle, Angle>>{{0, 0}};
-    item_type.area = 0;
+    item_type.area_orig = 0;
+    item_type.area_scaled = 0;
     for (const auto& item_shape: item_type.shapes) {
-        item_type.area += item_shape.shape.compute_area();
-        for (const Shape& hole: item_shape.holes)
-            item_type.area -= hole.compute_area();
+        item_type.area_orig += item_shape.shape_orig.compute_area();
+        for (const Shape& hole: item_shape.holes_orig)
+            item_type.area_orig -= hole.compute_area();
+        item_type.area_scaled += item_shape.shape_scaled.compute_area();
+        for (const Shape& hole: item_shape.holes_scaled)
+            item_type.area_scaled -= hole.compute_area();
     }
-    item_type.profit = (profit != -1)? profit: item_type.area;
+    item_type.profit = (profit != -1)? profit: item_type.area_orig;
     item_type.copies = copies;
     instance_.item_types_.push_back(item_type);
     return instance_.item_types_.size() - 1;
@@ -198,7 +202,7 @@ void InstanceBuilder::set_item_types_unweighted()
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
-        instance_.item_types_[item_type_id].profit = instance_.item_types_[item_type_id].area;
+        instance_.item_types_[item_type_id].profit = instance_.item_types_[item_type_id].area_orig;
     }
 }
 
@@ -210,7 +214,7 @@ AreaDbl InstanceBuilder::compute_bin_types_area_max() const
             ++bin_type_id) {
         bin_types_area_max = std::max(
                 bin_types_area_max,
-                instance_.bin_type(bin_type_id).area);
+                instance_.bin_type(bin_type_id).area_orig);
     }
     return bin_types_area_max;
 }
@@ -353,7 +357,7 @@ void InstanceBuilder::read(
                 auto json_shape = *it_shape;
 
                 ItemShape item_shape;
-                item_shape.shape = read_shape(json_shape);
+                item_shape.shape_orig = read_shape(json_shape);
 
                 // Read holes.
                 if (json_shape.contains("holes")) {
@@ -362,7 +366,7 @@ void InstanceBuilder::read(
                             ++it_hole) {
                         auto json_hole = *it_hole;
                         Shape shape = read_shape(json_hole);
-                        item_shape.holes.push_back(shape);
+                        item_shape.holes_orig.push_back(shape);
                     }
                 }
 
@@ -372,7 +376,7 @@ void InstanceBuilder::read(
         } else {
             // Single item shape.
             ItemShape item_shape;
-            item_shape.shape = read_shape(json_item);
+            item_shape.shape_orig = read_shape(json_item);
 
             // Read holes.
             if (json_item.contains("holes")) {
@@ -381,7 +385,7 @@ void InstanceBuilder::read(
                         ++it_hole) {
                     auto json_hole = *it_hole;
                     Shape shape = read_shape(json_hole);
-                    item_shape.holes.push_back(shape);
+                    item_shape.holes_orig.push_back(shape);
                 }
             }
 
@@ -430,6 +434,23 @@ void InstanceBuilder::read(
 
 Instance InstanceBuilder::build()
 {
+    // Compute scale value.
+    if (instance_.parameters().scale_value == std::numeric_limits<LengthDbl>::infinity()) {
+        LengthDbl value_max = 0.0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance_.number_of_bin_types();
+                ++bin_type_id) {
+            BinType& bin_type = instance_.bin_types_[bin_type_id];
+            auto mm = bin_type.shape_orig.compute_min_max();
+            value_max = (std::max)(value_max, std::abs(mm.first.x));
+            value_max = (std::max)(value_max, std::abs(mm.first.y));
+            value_max = (std::max)(value_max, std::abs(mm.second.x));
+            value_max = (std::max)(value_max, std::abs(mm.second.y));
+        }
+        instance_.parameters_.scale_value = 1024.0 / smallest_power_of_two_greater_or_equal(value_max);
+        //std::cout << "instance_.scale_value() " << instance_.parameters().scale_value << std::endl;
+    }
+
     // Compute item type attributes.
     AreaDbl bin_types_area_max = compute_bin_types_area_max();
     instance_.all_item_types_infinite_copies_ = true;
@@ -438,26 +459,38 @@ Instance InstanceBuilder::build()
             ++item_type_id) {
         ItemType& item_type = instance_.item_types_[item_type_id];
 
+        // Compute scaled shapes.
+        for (ShapePos shape_pos = 0;
+                shape_pos < (ShapePos)item_type.shapes.size();
+                ++shape_pos) {
+            ItemShape& item_shape = item_type.shapes[shape_pos];
+            if (!item_shape.shape_scaled.elements.empty())
+                continue;
+            item_shape.shape_scaled = instance_.parameters().scale_value * item_shape.shape_orig;
+            for (const Shape& hole: item_shape.holes_orig)
+                item_shape.holes_scaled.push_back(instance_.parameters().scale_value * hole);
+        }
+
         // Compute inflated shapes.
         for (ShapePos shape_pos = 0;
                 shape_pos < (ShapePos)item_type.shapes.size();
                 ++shape_pos) {
             ItemShape& item_shape = item_type.shapes[shape_pos];
-            if (item_shape.shape_inflated.elements.empty()) {
-                auto inflated_item_shape = inflate(
-                        item_shape.shape,
-                        instance_.parameters().item_item_minimum_spacing);
-                item_shape.shape_inflated = inflated_item_shape.first;
-                for (const Shape& hole: inflated_item_shape.second)
-                    item_shape.holes_deflated.push_back(hole);
+            if (!item_shape.shape_inflated.elements.empty())
+                continue;
+            auto inflated_item_shape = inflate(
+                    item_shape.shape_scaled,
+                    instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing);
+            item_shape.shape_inflated = inflated_item_shape.first;
+            for (const Shape& hole: inflated_item_shape.second)
+                item_shape.holes_deflated.push_back(hole);
 
-                for (const Shape& hole: item_shape.holes) {
-                    auto deflated_hole = deflate(
-                            hole,
-                            instance_.parameters().item_item_minimum_spacing);
-                    for (const Shape& hole: deflated_hole)
-                        item_shape.holes_deflated.push_back(hole);
-                }
+            for (const Shape& hole: item_shape.holes_scaled) {
+                auto deflated_hole = deflate(
+                        hole,
+                        instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing);
+                for (const Shape& hole: deflated_hole)
+                    item_shape.holes_deflated.push_back(hole);
             }
         }
 
@@ -475,24 +508,24 @@ Instance InstanceBuilder::build()
         // Update largest_item_profit_.
         instance_.largest_item_profit_ = std::max(instance_.largest_item_profit(), item_type.profit);
         // Update item_area_.
-        instance_.item_area_ += item_type.copies * item_type.area;
+        instance_.item_area_ += item_type.copies * item_type.area_orig;
         // Update smallest_item_area_ and largest_item_area_.
         instance_.smallest_item_area_ = (std::min)(
                 instance_.smallest_item_area_,
-                item_type.area);
+                item_type.area_orig);
         instance_.largest_item_area_ = (std::max)(
                 instance_.largest_item_area_,
-                item_type.area);
+                item_type.area_orig);
         // Update largest_efficiency_item_type_.
         if (instance_.largest_efficiency_item_type_id_ == -1
                 || instance_.item_type(instance_.largest_efficiency_item_type_id_).profit
-                / instance_.item_type(instance_.largest_efficiency_item_type_id_).area
+                / instance_.item_type(instance_.largest_efficiency_item_type_id_).area_orig
                 < instance_.item_type(item_type_id).profit
-                / instance_.item_type(item_type_id).area) {
+                / instance_.item_type(item_type_id).area_orig) {
             instance_.largest_efficiency_item_type_id_ = item_type_id;
         }
         // Update all_item_types_infinite_copies_.
-        ItemPos c = (bin_types_area_max - 1) / item_type.area + 1;
+        ItemPos c = (bin_types_area_max - 1) / item_type.area_orig + 1;
         if (item_type.copies < c)
             instance_.all_item_types_infinite_copies_ = false;
         // Update largest_item_copies_.
@@ -508,35 +541,46 @@ Instance InstanceBuilder::build()
             ++bin_type_id) {
         BinType& bin_type = instance_.bin_types_[bin_type_id];
 
-        // Compute inflated defects.
-        for (Defect& defect: bin_type.defects) {
-            if (defect.shape_inflated.elements.empty()) {
-
-                auto inflated_defect_shape = inflate(
-                        defect.shape,
-                        instance_.parameters().item_bin_minimum_spacing);
-                defect.shape_inflated = inflated_defect_shape.first;
-                for (const Shape& hole: inflated_defect_shape.second)
-                    defect.holes_deflated.push_back(hole);
-
-                for (const Shape& hole: defect.holes) {
-                    auto deflated_hole = deflate(
-                            hole,
-                            instance_.parameters().item_bin_minimum_spacing);
-                    for (const Shape& hole: deflated_hole)
-                        defect.holes_deflated.push_back(hole);
-                }
+        // Compute scaled shapes.
+        if (bin_type.shape_scaled.elements.empty()) {
+            bin_type.shape_scaled = instance_.parameters().scale_value * bin_type.shape_orig;
+            for (Defect& defect: bin_type.defects) {
+                defect.shape_scaled = instance_.parameters().scale_value * defect.shape_orig;
+                for (const Shape& hole: defect.holes_orig)
+                    defect.holes_scaled.push_back(instance_.parameters().scale_value * hole);
             }
         }
+
+        // Compute inflated defects.
+        for (Defect& defect: bin_type.defects) {
+            if (!defect.shape_inflated.elements.empty())
+                continue;
+
+            auto inflated_defect_shape = inflate(
+                    defect.shape_scaled,
+                    instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
+            defect.shape_inflated = inflated_defect_shape.first;
+            for (const Shape& hole: inflated_defect_shape.second)
+                defect.holes_deflated.push_back(hole);
+
+            for (const Shape& hole: defect.holes_scaled) {
+                auto deflated_hole = deflate(
+                        hole,
+                        instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
+                for (const Shape& hole: deflated_hole)
+                    defect.holes_deflated.push_back(hole);
+            }
+        }
+
         // Compute inflated borders.
         if (bin_type.borders.empty()) {
-            for (const Shape& shape_border: extract_borders(bin_type.shape)) {
+            for (const Shape& shape_border: extract_borders(bin_type.shape_scaled)) {
                 auto inflated_shape_border = inflate(
                         shape_border,
-                        instance_.parameters().item_bin_minimum_spacing);
+                        instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
                 Defect border;
                 border.type = -2;
-                border.shape = shape_border;
+                border.shape_scaled = shape_border;
                 border.shape_inflated = inflated_shape_border.first;
                 for (const Shape& hole: inflated_shape_border.second)
                     border.holes_deflated.push_back(hole);
@@ -548,12 +592,12 @@ Instance InstanceBuilder::build()
         if (bin_type.copies == -1)
             instance_.bin_types_[bin_type_id].copies = instance_.number_of_items();
         // Update bins_area_sum_.
-        instance_.bin_area_ += bin_type.copies * bin_type.area;
+        instance_.bin_area_ += bin_type.copies * bin_type.area_orig;
         // Update previous_bins_area_ and bin_type_ids_.
         for (BinPos copy = 0; copy < bin_type.copies; ++copy) {
             instance_.bin_type_ids_.push_back(bin_type_id);
             instance_.previous_bins_area_.push_back(previous_bins_area);
-            previous_bins_area += bin_type.area;
+            previous_bins_area += bin_type.area_orig;
         }
         // Update largest_bin_cost_.
         if (instance_.largest_bin_cost_ < bin_type.cost)

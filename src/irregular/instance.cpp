@@ -8,9 +8,9 @@ using namespace packingsolver::irregular;
 
 bool ItemShape::check() const
 {
-    if (!shape.check())
+    if (!shape_orig.check())
         return false;
-    for (const Shape& hole: holes)
+    for (const Shape& hole: holes_orig)
         if (!hole.check())
             return false;
     return true;
@@ -21,12 +21,12 @@ std::string ItemShape::to_string(
 {
     std::string s = "\n";
     std::string indent = std::string(indentation, ' ');
-    s += indent + "- shape: " + shape.to_string(indentation + 2) + "\n";
-    if (holes.size() == 1) {
-        s += indent + "- holes: " + holes.front().to_string(indentation + 2) + "\n";
-    } else if (holes.size() >= 2) {
+    s += indent + "- shape: " + shape_orig.to_string(indentation + 2) + "\n";
+    if (holes_orig.size() == 1) {
+        s += indent + "- holes: " + holes_orig.front().to_string(indentation + 2) + "\n";
+    } else if (holes_orig.size() >= 2) {
         s += indent + "- holes\n";
-        for (const Shape& hole: holes)
+        for (const Shape& hole: holes_orig)
             s += indent + "  - " + hole.to_string(indentation + 4) + "\n";
     }
     s += "- quality rule: " + std::to_string(quality_rule);
@@ -43,7 +43,7 @@ std::string Defect::to_string(
     std::string indent = std::string(indentation, ' ');
     std::string s = "defect:\n";
     s += "- type: " + std::to_string(type) + "\n";
-    s += "- shape: " + shape.to_string(indentation + 2);
+    s += "- shape: " + shape_orig.to_string(indentation + 2);
     return s;
 }
 
@@ -51,38 +51,38 @@ ShapeType ItemType::shape_type() const
 {
     // Circle.
     if (shapes.size() == 1
-            && shapes.front().shape.is_circle()
-            && shapes.front().holes.empty())
+            && shapes.front().shape_scaled.is_circle()
+            && shapes.front().holes_scaled.empty())
         return ShapeType::Circle;
     // Square.
     if (shapes.size() == 1
-            && shapes.front().shape.is_square()
-            && shapes.front().holes.empty())
+            && shapes.front().shape_scaled.is_square()
+            && shapes.front().holes_scaled.empty())
         return ShapeType::Square;
     // Rectangle.
     if (shapes.size() == 1
-            && shapes.front().shape.is_rectangle()
-            && shapes.front().holes.empty())
+            && shapes.front().shape_scaled.is_rectangle()
+            && shapes.front().holes_scaled.empty())
         return ShapeType::Rectangle;
     // Polygon.
     if (shapes.size() == 1
-            && shapes.front().shape.is_polygon()
-            && shapes.front().holes.empty())
+            && shapes.front().shape_scaled.is_polygon()
+            && shapes.front().holes_scaled.empty())
         return ShapeType::Polygon;
     // MultiPolygon.
     bool is_multi_polygon = true;
     for (const ItemShape& item_shape: shapes)
-        if (!item_shape.shape.is_polygon()
-                || !item_shape.holes.empty())
+        if (!item_shape.shape_scaled.is_polygon()
+                || !item_shape.holes_scaled.empty())
             is_multi_polygon = false;
     if (is_multi_polygon)
         return ShapeType::MultiPolygon;
     // PolygonWithHoles.
     if (shapes.size() == 1) {
         bool is_polygon_with_holes = true;
-        if (!shapes.front().shape.is_polygon())
+        if (!shapes.front().shape_scaled.is_polygon())
             is_polygon_with_holes = false;
-        for (const Shape& hole: shapes.front().holes)
+        for (const Shape& hole: shapes.front().holes_scaled)
             if (!hole.is_polygon())
                 is_polygon_with_holes = false;
         if (is_polygon_with_holes)
@@ -91,9 +91,9 @@ ShapeType ItemType::shape_type() const
     // MultiPolygonWithHoles.
     bool is_multi_polygon_with_holes = true;
     for (const ItemShape& item_shape: shapes) {
-        if (!item_shape.shape.is_polygon())
+        if (!item_shape.shape_scaled.is_polygon())
             is_multi_polygon_with_holes = false;
-        for (const Shape& hole: item_shape.holes)
+        for (const Shape& hole: item_shape.holes_scaled)
             if (!hole.is_polygon())
                 is_multi_polygon_with_holes = false;
     }
@@ -106,15 +106,16 @@ ShapeType ItemType::shape_type() const
 std::pair<Point, Point> ItemType::compute_min_max(
         Angle angle,
         bool mirror,
-        bool inflated) const
+        int type) const
 {
     LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
     for (const ItemShape& item_shape: shapes) {
-        auto points = (!inflated)?
-            item_shape.shape.compute_min_max(angle, mirror):
+        auto points =
+            (type == 0)? item_shape.shape_orig.compute_min_max(angle, mirror):
+            (type == 1)? item_shape.shape_scaled.compute_min_max(angle, mirror):
             item_shape.shape_inflated.compute_min_max(angle, mirror);
         x_min = std::min(x_min, points.first.x);
         x_max = std::max(x_max, points.second.x);
@@ -177,7 +178,7 @@ void ItemType::write_svg(
                 "Unable to open file \"" + file_path + "\".");
     }
 
-    auto mm = compute_min_max(0.0, false, true);
+    auto mm = compute_min_max(0.0, false, 2);
     LengthDbl width = (mm.second.x - mm.first.x);
     LengthDbl height = (mm.second.y - mm.first.y);
 
@@ -197,7 +198,7 @@ void ItemType::write_svg(
             ++item_shape_pos) {
         const auto& item_shape = shapes[item_shape_pos];
         file << "<g>" << std::endl;
-        file << to_svg(item_shape.shape, item_shape.holes, factor, "blue");
+        file << to_svg(item_shape.shape_scaled, item_shape.holes_scaled, factor, "blue");
         file << to_svg(item_shape.shape_inflated, item_shape.holes_deflated, factor, "red");
         //file << "<text x=\"" << std::to_string(x * factor)
         //    << "\" y=\"" << std::to_string(-y * factor)
@@ -215,7 +216,7 @@ std::string BinType::to_string(
 {
     std::string indent = std::string(indentation, ' ');
     std::string s = "bin type:\n";
-    s += indent + "- shape: " + shape.to_string(indentation + 2) + "\n";
+    s += indent + "- shape: " + shape_scaled.to_string(indentation + 2) + "\n";
     s += indent + "- copies: " + std::to_string(copies) + "\n";
     s += indent + "- defects:" + "\n";
     for (const Defect& defect: defects)
@@ -253,7 +254,7 @@ void BinType::write_svg(
 
     // Loop through trapezoids of the trapezoid set.
     file << "<g>" << std::endl;
-    file << to_svg(shape, {}, factor);
+    file << to_svg(shape_scaled, {}, factor);
     //file << "<text x=\"" << std::to_string(x * factor)
     //    << "\" y=\"" << std::to_string(-y * factor)
     //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
@@ -263,7 +264,7 @@ void BinType::write_svg(
 
     for (const Defect& defect: defects) {
         file << "<g>" << std::endl;
-        file << to_svg(defect.shape, defect.holes, factor);
+        file << to_svg(defect.shape_scaled, defect.holes_scaled, factor);
         file << "</g>" << std::endl;
     }
 
@@ -331,7 +332,7 @@ std::ostream& Instance::format(
             const BinType& bin_type = this->bin_type(bin_type_id);
             os
                 << std::setw(12) << bin_type_id
-                << std::setw(12) << bin_type.area
+                << std::setw(12) << bin_type.area_orig
                 << std::setw(12) << bin_type.cost
                 << std::setw(12) << bin_type.copies
                 << std::setw(12) << bin_type.copies_min
@@ -389,7 +390,7 @@ std::ostream& Instance::format(
             os
                 << std::setw(12) << item_type_id
                 << std::setw(12) << shape2str(item_type.shape_type())
-                << std::setw(12) << item_type.area
+                << std::setw(12) << item_type.area_orig
                 << std::setw(12) << item_type.profit
                 << std::setw(12) << item_type.copies
                 << std::setw(12) << item_type.shapes.size()
@@ -423,7 +424,7 @@ std::ostream& Instance::format(
                     << std::setw(12) << item_type_id
                     << std::setw(12) << shape_pos
                     << std::setw(12) << item_shape.quality_rule
-                    << std::setw(12) << item_shape.holes.size()
+                    << std::setw(12) << item_shape.holes_orig.size()
                     << std::endl;
             }
         }
@@ -461,9 +462,9 @@ std::ostream& Instance::format(
                 ++bin_type_id) {
             const BinType& bin_type = this->bin_type(bin_type_id);
             for (Counter element_pos = 0;
-                    element_pos < (Counter)bin_type.shape.elements.size();
+                    element_pos < (Counter)bin_type.shape_orig.elements.size();
                     ++element_pos) {
-                const ShapeElement& element = bin_type.shape.elements[element_pos];
+                const ShapeElement& element = bin_type.shape_orig.elements[element_pos];
                 os
                     << std::setw(2) << "B"
                     << std::setw(5) << bin_type_id
@@ -484,9 +485,9 @@ std::ostream& Instance::format(
             for (DefectId k = 0; k < (DefectId)bin_type.defects.size(); ++k) {
                 const Defect& defect = bin_type.defects[k];
                 for (Counter element_pos = 0;
-                        element_pos < (Counter)defect.shape.elements.size();
+                        element_pos < (Counter)defect.shape_orig.elements.size();
                         ++element_pos) {
-                    const ShapeElement& element = defect.shape.elements[element_pos];
+                    const ShapeElement& element = defect.shape_orig.elements[element_pos];
                     os
                         << std::setw(2) << "B"
                         << std::setw(5) << bin_type_id
@@ -504,9 +505,9 @@ std::ostream& Instance::format(
                         << std::endl;
                 }
                 for (Counter hole_pos = 0;
-                        hole_pos < (Counter)defect.holes.size();
+                        hole_pos < (Counter)defect.holes_orig.size();
                         ++hole_pos) {
-                    const Shape& hole = defect.holes[hole_pos];
+                    const Shape& hole = defect.holes_orig[hole_pos];
                     for (Counter element_pos = 0;
                             element_pos < (Counter)hole.elements.size();
                             ++element_pos) {
@@ -540,9 +541,9 @@ std::ostream& Instance::format(
                     ++shape_pos) {
                 const ItemShape& item_shape = item_type.shapes[shape_pos];
                 for (Counter element_pos = 0;
-                        element_pos < (Counter)item_shape.shape.elements.size();
+                        element_pos < (Counter)item_shape.shape_orig.elements.size();
                         ++element_pos) {
-                    const ShapeElement& element = item_shape.shape.elements[element_pos];
+                    const ShapeElement& element = item_shape.shape_orig.elements[element_pos];
                     os
                         << std::setw(2) << "I"
                         << std::setw(5) << item_type_id
@@ -560,9 +561,9 @@ std::ostream& Instance::format(
                         << std::endl;
                 }
                 for (Counter hole_pos = 0;
-                        hole_pos < (Counter)item_shape.holes.size();
+                        hole_pos < (Counter)item_shape.holes_orig.size();
                         ++hole_pos) {
-                    const Shape& hole = item_shape.holes[hole_pos];
+                    const Shape& hole = item_shape.holes_orig[hole_pos];
                     for (Counter element_pos = 0;
                             element_pos < (Counter)hole.elements.size();
                             ++element_pos) {
@@ -615,18 +616,18 @@ void Instance::write(
         json["bin_types"][bin_type_id]["copies"] = bin_type.copies;
         json["bin_types"][bin_type_id]["copies_min"] = bin_type.copies_min;
         json["bin_types"][bin_type_id]["type"] = "general";
-        json["bin_types"][bin_type_id]["elements"] = bin_type.shape.to_json();
+        json["bin_types"][bin_type_id]["elements"] = bin_type.shape_orig.to_json();
         // Bin defects.
         for (DefectId defect_id = 0;
                 defect_id < (DefectId)bin_type.defects.size();
                 ++defect_id) {
             const Defect& defect = bin_type.defects[defect_id];
             json["bin_types"][bin_type_id]["defects"][defect_id]["type"] = "general";
-            json["bin_types"][bin_type_id]["defects"][defect_id]["elements"] = defect.shape.to_json();
+            json["bin_types"][bin_type_id]["defects"][defect_id]["elements"] = defect.shape_orig.to_json();
             for (Counter hole_pos = 0;
-                    hole_pos < (Counter)defect.holes.size();
+                    hole_pos < (Counter)defect.holes_orig.size();
                     ++hole_pos) {
-                const Shape& hole = defect.holes[hole_pos];
+                const Shape& hole = defect.holes_orig[hole_pos];
                 json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["type"] = "general";
                 json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["elements"] = hole.to_json();
             }
@@ -652,11 +653,11 @@ void Instance::write(
                 ++item_shape_pos) {
             const ItemShape& item_shape = item_type.shapes[item_shape_pos];
             json["item_types"][item_type_id]["shapes"][item_shape_pos]["type"] = "general";
-            json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"] = item_shape.shape.to_json();
+            json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"] = item_shape.shape_orig.to_json();
             for (Counter hole_pos = 0;
-                    hole_pos < (Counter)item_shape.holes.size();
+                    hole_pos < (Counter)item_shape.holes_orig.size();
                     ++hole_pos) {
-                const Shape& hole = item_shape.holes[hole_pos];
+                const Shape& hole = item_shape.holes_orig[hole_pos];
                 json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["type"] = "general";
                 json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["elements"] = hole.to_json();
             }

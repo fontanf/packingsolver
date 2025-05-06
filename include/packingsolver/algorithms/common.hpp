@@ -45,23 +45,17 @@ using GuideId = int16_t;
 
 inline bool strictly_lesser(double v1, double v2)
 {
-    if (v1 >= v2)
-        return false;
-    return v2 - v1 > 1e-9 * (std::max)((std::max)(1e-5, std::abs(v1)), std::abs(v2));
+    return v2 - v1 > 1e-6;
 }
 
 inline bool strictly_greater(double v1, double v2)
 {
-    if (v1 <= v2)
-        return false;
-    return v1 - v2 > 1e-9 * (std::max)((std::max)(1e-5, std::abs(v1)), std::abs(v2));
+    return v1 - v2 > 1e-6;
 }
 
 inline bool equal(double v1, double v2)
 {
-    if (v1 == v2)
-        return true;
-    return std::abs(v1 - v2) <= 1e-9 * (std::max)((std::max)(1e-5, std::abs(v1)), std::abs(v2));
+    return std::abs(v1 - v2) <= 1e-6;
 }
 
 template<typename T>
@@ -74,6 +68,20 @@ double largest_power_of_two_lesser_or_equal(T value)
     } else {
         while (res * 2 < value)
             res *= 2;
+    }
+    return res;
+}
+
+template<typename T>
+double smallest_power_of_two_greater_or_equal(T value)
+{
+    double res = 1;
+    if (res < value) {
+        while (res < value)
+            res *= 2;
+    } else {
+        while (res / 2 > value)
+            res /= 2;
     }
     return res;
 }
