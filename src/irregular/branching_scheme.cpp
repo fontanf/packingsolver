@@ -505,7 +505,7 @@ BranchingScheme::BranchingScheme(
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
             const auto& item_shape = item_type.shapes[item_shape_pos];
-            Shape convex_hull = shape::convex_hull(item_shape.shape_orig);
+            Shape convex_hull = shape::convex_hull(item_shape.shape_scaled);
             AreaDbl convex_hull_area = convex_hull.compute_area();
             item_types_convex_hull_area_[item_type_id] += convex_hull_area;
         }
