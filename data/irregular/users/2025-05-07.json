@@ -1,0 +1,135 @@
+{
+    "bin_types": [
+        {
+            "copies": 1,
+            "copies_min": 0,
+            "cost": 8983.817967635936,
+            "elements": [
+                {
+                    "end": {
+                        "x": 110.23622047244095,
+                        "y": 0.0
+                    },
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 110.23622047244095,
+                        "y": 81.49606299212599
+                    },
+                    "start": {
+                        "x": 110.23622047244095,
+                        "y": 0.0
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 0.0,
+                        "y": 81.49606299212599
+                    },
+                    "start": {
+                        "x": 110.23622047244095,
+                        "y": 81.49606299212599
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "start": {
+                        "x": 0.0,
+                        "y": 81.49606299212599
+                    },
+                    "type": "LineSegment"
+                }
+            ],
+            "type": "general"
+        }
+    ],
+    "item_types": [
+        {
+            "allowed_rotations": [
+                {
+                    "end": 0.0,
+                    "start": 0.0
+                }
+            ],
+            "copies": 1,
+            "profit": 133.31777600133643,
+            "shapes": [
+                {
+                    "elements": [
+                        {
+                            "end": {
+                                "x": 23.18387556,
+                                "y": 2.3501385900000002
+                            },
+                            "start": {
+                                "x": 14.44491943,
+                                "y": 1.4642747
+                            },
+                            "type": "LineSegment"
+                        },
+                        {
+                            "end": {
+                                "x": 12.33716343,
+                                "y": 8.32266184
+                            },
+                            "start": {
+                                "x": 23.18387556,
+                                "y": 2.3501385900000002
+                            },
+                            "type": "LineSegment"
+                        },
+                        {
+                            "end": {
+                                "x": 0.0,
+                                "y": 8.32266184
+                            },
+                            "start": {
+                                "x": 12.33716343,
+                                "y": 8.32266184
+                            },
+                            "type": "LineSegment"
+                        },
+                        {
+                            "end": {
+                                "x": 0.0,
+                                "y": 0.0
+                            },
+                            "start": {
+                                "x": 0.0,
+                                "y": 8.32266184
+                            },
+                            "type": "LineSegment"
+                        },
+                        {
+                            "end": {
+                                "x": 14.44491943,
+                                "y": 1.4642747
+                            },
+                            "start": {
+                                "x": 0.0,
+                                "y": 0.0
+                            },
+                            "type": "LineSegment"
+                        }
+                    ],
+                    "type": "general"
+                }
+            ]
+        }
+    ],
+    "objective": "BinPackingWithLeftovers",
+    "parameters": {
+        "item_bin_minimum_spacing": 0.0,
+        "item_item_minimum_spacing": 0.7874015748031497
+    }
+}
