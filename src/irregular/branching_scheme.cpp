@@ -1360,6 +1360,9 @@ inline bool BranchingScheme::update_position(
 
     bool updated = false;
     for (;;) {
+        if (!current_trapezoid.intersect(trapezoid_to_avoid))
+            return updated;
+
         double direction = 0.0;
         Point point_limit = {0.0, 0.0};
         bool update_supporting_element = false;
@@ -1416,8 +1419,6 @@ inline bool BranchingScheme::update_position(
             }
         }
 
-        if (!current_trapezoid.intersect(trapezoid_to_avoid))
-            return updated;
         LengthDbl lx = (direction == 0.0)?
             current_trapezoid.compute_right_shift_if_intersects(
                 trapezoid_to_avoid):
