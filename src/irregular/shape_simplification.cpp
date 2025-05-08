@@ -86,7 +86,7 @@ SimplifiedInstance irregular::shape_simplification(
             total_bin_area -= bin_type.copies * border.shape_scaled.compute_area();
 
             bool outer = true;
-            Shape shape = shape::approximate_by_line_segments(border.shape_inflated, 100, outer);
+            Shape shape = shape::approximate_by_line_segments(border.shape_inflated, 1, outer);
             shape = shape::clean_shape(shape, outer);
             SimplifyInputShape simplify_input_shape;
             simplify_input_shape.shape = shape;
@@ -109,7 +109,7 @@ SimplifiedInstance irregular::shape_simplification(
             total_bin_area -= bin_type.copies * defect.shape_scaled.compute_area();
 
             bool outer = true;
-            Shape shape = shape::approximate_by_line_segments(defect.shape_inflated, 100, outer);
+            Shape shape = shape::approximate_by_line_segments(defect.shape_inflated, 1, outer);
             shape = shape::clean_shape(shape, outer);
             SimplifyInputShape simplify_input_shape;
             simplify_input_shape.shape = shape;
@@ -142,7 +142,7 @@ SimplifiedInstance irregular::shape_simplification(
                     continue;
 
                 bool outer = false;
-                Shape shape = shape::approximate_by_line_segments(hole_deflated, 100, outer);
+                Shape shape = shape::approximate_by_line_segments(hole_deflated, 1, outer);
                 shape = shape::clean_shape(shape, outer);
                 SimplifyInputShape simplify_input_shape;
                 simplify_input_shape.shape = shape;
@@ -191,7 +191,7 @@ SimplifiedInstance irregular::shape_simplification(
             }
             {
                 bool outer = true;
-                Shape shape = shape::approximate_by_line_segments(item_shape.shape_inflated, 100, outer);
+                Shape shape = shape::approximate_by_line_segments(item_shape.shape_inflated, 1, outer);
                 //shape.write_svg(
                 //        "item_type_" + std::to_string(item_type_id)
                 //        + "_shape_pos_" + std::to_string(item_shape_pos)
@@ -249,7 +249,7 @@ SimplifiedInstance irregular::shape_simplification(
                     continue;
 
                 bool outer = false;
-                Shape shape = shape::approximate_by_line_segments(hole_deflated, 100, outer);
+                Shape shape = shape::approximate_by_line_segments(hole_deflated, 1, outer);
                 shape = shape::clean_shape(shape, outer);
                 SimplifyInputShape simplify_input_shape;
                 simplify_input_shape.shape = shape;
