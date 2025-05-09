@@ -157,9 +157,9 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 fs::path("data") / "irregular" / "users" / "2024-09-21.json",
                 fs::path("data") / "irregular" / "users" / "2024-09-21_solution.json"
-            //}, {
-            //    fs::path("data") / "irregular" / "users" / "2025-01-12.json",
-            //    fs::path("data") / "irregular" / "users" / "2025-01-12_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "users" / "2025-01-12.json",
+                fs::path("data") / "irregular" / "users" / "2025-01-12_solution.json"
             }, {
                 fs::path("data") / "irregular" / "users" / "2025-05-04.json",
                 fs::path("data") / "irregular" / "users" / "2025-05-04_solution.json"
@@ -181,4 +181,7 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 fs::path("data") / "irregular" / "users" / "2025-05-08_3.json",
                 fs::path("data") / "irregular" / "users" / "2025-05-08_3_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "users" / "2025-05-09.json",
+                fs::path("data") / "irregular" / "users" / "2025-05-09_solution.json"
             }}));
