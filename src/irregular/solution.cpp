@@ -182,6 +182,30 @@ Solution::Solution(
     }
 }
 
+double Solution::density_x() const
+{
+    AreaDbl area = bin_area();
+    if (number_of_different_bins() > 0) {
+        BinTypeId bin_type_id = bins_.back().bin_type_id;
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        area -= bin_type.area_orig;
+        area += x_max_ * (bin_type.y_max - bin_type.y_min);
+    }
+    return item_area() / area;
+}
+
+double Solution::density_y() const
+{
+    AreaDbl area = bin_area();
+    if (number_of_different_bins() > 0) {
+        BinTypeId bin_type_id = bins_.back().bin_type_id;
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        area -= bin_type.area_orig;
+        area += y_max_ * (bin_type.x_max - bin_type.x_min);
+    }
+    return item_area() / area;
+}
+
 bool Solution::operator<(const Solution& solution) const
 {
     switch (instance().objective()) {
@@ -473,6 +497,8 @@ nlohmann::json Solution::to_json() const
         {"FullWastePercentage", full_waste_percentage()},
         {"XMax", x_max()},
         {"YMax", y_max()},
+        {"DensityX", density_x()},
+        {"DensityY", density_y()},
         {"LeftoverValue", leftover_value()},
     };
 }
@@ -493,6 +519,8 @@ void Solution::format(
             << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl
             << "X max:            " << x_max() << std::endl
             << "Y max:            " << y_max() << std::endl
+            << "Density X:        " << density_x() << std::endl
+            << "Density Y:        " << density_y() << std::endl
             << "Leftover value:   " << leftover_value() << std::endl
             ;
     }
