@@ -134,6 +134,12 @@ public:
      * Getters: others
      */
 
+    /** Get the minimum x of the solution. */
+    inline LengthDbl x_min() const { return x_min_; }
+
+    /** Get the minimum y of the solution. */
+    inline LengthDbl y_min() const { return y_min_; }
+
     /** Get the maximum x of the solution. */
     inline LengthDbl x_max() const { return x_max_; }
 
@@ -205,6 +211,12 @@ private:
 
     /** Cost of the solution. */
     Profit bin_cost_ = 0;
+
+    /** Minimum x of the solution. */
+    LengthDbl x_min_ = +std::numeric_limits<LengthDbl>::infinity();
+
+    /** Minimum y of the solution. */
+    LengthDbl y_min_ = +std::numeric_limits<LengthDbl>::infinity();
 
     /** Maximum x of the solution. */
     LengthDbl x_max_ = -std::numeric_limits<LengthDbl>::infinity();

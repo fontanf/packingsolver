@@ -38,6 +38,8 @@ BinPos Solution::add_bin(
     bin_cost_ += copies * bin_type.cost;
     bin_area_ += copies * bin_type.area_orig;
     auto mm = bin_type.shape_orig.compute_min_max();
+    x_min_ = mm.second.x;
+    y_min_ = mm.second.y;
     x_max_ = mm.first.x;
     y_max_ = mm.first.y;
 
@@ -97,9 +99,11 @@ void Solution::add_item(
     item_copies_[item_type_id] += bin.copies;
 
     if (bin_pos == (BinPos)bins_.size() - 1) {
-        auto points = item_type.compute_min_max(angle, mirror);
-        x_max_ = std::max(x_max_, bl_corner.x + points.second.x);
-        y_max_ = std::max(y_max_, bl_corner.y + points.second.y);
+        auto mm = item_type.compute_min_max(angle, mirror);
+        x_min_ = std::min(x_min_, bl_corner.x + mm.first.x);
+        y_min_ = std::min(y_min_, bl_corner.y + mm.first.y);
+        x_max_ = std::max(x_max_, bl_corner.x + mm.second.x);
+        y_max_ = std::max(y_max_, bl_corner.y + mm.second.y);
         leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
             - (x_max_ - bin_type.x_min) * (y_max_ - bin_type.y_min);
     }
@@ -495,6 +499,8 @@ nlohmann::json Solution::to_json() const
         {"BinCost", cost()},
         {"FullWaste", full_waste()},
         {"FullWastePercentage", full_waste_percentage()},
+        {"XMin", x_min()},
+        {"YMin", y_min()},
         {"XMax", x_max()},
         {"YMax", y_max()},
         {"DensityX", density_x()},
@@ -517,6 +523,8 @@ void Solution::format(
             << "Bin cost:         " << cost() << std::endl
             << "Full waste:       " << full_waste() << std::endl
             << "Full waste (%):   " << 100 * full_waste_percentage() << std::endl
+            << "X min:            " << x_min() << std::endl
+            << "Y min:            " << y_min() << std::endl
             << "X max:            " << x_max() << std::endl
             << "Y max:            " << y_max() << std::endl
             << "Density X:        " << density_x() << std::endl
