@@ -149,6 +149,12 @@ public:
     /** Get the fraction of waste of the solution including the residual. */
     inline double full_waste_percentage() const { return (double)full_waste() / bin_area(); }
 
+    /** Get the x-density of the solution. */
+    double density_x() const;
+
+    /** Get the y-density of the solution. */
+    double density_y() const;
+
     bool operator<(const Solution& solution) const;
 
     /*
