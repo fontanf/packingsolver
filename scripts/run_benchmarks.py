@@ -1064,3 +1064,118 @@ if __name__ == "__main__":
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
+
+
+    elif benchmark == "irregular_opencutlist":
+
+        datacsv_path = os.path.join(
+                "data",
+                "irregular",
+                "data_opencutlist.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        irregular_main
+                        + "  --verbosity-level 1"
+                        + "  --input \"" + instance_path + "\""
+                        + "  --time-limit 30"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "irregular_literature":
+
+        datacsv_path = os.path.join(
+                "data",
+                "irregular",
+                "data_literature.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        irregular_main
+                        + "  --verbosity-level 1"
+                        + "  --input \"" + instance_path + "\""
+                        + "  --time-limit 30"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "irregular_user2025":
+
+        datacsv_path = os.path.join(
+                "data",
+                "irregular",
+                "data_user2025.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        irregular_main
+                        + "  --verbosity-level 1"
+                        + "  --input \"" + instance_path + "\""
+                        + " --objective bin-packing"
+                        + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
