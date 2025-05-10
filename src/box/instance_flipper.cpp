@@ -5,6 +5,21 @@
 using namespace packingsolver;
 using namespace packingsolver::box;
 
+Point packingsolver::box::convert_point_back(
+        const Point& point,
+        Direction direction)
+{
+    if (direction == Direction::X) {
+        return Point{point.x, point.y, point.z};
+    } else if (direction == Direction::Y) {
+        return Point{point.y, point.x, point.z};
+    } else if (direction == Direction::Z) {
+        return Point{point.z, point.y, point.x};
+    }
+    throw std::runtime_error("");
+    return Point();
+}
+
 Instance InstanceFlipper::flip(
         const Instance& instance,
         Direction direction)
@@ -64,23 +79,14 @@ Solution InstanceFlipper::unflip_solution(const Solution& flipped_solution) cons
                 flipped_bin.bin_type_id,
                 flipped_bin.copies);
         for (const SolutionItem& flipped_item: flipped_bin.items) {
-            if (direction_ == Direction::Y) {
-                solution.add_item(
-                        bin_pos,
-                        flipped_item.item_type_id,
-                        flipped_item.y,
-                        flipped_item.x,
-                        flipped_item.z,
-                        flipped_item.rotation);
-            } else if (direction_ == Direction::Z) {
-                solution.add_item(
-                        bin_pos,
-                        flipped_item.item_type_id,
-                        flipped_item.z,
-                        flipped_item.y,
-                        flipped_item.x,
-                        flipped_item.rotation);
-            }
+            Point bl_corner = convert_point_back(
+                    flipped_item.bl_corner,
+                    direction_);
+            solution.add_item(
+                    bin_pos,
+                    flipped_item.item_type_id,
+                    bl_corner,
+                    flipped_item.rotation);
         }
     }
     return solution;

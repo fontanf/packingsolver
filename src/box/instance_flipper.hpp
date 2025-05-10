@@ -7,6 +7,10 @@ namespace packingsolver
 namespace box
 {
 
+Point convert_point_back(
+        const Point& point,
+        Direction direction);
+
 class InstanceFlipper
 {
 public:

@@ -11,9 +11,9 @@ std::ostream& packingsolver::box::operator<<(
 {
     os
         << " item_type_id " << item.item_type_id
-        << " x " << item.x
-        << " y " << item.y
-        << " z " << item.z
+        << " x " << item.bl_corner.x
+        << " y " << item.bl_corner.y
+        << " z " << item.bl_corner.z
         << " rotation " << item.rotation;
     return os;
 }
@@ -44,9 +44,7 @@ BinPos Solution::add_bin(
 void Solution::add_item(
         BinPos bin_pos,
         ItemTypeId item_type_id,
-        Length x,
-        Length y,
-        Length z,
+        const Point& bl_corner,
         int rotation)
 {
     if (bin_pos >= number_of_bins()) {
@@ -68,9 +66,9 @@ void Solution::add_item(
     Length xj = item_type.x(rotation);
     Length yj = item_type.y(rotation);
     Length zj = item_type.z(rotation);
-    Length xe = x + xj;
-    Length ye = y + yj;
-    Length ze = z + zj;
+    Length xe = bl_corner.x + xj;
+    Length ye = bl_corner.y + yj;
+    Length ze = bl_corner.z + zj;
     //std::cout
     //    << "j " << j
     //    << " x " << stack.x_start
@@ -94,9 +92,7 @@ void Solution::add_item(
 
     SolutionItem item;
     item.item_type_id = item_type_id;
-    item.x = x;
-    item.y = y;
-    item.z = z;
+    item.bl_corner = bl_corner;
     item.rotation = rotation;
     bin.items.push_back(item);
 
@@ -142,7 +138,7 @@ void Solution::append(
         ItemTypeId item_type_id = (item_type_ids.empty())?
             item.item_type_id:
             item_type_ids[item.item_type_id];
-        add_item(i, item_type_id, item.x, item.y, item.z, item.rotation);
+        add_item(i, item_type_id, item.bl_corner, item.rotation);
     }
 }
 
@@ -223,7 +219,7 @@ Solution::Solution(
             add_item(
                     bin_pos,
                     id,
-                    x, y, z,
+                    {x, y, z},
                     rotation);
         }
     }
@@ -319,9 +315,9 @@ void Solution::write(
                 << item.item_type_id << ","
                 << bin.copies << ","
                 << bin_pos << ","
-                << item.x << ","
-                << item.y << ","
-                << item.z << ","
+                << item.bl_corner.x << ","
+                << item.bl_corner.y << ","
+                << item.bl_corner.z << ","
                 << item_type.x(item.rotation) << ","
                 << item_type.y(item.rotation) << ","
                 << item_type.z(item.rotation) << ","
