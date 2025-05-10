@@ -1036,7 +1036,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     const ItemType& item_type = instance_.item_type(trapezoid_set.item_type_id);
     node.item_number_of_copies[trapezoid_set.item_type_id]++;
     node.number_of_items = parent.number_of_items + 1;
-    node.item_area = parent.item_area + item_type.area_orig;
+    node.item_area = parent.item_area + item_type.area_scaled;
     //std::cout << "parent.item_area " << parent.item_area << " item_area " << item_type.area << std::endl;
     node.profit = parent.profit + item_type.profit;
     node.item_convex_hull_area = parent.item_convex_hull_area

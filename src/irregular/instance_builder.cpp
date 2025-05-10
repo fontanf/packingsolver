@@ -521,6 +521,10 @@ Instance InstanceBuilder::build()
                 for (const Shape& hole: res)
                     item_shape.holes_scaled.push_back(hole);
             }
+
+            item_type.area_scaled += item_shape.shape_scaled.compute_area();
+            for (const Shape& hole: item_shape.holes_scaled)
+                item_type.area_scaled -= hole.compute_area();
         }
 
         // Compute inflated shapes.
