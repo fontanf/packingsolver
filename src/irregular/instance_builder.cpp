@@ -441,17 +441,7 @@ std::pair<Shape, std::vector<Shape>> process_shape_outer(
 {
     bool outer = true;
     Shape shape_tmp = shape::approximate_by_line_segments(shape, 1, outer);
-    for (int i = 0;; ++i) {
-        if (i == 100) {
-            throw std::runtime_error(
-                    "packingsolver::irregular::process_shape_outer: "
-                    "too many iterations.");
-        }
-        auto res = shape::clean_extreme_slopes(shape_tmp, outer);
-        if (!res.first)
-            break;
-        shape_tmp = res.second;
-    }
+    shape_tmp = shape::clean_extreme_slopes(shape_tmp, outer);
     return shape::remove_self_intersections(shape_tmp);
 }
 
@@ -460,17 +450,7 @@ std::vector<Shape> process_shape_inner(
 {
     bool outer = false;
     Shape shape_tmp = shape::approximate_by_line_segments(shape, 1, outer);
-    for (int i = 0;; ++i) {
-        if (i == 100) {
-            throw std::runtime_error(
-                    "packingsolver::irregular::process_shape_inner: "
-                    "too many iterations.");
-        }
-        auto res = shape::clean_extreme_slopes(shape_tmp, outer);
-        if (!res.first)
-            break;
-        shape_tmp = res.second;
-    }
+    shape_tmp = shape::clean_extreme_slopes(shape_tmp, outer);
     return shape::extract_all_holes_from_self_intersecting_hole(shape_tmp);
 }
 

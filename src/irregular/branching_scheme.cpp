@@ -100,6 +100,8 @@ BranchingScheme::BranchingScheme(
             BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
             Shape shape = convert_shape(bin_type.shape_scaled, direction);
 
+            shape = shape::clean_extreme_slopes(shape, false);
+
             auto mm = shape.compute_min_max();
             bb_bin_type.x_min = mm.first.x;
             bb_bin_type.x_max = mm.second.x;
@@ -155,7 +157,9 @@ BranchingScheme::BranchingScheme(
                     border_pos < (DefectId)simplified_bin_type.borders.size();
                     ++border_pos) {
                 const Shape& simplified_inflated_shape = simplified_bin_type.borders[border_pos].shape_inflated;
-                const Shape& shape_inflated = convert_shape(simplified_inflated_shape, direction);
+                Shape shape_inflated = convert_shape(simplified_inflated_shape, direction);
+
+                shape_inflated = shape::clean_extreme_slopes(shape_inflated, true);
 
                 // Supports.
                 shape::ShapeSupports supports = shape::compute_shape_supports(shape_inflated, false);
@@ -185,7 +189,9 @@ BranchingScheme::BranchingScheme(
                     ++defect_id) {
                 //std::cout << "defect_id " << defect_id << std::endl;
                 const Shape& simplified_inflated_shape = simplified_bin_type.defects[defect_id].shape_inflated;
-                const Shape& shape_inflated = convert_shape(simplified_inflated_shape, direction);
+                Shape shape_inflated = convert_shape(simplified_inflated_shape, direction);
+
+                shape_inflated = shape::clean_extreme_slopes(shape_inflated, true);
 
                 // Supports.
                 shape::ShapeSupports supports = shape::compute_shape_supports(shape_inflated, false);
@@ -204,7 +210,9 @@ BranchingScheme::BranchingScheme(
                         hole_pos < (ShapePos)simplified_bin_type.defects[defect_id].holes_deflated.size();
                         ++hole_pos) {
                     const Shape& simplified_deflated_shape = simplified_bin_type.defects[defect_id].holes_deflated[hole_pos];
-                    const Shape& shape_deflated = convert_shape(simplified_deflated_shape, direction);
+                    Shape shape_deflated = convert_shape(simplified_deflated_shape, direction);
+
+                    shape_deflated = shape::clean_extreme_slopes(shape_deflated, false);
 
                     // Update trapezoidation input.
                     holes_deflated.push_back(shape_deflated);
@@ -286,8 +294,11 @@ BranchingScheme::BranchingScheme(
                                     + "_inflated_simplified.svg");
                         }
 
-                        const Shape& shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
-                        const Shape& shape_inflated = convert_shape(simplified_inflated_shape, angle_range.first, mirror, direction);
+                        Shape shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
+                        Shape shape_inflated = convert_shape(simplified_inflated_shape, angle_range.first, mirror, direction);
+
+                        shape = shape::clean_extreme_slopes(shape, true);
+                        shape_inflated = shape::clean_extreme_slopes(shape_inflated, true);
 
                         if (write_shapes) {
                             simplified_inflated_shape.write_svg(
@@ -332,7 +343,9 @@ BranchingScheme::BranchingScheme(
                                 ++hole_pos) {
                             const Shape& simplified_shape = simplified_item_type.shapes[item_shape_pos].holes[hole_pos];
 
-                            const Shape& shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
+                            Shape shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
+
+                            shape = shape::clean_extreme_slopes(shape, false);
 
                             // Update trapezoidation input.
                             holes.push_back(shape);
@@ -358,7 +371,9 @@ BranchingScheme::BranchingScheme(
                                 ++hole_pos) {
                             const Shape& simplified_deflated_shape = simplified_item_type.shapes[item_shape_pos].holes_deflated[hole_pos];
 
-                            const Shape& shape_deflated = convert_shape(simplified_deflated_shape, angle_range.first, mirror, direction);
+                            Shape shape_deflated = convert_shape(simplified_deflated_shape, angle_range.first, mirror, direction);
+
+                            shape_deflated = shape::clean_extreme_slopes(shape_deflated, false);
 
                             // Update trapezoidation input.
                             holes_deflated.push_back(shape_deflated);
