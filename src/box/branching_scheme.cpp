@@ -785,16 +785,9 @@ Solution BranchingScheme::to_solution(
                     instance.bin_type_id(current_node->number_of_bins - 1),
                     1);
         const ItemType& item_type = instance.item_type(current_node->item_type_id);
-        Length x = current_node->x;
-        Length y = current_node->y;
-        Length z = current_node->z;
-        if (current_node->last_bin_direction == Direction::Y) {
-            x = current_node->y;
-            y = current_node->x;
-        } else if (current_node->last_bin_direction == Direction::Z) {
-            x = current_node->z;
-            z = current_node->x;
-        }
+        Point bl_corner = convert_point_back(
+                {current_node->x, current_node->y, current_node->z},
+                current_node->last_bin_direction);
         //std::cout
         //    << " item_type_id " << current_node->item_type_id
         //    << " x " << current_node->x
@@ -808,9 +801,7 @@ Solution BranchingScheme::to_solution(
         solution.add_item(
                 bin_pos,
                 current_node->item_type_id,
-                x,
-                y,
-                z,
+                bl_corner,
                 current_node->rotation);
     }
     return solution;
@@ -819,6 +810,120 @@ Solution BranchingScheme::to_solution(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+nlohmann::json BranchingScheme::json_export_init() const
+{
+    nlohmann::json json_init;
+    Counter i = 0;
+
+    // Bins.
+    json_bins_init_ids_ = std::vector<Counter>(instance().number_of_bin_types(), -1);
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+
+        json_bins_init_ids_[bin_type_id] = i;
+        json_init[i][0] = {
+            {"Type", "Box"},
+            {"X", bin_type.box.x},
+            {"Y", bin_type.box.y},
+            {"Z", bin_type.box.z},
+            {"FillColor", ""},
+        };
+        i++;
+    }
+
+    // Items.
+    json_items_init_ids_ = std::vector<std::vector<Counter>>(instance().number_of_item_types());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance().number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance().item_type(item_type_id);
+
+        json_items_init_ids_[item_type_id] = std::vector<Counter>(2);
+        for (int rotation = 0; rotation < 6; ++rotation) {
+            if (!instance().item_type(item_type_id).can_rotate(rotation))
+                continue;
+
+            json_items_init_ids_[item_type_id][rotation] = i;
+            json_init[i] = {
+                {"Type", "Box"},
+                {"X", item_type.x(rotation)},
+                {"Y", item_type.y(rotation)},
+                {"Z", item_type.z(rotation)},
+                {"FillColor", "blue"},
+            };
+            i++;
+        }
+    }
+
+    return json_init;
+}
+
+nlohmann::json BranchingScheme::json_export(
+        const std::shared_ptr<Node>& node) const
+{
+    if (node->number_of_items == 0) {
+        nlohmann::json json = {
+            {"Id", node->id},
+            {"ParentId", (node->parent == nullptr)? -1: node->parent->id},
+        };
+        return json;
+    }
+
+    Point bl_orig = convert_point_back(
+            {node->x, node->y, node->z},
+            node->last_bin_direction);
+    nlohmann::json json = {
+        {"Id", node->id},
+        {"ParentId", (node->parent == nullptr)? -1: node->parent->id},
+        {"ItemTypeId", node->item_type_id},
+        {"Rotation", node->rotation},
+        {"X", node->x},
+        {"Y", node->y},
+        {"Z", node->z},
+        {"XOrig", bl_orig.x},
+        {"YOrig", bl_orig.y},
+        {"ZOrig", bl_orig.z},
+        {"NumberOfItems", node->number_of_items},
+        {"NumberOfBins", node->number_of_bins},
+        {"Profit", node->profit},
+        {"ItemVolume", node->item_volume},
+        {"GuideVolume", node->guide_volume},
+    };
+
+    nlohmann::json plot;
+    Counter i = 0;
+    // Plot bin.
+    BinTypeId bin_type_id = instance().bin_type_id(node->number_of_bins - 1);
+    plot[i] = {
+        {"Id",json_bins_init_ids_[bin_type_id]},
+        {"X", 0},
+        {"Y", 0},
+        {"Z", 0},
+    };
+    i++;
+    // Plot items.
+    for (std::shared_ptr<const Node> node_tmp = node;
+            node_tmp->number_of_bins == node->number_of_bins;
+            node_tmp = node_tmp->parent) {
+        Point bl_corner = convert_point_back(
+                {node_tmp->x, node_tmp->y, node_tmp->z},
+                node_tmp->last_bin_direction);
+        plot[i] = {
+            {"Id", json_items_init_ids_[node->item_type_id][node->rotation]},
+            {"X", bl_corner.x},
+            {"Y", bl_corner.y},
+            {"Z", bl_corner.z},
+        };
+        if (node_tmp == node)
+            plot[i]["FillColor"] = "green";
+        i++;
+    }
+    json["Plot"] = plot;
+    return json;
+}
 
 std::ostream& packingsolver::box::operator<<(
         std::ostream& os,

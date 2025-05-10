@@ -12,14 +12,8 @@ struct SolutionItem
     /** Item type. */
     ItemTypeId item_type_id;
 
-    /** x-coordinate of the item. */
-    Length x;
-
-    /** y-coordinate of the item. */
-    Length y;
-
-    /** z-coordinate of the item. */
-    Length z;
+    /** Bottom-left corner of the item. */
+    Point bl_corner;
 
     /** Rotation of the item. */
     int rotation;
@@ -71,9 +65,7 @@ public:
     void add_item(
             BinPos bin_pos,
             ItemTypeId item_type_id,
-            Length x,
-            Length y,
-            Length z,
+            const Point& bl_corner,
             int rotation);
 
     /** Destructor. */

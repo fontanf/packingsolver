@@ -339,6 +339,11 @@ public:
     Solution to_solution(
             const std::shared_ptr<Node>& node) const;
 
+    nlohmann::json json_export_init() const;
+
+    nlohmann::json json_export(
+            const std::shared_ptr<Node>& node) const;
+
 private:
 
     /** Instance. */
@@ -364,6 +369,10 @@ private:
     std::vector<std::pair<double, double>> expected_axle_weights_;
 
     std::vector<double> expected_lengths_;
+
+    mutable std::vector<std::vector<Counter>> json_items_init_ids_;
+
+    mutable std::vector<Counter> json_bins_init_ids_;
 
     mutable Counter node_id_ = 0;
 
