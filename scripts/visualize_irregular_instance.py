@@ -84,7 +84,8 @@ with open(args.csvpath, 'r') as f:
                     defects_x[bin_type_id],
                     defects_y[bin_type_id],
                     defect["elements"])
-            for hole in defect["holes"]:
+            for hole in (defect["holes"]
+                         if "holes" in defect else []):
                 shape_path(
                         defects_x[bin_type_id],
                         defects_y[bin_type_id],

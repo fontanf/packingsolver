@@ -81,7 +81,8 @@ with open(args.csvpath, 'r') as f:
         for defect in (solution_bin["defects"]
                        if "defects" in solution_bin else []):
             shape_path(defects_x[bin_pos], defects_y[bin_pos], defect["shape"])
-            for hole in defect["holes"]:
+            for hole in (defect["holes"]
+                         if "holes" in defect else []):
                 shape_path(defects_x[bin_pos], defects_y[bin_pos], hole, True)
         for solution_item in solution_bin["items"]:
             for item_shape in solution_item["item_shapes"]:

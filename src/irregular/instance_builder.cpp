@@ -344,7 +344,46 @@ void InstanceBuilder::read(
         if (json_item.contains("copies_min"))
             copies_min = json_item["copies_min"];
 
-        add_bin_type(shape, cost, copies, copies_min);
+        BinTypeId bin_type_id = add_bin_type(shape, cost, copies, copies_min);
+
+        // Read defects.
+        if (json_item.contains("defects")) {
+            for (auto it_defect = json_item["defects"].begin();
+                    it_defect != json_item["defects"].end();
+                    ++it_defect) {
+                auto json_defect = *it_defect;
+
+                // Read type.
+                std::cout << "read type" << std::endl;
+                DefectTypeId defect_type = -1;
+                if (json_defect.contains("defect_type"))
+                    defect_type = json_defect["defect_type"];
+
+                // Read shape.
+                std::cout << "read shape" << std::endl;
+                Shape shape = read_shape(json_defect);
+
+                // Read holes.
+                std::cout << "read holes" << std::endl;
+                std::vector<Shape> holes;
+                if (json_defect.contains("holes")) {
+                    for (auto it_hole = json_defect["holes"].begin();
+                            it_hole != json_defect["holes"].end();
+                            ++it_hole) {
+                        auto json_hole = *it_hole;
+                        Shape hole = read_shape(json_hole);
+                        holes.push_back(hole);
+                    }
+                }
+
+                // Add defect.
+                add_defect(
+                        bin_type_id,
+                        defect_type,
+                        shape,
+                        holes);
+            }
+        }
     }
 
     // Read item types.
