@@ -415,6 +415,6 @@ void Instance::write(
     }
     f_parameters << "NAME,VALUE" << std::endl
         << "objective," << objective() << std::endl
-        << "unloading_constraint" << unloading_constraint() << std::endl;
+        << "unloading_constraint," << unloading_constraint() << std::endl;
 
 }
