@@ -420,8 +420,6 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    algorithm_formatter.update_knapsack_bound(instance.item_profit());
-
     // Select algorithms to run.
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
@@ -550,6 +548,9 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             }
         }
     }
+
+    if (instance.objective() == Objective::Knapsack)
+        algorithm_formatter.update_knapsack_bound(instance.item_profit());
 
     if (instance.objective() == Objective::BinPacking) {
         if (instance.number_of_bin_types() == 1
