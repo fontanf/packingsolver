@@ -14,7 +14,7 @@ FetchContent_MakeAvailable(optimizationtools)
 FetchContent_Declare(
     shape
     GIT_REPOSITORY https://github.com/fontanf/shape.git
-    GIT_TAG 6d53373fba160a1adbee73cc188b318c6a68286c
+    GIT_TAG d386f6b6fed620b16d030fdcd8561bec4f809456
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../shape/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(shape)
