@@ -31,13 +31,11 @@ void TrapezoidSet::write_svg(
     LengthDbl width = (x_max - x_min);
     LengthDbl height = (y_max - y_min);
 
-    double factor = compute_svg_factor(width);
-
     std::string s = "<svg viewBox=\""
-        + std::to_string(x_min * factor)
-        + " " + std::to_string(-y_min * factor - height * factor)
-        + " " + std::to_string(width * factor)
-        + " " + std::to_string(height * factor)
+        + std::to_string(x_min)
+        + " " + std::to_string(-y_min - height)
+        + " " + std::to_string(width)
+        + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     file << s;
 
@@ -51,11 +49,11 @@ void TrapezoidSet::write_svg(
                 ++item_shape_trapezoid_pos) {
             GeneralizedTrapezoid trapezoid = item_shape_trapezoids[item_shape_trapezoid_pos];
             file << "<g>" << std::endl;
-            file << trapezoid.to_svg("blue", factor);
+            file << trapezoid.to_svg("blue");
             LengthDbl x = (trapezoid.x_max() + trapezoid.x_min()) / 2;
             LengthDbl y = (trapezoid.y_top() + trapezoid.y_bottom()) / 2;
-            file << "<text x=\"" << std::to_string(x * factor)
-                << "\" y=\"" << std::to_string(-y * factor)
+            file << "<text x=\"" << std::to_string(x)
+                << "\" y=\"" << std::to_string(-y)
                 << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
                 << std::to_string(item_shape_pos) << "," << std::to_string(item_shape_trapezoid_pos)
                 << "</text>" << std::endl;
@@ -157,17 +155,15 @@ BranchingScheme::BranchingScheme(
             for (DefectId border_pos = 0;
                     border_pos < (DefectId)simplified_bin_type.borders.size();
                     ++border_pos) {
-                const Shape& simplified_inflated_shape = simplified_bin_type.borders[border_pos].shape_inflated;
+                const Shape& simplified_inflated_shape = simplified_bin_type.borders[border_pos].shape_inflated.shape;
 
-                Shape shape_inflated = convert_shape(simplified_inflated_shape, direction);
-                std::vector<Shape> holes_deflated;
-                shape_inflated = shape::clean_extreme_slopes(shape_inflated, true);
-                auto res = shape::remove_self_intersections(shape_inflated);
-                shape_inflated = res.first;
-                holes_deflated = res.second;
+                ShapeWithHoles shape_inflated;
+                shape_inflated.shape = convert_shape(simplified_inflated_shape, direction);
+                shape_inflated.shape = shape::clean_extreme_slopes(shape_inflated.shape, true);
+                shape_inflated = shape::remove_self_intersections(shape_inflated.shape);
 
                 // Supports.
-                shape::ShapeSupports supports = shape::compute_shape_supports(shape_inflated, false);
+                shape::ShapeSupports supports = shape::compute_shape_supports(shape_inflated.shape, false);
                 for (const Shape& supporting_part: supports.supporting_parts) {
                     ShapePos supporting_part_pos = direction_data.supporting_parts.size();
                     Support support;
@@ -179,9 +175,7 @@ BranchingScheme::BranchingScheme(
                 }
 
                 // Trapezoidation.
-                auto trapezoids = trapezoidation(
-                        shape_inflated,
-                        holes_deflated);
+                auto trapezoids = trapezoidation(shape_inflated);
                 for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                     UncoveredTrapezoid defect(
                             -1,
@@ -195,30 +189,27 @@ BranchingScheme::BranchingScheme(
                     defect_id < (DefectId)simplified_bin_type.defects.size();
                     ++defect_id) {
                 //std::cout << "defect_id " << defect_id << std::endl;
-                const Shape& simplified_inflated_shape = simplified_bin_type.defects[defect_id].shape_inflated;
-                Shape shape_inflated = convert_shape(simplified_inflated_shape, direction);
-
-                shape_inflated = shape::clean_extreme_slopes(shape_inflated, true);
-                std::vector<Shape> holes_deflated;
-                auto res = shape::remove_self_intersections(shape_inflated);
-                shape_inflated = res.first;
-                holes_deflated = res.second;
+                const Shape& simplified_inflated_shape = simplified_bin_type.defects[defect_id].shape_inflated.shape;
+                ShapeWithHoles shape_inflated;
+                shape_inflated.shape = convert_shape(simplified_inflated_shape, direction);
+                shape_inflated.shape = shape::clean_extreme_slopes(shape_inflated.shape, true);
+                shape_inflated = shape::remove_self_intersections(shape_inflated.shape);
                 for (ShapePos hole_pos = 0;
-                        hole_pos < (ShapePos)simplified_bin_type.defects[defect_id].holes_deflated.size();
+                        hole_pos < (ShapePos)simplified_bin_type.defects[defect_id].shape_inflated.holes.size();
                         ++hole_pos) {
-                    const Shape& simplified_deflated_shape = simplified_bin_type.defects[defect_id].holes_deflated[hole_pos];
+                    const Shape& simplified_deflated_hole = simplified_bin_type.defects[defect_id].shape_inflated.holes[hole_pos];
 
-                    Shape shape_deflated = convert_shape(simplified_deflated_shape, direction);
+                    Shape shape_deflated = convert_shape(simplified_deflated_hole, direction);
 
                     shape_deflated = shape::clean_extreme_slopes(shape_deflated, false);
 
                     auto res = shape::extract_all_holes_from_self_intersecting_hole(shape_deflated);
                     for (const auto& hole: res)
-                        holes_deflated.push_back(hole);
+                        shape_inflated.holes.push_back(hole);
                 }
 
                 // Supports.
-                shape::ShapeSupports supports = shape::compute_shape_supports(shape_inflated, false);
+                shape::ShapeSupports supports = shape::compute_shape_supports(shape_inflated.shape, false);
                 for (const Shape& supporting_part: supports.supporting_parts) {
                     ShapePos supporting_part_pos = direction_data.supporting_parts.size();
                     Support support;
@@ -230,12 +221,12 @@ BranchingScheme::BranchingScheme(
                 }
 
                 for (ShapePos hole_pos = 0;
-                        hole_pos < (ShapePos)holes_deflated.size();
+                        hole_pos < (ShapePos)shape_inflated.holes.size();
                         ++hole_pos) {
-                    const Shape& shape_deflated = holes_deflated[hole_pos];
+                    const Shape& hole_deflated = shape_inflated.holes[hole_pos];
 
                     // Supports.
-                    shape::ShapeSupports supports = shape::compute_shape_supports(shape_deflated, true);
+                    shape::ShapeSupports supports = shape::compute_shape_supports(hole_deflated, true);
                     for (const Shape& supporting_part: supports.supporting_parts) {
                         ShapePos supporting_part_pos = direction_data.supporting_parts.size();
                         Support support;
@@ -249,9 +240,7 @@ BranchingScheme::BranchingScheme(
                 }
 
                 // Trapezoidation.
-                auto trapezoids = trapezoidation(
-                        shape_inflated,
-                        holes_deflated);
+                auto trapezoids = trapezoidation(shape_inflated);
                 for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
                     UncoveredTrapezoid defect(
                             defect_id,
@@ -291,7 +280,7 @@ BranchingScheme::BranchingScheme(
                             item_shape_pos < (ItemShapePos)item_type.shapes.size();
                             ++item_shape_pos) {
                         const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                        const Shape& simplified_shape = simplified_item_type.shapes[item_shape_pos].shape;
+                        const Shape& simplified_shape = simplified_item_type.shapes[item_shape_pos].shape.shape;
                         if (write_shapes) {
                             simplified_shape.write_svg(
                                     "item_type_" + std::to_string(item_type_id)
@@ -299,29 +288,27 @@ BranchingScheme::BranchingScheme(
                                     + "_simplified.svg");
                         }
 
-                        Shape shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
-                        std::vector<Shape> holes;
-                        shape = shape::clean_extreme_slopes(shape, true);
-                        auto res = shape::remove_self_intersections(shape);
-                        shape = res.first;
-                        holes = res.second;
+                        ShapeWithHoles shape;
+                        shape.shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
+                        shape.shape = shape::clean_extreme_slopes(shape.shape, true);
+                        shape = shape::remove_self_intersections(shape.shape);
                         for (ShapePos hole_pos = 0;
-                                hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].holes.size();
+                                hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape.holes.size();
                                 ++hole_pos) {
-                            const Shape& simplified_shape = simplified_item_type.shapes[item_shape_pos].holes[hole_pos];
+                            const Shape& simplified_hole = simplified_item_type.shapes[item_shape_pos].shape.holes[hole_pos];
 
-                            Shape shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
+                            Shape hole = convert_shape(simplified_hole, angle_range.first, mirror, direction);
 
-                            shape = shape::clean_extreme_slopes(shape, false);
+                            hole = shape::clean_extreme_slopes(hole, false);
 
-                            auto res = shape::extract_all_holes_from_self_intersecting_hole(shape);
+                            auto res = shape::extract_all_holes_from_self_intersecting_hole(hole);
                             for (const auto& hole: res)
-                                holes.push_back(hole);
+                                shape.holes.push_back(hole);
                         }
 
                         // Supports.
                         std::vector<Shape> supported_parts
-                            = shape::compute_shape_supports(shape, false).supported_parts;
+                            = shape::compute_shape_supports(shape.shape, false).supported_parts;
                         for (const Shape& supported_part: supported_parts) {
                             ShapePos supported_part_pos = direction_data.supported_parts.size();
                             Support support;
@@ -333,13 +320,13 @@ BranchingScheme::BranchingScheme(
                         }
 
                         for (ShapePos hole_pos = 0;
-                                hole_pos < (ShapePos)holes.size();
+                                hole_pos < (ShapePos)shape.holes.size();
                                 ++hole_pos) {
-                            const Shape& shape = holes[hole_pos];
+                            const Shape& hole = shape.holes[hole_pos];
 
                             // Supports.
                             std::vector<Shape> supported_parts
-                                = shape::compute_shape_supports(shape, true).supported_parts;
+                                = shape::compute_shape_supports(hole, true).supported_parts;
                             for (const Shape& supported_part: supported_parts) {
                                 ShapePos supported_part_pos = direction_data.supported_parts.size();
                                 Support support;
@@ -360,16 +347,11 @@ BranchingScheme::BranchingScheme(
                                 + "_mirror_" + std::to_string(mirror)
                                 + "_rotated_" + std::to_string(angle_range.first)
                                 + ".svg";
-                            irregular::write_svg(
-                                    shape,
-                                    holes,
-                                    name);
+                            shape.write_svg(name);
                         }
 
                         // Trapezoidation.
-                        auto trapezoids = trapezoidation(
-                                shape,
-                                holes);
+                        auto trapezoids = trapezoidation(shape);
                         trapezoid_set.shapes.push_back({});
                         for (const GeneralizedTrapezoid& trapezoid: trapezoids)
                             trapezoid_set.shapes.back().push_back(trapezoid);
@@ -378,7 +360,7 @@ BranchingScheme::BranchingScheme(
                     for (ItemShapePos item_shape_pos = 0;
                             item_shape_pos < (ItemShapePos)item_type.shapes.size();
                             ++item_shape_pos) {
-                        const Shape& simplified_inflated_shape = simplified_item_type.shapes[item_shape_pos].shape_inflated;
+                        const Shape& simplified_inflated_shape = simplified_item_type.shapes[item_shape_pos].shape_inflated.shape;
                         //std::cout << "item_type_id " << item_type_id
                         //    << " item_shape_pos " << item_shape_pos
                         //    << " angle " << angle_range.first
@@ -393,24 +375,22 @@ BranchingScheme::BranchingScheme(
                                     + "_inflated_simplified.svg");
                         }
 
-                        Shape shape_inflated = convert_shape(simplified_inflated_shape, angle_range.first, mirror, direction);
-                        std::vector<Shape> holes_deflated;
-                        shape_inflated = shape::clean_extreme_slopes(shape_inflated, true);
-                        auto res = shape::remove_self_intersections(shape_inflated);
-                        shape_inflated = res.first;
-                        holes_deflated = res.second;
+                        ShapeWithHoles shape_inflated;
+                        shape_inflated.shape = convert_shape(simplified_inflated_shape, angle_range.first, mirror, direction);
+                        shape_inflated.shape = shape::clean_extreme_slopes(shape_inflated.shape, true);
+                        shape_inflated = shape::remove_self_intersections(shape_inflated.shape);
                         for (ShapePos hole_pos = 0;
-                                hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].holes_deflated.size();
+                                hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape_inflated.holes.size();
                                 ++hole_pos) {
-                            const Shape& simplified_deflated_shape = simplified_item_type.shapes[item_shape_pos].holes_deflated[hole_pos];
+                            const Shape& simplified_deflated_hole = simplified_item_type.shapes[item_shape_pos].shape_inflated.holes[hole_pos];
 
-                            Shape shape_deflated = convert_shape(simplified_deflated_shape, angle_range.first, mirror, direction);
+                            Shape hole_deflated = convert_shape(simplified_deflated_hole, angle_range.first, mirror, direction);
 
-                            shape_deflated = shape::clean_extreme_slopes(shape_deflated, false);
+                            hole_deflated = shape::clean_extreme_slopes(hole_deflated, false);
 
-                            auto res = shape::extract_all_holes_from_self_intersecting_hole(shape_deflated);
+                            auto res = shape::extract_all_holes_from_self_intersecting_hole(hole_deflated);
                             for (const auto& hole: res)
-                                holes_deflated.push_back(hole);
+                                shape_inflated.holes.push_back(hole);
                         }
 
                         if (write_shapes) {
@@ -424,7 +404,7 @@ BranchingScheme::BranchingScheme(
                         // Supporting parts are computed on inflated shapes.
                         // Supported parts are computed on (original) non-inflated shapes.
                         std::vector<Shape> supporting_parts
-                            = shape::compute_shape_supports(shape_inflated, false).supporting_parts;
+                            = shape::compute_shape_supports(shape_inflated.shape, false).supporting_parts;
                         for (const Shape& supporting_part: supporting_parts) {
                             ShapePos supporting_part_pos = direction_data.supporting_parts.size();
                             Support support;
@@ -440,13 +420,13 @@ BranchingScheme::BranchingScheme(
                         }
 
                         for (ShapePos hole_pos = 0;
-                                hole_pos < (ShapePos)holes_deflated.size();
+                                hole_pos < (ShapePos)shape_inflated.holes.size();
                                 ++hole_pos) {
-                            const Shape& shape_deflated = holes_deflated[hole_pos];
+                            const Shape& hole_deflated = shape_inflated.holes[hole_pos];
 
                             // Supports.
                             std::vector<Shape> supporting_parts
-                                = shape::compute_shape_supports(shape_deflated, true).supporting_parts;
+                                = shape::compute_shape_supports(hole_deflated, true).supporting_parts;
                             for (const Shape& supporting_part: supporting_parts) {
                                 ShapePos supporting_part_pos = direction_data.supporting_parts.size();
                                 Support support;
@@ -460,9 +440,7 @@ BranchingScheme::BranchingScheme(
                         }
 
                         // Trapezoidation.
-                        auto trapezoids_inflated = trapezoidation(
-                                shape_inflated,
-                                holes_deflated);
+                        auto trapezoids_inflated = trapezoidation(shape_inflated);
                         trapezoid_set.shapes_inflated.push_back({});
                         for (const GeneralizedTrapezoid& trapezoid: trapezoids_inflated)
                             trapezoid_set.shapes_inflated.back().push_back(trapezoid);
@@ -564,7 +542,7 @@ BranchingScheme::BranchingScheme(
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
             const auto& item_shape = item_type.shapes[item_shape_pos];
-            Shape convex_hull = shape::convex_hull(item_shape.shape_scaled);
+            Shape convex_hull = shape::convex_hull(item_shape.shape_scaled.shape);
             AreaDbl convex_hull_area = convex_hull.compute_area();
             item_types_convex_hull_area_[item_type_id] += convex_hull_area;
         }
@@ -2072,9 +2050,9 @@ nlohmann::json BranchingScheme::json_export_init() const
                 {"FillColor", "red"},
             };
             for (Counter hole_pos = 0;
-                    hole_pos < (Counter)defect.holes_orig.size();
+                    hole_pos < (Counter)defect.shape_orig.holes.size();
                     ++hole_pos) {
-                const Shape& hole = defect.holes_orig[hole_pos];
+                const Shape& hole = defect.shape_orig.holes[hole_pos];
                 json_init[i][hole_pos]["Holes"][hole_pos] = hole.to_json();
             }
         }
@@ -2099,15 +2077,15 @@ nlohmann::json BranchingScheme::json_export_init() const
                         item_shape_pos < (ItemShapePos)item_type.shapes.size();
                         ++item_shape_pos) {
                     const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                    Shape shape = convert_shape(item_shape.shape_orig, angle_range.first, mirror);
+                    Shape shape = convert_shape(item_shape.shape_orig.shape, angle_range.first, mirror);
                     json_init[i][item_shape_pos] = {
                         {"Shape", shape.to_json()},
                         {"FillColor", "blue"},
                     };
                     for (Counter hole_pos = 0;
-                            hole_pos < (Counter)item_shape.holes_orig.size();
+                            hole_pos < (Counter)item_shape.shape_orig.holes.size();
                             ++hole_pos) {
-                        const Shape& hole = item_shape.holes_orig[hole_pos];
+                        const Shape& hole = item_shape.shape_orig.holes[hole_pos];
                         json_init[i][item_shape_pos]["Holes"][hole_pos] = hole.to_json();
                     }
                 }
@@ -2209,13 +2187,11 @@ void BranchingScheme::write_svg(
     LengthDbl width = (bb_bin_type.x_max - bb_bin_type.x_min);
     LengthDbl height = (bb_bin_type.y_max - bb_bin_type.y_min);
 
-    double factor = compute_svg_factor(width);
-
     std::string s = "<svg viewBox=\""
-        + std::to_string(bb_bin_type.x_min * factor)
-        + " " + std::to_string(-bb_bin_type.y_min * factor - height * factor)
-        + " " + std::to_string(width * factor)
-        + " " + std::to_string(height * factor)
+        + std::to_string(bb_bin_type.x_min)
+        + " " + std::to_string(-bb_bin_type.y_min - height)
+        + " " + std::to_string(width)
+        + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     file << s;
 
@@ -2225,10 +2201,10 @@ void BranchingScheme::write_svg(
         const GeneralizedTrapezoid& trapezoid = node->extra_trapezoids[extra_trapezoid_pos].trapezoid;
 
         file << "<g>" << std::endl;
-        file << trapezoid.to_svg("red", factor);
+        file << trapezoid.to_svg("red");
         LengthDbl x = (trapezoid.x_max() + trapezoid.x_min()) / 2;
         LengthDbl y = (trapezoid.y_top() + trapezoid.y_bottom()) / 2;
-        file << "<text x=\"" << std::to_string(x * factor) << "\" y=\"" << std::to_string(-y * factor) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(extra_trapezoid_pos) << "</text>" << std::endl;
+        file << "<text x=\"" << std::to_string(x) << "\" y=\"" << std::to_string(-y) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(extra_trapezoid_pos) << "</text>" << std::endl;
         file << "</g>" << std::endl;
     }
     for (TrapezoidPos uncovered_trapezoid_pos = 0;
@@ -2238,10 +2214,10 @@ void BranchingScheme::write_svg(
         trapezoid.extend_left(bb_bin_type.x_min);
 
         file << "<g>" << std::endl;
-        file << trapezoid.to_svg("blue", factor);
+        file << trapezoid.to_svg("blue");
         LengthDbl x = (trapezoid.x_max() + trapezoid.x_min()) / 2;
         LengthDbl y = (trapezoid.y_top() + trapezoid.y_bottom()) / 2;
-        file << "<text x=\"" << std::to_string(x * factor) << "\" y=\"" << std::to_string(-y * factor) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(uncovered_trapezoid_pos) << "</text>" << std::endl;
+        file << "<text x=\"" << std::to_string(x) << "\" y=\"" << std::to_string(-y) << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">" << std::to_string(uncovered_trapezoid_pos) << "</text>" << std::endl;
         file << "</g>" << std::endl;
     }
 

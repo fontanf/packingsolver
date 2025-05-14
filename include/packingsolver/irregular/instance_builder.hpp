@@ -57,8 +57,7 @@ public:
     void add_defect(
             BinTypeId bin_type_id,
             DefectTypeId type,
-            const Shape& shape,
-            const std::vector<Shape>& holes = {});
+            const ShapeWithHoles& shape);
 
     /**
      * Add a bin type from another bin type.

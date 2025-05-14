@@ -296,9 +296,9 @@ void Solution::write(
                 ++defect_id) {
             const Defect& defect = bin_type.defects[defect_id];
             for (Counter element_pos = 0;
-                    element_pos < (Counter)defect.shape_orig.elements.size();
+                    element_pos < (Counter)defect.shape_orig.shape.elements.size();
                     ++element_pos) {
-                const ShapeElement& element = defect.shape_orig.elements[element_pos];
+                const ShapeElement& element = defect.shape_orig.shape.elements[element_pos];
                 json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["type"] = element2str(element.type);
                 json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["xs"] = element.start.x;
                 json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["ys"] = element.start.y;
@@ -310,9 +310,9 @@ void Solution::write(
                     json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
                 }
                 for (Counter hole_pos = 0;
-                        hole_pos < (Counter)defect.holes_orig.size();
+                        hole_pos < (Counter)defect.shape_orig.holes.size();
                         ++hole_pos) {
-                    const Shape& hole = defect.holes_orig[hole_pos];
+                    const Shape& hole = defect.shape_orig.holes[hole_pos];
                     for (Counter element_pos = 0;
                             element_pos < (Counter)hole.elements.size();
                             ++element_pos) {
@@ -346,7 +346,7 @@ void Solution::write(
                     item_shape_pos < (Counter)item_type.shapes.size();
                     ++item_shape_pos) {
                 const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                Shape shape = item_shape.shape_orig;
+                Shape shape = item_shape.shape_orig.shape;
                 if (item.mirror)
                     shape = shape.axial_symmetry_y_axis();
                 shape = shape.rotate(item.angle);
@@ -366,9 +366,9 @@ void Solution::write(
                     }
                 }
                 for (Counter hole_pos = 0;
-                        hole_pos < (Counter)item_shape.holes_orig.size();
+                        hole_pos < (Counter)item_shape.shape_orig.holes.size();
                         ++hole_pos) {
-                    Shape hole = item_shape.holes_orig[hole_pos];
+                    Shape hole = item_shape.shape_orig.holes[hole_pos];
                     if (item.mirror)
                         hole = hole.axial_symmetry_y_axis();
                     hole = hole.rotate(item.angle);
@@ -412,21 +412,19 @@ void Solution::write_svg(
     LengthDbl width = (bin_type.x_max - bin_type.x_min);
     LengthDbl height = (bin_type.y_max - bin_type.y_min);
 
-    double factor = compute_svg_factor(width);
-
     std::string s = "<svg viewBox=\""
-        + std::to_string(bin_type.x_min * factor)
-        + " " + std::to_string(-bin_type.y_min * factor - height * factor)
-        + " " + std::to_string(width * factor)
-        + " " + std::to_string(height * factor)
+        + std::to_string(bin_type.x_min)
+        + " " + std::to_string(-bin_type.y_min - height)
+        + " " + std::to_string(width)
+        + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     file << s;
 
     // Write bin.
     file << "<g>" << std::endl;
-    file << to_svg(bin_type.shape_scaled, {}, factor, "white");
+    file << bin_type.shape_scaled.to_svg();
     for (const Defect& defect: bin_type.defects)
-        file << to_svg(defect.shape_scaled, defect.holes_scaled, factor, "red");
+        file << defect.shape_scaled.to_svg("red");
     file << "</g>" << std::endl;
 
     // Write items.
@@ -440,30 +438,29 @@ void Solution::write_svg(
 
         file << "<g>" << std::endl;
         for (const ItemShape& item_shape: item_type.shapes) {
-            Shape shape = item_shape.shape_scaled;
-            std::vector<Shape> holes = item_shape.holes_scaled;
+            ShapeWithHoles shape = item_shape.shape_scaled;
 
             // Apply mirroring.
             if (item.mirror)
-                shape = shape.axial_symmetry_y_axis();
+                shape.shape = shape.shape.axial_symmetry_y_axis();
             // Apply angles.
-            shape = shape.rotate(item.angle);
+            shape.shape = shape.shape.rotate(item.angle);
             // Apply shift.
-            shape.shift(item.bl_corner.x, item.bl_corner.y);
+            shape.shape.shift(item.bl_corner.x, item.bl_corner.y);
 
             for (Counter hole_pos = 0;
-                    hole_pos < (Counter)item_shape.holes_scaled.size();
+                    hole_pos < (Counter)item_shape.shape_scaled.holes.size();
                     ++hole_pos) {
                 // Apply mirroring.
                 if (item.mirror)
-                    holes[hole_pos] = holes[hole_pos].axial_symmetry_y_axis();
+                    shape.holes[hole_pos] = shape.holes[hole_pos].axial_symmetry_y_axis();
                 // Apply angles.
-                holes[hole_pos] = holes[hole_pos].rotate(item.angle);
+                shape.holes[hole_pos] = shape.holes[hole_pos].rotate(item.angle);
                 // Apply shift.
-                holes[hole_pos].shift(item.bl_corner.x, item.bl_corner.y);
+                shape.holes[hole_pos].shift(item.bl_corner.x, item.bl_corner.y);
             }
 
-            file << to_svg(shape, holes, factor, "blue");
+            file << shape.to_svg("blue");
 
             auto mm = shape.compute_min_max(0.0);
             x_min = (std::min)(x_min, mm.first.x);
@@ -475,8 +472,8 @@ void Solution::write_svg(
         // Write item type id.
         LengthDbl x = (x_min + x_max) / 2;
         LengthDbl y = (y_min + y_max) / 2;
-        file << "<text x=\"" << std::to_string(x * factor)
-            << "\" y=\"" << std::to_string(-y * factor)
+        file << "<text x=\"" << std::to_string(x)
+            << "\" y=\"" << std::to_string(-y)
             << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
             << std::to_string(item.item_type_id)
             << "</text>"
