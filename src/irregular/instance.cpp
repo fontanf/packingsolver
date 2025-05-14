@@ -599,25 +599,16 @@ void Instance::write(
             bin_type_id < number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = this->bin_type(bin_type_id);
+        json["bin_types"][bin_type_id] = bin_type.shape_orig.to_json();
         json["bin_types"][bin_type_id]["cost"] = bin_type.cost;
         json["bin_types"][bin_type_id]["copies"] = bin_type.copies;
         json["bin_types"][bin_type_id]["copies_min"] = bin_type.copies_min;
-        json["bin_types"][bin_type_id]["type"] = "general";
-        json["bin_types"][bin_type_id]["elements"] = bin_type.shape_orig.to_json();
         // Bin defects.
         for (DefectId defect_id = 0;
                 defect_id < (DefectId)bin_type.defects.size();
                 ++defect_id) {
             const Defect& defect = bin_type.defects[defect_id];
-            json["bin_types"][bin_type_id]["defects"][defect_id]["type"] = "general";
-            json["bin_types"][bin_type_id]["defects"][defect_id]["elements"] = defect.shape_orig.shape.to_json();
-            for (Counter hole_pos = 0;
-                    hole_pos < (Counter)defect.shape_orig.holes.size();
-                    ++hole_pos) {
-                const Shape& hole = defect.shape_orig.holes[hole_pos];
-                json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["type"] = "general";
-                json["bin_types"][bin_type_id]["defects"][defect_id]["holes"][hole_pos]["elements"] = hole.to_json();
-            }
+            json["bin_types"][bin_type_id]["defects"][defect_id] = defect.shape_orig.to_json();
         }
     }
 
@@ -639,15 +630,7 @@ void Instance::write(
                 item_shape_pos < (Counter)item_type.shapes.size();
                 ++item_shape_pos) {
             const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-            json["item_types"][item_type_id]["shapes"][item_shape_pos]["type"] = "general";
-            json["item_types"][item_type_id]["shapes"][item_shape_pos]["elements"] = item_shape.shape_orig.shape.to_json();
-            for (Counter hole_pos = 0;
-                    hole_pos < (Counter)item_shape.shape_orig.holes.size();
-                    ++hole_pos) {
-                const Shape& hole = item_shape.shape_orig.holes[hole_pos];
-                json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["type"] = "general";
-                json["item_types"][item_type_id]["shapes"][item_shape_pos]["holes"][hole_pos]["elements"] = hole.to_json();
-            }
+            json["item_types"][item_type_id]["shapes"][item_shape_pos] = item_shape.shape_orig.to_json();
         }
     }
 

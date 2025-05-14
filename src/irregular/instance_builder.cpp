@@ -226,80 +226,6 @@ AreaDbl InstanceBuilder::compute_bin_types_area_max() const
 /////////////////////////////// Read from files ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace
-{
-
-template <class basic_json>
-Shape read_shape(basic_json& json_item)
-{
-    Shape shape;
-    if (json_item["type"] == "circle") {
-        ShapeElement element;
-        element.type = ShapeElementType::CircularArc;
-        element.center = {0.0, 0.0};
-        element.start = {json_item["radius"], 0.0};
-        element.end = element.start;
-        shape.elements.push_back(element);
-    } else if (json_item["type"] == "rectangle") {
-        ShapeElement element_1;
-        ShapeElement element_2;
-        ShapeElement element_3;
-        ShapeElement element_4;
-        element_1.type = ShapeElementType::LineSegment;
-        element_2.type = ShapeElementType::LineSegment;
-        element_3.type = ShapeElementType::LineSegment;
-        element_4.type = ShapeElementType::LineSegment;
-        element_1.start = {0.0, 0.0};
-        element_1.end = {json_item["width"], 0.0};
-        element_2.start = {json_item["width"], 0.0};
-        element_2.end = {json_item["width"], json_item["height"]};
-        element_3.start = {json_item["width"], json_item["height"]};
-        element_3.end = {0.0, json_item["height"]};
-        element_4.start = {0.0, json_item["height"]};
-        element_4.end = {0.0, 0.0};
-        shape.elements.push_back(element_1);
-        shape.elements.push_back(element_2);
-        shape.elements.push_back(element_3);
-        shape.elements.push_back(element_4);
-    } else if (json_item["type"] == "polygon") {
-        for (auto it = json_item["vertices"].begin();
-                it != json_item["vertices"].end();
-                ++it) {
-            auto it_next = it + 1;
-            if (it_next == json_item["vertices"].end())
-                it_next = json_item["vertices"].begin();
-            ShapeElement element;
-            element.type = ShapeElementType::LineSegment;
-            element.start = {(*it)["x"], (*it)["y"]};
-            element.end = {(*it_next)["x"], (*it_next)["y"]};
-            shape.elements.push_back(element);
-        }
-    } else if (json_item["type"] == "general") {
-        for (auto it = json_item["elements"].begin();
-                it != json_item["elements"].end();
-                ++it) {
-            auto json_element = *it;
-            ShapeElement element;
-            element.type = str2element(json_element["type"]);
-            element.start.x = json_element["start"]["x"];
-            element.start.y = json_element["start"]["y"];
-            element.end.x = json_element["end"]["x"];
-            element.end.y = json_element["end"]["y"];
-            if (element.type == ShapeElementType::CircularArc) {
-                element.center.x = json_element["center"]["x"];
-                element.center.y = json_element["center"]["y"];
-                element.anticlockwise = json_element["anticlockwise"];
-            }
-            shape.elements.push_back(element);
-        }
-    } else {
-        throw std::invalid_argument("");
-    }
-    return shape;
-}
-
-}
-
 void InstanceBuilder::read(
         std::string instance_path)
 {
@@ -332,7 +258,7 @@ void InstanceBuilder::read(
 
     // Read bin types.
     for (const auto& json_item: j["bin_types"]) {
-        Shape shape = read_shape(json_item);
+        Shape shape = Shape::from_json(json_item);
 
         Profit cost = -1;
         if (json_item.contains("cost"))
@@ -356,27 +282,12 @@ void InstanceBuilder::read(
                 auto json_defect = *it_defect;
 
                 // Read type.
-                std::cout << "read type" << std::endl;
                 DefectTypeId defect_type = -1;
                 if (json_defect.contains("defect_type"))
                     defect_type = json_defect["defect_type"];
 
                 // Read shape.
-                std::cout << "read shape" << std::endl;
-                ShapeWithHoles shape;
-                shape.shape = read_shape(json_defect);
-
-                // Read holes.
-                std::cout << "read holes" << std::endl;
-                if (json_defect.contains("holes")) {
-                    for (auto it_hole = json_defect["holes"].begin();
-                            it_hole != json_defect["holes"].end();
-                            ++it_hole) {
-                        auto json_hole = *it_hole;
-                        Shape hole = read_shape(json_hole);
-                        shape.holes.push_back(hole);
-                    }
-                }
+                ShapeWithHoles shape = ShapeWithHoles::from_json(json_defect);
 
                 // Add defect.
                 add_defect(
@@ -395,41 +306,15 @@ void InstanceBuilder::read(
             for (auto it_shape = json_item["shapes"].begin();
                     it_shape != json_item["shapes"].end();
                     ++it_shape) {
-                auto json_shape = *it_shape;
-
                 ItemShape item_shape;
-                item_shape.shape_orig.shape = read_shape(json_shape);
-
-                // Read holes.
-                if (json_shape.contains("holes")) {
-                    for (auto it_hole = json_shape["holes"].begin();
-                            it_hole != json_shape["holes"].end();
-                            ++it_hole) {
-                        auto json_hole = *it_hole;
-                        Shape shape = read_shape(json_hole);
-                        item_shape.shape_orig.holes.push_back(shape);
-                    }
-                }
-
+                item_shape.shape_orig = ShapeWithHoles::from_json(*it_shape);
                 item_shapes.push_back(item_shape);
             }
 
         } else {
             // Single item shape.
             ItemShape item_shape;
-            item_shape.shape_orig.shape = read_shape(json_item);
-
-            // Read holes.
-            if (json_item.contains("holes")) {
-                for (auto it_hole = json_item["holes"].begin();
-                        it_hole != json_item["holes"].end();
-                        ++it_hole) {
-                    auto json_hole = *it_hole;
-                    Shape shape = read_shape(json_hole);
-                    item_shape.shape_orig.holes.push_back(shape);
-                }
-            }
-
+            item_shape.shape_orig = ShapeWithHoles::from_json(json_item);
             item_shapes.push_back(item_shape);
         }
 
