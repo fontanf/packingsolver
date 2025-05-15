@@ -287,7 +287,7 @@ void Solution::write(
             if (element.type == ShapeElementType::CircularArc) {
                 json["bins"][bin_pos]["shape"][element_pos]["xc"] = element.center.x;
                 json["bins"][bin_pos]["shape"][element_pos]["yc"] = element.center.y;
-                json["bins"][bin_pos]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
+                json["bins"][bin_pos]["shape"][element_pos]["orientation"] = shape::orientation2str(element.orientation);
             }
         }
         // Bin defects.
@@ -307,7 +307,7 @@ void Solution::write(
                 if (element.type == ShapeElementType::CircularArc) {
                     json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["xc"] = element.center.x;
                     json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["yc"] = element.center.y;
-                    json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
+                    json["bins"][bin_pos]["defects"][defect_id]["shape"][element_pos]["orientation"] = shape::orientation2str(element.orientation);
                 }
                 for (Counter hole_pos = 0;
                         hole_pos < (Counter)defect.shape_orig.holes.size();
@@ -325,7 +325,7 @@ void Solution::write(
                         if (element.type == ShapeElementType::CircularArc) {
                             json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["xc"] = element.center.x;
                             json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["yc"] = element.center.y;
-                            json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["anticlockwise"] = element.anticlockwise;
+                            json["bins"][bin_pos]["defects"][defect_id]["holes"][hole_pos][element_pos]["orientation"] = shape::orientation2str(element.orientation);
                         }
                     }
                 }
@@ -362,7 +362,7 @@ void Solution::write(
                     if (element.type == ShapeElementType::CircularArc) {
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["xc"] = element.center.x + item.bl_corner.x;
                         json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["yc"] = element.center.y + item.bl_corner.y;
-                        json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["anticlockwise"] = element.anticlockwise;
+                        json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["shape"][element_pos]["orientation"] = shape::orientation2str(element.orientation);
                     }
                 }
                 for (Counter hole_pos = 0;
@@ -384,7 +384,7 @@ void Solution::write(
                         if (element.type == ShapeElementType::CircularArc) {
                             json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["xc"] = element.center.x + item.bl_corner.x;
                             json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["yc"] = element.center.y + item.bl_corner.y;
-                            json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["anticlockwise"] = element.anticlockwise;
+                            json["bins"][bin_pos]["items"][item_pos]["item_shapes"][item_shape_pos]["holes"][hole_pos][element_pos]["orientation"] = shape::orientation2str(element.orientation);
                         }
                     }
                 }
