@@ -52,6 +52,8 @@ void optimize_tree_search_worker(
                 ibs_parameters);
 
         // Check end.
+        if (algorithm_formatter.end_boolean())
+            break;
         if (parameters.timer.needs_to_end())
             break;
 
@@ -277,6 +279,8 @@ void optimize_sequential_single_knapsack(
         sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, kp_solve, svc_parameters);
 
         // Check end.
+        if (algorithm_formatter.end_boolean())
+            break;
         if (parameters.timer.needs_to_end())
             break;
 
@@ -380,6 +384,8 @@ void optimize_dichotomic_search(
         auto ds_output = dichotomic_search<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, bpp_solve, ds_parameters);
 
         // Check end.
+        if (algorithm_formatter.end_boolean())
+            break;
         if (parameters.timer.needs_to_end())
             break;
 
@@ -578,6 +584,9 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             }
         }
     }
+
+    if (instance.objective() == Objective::Knapsack)
+        algorithm_formatter.update_knapsack_bound(instance.item_profit());
 
     int last_algorithm =
         (use_column_generation)? 4:
