@@ -70,7 +70,7 @@ set(COLUMNGENERATIONSOLVER_USE_HIGHS ON)
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
-    GIT_TAG 6f449498593dfe846f6bbb72364394a4a0388b86
+    GIT_TAG c661bbd0f05e32161b07db2a28484dbb12d60c10
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../columngenerationsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(columngenerationsolver)
