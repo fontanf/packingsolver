@@ -380,13 +380,21 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_3h_patterns(
     return {};
 }
 
-columngenerationsolver::Model get_model(
+struct GetModelOutput
+{
+    columngenerationsolver::Model model;
+    std::vector<std::shared_ptr<const Column>> column_pool;
+};
+
+GetModelOutput get_model(
         const Instance& instance)
 {
     const BinType& bin_type = instance.bin_type(0);
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
 
-    columngenerationsolver::Model model;
+    GetModelOutput output;
+    columngenerationsolver::Model& model = output.model;
+    std::vector<std::shared_ptr<const Column>>& column_pool = output.column_pool;
 
     if (instance.objective() == Objective::OpenDimensionX) {
         model.objective_sense = optimizationtools::ObjectiveDirection::Minimize;
@@ -435,12 +443,12 @@ columngenerationsolver::Model get_model(
     if (instance.parameters().number_of_stages == 1
             && instance.parameters().cut_type == CutType::Roadef2018) {
         for (const auto& column: generate_all_columns_1r_patterns(instance))
-            model.columns.push_back(column);
+            column_pool.push_back(column);
     }
     if (instance.parameters().number_of_stages == 2
             && instance.parameters().cut_type == CutType::Homogenous) {
         for (const auto& column: generate_all_columns_2h_patterns(instance))
-            model.columns.push_back(column);
+            column_pool.push_back(column);
     }
 
     // Pricing solver.
@@ -459,7 +467,7 @@ columngenerationsolver::Model get_model(
         auto columns = generate_all_columns_2e_patterns(instance);
         if (!columns.empty()) {
             for (const auto& column: columns)
-                model.columns.push_back(column);
+                column_pool.push_back(column);
             static_cast<ColumnGenerationPricingSolver&>(*model.pricing_solver).set_all_columns_2e_patterns_generated();
         }
     }
@@ -472,7 +480,7 @@ columngenerationsolver::Model get_model(
         auto columns = generate_all_columns_2n_patterns(instance);
         if (!columns.empty()) {
             for (const auto& column: columns)
-                model.columns.push_back(column);
+                column_pool.push_back(column);
             static_cast<ColumnGenerationPricingSolver&>(*model.pricing_solver).set_all_columns_2n_patterns_generated();
         }
     }
@@ -483,7 +491,7 @@ columngenerationsolver::Model get_model(
         auto columns = generate_all_columns_2r_patterns(instance);
         if (!columns.empty()) {
             for (const auto& column: columns)
-                model.columns.push_back(column);
+                column_pool.push_back(column);
             static_cast<ColumnGenerationPricingSolver&>(*model.pricing_solver).set_all_columns_2r_patterns_generated();
         }
     }
@@ -492,12 +500,12 @@ columngenerationsolver::Model get_model(
         auto columns = generate_all_columns_3h_patterns(instance);
         if (!columns.empty()) {
             for (const auto& column: columns)
-                model.columns.push_back(column);
+                column_pool.push_back(column);
             static_cast<ColumnGenerationPricingSolver&>(*model.pricing_solver).set_all_columns_3h_patterns_generated();
         }
     }
 
-    return model;
+    return output;
 }
 
 std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initialize_pricing(
@@ -1465,8 +1473,10 @@ void column_generation_2_vertical(
         const ColumnGeneration2Parameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    columngenerationsolver::Model cgs_model = get_model(instance);
+    GetModelOutput cgs_model = get_model(instance);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
+    for (const auto& column: cgs_model.column_pool)
+        cgslds_parameters.column_pool.push_back(column);
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
@@ -1532,7 +1542,7 @@ void column_generation_2_vertical(
     };
     cgslds_parameters.column_generation_parameters.solver_name
         = parameters.linear_programming_solver_name;
-    columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
+    columngenerationsolver::limited_discrepancy_search(cgs_model.model, cgslds_parameters);
 }
 
 void column_generation_2_horizontal(
