@@ -448,6 +448,8 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
             //std::cout << "item_type_id " << item_type_id
             //    << " adjusted_space " << item_type_adjusted_space[item_type_id]
             //    << " profit " << profits[item_type_id];
+            item_type_adjusted_space[item_type_id]
+                += 100 * lbs * (item_type.copies - solution.item_copies(item_type_id));
             Profit profit_new = 0.0;
             if (instance.objective() == Objective::Knapsack) {
                 profit_new
@@ -456,8 +458,6 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     * item_type_adjusted_space[item_type_id]
                     / solution.item_copies(item_type_id);
             } else {
-                item_type_adjusted_space[item_type_id]
-                    += 100 * lbs * (item_type.copies - solution.item_copies(item_type_id));
                 profit_new
                     = item_type_adjusted_space[item_type_id]
                     / item_type.copies;
