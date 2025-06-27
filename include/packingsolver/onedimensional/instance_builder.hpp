@@ -66,7 +66,8 @@ public:
      */
     void add_bin_type(
             const BinType& bin_type,
-            BinPos copies);
+            BinPos copies,
+            BinPos copies_min = 0);
 
     /**
      * Foe each bin type, set an infinite number of copies.
