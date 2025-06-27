@@ -94,12 +94,14 @@ void InstanceBuilder::add_bin_type_eligibility(
 
 void InstanceBuilder::add_bin_type(
         const BinType& bin_type,
-        BinPos copies)
+        BinPos copies,
+        BinPos copies_min)
 {
     BinTypeId bin_type_id = add_bin_type(
             bin_type.length,
             bin_type.cost,
-            copies);
+            copies,
+            copies_min);
     set_bin_type_maximum_weight(
             bin_type_id,
             bin_type.maximum_weight);
