@@ -21,7 +21,7 @@ struct Parameters
      * Quality rules.
      *
      * if 'quality_rules_[quality_rule][k] = 0' (resp. '1'), then defect 'k' is
-     * not allowed (resp. allowed) for qulity rule rule 'quality_rule'.
+     * not allowed (resp. allowed) for quality rule rule 'quality_rule'.
      */
     std::vector<std::vector<uint8_t>> quality_rules;
 
@@ -147,7 +147,7 @@ struct ItemShape
     std::vector<Shape> holes_deflated;
 
     /** Quality rule. */
-    QualityRule quality_rule = 0;
+    QualityRule quality_rule = -1;
 
     bool check() const;
 

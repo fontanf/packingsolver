@@ -530,6 +530,25 @@ Instance InstanceBuilder::build()
             if (!item_shape.shape_scaled.elements.empty())
                 continue;
 
+            if (item_shape.quality_rule < -1) {
+                throw std::invalid_argument(
+                        "packingsolver::irregular::InstanceBuilder::build: "
+                        "invalid quality rule; "
+                        "item_type_id: " + std::to_string(item_type_id) + "; "
+                        "item_shape_pos: " + std::to_string(shape_pos) + "; "
+                        "quality_rule: " + std::to_string(item_shape.quality_rule) + ".");
+            }
+            if (item_shape.quality_rule != -1
+                    && item_shape.quality_rule >= instance_.parameters_.quality_rules.size()) {
+                throw std::invalid_argument(
+                        "packingsolver::irregular::InstanceBuilder::build: "
+                        "invalid quality rule; "
+                        "item_type_id: " + std::to_string(item_type_id) + "; "
+                        "item_shape_pos: " + std::to_string(shape_pos) + "; "
+                        "quality_rule: " + std::to_string(item_shape.quality_rule) + "; "
+                        "parameters().quality_rules.size(): " + std::to_string(instance_.parameters().quality_rules.size()) + ".");
+            }
+
             auto res = process_shape_outer(instance_.parameters().scale_value * item_shape.shape_orig);
             item_shape.shape_scaled = res.first;
             for (const Shape& hole: res.second)
