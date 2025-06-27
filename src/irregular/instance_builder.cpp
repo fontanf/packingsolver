@@ -134,6 +134,11 @@ ItemTypeId InstanceBuilder::add_item_type(
         ItemPos copies,
         const std::vector<std::pair<Angle, Angle>>& allowed_rotations)
 {
+    if (shapes.empty()) {
+        throw std::invalid_argument(
+                "packingsolver::irregular::InstanceBuilder::add_item_type: "
+                "item 'shapes' must be non-empty.");
+    }
     for (const ItemShape& item_shape: shapes) {
         if (!item_shape.check()) {
             throw std::runtime_error(
