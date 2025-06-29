@@ -24,20 +24,22 @@ if(PACKINGSOLVER_BUILD_TEST)
 endif()
 
 # Fetch fontanf/optimizationtools.
+set(OPTIMIZATIONTOOLS_BUILD_TEST OFF)
 FetchContent_Declare(
     optimizationtools
     GIT_REPOSITORY https://github.com/fontanf/optimizationtools.git
-    GIT_TAG 5e0c59cb06c779d1950b31caa636998b37f5db1b
+    GIT_TAG e086ec4cfcc9a885cd63f579a99ea5e8f4737005
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../optimizationtools/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(optimizationtools)
 
 # Fetch fontanf/shape.
+set(SHAPE_BUILD_TEST OFF)
 FetchContent_Declare(
     shape
-    GIT_REPOSITORY https://github.com/fontanf/shape.git
-    GIT_TAG d386f6b6fed620b16d030fdcd8561bec4f809456
-    #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../shape/"
+#    GIT_REPOSITORY https://github.com/fontanf/shape.git
+#    GIT_TAG d386f6b6fed620b16d030fdcd8561bec4f809456
+    SOURCE_DIR "${PROJECT_SOURCE_DIR}/../fontanf-shape/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(shape)
 
@@ -52,16 +54,16 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(mathoptsolverscmake)
 
 # Fetch Highs.
-if(PACKINGSOLVER_USE_HIGHS)
-    set(BUILD_SHARED_LIBS OFF)
-    FetchContent_Declare(
-        highs
-        URL https://github.com/ERGO-Code/HiGHS/archive/refs/tags/v1.7.2.zip
-        EXCLUDE_FROM_ALL)
-    FetchContent_MakeAvailable(highs)
-endif()
+set(BUILD_SHARED_LIBS OFF)
+FetchContent_Declare(
+    highs
+    URL https://github.com/ERGO-Code/HiGHS/archive/refs/tags/v1.7.2.zip
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(highs)
 
 # Fetch fontanf/knapsacksolver.
+set(KNAPSACKSOLVER_BUILD_MAIN OFF)
+set(KNAPSACKSOLVER_BUILD_TEST OFF)
 FetchContent_Declare(
     knapsacksolver
     GIT_REPOSITORY https://github.com/fontanf/knapsacksolver.git
@@ -71,6 +73,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(knapsacksolver)
 
 # Fetch fontanf/treesearchsolver.
+set(TREESEARCHSOLVER_BUILD_TEST OFF)
+set(TREESEARCHSOLVER_BUILD_EXAMPLES OFF)
 FetchContent_Declare(
     treesearchsolver
     GIT_REPOSITORY https://github.com/fontanf/treesearchsolver.git
@@ -82,6 +86,8 @@ FetchContent_MakeAvailable(treesearchsolver)
 # Fetch fontanf/columngenerationsolver.
 set(COLUMNGENERATIONSOLVER_USE_CLP ${PACKINGSOLVER_USE_CLP})
 set(COLUMNGENERATIONSOLVER_USE_HIGHS ${PACKINGSOLVER_USE_HIGHS})
+set(COLUMNGENERATIONSOLVER_BUILD_TEST OFF)
+set(COLUMNGENERATIONSOLVER_BUILD_EXAMPLES OFF)
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
