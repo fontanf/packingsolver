@@ -20,12 +20,14 @@ target_link_libraries(PackingSolver_box PUBLIC
     Threads::Threads)
 add_library(PackingSolver::box ALIAS PackingSolver_box)
 
-add_executable(PackingSolver_box_main)
-target_sources(PackingSolver_box_main PRIVATE
-    main.cpp)
-target_link_libraries(PackingSolver_box_main PUBLIC
-    PackingSolver_box
-    Boost::program_options
-    Boost::filesystem)
-set_target_properties(PackingSolver_box_main PROPERTIES OUTPUT_NAME "packingsolver_box")
-install(TARGETS PackingSolver_box_main)
+if(PACKINGSOLVER_BUILD_MAIN)
+  add_executable(PackingSolver_box_main)
+  target_sources(PackingSolver_box_main PRIVATE
+      main.cpp)
+  target_link_libraries(PackingSolver_box_main PUBLIC
+      PackingSolver_box
+      Boost::program_options
+      Boost::filesystem)
+  set_target_properties(PackingSolver_box_main PROPERTIES OUTPUT_NAME "packingsolver_box")
+  install(TARGETS PackingSolver_box_main)
+endif()

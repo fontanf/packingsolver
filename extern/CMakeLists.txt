@@ -1,6 +1,28 @@
 # Enable FetchContent.
 include(FetchContent)
 
+# Fetch boost.
+if(PACKINGSOLVER_BUILD_MAIN OR PACKINGSOLVER_BUILD_TEST)
+    set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options dynamic_bitset)
+    set(BOOST_ENABLE_CMAKE ON)
+    FetchContent_Declare(
+            Boost
+            URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
+            EXCLUDE_FROM_ALL)
+    FetchContent_MakeAvailable(Boost)
+endif()
+
+# Fetch googletest.
+if(PACKINGSOLVER_BUILD_TEST)
+    FetchContent_Declare(
+            googletest
+            URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip)
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF)
+    FetchContent_MakeAvailable(googletest)
+endif()
+
 # Fetch fontanf/optimizationtools.
 FetchContent_Declare(
     optimizationtools
@@ -20,7 +42,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(shape)
 
 # Fetch fontanf/mathoptsolverscmake.
-set(MATHOPTSOLVERSCMAKE_USE_CLP ON)
+set(MATHOPTSOLVERSCMAKE_USE_CLP ${PACKINGSOLVER_USE_CLP})
 FetchContent_Declare(
     mathoptsolverscmake
     GIT_REPOSITORY https://github.com/fontanf/mathoptsolverscmake.git
@@ -30,21 +52,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(mathoptsolverscmake)
 
 # Fetch Highs.
-set(BUILD_SHARED_LIBS OFF)
-FetchContent_Declare(
-    highs
-    URL https://github.com/ERGO-Code/HiGHS/archive/refs/tags/v1.7.2.zip
-    EXCLUDE_FROM_ALL)
-FetchContent_MakeAvailable(highs)
-
-# Fetch boost.
-set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options dynamic_bitset)
-set(BOOST_ENABLE_CMAKE ON)
-FetchContent_Declare(
-    Boost
-    URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
-    EXCLUDE_FROM_ALL)
-FetchContent_MakeAvailable(Boost)
+if(PACKINGSOLVER_USE_HIGHS)
+    set(BUILD_SHARED_LIBS OFF)
+    FetchContent_Declare(
+        highs
+        URL https://github.com/ERGO-Code/HiGHS/archive/refs/tags/v1.7.2.zip
+        EXCLUDE_FROM_ALL)
+    FetchContent_MakeAvailable(highs)
+endif()
 
 # Fetch fontanf/knapsacksolver.
 FetchContent_Declare(
@@ -65,8 +80,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(treesearchsolver)
 
 # Fetch fontanf/columngenerationsolver.
-set(COLUMNGENERATIONSOLVER_USE_CLP ON)
-set(COLUMNGENERATIONSOLVER_USE_HIGHS ON)
+set(COLUMNGENERATIONSOLVER_USE_CLP ${PACKINGSOLVER_USE_CLP})
+set(COLUMNGENERATIONSOLVER_USE_HIGHS ${PACKINGSOLVER_USE_HIGHS})
 FetchContent_Declare(
     columngenerationsolver
     GIT_REPOSITORY https://github.com/fontanf/columngenerationsolver.git
