@@ -52,6 +52,8 @@ void optimize_tree_search_worker(
                 ibs_parameters);
 
         // Check end.
+        if (ibs_output.optimal)
+            break;
         if (algorithm_formatter.end_boolean())
             break;
         if (parameters.timer.needs_to_end())
