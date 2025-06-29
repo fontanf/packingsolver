@@ -22,7 +22,25 @@ public:
         instance_(instance),
         parameters_(parameters),
         output_(output),
-        os_(parameters.create_os()) { }
+        os_(parameters.create_os())
+    {
+        // Check optimality.
+        if (instance_.objective() == Objective::Knapsack) {
+            if (equal(output_.knapsack_bound, output_.solution_pool.best().profit())) {
+                end_ = true;
+            }
+       } else if (instance_.objective() == Objective::BinPacking) {
+            if (output_.solution_pool.best().full()
+                    && output_.bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
+                end_ = true;
+            }
+       } else if (instance_.objective() == Objective::VariableSizedBinPacking) {
+            if (output_.solution_pool.best().full()
+                    && equal(output_.variable_sized_bin_packing_bound, output_.solution_pool.best().cost())) {
+                end_ = true;
+            }
+        }
+    }
 
     /** Print the header. */
     void start();
