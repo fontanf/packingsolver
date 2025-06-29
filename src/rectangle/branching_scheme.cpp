@@ -108,7 +108,7 @@ BranchingScheme::BranchingScheme(
                         return item_1.bl_corner.x < item_2.bl_corner.x;
                     });
             for (BinPos c = 0; c < solution_bin.copies; ++c) {
-                bool new_bin = true;
+                bool new_bin = 1;
                 for (const auto& solution_item: solution_items) {
                     //std::cout << "j " << solution_item.j
                     //    << " x " << solution_item.bl_corner.x

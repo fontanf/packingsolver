@@ -63,9 +63,9 @@ public:
         bool rotate;
 
         /**
-         * - < 0: the item is inserted in the last bin
-         * - 0: the item is inserted in a new bin with horizontal direction
-         * - 1: the item is inserted in a new bin with vertical direction
+         * - 0: the item is inserted in the last bin
+         * - 1: the item is inserted in a new bin with horizontal direction
+         * - 2: the item is inserted in a new bin with vertical direction
          */
         int8_t new_bin;
 
