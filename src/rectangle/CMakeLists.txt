@@ -21,12 +21,14 @@ target_link_libraries(PackingSolver_rectangle PUBLIC
     Threads::Threads)
 add_library(PackingSolver::rectangle ALIAS PackingSolver_rectangle)
 
-add_executable(PackingSolver_rectangle_main)
-target_sources(PackingSolver_rectangle_main PRIVATE
-    main.cpp)
-target_link_libraries(PackingSolver_rectangle_main PUBLIC
-    PackingSolver_rectangle
-    Boost::program_options
-    Boost::filesystem)
-set_target_properties(PackingSolver_rectangle_main PROPERTIES OUTPUT_NAME "packingsolver_rectangle")
-install(TARGETS PackingSolver_rectangle_main)
+if(PACKINGSOLVER_BUILD_MAIN)
+  add_executable(PackingSolver_rectangle_main)
+  target_sources(PackingSolver_rectangle_main PRIVATE
+      main.cpp)
+  target_link_libraries(PackingSolver_rectangle_main PUBLIC
+      PackingSolver_rectangle
+      Boost::program_options
+      Boost::filesystem)
+  set_target_properties(PackingSolver_rectangle_main PROPERTIES OUTPUT_NAME "packingsolver_rectangle")
+  install(TARGETS PackingSolver_rectangle_main)
+endif()

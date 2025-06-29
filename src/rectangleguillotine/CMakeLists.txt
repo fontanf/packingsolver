@@ -22,12 +22,14 @@ target_link_libraries(PackingSolver_rectangleguillotine PUBLIC
     Threads::Threads)
 add_library(PackingSolver::rectangleguillotine ALIAS PackingSolver_rectangleguillotine)
 
-add_executable(PackingSolver_rectangleguillotine_main)
-target_sources(PackingSolver_rectangleguillotine_main PRIVATE
-    main.cpp)
-target_link_libraries(PackingSolver_rectangleguillotine_main PUBLIC
-    PackingSolver_rectangleguillotine
-    Boost::program_options
-    Boost::filesystem)
-set_target_properties(PackingSolver_rectangleguillotine_main PROPERTIES OUTPUT_NAME "packingsolver_rectangleguillotine")
-install(TARGETS PackingSolver_rectangleguillotine_main)
+if(PACKINGSOLVER_BUILD_MAIN)
+  add_executable(PackingSolver_rectangleguillotine_main)
+  target_sources(PackingSolver_rectangleguillotine_main PRIVATE
+      main.cpp)
+  target_link_libraries(PackingSolver_rectangleguillotine_main PUBLIC
+      PackingSolver_rectangleguillotine
+      Boost::program_options
+      Boost::filesystem)
+  set_target_properties(PackingSolver_rectangleguillotine_main PROPERTIES OUTPUT_NAME "packingsolver_rectangleguillotine")
+  install(TARGETS PackingSolver_rectangleguillotine_main)
+endif()
