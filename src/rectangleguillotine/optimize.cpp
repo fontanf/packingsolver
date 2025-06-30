@@ -596,6 +596,15 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         }
     }
 
+    if (algorithm_formatter.end_boolean()) {
+        algorithm_formatter.end();
+        return output;
+    }
+    if (parameters.timer.needs_to_end()) {
+        algorithm_formatter.end();
+        return output;
+    }
+
     int last_algorithm =
         (use_column_generation)? 5:
         (use_dichotomic_search)? 4:
