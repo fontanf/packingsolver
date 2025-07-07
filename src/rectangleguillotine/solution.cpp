@@ -276,10 +276,14 @@ void Solution::append(
     bin.copies = copies;
     bin.first_cut_orientation = bin_old.first_cut_orientation;
     for (SolutionNode node: bin_old.nodes) {
-        if (node.item_type_id >= 0)
+        if (node.t == -4) {
+        } else if (node.f == -1) {
+            node.item_type_id = bin_type_id;
+        } else if (node.item_type_id >= 0) {
             node.item_type_id = (item_type_ids.empty())?
                 node.item_type_id:
                 item_type_ids[node.item_type_id];
+        }
         bin.nodes.push_back(node);
     }
     bins_.push_back(bin);
