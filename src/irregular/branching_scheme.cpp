@@ -6,7 +6,6 @@
 #include "shape/trapezoidation.hpp"
 #include "shape/supports.hpp"
 #include "shape/element_intersections.hpp"
-#include "shape/self_intersections_removal.hpp"
 
 #include <iostream>
 
@@ -73,6 +72,7 @@ BranchingScheme::BranchingScheme(
             parameters.maximum_approximation_ratio)),
     parameters_(parameters)
 {
+    //std::cout << "BranchingScheme" << std::endl;
     bool write_shapes = false;
 
     for (Direction direction: {
@@ -99,7 +99,7 @@ BranchingScheme::BranchingScheme(
             BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
             Shape shape = convert_shape(bin_type.shape_scaled, direction);
 
-            shape = shape::clean_extreme_slopes(shape, false);
+            shape = shape::clean_extreme_slopes_inner(shape).front();
 
             auto mm = shape.compute_min_max();
             bb_bin_type.x_min = mm.first.x;
@@ -159,8 +159,7 @@ BranchingScheme::BranchingScheme(
 
                 ShapeWithHoles shape_inflated;
                 shape_inflated.shape = convert_shape(simplified_inflated_shape, direction);
-                shape_inflated.shape = shape::clean_extreme_slopes(shape_inflated.shape, true);
-                shape_inflated = shape::remove_self_intersections(shape_inflated.shape);
+                shape_inflated.shape = shape::clean_extreme_slopes_outer(shape_inflated.shape).shape;
 
                 // Supports.
                 shape::ShapeSupports supports = shape::compute_shape_supports(shape_inflated.shape, false);
@@ -192,8 +191,7 @@ BranchingScheme::BranchingScheme(
                 const Shape& simplified_inflated_shape = simplified_bin_type.defects[defect_id].shape_inflated.shape;
                 ShapeWithHoles shape_inflated;
                 shape_inflated.shape = convert_shape(simplified_inflated_shape, direction);
-                shape_inflated.shape = shape::clean_extreme_slopes(shape_inflated.shape, true);
-                shape_inflated = shape::remove_self_intersections(shape_inflated.shape);
+                shape_inflated = shape::clean_extreme_slopes_outer(shape_inflated.shape);
                 for (ShapePos hole_pos = 0;
                         hole_pos < (ShapePos)simplified_bin_type.defects[defect_id].shape_inflated.holes.size();
                         ++hole_pos) {
@@ -201,9 +199,8 @@ BranchingScheme::BranchingScheme(
 
                     Shape shape_deflated = convert_shape(simplified_deflated_hole, direction);
 
-                    shape_deflated = shape::clean_extreme_slopes(shape_deflated, false);
+                    auto res = shape::clean_extreme_slopes_inner(shape_deflated);
 
-                    auto res = shape::extract_all_holes_from_self_intersecting_hole(shape_deflated);
                     for (const auto& hole: res)
                         shape_inflated.holes.push_back(hole);
                 }
@@ -290,8 +287,7 @@ BranchingScheme::BranchingScheme(
 
                         ShapeWithHoles shape;
                         shape.shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
-                        shape.shape = shape::clean_extreme_slopes(shape.shape, true);
-                        shape = shape::remove_self_intersections(shape.shape);
+                        shape = shape::clean_extreme_slopes_outer(shape.shape);
                         for (ShapePos hole_pos = 0;
                                 hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape.holes.size();
                                 ++hole_pos) {
@@ -299,9 +295,8 @@ BranchingScheme::BranchingScheme(
 
                             Shape hole = convert_shape(simplified_hole, angle_range.first, mirror, direction);
 
-                            hole = shape::clean_extreme_slopes(hole, false);
+                            auto res = shape::clean_extreme_slopes_inner(hole);
 
-                            auto res = shape::extract_all_holes_from_self_intersecting_hole(hole);
                             for (const auto& hole: res)
                                 shape.holes.push_back(hole);
                         }
@@ -365,7 +360,7 @@ BranchingScheme::BranchingScheme(
                         //    << " item_shape_pos " << item_shape_pos
                         //    << " angle " << angle_range.first
                         //    << " mirror " << mirror
-                        //    << " simplified_shape " << simplified_shape.to_string(2)
+                        //    //<< " simplified_shape " << simplified_shape.to_string(2)
                         //    << std::endl;
 
                         if (write_shapes) {
@@ -377,8 +372,7 @@ BranchingScheme::BranchingScheme(
 
                         ShapeWithHoles shape_inflated;
                         shape_inflated.shape = convert_shape(simplified_inflated_shape, angle_range.first, mirror, direction);
-                        shape_inflated.shape = shape::clean_extreme_slopes(shape_inflated.shape, true);
-                        shape_inflated = shape::remove_self_intersections(shape_inflated.shape);
+                        shape_inflated = shape::clean_extreme_slopes_outer(shape_inflated.shape);
                         for (ShapePos hole_pos = 0;
                                 hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape_inflated.holes.size();
                                 ++hole_pos) {
@@ -386,9 +380,8 @@ BranchingScheme::BranchingScheme(
 
                             Shape hole_deflated = convert_shape(simplified_deflated_hole, angle_range.first, mirror, direction);
 
-                            hole_deflated = shape::clean_extreme_slopes(hole_deflated, false);
+                            auto res = shape::clean_extreme_slopes_inner(hole_deflated);
 
-                            auto res = shape::extract_all_holes_from_self_intersecting_hole(hole_deflated);
                             for (const auto& hole: res)
                                 shape_inflated.holes.push_back(hole);
                         }
@@ -2038,7 +2031,7 @@ nlohmann::json BranchingScheme::json_export_init() const
 
         json_bins_init_ids_[bin_type_id] = i;
         json_init[i][0] = {
-            {"Shape", bin_type.shape_orig.to_json()},
+            {"Shape", bin_type.shape_orig.to_json()["elements"]},
             {"FillColor", ""},
         };
         for (DefectId defect_id = 0;
@@ -2046,14 +2039,14 @@ nlohmann::json BranchingScheme::json_export_init() const
                 ++defect_id) {
             const Defect& defect = bin_type.defects[defect_id];
             json_init[i][defect_id + 1] = {
-                {"Shape", bin_type.shape_orig.to_json()},
+                {"Shape", bin_type.shape_orig.to_json()["elements"]},
                 {"FillColor", "red"},
             };
             for (Counter hole_pos = 0;
                     hole_pos < (Counter)defect.shape_orig.holes.size();
                     ++hole_pos) {
                 const Shape& hole = defect.shape_orig.holes[hole_pos];
-                json_init[i][hole_pos]["Holes"][hole_pos] = hole.to_json();
+                json_init[i][hole_pos]["Holes"][hole_pos] = hole.to_json()["elements"];
             }
         }
         i++;
@@ -2079,14 +2072,14 @@ nlohmann::json BranchingScheme::json_export_init() const
                     const ItemShape& item_shape = item_type.shapes[item_shape_pos];
                     Shape shape = convert_shape(item_shape.shape_orig.shape, angle_range.first, mirror);
                     json_init[i][item_shape_pos] = {
-                        {"Shape", shape.to_json()},
+                        {"Shape", shape.to_json()["elements"]},
                         {"FillColor", "blue"},
                     };
                     for (Counter hole_pos = 0;
                             hole_pos < (Counter)item_shape.shape_orig.holes.size();
                             ++hole_pos) {
                         const Shape& hole = item_shape.shape_orig.holes[hole_pos];
-                        json_init[i][item_shape_pos]["Holes"][hole_pos] = hole.to_json();
+                        json_init[i][item_shape_pos]["Holes"][hole_pos] = hole.to_json()["elements"];
                     }
                 }
                 i++;

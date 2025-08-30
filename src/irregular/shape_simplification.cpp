@@ -45,6 +45,7 @@ SimplifiedInstance irregular::shape_simplification(
         const Instance& instance,
         double maximum_approximation_ratio)
 {
+    //std::cout << "shape_simplification" << std::endl;
     std::vector<shape::SimplifyInputShape> simplify_inflated_bin_types_input;
     std::vector<shape::SimplifyInputShape> simplify_item_types_input;
     std::vector<shape::SimplifyInputShape> simplify_inflated_item_types_input;
@@ -363,5 +364,6 @@ SimplifiedInstance irregular::shape_simplification(
         }
     }
 
+    //std::cout << "shape_simplification end" << std::endl;
     return simplified_instance;
 }

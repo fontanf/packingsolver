@@ -2,7 +2,6 @@
 
 #include "shape/offset.hpp"
 #include "shape/extract_borders.hpp"
-#include "shape/self_intersections_removal.hpp"
 
 #include <sstream>
 
@@ -366,8 +365,7 @@ ShapeWithHoles process_shape_outer(
 {
     bool outer = true;
     Shape shape_tmp = shape::approximate_by_line_segments(shape, 1, outer);
-    shape_tmp = shape::clean_extreme_slopes(shape_tmp, outer);
-    return shape::remove_self_intersections(shape_tmp);
+    return shape::clean_extreme_slopes_outer(shape_tmp);
 }
 
 std::vector<Shape> process_shape_inner(
@@ -375,8 +373,7 @@ std::vector<Shape> process_shape_inner(
 {
     bool outer = false;
     Shape shape_tmp = shape::approximate_by_line_segments(shape, 1, outer);
-    shape_tmp = shape::clean_extreme_slopes(shape_tmp, outer);
-    return shape::extract_all_holes_from_self_intersecting_hole(shape_tmp);
+    return shape::clean_extreme_slopes_inner(shape_tmp);
 }
 
 }
@@ -458,21 +455,16 @@ Instance InstanceBuilder::build()
             ItemShape& item_shape = item_type.shapes[shape_pos];
             if (!item_shape.shape_inflated.shape.elements.empty())
                 continue;
-            auto shape_tmp_0 = inflate(
-                    item_shape.shape_scaled.shape,
-                    instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing,
-                    false);
-            auto res = process_shape_outer(shape_tmp_0.shape);
+            ShapeWithHoles inflated_shape = inflate(
+                    item_shape.shape_scaled,
+                    instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing);
+            auto res = process_shape_outer(inflated_shape.shape);
             item_shape.shape_inflated.shape = res.shape;
             for (const Shape& hole: res.holes)
                 item_shape.shape_inflated.holes.push_back(hole);
 
-            for (const Shape& hole: item_shape.shape_scaled.holes) {
-                auto shape_tmp_0 = deflate(
-                        hole,
-                        instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing,
-                        false);
-                auto res = process_shape_inner(shape_tmp_0.front());
+            for (const Shape& hole: inflated_shape.holes) {
+                auto res = process_shape_inner(hole);
                 for (const Shape& hole: res)
                     item_shape.shape_inflated.holes.push_back(hole);
             }
@@ -547,20 +539,18 @@ Instance InstanceBuilder::build()
             if (!defect.shape_inflated.shape.elements.empty())
                 continue;
 
-            auto shape_tmp_0 = inflate(
-                    defect.shape_scaled.shape,
-                    instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing,
-                    false);
-            auto res = process_shape_outer(shape_tmp_0.shape);
+            ShapeWithHoles inflated_shape = inflate(
+                    defect.shape_scaled,
+                    instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
+            auto res = process_shape_outer(inflated_shape.shape);
             defect.shape_inflated.shape = res.shape;
             for (const Shape& hole: res.holes)
                 defect.shape_inflated.holes.push_back(hole);
 
-            for (const Shape& hole: defect.shape_scaled.holes) {
+            for (const Shape& hole: inflated_shape.holes) {
                 auto shape_tmp_0 = deflate(
                         hole,
-                        instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing,
-                        false);
+                        instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
                 auto res = process_shape_inner(shape_tmp_0.front());
                 for (const Shape& hole: res)
                     defect.shape_inflated.holes.push_back(hole);
@@ -574,11 +564,10 @@ Instance InstanceBuilder::build()
                 border.type = -2;
                 border.shape_scaled.shape = shape_border;
 
-                auto shape_tmp_0 = inflate(
+                ShapeWithHoles inflated_shape = inflate(
                         shape_border,
-                        instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing,
-                        false);
-                auto res = process_shape_outer(shape_tmp_0.shape);
+                        instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
+                auto res = process_shape_outer(inflated_shape.shape);
                 border.shape_inflated.shape = res.shape;
                 for (const Shape& hole: res.holes)
                     border.shape_inflated.holes.push_back(hole);
