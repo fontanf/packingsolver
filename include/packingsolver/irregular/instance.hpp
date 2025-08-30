@@ -41,22 +41,13 @@ struct Parameters
 struct Defect
 {
     /** Shape. */
-    Shape shape_orig;
+    ShapeWithHoles shape_orig;
 
     /** Scaled shape. */
-    Shape shape_scaled;
-
-    /** Holes. */
-    std::vector<Shape> holes_orig;
-
-    /** Scaled oles. */
-    std::vector<Shape> holes_scaled;
+    ShapeWithHoles shape_scaled;
 
     /** Inflated (scaled) shape. */
-    Shape shape_inflated;
-
-    /** Inflated (scaled) holes. */
-    std::vector<Shape> holes_deflated;
+    ShapeWithHoles shape_inflated;
 
     /** Type of the defect. */
     DefectTypeId type = -1;
@@ -125,26 +116,13 @@ struct BinType
 struct ItemShape
 {
     /** Main shape. */
-    Shape shape_orig;
-
-    /**
-     * Holes.
-     *
-     * Holes are shapes contained inside the main shape.
-     */
-    std::vector<Shape> holes_orig;
+    ShapeWithHoles shape_orig;
 
     /** Scaled shape. */
-    Shape shape_scaled;
-
-    /** Scaled Holes. */
-    std::vector<Shape> holes_scaled;
+    ShapeWithHoles shape_scaled;
 
     /** Inflated (scaled) shape. */
-    Shape shape_inflated;
-
-    /** Inflated (scaled) holes. */
-    std::vector<Shape> holes_deflated;
+    ShapeWithHoles shape_inflated;
 
     /** Quality rule. */
     QualityRule quality_rule = -1;

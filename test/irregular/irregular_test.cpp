@@ -26,7 +26,7 @@ TEST(Irregular, BinCopies)
     shape.elements.push_back(shape_element);
 
     ItemShape item_shape;
-    item_shape.shape_orig = shape;
+    item_shape.shape_orig.shape = shape;
 
     InstanceBuilder instance_builder;
     instance_builder.set_objective(packingsolver::Objective::VariableSizedBinPacking);

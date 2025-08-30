@@ -9,13 +9,9 @@ namespace irregular
 
 struct SimplifiedShape
 {
-    Shape shape;
+    ShapeWithHoles shape;
 
-    std::vector<Shape> holes;
-
-    Shape shape_inflated;
-
-    std::vector<Shape> holes_deflated;
+    ShapeWithHoles shape_inflated;
 };
 
 struct SimplifiedBinType

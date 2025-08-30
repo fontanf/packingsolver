@@ -19,7 +19,7 @@ def shape_path(path_x, path_y, shape, is_hole=False):
         if t == "CircularArc":
             xc = element["center"]["x"]
             yc = element["center"]["y"]
-            anticlockwise = 1 if element["anticlockwise"] else 0
+            orientation = element["orientation"]
             rc = math.sqrt((xc - xs)**2 + (yc - ys)**2)
 
         if is_hole:
@@ -39,9 +39,11 @@ def shape_path(path_x, path_y, shape, is_hole=False):
             end_cos = (xe - xc) / rc
             end_sin = (ye - yc) / rc
             end_angle = math.atan2(end_sin, end_cos)
-            if anticlockwise and end_angle <= start_angle:
+            if (orientation in ["Anticlockwise", "anticlockwise", "A", "a"]
+                    and end_angle <= start_angle):
                 end_angle += 2 * math.pi
-            if not anticlockwise and end_angle >= start_angle:
+            if (orientation in ["Clockwise", "clockwise", "C", "c"]
+                    and end_angle >= start_angle):
                 end_angle -= 2 * math.pi
 
             t = np.linspace(start_angle, end_angle, 1024)
