@@ -519,7 +519,8 @@ Instance InstanceBuilder::build()
 
         // Compute scaled shapes.
         if (bin_type.shape_scaled.elements.empty()) {
-            bin_type.shape_scaled = instance_.parameters().scale_value * bin_type.shape_orig;
+            auto res = process_shape_inner(instance_.parameters().scale_value * bin_type.shape_orig);
+            bin_type.shape_scaled = res.front();
             for (Defect& defect: bin_type.defects) {
                 auto res = process_shape_outer(instance_.parameters().scale_value * defect.shape_orig.shape);
                 defect.shape_scaled.shape = res.shape;

@@ -1,0 +1,251 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "circle",
+            "radius": 4.33
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "height": 1.23,
+            "width": 2.2,
+            "profit": 2.706,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.28,
+            "width": 1.29,
+            "profit": 4.2312,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.03,
+            "width": 1.22,
+            "profit": 4.9166,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.51,
+            "width": 1.1,
+            "profit": 4.961,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.79,
+            "width": 1.31,
+            "profit": 6.274900000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.41,
+            "width": 1.44,
+            "profit": 6.3504,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.39,
+            "width": 4.68,
+            "profit": 6.505199999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.75,
+            "width": 3.88,
+            "profit": 6.79,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.68,
+            "width": 4.45,
+            "profit": 7.476,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.72,
+            "width": 3.01,
+            "profit": 8.1872,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.72,
+            "width": 2.31,
+            "profit": 8.593200000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.33,
+            "width": 3.71,
+            "profit": 8.6443,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.26,
+            "width": 3.92,
+            "profit": 8.8592,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.19,
+            "width": 4.45,
+            "profit": 9.7455,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.15,
+            "width": 2.56,
+            "profit": 10.624,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.6,
+            "width": 4.69,
+            "profit": 12.194,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.12,
+            "width": 3.24,
+            "profit": 13.3488,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.67,
+            "width": 2.94,
+            "profit": 13.7298,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.58,
+            "width": 3.25,
+            "profit": 14.885,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.36,
+            "width": 4.05,
+            "profit": 17.658,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        }
+    ]
+}

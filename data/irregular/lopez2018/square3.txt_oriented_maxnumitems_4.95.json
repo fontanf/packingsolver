@@ -1,0 +1,371 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "circle",
+            "radius": 4.95
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "height": 1.06,
+            "width": 1.06,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.16,
+            "width": 1.16,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.21,
+            "width": 1.21,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.37,
+            "width": 1.37,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.62,
+            "width": 1.62,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.72,
+            "width": 1.72,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.76,
+            "width": 1.76,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.83,
+            "width": 1.83,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.92,
+            "width": 1.92,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.92,
+            "width": 1.92,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.05,
+            "width": 2.05,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.07,
+            "width": 2.07,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.18,
+            "width": 2.18,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.18,
+            "width": 2.18,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.19,
+            "width": 2.19,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.36,
+            "width": 2.36,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.39,
+            "width": 2.39,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.58,
+            "width": 2.58,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.66,
+            "width": 2.66,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.69,
+            "width": 2.69,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.74,
+            "width": 2.74,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.22,
+            "width": 3.22,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.29,
+            "width": 3.29,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.49,
+            "width": 3.49,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.52,
+            "width": 3.52,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.71,
+            "width": 3.71,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.36,
+            "width": 4.36,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.44,
+            "width": 4.44,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.59,
+            "width": 4.59,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.84,
+            "width": 4.84,
+            "profit": 1,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        }
+    ]
+}

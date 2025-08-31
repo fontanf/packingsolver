@@ -1,0 +1,1211 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "type": "circle",
+            "radius": 14.14
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "height": 1.86,
+            "width": 3.89,
+            "profit": 7.2354,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.23,
+            "width": 1.4,
+            "profit": 4.521999999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.26,
+            "width": 2.96,
+            "profit": 6.6895999999999995,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.94,
+            "width": 2.91,
+            "profit": 8.5554,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.85,
+            "width": 2.22,
+            "profit": 8.547,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.43,
+            "width": 4.36,
+            "profit": 14.954800000000002,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.17,
+            "width": 2.47,
+            "profit": 10.299900000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.55,
+            "width": 3.36,
+            "profit": 8.568,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.5,
+            "width": 3.18,
+            "profit": 11.13,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.9,
+            "width": 3.5,
+            "profit": 17.150000000000002,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.73,
+            "width": 1.05,
+            "profit": 4.966500000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.34,
+            "width": 4.39,
+            "profit": 10.272599999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.05,
+            "width": 2.64,
+            "profit": 10.692,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.24,
+            "width": 3.83,
+            "profit": 4.7492,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.72,
+            "width": 4.9,
+            "profit": 18.228,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.89,
+            "width": 1.3,
+            "profit": 5.057,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.02,
+            "width": 4.39,
+            "profit": 13.2578,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.78,
+            "width": 3.56,
+            "profit": 6.3368,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.38,
+            "width": 4.67,
+            "profit": 20.4546,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.81,
+            "width": 3.6,
+            "profit": 10.116,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.23,
+            "width": 4.51,
+            "profit": 19.0773,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.97,
+            "width": 1.95,
+            "profit": 9.6915,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.54,
+            "width": 4.93,
+            "profit": 17.452199999999998,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.52,
+            "width": 3.76,
+            "profit": 5.715199999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.0,
+            "width": 4.13,
+            "profit": 8.26,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.66,
+            "width": 1.24,
+            "profit": 2.0584,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.96,
+            "width": 2.92,
+            "profit": 14.4832,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.19,
+            "width": 2.16,
+            "profit": 6.8904000000000005,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.94,
+            "width": 4.95,
+            "profit": 9.603,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.01,
+            "width": 2.69,
+            "profit": 2.7169,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.89,
+            "width": 3.42,
+            "profit": 16.723799999999997,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.06,
+            "width": 4.83,
+            "profit": 19.6098,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.82,
+            "width": 2.31,
+            "profit": 8.8242,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.78,
+            "width": 2.44,
+            "profit": 11.6632,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.91,
+            "width": 1.28,
+            "profit": 5.0048,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.38,
+            "width": 3.88,
+            "profit": 9.234399999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.07,
+            "width": 4.41,
+            "profit": 4.7187,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.77,
+            "width": 1.4,
+            "profit": 6.677999999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.07,
+            "width": 4.33,
+            "profit": 17.6231,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.38,
+            "width": 3.74,
+            "profit": 12.6412,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.51,
+            "width": 2.24,
+            "profit": 10.102400000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.28,
+            "width": 4.68,
+            "profit": 15.350399999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.15,
+            "width": 2.18,
+            "profit": 6.867,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.3,
+            "width": 4.82,
+            "profit": 20.726,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.58,
+            "width": 1.0,
+            "profit": 2.58,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.18,
+            "width": 2.71,
+            "profit": 3.1978,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.46,
+            "width": 3.81,
+            "profit": 13.1826,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.95,
+            "width": 1.61,
+            "profit": 7.969500000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.95,
+            "width": 3.65,
+            "profit": 14.4175,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.46,
+            "width": 3.89,
+            "profit": 13.4594,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.69,
+            "width": 3.17,
+            "profit": 14.8673,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.02,
+            "width": 1.21,
+            "profit": 2.4442,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.65,
+            "width": 2.88,
+            "profit": 13.392000000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.01,
+            "width": 4.6,
+            "profit": 4.646,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.29,
+            "width": 1.94,
+            "profit": 8.3226,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.27,
+            "width": 4.92,
+            "profit": 11.1684,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.5,
+            "width": 2.87,
+            "profit": 10.045,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.48,
+            "width": 4.44,
+            "profit": 19.891200000000005,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.1,
+            "width": 2.61,
+            "profit": 2.871,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.08,
+            "width": 1.05,
+            "profit": 3.2340000000000004,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.26,
+            "width": 4.54,
+            "profit": 10.260399999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.69,
+            "width": 2.8,
+            "profit": 7.531999999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.36,
+            "width": 2.89,
+            "profit": 9.7104,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.44,
+            "width": 1.72,
+            "profit": 2.4768,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.98,
+            "width": 1.89,
+            "profit": 7.5222,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.84,
+            "width": 2.31,
+            "profit": 8.8704,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.03,
+            "width": 2.85,
+            "profit": 8.6355,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.82,
+            "width": 1.48,
+            "profit": 2.6936,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.15,
+            "width": 1.23,
+            "profit": 5.104500000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.77,
+            "width": 1.44,
+            "profit": 2.5488,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.63,
+            "width": 1.57,
+            "profit": 5.6991000000000005,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.95,
+            "width": 4.77,
+            "profit": 9.301499999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.07,
+            "width": 4.57,
+            "profit": 9.4599,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.46,
+            "width": 3.72,
+            "profit": 12.8712,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.37,
+            "width": 4.91,
+            "profit": 6.726700000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.02,
+            "width": 1.98,
+            "profit": 2.0196,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.1,
+            "width": 3.37,
+            "profit": 3.7070000000000003,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.18,
+            "width": 3.96,
+            "profit": 8.632800000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.76,
+            "width": 2.9,
+            "profit": 13.803999999999998,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.46,
+            "width": 3.2,
+            "profit": 11.072000000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.1,
+            "width": 1.68,
+            "profit": 5.208,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.4,
+            "width": 4.84,
+            "profit": 11.616,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.58,
+            "width": 4.72,
+            "profit": 12.1776,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.51,
+            "width": 3.25,
+            "profit": 14.657499999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.73,
+            "width": 4.91,
+            "profit": 18.3143,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.92,
+            "width": 2.25,
+            "profit": 6.57,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.44,
+            "width": 3.48,
+            "profit": 11.9712,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.91,
+            "width": 1.18,
+            "profit": 5.7938,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 4.17,
+            "width": 3.19,
+            "profit": 13.302299999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.2,
+            "width": 2.88,
+            "profit": 6.336,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.64,
+            "width": 4.86,
+            "profit": 12.830400000000001,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.03,
+            "width": 1.93,
+            "profit": 5.847899999999999,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.53,
+            "width": 3.79,
+            "profit": 13.3787,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.54,
+            "width": 2.17,
+            "profit": 5.5118,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.68,
+            "width": 1.87,
+            "profit": 3.1416,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.58,
+            "width": 1.16,
+            "profit": 1.8328,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 1.77,
+            "width": 3.35,
+            "profit": 5.9295,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.9,
+            "width": 4.45,
+            "profit": 12.905,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 2.12,
+            "width": 3.78,
+            "profit": 8.0136,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        },
+        {
+            "type": "rectangle",
+            "height": 3.24,
+            "width": 3.05,
+            "profit": 9.882,
+            "allowed_rotations": [
+                {
+                    "start": 0,
+                    "end": 0
+                }
+            ]
+        }
+    ]
+}

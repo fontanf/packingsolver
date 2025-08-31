@@ -1,9 +1,10 @@
 {
+    "objective": "open-dimension-x",
     "bin_types": [
         {
             "type": "rectangle",
             "height": 8.5,
-            "length": 100
+            "width": 100
         }
     ],
     "item_types": [
