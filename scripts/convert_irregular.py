@@ -191,11 +191,12 @@ def convert_packomania_coop():
         path = os.path.join("packomania", "coop", instance_name + ".txt")
 
         dic = {
+            "objective": "open-dimension-x",
             "bin_types": [
                 {
                     "type": "rectangle",
                     "height": widths[instance_name.split("-", 1)[0]],
-                    "length": 100,
+                    "width": 100,
                 }
             ],
             "item_types": [],
@@ -622,6 +623,62 @@ def convert_cgshop2024():
                         dic["item_types"][-1]["vertices"].append({"x": x, "y": y})
                 write_dict(dic, path)
 
+def convert_lopez2018(filename, number_of_radii, squares=False):
+    w = words(filename)
+    dic = {
+        "objective": "knapsack",
+        "bin_types": [{
+            "type": "circle",
+            "radius": None,
+            }],
+        "item_types": [],
+    }
+    number_of_items = int(next(w))
+    radii = []
+    for _ in range(number_of_radii):
+        radii.append(float(next(w)))
+    for _ in range(number_of_items):
+        l1 = float(next(w))
+        if squares:
+            l2 = l1
+        else:
+            l2 = float(next(w))
+        dic["item_types"].append({
+            "type": "rectangle",
+            "height": l1,
+            "width": l2,
+            "profit": None,
+            "allowed_rotations": None})
+
+    for obj in ["max_num_items", "max_area"]:
+        for rotation in [False, True]:
+            if squares and rotation:
+                continue
+            name = filename
+            allowed_rotations = [{"start": 0, "end": 0}]
+            if rotation:
+                allowed_rotations.append({"start": 90, "end": 90})
+                name += "_rotation"
+            else:
+                name += "_oriented"
+            if obj == "max_num_items":
+                name += "_maxnumitems"
+            else:
+                name += "_maxarea"
+
+            for item_id in range(number_of_items):
+                item = dic["item_types"][item_id]
+                if obj == "max_num_items":
+                    item["profit"] = 1
+                else:
+                    item["profit"] = item["width"] * item["height"]
+                item["allowed_rotations"] = allowed_rotations
+            if number_of_radii == 1:
+                write_dict(dic, name)
+            else:
+                for radius in radii:
+                    dic["bin_types"][0]["radius"] = radius
+                    write_dict(dic, name + "_" + str(radius))
 
 def convert_oliveira2000(
         filename,
@@ -689,31 +746,49 @@ def convert_oliveira2000(
 
 if __name__ == "__main__":
 
-    # convert_packomania_coop()
+    convert_packomania_coop()
     # convert_cgshop2024()
 
-    convert_oliveira2000(os.path.join("albano1980", "albano_2007-05-15", "albano.xml"))
-    convert_oliveira2000(os.path.join("bounsaythip1997", "mao_2007-04-23", "mao.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe1.xml"))
-    convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe2.xml"))
-    convert_oliveira2000(os.path.join("fujita1993", "fu_2007-05-15", "fu.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("han1996", "han_2007-04-23", "han.xml"))
-    convert_oliveira2000(os.path.join("hopper2000", "poly1a.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly2a.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly2b.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly3a.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly3b.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly4a.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly4b.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly5a.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly5b.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs1.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs2.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("marques1991", "marques_2007-05-15", "marques.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("oliveira2000", "blaz_2007-04-23", "blaz.xml"))
-    convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes0.xml"))
-    convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes1.xml"))
-    convert_oliveira2000(os.path.join("oliveira2000", "shirts_2007-05-15", "shirts.xml"))
-    convert_oliveira2000(os.path.join("oliveira2000", "swim_2007-05-15", "swim.xml"))
-    convert_oliveira2000(os.path.join("oliveira2000", "trousers_2007-05-15", "trousers.xml"))
-    convert_oliveira2000(os.path.join("ratanapan1997", "dagli_2007-05-15", "dagli.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("albano1980", "albano_2007-05-15", "albano.xml"))
+    # convert_oliveira2000(os.path.join("bounsaythip1997", "mao_2007-04-23", "mao.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe1.xml"))
+    # convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe2.xml"))
+    # convert_oliveira2000(os.path.join("fujita1993", "fu_2007-05-15", "fu.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("han1996", "han_2007-04-23", "han.xml"))
+    # convert_oliveira2000(os.path.join("hopper2000", "poly1a.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly2a.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly2b.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly3a.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly3b.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly4a.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly4b.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly5a.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly5b.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs1.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs2.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("marques1991", "marques_2007-05-15", "marques.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("oliveira2000", "blaz_2007-04-23", "blaz.xml"))
+    # convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes0.xml"))
+    # convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes1.xml"))
+    # convert_oliveira2000(os.path.join("oliveira2000", "shirts_2007-05-15", "shirts.xml"))
+    # convert_oliveira2000(os.path.join("oliveira2000", "swim_2007-05-15", "swim.xml"))
+    # convert_oliveira2000(os.path.join("oliveira2000", "trousers_2007-05-15", "trousers.xml"))
+    # convert_oliveira2000(os.path.join("ratanapan1997", "dagli_2007-05-15", "dagli.xml"), "http://globalnest.fe.up.pt/nesting")
+
+    convert_lopez2018(os.path.join("lopez2018", "square1.txt"), 3, True)
+    convert_lopez2018(os.path.join("lopez2018", "square2.txt"), 3, True)
+    convert_lopez2018(os.path.join("lopez2018", "square3.txt"), 3, True)
+    convert_lopez2018(os.path.join("lopez2018", "rect1.txt"), 3, False)
+    convert_lopez2018(os.path.join("lopez2018", "rect2.txt"), 3, False)
+    convert_lopez2018(os.path.join("lopez2018", "rect3.txt"), 3, False)
+    convert_lopez2018(os.path.join("bouzid2020", "square100.txt"), 3, True)
+    convert_lopez2018(os.path.join("bouzid2020", "square150.txt"), 3, True)
+    convert_lopez2018(os.path.join("bouzid2020", "square200.txt"), 3, True)
+    convert_lopez2018(os.path.join("bouzid2020", "rect100.txt"), 3, False)
+    convert_lopez2018(os.path.join("bouzid2020", "rect150.txt"), 3, False)
+    convert_lopez2018(os.path.join("bouzid2020", "rect200.txt"), 3, False)
+    convert_lopez2018(os.path.join("silva2021", "rect30_S1.txt"), 1, False)
+    convert_lopez2018(os.path.join("silva2021", "rect30_S2.txt"), 1, False)
+    convert_lopez2018(os.path.join("silva2021", "rect30_S3.txt"), 1, False)
+    convert_lopez2018(os.path.join("silva2021", "rect30_S4.txt"), 1, False)
+    convert_lopez2018(os.path.join("silva2021", "rect30_S5.txt"), 1, False)

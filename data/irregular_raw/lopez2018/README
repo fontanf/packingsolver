@@ -1,0 +1,21 @@
+Source: http://people.brunel.ac.uk/~mastjjb/jeb/orlib/rspackinfo.html
+
+Packing unequal rectangles and squares
+There are currently 6 data files. 
+These data files are the test problems used in: 
+Packing unequal rectangles and squares in a fixed size circular container using formulation space search 
+by C.O. Lopez and J.E. Beasley.
+Computers & Operations Research, vol.94, 2018, pp106-117
+https://doi.org/10.1016/j.cor.2018.02.012 
+The test problems are the files:
+square1, square2, square3, rect1, rect2, rect3
+
+The format of the square data files is:
+number of squares (n), 3 values for the container radius
+for square i (i=1,2,...,n) in turn:
+   length of square side
+
+The format of the rect data files is:
+number of rectangles (n), 3 values for the container radius
+for rectangle i (i=1,2,...,n) in turn:
+   rectangle length, rectangle width
