@@ -3,6 +3,7 @@
 #include "irregular/shape_simplification.hpp"
 
 #include "shape/convex_hull.hpp"
+#include "shape/clean.hpp"
 #include "shape/trapezoidation.hpp"
 #include "shape/supports.hpp"
 #include "shape/element_intersections.hpp"

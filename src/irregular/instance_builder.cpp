@@ -357,27 +357,6 @@ void InstanceBuilder::read(
 //////////////////////////////////// Build /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace
-{
-
-ShapeWithHoles process_shape_outer(
-        const Shape& shape)
-{
-    bool outer = true;
-    Shape shape_tmp = shape::approximate_by_line_segments(shape, 1, outer);
-    return shape::clean_extreme_slopes_outer(shape_tmp);
-}
-
-std::vector<Shape> process_shape_inner(
-        const Shape& shape)
-{
-    bool outer = false;
-    Shape shape_tmp = shape::approximate_by_line_segments(shape, 1, outer);
-    return shape::clean_extreme_slopes_inner(shape_tmp);
-}
-
-}
-
 Instance InstanceBuilder::build()
 {
     // Compute scale value.
@@ -432,17 +411,7 @@ Instance InstanceBuilder::build()
                         "parameters().quality_rules.size(): " + std::to_string(instance_.parameters().quality_rules.size()) + ".");
             }
 
-            auto res = process_shape_outer(instance_.parameters().scale_value * item_shape.shape_orig.shape);
-            item_shape.shape_scaled.shape = res.shape;
-            for (const Shape& hole: res.holes)
-                item_shape.shape_scaled.holes.push_back(hole);
-
-            for (const Shape& hole: item_shape.shape_orig.holes) {
-                auto res = process_shape_inner(instance_.parameters().scale_value * hole);
-                for (const Shape& hole: res)
-                    item_shape.shape_scaled.holes.push_back(hole);
-            }
-
+            item_shape.shape_scaled = instance_.parameters().scale_value * item_shape.shape_orig;
             item_type.area_scaled += item_shape.shape_scaled.shape.compute_area();
             for (const Shape& hole: item_shape.shape_scaled.holes)
                 item_type.area_scaled -= hole.compute_area();
@@ -455,19 +424,9 @@ Instance InstanceBuilder::build()
             ItemShape& item_shape = item_type.shapes[shape_pos];
             if (!item_shape.shape_inflated.shape.elements.empty())
                 continue;
-            ShapeWithHoles inflated_shape = inflate(
+            item_shape.shape_inflated = inflate(
                     item_shape.shape_scaled,
                     instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing);
-            auto res = process_shape_outer(inflated_shape.shape);
-            item_shape.shape_inflated.shape = res.shape;
-            for (const Shape& hole: res.holes)
-                item_shape.shape_inflated.holes.push_back(hole);
-
-            for (const Shape& hole: inflated_shape.holes) {
-                auto res = process_shape_inner(hole);
-                for (const Shape& hole: res)
-                    item_shape.shape_inflated.holes.push_back(hole);
-            }
         }
 
         // Update number_of_items_.
@@ -519,43 +478,18 @@ Instance InstanceBuilder::build()
 
         // Compute scaled shapes.
         if (bin_type.shape_scaled.elements.empty()) {
-            auto res = process_shape_inner(instance_.parameters().scale_value * bin_type.shape_orig);
-            bin_type.shape_scaled = res.front();
-            for (Defect& defect: bin_type.defects) {
-                auto res = process_shape_outer(instance_.parameters().scale_value * defect.shape_orig.shape);
-                defect.shape_scaled.shape = res.shape;
-                for (const Shape& hole: res.holes)
-                    defect.shape_scaled.holes.push_back(hole);
-
-                for (const Shape& hole: defect.shape_orig.holes) {
-                    auto res = process_shape_inner(instance_.parameters().scale_value * hole);
-                    for (const Shape& hole: res)
-                        defect.shape_scaled.holes.push_back(hole);
-                }
-            }
+            bin_type.shape_scaled = instance_.parameters().scale_value * bin_type.shape_orig;
+            for (Defect& defect: bin_type.defects)
+                defect.shape_scaled = instance_.parameters().scale_value * defect.shape_orig;
         }
 
         // Compute inflated defects.
         for (Defect& defect: bin_type.defects) {
             if (!defect.shape_inflated.shape.elements.empty())
                 continue;
-
-            ShapeWithHoles inflated_shape = inflate(
+            defect.shape_inflated = inflate(
                     defect.shape_scaled,
                     instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
-            auto res = process_shape_outer(inflated_shape.shape);
-            defect.shape_inflated.shape = res.shape;
-            for (const Shape& hole: res.holes)
-                defect.shape_inflated.holes.push_back(hole);
-
-            for (const Shape& hole: inflated_shape.holes) {
-                auto shape_tmp_0 = deflate(
-                        hole,
-                        instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
-                auto res = process_shape_inner(shape_tmp_0.front());
-                for (const Shape& hole: res)
-                    defect.shape_inflated.holes.push_back(hole);
-            }
         }
 
         // Compute inflated borders.
@@ -564,15 +498,9 @@ Instance InstanceBuilder::build()
                 Defect border;
                 border.type = -2;
                 border.shape_scaled.shape = shape_border;
-
-                ShapeWithHoles inflated_shape = inflate(
+                border.shape_inflated = inflate(
                         shape_border,
                         instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
-                auto res = process_shape_outer(inflated_shape.shape);
-                border.shape_inflated.shape = res.shape;
-                for (const Shape& hole: res.holes)
-                    border.shape_inflated.holes.push_back(hole);
-
                 bin_type.borders.push_back(border);
             }
         }
