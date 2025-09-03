@@ -88,7 +88,7 @@ SimplifiedInstance irregular::shape_simplification(
 
             bool outer = true;
             SimplifyInputShape simplify_input_shape;
-            simplify_input_shape.shape = approximate_by_line_segments(border.shape_inflated.shape, outer, 1);
+            simplify_input_shape.shape = approximate_by_line_segments(border.shape_inflated.shape, 1.0, outer);
             simplify_input_shape.copies = bin_type.copies;
             simplify_input_shape.outer = outer;
             simplify_inflated_bin_types_input.push_back(simplify_input_shape);
@@ -109,7 +109,7 @@ SimplifiedInstance irregular::shape_simplification(
 
             bool outer = true;
             SimplifyInputShape simplify_input_shape;
-            simplify_input_shape.shape = approximate_by_line_segments(defect.shape_inflated.shape, outer, 1);
+            simplify_input_shape.shape = approximate_by_line_segments(defect.shape_inflated.shape, 1.0, outer);
             simplify_input_shape.copies = bin_type.copies;
             simplify_input_shape.outer = outer;
             simplify_inflated_bin_types_input.push_back(simplify_input_shape);
@@ -140,7 +140,7 @@ SimplifiedInstance irregular::shape_simplification(
 
                 bool outer = false;
                 SimplifyInputShape simplify_input_shape;
-                simplify_input_shape.shape = approximate_by_line_segments(hole_deflated, outer, 1);
+                simplify_input_shape.shape = approximate_by_line_segments(hole_deflated, 1.0, outer);
                 simplify_input_shape.copies = bin_type.copies;
                 simplify_input_shape.outer = outer;
                 simplify_inflated_bin_types_input.push_back(simplify_input_shape);
@@ -172,7 +172,7 @@ SimplifiedInstance irregular::shape_simplification(
             {
                 bool outer = true;
                 SimplifyInputShape simplify_input_shape;
-                simplify_input_shape.shape = approximate_by_line_segments(item_shape.shape_scaled.shape, outer, 1);
+                simplify_input_shape.shape = approximate_by_line_segments(item_shape.shape_scaled.shape, 1.0, outer);
                 simplify_input_shape.copies = item_type.copies;
                 simplify_input_shape.outer = outer;
                 simplify_item_types_input.push_back(simplify_input_shape);
@@ -186,7 +186,7 @@ SimplifiedInstance irregular::shape_simplification(
             {
                 bool outer = true;
                 SimplifyInputShape simplify_input_shape;
-                simplify_input_shape.shape = approximate_by_line_segments(item_shape.shape_inflated.shape, outer, 1);
+                simplify_input_shape.shape = approximate_by_line_segments(item_shape.shape_inflated.shape, 1.0, outer);
                 simplify_input_shape.copies = item_type.copies;
                 simplify_input_shape.outer = outer;
                 simplify_inflated_item_types_input.push_back(simplify_input_shape);
@@ -210,7 +210,7 @@ SimplifiedInstance irregular::shape_simplification(
 
                 bool outer = false;
                 SimplifyInputShape simplify_input_shape;
-                simplify_input_shape.shape = approximate_by_line_segments(hole, outer, 1);
+                simplify_input_shape.shape = approximate_by_line_segments(hole, 1.0, outer);
                 simplify_input_shape.copies = item_type.copies;
                 simplify_input_shape.outer = outer;
                 simplify_item_types_input.push_back(simplify_input_shape);
@@ -233,7 +233,7 @@ SimplifiedInstance irregular::shape_simplification(
 
                 bool outer = false;
                 SimplifyInputShape simplify_input_shape;
-                simplify_input_shape.shape = approximate_by_line_segments(hole_deflated, outer, 1);
+                simplify_input_shape.shape = approximate_by_line_segments(hole_deflated, 1.0, outer);
                 simplify_input_shape.copies = item_type.copies;
                 simplify_input_shape.outer = outer;
                 simplify_inflated_item_types_input.push_back(simplify_input_shape);
