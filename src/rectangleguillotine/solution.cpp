@@ -368,37 +368,35 @@ void Solution::write(
                 "Unable to open file \"" + certificate_path + "\".");
     }
 
-    file << "PLATE_ID,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
+    file << "PLATE_ID,COPIES,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;
     SolutionNodeId offset = 0;
-    BinPos bin_pos_2 = 0;
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& solution_bin = bins_[bin_pos];
         BinTypeId bin_type_id = solution_bin.bin_type_id;
         const BinType& bin_type = instance().bin_type(bin_type_id);
-        for (BinPos copie = 0; copie < solution_bin.copies; ++copie) {
-            for (SolutionNodeId node_id = 0;
-                    node_id < (SolutionNodeId)solution_bin.nodes.size();
-                    ++node_id) {
-                const SolutionNode& n = solution_bin.nodes[node_id];
-                file
-                    << bin_pos_2 << ","
-                    << offset + node_id << ","
-                    << n.l << ","
-                    << n.b << ","
-                    << n.r - n.l << ","
-                    << n.t - n.b << ","
-                    << n.item_type_id << ","
-                    << n.d << ",";
-                if (n.f != -1)
-                    file << offset + n.f;
-                file << std::endl;
-            }
-            offset += solution_bin.nodes.size();
-            bin_pos_2++;
+        for (SolutionNodeId node_id = 0;
+                node_id < (SolutionNodeId)solution_bin.nodes.size();
+                ++node_id) {
+            const SolutionNode& n = solution_bin.nodes[node_id];
+            file
+                << bin_pos << ","
+                << solution_bin.copies << ","
+                << offset + node_id << ","
+                << n.l << ","
+                << n.b << ","
+                << n.r - n.l << ","
+                << n.t - n.b << ","
+                << n.item_type_id << ","
+                << n.d << ",";
+            if (n.f != -1)
+                file << offset + n.f;
+            file << std::endl;
         }
+        offset += solution_bin.nodes.size();
         for (const Defect& defect: bin_type.defects) {
             file
                 << bin_pos << ","
+                << solution_bin.copies << ","
                 << -1 << ","
                 << defect.pos.x << ","
                 << defect.pos.y << ","
