@@ -355,6 +355,7 @@ void SolutionBuilder::read(
     getline(f, tmp);
     labels = optimizationtools::split(tmp, ',');
     std::vector<std::vector<SolutionNode>> nodes;
+    std::vector<BinPos> bin_copies;
     SolutionNodeId offset = 0;
     while (getline(f, tmp)) {
         line = optimizationtools::split(tmp, ',');
@@ -363,10 +364,13 @@ void SolutionBuilder::read(
         Length width = -1;
         Length height = -1;
         BinPos bin_pos = -1;
+        BinPos copies = 1;
         for (Counter i = 0; i < (Counter)line.size(); ++i) {
             if (labels[i] == "NODE_ID") {
             } else if (labels[i] == "PLATE_ID") {
                 bin_pos = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "COPIES") {
+                copies = (BinPos)std::stol(line[i]);
             } else if (labels[i] == "X") {
                 node.l = (Length)std::stol(line[i]);
             } else if (labels[i] == "Y") {
@@ -398,6 +402,7 @@ void SolutionBuilder::read(
             if (nodes.size() > 0)
                 offset += nodes.back().size();
             nodes.push_back({});
+            bin_copies.push_back(copies);
         }
         nodes[bin_pos].push_back(node);
     }
@@ -430,7 +435,7 @@ void SolutionBuilder::read(
         //std::cout << "first_cut_orientation " << first_cut_orientation << std::endl;
         if (bin_type_id < 0)
             bin_type_id = solution_.instance().bin_type_id(bin_pos);
-        add_bin(bin_type_id, 1, first_cut_orientation);
+        add_bin(bin_type_id, bin_copies[bin_pos], first_cut_orientation);
 
         for (SolutionNodeId node_id = 0;
                 node_id < (SolutionNodeId)nodes[bin_pos].size();
