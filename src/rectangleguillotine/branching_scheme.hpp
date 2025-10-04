@@ -5,6 +5,8 @@
 
 #include "optimizationtools/utils/utils.hpp"
 
+#include "shape/shape.hpp"
+
 #include "treesearchsolver/common.hpp"
 
 namespace packingsolver
@@ -353,6 +355,12 @@ public:
     }
 
     Solution to_solution(
+            const std::shared_ptr<Node>& node,
+            bool only_last_bin = false) const;
+
+    nlohmann::json json_export_init() const;
+
+    nlohmann::json json_export(
             const std::shared_ptr<Node>& node) const;
 
 private:
@@ -380,6 +388,34 @@ private:
      * stack_pred[s1] = -1, stack_pred[s2] = s1 and stack_pred[s3] = s2.
      */
     std::vector<StackId> stack_pred_;
+
+    /*
+     * JSON search tree attributes
+     */
+
+    mutable bool json_is_setup_ = false;
+
+    mutable Counter json_counter_ = 0;
+
+    mutable std::vector<std::vector<Counter>> json_items_init_ids_;
+
+    mutable std::vector<Counter> json_bins_init_ids_;
+
+    struct PairHash
+    {
+        template <class T1, class T2>
+        std::size_t operator()(const std::pair<T1,T2> &p) const {
+            auto h1 = std::hash<T1>{}(p.first);
+            auto h2 = std::hash<T2>{}(p.second);
+            size_t hash = 0;
+            optimizationtools::hash_combine(hash, h1);
+            optimizationtools::hash_combine(hash, h2);
+            return hash;
+        }
+    };
+
+    mutable std::unordered_map<std::pair<Length, Length>, Counter, PairHash> json_cuts_ids_;
+
 
     mutable NodeId node_id_ = 0;
 
@@ -527,6 +563,8 @@ private:
             Insertion& insertion) const;
 
     bool check(const std::vector<SolutionNode>& nodes) const;
+
+    void json_export_setup() const;
 };
 
 std::ostream& operator<<(

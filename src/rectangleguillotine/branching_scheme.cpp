@@ -1575,15 +1575,23 @@ std::vector<BranchingScheme::Insertion> BranchingScheme::insertions(
 ////////////////////////////////////////////////////////////////////////////////
 
 Solution BranchingScheme::to_solution(
-        const std::shared_ptr<Node>& node) const
+        const std::shared_ptr<Node>& node,
+        bool only_last_bin) const
 {
     Length cut_thickness = instance_.parameters().cut_thickness;
 
     //std::cout << "to_solution " << *node << std::endl;
     std::vector<const BranchingScheme::Node*> descendents;
     for (const Node* current_node = node.get();
-            current_node->parent != nullptr;
+            ;
             current_node = current_node->parent.get()) {
+        if (!only_last_bin) {
+            if (current_node->parent == nullptr)
+                break;
+        } else {
+            if (current_node->number_of_bins != node->number_of_bins)
+                break;
+        }
         descendents.push_back(current_node);
     }
     std::reverse(descendents.begin(), descendents.end());
@@ -1608,7 +1616,11 @@ Solution BranchingScheme::to_solution(
                     (instance().parameters().number_of_stages == 3 && current_node->first_stage_orientation == CutOrientation::Vertical)
                     || (instance().parameters().number_of_stages == 2 && current_node->first_stage_orientation == CutOrientation::Horizontal))?
                     CutOrientation::Vertical: CutOrientation::Horizontal;
-            number_of_bins++;
+            if (!only_last_bin) {
+                number_of_bins++;
+            } else {
+                number_of_bins = current_node->number_of_bins;
+            }
             BinTypeId bin_type_id = instance().bin_type_id(number_of_bins - 1);
             solution_builder.add_bin(
                     bin_type_id,
@@ -1699,51 +1711,53 @@ Solution BranchingScheme::to_solution(
     }
 
     Solution solution = solution_builder.build();
-    if (solution.profit() != node->profit) {
-        throw std::logic_error(
-                "packingsolver::rectangleguillotine::BranchingScheme::to_solution");
+    if (!only_last_bin) {
+        if (solution.profit() != node->profit) {
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": wrong profit; "
+                    "solution.profit(): " + std::to_string(solution.profit()) + "; "
+                    "node->profit: " + std::to_string(node->profit) + ".");
+        }
+        if (solution.number_of_bins() != node->number_of_bins) {
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": wrong number of bins; "
+                    "solution.number_of_bins(): " + std::to_string(solution.number_of_bins()) + "; "
+                    "node->number_of_bins: " + std::to_string(node->number_of_bins) + ".");
+        }
     }
 
     // Check feasibility.
     if (!solution.minimum_waste_length_feasible()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::BranchingScheme::to_solution: "
-                "solution doesn't satisfy minimum waste length.");
+                FUNC_SIGNATURE + ": solution doesn't satisfy minimum waste length.");
     }
     if (!solution.minimum_distance_1_cuts_feasible()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::BranchingScheme::to_solution: "
-                "solution doesn't satisfy minimum distance between 1-cuts.");
+                FUNC_SIGNATURE + ": solution doesn't satisfy minimum distance between 1-cuts.");
     }
     if (!solution.maximum_distance_1_cuts_feasible()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::BranchingScheme::to_solution: "
-                "solution doesn't satisfy maximum distance between 1-cuts.");
+                FUNC_SIGNATURE + ": solution doesn't satisfy maximum distance between 1-cuts.");
     }
     if (!solution.minimum_distance_2_cuts_feasible()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::BranchingScheme::to_solution: "
-                "solution doesn't satisfy minimum distance between 2-cuts.");
+                FUNC_SIGNATURE + ": solution doesn't satisfy minimum distance between 2-cuts.");
     }
     if (!solution.maximum_number_2_cuts_feasible()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::BranchingScheme::to_solution: "
-                "solution doesn't satisfy maximum number of 2-cuts.");
+                FUNC_SIGNATURE + ": solution doesn't satisfy maximum number of 2-cuts.");
     }
     if (!solution.stacks_feasible()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::BranchingScheme::to_solution: "
-                "solution doesn't satisfy stacks.");
+                FUNC_SIGNATURE + ": solution doesn't satisfy stacks.");
     }
     if (!solution.defects_feasible()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::BranchingScheme::to_solution: "
-                "solution doesn't satisfy defects.");
+                FUNC_SIGNATURE + ": solution doesn't satisfy defects.");
     }
     if (!solution.cut_through_defects_feasible()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::BranchingScheme::to_solution: "
-                "solution doesn't satisfy cut through defects.");
+                FUNC_SIGNATURE + ": solution doesn't satisfy cut through defects.");
     }
 
     return solution;
@@ -1752,6 +1766,194 @@ Solution BranchingScheme::to_solution(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+void BranchingScheme::json_export_setup() const
+{
+    // Bins.
+    json_bins_init_ids_ = std::vector<Counter>(instance().number_of_bin_types(), -1);
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        json_bins_init_ids_[bin_type_id] = json_counter_;
+        json_counter_++;
+    }
+
+    // Items.
+    json_items_init_ids_ = std::vector<std::vector<Counter>>(instance().number_of_item_types());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance().number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance().item_type(item_type_id);
+        json_items_init_ids_[item_type_id] = std::vector<Counter>(2);
+        json_items_init_ids_[item_type_id][0] = json_counter_;
+        json_counter_++;
+        json_items_init_ids_[item_type_id][1] = json_counter_;
+        json_counter_++;
+    }
+}
+
+nlohmann::json BranchingScheme::json_export_init() const
+{
+    nlohmann::json json_init;
+
+    // Bins.
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+
+        Counter json_counter = json_bins_init_ids_[bin_type_id];
+        json_init[json_counter][0] = {
+            {"Shape", shape::build_rectangle(bin_type.rect.w, bin_type.rect.h).to_json()["elements"]},
+            {"FillColor", ""},
+        };
+        for (DefectId defect_id = 0;
+                defect_id < (DefectId)bin_type.defects.size();
+                ++defect_id) {
+            const Defect& defect = bin_type.defects[defect_id];
+            shape::Point p1;
+            p1.x = defect.pos.x;
+            p1.y = defect.pos.y;
+            shape::Point p2 = p1;
+            p2.x += defect.rect.w;
+            p2.y += defect.rect.h;
+            json_init[json_counter][defect_id + 1] = {
+                {"Shape", shape::build_rectangle(p1, p2).to_json()["elements"]},
+                {"FillColor", "red"},
+            };
+        }
+    }
+
+    // Items.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance().number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance().item_type(item_type_id);
+        {
+            Counter json_counter = json_items_init_ids_[item_type_id][0];
+            json_init[json_counter][0] = {
+                {"Shape", shape::build_rectangle(item_type.rect.w, item_type.rect.h).to_json()["elements"]},
+                {"FillColor", "blue"},
+            };
+        }
+        {
+            Counter json_counter = json_items_init_ids_[item_type_id][1];
+            json_init[json_counter][0] = {
+                {"Shape", shape::build_rectangle(item_type.rect.h, item_type.rect.w).to_json()["elements"]},
+                {"FillColor", "blue"},
+            };
+        }
+    }
+
+    for (const auto& it: json_cuts_ids_) {
+        Counter json_counter = it.second;
+        Length w = it.first.first;
+        Length h = it.first.second;
+        //std::cout << "write cut " << json_counter << " " << w << " " << h << std::endl;
+        json_init[json_counter][0] = {
+            {"Shape", shape::build_rectangle(w, h).to_json()["elements"]},
+            {"FillColor", ""},
+        };
+    }
+
+    return json_init;
+}
+
+nlohmann::json BranchingScheme::json_export(
+        const std::shared_ptr<Node>& node) const
+{
+    if (!json_is_setup_) {
+        json_export_setup();
+        json_is_setup_ = true;
+    }
+
+    if (node->number_of_items == 0) {
+        nlohmann::json json = {
+            {"Id", node->id},
+            {"ParentId", (node->parent == nullptr)? -1: node->parent->id},
+        };
+        return json;
+    }
+
+    Solution solution = to_solution(node, true);
+
+    nlohmann::json json = {
+        {"Id", node->id},
+        {"ParentId", (node->parent == nullptr)? -1: node->parent->id},
+        {"Data",
+            {
+                {"ItemTypeId1", node->item_type_id_1},
+                {"ItemTypeId2", node->item_type_id_2},
+                {"Depth", node->df},
+                {"X1Curr", node->x1_curr},
+                {"X1Prev", node->x1_prev},
+                {"Y2Curr", node->y2_curr},
+                {"Y2Prev", node->y2_prev},
+                {"X3Curr", node->x3_curr},
+                {"X1Max", node->x1_max},
+                {"Y2Max", node->y2_max},
+                {"Z1", node->z1},
+                {"Z2", node->z2},
+                {"NumberOfItems", node->number_of_items},
+                {"NumberOfBins", node->number_of_bins},
+                {"ItemArea", node->item_area},
+                {"Waste", node->waste},
+                {"Profit", node->profit},
+            },
+        },
+    };
+
+    nlohmann::json plot;
+    Counter i = 0;
+    // Plot bin.
+    BinTypeId bin_type_id = instance().bin_type_id(node->number_of_bins - 1);
+    plot[i] = {
+        {"Id",json_bins_init_ids_[bin_type_id]},
+        {"X", 0},
+        {"Y", 0},
+    };
+    i++;
+    Counter last_item = -1;
+    for (const SolutionNode& solution_node: solution.bin(0).nodes) {
+        Length w = solution_node.r - solution_node.l;
+        Length h = solution_node.t - solution_node.b;
+        // Plot cuts.
+        auto it = json_cuts_ids_.find({w, h});
+        Counter id = -1;
+        if (it != json_cuts_ids_.end()) {
+            id = it->second;
+        } else {
+            id = json_counter_;
+            json_counter_++;
+            json_cuts_ids_[{w, h}] = id;
+            //std::cout << "add cut " << w << " " << h << std::endl;
+        }
+        plot[i] = {
+            {"Id", id},
+            {"X", solution_node.l},
+            {"Y", solution_node.b},
+        };
+        i++;
+        // Plot item.
+        if (solution_node.f != -1
+                && solution_node.item_type_id >= 0) {
+            const ItemType& item_type = instance().item_type(solution_node.item_type_id);
+            bool rotate = (item_type.rect.w != w);
+            last_item = i;
+            plot[i] = {
+                {"Id", json_items_init_ids_[solution_node.item_type_id][rotate]},
+                {"X", solution_node.l},
+                {"Y", solution_node.b},
+            };
+            i++;
+        }
+    }
+    if (last_item != -1)
+        plot[last_item]["FillColor"] = "green";
+    json["Plot"] = plot;
+    return json;
+}
 
 bool BranchingScheme::Insertion::operator==(const Insertion& insertion) const
 {
