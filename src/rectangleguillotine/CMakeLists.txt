@@ -19,6 +19,7 @@ target_link_libraries(PackingSolver_rectangleguillotine PUBLIC
     PackingSolver_onedimensional
     PackingSolver_rectangle
     TreeSearchSolver::treesearchsolver
+    Shape::shape
     Threads::Threads)
 add_library(PackingSolver::rectangleguillotine ALIAS PackingSolver_rectangleguillotine)
 

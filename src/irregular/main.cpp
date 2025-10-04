@@ -19,9 +19,9 @@ void read_args(
         parameters.verbosity_level = vm["verbosity-level"].as<int>();
     if (vm.count("log"))
         parameters.log_path = vm["log"].as<std::string>();
+    parameters.log_to_stderr = vm.count("log-to-stderr");
     if (vm.count("json-search-tree"))
         parameters.json_search_tree_path = vm["json-search-tree"].as<std::string>();
-    parameters.log_to_stderr = vm.count("log-to-stderr");
     bool only_write_at_the_end = vm.count("only-write-at-the-end");
     if (!only_write_at_the_end) {
 

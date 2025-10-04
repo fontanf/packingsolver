@@ -505,6 +505,14 @@ private:
 
     DirectionData directions_data_[8];
 
+    /*
+     * JSON search tree attributes
+     */
+
+    mutable bool json_is_setup_ = false;
+
+    mutable Counter json_counter_ = 0;
+
     mutable std::vector<std::vector<std::unordered_map<Angle, Counter>>> json_items_init_ids_;
 
     mutable std::vector<Counter> json_bins_init_ids_;
@@ -588,6 +596,8 @@ private:
             LengthDbl supporting_part_y,
             ShapePos supported_part_pos,
             Direction new_bin_direction) const;
+
+    void json_export_setup() const;
 
 };
 

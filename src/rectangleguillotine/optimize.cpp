@@ -111,6 +111,11 @@ void optimize_tree_search(
                     ibs_parameters.maximum_size_of_the_queue
                         = parameters.not_anytime_tree_search_queue_size + 1;
                 }
+                if (!parameters.json_search_tree_path.empty()) {
+                    ibs_parameters.json_search_tree_path = parameters.json_search_tree_path
+                        + "_guide_" + std::to_string(branching_scheme_parameters.guide_id)
+                        + "_d_" + std::to_string((int)branching_scheme_parameters.first_stage_orientation);
+                }
                 ibs_parameters_list.push_back(ibs_parameters);
                 outputs.push_back(rectangleguillotine::Output(instance));
             }

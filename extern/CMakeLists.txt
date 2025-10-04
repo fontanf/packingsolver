@@ -28,7 +28,7 @@ set(OPTIMIZATIONTOOLS_BUILD_TEST OFF)
 FetchContent_Declare(
     optimizationtools
     GIT_REPOSITORY https://github.com/fontanf/optimizationtools.git
-    GIT_TAG e086ec4cfcc9a885cd63f579a99ea5e8f4737005
+    GIT_TAG e8c379203792fcad764cce239986b325619475fd
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../optimizationtools/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(optimizationtools)
@@ -38,7 +38,7 @@ set(SHAPE_BUILD_TEST OFF)
 FetchContent_Declare(
     shape
     GIT_REPOSITORY https://github.com/fontanf/shape.git
-    GIT_TAG 7ac6abe6e386aded70ff7b81e20e6a9ae368341a
+    GIT_TAG 6d376ebef02642c0c95f4a4d56cce46a60ebdfd2
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../shape/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(shape)
@@ -78,7 +78,7 @@ set(TREESEARCHSOLVER_BUILD_EXAMPLES OFF)
 FetchContent_Declare(
     treesearchsolver
     GIT_REPOSITORY https://github.com/fontanf/treesearchsolver.git
-    GIT_TAG 8cf4a179d103efb9d4e0a94bc2f6f669105cd45a
+    GIT_TAG 61ddb8cdd5a4b278e0bcbd327f098e015b682fa4
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../treesearchsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(treesearchsolver)

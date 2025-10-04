@@ -2014,14 +2014,13 @@ Solution BranchingScheme::to_solution(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-nlohmann::json BranchingScheme::json_export_init() const
+void BranchingScheme::json_export_setup() const
 {
     Direction d = (parameters_.direction != Direction::Any)?
         parameters_.direction:
         Direction::LeftToRightThenBottomToTop;
     const auto& trapezoid_sets = directions_data_[(int)d].trapezoid_sets;
     nlohmann::json json_init;
-    Counter i = 0;
 
     // Bins.
     json_bins_init_ids_ = std::vector<Counter>(instance().number_of_bin_types(), -1);
@@ -2029,28 +2028,8 @@ nlohmann::json BranchingScheme::json_export_init() const
             bin_type_id < instance().number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance().bin_type(bin_type_id);
-
-        json_bins_init_ids_[bin_type_id] = i;
-        json_init[i][0] = {
-            {"Shape", bin_type.shape_orig.to_json()["elements"]},
-            {"FillColor", ""},
-        };
-        for (DefectId defect_id = 0;
-                defect_id < (DefectId)bin_type.defects.size();
-                ++defect_id) {
-            const Defect& defect = bin_type.defects[defect_id];
-            json_init[i][defect_id + 1] = {
-                {"Shape", bin_type.shape_orig.to_json()["elements"]},
-                {"FillColor", "red"},
-            };
-            for (Counter hole_pos = 0;
-                    hole_pos < (Counter)defect.shape_orig.holes.size();
-                    ++hole_pos) {
-                const Shape& hole = defect.shape_orig.holes[hole_pos];
-                json_init[i][hole_pos]["Holes"][hole_pos] = hole.to_json()["elements"];
-            }
-        }
-        i++;
+        json_bins_init_ids_[bin_type_id] = json_counter_;
+        json_counter_++;
     }
 
     // Items.
@@ -2059,20 +2038,70 @@ nlohmann::json BranchingScheme::json_export_init() const
             item_type_id < instance().number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance().item_type(item_type_id);
-
         json_items_init_ids_[item_type_id] = std::vector<std::unordered_map<double, Counter>>(2);
+        for (bool mirror: {false, true}) {
+            for (const auto& angle_range: item_type.allowed_rotations) {
+                json_items_init_ids_[item_type_id][mirror][angle_range.first] = json_counter_;
+                json_counter_++;
+            }
+        }
+    }
+}
+
+nlohmann::json BranchingScheme::json_export_init() const
+{
+    Direction d = (parameters_.direction != Direction::Any)?
+        parameters_.direction:
+        Direction::LeftToRightThenBottomToTop;
+    const auto& trapezoid_sets = directions_data_[(int)d].trapezoid_sets;
+    nlohmann::json json_init;
+
+    // Bins.
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+
+        Counter json_counter = json_bins_init_ids_[bin_type_id];
+        json_init[json_counter][0] = {
+            {"Shape", bin_type.shape_orig.to_json()["elements"]},
+            {"FillColor", ""},
+        };
+        for (DefectId defect_id = 0;
+                defect_id < (DefectId)bin_type.defects.size();
+                ++defect_id) {
+            const Defect& defect = bin_type.defects[defect_id];
+            json_init[json_counter][defect_id + 1] = {
+                {"Shape", bin_type.shape_orig.to_json()["elements"]},
+                {"FillColor", "red"},
+            };
+            for (Counter hole_pos = 0;
+                    hole_pos < (Counter)defect.shape_orig.holes.size();
+                    ++hole_pos) {
+                const Shape& hole = defect.shape_orig.holes[hole_pos];
+                json_init[json_counter][hole_pos]["Holes"][hole_pos] = hole.to_json()["elements"];
+            }
+        }
+    }
+
+    // Items.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance().number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance().item_type(item_type_id);
+
         for (bool mirror: {false, true}) {
 
             for (const auto& angle_range: item_type.allowed_rotations) {
 
-                json_items_init_ids_[item_type_id][mirror][angle_range.first] = i;
+                Counter json_counter = json_items_init_ids_[item_type_id][mirror][angle_range.first];
 
                 for (ItemShapePos item_shape_pos = 0;
                         item_shape_pos < (ItemShapePos)item_type.shapes.size();
                         ++item_shape_pos) {
                     const ItemShape& item_shape = item_type.shapes[item_shape_pos];
                     Shape shape = convert_shape(item_shape.shape_orig.shape, angle_range.first, mirror);
-                    json_init[i][item_shape_pos] = {
+                    json_init[json_counter][item_shape_pos] = {
                         {"Shape", shape.to_json()["elements"]},
                         {"FillColor", "blue"},
                     };
@@ -2080,10 +2109,9 @@ nlohmann::json BranchingScheme::json_export_init() const
                             hole_pos < (Counter)item_shape.shape_orig.holes.size();
                             ++hole_pos) {
                         const Shape& hole = item_shape.shape_orig.holes[hole_pos];
-                        json_init[i][item_shape_pos]["Holes"][hole_pos] = hole.to_json()["elements"];
+                        json_init[json_counter][item_shape_pos]["Holes"][hole_pos] = hole.to_json()["elements"];
                     }
                 }
-                i++;
             }
         }
     }
@@ -2094,6 +2122,11 @@ nlohmann::json BranchingScheme::json_export_init() const
 nlohmann::json BranchingScheme::json_export(
         const std::shared_ptr<Node>& node) const
 {
+    if (!json_is_setup_) {
+        json_export_setup();
+        json_is_setup_ = true;
+    }
+
     const DirectionData& direction_data = directions_data_[(int)node->last_bin_direction];
     if (node->number_of_items == 0) {
         nlohmann::json json = {
