@@ -15,6 +15,22 @@ using namespace shape;
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+enum class Corner
+{
+    BottomLeft,
+    BottomRight,
+    TopLeft,
+    TopRight,
+};
+
+std::istream& operator>>(
+        std::istream& in,
+        Corner& corner);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        Corner corner);
+
 struct Parameters
 {
     /**
@@ -27,6 +43,9 @@ struct Parameters
 
     /** Minimum distance between two items. */
     LengthDbl item_item_minimum_spacing = 0.0;
+
+    /** Reference corner to compute the leftover value. */
+    Corner leftover_corner = Corner::BottomLeft;
 
     /** Scale value. */
     LengthDbl scale_value = std::numeric_limits<LengthDbl>::infinity();

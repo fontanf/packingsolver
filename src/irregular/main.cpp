@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
 
         ("item-bin-minimum-spacing,f", po::value<LengthDbl>(), "Item-bin minimum spacing")
         ("item-item-minimum-spacing,f", po::value<LengthDbl>(), "Item-item minimum spacing")
+        ("leftover-corner", po::value<Corner>(), "set reference corner for leftover value")
         ("bin-unweighted", "")
         ("unweighted", "")
 

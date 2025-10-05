@@ -56,6 +56,9 @@ class AlgorithmTest: public testing::TestWithParam<TestParams> { };
 TEST_P(AlgorithmTest, Algorithm)
 {
     TestParams test_params = GetParam();
+    std::cout << "Instance path: " << test_params.instance_path << std::endl;
+    std::cout << "Certificate path: " << test_params.certificate_path << std::endl;
+
     InstanceBuilder instance_builder;
     instance_builder.read(test_params.instance_path.string());
     Instance instance = instance_builder.build();
