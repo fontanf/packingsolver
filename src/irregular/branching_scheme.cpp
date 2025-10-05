@@ -64,6 +64,38 @@ void TrapezoidSet::write_svg(
     file << "</svg>" << std::endl;
 }
 
+namespace
+{
+
+BranchingScheme::Direction default_direction(
+        const Instance& instance,
+        BinTypeId bin_type_id)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    bool lengthwise = (bin_type.x_max - bin_type.x_min) >= (bin_type.y_max - bin_type.y_min);
+    switch (instance.parameters().leftover_corner) {
+    case Corner::BottomLeft: {
+        return (lengthwise)?
+            BranchingScheme::Direction::LeftToRightThenBottomToTop:
+            BranchingScheme::Direction::BottomToTopThenLeftToRight;
+    } case Corner::BottomRight: {
+        return (lengthwise)?
+            BranchingScheme::Direction::RightToLeftThenBottomToTop:
+            BranchingScheme::Direction::BottomToTopThenRightToLeft;
+    } case Corner::TopLeft: {
+        return (lengthwise)?
+            BranchingScheme::Direction::LeftToRightThenTopToBottom:
+            BranchingScheme::Direction::TopToBottomThenLeftToRight;
+    } case Corner::TopRight: {
+        return (lengthwise)?
+            BranchingScheme::Direction::RightToLeftThenTopToBottom:
+            BranchingScheme::Direction::TopToBottomThenRightToLeft;
+    }
+    }
+}
+
+}
+
 BranchingScheme::BranchingScheme(
         const Instance& instance,
         const Parameters& parameters):
@@ -1349,7 +1381,7 @@ void BranchingScheme::insertions(
 
         Direction new_bin_direction = parameters_.direction;
         if (new_bin_direction == Direction::Any)
-            new_bin_direction = Direction::LeftToRightThenBottomToTop;
+            new_bin_direction = default_direction(instance(), bin_type_id);
 
         const DirectionData& direction_data = directions_data_[(int)new_bin_direction];
         const std::vector<TrapezoidSet>& trapezoid_sets = direction_data.trapezoid_sets;
