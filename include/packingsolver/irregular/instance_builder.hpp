@@ -42,6 +42,9 @@ public:
     /** Set item-bin minimum spacing. */
     void set_item_bin_minimum_spacing(LengthDbl item_bin_minimum_spacing) { instance_.parameters_.item_bin_minimum_spacing = item_bin_minimum_spacing; }
 
+    /** Set reference corner for leftover value. */
+    void set_leftover_corner(Corner leftover_corner) { instance_.parameters_.leftover_corner = leftover_corner; }
+
     /*
      * Set bin types
      */
