@@ -42,6 +42,9 @@ public:
     /** Set the aspect ratio for the open dimension xy objective. */
     void set_open_dimension_xy_aspect_ratio(LengthDbl open_dimension_xy_aspect_ratio) { instance_.parameters_.open_dimension_xy_aspect_ratio = open_dimension_xy_aspect_ratio; }
 
+    /** Set reference corner for leftover value. */
+    void set_leftover_corner(Corner leftover_corner) { instance_.parameters_.leftover_corner = leftover_corner; }
+
     /*
      * Set bin types
      */
