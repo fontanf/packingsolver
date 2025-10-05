@@ -277,11 +277,17 @@ public:
         /** Area used in the guides. */
         AreaDbl guide_area = 0;
 
-        /** Maximum xe of all items in the last bin. */
-        LengthDbl xe_max = -std::numeric_limits<LengthDbl>::infinity();
+        /** Minimum x of all items in the last bin. */
+        LengthDbl x_min = +std::numeric_limits<LengthDbl>::infinity();
 
-        /** Maximum ye of all items in the last bin. */
-        LengthDbl ye_max = -std::numeric_limits<LengthDbl>::infinity();
+        /** Maximum x of all items in the last bin. */
+        LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+
+        /** Minimum y of all items in the last bin. */
+        LengthDbl y_min = +std::numeric_limits<LengthDbl>::infinity();
+
+        /** Maximum y of all items in the last bin. */
+        LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
 
         /** Maximum xs of all items in the last bin. */
         LengthDbl xs_max = -std::numeric_limits<LengthDbl>::infinity();
@@ -655,8 +661,8 @@ inline bool BranchingScheme::operator()(
             return node_2->number_of_items != 0;
         if (node_2->number_of_items == 0)
             return true;
-        double guide_1 = (double)(node_1->xe_max * node_1->ye_max) / node_1->item_convex_hull_area;
-        double guide_2 = (double)(node_2->xe_max * node_2->ye_max) / node_2->item_convex_hull_area;
+        double guide_1 = (double)((node_1->x_max - node_1->x_min) * (node_1->y_max - node_1->y_min)) / node_1->item_convex_hull_area;
+        double guide_2 = (double)((node_2->x_max - node_2->x_min) * (node_2->y_max - node_2->y_min)) / node_2->item_convex_hull_area;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;
         break;
@@ -665,9 +671,9 @@ inline bool BranchingScheme::operator()(
             return node_2->number_of_items != 0;
         if (node_2->number_of_items == 0)
             return true;
-        double guide_1 = (double)(node_1->xe_max * node_1->ye_max) / node_1->item_convex_hull_area
+        double guide_1 = (double)((node_1->x_max - node_1->x_min) * (node_1->y_max - node_1->y_min)) / node_1->item_convex_hull_area
             / node_1->item_convex_hull_area;
-        double guide_2 = (double)(node_2->xe_max * node_2->ye_max) / node_2->item_convex_hull_area
+        double guide_2 = (double)((node_2->x_max - node_2->x_min) * (node_2->y_max - node_2->y_min)) / node_2->item_convex_hull_area
             / node_2->item_convex_hull_area;
         if (guide_1 != guide_2)
             return guide_1 < guide_2;

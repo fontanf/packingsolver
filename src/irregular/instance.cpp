@@ -6,6 +6,56 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
+std::istream& packingsolver::irregular::operator>>(
+        std::istream& in,
+        Corner& corner)
+{
+    std::string token;
+    in >> token;
+    if (token == "bottom-left"
+            || token == "BottomLeft"
+            || token == "bl") {
+        corner = Corner::BottomLeft;
+    } else if (token == "bottom-right"
+            || token == "BottomRight"
+            || token == "br") {
+        corner = Corner::BottomRight;
+    } else if (token == "top-left"
+            || token == "TopLeft"
+            || token == "tl") {
+        corner = Corner::TopLeft;
+    } else if (token == "top-right"
+            || token == "TopRight"
+            || token == "tr") {
+        corner = Corner::TopRight;
+    } else  {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& packingsolver::irregular::operator<<(
+        std::ostream& os,
+        Corner corner)
+{
+    switch (corner) {
+    case Corner::BottomLeft: {
+        os << "BottomLeft";
+        break;
+    } case Corner::BottomRight: {
+        os << "BottomRight";
+        break;
+    } case Corner::TopLeft: {
+        os << "TopLeft";
+        break;
+    } case Corner::TopRight: {
+        os << "TopRight";
+        break;
+    }
+    }
+    return os;
+}
+
 bool ItemShape::check() const
 {
     if (!shape_orig.shape.check())
@@ -287,6 +337,7 @@ std::ostream& Instance::format(
             << "Number of circular items:     " << number_of_circular_items_ << std::endl
             << "Item-bin minimum spacing:     " << parameters().item_bin_minimum_spacing << std::endl
             << "Item-item minimum spacing:    " << parameters().item_item_minimum_spacing << std::endl
+            << "Leftover corner:              " << parameters().leftover_corner << std::endl
             << "Total item area:              " << item_area() << std::endl
             << "Smallest item area:           " << smallest_item_area() << std::endl
             << "Largest item area:            " << largest_item_area() << std::endl
@@ -637,6 +688,7 @@ void Instance::write(
     // Export parameters.
     json["parameters"]["item_item_minimum_spacing"] = parameters().item_item_minimum_spacing;
     json["parameters"]["item_bin_minimum_spacing"] = parameters().item_bin_minimum_spacing;
+    json["parameters"]["leftover_corner"] = parameters().leftover_corner;
 
     file << std::setw(4) << json << std::endl;
 }

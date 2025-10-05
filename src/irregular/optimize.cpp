@@ -103,12 +103,41 @@ void optimize_tree_search(
         };
     } else if (instance.number_of_bin_types() == 1) {
         if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            directions = {
-                BranchingScheme::Direction::LeftToRightThenBottomToTop,
-                BranchingScheme::Direction::BottomToTopThenLeftToRight,
-                BranchingScheme::Direction::LeftToRightThenTopToBottom,
-                BranchingScheme::Direction::BottomToTopThenRightToLeft,
-            };
+            switch (instance.parameters().leftover_corner) {
+            case Corner::BottomLeft: {
+                directions = {
+                    BranchingScheme::Direction::LeftToRightThenBottomToTop,
+                    BranchingScheme::Direction::BottomToTopThenLeftToRight,
+                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
+                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
+                };
+                break;
+            } case Corner::BottomRight: {
+                directions = {
+                    BranchingScheme::Direction::RightToLeftThenBottomToTop,
+                    BranchingScheme::Direction::BottomToTopThenLeftToRight,
+                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
+                };
+                break;
+            } case Corner::TopLeft: {
+                directions = {
+                    BranchingScheme::Direction::LeftToRightThenBottomToTop,
+                    BranchingScheme::Direction::TopToBottomThenLeftToRight,
+                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
+                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
+                };
+                break;
+            } case Corner::TopRight: {
+                directions = {
+                    BranchingScheme::Direction::RightToLeftThenBottomToTop,
+                    BranchingScheme::Direction::TopToBottomThenLeftToRight,
+                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
+                };
+                break;
+            }
+            }
         } else {
             directions = {
                 BranchingScheme::Direction::LeftToRightThenBottomToTop,

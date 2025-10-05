@@ -104,8 +104,25 @@ void Solution::add_item(
         y_min_ = std::min(y_min_, bl_corner.y + mm.first.y);
         x_max_ = std::max(x_max_, bl_corner.x + mm.second.x);
         y_max_ = std::max(y_max_, bl_corner.y + mm.second.y);
-        leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
-            - (x_max_ - bin_type.x_min) * (y_max_ - bin_type.y_min);
+        switch (instance().parameters().leftover_corner) {
+        case Corner::BottomLeft: {
+            leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
+                - (x_max_ - bin_type.x_min) * (y_max_ - bin_type.y_min);
+            break;
+        } case Corner::BottomRight: {
+            leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
+                - (bin_type.x_max - x_min_) * (y_max_ - bin_type.y_min);
+            break;
+        } case Corner::TopLeft: {
+            leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
+                - (x_max_ - bin_type.x_min) * (bin_type.y_max - y_min_);
+            break;
+        } case Corner::TopRight: {
+            leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
+                - (bin_type.x_max - x_min_) * (bin_type.y_max - y_min_);
+            break;
+        }
+        }
     }
 
     //if (strictly_lesser(leftover_value_, 0.0)) {
