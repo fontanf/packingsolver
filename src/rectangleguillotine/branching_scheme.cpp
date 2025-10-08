@@ -1879,7 +1879,7 @@ nlohmann::json BranchingScheme::json_export(
     Solution solution = to_solution(node, true);
 
     auto parent = node->parent;
-    while (parent != nullptr
+    while (parent->parent != nullptr
             && parent->item_type_id_1 == -1
             && parent->item_type_id_2 == -1) {
         parent = parent->parent;
