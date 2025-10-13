@@ -9,8 +9,8 @@
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
-#include "knapsacksolver/knapsack/instance_builder.hpp"
-#include "knapsacksolver/knapsack/algorithms/dynamic_programming_primal_dual.hpp"
+#include "knapsacksolver/instance_builder.hpp"
+#include "knapsacksolver/algorithms/dynamic_programming_primal_dual.hpp"
 
 #include <thread>
 
@@ -31,9 +31,9 @@ void optimize_dynamic_programming(
         return;
 
     const BinType& bin_type = instance.bin_type(0);
-    knapsacksolver::knapsack::InstanceFromFloatProfitsBuilder kp_instance_builder;
+    knapsacksolver::InstanceFromFloatProfitsBuilder kp_instance_builder;
     std::vector<std::pair<ItemTypeId, ItemPos>> kp2ps;
-    knapsacksolver::knapsack::Weight kp_capacity = bin_type.length;
+    knapsacksolver::Weight kp_capacity = bin_type.length;
     kp_instance_builder.set_capacity(kp_capacity);
     for (ItemTypeId item_type_id: bin_type.item_type_ids) {
         const ItemType& item_type = instance.item_type(item_type_id);
@@ -42,7 +42,7 @@ void optimize_dynamic_programming(
         while (total_copies < item_type.copies) {
             if (total_copies + copies > item_type.copies)
                 copies = item_type.copies - total_copies;
-            knapsacksolver::knapsack::Weight kp_weight = copies * (
+            knapsacksolver::Weight kp_weight = copies * (
                     item_type.length
                     - (std::max)(item_type.nesting_length, (Length)0));
             if (kp_weight > kp_capacity)
@@ -55,17 +55,17 @@ void optimize_dynamic_programming(
             copies *= 2;
         }
     }
-    knapsacksolver::knapsack::Instance kp_instance = kp_instance_builder.build();
+    knapsacksolver::Instance kp_instance = kp_instance_builder.build();
 
-    knapsacksolver::knapsack::DynamicProgrammingPrimalDualParameters kp_parameters;
+    knapsacksolver::DynamicProgrammingPrimalDualParameters kp_parameters;
     kp_parameters.verbosity_level = 0;
-    auto kp_output = knapsacksolver::knapsack::dynamic_programming_primal_dual(
+    auto kp_output = knapsacksolver::dynamic_programming_primal_dual(
             kp_instance,
             kp_parameters);
 
     Solution solution(instance);
     solution.add_bin(0, 1);
-    for (knapsacksolver::knapsack::ItemId kp_item_type_id = 0;
+    for (knapsacksolver::ItemId kp_item_type_id = 0;
             kp_item_type_id < kp_instance.number_of_items();
             ++kp_item_type_id) {
         if (kp_output.solution.contains(kp_item_type_id)) {

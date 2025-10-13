@@ -16,7 +16,7 @@ target_link_libraries(PackingSolver_box PUBLIC
     PackingSolver_algorithms
     PackingSolver_rectangle
     PackingSolver_onedimensional
-    KnapsackSolver::multiple_choice_subset_sum::dynamic_programming_bellman
+    MultipleChoiceSubsetSumSolver::dynamic_programming_bellman
     Threads::Threads)
 add_library(PackingSolver::box ALIAS PackingSolver_box)
 
