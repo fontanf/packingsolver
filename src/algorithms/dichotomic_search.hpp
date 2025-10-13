@@ -17,8 +17,8 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
-#include "knapsacksolver/knapsack/instance_builder.hpp"
-#include "knapsacksolver/knapsack/algorithms/dynamic_programming_primal_dual.hpp"
+#include "knapsacksolver/instance_builder.hpp"
+#include "knapsacksolver/algorithms/dynamic_programming_primal_dual.hpp"
 
 namespace packingsolver
 {
@@ -148,15 +148,15 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
 
         // Build knapsack instance.
         //std::cout << "Build Knapsack instance..." << std::endl;
-        knapsacksolver::knapsack::InstanceFromFloatProfitsBuilder kp_instance_builder;
+        knapsacksolver::InstanceFromFloatProfitsBuilder kp_instance_builder;
         // Set knapsack capacity.
         //std::cout << "bin_space " << bin_space << std::endl;
         //std::cout << "bin_min_space " << bin_min_space << std::endl;
         //std::cout << "item_space " << item_space << std::endl;
-        knapsacksolver::knapsack::Weight kp_capacity = bin_space
+        knapsacksolver::Weight kp_capacity = bin_space
             - bin_min_space
             - (item_space * (1 + output.waste_percentage));
-        kp_capacity = std::max(kp_capacity, (knapsacksolver::knapsack::Weight)0);
+        kp_capacity = std::max(kp_capacity, (knapsacksolver::Weight)0);
         kp_instance_builder.set_capacity(kp_capacity);
         // Add knapsack items which are PackingSolver bins.
         std::vector<BinTypeId> kp2ps;
@@ -171,15 +171,15 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
                 kp2ps.push_back(bin_type_id);
             }
         }
-        const knapsacksolver::knapsack::Instance kp_instance = kp_instance_builder.build();
+        const knapsacksolver::Instance kp_instance = kp_instance_builder.build();
         //std::cout << "kp2ps";
         //for (BinTypeId i: kp2ps)
         //    std::cout << " " << i;
         //std::cout << std::endl;
         // Solve knapsack instance.
-        knapsacksolver::knapsack::DynamicProgrammingPrimalDualParameters kp_parameters;
+        knapsacksolver::DynamicProgrammingPrimalDualParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
-        auto kp_output = knapsacksolver::knapsack::dynamic_programming_primal_dual(
+        auto kp_output = knapsacksolver::dynamic_programming_primal_dual(
                 kp_instance,
                 kp_parameters);
 
@@ -206,7 +206,7 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
                 bin_type_id < instance.number_of_bin_types();
                 ++bin_type_id)
             bin_copies[bin_type_id] += instance.bin_type(bin_type_id).copies_min;
-        for (knapsacksolver::knapsack::ItemId kp_item_id = 0;
+        for (knapsacksolver::ItemId kp_item_id = 0;
                 kp_item_id < kp_instance.number_of_items();
                 ++kp_item_id) {
             //std::cout << "kp_item_id " << kp_item_id << " sol " << kp_output.solution.contains(kp_item_id) << std::endl;

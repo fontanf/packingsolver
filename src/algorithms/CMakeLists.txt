@@ -13,5 +13,5 @@ target_include_directories(PackingSolver_algorithms INTERFACE
 target_link_libraries(PackingSolver_algorithms INTERFACE
     PackingSolver_common
     ColumnGenerationSolver::columngenerationsolver
-    KnapsackSolver::knapsack::dynamic_programming_primal_dual)
+    KnapsackSolver::dynamic_programming_primal_dual)
 add_library(PackingSolver::algorithms ALIAS PackingSolver_algorithms)
