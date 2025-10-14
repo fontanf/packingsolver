@@ -2,6 +2,8 @@
 
 #include "packingsolver/rectangle/solution.hpp"
 
+#include "mathoptsolverscmake/milp.hpp"
+
 namespace packingsolver
 {
 namespace rectangle
@@ -13,13 +15,15 @@ struct BendersDecompositionOutput: packingsolver::Output<Instance, Solution>
     BendersDecompositionOutput(const Instance& instance):
         packingsolver::Output<Instance, Solution>(instance) { }
 
-
     /** Number of iterations. */
     Counter number_of_iterations = 0;
 };
 
 struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solution>
 {
+    /** MILP solver. */
+    mathoptsolverscmake::SolverName solver = mathoptsolverscmake::SolverName::Highs;
+
     /** Maximum number of iterations. */
     Counter maximum_number_of_iterations = -1;
 
