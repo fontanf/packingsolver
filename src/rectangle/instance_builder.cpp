@@ -109,6 +109,21 @@ void InstanceBuilder::set_bin_type_semi_trailer_truck_parameters(
     instance_.bin_types_[bin_type_id].semi_trailer_truck_data = semi_trailer_truck_data;
 }
 
+void InstanceBuilder::add_bin_type_eligibility(
+        BinTypeId bin_type_id,
+        EligibilityId eligibility_id)
+{
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::onedimensional::InstanceBuilder::add_bin_type_eligibility: "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    instance_.bin_types_[bin_type_id].eligibility_ids.push_back(eligibility_id);
+}
+
 DefectId InstanceBuilder::add_defect(
         BinTypeId bin_type_id,
         Length pos_x,
@@ -153,6 +168,11 @@ void InstanceBuilder::add_bin_type(
     set_bin_type_semi_trailer_truck_parameters(
             bin_type_id,
             bin_type.semi_trailer_truck_data);
+    for (EligibilityId eligibility_id: bin_type.eligibility_ids) {
+        add_bin_type_eligibility(
+                bin_type_id,
+                eligibility_id);
+    }
     for (const Defect& defect: bin_type.defects) {
         add_defect(
                 bin_type_id,
@@ -276,6 +296,21 @@ void InstanceBuilder::set_item_type_weight(
     instance_.item_types_[item_type_id].weight = weight;
 }
 
+void InstanceBuilder::set_item_type_eligibility(
+        ItemTypeId item_type_id,
+        EligibilityId eligibility_id)
+{
+    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                "packingsolver::onedimensional::InstanceBuilder::set_item_type_eligibility: "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
+    instance_.item_types_[item_type_id].eligibility_id = eligibility_id;
+}
+
 void InstanceBuilder::add_item_type(
         const ItemType& item_type,
         Profit profit,
@@ -291,6 +326,9 @@ void InstanceBuilder::add_item_type(
     set_item_type_weight(
             item_type_id,
             item_type.weight);
+    set_item_type_eligibility(
+            item_type_id,
+            item_type.eligibility_id);
 }
 
 void InstanceBuilder::set_item_types_unweighted()
@@ -655,6 +693,25 @@ Instance InstanceBuilder::build()
             instance_.largest_bin_cost_ = bin_type.cost;
         // Update number_of_defects_.
         instance_.number_of_defects_ += bin_type.defects.size();
+    }
+
+    // Compute bin_type.item_type_ids_.
+    for (BinTypeId bin_type_id = 0; bin_type_id < instance_.number_of_bin_types(); ++bin_type_id) {
+        BinType& bin_type = instance_.bin_types_[bin_type_id];
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+            if (item_type.eligibility_id != -1
+                    && std::find(
+                        bin_type.eligibility_ids.begin(),
+                        bin_type.eligibility_ids.end(),
+                        item_type.eligibility_id)
+                    == bin_type.eligibility_ids.end()) {
+                continue;
+            }
+            bin_type.item_type_ids.push_back(item_type_id);
+        }
     }
 
     // Compute number_of_groups_.

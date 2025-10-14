@@ -70,6 +70,11 @@ public:
             BinTypeId bin_type_id,
             const SemiTrailerTruckData& semi_trailer_truck_data);
 
+    /** Add an eligibility id to a bin type. */
+    void add_bin_type_eligibility(
+            BinTypeId bin_type_id,
+            EligibilityId eligibility_id);
+
     /** Add a defect. */
     DefectId add_defect(
             BinTypeId bin_type_id,
@@ -136,6 +141,11 @@ public:
     void set_item_type_weight(
             ItemTypeId item_type_id,
             Weight weight);
+
+    /** Set the eligibility id of an item type. */
+    void set_item_type_eligibility(
+            ItemTypeId item_type_id,
+            EligibilityId eligibility_id);
 
     /**
      * Add an item type from another item type.

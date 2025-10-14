@@ -236,6 +236,26 @@ std::ostream& Instance::format(
                 << std::endl;
         }
 
+        os
+            << std::endl
+            << std::setw(12) << "Bin type"
+            << std::setw(12) << "Eligibility"
+            << std::endl
+            << std::setw(12) << "--------"
+            << std::setw(12) << "-----------"
+            << std::endl;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = this->bin_type(bin_type_id);
+            for (EligibilityId eligibility_id: bin_type.eligibility_ids) {
+                os
+                    << std::setw(12) << bin_type_id
+                    << std::setw(12) << eligibility_id
+                    << std::endl;
+            }
+        }
+
         if (number_of_defects() > 0) {
             os
                 << std::endl
@@ -283,6 +303,7 @@ std::ostream& Instance::format(
             << std::setw(12) << "Oriented"
             << std::setw(12) << "Group id"
             << std::setw(12) << "Weight"
+            << std::setw(12) << "Eligibility"
             << std::endl
             << std::setw(12) << "---------"
             << std::setw(12) << "-----"
@@ -292,6 +313,7 @@ std::ostream& Instance::format(
             << std::setw(12) << "--------"
             << std::setw(12) << "--------"
             << std::setw(12) << "------"
+            << std::setw(12) << "-----------"
             << std::endl;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < number_of_item_types();
@@ -306,6 +328,7 @@ std::ostream& Instance::format(
                 << std::setw(12) << item_type.oriented
                 << std::setw(12) << item_type.group_id
                 << std::setw(12) << item_type.weight
+                << std::setw(12) << item_type.eligibility_id
                 << std::endl;
         }
     }

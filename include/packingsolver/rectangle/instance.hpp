@@ -120,6 +120,16 @@ struct ItemType
     /** Weight of the item type. */
     Weight weight = 0;
 
+    /**
+     * Eligibility.
+     *
+     * - 'eligibility_id == -1' means that the item type can be packed in any
+     *   bin type.
+     * - 'eligibility_id >= 0' means that the item type can only be packed in
+     *   bin type supporting eligibility id 'eligibility_id'.
+     */
+    EligibilityId eligibility_id = -1;
+
     /*
      * Computed attributes
      */
@@ -198,12 +208,18 @@ struct BinType
     /** Semi-trailer truck data. */
     SemiTrailerTruckData semi_trailer_truck_data;
 
+    /** Eligibility ids. */
+    std::vector<EligibilityId> eligibility_ids;
+
     /** Defects of the bin type. */
     std::vector<Defect> defects;
 
     /*
      * Computed attributes
      */
+
+    /** Item type ids. */
+    std::vector<ItemTypeId> item_type_ids;
 
     /** Get the area of the bin type. */
     inline Area area() const { return rect.x * rect.y; }
