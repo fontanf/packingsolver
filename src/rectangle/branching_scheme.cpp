@@ -519,9 +519,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         const BinType& bin_type = instance.bin_type(bin_type_id);
 
         // Items.
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
+        for (ItemTypeId item_type_id: bin_type.item_type_ids) {
 
             if (!ok[item_type_id])
                 continue;
@@ -673,9 +671,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         const BinType& bin_type = instance.bin_type(bin_type_id);
 
         // Items.
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
+        for (ItemTypeId item_type_id: bin_type.item_type_ids) {
 
             if (!ok[item_type_id])
                 continue;
