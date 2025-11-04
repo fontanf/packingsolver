@@ -1,6 +1,7 @@
 #include "rectangle/instance_flipper.hpp"
 
 #include "packingsolver/rectangle/instance_builder.hpp"
+#include "rectangle/solution_builder.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
@@ -60,21 +61,21 @@ Instance InstanceFlipper::flip(const Instance& instance)
 
 Solution InstanceFlipper::unflip_solution(const Solution& flipped_solution) const
 {
-    Solution solution(instance_orig_);
+    SolutionBuilder solution_builder(instance_orig_);
     for (BinPos bin_pos = 0;
             bin_pos < flipped_solution.number_of_different_bins();
             ++bin_pos) {
         const SolutionBin& flipped_bin = flipped_solution.bin(bin_pos);
-        solution.add_bin(
+        solution_builder.add_bin(
                 flipped_bin.bin_type_id,
                 flipped_bin.copies);
         for (const SolutionItem& flipped_item: flipped_bin.items) {
-            solution.add_item(
+            solution_builder.add_item(
                     bin_pos,
                     flipped_item.item_type_id,
                     {flipped_item.bl_corner.y, flipped_item.bl_corner.x},
                     flipped_item.rotate);
         }
     }
-    return solution;
+    return solution_builder.build();
 }

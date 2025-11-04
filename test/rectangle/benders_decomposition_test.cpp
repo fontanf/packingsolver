@@ -1,5 +1,6 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/optimize.hpp"
+#include "rectangle/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -40,7 +41,9 @@ TEST_P(RectangleBendersDecompositionTest, RectangleBendersDecomposition)
     optimize_parameters.use_benders_decomposition = true;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, test_params.certificate_path.string());
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read(test_params.certificate_path.string());
+    Solution solution = solution_builder.build();
     std::cout << std::endl
         << "Reference solution" << std::endl
         << "------------------" << std::endl;

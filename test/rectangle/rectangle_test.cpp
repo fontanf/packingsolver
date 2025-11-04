@@ -1,5 +1,6 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/optimize.hpp"
+#include "rectangle/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -14,8 +15,9 @@ TEST(Rectangle, BinCopies)
     instance_builder.add_item_type(1, 1, -1, 10);
     instance_builder.add_bin_type(10, 10, -1, 10);
     const Instance instance = instance_builder.build();
-    Solution solution(instance);
-    solution.add_bin(0, 2);
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(0, 2);
+    Solution solution = solution_builder.build();
     EXPECT_EQ(solution.number_of_bins(), 2);
     EXPECT_EQ(solution.bin_copies(0), 2);
 }
@@ -51,7 +53,9 @@ TEST_P(RectangleOptimizeTest, RectangleOptimize)
     optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, test_params.certificate_path.string());
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read(test_params.certificate_path.string());
+    Solution solution = solution_builder.build();
     std::cout << std::endl
         << "Reference solution" << std::endl
         << "------------------" << std::endl;
