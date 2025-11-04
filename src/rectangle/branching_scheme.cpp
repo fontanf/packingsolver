@@ -1,5 +1,7 @@
 #include "rectangle/branching_scheme.hpp"
 
+#include "rectangle/solution_builder.hpp"
+
 #include <iostream>
 #include <string>
 
@@ -1118,15 +1120,19 @@ Solution BranchingScheme::to_solution(
     }
     std::reverse(descendents.begin(), descendents.end());
 
-    Solution solution(instance());
+    SolutionBuilder solution_builder(this->instance());
     BinPos bin_pos = -1;
+    BinPos number_of_bins = 0;
     for (auto current_node: descendents) {
-        if (current_node->number_of_bins > solution.number_of_bins())
-            bin_pos = solution.add_bin(instance().bin_type_id(current_node->number_of_bins - 1), 1);
+        if (number_of_bins < current_node->number_of_bins) {
+            number_of_bins++;
+            BinTypeId bin_type_id = instance().bin_type_id(number_of_bins - 1);
+            bin_pos = solution_builder.add_bin(bin_type_id, 1);
+        }
         Point bl_corner = (current_node->last_bin_direction == Direction::X)?
             Point{current_node->x, current_node->y}:
             Point{current_node->y, current_node->x};
-        solution.add_item(
+        solution_builder.add_item(
                 bin_pos,
                 current_node->item_type_id,
                 bl_corner,
@@ -1143,6 +1149,7 @@ Solution BranchingScheme::to_solution(
         //    << " waste " << current_node->waste
         //    << std::endl;
     }
+    Solution solution = solution_builder.build();
     if (node->number_of_bins == 1
             && node->last_bin_direction == Direction::Y
             && node->xe_max != solution.y_max()) {

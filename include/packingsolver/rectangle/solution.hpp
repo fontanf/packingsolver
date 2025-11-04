@@ -61,18 +61,6 @@ public:
         item_copies_(instance.number_of_item_types(), 0)
     { }
 
-    /** Add a bin at the end of the solution. */
-    BinPos add_bin(
-            BinTypeId bin_type_id,
-            BinPos copies);
-
-    /** Add an item to the solution. */
-    void add_item(
-            BinPos bin_pos,
-            ItemTypeId item_type_id,
-            Point bl_corner,
-            bool rotate);
-
     void append(
             const Solution& solution,
             BinPos bin_pos,
@@ -84,11 +72,6 @@ public:
             const Solution& solution,
             const std::vector<BinTypeId>& bin_type_ids,
             const std::vector<ItemTypeId>& item_type_ids);
-
-    /** Read a solution from a file. */
-    Solution(
-            const Instance& instance,
-            const std::string& certificate_path);
 
     /*
      * Getters
@@ -215,6 +198,13 @@ public:
 private:
 
     /*
+     * Private methods
+     */
+
+    void update_indicators(
+            BinPos bin_pos);
+
+    /*
      * Private attributes.
      */
 
@@ -271,6 +261,8 @@ private:
 
     /** Overweight for the rear axle weight constraints. */
     double rear_axle_overweight_ = 0;
+
+    friend class SolutionBuilder;
 
 };
 

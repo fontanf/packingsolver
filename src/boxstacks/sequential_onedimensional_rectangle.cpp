@@ -6,6 +6,7 @@
 
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "rectangle/branching_scheme.hpp"
+#include "rectangle/solution_builder.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
@@ -773,20 +774,21 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
             rectangle::Instance rectangle_instance = rectangle_instance_builder.build();
 
             // Create rectangle solution with fixed items.
-            rectangle::Solution rectangle_fixed_items(rectangle_instance);
+            rectangle::SolutionBuilder rectangle_fixed_items_builder(rectangle_instance);
             for (BinPos bin_pos = 0; bin_pos < fixed_items.number_of_different_bins(); ++bin_pos) {
                 const SolutionBin& solution_bin = fixed_items.bin(bin_pos);
-                rectangle_fixed_items.add_bin(bin_pos, 1);
+                rectangle_fixed_items_builder.add_bin(bin_pos, 1);
                 for (StackId stack_pos = 0; stack_pos < (StackId)solution_bin.stacks.size(); ++stack_pos) {
                     const SolutionStack& solution_stack = solution_bin.stacks[stack_pos];
                     ItemTypeId rectangle_item_type_id = solution_stack_2_rectangle_item_type_id[bin_pos][stack_pos];
-                    rectangle_fixed_items.add_item(
+                    rectangle_fixed_items_builder.add_item(
                             bin_pos,
                             rectangle_item_type_id,
                             {solution_stack.x_start, solution_stack.y_start},
                             false);
                 }
             }
+            rectangle::Solution rectangle_fixed_items = rectangle_fixed_items_builder.build();
 
             //rectangle_instance.format(std::cout, 2);
 
