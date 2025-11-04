@@ -526,7 +526,7 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initia
                 filled_demands_[item_type_id] += std::round(value) * std::round(element.coefficient);
                 if (filled_demands_[item_type_id] > copies) {
                     throw std::logic_error(
-                            "packingsolver::rectangleguillotine::ColumnGenerationPricingSolver::initialize_pricing; "
+                            FUNC_SIGNATURE + "; "
                             "item_type_id: " + std::to_string(item_type_id) + "; "
                             "copies: " + std::to_string(copies) + "; "
                             "filled_demands: " + std::to_string(filled_demands_[item_type_id]) + ".");

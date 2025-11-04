@@ -103,7 +103,8 @@ void AlgorithmFormatter::print_header()
         break;
     } default: {
         std::stringstream ss;
-        ss << "Problem type '" << Instance::type() << "' does not support objective \""
+        ss << FUNC_SIGNATURE << ": "
+            << "problem type '" << Instance::type() << "' does not support objective \""
             << instance_.objective() << "\"";
         throw std::logic_error(ss.str());
     }
@@ -162,7 +163,8 @@ void AlgorithmFormatter::print(
         break;
     } default: {
         std::stringstream ss;
-        ss << "Problem type '" << Instance::type() << "' does not support objective \""
+        ss << FUNC_SIGNATURE << ": "
+            << "problem type '" << Instance::type() << "' does not support objective \""
             << instance_.objective() << "\"";
         throw std::logic_error(ss.str());
     }

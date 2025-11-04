@@ -539,6 +539,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     Volume item_volume = xj * yj * zj;
     if (insertion.z + zj > zi) {
         throw std::runtime_error(
+                FUNC_SIGNATURE + "; "
                 "insertion.z: " + std::to_string(insertion.z)
                 + "; zj: " + std::to_string(zj)
                 + "; zi: " + std::to_string(zi)
@@ -1119,8 +1120,7 @@ void BranchingScheme::insertion_item(
                 return;
         break;
     } default: {
-        throw std::logic_error(
-                "packingsolver::boxstacks::BranchingScheme::insertion_item");
+        throw std::logic_error(FUNC_SIGNATURE);
     }
     }
 
@@ -1283,8 +1283,7 @@ void BranchingScheme::insertion_item_left(
                 return;
         break;
     } default: {
-        throw std::logic_error(
-                "packingsolver::boxstacks::BranchingScheme::insertion_item_left");
+        throw std::logic_error(FUNC_SIGNATURE);
     }
     }
 
@@ -1405,7 +1404,8 @@ bool BranchingScheme::better(
         return node_2->profit < node_1->profit;
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'boxstacks::BranchingScheme'"
+        ss << FUNC_SIGNATURE << ": "
+            << "branching scheme 'boxstacks::BranchingScheme' "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
@@ -1458,7 +1458,8 @@ bool BranchingScheme::bound(
             >= node_2->xe_max;
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'boxstacks::BranchingScheme'"
+        ss << FUNC_SIGNATURE << ": "
+            << "branching scheme 'boxstacks::BranchingScheme' "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;

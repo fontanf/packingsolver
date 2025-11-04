@@ -52,7 +52,7 @@ StackId Solution::add_stack(
 {
     if (bin_pos >= number_of_bins()) {
         throw std::runtime_error(
-                "packingsolver::boxstacks::Solution::add_stack: "
+                FUNC_SIGNATURE + ": "
                 "bin_pos: " + std::to_string(bin_pos) + "; "
                 "number_of_bins(): " + std::to_string(number_of_bins()) + ".");
     }
@@ -91,13 +91,13 @@ void Solution::add_item(
 {
     if (bin_pos >= number_of_bins()) {
         throw std::runtime_error(
-                "packingsolver::boxstacks::Solution::add_item: "
+                FUNC_SIGNATURE + ": "
                 "bin_pos: " + std::to_string(bin_pos) + "; "
                 "number_of_bins(): " + std::to_string(number_of_bins()) + ".");
     }
     if (item_type_id < 0 || item_type_id >= instance().number_of_item_types()) {
         throw std::runtime_error(
-                "packingsolver::boxstacks::Solution::add_item: "
+                FUNC_SIGNATURE + ": "
                 "item_type_id: " + std::to_string(item_type_id)
                 + " / " + std::to_string(instance().number_of_item_types()) + ".");
     }
@@ -120,7 +120,7 @@ void Solution::add_item(
 
     if (!item_type.can_rotate(rotation)) {
         throw std::runtime_error(
-                "packingsolver::boxstacks::Solution::add_item: "
+                FUNC_SIGNATURE + ": "
                 "forbidden rotation; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "item_type.rotations: " + std::to_string(item_type.rotations) + "; "
@@ -134,7 +134,7 @@ void Solution::add_item(
     }
     if (xj != stack.x_end - stack.x_start) {
         throw std::runtime_error(
-                "packingsolver::boxstacks::Solution::add_item; "
+                FUNC_SIGNATURE + ": "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "z: " + std::to_string(stack.z_end) + "; "
                 "rot: " + std::to_string(rotation) + "; "
@@ -148,7 +148,7 @@ void Solution::add_item(
     }
     if (yj != stack.y_end - stack.y_start) {
         throw std::runtime_error(
-                "packingsolver::boxstacks::Solution::add_item: "
+                FUNC_SIGNATURE + ": "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "rot: " + std::to_string(rotation) + "; "
                 "xj: " + std::to_string(xj) + "; "
@@ -383,7 +383,8 @@ bool Solution::operator<(const Solution& solution) const
         return solution.profit() > profit();
     } default: {
         std::stringstream ss;
-        ss << "Solution \"boxstacks::Solution\" does not support objective \""
+        ss << FUNC_SIGNATURE << ": "
+            << "solution \"boxstacks::Solution\" does not support objective \""
             << instance().objective() << "\"";
         throw std::logic_error(ss.str());
     }
@@ -440,7 +441,8 @@ void Solution::write(
     std::ofstream file(certificate_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + certificate_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + certificate_path + "\".");
     }
 
     file << "TYPE,ID,COPIES,BIN,STACK,X,Y,Z,LX,LY,LZ" << std::endl;

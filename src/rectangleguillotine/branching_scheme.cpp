@@ -135,7 +135,8 @@ bool BranchingScheme::bound(
             >= height(*node_2);
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'rectangleguillotine::BranchingScheme'"
+        ss << FUNC_SIGNATURE << ": "
+            << "branching scheme 'rectangleguillotine::BranchingScheme' "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
@@ -184,7 +185,8 @@ bool BranchingScheme::better(
         return node_2->profit < node_1->profit;
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'rectangleguillotine::BranchingScheme'"
+        ss << FUNC_SIGNATURE << ": "
+            << "branching scheme 'rectangleguillotine::BranchingScheme' "
             << "does not support objective \"" << instance().objective() << "\".";
         throw std::logic_error(ss.str());
         return false;
@@ -446,7 +448,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.waste = node.current_area - node.item_area;
     if (node.waste < 0) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::BranchingScheme::child_tmp: "
+                FUNC_SIGNATURE + "; "
                 "node.waste: " + std::to_string(node.waste) + "; "
                 "node.current_area: " + std::to_string(node.current_area) + "; "
                 "node.item_area: " + std::to_string(node.item_area) + "; "
@@ -1512,7 +1514,7 @@ void BranchingScheme::update(
             for (auto it = children.begin(); it != children.end();) {
                 bool b = true;
                 if (cc->item_type_id_1 == -1 && cc->item_type_id_2 == -1)
-                    throw std::logic_error("");
+                    throw std::logic_error(FUNC_SIGNATURE);
                 if (((*it)->item_type_id_1 != -1 || (*it)->item_type_id_2 != -1)
                         && (cc->item_type_id_1 == -1 || cc->item_type_id_1 == (*it)->item_type_id_1 || cc->item_type_id_1 == (*it)->item_type_id_2)
                         && (cc->item_type_id_2 == -1 || cc->item_type_id_2 == (*it)->item_type_id_1 || cc->item_type_id_2 == (*it)->item_type_id_2)) {

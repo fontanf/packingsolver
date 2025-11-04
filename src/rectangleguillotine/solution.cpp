@@ -350,7 +350,8 @@ bool Solution::operator<(const Solution& solution) const
         return strictly_lesser(solution.cost(), cost());
     } default: {
         std::stringstream ss;
-        ss << "Solution rectangleguillotine::Solution does not support objective \""
+        ss << FUNC_SIGNATURE << ": "
+            << "solution rectangleguillotine::Solution does not support objective \""
             << instance().objective() << "\"";
         throw std::logic_error(ss.str());
     }
@@ -365,7 +366,8 @@ void Solution::write(
     std::ofstream file{certificate_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + certificate_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + certificate_path + "\".");
     }
 
     file << "PLATE_ID,COPIES,NODE_ID,X,Y,WIDTH,HEIGHT,TYPE,CUT,PARENT" << std::endl;

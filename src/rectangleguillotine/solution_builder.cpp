@@ -13,7 +13,7 @@ void SolutionBuilder::add_bin(
     if (bin_type_id < 0
             || bin_type_id >= solution_.instance().number_of_bin_types()) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::SolutionBuilder::add_bin: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'bin_type_id'; "
                 "bin_type_id: " + std::to_string(bin_type_id) + "; "
                 "instance().number_of_bin_types(): " + std::to_string(solution_.instance().number_of_bin_types()) + ".");
@@ -171,13 +171,13 @@ void SolutionBuilder::set_last_node_item(
 {
     if (solution_.bins_.empty()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::SolutionBuilder::set_last_node_item: "
+                FUNC_SIGNATURE + ": "
                 "at least one bin must have been added to the solution.");
     }
     if (item_type_id < 0
             || item_type_id >= solution_.instance().number_of_item_types()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::SolutionBuilder::set_last_node_item: "
+                FUNC_SIGNATURE + ": "
                 "wrong 'item_type_id' value; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "solution_.instance().number_of_item_types(): " + std::to_string(solution_.instance().number_of_item_types()) + ".");
@@ -193,7 +193,7 @@ void SolutionBuilder::set_last_node_item(
             || (node.r - node.l == item_type.rect.h && node.t - node.b == item_type.rect.w));
     if (!ok) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::SolutionBuilder::set_last_node_item: "
+                FUNC_SIGNATURE + ": "
                 "wrong item dimensions; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "item_type.rect.w: " + std::to_string(item_type.rect.w) + "; "
@@ -215,12 +215,12 @@ void SolutionBuilder::add_node(
     //std::cout << "add_node depth " << depth << " cut_position " << cut_position << std::endl;
     if (solution_.bins_.empty()) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                FUNC_SIGNATURE + ": "
                 "at least one bin must have been added to the solution.");
     }
     if (depth < 1) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                FUNC_SIGNATURE + ": "
                 "wrong 'depth'; "
                 "depth: " + std::to_string(depth) + ".");
     }
@@ -231,7 +231,7 @@ void SolutionBuilder::add_node(
     //std::cout << "parent_id " << parent_id << " depth " << bin.nodes[parent_id].d << std::endl;
     if (depth > bin.nodes[parent_id].d + 1) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                FUNC_SIGNATURE + ": "
                 "wrong depth; "
                 "depth: " + std::to_string(depth) + "; "
                 "parent.depth: " + std::to_string(bin.nodes[parent_id].d) + ".");
@@ -275,7 +275,7 @@ void SolutionBuilder::add_node(
     SolutionNode& parent = bin.nodes[parent_id];
     if (parent.f != -1 && parent.item_type_id >= 0) {
         throw std::logic_error(
-                "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                FUNC_SIGNATURE + ": "
                 "cannot add a child to a node with an item.");
     }
     if (parent.f != -1)
@@ -294,7 +294,7 @@ void SolutionBuilder::add_node(
         child.t = parent.t;
         if (child.r <= child.l) {
             throw std::logic_error(
-                    "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                    FUNC_SIGNATURE + ": "
                     "'cut_position' is too small; "
                     "depth: " + std::to_string(depth) + "; "
                     "cut_position: " + std::to_string(cut_position) + "; "
@@ -303,7 +303,7 @@ void SolutionBuilder::add_node(
         }
         if (child.r > parent.r) {
             throw std::logic_error(
-                    "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                    FUNC_SIGNATURE + ": "
                     "'cut_position' is too large; "
                     "depth: " + std::to_string(depth) + "; "
                     "cut_position: " + std::to_string(cut_position) + "; "
@@ -317,7 +317,7 @@ void SolutionBuilder::add_node(
         child.t = cut_position;
         if (child.t <= child.b) {
             throw std::logic_error(
-                    "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                    FUNC_SIGNATURE + ": "
                     "'cut_position' is too small; "
                     "depth: " + std::to_string(depth) + "; "
                     "cut_position: " + std::to_string(cut_position) + "; "
@@ -326,7 +326,7 @@ void SolutionBuilder::add_node(
         }
         if (child.t > parent.t) {
             throw std::logic_error(
-                    "packingsolver::rectangleguillotine::SolutionBuilder::add_node: "
+                    FUNC_SIGNATURE + ": "
                     "'cut_position' is too large; "
                     "depth: " + std::to_string(depth) + "; "
                     "cut_position: " + std::to_string(cut_position) + "; "
@@ -345,7 +345,8 @@ void SolutionBuilder::read(
     std::ifstream f(certificate_path);
     if (!f.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + certificate_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + certificate_path + "\".");
     }
 
     std::string tmp;
@@ -426,7 +427,7 @@ void SolutionBuilder::read(
                 } else if (node.l == parent.l && node.r == parent.r) {
                     first_cut_orientation = CutOrientation::Horizontal;
                 } else {
-                    throw std::logic_error("");
+                    throw std::logic_error(FUNC_SIGNATURE);
                 }
                 break;
             }

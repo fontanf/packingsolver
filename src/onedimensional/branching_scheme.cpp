@@ -216,7 +216,8 @@ bool BranchingScheme::better(
         return node_2->profit < node_1->profit;
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'onedimensional::BranchingScheme'"
+        ss << FUNC_SIGNATURE << ": "
+            << "branching scheme 'onedimensional::BranchingScheme' "
             << "does not support objective '" << instance_.objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
@@ -259,7 +260,8 @@ bool BranchingScheme::bound(
         return (ubkp(*node_1) <= node_2->profit);
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'onedimensional::BranchingScheme'"
+        ss << FUNC_SIGNATURE << ": "
+            << "branching scheme 'onedimensional::BranchingScheme' "
             << "does not support objective '" << instance_.objective() << "'.";
         throw std::logic_error(ss.str());
         return false;

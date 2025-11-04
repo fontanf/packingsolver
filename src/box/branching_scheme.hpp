@@ -392,11 +392,11 @@ private:
         } case Direction::Z: {
             return instance_flipper_z_.flipped_instance();
         } case Direction::Any: {
-            throw std::invalid_argument("");
+            throw std::invalid_argument(FUNC_SIGNATURE);
             return instance_;
         }
         }
-        throw std::invalid_argument("");
+        throw std::invalid_argument(FUNC_SIGNATURE);
         return instance_;
     }
 
@@ -410,7 +410,7 @@ private:
         } else if (v == 0) {
             return Direction::Z;
         }
-        throw std::logic_error("");
+        throw std::logic_error(FUNC_SIGNATURE);
         return Direction::X;
     }
 
@@ -424,7 +424,7 @@ private:
         } else if (v == 0) {
             return instance_flipper_z_.flipped_instance();
         }
-        throw std::logic_error("");
+        throw std::logic_error(FUNC_SIGNATURE);
         return instance_;
     }
 

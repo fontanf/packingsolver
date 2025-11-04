@@ -168,7 +168,8 @@ void ItemType::write_svg(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
 
     auto mm = compute_min_max(0.0, false, 2);
@@ -223,7 +224,8 @@ void BinType::write_svg(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
 
     LengthDbl width = (x_max - x_min);
@@ -585,7 +587,8 @@ void Instance::write(
     std::ofstream file(instance_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + instance_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + instance_path + "\".");
     }
 
     nlohmann::json json;

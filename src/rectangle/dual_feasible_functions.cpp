@@ -33,7 +33,7 @@ Length f_ccm_1(
         // MC(C, S) − MC(C − x, S)
         if (value < 0)
             throw std::invalid_argument(
-                    "packingsolver::rectange::f_ccm_1; "
+                    FUNC_SIGNATURE + "; "
                     "capacity: " + std::to_string(capacity) + "; "
                     "k: " + std::to_string(k) + "; "
                     "length: " + std::to_string(length) + "; "
@@ -69,12 +69,10 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
     const BinType& bin_type = instance.bin_type(0);
 
     if (instance.objective() != Objective::BinPacking) {
-        throw std::invalid_argument(
-                "packingsolver::rectangle::dual_feasible_functions.");
+        throw std::invalid_argument(FUNC_SIGNATURE);
     }
     if (instance.number_of_bin_types() != 1) {
-        throw std::invalid_argument(
-                "packingsolver::rectangle::dual_feasible_functions.");
+        throw std::invalid_argument(FUNC_SIGNATURE);
     }
 
     DualFeasibleFunctionsOutput output(instance);

@@ -269,6 +269,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     Volume item_volume = xj * yj * zj;
     if (insertion.z + zj > zi) {
         throw std::runtime_error(
+                FUNC_SIGNATURE + "; "
                 "insertion.z: " + std::to_string(insertion.z)
                 + "; zj: " + std::to_string(zj)
                 + "; zi: " + std::to_string(zi)
@@ -698,7 +699,8 @@ bool BranchingScheme::better(
         return node_2->profit < node_1->profit;
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'box::BranchingScheme'"
+        ss << FUNC_SIGNATURE << ": "
+            << "Branching scheme 'box::BranchingScheme' "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
@@ -752,7 +754,8 @@ bool BranchingScheme::bound(
         return b >= node_2->xe_max;
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'box::BranchingScheme'"
+        ss << FUNC_SIGNATURE << ": "
+            << "branching scheme 'box::BranchingScheme' "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;

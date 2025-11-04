@@ -40,7 +40,7 @@ void Solution::add_item(
         ItemTypeId item_type_id)
 {
     if (bin_pos >= number_of_bins()) {
-        throw "";
+        throw std::invalid_argument(FUNC_SIGNATURE);
     }
     SolutionBin& bin = bins_[bin_pos];
 
@@ -90,7 +90,7 @@ void Solution::add_item(
     item_copies_[item.item_type_id] += bin.copies;
     if (item_copies_[item.item_type_id] > item_type.copies) {
         throw std::runtime_error(
-                "packingsolver::onedimensional::Solution::add_item; "
+                FUNC_SIGNATURE + ": "
                 "item_copies_[item.item_type_id]: " + std::to_string(item_copies_[item.item_type_id]) + "; "
                 "item_type.copies: " + std::to_string(item_type.copies) + ".");
     }
@@ -114,7 +114,7 @@ void Solution::append(
     if (!bin_type_ids.empty()) {
         if (bin.bin_type_id >= (BinPos)bin_type_ids.size()) {
             throw std::runtime_error(
-                    "packingsolver::onedimensional::Solution::append; "
+                    FUNC_SIGNATURE + ": "
                     "bin.bin_type_id: " + std::to_string(bin.bin_type_id) + "; "
                     "bin_type_ids.size(): " + std::to_string(bin_type_ids.size()) + ".");
         }
@@ -151,7 +151,8 @@ Solution::Solution(
     std::ifstream f(certificate_path);
     if (!f.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + certificate_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + certificate_path + "\".");
     }
 
     std::string tmp;
@@ -188,27 +189,33 @@ Solution::Solution(
         }
         if (type == "") {
             throw std::runtime_error(
-                    "Missing \"TYPE\" value in \"" + certificate_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"TYPE\" value in \"" + certificate_path + "\".");
         }
         if (type_id == -1) {
             throw std::runtime_error(
-                    "Missing \"ID\" value in \"" + certificate_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"ID\" value in \"" + certificate_path + "\".");
         }
         if (copies == -1) {
             throw std::runtime_error(
-                    "Missing \"COPIES\" value in \"" + certificate_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"COPIES\" value in \"" + certificate_path + "\".");
         }
         if (bin_pos == -1) {
             throw std::runtime_error(
-                    "Missing \"BIN\" value in \"" + certificate_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"BIN\" value in \"" + certificate_path + "\".");
         }
         if (x == -1) {
             throw std::runtime_error(
-                    "Missing \"X\" value in \"" + certificate_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"X\" value in \"" + certificate_path + "\".");
         }
         if (lx == -1) {
             throw std::runtime_error(
-                    "Missing \"LX\" value in \"" + certificate_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"LX\" value in \"" + certificate_path + "\".");
         }
 
         if (type == "BIN") {
@@ -221,7 +228,8 @@ Solution::Solution(
                     type_id);
         } else {
             throw std::runtime_error(
-                    "Wrong \"TYPE\" value in \"" + certificate_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "wrong \"TYPE\" value in \"" + certificate_path + "\".");
         }
     }
 }
@@ -257,7 +265,8 @@ bool Solution::operator<(const Solution& solution) const
         return strictly_lesser(solution.cost(), cost());
     } default: {
         std::stringstream ss;
-        ss << "Solution onedimensional::Solution does not support objective \""
+        ss << FUNC_SIGNATURE << ": "
+            << "solution onedimensional::Solution does not support objective \""
             << instance().objective() << "\"";
         throw std::logic_error(ss.str());
     }
@@ -272,7 +281,8 @@ void Solution::write(
     std::ofstream file(certificate_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + certificate_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + certificate_path + "\".");
     }
 
     file << "TYPE,ID,COPIES,BIN,X,LX" << std::endl;

@@ -32,44 +32,44 @@ BinTypeId InstanceBuilder::add_bin_type(
 {
     if (x <= 0) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'x' must be > 0; "
                 "x: " + std::to_string(x) + ".");
     }
     if (y <= 0) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'y' must be > 0; "
                 "y: " + std::to_string(y) + ".");
     }
     if (z <= 0) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'z' must be > 0; "
                 "z: " + std::to_string(z) + ".");
     }
     if (cost <= 0 && cost != -1) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'cost' must be > 0 (or == -1); "
                 "cost: " + std::to_string(cost) + ".");
     }
     if (copies_min < 0) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'copies_min' must be >= 0; "
                 "copies_min: " + std::to_string(copies_min) + ".");
     }
     if (copies != -1) {
         if (copies <= 0) {
             throw std::invalid_argument(
-                    "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
+                    FUNC_SIGNATURE + ": "
                     "bin 'copies' must be > 0 (or == -1); "
                     "copies: " + std::to_string(copies) + ".");
         }
         if (copies_min > copies) {
             throw std::invalid_argument(
-                    "packingsolver::boxstacks::InstanceBuilder::add_bin_type: "
+                    FUNC_SIGNATURE + ": "
                     "bin 'copies_min' must be <= 'copies'; "
                     "copies: " + std::to_string(copies) + "; "
                     "copies_min: " + std::to_string(copies_min) + ".");
@@ -93,7 +93,7 @@ void InstanceBuilder::set_bin_type_maximum_weight(
 {
     if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::set_bin_type_maximum_weight: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'bin_type_id'; "
                 "bin_type_id: " + std::to_string(bin_type_id) + "; "
                 "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
@@ -108,7 +108,7 @@ void InstanceBuilder::set_bin_type_maximum_stack_density(
 {
     if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::set_bin_type_maximum_stack_density: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'bin_type_id'; "
                 "bin_type_id: " + std::to_string(bin_type_id) + "; "
                 "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
@@ -123,7 +123,7 @@ void InstanceBuilder::set_bin_type_semi_trailer_truck_parameters(
 {
     if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::set_bin_type_semi_trailer_truck_parameters: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'bin_type_id'; "
                 "bin_type_id: " + std::to_string(bin_type_id) + "; "
                 "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
@@ -141,7 +141,7 @@ DefectId InstanceBuilder::add_defect(
 {
     if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_defect; "
+                FUNC_SIGNATURE + ": "
                 "bin_type_id: " + std::to_string(bin_type_id) + "; "
                 "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
     }
@@ -252,31 +252,31 @@ ItemTypeId InstanceBuilder::add_item_type(
 {
     if (x < 0) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_item_type: "
+                FUNC_SIGNATURE + ": "
                 "item 'x' must be > 0; "
                 "x: " + std::to_string(x) + ".");
     }
     if (y < 0) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_item_type: "
+                FUNC_SIGNATURE + ": "
                 "item 'y' must be > 0; "
                 "y: " + std::to_string(y) + ".");
     }
     if (z < 0) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_item_type: "
+                FUNC_SIGNATURE + ": "
                 "item 'z' must be > 0; "
                 "z: " + std::to_string(z) + ".");
     }
     if (copies <= 0) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_item_type: "
+                FUNC_SIGNATURE + ": "
                 "item 'copies' must be > 0; "
                 "copies: " + std::to_string(copies) + ".");
     }
     if (group_id < 0) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::add_item_type: "
+                FUNC_SIGNATURE + ": "
                 "item 'group_id' must be >= 0; "
                 "group_id: " + std::to_string(group_id) + ".");
     }
@@ -299,7 +299,7 @@ void InstanceBuilder::set_item_type_weight(
 {
     if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::set_item_type_weight: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'item_type_id'; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
@@ -314,7 +314,7 @@ void InstanceBuilder::set_item_type_stackability_id(
 {
     if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::set_item_type_stackability_id: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'item_type_id'; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
@@ -329,7 +329,7 @@ void InstanceBuilder::set_item_type_nesting_height(
 {
     if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::set_item_type_nesting_height: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'item_type_id'; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
@@ -344,7 +344,7 @@ void InstanceBuilder::set_item_type_maximum_stackability(
 {
     if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::set_item_type_maximum_stackability: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'item_type_id'; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
@@ -359,7 +359,7 @@ void InstanceBuilder::set_item_type_maximum_weight_above(
 {
     if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::set_item_type_maximum_weight_above: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'item_type_id'; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
@@ -483,7 +483,8 @@ void InstanceBuilder::read_parameters(
     std::ifstream f(parameters_path);
     if (parameters_path != "" && !f.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + parameters_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + parameters_path + "\".");
     }
 
     std::string tmp;
@@ -527,7 +528,8 @@ void InstanceBuilder::read_bin_types(
     std::ifstream f(bins_path);
     if (!f.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + bins_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + bins_path + "\".");
     }
 
     std::string tmp;
@@ -575,15 +577,18 @@ void InstanceBuilder::read_bin_types(
 
         if (x == -1) {
             throw std::runtime_error(
-                    "Missing \"X\" column in \"" + bins_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"X\" column in \"" + bins_path + "\".");
         }
         if (y == -1) {
             throw std::runtime_error(
-                    "Missing \"Y\" column in \"" + bins_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"Y\" column in \"" + bins_path + "\".");
         }
         if (z == -1) {
             throw std::runtime_error(
-                    "Missing \"Z\" column in \"" + bins_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"Z\" column in \"" + bins_path + "\".");
         }
 
         BinTypeId bin_type_id = add_bin_type(
@@ -611,7 +616,8 @@ void InstanceBuilder::read_defects(
     std::ifstream f(defects_path);
     if (defects_path != "" && !f.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + defects_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + defects_path + "\".");
     }
 
     std::string tmp;
@@ -647,23 +653,28 @@ void InstanceBuilder::read_defects(
 
             if (bin_type_id == -1) {
                 throw std::runtime_error(
-                        "Missing \"BIN\" column in \"" + defects_path + "\".");
+                        FUNC_SIGNATURE + ": "
+                        "missing \"BIN\" column in \"" + defects_path + "\".");
             }
             if (pos_x == -1) {
                 throw std::runtime_error(
-                        "Missing \"X\" column in \"" + defects_path + "\".");
+                        FUNC_SIGNATURE + ": "
+                        "missing \"X\" column in \"" + defects_path + "\".");
             }
             if (pos_y == -1) {
                 throw std::runtime_error(
-                        "Missing \"Y\" column in \"" + defects_path + "\".");
+                        FUNC_SIGNATURE + ": "
+                        "missing \"Y\" column in \"" + defects_path + "\".");
             }
             if (rect_x == -1) {
                 throw std::runtime_error(
-                        "Missing \"LX\" column in \"" + defects_path + "\".");
+                        FUNC_SIGNATURE + ": "
+                        "missing \"LX\" column in \"" + defects_path + "\".");
             }
             if (rect_y == -1) {
                 throw std::runtime_error(
-                        "Missing \"LY\" column in \"" + defects_path + "\".");
+                        FUNC_SIGNATURE + ": "
+                        "missing \"LY\" column in \"" + defects_path + "\".");
             }
 
             add_defect(bin_type_id, pos_x, pos_y, rect_x, rect_y);
@@ -678,7 +689,8 @@ void InstanceBuilder::read_item_types(
     std::ifstream f(items_path);
     if (!f.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + items_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + items_path + "\".");
     }
 
     std::string tmp;
@@ -733,15 +745,18 @@ void InstanceBuilder::read_item_types(
 
         if (x == -1) {
             throw std::runtime_error(
-                    "Missing \"X\" column in \"" + items_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"X\" column in \"" + items_path + "\".");
         }
         if (y == -1) {
             throw std::runtime_error(
-                    "Missing \"Y\" column in \"" + items_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"Y\" column in \"" + items_path + "\".");
         }
         if (z == -1) {
             throw std::runtime_error(
-                    "Missing \"Z\" column in \"" + items_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"Z\" column in \"" + items_path + "\".");
         }
 
         if (profit == -1)
@@ -853,14 +868,14 @@ Instance InstanceBuilder::build()
     if (instance_.objective() == Objective::OpenDimensionX
             && instance_.number_of_bins() != 1) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::build: "
+                FUNC_SIGNATURE + ": "
                 "the instance has objective OpenDimensionX and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
                 "an instance with objective OpenDimensionX must contain exactly one bin.");
     }
     if (instance_.objective() == Objective::OpenDimensionY
             && instance_.number_of_bins() != 1) {
         throw std::invalid_argument(
-                "packingsolver::boxstacks::InstanceBuilder::build: "
+                FUNC_SIGNATURE + ": "
                 "the instance has objective OpenDimensionY and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
                 "an instance with objective OpenDimensionY must contain exactly one bin.");
     }

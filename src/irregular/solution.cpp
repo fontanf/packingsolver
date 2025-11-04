@@ -56,7 +56,7 @@ void Solution::add_item(
     if (item_type_id < 0
             || item_type_id >= instance().number_of_item_types()) {
         throw std::invalid_argument(
-                "packingsolver::irregular::Solution::add_item: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'item_type_id'; "
                 "item_type_id: " + std::to_string(item_type_id) + ".");
     }
@@ -73,7 +73,7 @@ void Solution::add_item(
             angle_ok = true;
     if (!angle_ok) {
         throw std::invalid_argument(
-                "packingsolver::irregular::Solution::add_item: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'angle'; "
                 "angle: " + std::to_string(angle) + "; "
                 "item_type_id: " + std::to_string(item_type_id) + ".");
@@ -81,8 +81,8 @@ void Solution::add_item(
 
     if (mirror && !item_type.allow_mirroring) {
         throw std::invalid_argument(
-                "packingsolver::irregular::Solution::add_item: "
-                " mirroring is not allowed for this item type; "
+                FUNC_SIGNATURE + ": "
+                "mirroring is not allowed for this item type; "
                 "item_type_id: " + std::to_string(item_type_id) + ".");
     }
 
@@ -127,7 +127,7 @@ void Solution::append(
     // Check bin_pos.
     if (bin_pos >= solution.number_of_different_bins()) {
         throw std::invalid_argument(
-                "packingsolver::irregular::Solution::append: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'bin_pos'; "
                 "bin_pos: " + std::to_string(bin_pos) + "; "
                 "solution.number_of_different_bins(): " + std::to_string(solution.number_of_different_bins()) + ".");
@@ -164,7 +164,8 @@ Solution::Solution(
     std::ifstream file(certificate_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + certificate_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + certificate_path + "\".");
     }
 
     nlohmann ::json j;
@@ -249,7 +250,8 @@ bool Solution::operator<(const Solution& solution) const
         return strictly_lesser(solution.cost(), cost());
     } default: {
         std::stringstream ss;
-        ss << "Solution irregular::Solution does not support objective \""
+        ss << FUNC_SIGNATURE << ": "
+            << "solution irregular::Solution does not support objective \""
             << instance().objective() << "\"";
         throw std::logic_error(ss.str());
         return false;
@@ -265,7 +267,8 @@ void Solution::write(
     std::ofstream file{certificate_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + certificate_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + certificate_path + "\".");
     }
 
     nlohmann::json json;
@@ -404,7 +407,8 @@ void Solution::write_svg(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
 
     const SolutionBin& bin = this->bin(bin_pos);
