@@ -283,11 +283,11 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             mathoptsolverscmake::solve(highs);
             milp_solution = mathoptsolverscmake::get_solution(highs);
 #else
-            throw std::invalid_argument("");
+            throw std::invalid_argument(FUNC_SIGNATURE);
 #endif
 
         } else {
-            throw std::invalid_argument("");
+            throw std::invalid_argument(FUNC_SIGNATURE);
         }
 
         // Check end.

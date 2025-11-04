@@ -23,8 +23,7 @@ bool BranchingScheme::dominates(
     } else if (parameters_.predecessor_strategy == 2) {
         return item_type_1.weight >= item_type_2.weight;
     } else {
-        throw std::invalid_argument(
-                "packingsolver::rectangle::BranchingScheme::dominates");
+        throw std::invalid_argument(FUNC_SIGNATURE);
         return false;
     }
 }
@@ -444,7 +443,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 << std::endl;
         }
         throw std::runtime_error(
-                "packingsolver::rectangle::BranchingScheme::child_tmp: "
+                FUNC_SIGNATURE + ": "
                 "node.waste: " + std::to_string(node.waste) + ".");
     }
 
@@ -807,8 +806,7 @@ void BranchingScheme::insertion_item(
                 return;
         break;
     } default: {
-        throw std::logic_error(
-                "packingsolver::rectangle::BranchingScheme::insertion_item");
+        throw std::logic_error(FUNC_SIGNATURE);
     }
     }
 
@@ -943,8 +941,7 @@ void BranchingScheme::insertion_item_fixed(
                 return;
         break;
     } default: {
-        throw std::logic_error(
-                "packingsolver::rectangle::BranchingScheme::insertion_item_fixed");
+        throw std::logic_error(FUNC_SIGNATURE);
     }
     }
 
@@ -1036,7 +1033,7 @@ bool BranchingScheme::better(
             < node_2->middle_axle_overweight + node_2->rear_axle_overweight;
     } default: {
         std::stringstream ss;
-        ss << "packingsolver::rectangle::BranchingScheme::better: "
+        ss << FUNC_SIGNATURE << ": "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
@@ -1098,7 +1095,7 @@ bool BranchingScheme::bound(
         return false;
     } default: {
         std::stringstream ss;
-        ss << "packingsolver::rectangle::BranchingScheme::bound: "
+        ss << FUNC_SIGNATURE << ": "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
@@ -1150,7 +1147,7 @@ Solution BranchingScheme::to_solution(
             && node->last_bin_direction == Direction::Y
             && node->xe_max != solution.y_max()) {
         throw std::runtime_error(
-                "packingsolver::rectangle::BranchingScheme::to_solution; "
+                FUNC_SIGNATURE + "; "
                 "node->xe_max: " + std::to_string(node->xe_max) + "; "
                 "solution.y_max(): " + std::to_string(solution.y_max()) + ".");
     }

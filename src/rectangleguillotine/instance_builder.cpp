@@ -18,13 +18,14 @@ void InstanceBuilder::set_predefined(std::string str)
 
     if (str.length() != 4) {
         // TODO
-        throw std::invalid_argument("");
+        throw std::invalid_argument(FUNC_SIGNATURE);
     }
 
     Counter number_of_stages = (Counter)(str[0] - 48);
     if (number_of_stages <= 1) {
         // TODO
         throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
                 "predefined branching scheme parameter 1st character");
     }
     set_number_of_stages(number_of_stages);
@@ -45,6 +46,7 @@ void InstanceBuilder::set_predefined(std::string str)
     } default: {
         // TODO
         throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
                 "predefined branching scheme parameter 2nd character");
     }
     }
@@ -62,6 +64,7 @@ void InstanceBuilder::set_predefined(std::string str)
     } default: {
         // TODO
         throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
                 "predefined branching scheme parameter 3rd character");
     }
     }
@@ -75,6 +78,7 @@ void InstanceBuilder::set_predefined(std::string str)
     } default: {
         // TODO
         throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
                 "predefined branching scheme parameter 4th character");
     }
     }
@@ -105,38 +109,38 @@ BinTypeId InstanceBuilder::add_bin_type(
 {
     if (width <= 0) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'width' must be > 0; "
                 "width: " + std::to_string(width) + ".");
     }
     if (height <= 0) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'height' must be > 0; "
                 "height: " + std::to_string(height) + ".");
     }
     if (cost <= 0 && cost != -1) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'cost' must be > 0 (or == -1); "
                 "cost: " + std::to_string(cost) + ".");
     }
     if (copies_min < 0) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'copies_min' must be >= 0; "
                 "copies_min: " + std::to_string(copies_min) + ".");
     }
     if (copies != -1) {
         if (copies <= 0) {
             throw std::invalid_argument(
-                    "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
+                    FUNC_SIGNATURE + ": "
                     "bin 'copies' must be > 0 (or == -1); "
                     "copies: " + std::to_string(copies) + ".");
         }
         if (copies_min > copies) {
             throw std::invalid_argument(
-                    "packingsolver::rectangleguillotine::InstanceBuilder::add_bin_type: "
+                    FUNC_SIGNATURE + ": "
                     "bin 'copies_min' must be <= 'copies'; "
                     "copies: " + std::to_string(copies) + "; "
                     "copies_min: " + std::to_string(copies_min) + ".");
@@ -166,7 +170,7 @@ void InstanceBuilder::add_trims(
 {
     if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_trims: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'bin_type_id'; "
                 "bin_type_id: " + std::to_string(bin_type_id) + "; "
                 "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
@@ -175,7 +179,7 @@ void InstanceBuilder::add_trims(
     BinType& bin_type = instance_.bin_types_[bin_type_id];
     if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::rectangle::InstanceBuilder::add_defect: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'bin_type_id'; "
                 "bin_type_id: " + std::to_string(bin_type_id) + "; "
                 "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
@@ -183,45 +187,45 @@ void InstanceBuilder::add_trims(
 
     if (bottom_trim < 0) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_trims: "
+                FUNC_SIGNATURE + ": "
                 "requires 'bottom_trim >= 0'.");
     }
     if (bottom_trim >= bin_type.rect.h) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_trims: "
+                FUNC_SIGNATURE + ": "
                 "requires 'bottom_trim < h'.");
     }
 
     if (top_trim < 0) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_trims: "
+                FUNC_SIGNATURE + ": "
                 "requires 'top_trim >= 0'.");
     }
     if (top_trim >= bin_type.rect.h - bottom_trim) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_trims: "
+                FUNC_SIGNATURE + ": "
                 "requires 'top_trim < h - bottom_trim'.");
     }
 
     if (left_trim < 0) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_trims: "
+                FUNC_SIGNATURE + ": "
                 "requires 'left_trim >= 0'.");
     }
     if (left_trim >= bin_type.rect.w) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_trims: "
+                FUNC_SIGNATURE + ": "
                 "requires 'left_trim < w'.");
     }
 
     if (right_trim < 0) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_trims: "
+                FUNC_SIGNATURE + ": "
                 "requires 'right_trim >= 0'.");
     }
     if (right_trim > bin_type.rect.h - left_trim) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_trims: "
+                FUNC_SIGNATURE + ": "
                 "requires 'right_trim < w - left_trim'.");
     }
 
@@ -244,7 +248,7 @@ void InstanceBuilder::add_defect(
 {
     if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_defect: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'bin_type_id'; "
                 "bin_type_id: " + std::to_string(bin_type_id) + "; "
                 "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
@@ -355,19 +359,19 @@ ItemTypeId InstanceBuilder::add_item_type(
 {
     if (width < 0) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_item_type: "
+                FUNC_SIGNATURE + ": "
                 "item 'width' must be > 0; "
                 "width: " + std::to_string(width) + ".");
     }
     if (height < 0) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_item_type: "
+                FUNC_SIGNATURE + ": "
                 "item 'height' must be > 0; "
                 "height: " + std::to_string(height) + ".");
     }
     if (copies <= 0) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::add_item_type: "
+                FUNC_SIGNATURE + ": "
                 "item 'copies' must be > 0; "
                 "copies: " + std::to_string(copies) + ".");
     }
@@ -463,7 +467,8 @@ void InstanceBuilder::read_parameters(
     std::ifstream f(parameters_path);
     if (parameters_path != "" && !f.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + parameters_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + parameters_path + "\".");
     }
 
     std::string tmp;
@@ -536,7 +541,8 @@ void InstanceBuilder::read_bin_types(
     std::ifstream f(bins_path);
     if (!f.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + bins_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + bins_path + "\".");
     }
 
     std::string tmp;
@@ -598,11 +604,13 @@ void InstanceBuilder::read_bin_types(
 
         if (w == -1) {
             throw std::runtime_error(
-                    "Missing \"WIDTH\" column in \"" + bins_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"WIDTH\" column in \"" + bins_path + "\".");
         }
         if (h == -1) {
             throw std::runtime_error(
-                    "Missing \"HEIGHT\" column in \"" + bins_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"HEIGHT\" column in \"" + bins_path + "\".");
         }
 
         BinTypeId bin_type_id = add_bin_type(
@@ -633,7 +641,8 @@ void InstanceBuilder::read_defects(
     std::ifstream f(defects_path);
     if (defects_path != "" && !f.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + defects_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + defects_path + "\".");
     }
 
     std::string tmp;
@@ -667,23 +676,28 @@ void InstanceBuilder::read_defects(
 
         if (bin_type_id == -1) {
             throw std::runtime_error(
-                    "Missing \"BIN\" column in \"" + defects_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"BIN\" column in \"" + defects_path + "\".");
         }
         if (x == -1) {
             throw std::runtime_error(
-                    "Missing \"X\" column in \"" + defects_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"X\" column in \"" + defects_path + "\".");
         }
         if (y == -1) {
             throw std::runtime_error(
-                    "Missing \"Y\" column in \"" + defects_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"Y\" column in \"" + defects_path + "\".");
         }
         if (w == -1) {
             throw std::runtime_error(
-                    "Missing \"WIDTH\" column in \"" + defects_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"WIDTH\" column in \"" + defects_path + "\".");
         }
         if (h == -1) {
             throw std::runtime_error(
-                    "Missing \"HEIGHT\" column in \"" + defects_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"HEIGHT\" column in \"" + defects_path + "\".");
         }
 
         add_defect(bin_type_id, x, y, w, h);
@@ -696,7 +710,8 @@ void InstanceBuilder::read_item_types(
     std::ifstream f(items_path);
     if (!f.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + items_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + items_path + "\".");
     }
 
     std::string tmp;
@@ -733,11 +748,13 @@ void InstanceBuilder::read_item_types(
 
         if (w == -1) {
             throw std::runtime_error(
-                    "Missing \"WIDTH\" column in \"" + items_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"WIDTH\" column in \"" + items_path + "\".");
         }
         if (h == -1) {
             throw std::runtime_error(
-                    "Missing \"HEIGHT\" column in \"" + items_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "missing \"HEIGHT\" column in \"" + items_path + "\".");
         }
 
         if (profit == -1)
@@ -851,14 +868,14 @@ Instance InstanceBuilder::build()
     if (instance_.objective() == Objective::OpenDimensionX
             && instance_.number_of_bins() != 1) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::build: "
+                FUNC_SIGNATURE + ": "
                 "the instance has objective OpenDimensionX and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
                 "an instance with objective OpenDimensionX must contain exactly one bin.");
     }
     if (instance_.objective() == Objective::OpenDimensionY
             && instance_.number_of_bins() != 1) {
         throw std::invalid_argument(
-                "packingsolver::rectangleguillotine::InstanceBuilder::build: "
+                FUNC_SIGNATURE + ": "
                 "the instance has objective OpenDimensionY and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
                 "an instance with objective OpenDimensionY must contain exactly one bin.");
     }

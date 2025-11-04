@@ -618,7 +618,9 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                 return output;
             }
             if (!onedim_solution.full()) {
-                throw std::runtime_error("No solution to VBPP subproblem.");
+                throw std::runtime_error(
+                        FUNC_SIGNATURE + ": "
+                        "no solution to VBPP subproblem.");
             }
 
             // Convert solution to stacks.

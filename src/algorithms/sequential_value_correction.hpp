@@ -259,6 +259,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 }
                 if (number_of_copies < 1) {
                     throw std::logic_error(
+                            FUNC_SIGNATURE + "; "
                             "number_of_copies: " + std::to_string(number_of_copies) + ".");
                 }
 
@@ -371,6 +372,7 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
             }
             if (number_of_copies < 1) {
                 throw std::logic_error(
+                        FUNC_SIGNATURE + "; "
                         "number_of_copies: " + std::to_string(number_of_copies) + ".");
             }
 

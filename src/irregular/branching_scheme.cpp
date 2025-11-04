@@ -25,7 +25,8 @@ void TrapezoidSet::write_svg(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
 
     LengthDbl width = (x_max - x_min);
@@ -595,7 +596,7 @@ Point BranchingScheme::convert_point_back(
     } else if (direction == Direction::TopToBottomThenRightToLeft) {
         return Point{-point.y, -point.x};
     }
-    throw std::runtime_error("");
+    throw std::runtime_error(FUNC_SIGNATURE);
     return Point();
 }
 
@@ -849,7 +850,7 @@ void BranchingScheme::check_skyline(
             for (const UncoveredTrapezoid& uncovered_trapezoid: uncovered_trapezoids)
                 std::cout << "* " << uncovered_trapezoid << std::endl;
             throw std::logic_error(
-                    "check_skyline."
+                    FUNC_SIGNATURE + "; "
                     " y_cur: " + std::to_string(y_cur)
                     + "; uncovered_trapezoid.trapezoid.y_bottom(): "
                     + std::to_string(uncovered_trapezoid.trapezoid.y_bottom())
@@ -1895,7 +1896,8 @@ bool BranchingScheme::better(
         return node_2->profit < node_1->profit;
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'irregular::BranchingScheme'"
+        ss << FUNC_SIGNATURE << ": "
+            << "branching scheme 'irregular::BranchingScheme' "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
@@ -1940,7 +1942,8 @@ bool BranchingScheme::bound(
         return false;
     } default: {
         std::stringstream ss;
-        ss << "Branching scheme 'irregular::BranchingScheme'"
+        ss << FUNC_SIGNATURE << ": "
+            << "branching scheme 'irregular::BranchingScheme' "
             << "does not support objective '" << instance().objective() << "'.";
         throw std::logic_error(ss.str());
         return false;
@@ -1993,14 +1996,14 @@ Solution BranchingScheme::to_solution(
             if (!equal(node->xe_max, solution.x_max())) {
                 solution.write("solution_irregular.json");
                 throw std::runtime_error(
-                        "packingsolver::irregular::BranchingScheme::to_solution; "
+                        FUNC_SIGNATURE + "; "
                         "node->xe_max: " + std::to_string(node->xe_max) + "; "
                         "solution.x_max(): " + std::to_string(solution.x_max()) + "; "
                         "d: " + std::to_string((int)node->last_bin_direction) + ".");
             }
             if (!equal(node->ye_max, solution.y_max())) {
                 throw std::runtime_error(
-                        "packingsolver::irregular::BranchingScheme::to_solution; "
+                        FUNC_SIGNATURE + "; "
                         "node->ye_max: " + std::to_string(node->ye_max) + "; "
                         "solution.y_max(): " + std::to_string(solution.y_max()) + "; "
                         "d: " + std::to_string((int)node->last_bin_direction) + ".");
@@ -2200,7 +2203,8 @@ void BranchingScheme::write_svg(
     std::ofstream file{file_path};
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + file_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
     }
 
     if (node->number_of_bins == 0)

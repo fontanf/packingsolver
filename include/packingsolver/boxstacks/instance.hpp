@@ -156,8 +156,9 @@ struct ItemType
             return box.z;
         } default: {
             throw std::invalid_argument(
-                    "Incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
+                    FUNC_SIGNATURE + ": "
+                    "incorrect rotation value; "
+                    "rotation: '" + std::to_string(rotation) + "'");
         }
         }
     }
@@ -179,8 +180,9 @@ struct ItemType
             return box.x;
         } default: {
             throw std::invalid_argument(
-                    "Incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
+                    FUNC_SIGNATURE + ": "
+                    "incorrect rotation value; "
+                    "rotation: '" + std::to_string(rotation) + "'");
         }
         }
     }
@@ -202,8 +204,9 @@ struct ItemType
             return box.y;
         } default: {
             throw std::invalid_argument(
-                    "Incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
+                    FUNC_SIGNATURE + ": "
+                    "incorrect rotation value; "
+                    "rotation: '" + std::to_string(rotation) + "'");
         }
         }
     }

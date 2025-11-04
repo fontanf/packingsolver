@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
     } else if (fs::is_regular_file(instance_path + "/items.csv")) {
         instance_path = instance_path + "/";
     } else {
-        throw std::invalid_argument("");
+        throw std::invalid_argument(FUNC_SIGNATURE);
     }
 
     if (instance_path.empty()) {

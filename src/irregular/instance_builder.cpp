@@ -24,26 +24,26 @@ BinTypeId InstanceBuilder::add_bin_type(
 {
     if (cost <= 0 && cost != -1) {
         throw std::invalid_argument(
-                "packingsolver::irregular::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'cost' must be > 0 (or == -1); "
                 "cost: " + std::to_string(cost) + ".");
     }
     if (copies_min < 0) {
         throw std::invalid_argument(
-                "packingsolver::irregular::InstanceBuilder::add_bin_type: "
+                FUNC_SIGNATURE + ": "
                 "bin 'copies_min' must be >= 0; "
                 "copies_min: " + std::to_string(copies_min) + ".");
     }
     if (copies != -1) {
         if (copies <= 0) {
             throw std::invalid_argument(
-                    "packingsolver::irregular::InstanceBuilder::add_bin_type: "
+                    FUNC_SIGNATURE + ": "
                     "bin 'copies' must be > 0 (or == -1); "
                     "copies: " + std::to_string(copies) + ".");
         }
         if (copies_min > copies) {
             throw std::invalid_argument(
-                    "packingsolver::irregular::InstanceBuilder::add_bin_type: "
+                    FUNC_SIGNATURE + ": "
                     "bin 'copies_min' must be <= 'copies'; "
                     "copies: " + std::to_string(copies) + "; "
                     "copies_min: " + std::to_string(copies_min) + ".");
@@ -72,7 +72,7 @@ void InstanceBuilder::add_defect(
 {
     if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::irregular::InstanceBuilder::add_defect: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'bin_type_id'; "
                 "bin_type_id: " + std::to_string(bin_type_id) + "; "
                 "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
@@ -132,19 +132,19 @@ ItemTypeId InstanceBuilder::add_item_type(
 {
     if (shapes.empty()) {
         throw std::invalid_argument(
-                "packingsolver::irregular::InstanceBuilder::add_item_type: "
+                FUNC_SIGNATURE + ": "
                 "item 'shapes' must be non-empty.");
     }
     for (const ItemShape& item_shape: shapes) {
         if (!item_shape.check()) {
             throw std::runtime_error(
-                    "packingsolver::irregular::InstanceBuilder::add_item_type: "
+                    FUNC_SIGNATURE + ": "
                     "invalid shape.");
         }
     }
     if (copies <= 0) {
         throw std::invalid_argument(
-                "packingsolver::irregular::InstanceBuilder::add_item_type: "
+                FUNC_SIGNATURE + ": "
                 "item 'copies' must be > 0; "
                 "copies: " + std::to_string(copies) + ".");
     }
@@ -175,7 +175,7 @@ void InstanceBuilder::set_item_type_allow_mirroring(
 {
     if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
         throw std::invalid_argument(
-                "packingsolver::irregular::InstanceBuilder::set_item_type_allow_mirroring: "
+                FUNC_SIGNATURE + ": "
                 "invalid 'item_type_id'; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
@@ -231,7 +231,7 @@ void InstanceBuilder::read(
     std::ifstream file(instance_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "packingsolver::irregular::InstanceBuilder::read: "
+                FUNC_SIGNATURE + ": "
                 "unable to open file \"" + instance_path + "\".");
     }
 
@@ -394,7 +394,7 @@ Instance InstanceBuilder::build()
 
             if (item_shape.quality_rule < -1) {
                 throw std::invalid_argument(
-                        "packingsolver::irregular::InstanceBuilder::build: "
+                        FUNC_SIGNATURE + ": "
                         "invalid quality rule; "
                         "item_type_id: " + std::to_string(item_type_id) + "; "
                         "item_shape_pos: " + std::to_string(shape_pos) + "; "
@@ -403,7 +403,7 @@ Instance InstanceBuilder::build()
             if (item_shape.quality_rule != -1
                     && item_shape.quality_rule >= instance_.parameters_.quality_rules.size()) {
                 throw std::invalid_argument(
-                        "packingsolver::irregular::InstanceBuilder::build: "
+                        FUNC_SIGNATURE + ": "
                         "invalid quality rule; "
                         "item_type_id: " + std::to_string(item_type_id) + "; "
                         "item_shape_pos: " + std::to_string(shape_pos) + "; "
@@ -526,14 +526,14 @@ Instance InstanceBuilder::build()
     if (instance_.objective() == Objective::OpenDimensionX
             && instance_.number_of_bins() != 1) {
         throw std::invalid_argument(
-                "packingsolver::irregular::InstanceBuilder::build: "
+                FUNC_SIGNATURE + ": "
                 "the instance has objective OpenDimensionX and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
                 "an instance with objective OpenDimensionX must contain exactly one bin.");
     }
     if (instance_.objective() == Objective::OpenDimensionY
             && instance_.number_of_bins() != 1) {
         throw std::invalid_argument(
-                "packingsolver::irregular::InstanceBuilder::build: "
+                FUNC_SIGNATURE + ": "
                 "the instance has objective OpenDimensionY and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
                 "an instance with objective OpenDimensionY must contain exactly one bin.");
     }

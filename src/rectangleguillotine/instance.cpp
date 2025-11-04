@@ -195,7 +195,8 @@ void Instance::write(
     std::ofstream f_items(items_path);
     if (!f_items.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + items_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + items_path + "\".");
     }
     f_items <<
         "ID,"
@@ -224,7 +225,8 @@ void Instance::write(
     std::ofstream f_bins(bins_path);
     if (!f_bins.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + bins_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + bins_path + "\".");
     }
     f_bins <<
         "ID,"
@@ -268,7 +270,8 @@ void Instance::write(
         std::ofstream f_defects(defects_path);
         if (number_of_defects() > 0 && !f_defects.good()) {
             throw std::runtime_error(
-                    "Unable to open file \"" + defects_path + "\".");
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + defects_path + "\".");
         }
         f_defects << "ID,BIN,X,Y,WIDTH,HEIGHT" << std::endl;
         for (BinTypeId bin_type_id = 0;
@@ -295,7 +298,8 @@ void Instance::write(
     std::ofstream f_parameters(parameters_path);
     if (!f_parameters.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + parameters_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + parameters_path + "\".");
     }
     f_parameters << "NAME,VALUE" << std::endl
         << "objective," << objective() << std::endl

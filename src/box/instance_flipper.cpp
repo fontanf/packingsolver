@@ -16,7 +16,7 @@ Point packingsolver::box::convert_point_back(
     } else if (direction == Direction::Z) {
         return Point{point.z, point.y, point.x};
     }
-    throw std::runtime_error("");
+    throw std::runtime_error(FUNC_SIGNATURE);
     return Point();
 }
 

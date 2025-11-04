@@ -49,13 +49,13 @@ void Solution::add_item(
 {
     if (bin_pos >= number_of_bins()) {
         throw std::runtime_error(
-                "packingsolver::box::Solution::add_item: "
+                FUNC_SIGNATURE + ": "
                 "bin_pos: " + std::to_string(bin_pos) + "; "
                 "number_of_bins(): " + std::to_string(number_of_bins()) + ".");
     }
     if (item_type_id < 0 || item_type_id >= instance().number_of_item_types()) {
         throw std::runtime_error(
-                "packingsolver::box::Solution::add_item: "
+                FUNC_SIGNATURE + ": "
                 "item_type_id: " + std::to_string(item_type_id)
                 + " / " + std::to_string(instance().number_of_item_types()) + ".");
     }
@@ -81,7 +81,7 @@ void Solution::add_item(
 
     if (!item_type.can_rotate(rotation)) {
         throw std::runtime_error(
-                "packingsolver::box::Solution::add_item: "
+                FUNC_SIGNATURE + ": "
                 "forbidden rotation; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "item_type.rotations: " + std::to_string(item_type.rotations) + "; "
@@ -161,7 +161,7 @@ Solution::Solution(
     std::ifstream file(certificate_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "packingsolver::rectangle::Solution::Solution: "
+                FUNC_SIGNATURE + ": "
                 "unable to open file \"" + certificate_path + "\".");
     }
 
@@ -270,7 +270,8 @@ bool Solution::operator<(const Solution& solution) const
         return solution.profit() > profit();
     } default: {
         std::stringstream ss;
-        ss << "Solution \"box::Solution\" does not support objective \""
+        ss << FUNC_SIGNATURE << ": "
+            << "solution \"box::Solution\" does not support objective \""
             << instance().objective() << "\"";
         throw std::logic_error(ss.str());
     }
@@ -285,7 +286,8 @@ void Solution::write(
     std::ofstream file(certificate_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + certificate_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + certificate_path + "\".");
     }
 
     file << "TYPE,ID,COPIES,BIN,X,Y,Z,LX,LY,LZ,ROTATION" << std::endl;

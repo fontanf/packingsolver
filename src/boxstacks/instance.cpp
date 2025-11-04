@@ -239,7 +239,8 @@ void Instance::write_item_types(
     std::ofstream file(items_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + items_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + items_path + "\".");
     }
     file << "ID,"
         "X,"
@@ -281,7 +282,8 @@ void Instance::write_bin_types(
     std::ofstream file(bins_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + bins_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + bins_path + "\".");
     }
     file << "ID,"
         "X,"
@@ -319,7 +321,8 @@ void Instance::write_parameters(
     std::ofstream file(parameters_path);
     if (!file.good()) {
         throw std::runtime_error(
-                "Unable to open file \"" + parameters_path + "\".");
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + parameters_path + "\".");
     }
     file
         << "NAME,VALUE" << std::endl
