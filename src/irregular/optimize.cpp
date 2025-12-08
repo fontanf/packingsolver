@@ -238,7 +238,8 @@ void optimize_tree_search(
 void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter)
+        AlgorithmFormatter& algorithm_formatter,
+        Counter queue_size_max = -1)
 {
     double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
     for (Counter queue_size = 1;;) {
@@ -246,6 +247,11 @@ void optimize_sequential_single_knapsack(
         if (parameters.optimization_mode != OptimizationMode::Anytime) {
             queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_queue_size;
             maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
+        }
+
+        if (queue_size_max != -1
+                && queue_size > queue_size_max) {
+            break;
         }
 
         SequentialValueCorrectionFunction<Instance, Solution> kp_solve
@@ -303,6 +309,14 @@ void optimize_sequential_value_correction(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    if (parameters.optimization_mode == OptimizationMode::Anytime) {
+        optimize_sequential_single_knapsack(
+                instance,
+                parameters,
+                algorithm_formatter,
+                parameters.sequential_value_correction_subproblem_queue_size - 1);
+    }
+
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
         = [&algorithm_formatter, &parameters](const Instance& kp_instance)
         {
@@ -642,7 +656,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                         std::ref(exception_ptr_list.front()),
                         std::ref(instance),
                         std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+                        std::ref(algorithm_formatter),
+                        -1));
         } else {
             try {
                 optimize_sequential_single_knapsack(
