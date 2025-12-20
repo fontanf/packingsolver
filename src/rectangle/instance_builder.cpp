@@ -460,6 +460,7 @@ void InstanceBuilder::read_bin_types(
         Profit cost = -1;
         BinPos copies = 1;
         BinPos copies_min = 0;
+        Weight maximum_weight = 0;
         SemiTrailerTruckData semi_trailer_truck_data;
 
         for (Counter i = 0; i < (Counter)line.size(); ++i) {
@@ -473,6 +474,8 @@ void InstanceBuilder::read_bin_types(
                 copies = (BinPos)std::stol(line[i]);
             } else if (labels[i] == "COPIES_MIN") {
                 copies_min = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "MAXIMUM_WEIGHT") {
+                maximum_weight = (Weight)std::stod(line[i]);
             }
             semi_trailer_truck_data.read(labels[i], line[i]);
         }
@@ -494,6 +497,9 @@ void InstanceBuilder::read_bin_types(
                 cost,
                 copies,
                 copies_min);
+        set_bin_type_maximum_weight(
+                bin_type_id,
+                maximum_weight);
         set_bin_type_semi_trailer_truck_parameters(
                 bin_type_id,
                 semi_trailer_truck_data);
@@ -595,6 +601,7 @@ void InstanceBuilder::read_item_types(
         Length x = -1;
         Length y = -1;
         Profit profit = -1;
+        Weight weight = 0;
         ItemPos copies = 1;
         bool oriented = false;
         GroupId group_id = 0;
@@ -606,6 +613,8 @@ void InstanceBuilder::read_item_types(
                 y = (Length)std::stol(line[i]);
             } else if (labels[i] == "PROFIT") {
                 profit = (Profit)std::stod(line[i]);
+            } else if (labels[i] == "WEIGHT") {
+                weight = (Weight)std::stod(line[i]);
             } else if (labels[i] == "COPIES") {
                 copies = (ItemPos)std::stol(line[i]);
             } else if (labels[i] == "ORIENTED") {
@@ -629,7 +638,16 @@ void InstanceBuilder::read_item_types(
         if (profit == -1)
             profit = x * y;
 
-        add_item_type(x, y, profit, copies, oriented, group_id);
+        ItemTypeId item_type_id = this->add_item_type(
+                x,
+                y,
+                profit,
+                copies,
+                oriented,
+                group_id);
+        this->set_item_type_weight(
+                item_type_id,
+                weight);
     }
 }
 
@@ -685,6 +703,7 @@ Instance InstanceBuilder::build()
 
     // Compute bin type attributes.
     instance_.bin_area_ = 0;
+    instance_.bin_weight_ = 0;
     Volume previous_bins_area = 0;
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance_.number_of_bin_types();
@@ -695,6 +714,8 @@ Instance InstanceBuilder::build()
             instance_.bin_types_[bin_type_id].copies = instance_.number_of_items();
         // Update bins_area_sum_.
         instance_.bin_area_ += bin_type.copies * bin_type.area();
+        // Update bin_weight_..
+        instance_.bin_weight_ += bin_type.copies * bin_type.maximum_weight;
         // Update previous_bins_area_ and bin_type_ids_.
         for (BinPos copy = 0; copy < bin_type.copies; ++copy) {
             instance_.bin_type_ids_.push_back(bin_type_id);

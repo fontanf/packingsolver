@@ -548,7 +548,7 @@ void InstanceBuilder::read_bin_types(
         Profit cost = -1;
         BinPos copies = 1;
         BinPos copies_min = 0;
-        Weight maximum_weight = std::numeric_limits<Weight>::max();
+        Weight maximum_weight = 0;
         double maximum_stack_density = std::numeric_limits<double>::max();
 
         SemiTrailerTruckData semi_trailer_truck_data;
