@@ -5,6 +5,8 @@
 #include <iostream>
 #include <string>
 
+#include "shape/shape.hpp"
+
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
 
@@ -1170,6 +1172,153 @@ Solution BranchingScheme::to_solution(
     //            + ".\n");
     //}
     return solution;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+void BranchingScheme::json_export_setup() const
+{
+    // Bins.
+    json_bins_init_ids_ = std::vector<Counter>(instance().number_of_bin_types(), -1);
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        json_bins_init_ids_[bin_type_id] = json_counter_;
+        json_counter_++;
+    }
+
+    // Items.
+    json_items_init_ids_ = std::vector<std::vector<Counter>>(instance().number_of_item_types());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance().number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance().item_type(item_type_id);
+        json_items_init_ids_[item_type_id] = std::vector<Counter>(2);
+        json_items_init_ids_[item_type_id][0] = json_counter_;
+        json_counter_++;
+        json_items_init_ids_[item_type_id][1] = json_counter_;
+        json_counter_++;
+    }
+}
+
+nlohmann::json BranchingScheme::json_export_init() const
+{
+    nlohmann::json json_init;
+
+    // Bins.
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+
+        Counter json_counter = json_bins_init_ids_[bin_type_id];
+        json_init[json_counter][0] = {
+            {"Shape", shape::build_rectangle(bin_type.rect.x, bin_type.rect.y).to_json()["elements"]},
+            {"FillColor", ""},
+        };
+        for (DefectId defect_id = 0;
+                defect_id < (DefectId)bin_type.defects.size();
+                ++defect_id) {
+            const Defect& defect = bin_type.defects[defect_id];
+            shape::Point p1;
+            p1.x = defect.pos.x;
+            p1.y = defect.pos.y;
+            shape::Point p2 = p1;
+            p2.x += defect.rect.x;
+            p2.y += defect.rect.y;
+            json_init[json_counter][defect_id + 1] = {
+                {"Shape", shape::build_rectangle(p1, p2).to_json()["elements"]},
+                {"FillColor", "red"},
+            };
+        }
+    }
+
+    // Items.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance().number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance().item_type(item_type_id);
+        {
+            Counter json_counter = json_items_init_ids_[item_type_id][0];
+            json_init[json_counter][0] = {
+                {"Shape", shape::build_rectangle(item_type.rect.x, item_type.rect.y).to_json()["elements"]},
+                {"FillColor", "blue"},
+            };
+        }
+        {
+            Counter json_counter = json_items_init_ids_[item_type_id][1];
+            json_init[json_counter][0] = {
+                {"Shape", shape::build_rectangle(item_type.rect.y, item_type.rect.x).to_json()["elements"]},
+                {"FillColor", "blue"},
+            };
+        }
+    }
+
+    return json_init;
+}
+
+nlohmann::json BranchingScheme::json_export(
+        const std::shared_ptr<Node>& node) const
+{
+    if (!json_is_setup_) {
+        json_export_setup();
+        json_is_setup_ = true;
+    }
+
+    if (node->number_of_items == 0) {
+        nlohmann::json json = {
+            {"Id", node->id},
+            {"ParentId", (node->parent == nullptr)? -1: node->parent->id},
+        };
+        return json;
+    }
+
+    nlohmann::json plot;
+    Counter i = 0;
+    // Plot bin.
+    BinTypeId bin_type_id = instance().bin_type_id(node->number_of_bins - 1);
+    plot[i] = {
+        {"Id",json_bins_init_ids_[bin_type_id]},
+        {"X", 0},
+        {"Y", 0},
+    };
+    i++;
+    // Plot items.
+    for (std::shared_ptr<const Node> node_tmp = node;
+            node_tmp->number_of_bins == node->number_of_bins;
+            node_tmp = node_tmp->parent) {
+        Point bl_corner = (node_tmp->last_bin_direction == Direction::X)?
+            Point{node_tmp->x, node_tmp->y}:
+            Point{node_tmp->y, node_tmp->x};
+        plot[i] = {
+            {"Id", json_items_init_ids_[node_tmp->item_type_id][node_tmp->rotate]},
+            {"X", bl_corner.x},
+            {"Y", bl_corner.y},
+        };
+        if (node_tmp == node)
+            plot[i]["FillColor"] = "green";
+        i++;
+    }
+    nlohmann::json json = {
+        {"Id", node->id},
+        {"ParentId", node->parent->id},
+        {"Data",
+            {
+                {"ItemTypeId", node->item_type_id},
+                {"Rotate", node->rotate},
+                {"NumberOfItems", node->number_of_items},
+                {"NumberOfBins", node->number_of_bins},
+                {"ItemArea", node->item_area},
+                {"Waste", node->waste},
+                {"Profit", node->profit},
+            },
+        },
+    };
+    json["Plot"] = plot;
+    return json;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -18,6 +18,7 @@ target_include_directories(PackingSolver_rectangle PRIVATE
 target_link_libraries(PackingSolver_rectangle PUBLIC
     PackingSolver_algorithms
     TreeSearchSolver::treesearchsolver
+    Shape::shape
     MathOptSolversCMake::milp
     Threads::Threads)
 add_library(PackingSolver::rectangle ALIAS PackingSolver_rectangle)
