@@ -444,6 +444,11 @@ public:
     Solution to_solution(
             const std::shared_ptr<Node>& node) const;
 
+    nlohmann::json json_export_init() const;
+
+    nlohmann::json json_export(
+            const std::shared_ptr<Node>& node) const;
+
 private:
 
     /** Instance. */
@@ -468,6 +473,18 @@ private:
     mutable Counter node_id_ = 0;
 
     mutable std::vector<Insertion> insertions_;
+
+    /*
+     * JSON search tree attributes
+     */
+
+    mutable bool json_is_setup_ = false;
+
+    mutable Counter json_counter_ = 0;
+
+    mutable std::vector<std::vector<Counter>> json_items_init_ids_;
+
+    mutable std::vector<Counter> json_bins_init_ids_;
 
     /*
      * Private methods
@@ -509,6 +526,8 @@ private:
     bool dominates(
             ItemTypeId item_type_id_1,
             ItemTypeId item_type_id_2);
+
+    void json_export_setup() const;
 
 };
 
