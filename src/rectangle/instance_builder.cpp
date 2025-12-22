@@ -242,8 +242,7 @@ ItemTypeId InstanceBuilder::add_item_type(
         Length y,
         Profit profit,
         ItemPos copies,
-        bool oriented,
-        GroupId group_id)
+        bool oriented)
 {
     if (x < 0) {
         throw std::invalid_argument(
@@ -263,6 +262,22 @@ ItemTypeId InstanceBuilder::add_item_type(
                 "item 'copies' must be > 0; "
                 "copies: " + std::to_string(copies) + ".");
     }
+
+    ItemType item_type;
+    item_type.rect.x = x;
+    item_type.rect.y = y;
+    item_type.profit = (profit == -1)? x * y: profit;
+    item_type.copies = copies;
+    item_type.group_id = 0;
+    item_type.oriented = oriented;
+    instance_.item_types_.push_back(item_type);
+    return instance_.item_types_.size() - 1;
+}
+
+void InstanceBuilder::set_item_type_group(
+        ItemTypeId item_type_id,
+        GroupId group_id)
+{
     if (group_id < 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
@@ -270,15 +285,7 @@ ItemTypeId InstanceBuilder::add_item_type(
                 "group_id: " + std::to_string(group_id) + ".");
     }
 
-    ItemType item_type;
-    item_type.rect.x = x;
-    item_type.rect.y = y;
-    item_type.profit = (profit == -1)? x * y: profit;
-    item_type.copies = copies;
-    item_type.group_id = group_id;
-    item_type.oriented = oriented;
-    instance_.item_types_.push_back(item_type);
-    return instance_.item_types_.size() - 1;
+    instance_.item_types_[item_type_id].group_id = group_id;
 }
 
 void InstanceBuilder::set_item_type_weight(
@@ -316,17 +323,19 @@ void InstanceBuilder::add_item_type(
         Profit profit,
         ItemPos copies)
 {
-    ItemTypeId item_type_id = add_item_type(
+    ItemTypeId item_type_id = this->add_item_type(
             item_type.rect.x,
             item_type.rect.y,
             profit,
             copies,
-            item_type.oriented,
+            item_type.oriented);
+    this->set_item_type_group(
+            item_type_id,
             item_type.group_id);
-    set_item_type_weight(
+    this->set_item_type_weight(
             item_type_id,
             item_type.weight);
-    set_item_type_eligibility(
+    this->set_item_type_eligibility(
             item_type_id,
             item_type.eligibility_id);
 }
@@ -643,7 +652,9 @@ void InstanceBuilder::read_item_types(
                 y,
                 profit,
                 copies,
-                oriented,
+                oriented);
+        this->set_item_type_group(
+                item_type_id,
                 group_id);
         this->set_item_type_weight(
                 item_type_id,

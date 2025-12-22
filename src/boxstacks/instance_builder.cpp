@@ -247,8 +247,7 @@ ItemTypeId InstanceBuilder::add_item_type(
         Length z,
         Profit profit,
         ItemPos copies,
-        int rotations,
-        GroupId group_id)
+        int rotations)
 {
     if (x < 0) {
         throw std::invalid_argument(
@@ -274,12 +273,6 @@ ItemTypeId InstanceBuilder::add_item_type(
                 "item 'copies' must be > 0; "
                 "copies: " + std::to_string(copies) + ".");
     }
-    if (group_id < 0) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "item 'group_id' must be >= 0; "
-                "group_id: " + std::to_string(group_id) + ".");
-    }
 
     ItemType item_type;
     item_type.box.x = x;
@@ -287,10 +280,24 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.box.z = z;
     item_type.profit = (profit == -1)? x * y * z: profit;
     item_type.copies = copies;
-    item_type.group_id = group_id;
+    item_type.group_id = 0;
     item_type.rotations = rotations;
     instance_.item_types_.push_back(item_type);
     return instance_.item_types_.size() - 1;
+}
+
+void InstanceBuilder::set_item_type_group(
+        ItemTypeId item_type_id,
+        GroupId group_id)
+{
+    if (group_id < 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "item 'group_id' must be >= 0; "
+                "group_id: " + std::to_string(group_id) + ".");
+    }
+
+    instance_.item_types_[item_type_id].group_id = group_id;
 }
 
 void InstanceBuilder::set_item_type_weight(
@@ -373,27 +380,29 @@ void InstanceBuilder::add_item_type(
         Profit profit,
         ItemPos copies)
 {
-    ItemTypeId item_type_id = add_item_type(
+    ItemTypeId item_type_id = this->add_item_type(
             item_type.box.x,
             item_type.box.y,
             item_type.box.z,
             profit,
             copies,
-            item_type.rotations,
+            item_type.rotations);
+    this->set_item_type_group(
+            item_type_id,
             item_type.group_id);
-    set_item_type_weight(
+    this->set_item_type_weight(
             item_type_id,
             item_type.weight);
-    set_item_type_stackability_id(
+    this->set_item_type_stackability_id(
             item_type_id,
             item_type.stackability_id);
-    set_item_type_nesting_height(
+    this->set_item_type_nesting_height(
             item_type_id,
             item_type.nesting_height);
-    set_item_type_maximum_stackability(
+    this->set_item_type_maximum_stackability(
             item_type_id,
             item_type.maximum_stackability);
-    set_item_type_maximum_weight_above(
+    this->set_item_type_maximum_weight_above(
             item_type_id,
             item_type.maximum_weight_above);
 }
@@ -762,27 +771,29 @@ void InstanceBuilder::read_item_types(
         if (profit == -1)
             profit = x * y * z;
 
-        ItemTypeId item_type_id = add_item_type(
+        ItemTypeId item_type_id = this->add_item_type(
                 x,
                 y,
                 z,
                 profit,
                 copies,
-                rotations,
+                rotations);
+        this->set_item_type_group(
+                item_type_id,
                 group_id);
-        set_item_type_stackability_id(
+        this->set_item_type_stackability_id(
                 item_type_id,
                 stackability_id);
-        set_item_type_weight(
+        this->set_item_type_weight(
                 item_type_id,
                 weight);
-        set_item_type_nesting_height(
+        this->set_item_type_nesting_height(
                 item_type_id,
                 nesting_height);
-        set_item_type_maximum_stackability(
+        this->set_item_type_maximum_stackability(
                 item_type_id,
                 maximum_stackability);
-        set_item_type_maximum_weight_above(
+        this->set_item_type_maximum_weight_above(
                 item_type_id,
                 maximum_weight_above);
     }

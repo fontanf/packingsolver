@@ -724,7 +724,9 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                                 y,
                                 stack.profit,
                                 1,  // copies
-                                oriented,
+                                oriented);
+                        rectangle_instance_builder.set_item_type_group(
+                                rectangle_item_type_id,
                                 stackability_group.group_id);
                         rectangle_instance_builder.set_item_type_weight(
                                 rectangle_item_type_id,
@@ -758,9 +760,13 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             solution_stack.y_end - solution_stack.y_start,
                             profit,
                             1, // copies
-                            false, // oriented
+                            false); // oriented
+                    rectangle_instance_builder.set_item_type_group(
+                            rectangle_item_type_id,
                             item_type.group_id);
-                    rectangle_instance_builder.set_item_type_weight(rectangle_item_type_id, weight);
+                    rectangle_instance_builder.set_item_type_weight(
+                            rectangle_item_type_id,
+                            weight);
                     rectangle_instance_builder.set_group_weight_constraints(
                             item_type.group_id,
                             instance.check_weight_constraints(item_type.group_id));

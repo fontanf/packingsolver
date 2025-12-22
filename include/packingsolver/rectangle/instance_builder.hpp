@@ -134,8 +134,12 @@ public:
             Length y,
             Profit p = -1,
             ItemPos copies = 1,
-            bool oriented = false,
-            GroupId group = 0);
+            bool oriented = false);
+
+    /** Set the group of an item type. */
+    void set_item_type_group(
+            ItemTypeId item_type_id,
+            GroupId group_id);
 
     /** Set the weight of an item type. */
     void set_item_type_weight(

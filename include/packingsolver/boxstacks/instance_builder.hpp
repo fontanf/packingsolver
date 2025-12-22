@@ -136,8 +136,12 @@ public:
             Length z,
             Profit p = -1,
             ItemPos copies = 1,
-            int rotations = 1,
-            GroupId group = 0);
+            int rotations = 1);
+
+    /** Set the group of an item type. */
+    void set_item_type_group(
+            ItemTypeId item_type_id,
+            GroupId group_id);
 
     /** Set the weight of an item type. */
     void set_item_type_weight(
