@@ -6,7 +6,7 @@
 #include "shape/clean.hpp"
 #include "shape/trapezoidation.hpp"
 #include "shape/supports.hpp"
-#include "shape/element_intersections.hpp"
+#include "shape/shapes_intersections.hpp"
 
 #include <iostream>
 
@@ -984,19 +984,19 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                         supporting_shape_element_pos < supporting_shape.elements.size();
                         ++supporting_shape_element_pos) {
                     const ShapeElement& supporting_shape_element = supporting_shape.elements[supporting_shape_element_pos];
-                    if (!shape::compute_intersections(supporting_shape_element, element_1, false).empty()) {
+                    if (shape::intersect(supporting_shape_element, element_1)) {
                         //std::cout << "supporting_shape_element " << supporting_shape_element.to_string() << std::endl;
                         //std::cout << "element_1 " << element_1.to_string() << std::endl;
                         add_to_skyline = true;
                         break;
                     }
-                    if (!shape::compute_intersections(supporting_shape_element, element_2, false).empty()) {
+                    if (shape::intersect(supporting_shape_element, element_2)) {
                         //std::cout << "supporting_shape_element " << supporting_shape_element.to_string() << std::endl;
                         //std::cout << "element_2 " << element_2.to_string() << std::endl;
                         add_to_skyline = true;
                         break;
                     }
-                    if (!shape::compute_intersections(supporting_shape_element, element_3, false).empty()) {
+                    if (shape::intersect(supporting_shape_element, element_3)) {
                         //std::cout << "supporting_shape_element " << supporting_shape_element.to_string() << std::endl;
                         //std::cout << "element_3 " << element_3.to_string() << std::endl;
                         add_to_skyline = true;

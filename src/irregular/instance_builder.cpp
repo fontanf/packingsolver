@@ -2,6 +2,7 @@
 
 #include "shape/offset.hpp"
 #include "shape/extract_borders.hpp"
+#include "shape/clean.hpp"
 
 #include <sstream>
 
@@ -135,13 +136,6 @@ ItemTypeId InstanceBuilder::add_item_type(
                 FUNC_SIGNATURE + ": "
                 "item 'shapes' must be non-empty.");
     }
-    for (const ItemShape& item_shape: shapes) {
-        if (!item_shape.check()) {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": "
-                    "invalid shape.");
-        }
-    }
     if (copies <= 0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
@@ -151,6 +145,14 @@ ItemTypeId InstanceBuilder::add_item_type(
 
     ItemType item_type;
     item_type.shapes = shapes;
+    for (ItemShape& item_shape: item_type.shapes) {
+        item_shape.shape_orig = shape::remove_redundant_vertices(item_shape.shape_orig).second;
+        if (!item_shape.check()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "invalid shape.");
+        }
+    }
     item_type.allowed_rotations = (!allowed_rotations.empty())?
         allowed_rotations: std::vector<std::pair<Angle, Angle>>{{0, 0}};
     item_type.area_orig = 0;
