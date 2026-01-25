@@ -66,7 +66,7 @@ BinTypeId InstanceBuilder::add_bin_type(
     return instance_.bin_types_.size() - 1;
 }
 
-void InstanceBuilder::add_defect(
+DefectId InstanceBuilder::add_defect(
         BinTypeId bin_type_id,
         DefectTypeId type,
         const ShapeWithHoles& shape)
@@ -79,10 +79,12 @@ void InstanceBuilder::add_defect(
                 "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
     }
 
+    BinType& bin_type = this->instance_.bin_types_[bin_type_id];
     Defect defect;
     defect.type = type;
     defect.shape_orig = shape;
-    instance_.bin_types_[bin_type_id].defects.push_back(defect);
+    bin_type.defects.push_back(defect);
+    return bin_type.defects.size() - 1;
 }
 
 void InstanceBuilder::add_bin_type(
@@ -95,12 +97,62 @@ void InstanceBuilder::add_bin_type(
             bin_type.cost,
             copies,
             copies_min);
+    this->set_item_bin_minimum_spacing(
+            bin_type_id,
+            bin_type.item_bin_minimum_spacing);
     for (const Defect& defect: bin_type.defects) {
-        add_defect(
+        DefectId defect_id = add_defect(
                 bin_type_id,
                 defect.type,
                 defect.shape_orig);
+        this->set_item_defect_minimum_spacing(
+                bin_type_id,
+                defect_id,
+                defect.item_defect_minimum_spacing);
     }
+}
+
+void InstanceBuilder::set_item_bin_minimum_spacing(
+        BinTypeId bin_type_id,
+        LengthDbl item_bin_minimum_spacing)
+{
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = this->instance_.bin_types_[bin_type_id];
+    bin_type.item_bin_minimum_spacing = item_bin_minimum_spacing;
+}
+
+void InstanceBuilder::set_item_defect_minimum_spacing(
+        BinTypeId bin_type_id,
+        DefectId defect_id,
+        LengthDbl item_defect_minimum_spacing)
+{
+    if (bin_type_id < 0 || bin_type_id >= instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = this->instance_.bin_types_[bin_type_id];
+
+    if (defect_id < 0 || defect_id >= bin_type.defects.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'defect_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "defect_id: " + std::to_string(defect_id) + "; "
+                "bin_type.defects.size(): " + std::to_string(bin_type.defects.size()) + ".");
+    }
+    Defect& defect = bin_type.defects[defect_id];
+    defect.item_defect_minimum_spacing = item_defect_minimum_spacing;
 }
 
 void InstanceBuilder::set_bin_types_infinite_copies()
@@ -253,8 +305,6 @@ void InstanceBuilder::read(
         auto json_parameters = j["parameters"];
         if (json_parameters.contains("item_item_minimum_spacing"))
             set_item_item_minimum_spacing(json_parameters["item_item_minimum_spacing"]);
-        if (json_parameters.contains("item_bin_minimum_spacing"))
-            set_item_bin_minimum_spacing(json_parameters["item_bin_minimum_spacing"]);
     }
 
     // Read bin types.
@@ -273,7 +323,14 @@ void InstanceBuilder::read(
         if (json_item.contains("copies_min"))
             copies_min = json_item["copies_min"];
 
+        LengthDbl item_bin_minimum_spacing = 0;
+        if (json_item.contains("item_bin_minimum_spacing"))
+            item_bin_minimum_spacing = json_item["item_bin_minimum_spacing"];
+
         BinTypeId bin_type_id = add_bin_type(shape, cost, copies, copies_min);
+        set_item_bin_minimum_spacing(
+                bin_type_id,
+                item_bin_minimum_spacing);
 
         // Read defects.
         if (json_item.contains("defects")) {
@@ -287,14 +344,22 @@ void InstanceBuilder::read(
                 if (json_defect.contains("defect_type"))
                     defect_type = json_defect["defect_type"];
 
+                LengthDbl item_defect_minimum_spacing = 0;
+                if (json_defect.contains("item_defect_minimum_spacing"))
+                    item_defect_minimum_spacing = json_item["item_defect_minimum_spacing"];
+
                 // Read shape.
                 ShapeWithHoles shape = ShapeWithHoles::from_json(json_defect);
 
                 // Add defect.
-                add_defect(
+                DefectId defect_id = add_defect(
                         bin_type_id,
                         defect_type,
                         shape);
+                set_item_defect_minimum_spacing(
+                        bin_type_id,
+                        defect_id,
+                        item_bin_minimum_spacing);
             }
         }
     }
@@ -429,6 +494,12 @@ Instance InstanceBuilder::build()
             item_shape.shape_inflated = inflate(
                     item_shape.shape_scaled,
                     instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing);
+            if (!item_shape.shape_inflated.shape.check()) {
+                throw std::logic_error(
+                        FUNC_SIGNATURE + ": invalid item inflated shape; "
+                        "item_type_id: " + std::to_string(item_type_id) + "; "
+                        "shape_pos: " + std::to_string(shape_pos) + ".");
+            }
         }
 
         // Update number_of_items_.
@@ -491,7 +562,7 @@ Instance InstanceBuilder::build()
                 continue;
             defect.shape_inflated = inflate(
                     defect.shape_scaled,
-                    instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
+                    instance_.parameters().scale_value * defect.item_defect_minimum_spacing);
         }
 
         // Compute inflated borders.
@@ -502,7 +573,7 @@ Instance InstanceBuilder::build()
                 border.shape_scaled.shape = shape_border;
                 border.shape_inflated = inflate(
                         shape_border,
-                        instance_.parameters().scale_value * instance_.parameters().item_bin_minimum_spacing);
+                        instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing);
                 bin_type.borders.push_back(border);
             }
         }

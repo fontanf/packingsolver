@@ -110,8 +110,6 @@ int main(int argc, char *argv[])
         instance_builder.set_objective(vm["objective"].as<Objective>());
     if (vm.count("item-item-minimum-spacing"))
         instance_builder.set_item_item_minimum_spacing(vm["item-item-minimum-spacing"].as<LengthDbl>());
-    if (vm.count("item-bin-minimum-spacing"))
-        instance_builder.set_item_bin_minimum_spacing(vm["item-bin-minimum-spacing"].as<LengthDbl>());
     if (vm.count("unweighted"))
         instance_builder.set_item_types_unweighted();
     if (vm.count("bin-unweighted"))

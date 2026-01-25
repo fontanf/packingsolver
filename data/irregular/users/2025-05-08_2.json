@@ -50,6 +50,7 @@
                     "type": "LineSegment"
                 }
             ],
+            "item_bin_minimum_spacing": 1.1811023622047245,
             "type": "general"
         }
     ],
@@ -2869,7 +2870,6 @@
     ],
     "objective": "BinPackingWithLeftovers",
     "parameters": {
-        "item_bin_minimum_spacing": 1.1811023622047245,
         "item_item_minimum_spacing": 0.7874015748031497
     }
 }

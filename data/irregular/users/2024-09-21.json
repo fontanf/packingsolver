@@ -1,7 +1,6 @@
 {
   "objective": "knapsack",
   "parameters": {
-    "item_bin_minimum_spacing": 0.0,
     "item_item_minimum_spacing": 0.0
   },
   "bin_types": [
@@ -9,12 +8,14 @@
       "copies": 1,
       "width": 50.0,
       "height": 50.0,
+      "item_bin_minimum_spacing": 0.0,
       "type": "rectangle"
     },
     {
       "copies": 1,
       "width": 200.0,
       "height": 200.0,
+      "item_bin_minimum_spacing": 0.0,
       "type": "rectangle"
     }
   ],
