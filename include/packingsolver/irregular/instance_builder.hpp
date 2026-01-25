@@ -39,9 +39,6 @@ public:
     /** Set item-item minimum spacing. */
     void set_item_item_minimum_spacing(LengthDbl item_item_minimum_spacing) { instance_.parameters_.item_item_minimum_spacing = item_item_minimum_spacing; }
 
-    /** Set item-bin minimum spacing. */
-    void set_item_bin_minimum_spacing(LengthDbl item_bin_minimum_spacing) { instance_.parameters_.item_bin_minimum_spacing = item_bin_minimum_spacing; }
-
     /*
      * Set bin types
      */
@@ -54,10 +51,21 @@ public:
             BinPos copies_min = 0);
 
     /** Add a defect. */
-    void add_defect(
+    DefectId add_defect(
             BinTypeId bin_type_id,
             DefectTypeId type,
             const ShapeWithHoles& shape);
+
+    /** Set item-bin minimum spacing. */
+    void set_item_bin_minimum_spacing(
+            BinTypeId bin_type_id,
+            LengthDbl item_bin_minimum_spacing);
+
+    /** Set item-defect minimum spacing. */
+    void set_item_defect_minimum_spacing(
+            BinTypeId bin_type_id,
+            DefectId defect_id,
+            LengthDbl item_defect_minimum_spacing);
 
     /**
      * Add a bin type from another bin type.

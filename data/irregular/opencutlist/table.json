@@ -1,7 +1,6 @@
 {
   "objective": "bin-packing-with-leftovers",
   "parameters": {
-    "item_bin_minimum_spacing": 0.39370079,
     "item_item_minimum_spacing": 0.78740157
   },
   "bin_types": [
@@ -9,6 +8,7 @@
       "copies": 13,
       "width": 96.0,
       "height": 48.0,
+      "item_bin_minimum_spacing": 0.39370079,
       "type": "rectangle"
     }
   ],

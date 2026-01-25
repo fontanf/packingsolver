@@ -116,7 +116,7 @@ BranchingScheme::BranchingScheme(
 
             GeneralizedTrapezoid trapezoid_bottom(
                     y_min,
-                    bb_bin_type.y_min + instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing,
+                    bb_bin_type.y_min + instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing,
                     bb_bin_type.x_min,
                     bb_bin_type.x_max,
                     bb_bin_type.x_min,
@@ -125,7 +125,7 @@ BranchingScheme::BranchingScheme(
             bb_bin_type.defects.push_back(defect_bottom);
 
             GeneralizedTrapezoid trapezoid_top(
-                    bb_bin_type.y_max - instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing,
+                    bb_bin_type.y_max - instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing,
                     y_max,
                     x_min,
                     x_max,
@@ -139,10 +139,10 @@ BranchingScheme::BranchingScheme(
             {
                 ShapeElement element;
                 element.type = ShapeElementType::LineSegment;
-                element.start.x = bb_bin_type.x_min + instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing;
-                element.start.y = bb_bin_type.y_min + instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing;
-                element.end.x = bb_bin_type.x_max - instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing;
-                element.end.y = bb_bin_type.y_min + instance_.parameters().scale_value * instance.parameters().item_bin_minimum_spacing;
+                element.start.x = bb_bin_type.x_min + instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing;
+                element.start.y = bb_bin_type.y_min + instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing;
+                element.end.x = bb_bin_type.x_max - instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing;
+                element.end.y = bb_bin_type.y_min + instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing;
                 Shape supporting_shape;
                 supporting_shape.elements.push_back(element);
 
@@ -919,9 +919,9 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                     bb_bin_type.y_min,
                     bb_bin_type.y_max,
                     bb_bin_type.x_min,
-                    bb_bin_type.x_min + instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing,
+                    bb_bin_type.x_min + instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing,
                     bb_bin_type.x_min,
-                    bb_bin_type.x_min + instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing));
+                    bb_bin_type.x_min + instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing));
         node.uncovered_trapezoids.push_back(uncovered_trapezoid);
         node.all_trapezoids_skyline.push_back(uncovered_trapezoid);
 
@@ -1561,7 +1561,7 @@ void BranchingScheme::update_insertion(
                     }
                     if (b) {
                         stop = false;
-                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
+                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing))
                             return;
                     }
                 }
@@ -1594,7 +1594,7 @@ void BranchingScheme::update_insertion(
                         return;
                     }
                     if (b) {
-                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
+                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing))
                             return;
                         stop = false;
                     }
@@ -1607,7 +1607,7 @@ void BranchingScheme::update_insertion(
     }
 
     // Check bin width.
-    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing)) {
+    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing)) {
         return;
     }
 
@@ -1691,7 +1691,7 @@ void BranchingScheme::insertion_trapezoid_set(
 
     //xs = (std::max)(xs, bb_bin_type.x_min - item_shape_trapezoid.x_max());
 
-    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
+    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing))
         return;
     //if (strictly_greater(ys + trapezoid_set.y_max, bb_bin_type.y_max))
     //    return;
@@ -1724,11 +1724,11 @@ void BranchingScheme::insertion_trapezoid_set(
                         std::min(
                             bb_bin_type.x_min - (bb_bin_type.x_max - bb_bin_type.x_min),
                             item_shape_trapezoid_cur.x_min()),
-                        bb_bin_type.x_min + instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing,
+                        bb_bin_type.x_min + instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing,
                         std::min(
                             bb_bin_type.x_min - (bb_bin_type.x_max - bb_bin_type.x_min),
                             item_shape_trapezoid_cur.x_min()),
-                        bb_bin_type.x_min + instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing);
+                        bb_bin_type.x_min + instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing);
 
                 bool b = update_position(
                         insertion,
@@ -1742,7 +1742,7 @@ void BranchingScheme::insertion_trapezoid_set(
                 }
                 if (b) {
                     stop = false;
-                    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
+                    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing))
                         return;
                 }
             }
@@ -1786,7 +1786,7 @@ void BranchingScheme::insertion_trapezoid_set(
                         }
                         if (b) {
                             stop = false;
-                            if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
+                            if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing))
                                 return;
                         }
                     }
@@ -1821,7 +1821,7 @@ void BranchingScheme::insertion_trapezoid_set(
                         return;
                     }
                     if (b) {
-                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing))
+                        if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing))
                             return;
                         stop = false;
                     }
@@ -1834,7 +1834,7 @@ void BranchingScheme::insertion_trapezoid_set(
     }
 
     // Check bin width.
-    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * instance().parameters().item_bin_minimum_spacing)) {
+    if (strictly_greater(insertion.x + trapezoid_set.x_max, bb_bin_type.x_max - instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing)) {
         return;
     }
 

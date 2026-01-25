@@ -287,7 +287,6 @@ std::ostream& Instance::format(
             << "Number of defects:            " << number_of_defects() << std::endl
             << "Number of rectangular items:  " << number_of_rectangular_items_ << std::endl
             << "Number of circular items:     " << number_of_circular_items_ << std::endl
-            << "Item-bin minimum spacing:     " << parameters().item_bin_minimum_spacing << std::endl
             << "Item-item minimum spacing:    " << parameters().item_item_minimum_spacing << std::endl
             << "Total item area:              " << item_area() << std::endl
             << "Smallest item area:           " << smallest_item_area() << std::endl
@@ -308,12 +307,14 @@ std::ostream& Instance::format(
             << std::setw(12) << "Cost"
             << std::setw(12) << "Copies"
             << std::setw(12) << "Copies min"
+            << std::setw(12) << "Spacing"
             << std::endl
             << std::setw(12) << "--------"
             << std::setw(12) << "----"
             << std::setw(12) << "----"
             << std::setw(12) << "------"
             << std::setw(12) << "----------"
+            << std::setw(12) << "-------"
             << std::endl;
         for (BinTypeId bin_type_id = 0;
                 bin_type_id < number_of_bin_types();
@@ -325,6 +326,7 @@ std::ostream& Instance::format(
                 << std::setw(12) << bin_type.cost
                 << std::setw(12) << bin_type.copies
                 << std::setw(12) << bin_type.copies_min
+                << std::setw(12) << bin_type.item_bin_minimum_spacing
                 << std::endl;
         }
 
@@ -334,10 +336,12 @@ std::ostream& Instance::format(
                 << std::setw(12) << "Bin type"
                 << std::setw(12) << "Defect"
                 << std::setw(12) << "Type"
+                << std::setw(12) << "Spacing"
                 << std::endl
                 << std::setw(12) << "--------"
                 << std::setw(12) << "------"
                 << std::setw(12) << "----"
+                << std::setw(12) << "-------"
                 << std::endl;
             for (BinTypeId bin_type_id = 0;
                     bin_type_id < number_of_bin_types();
@@ -351,6 +355,7 @@ std::ostream& Instance::format(
                         << std::setw(12) << bin_type_id
                         << std::setw(12) << defect_id
                         << std::setw(12) << defect.type
+                        << std::setw(12) << defect.item_defect_minimum_spacing
                         << std::endl;
                 }
             }
@@ -606,12 +611,15 @@ void Instance::write(
         json["bin_types"][bin_type_id]["cost"] = bin_type.cost;
         json["bin_types"][bin_type_id]["copies"] = bin_type.copies;
         json["bin_types"][bin_type_id]["copies_min"] = bin_type.copies_min;
+        json["bin_types"][bin_type_id]["item_bin_minimum_spacing"] = bin_type.item_bin_minimum_spacing;
         // Bin defects.
         for (DefectId defect_id = 0;
                 defect_id < (DefectId)bin_type.defects.size();
                 ++defect_id) {
             const Defect& defect = bin_type.defects[defect_id];
             json["bin_types"][bin_type_id]["defects"][defect_id] = defect.shape_orig.to_json();
+            json["bin_types"][bin_type_id]["defects"][defect_id]["defect_type"] = defect.type;
+            json["bin_types"][bin_type_id]["defects"][defect_id]["item_defect_minimum_spacing"] = defect.item_defect_minimum_spacing;
         }
     }
 
@@ -639,7 +647,6 @@ void Instance::write(
 
     // Export parameters.
     json["parameters"]["item_item_minimum_spacing"] = parameters().item_item_minimum_spacing;
-    json["parameters"]["item_bin_minimum_spacing"] = parameters().item_bin_minimum_spacing;
 
     file << std::setw(4) << json << std::endl;
 }

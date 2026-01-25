@@ -51,6 +51,7 @@
                 }
             ],
             "is_path": false,
+            "item_bin_minimum_spacing": 0.5905511811023622,
             "type": "general"
         }
     ],
@@ -2460,7 +2461,6 @@
     ],
     "objective": "BinPackingWithLeftovers",
     "parameters": {
-        "item_bin_minimum_spacing": 0.5905511811023622,
         "item_item_minimum_spacing": 0.5905511811023622
     }
 }
