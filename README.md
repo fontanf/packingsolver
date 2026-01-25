@@ -787,8 +787,8 @@ Features:
 * Bin types:
   * Polygonal shape (possibly non-convex)
   * May contain different quality areas
+  * Minimum distance between the bin and the items
 * Minimum distance between each pair of items
-* Minimum distance between each item and its container
 
 Example:
 ```shell
