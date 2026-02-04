@@ -443,9 +443,8 @@ Instance InstanceBuilder::build()
         //std::cout << "instance_.scale_value() " << instance_.parameters().scale_value << std::endl;
     }
 
-    // Compute item type attributes.
-    AreaDbl bin_types_area_max = compute_bin_types_area_max();
-    instance_.all_item_types_infinite_copies_ = true;
+    // Compute scaled shapes of item type.
+    AreaDbl smallest_item_area = std::numeric_limits<AreaDbl>::infinity();
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
@@ -458,6 +457,55 @@ Instance InstanceBuilder::build()
             ItemShape& item_shape = item_type.shapes[shape_pos];
             if (!item_shape.shape_scaled.shape.elements.empty())
                 continue;
+
+            item_shape.shape_scaled = instance_.parameters().scale_value * item_shape.shape_orig;
+            smallest_item_area = (std::min)(smallest_item_area, item_shape.shape_scaled.shape.compute_area());
+        }
+    }
+
+    // Remove small holes.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        item_type.area_scaled = 0;
+
+        // Compute scaled shapes.
+        for (ShapePos shape_pos = 0;
+                shape_pos < (ShapePos)item_type.shapes.size();
+                ++shape_pos) {
+            ItemShape& item_shape = item_type.shapes[shape_pos];
+            item_shape.shape_scaled = shape::remove_small_holes(
+                    item_shape.shape_scaled,
+                    smallest_item_area);
+            item_type.area_scaled += item_shape.shape_scaled.compute_area();
+        }
+    }
+
+    // Compute item type attributes.
+    AreaDbl bin_types_area_max = compute_bin_types_area_max();
+    instance_.all_item_types_infinite_copies_ = true;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemType& item_type = instance_.item_types_[item_type_id];
+
+        // Compute inflated shapes.
+        for (ShapePos shape_pos = 0;
+                shape_pos < (ShapePos)item_type.shapes.size();
+                ++shape_pos) {
+            ItemShape& item_shape = item_type.shapes[shape_pos];
+            if (!item_shape.shape_inflated.shape.elements.empty())
+                continue;
+            item_shape.shape_inflated = inflate(
+                    item_shape.shape_scaled,
+                    instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing);
+            if (!item_shape.shape_inflated.shape.check()) {
+                throw std::logic_error(
+                        FUNC_SIGNATURE + ": invalid item inflated shape; "
+                        "item_type_id: " + std::to_string(item_type_id) + "; "
+                        "shape_pos: " + std::to_string(shape_pos) + ".");
+            }
 
             if (item_shape.quality_rule < -1) {
                 throw std::invalid_argument(
@@ -476,29 +524,6 @@ Instance InstanceBuilder::build()
                         "item_shape_pos: " + std::to_string(shape_pos) + "; "
                         "quality_rule: " + std::to_string(item_shape.quality_rule) + "; "
                         "parameters().quality_rules.size(): " + std::to_string(instance_.parameters().quality_rules.size()) + ".");
-            }
-
-            item_shape.shape_scaled = instance_.parameters().scale_value * item_shape.shape_orig;
-            item_type.area_scaled += item_shape.shape_scaled.shape.compute_area();
-            for (const Shape& hole: item_shape.shape_scaled.holes)
-                item_type.area_scaled -= hole.compute_area();
-        }
-
-        // Compute inflated shapes.
-        for (ShapePos shape_pos = 0;
-                shape_pos < (ShapePos)item_type.shapes.size();
-                ++shape_pos) {
-            ItemShape& item_shape = item_type.shapes[shape_pos];
-            if (!item_shape.shape_inflated.shape.elements.empty())
-                continue;
-            item_shape.shape_inflated = inflate(
-                    item_shape.shape_scaled,
-                    instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing);
-            if (!item_shape.shape_inflated.shape.check()) {
-                throw std::logic_error(
-                        FUNC_SIGNATURE + ": invalid item inflated shape; "
-                        "item_type_id: " + std::to_string(item_type_id) + "; "
-                        "shape_pos: " + std::to_string(shape_pos) + ".");
             }
         }
 
