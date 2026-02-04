@@ -141,6 +141,10 @@ std::istream& packingsolver::operator>>(
             || token == "OpenDimensionZ"
             || token == "ODZ") {
         objective = Objective::OpenDimensionZ;
+    } else if (token == "open-dimension-xy"
+            || token == "OpenDimensionXY"
+            || token == "ODXY") {
+        objective = Objective::OpenDimensionXY;
     } else if (token == "knapsack"
             || token == "Knapsack"
             || token == "KP") {

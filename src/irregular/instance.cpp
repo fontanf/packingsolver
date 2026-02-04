@@ -288,6 +288,7 @@ std::ostream& Instance::format(
             << "Number of rectangular items:  " << number_of_rectangular_items_ << std::endl
             << "Number of circular items:     " << number_of_circular_items_ << std::endl
             << "Item-item minimum spacing:    " << parameters().item_item_minimum_spacing << std::endl
+            << "Open dim. XY aspect ratio:    " << parameters().open_dimension_xy_aspect_ratio << std::endl
             << "Total item area:              " << item_area() << std::endl
             << "Smallest item area:           " << smallest_item_area() << std::endl
             << "Largest item area:            " << largest_item_area() << std::endl
@@ -647,6 +648,7 @@ void Instance::write(
 
     // Export parameters.
     json["parameters"]["item_item_minimum_spacing"] = parameters().item_item_minimum_spacing;
+    json["parameters"]["open_dimension_xy_aspect_ratio"] = parameters().open_dimension_xy_aspect_ratio;
 
     file << std::setw(4) << json << std::endl;
 }

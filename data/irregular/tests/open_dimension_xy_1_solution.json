@@ -1,0 +1,532 @@
+{
+    "bins": [
+        {
+            "copies": 1,
+            "id": 0,
+            "items": [
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 0.0,
+                                    "ye": 0.0,
+                                    "ys": 0.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 40.0,
+                                    "ye": 30.0,
+                                    "ys": 0.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 0.0,
+                                    "xs": 40.0,
+                                    "ye": 30.0,
+                                    "ys": 30.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 0.0,
+                                    "xs": 0.0,
+                                    "ye": 0.0,
+                                    "ys": 30.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 0.0,
+                                    "ye": 30.0,
+                                    "ys": 30.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 40.0,
+                                    "ye": 60.0,
+                                    "ys": 30.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 0.0,
+                                    "xs": 40.0,
+                                    "ye": 60.0,
+                                    "ys": 60.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 0.0,
+                                    "xs": 0.0,
+                                    "ye": 30.0,
+                                    "ys": 60.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 0.0,
+                    "y": 30.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 0.0,
+                                    "ye": 60.0,
+                                    "ys": 60.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 40.0,
+                                    "ye": 90.0,
+                                    "ys": 60.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 0.0,
+                                    "xs": 40.0,
+                                    "ye": 90.0,
+                                    "ys": 90.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 0.0,
+                                    "xs": 0.0,
+                                    "ye": 60.0,
+                                    "ys": 90.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 0.0,
+                    "y": 60.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 0.0,
+                                    "ye": 90.0,
+                                    "ys": 90.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 40.0,
+                                    "ye": 120.0,
+                                    "ys": 90.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 0.0,
+                                    "xs": 40.0,
+                                    "ye": 120.0,
+                                    "ys": 120.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 0.0,
+                                    "xs": 0.0,
+                                    "ye": 90.0,
+                                    "ys": 120.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 0.0,
+                    "y": 90.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 40.0,
+                                    "ye": 0.0,
+                                    "ys": 0.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 80.0,
+                                    "ye": 30.0,
+                                    "ys": 0.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 80.0,
+                                    "ye": 30.0,
+                                    "ys": 30.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 40.0,
+                                    "ye": 0.0,
+                                    "ys": 30.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 40.0,
+                    "y": 0.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 40.0,
+                                    "ye": 30.0,
+                                    "ys": 30.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 80.0,
+                                    "ye": 60.0,
+                                    "ys": 30.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 80.0,
+                                    "ye": 60.0,
+                                    "ys": 60.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 40.0,
+                                    "ye": 30.0,
+                                    "ys": 60.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 40.0,
+                    "y": 30.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 40.0,
+                                    "ye": 60.0,
+                                    "ys": 60.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 80.0,
+                                    "ye": 90.0,
+                                    "ys": 60.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 80.0,
+                                    "ye": 90.0,
+                                    "ys": 90.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 40.0,
+                                    "ye": 60.0,
+                                    "ys": 90.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 40.0,
+                    "y": 60.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 40.0,
+                                    "ye": 90.0,
+                                    "ys": 90.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 80.0,
+                                    "ye": 120.0,
+                                    "ys": 90.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 80.0,
+                                    "ye": 120.0,
+                                    "ys": 120.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 40.0,
+                                    "xs": 40.0,
+                                    "ye": 90.0,
+                                    "ys": 120.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 40.0,
+                    "y": 90.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 120.0,
+                                    "xs": 80.0,
+                                    "ye": 0.0,
+                                    "ys": 0.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 120.0,
+                                    "xs": 120.0,
+                                    "ye": 30.0,
+                                    "ys": 0.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 120.0,
+                                    "ye": 30.0,
+                                    "ys": 30.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 80.0,
+                                    "ye": 0.0,
+                                    "ys": 30.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 80.0,
+                    "y": 0.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 120.0,
+                                    "xs": 80.0,
+                                    "ye": 30.0,
+                                    "ys": 30.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 120.0,
+                                    "xs": 120.0,
+                                    "ye": 60.0,
+                                    "ys": 30.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 120.0,
+                                    "ye": 60.0,
+                                    "ys": 60.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 80.0,
+                                    "ye": 30.0,
+                                    "ys": 60.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 80.0,
+                    "y": 30.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 120.0,
+                                    "xs": 80.0,
+                                    "ye": 60.0,
+                                    "ys": 60.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 120.0,
+                                    "xs": 120.0,
+                                    "ye": 90.0,
+                                    "ys": 60.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 120.0,
+                                    "ye": 90.0,
+                                    "ys": 90.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 80.0,
+                                    "ye": 60.0,
+                                    "ys": 90.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 80.0,
+                    "y": 60.0
+                },
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 120.0,
+                                    "xs": 80.0,
+                                    "ye": 90.0,
+                                    "ys": 90.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 120.0,
+                                    "xs": 120.0,
+                                    "ye": 120.0,
+                                    "ys": 90.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 120.0,
+                                    "ye": 120.0,
+                                    "ys": 120.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 80.0,
+                                    "xs": 80.0,
+                                    "ye": 90.0,
+                                    "ys": 120.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 80.0,
+                    "y": 90.0
+                }
+            ],
+            "shape": [
+                {
+                    "type": "LineSegment",
+                    "xe": 1000.0,
+                    "xs": 0.0,
+                    "ye": 0.0,
+                    "ys": 0.0
+                },
+                {
+                    "type": "LineSegment",
+                    "xe": 1000.0,
+                    "xs": 1000.0,
+                    "ye": 1000.0,
+                    "ys": 0.0
+                },
+                {
+                    "type": "LineSegment",
+                    "xe": 0.0,
+                    "xs": 1000.0,
+                    "ye": 1000.0,
+                    "ys": 1000.0
+                },
+                {
+                    "type": "LineSegment",
+                    "xe": 0.0,
+                    "xs": 0.0,
+                    "ye": 0.0,
+                    "ys": 1000.0
+                }
+            ]
+        }
+    ]
+}

@@ -14,6 +14,7 @@ target_include_directories(PackingSolver_irregular PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_irregular PUBLIC
     PackingSolver_algorithms
+    PackingSolver_onedimensional
     TreeSearchSolver::treesearchsolver
     Shape::shape
     Threads::Threads)

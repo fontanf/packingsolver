@@ -30,6 +30,13 @@ struct Parameters
 
     /** Scale value. */
     LengthDbl scale_value = std::numeric_limits<LengthDbl>::infinity();
+
+    /**
+     * Imposed Aspect ratio for the open dimension xy objective.
+     *
+     * If '-1', no aspect ratio is imposed.
+     */
+    LengthDbl open_dimension_xy_aspect_ratio = -1;
 };
 
 /**

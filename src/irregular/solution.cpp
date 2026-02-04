@@ -69,7 +69,7 @@ void Solution::add_item(
     // Check angle.
     bool angle_ok = false;
     for (auto angles: item_type.allowed_rotations)
-        if (angles.first <= angle && angles.second <= angle)
+        if (angles.first <= angle && angle <= angles.second)
             angle_ok = true;
     if (!angle_ok) {
         throw std::invalid_argument(
@@ -211,6 +211,20 @@ double Solution::density_y() const
     return item_area() / area;
 }
 
+AreaDbl Solution::open_dimension_xy_areaarea() const
+{
+    LengthDbl dx = this->x_max() - this->x_min();
+    LengthDbl dy = this->y_max() - this->y_min();
+    if (this->instance().parameters().open_dimension_xy_aspect_ratio <= 0) {
+        return dx * dy;
+    } else {
+        return (std::max)(
+                dx * dx * this->instance().parameters().open_dimension_xy_aspect_ratio,
+                dy * dy / this->instance().parameters().open_dimension_xy_aspect_ratio);
+    }
+    return -1;
+}
+
 bool Solution::operator<(const Solution& solution) const
 {
     switch (instance().objective()) {
@@ -240,6 +254,12 @@ bool Solution::operator<(const Solution& solution) const
         if (!full())
             return true;
         return strictly_lesser(solution.y_max(), y_max());
+    } case Objective::OpenDimensionXY: {
+        if (!solution.full())
+            return false;
+        if (!full())
+            return true;
+        return strictly_lesser(solution.open_dimension_xy_areaarea(), open_dimension_xy_areaarea());
     } case Objective::Knapsack: {
         return strictly_greater(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
@@ -506,6 +526,7 @@ nlohmann::json Solution::to_json() const
         {"YMax", y_max()},
         {"DensityX", density_x()},
         {"DensityY", density_y()},
+        {"OpenDimensionXYArea", open_dimension_xy_areaarea()},
         {"LeftoverValue", leftover_value()},
     };
 }
@@ -530,6 +551,7 @@ void Solution::format(
             << "Y max:            " << y_max() << std::endl
             << "Density X:        " << density_x() << std::endl
             << "Density Y:        " << density_y() << std::endl
+            << "ODXY area:        " << open_dimension_xy_areaarea() << std::endl
             << "Leftover value:   " << leftover_value() << std::endl
             ;
     }

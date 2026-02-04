@@ -39,6 +39,9 @@ public:
     /** Set item-item minimum spacing. */
     void set_item_item_minimum_spacing(LengthDbl item_item_minimum_spacing) { instance_.parameters_.item_item_minimum_spacing = item_item_minimum_spacing; }
 
+    /** Set the aspect ratio for the open dimension xy objective. */
+    void set_open_dimension_xy_aspect_ratio(LengthDbl open_dimension_xy_aspect_ratio) { instance_.parameters_.open_dimension_xy_aspect_ratio = open_dimension_xy_aspect_ratio; }
+
     /*
      * Set bin types
      */
