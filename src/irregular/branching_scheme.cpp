@@ -74,6 +74,83 @@ BranchingScheme::BranchingScheme(
             parameters.maximum_approximation_ratio)),
     parameters_(parameters)
 {
+    item_types_allowed_rotations_
+        = std::vector<std::vector<Angle>>(instance.number_of_item_types());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        std::vector<Angle> angles;
+        for (const auto& range: item_type.allowed_rotations) {
+            angles.push_back(range.first);
+            angles.push_back(range.second);
+        }
+        for (const ItemShape& item_shape: item_type.shapes) {
+            // Find all the angles that make a side of the shape parallel
+            // to the x-axis or to the y-axis.
+            for (const ShapeElement& element: item_shape.shape_scaled.shape.elements) {
+                LengthDbl dx = element.end.x - element.start.x;
+                LengthDbl dy = element.end.y - element.start.y;
+                Angle phi = std::atan2(dx, dy) * 180 / M_PI;
+                for (Angle a: {
+                        phi,
+                        90 - phi,
+                        90 + phi,
+                        180 - phi,
+                        180 + phi,
+                        180 + 90 - phi,
+                        180 + 90 + phi,
+                        180 + 180 - phi}) {
+                    while (a < 0)
+                        a += 360;
+                    while (a >= 360)
+                        a -= 360;
+                    bool angle_ok = false;
+                    for (auto range: item_type.allowed_rotations)
+                        if (range.first <= a && a <= range.second)
+                            angle_ok = true;
+                    if (angle_ok)
+                        angles.push_back(a);
+                }
+            }
+            // Find all the angles that make a side of the convex hull
+            // parallel to the x-axis or to the y-axis.
+            Shape convex_hull = shape::convex_hull(item_shape.shape_scaled.shape);
+            for (const ShapeElement& element: convex_hull.elements) {
+                LengthDbl dx = element.end.x - element.start.x;
+                LengthDbl dy = element.end.y - element.start.y;
+                Angle phi = std::atan2(dx, dy) * 180 / M_PI;
+                for (Angle a: {
+                        phi,
+                        90 - phi,
+                        90 + phi,
+                        180 - phi,
+                        180 + phi,
+                        180 + 90 - phi,
+                        180 + 90 + phi,
+                        180 + 180 - phi}) {
+                    while (a < 0)
+                        a += 360;
+                    while (a >= 360)
+                        a -= 360;
+                    bool angle_ok = false;
+                    for (auto range: item_type.allowed_rotations)
+                        if (range.first <= a && a <= range.second)
+                            angle_ok = true;
+                    if (angle_ok)
+                        angles.push_back(a);
+                }
+            }
+        }
+        std::sort(angles.begin(), angles.end());
+        for (Angle angle: angles) {
+            if (item_types_allowed_rotations_[item_type_id].empty()
+                    || !equal(angle, item_types_allowed_rotations_[item_type_id].back())) {
+                item_types_allowed_rotations_[item_type_id].push_back(angle);
+            }
+        }
+    }
+
     //std::cout << "BranchingScheme" << std::endl;
     bool write_shapes = false;
 
@@ -267,12 +344,12 @@ BranchingScheme::BranchingScheme(
                 if (mirror && !item_type.allow_mirroring)
                     continue;
 
-                for (const auto& angle_range: item_type.allowed_rotations) {
-                    //std::cout << "angle " << angle_range.first;
+                for (Angle angle: item_types_allowed_rotations_[item_type_id]) {
+                    //std::cout << "angle " << angle;
                     TrapezoidSetId trapezoid_set_id = direction_data.trapezoid_sets.size();
                     TrapezoidSet trapezoid_set;
                     trapezoid_set.item_type_id = item_type_id;
-                    trapezoid_set.angle = angle_range.first;
+                    trapezoid_set.angle = angle;
                     trapezoid_set.mirror = mirror;
 
                     for (ItemShapePos item_shape_pos = 0;
@@ -288,14 +365,14 @@ BranchingScheme::BranchingScheme(
                         }
 
                         ShapeWithHoles shape;
-                        shape.shape = convert_shape(simplified_shape, angle_range.first, mirror, direction);
+                        shape.shape = convert_shape(simplified_shape, angle, mirror, direction);
                         shape = shape::clean_extreme_slopes_outer(shape.shape);
                         for (ShapePos hole_pos = 0;
                                 hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape.holes.size();
                                 ++hole_pos) {
                             const Shape& simplified_hole = simplified_item_type.shapes[item_shape_pos].shape.holes[hole_pos];
 
-                            Shape hole = convert_shape(simplified_hole, angle_range.first, mirror, direction);
+                            Shape hole = convert_shape(simplified_hole, angle, mirror, direction);
 
                             auto res = shape::clean_extreme_slopes_inner(hole);
 
@@ -342,7 +419,7 @@ BranchingScheme::BranchingScheme(
                                 + "_x"
                                 + "_" + std::to_string(item_shape_pos)
                                 + "_mirror_" + std::to_string(mirror)
-                                + "_rotated_" + std::to_string(angle_range.first)
+                                + "_rotated_" + std::to_string(angle)
                                 + ".svg";
                             shape.write_svg(name);
                         }
@@ -360,7 +437,7 @@ BranchingScheme::BranchingScheme(
                         const Shape& simplified_inflated_shape = simplified_item_type.shapes[item_shape_pos].shape_inflated.shape;
                         //std::cout << "item_type_id " << item_type_id
                         //    << " item_shape_pos " << item_shape_pos
-                        //    << " angle " << angle_range.first
+                        //    << " angle " << angle
                         //    << " mirror " << mirror
                         //    //<< " simplified_shape " << simplified_shape.to_string(2)
                         //    << std::endl;
@@ -373,14 +450,14 @@ BranchingScheme::BranchingScheme(
                         }
 
                         ShapeWithHoles shape_inflated;
-                        shape_inflated.shape = convert_shape(simplified_inflated_shape, angle_range.first, mirror, direction);
+                        shape_inflated.shape = convert_shape(simplified_inflated_shape, angle, mirror, direction);
                         shape_inflated = shape::clean_extreme_slopes_outer(shape_inflated.shape);
                         for (ShapePos hole_pos = 0;
                                 hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape_inflated.holes.size();
                                 ++hole_pos) {
                             const Shape& simplified_deflated_hole = simplified_item_type.shapes[item_shape_pos].shape_inflated.holes[hole_pos];
 
-                            Shape hole_deflated = convert_shape(simplified_deflated_hole, angle_range.first, mirror, direction);
+                            Shape hole_deflated = convert_shape(simplified_deflated_hole, angle, mirror, direction);
 
                             auto res = shape::clean_extreme_slopes_inner(hole_deflated);
 
@@ -2043,8 +2120,8 @@ void BranchingScheme::json_export_setup() const
         const ItemType& item_type = instance().item_type(item_type_id);
         json_items_init_ids_[item_type_id] = std::vector<std::unordered_map<double, Counter>>(2);
         for (bool mirror: {false, true}) {
-            for (const auto& angle_range: item_type.allowed_rotations) {
-                json_items_init_ids_[item_type_id][mirror][angle_range.first] = json_counter_;
+            for (Angle angle: item_types_allowed_rotations_[item_type_id]) {
+                json_items_init_ids_[item_type_id][mirror][angle] = json_counter_;
                 json_counter_++;
             }
         }
@@ -2095,15 +2172,15 @@ nlohmann::json BranchingScheme::json_export_init() const
 
         for (bool mirror: {false, true}) {
 
-            for (const auto& angle_range: item_type.allowed_rotations) {
+            for (Angle angle: item_types_allowed_rotations_[item_type_id]) {
 
-                Counter json_counter = json_items_init_ids_[item_type_id][mirror][angle_range.first];
+                Counter json_counter = json_items_init_ids_[item_type_id][mirror][angle];
 
                 for (ItemShapePos item_shape_pos = 0;
                         item_shape_pos < (ItemShapePos)item_type.shapes.size();
                         ++item_shape_pos) {
                     const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                    Shape shape = convert_shape(item_shape.shape_orig.shape, angle_range.first, mirror);
+                    Shape shape = convert_shape(item_shape.shape_orig.shape, angle, mirror);
                     json_init[json_counter][item_shape_pos] = {
                         {"Shape", shape.to_json()["elements"]},
                         {"FillColor", "blue"},

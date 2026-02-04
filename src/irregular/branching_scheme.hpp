@@ -503,6 +503,8 @@ private:
 
     std::vector<AreaDbl> item_types_convex_hull_area_;
 
+    std::vector<std::vector<Angle>> item_types_allowed_rotations_;
+
     DirectionData directions_data_[8];
 
     /*
