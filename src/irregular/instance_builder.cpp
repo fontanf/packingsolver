@@ -305,6 +305,8 @@ void InstanceBuilder::read(
         auto json_parameters = j["parameters"];
         if (json_parameters.contains("item_item_minimum_spacing"))
             set_item_item_minimum_spacing(json_parameters["item_item_minimum_spacing"]);
+        if (json_parameters.contains("open_dimension_xy_aspect_ratio"))
+            set_open_dimension_xy_aspect_ratio(json_parameters["open_dimension_xy_aspect_ratio"]);
     }
 
     // Read bin types.
@@ -580,6 +582,7 @@ Instance InstanceBuilder::build()
             for (Defect& defect: bin_type.defects)
                 defect.shape_scaled = instance_.parameters().scale_value * defect.shape_orig;
         }
+        bin_type.area_scaled = bin_type.shape_scaled.compute_area();
 
         // Compute inflated defects.
         for (Defect& defect: bin_type.defects) {

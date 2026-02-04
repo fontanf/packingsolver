@@ -153,6 +153,13 @@ void optimize_tree_search(
                     ss << "TS g " << branching_schemes[i].parameters().guide_id
                         << " q " << tssibs_output.maximum_size_of_the_queue;
                     algorithm_formatter.update_solution(solution, ss.str());
+
+                    if (tssibs_output.optimal) {
+                        if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
+                            algorithm_formatter.update_bin_packing_bound(
+                                    solution.number_of_bins());
+                        }
+                    }
                 };
         } else {
             ibs_parameters_list[i].new_solution_callback

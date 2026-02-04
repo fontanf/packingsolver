@@ -39,6 +39,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use column generation algorithm. */
     bool use_column_generation = false;
 
+    /** Use open dimension algorithm. */
+    bool use_open_dimension_sequential = false;
+
     /** Initial maximum approximation ratio. */
     double initial_maximum_approximation_ratio = 0.20;
 

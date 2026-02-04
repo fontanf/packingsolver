@@ -6,6 +6,8 @@
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
+#include "packingsolver/onedimensional/instance_builder.hpp"
+#include "packingsolver/onedimensional/optimize.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
@@ -16,6 +18,66 @@ using namespace packingsolver::irregular;
 
 namespace
 {
+
+void optimize_onedimensional_bound(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    onedimensional::InstanceBuilder onedim_instance_builder;
+    onedim_instance_builder.set_objective(instance.objective());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        onedim_instance_builder.add_bin_type(
+                std::ceil(bin_type.area_scaled),
+                bin_type.cost,
+                bin_type.copies,
+                bin_type.copies_min);
+    }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        onedim_instance_builder.add_item_type(
+                std::floor(item_type.area_scaled),
+                item_type.profit,
+                item_type.copies);
+    }
+    onedimensional::Instance onedim_instance = onedim_instance_builder.build();
+
+    // Solve the instance.
+    onedimensional::OptimizeParameters onedim_parameters;
+    onedim_parameters.verbosity_level = 0;
+    onedim_parameters.timer = parameters.timer;
+    onedim_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    onedim_parameters.optimization_mode = OptimizationMode::NotAnytime;
+    auto onedim_output = optimize(onedim_instance, onedim_parameters);
+
+    std::stringstream ss("1D");
+    switch (instance.objective()) {
+    case Objective::BinPacking: {
+        algorithm_formatter.update_bin_packing_bound(
+                onedim_output.bin_packing_bound);
+        break;
+    } case Objective::Knapsack: {
+        algorithm_formatter.update_knapsack_bound(
+                onedim_output.knapsack_bound);
+        break;
+    //} case Objective::VariableSizedBinPacking: {
+    //    algorithm_formatter.update_variable_sized_bin_packing_bound(
+    //            onedim_output.variable_sized_bin_packing_bound);
+    //    break;
+    } default: {
+        std::stringstream ss;
+        ss << FUNC_SIGNATURE << ": "
+            << "objective \""
+            << instance.objective() << "\" not supported.";
+        throw std::logic_error(ss.str());
+    }
+    }
+}
 
 void optimize_tree_search_worker(
         const Instance& instance,
@@ -120,7 +182,32 @@ void optimize_tree_search(
     } else {
         directions = {BranchingScheme::Direction::Any};
     }
-    //directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
+
+    // If all items have free rotations and all bins are squared, we consdier
+    // a single direction.
+    bool all_items_full_rotation = true;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (item_type.allowed_rotations != std::vector<std::pair<Angle, Angle>>{{0, 360}}) {
+            all_items_full_rotation = false;
+            break;
+        }
+    }
+    bool all_bins_squared = true;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        if (!bin_type.shape_scaled.is_square()) {
+            all_bins_squared = false;
+            break;
+        }
+    }
+    if (all_items_full_rotation && all_bins_squared) {
+        directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
+    }
 
     std::vector<double> growth_factors = {1.5};
     if (guides.size() * directions.size() * 2 <= 4)
@@ -476,6 +563,77 @@ void optimize_column_generation(
     columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
 }
 
+void optimize_open_dimension_sequential(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    AreaDbl a = 0;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        auto mm = item_type.compute_min_max();
+        LengthDbl dx = mm.second.x - mm.first.x;
+        LengthDbl dy = mm.second.y - mm.first.y;
+        a += dx * dy * item_type.copies;
+    }
+    LengthDbl x = std::sqrt(a / instance.parameters().open_dimension_xy_aspect_ratio);
+
+    for (Counter it = 0;; ++it) {
+        LengthDbl y = x * instance.parameters().open_dimension_xy_aspect_ratio;
+
+        // Build an instance with a single bin with dimensions (x, y).
+        InstanceBuilder sub_instance_builder;
+        sub_instance_builder.set_objective(Objective::BinPacking);
+        sub_instance_builder.set_parameters(instance.parameters());
+        sub_instance_builder.add_bin_type(shape::build_rectangle(x, y));
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance.item_type(item_type_id);
+            sub_instance_builder.add_item_type(
+                    item_type,
+                    item_type.profit,
+                    item_type.copies);
+        }
+        Instance sub_instance = sub_instance_builder.build();
+
+        // Solve the instance.
+        OptimizeParameters sub_parameters;
+        sub_parameters.verbosity_level = 0;
+        sub_parameters.timer = parameters.timer;
+        sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        sub_parameters.optimization_mode = parameters.optimization_mode;
+        sub_parameters.not_anytime_maximum_approximation_ratio
+            = parameters.not_anytime_maximum_approximation_ratio;
+        sub_parameters.not_anytime_tree_search_queue_size
+            = parameters.not_anytime_tree_search_queue_size;
+        auto sub_output = optimize(sub_instance, sub_parameters);
+
+        // If no solution has been found, break.
+        if (!sub_output.solution_pool.best().full())
+            break;
+        Solution solution(instance);
+        solution.append(
+                sub_output.solution_pool.best(),
+                0,  // bin_pos
+                1,  // copies
+                {0});  // bin_types_ids
+        std::stringstream ss;
+        ss << "ODS it " << it;
+        algorithm_formatter.update_solution(solution, ss.str());
+
+        x = 0.99 * (std::max)(
+                solution.x_max() - solution.x_min(),
+                solution.y_max() - solution.y_min());
+        AreaDbl a = (solution.x_max() - solution.x_min()) * (solution.y_max() - solution.y_min());
+        LengthDbl x_cur = std::sqrt(a / instance.parameters().open_dimension_xy_aspect_ratio);
+        if (x > x_cur)
+            x = x_cur;
+    }
+}
+
 }
 
 packingsolver::irregular::Output packingsolver::irregular::optimize(
@@ -495,15 +653,25 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
-    if (instance.number_of_bins() <= 1) {
+    bool use_open_dimension_sequential = parameters.use_open_dimension_sequential;
+    if (instance.objective() == Objective::OpenDimensionXY) {
+        use_tree_search = false;
+        use_sequential_single_knapsack = false;
+        use_sequential_value_correction = false;
+        use_dichotomic_search = false;
+        use_column_generation = false;
+        use_open_dimension_sequential = true;
+    } else if (instance.number_of_bins() <= 1) {
         use_tree_search = true;
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
+        use_open_dimension_sequential = false;
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
+        use_open_dimension_sequential = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -530,6 +698,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
+        use_open_dimension_sequential = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -568,6 +737,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         } else {
             use_tree_search = false;
         }
+        use_open_dimension_sequential = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -604,6 +774,15 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     if (instance.objective() == Objective::Knapsack)
         algorithm_formatter.update_knapsack_bound(instance.item_profit());
 
+    if (instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::Knapsack
+            || instance.objective() == Objective::VariableSizedBinPacking) {
+        optimize_onedimensional_bound(
+                instance,
+                parameters,
+                algorithm_formatter);
+    }
+
     if (algorithm_formatter.end_boolean()) {
         algorithm_formatter.end();
         return output;
@@ -614,6 +793,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     }
 
     int last_algorithm =
+        (use_open_dimension_sequential)? 5:
         (use_column_generation)? 4:
         (use_dichotomic_search)? 3:
         (use_sequential_value_correction)? 2:
@@ -727,6 +907,28 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         } else {
             try {
                 optimize_column_generation(
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
+        }
+    }
+    // Open dimension sequential.
+    if (use_open_dimension_sequential) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 5) {
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_open_dimension_sequential), optimize_open_dimension_sequential>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        } else {
+            try {
+                optimize_open_dimension_sequential(
                         instance,
                         parameters,
                         algorithm_formatter);

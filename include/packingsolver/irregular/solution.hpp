@@ -134,17 +134,20 @@ public:
      * Getters: others
      */
 
-    /** Get the minimum x of the solution. */
+    /** Get the minimum x of the (last bin of the) solution. */
     inline LengthDbl x_min() const { return x_min_; }
 
-    /** Get the minimum y of the solution. */
+    /** Get the minimum y of the (last bin of the) solution. */
     inline LengthDbl y_min() const { return y_min_; }
 
-    /** Get the maximum x of the solution. */
+    /** Get the maximum x of the (last bin of the) solution. */
     inline LengthDbl x_max() const { return x_max_; }
 
-    /** Get the maximum y of the solution. */
+    /** Get the maximum y of the (last bin of the) solution. */
     inline LengthDbl y_max() const { return y_max_; }
+
+    /** Get the area of the (last bin of the) solution. */
+    AreaDbl open_dimension_xy_areaarea() const;
 
     /** Get the area of the solution. */
     inline Profit leftover_value() const { return leftover_value_; }

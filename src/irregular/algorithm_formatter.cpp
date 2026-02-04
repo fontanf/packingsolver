@@ -95,6 +95,21 @@ void AlgorithmFormatter::print_header()
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
+    } case Objective::OpenDimensionXY: {
+        *os_
+                << std::setw(12) << "Time"
+                << std::setw(12) << "XY"
+                << std::setw(12) << "X"
+                << std::setw(12) << "Y"
+                << std::setw(32) << "Comment"
+                << std::endl
+                << std::setw(12) << "----"
+                << std::setw(12) << "--"
+                << std::setw(12) << "-"
+                << std::setw(12) << "-"
+                << std::setw(32) << "-------"
+                << std::endl;
+        break;
     } case Objective::Knapsack: {
         *os_
                 << std::setw(12) << "Time"
@@ -167,6 +182,15 @@ void AlgorithmFormatter::print(
     } case Objective::OpenDimensionY: {
         *os_
                 << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
+                << std::setw(12) << output_.solution_pool.best().y_max()
+                << std::setw(32) << s
+                << std::endl;
+        break;
+    } case Objective::OpenDimensionXY: {
+        *os_
+                << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
+                << std::setw(12) << output_.solution_pool.best().open_dimension_xy_areaarea()
+                << std::setw(12) << output_.solution_pool.best().x_max()
                 << std::setw(12) << output_.solution_pool.best().y_max()
                 << std::setw(32) << s
                 << std::endl;
