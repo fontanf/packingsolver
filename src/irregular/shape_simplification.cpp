@@ -1,6 +1,7 @@
 #include "irregular/shape_simplification.hpp"
 
 #include "shape/simplification.hpp"
+#include "shape/approximation.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -12,16 +13,10 @@ enum class ApproximatedShapeType
 {
     Border,
     BorderInflated,
-    BorderHole,
-    BorderHoleDeflated,
     Defect,
     DefectInflated,
-    DefectHole,
-    DefectHoleDeflated,
     ItemShape,
     ItemShapeInflated,
-    ItemShapeHole,
-    ItemShapeHoleDeflated,
 };
 
 struct ApproximatedShapeKey
@@ -31,8 +26,6 @@ struct ApproximatedShapeKey
     BinTypeId bin_type_id = -1;
 
     DefectId defect_id = -1;
-
-    ShapePos hole_pos = -1;
 
     ItemTypeId item_type_id = -1;
 
@@ -86,11 +79,9 @@ SimplifiedInstance irregular::shape_simplification(
             const Defect& border = bin_type.borders[border_pos];
             total_bin_area -= bin_type.copies * border.shape_scaled.shape.compute_area();
 
-            bool outer = true;
             SimplifyInputShape simplify_input_shape;
-            simplify_input_shape.shape = approximate_by_line_segments(border.shape_inflated.shape, 1.0, outer);
+            simplify_input_shape.shape = approximate_by_line_segments(border.shape_inflated, 1.0);
             simplify_input_shape.copies = bin_type.copies;
-            simplify_input_shape.outer = outer;
             simplify_inflated_bin_types_input.push_back(simplify_input_shape);
 
             ApproximatedShapeKey key;
@@ -105,13 +96,11 @@ SimplifiedInstance irregular::shape_simplification(
                 defect_id < (DefectId)bin_type.defects.size();
                 ++defect_id) {
             const Defect& defect = bin_type.defects[defect_id];
-            total_bin_area -= bin_type.copies * defect.shape_scaled.shape.compute_area();
+            total_bin_area -= bin_type.copies * defect.shape_scaled.compute_area();
 
-            bool outer = true;
             SimplifyInputShape simplify_input_shape;
-            simplify_input_shape.shape = approximate_by_line_segments(defect.shape_inflated.shape, 1.0, outer);
+            simplify_input_shape.shape = approximate_by_line_segments(defect.shape_inflated, 1.0);
             simplify_input_shape.copies = bin_type.copies;
-            simplify_input_shape.outer = outer;
             simplify_inflated_bin_types_input.push_back(simplify_input_shape);
 
             ApproximatedShapeKey key;
@@ -119,39 +108,6 @@ SimplifiedInstance irregular::shape_simplification(
             key.bin_type_id = bin_type_id;
             key.defect_id = defect_id;
             simplify_inflated_bin_types_keys.push_back(key);
-
-            for (ShapePos hole_pos = 0;
-                    hole_pos < defect.shape_scaled.holes.size();
-                    ++defect_id) {
-                const Shape& hole = defect.shape_scaled.holes[hole_pos];
-
-                if (strictly_lesser(hole.compute_area(), smallest_item_area))
-                    continue;
-                total_bin_area += bin_type.copies * hole.compute_area();
-            }
-
-            for (ShapePos hole_pos = 0;
-                    hole_pos < defect.shape_inflated.holes.size();
-                    ++hole_pos) {
-                const Shape& hole_deflated = defect.shape_inflated.holes[hole_pos];
-
-                if (strictly_lesser(hole_deflated.compute_area(), smallest_item_area))
-                    continue;
-
-                bool outer = false;
-                SimplifyInputShape simplify_input_shape;
-                simplify_input_shape.shape = approximate_by_line_segments(hole_deflated, 1.0, outer);
-                simplify_input_shape.copies = bin_type.copies;
-                simplify_input_shape.outer = outer;
-                simplify_inflated_bin_types_input.push_back(simplify_input_shape);
-
-                ApproximatedShapeKey key;
-                key.type = ApproximatedShapeType::DefectHoleDeflated;
-                key.bin_type_id = bin_type_id;
-                key.defect_id = defect_id;
-                key.hole_pos = hole_pos;
-                simplify_inflated_bin_types_keys.push_back(key);
-            }
         }
     }
     // Add elements from item types.
@@ -164,17 +120,15 @@ SimplifiedInstance irregular::shape_simplification(
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
             const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-            total_item_area += item_type.copies * item_shape.shape_scaled.shape.compute_area();
+            total_item_area += item_type.copies * item_shape.shape_scaled.compute_area();
             //std::cout << "item_type_id " << item_type_id
             //    << " item_shape_pos " << item_shape_pos
             //    << std::endl;
 
             {
-                bool outer = true;
                 SimplifyInputShape simplify_input_shape;
-                simplify_input_shape.shape = approximate_by_line_segments(item_shape.shape_scaled.shape, 1.0, outer);
+                simplify_input_shape.shape = approximate_by_line_segments(item_shape.shape_scaled, 1.0);
                 simplify_input_shape.copies = item_type.copies;
-                simplify_input_shape.outer = outer;
                 simplify_item_types_input.push_back(simplify_input_shape);
 
                 ApproximatedShapeKey key;
@@ -184,65 +138,15 @@ SimplifiedInstance irregular::shape_simplification(
                 simplify_item_types_keys.push_back(key);
             }
             {
-                bool outer = true;
                 SimplifyInputShape simplify_input_shape;
-                simplify_input_shape.shape = approximate_by_line_segments(item_shape.shape_inflated.shape, 1.0, outer);
+                simplify_input_shape.shape = approximate_by_line_segments(item_shape.shape_inflated, 1.0);
                 simplify_input_shape.copies = item_type.copies;
-                simplify_input_shape.outer = outer;
                 simplify_inflated_item_types_input.push_back(simplify_input_shape);
 
                 ApproximatedShapeKey key;
                 key.type = ApproximatedShapeType::ItemShapeInflated;
                 key.item_type_id = item_type_id;
                 key.item_shape_pos = item_shape_pos;
-                simplify_inflated_item_types_keys.push_back(key);
-            }
-
-            for (ShapePos hole_pos = 0;
-                    hole_pos < item_shape.shape_scaled.holes.size();
-                    ++hole_pos) {
-                const Shape& hole = item_shape.shape_scaled.holes[hole_pos];
-
-                if (strictly_lesser(hole.compute_area(), smallest_item_area))
-                    continue;
-
-                total_item_area -= item_type.copies * hole.compute_area();
-
-                bool outer = false;
-                SimplifyInputShape simplify_input_shape;
-                simplify_input_shape.shape = approximate_by_line_segments(hole, 1.0, outer);
-                simplify_input_shape.copies = item_type.copies;
-                simplify_input_shape.outer = outer;
-                simplify_item_types_input.push_back(simplify_input_shape);
-
-                ApproximatedShapeKey key;
-                key.type = ApproximatedShapeType::ItemShapeHole;
-                key.item_type_id = item_type_id;
-                key.item_shape_pos = item_shape_pos;
-                key.hole_pos = hole_pos;
-                simplify_item_types_keys.push_back(key);
-            }
-
-            for (ShapePos hole_pos = 0;
-                    hole_pos < item_shape.shape_inflated.holes.size();
-                    ++hole_pos) {
-                const Shape& hole_deflated = item_shape.shape_inflated.holes[hole_pos];
-
-                if (strictly_lesser(hole_deflated.compute_area(), smallest_item_area))
-                    continue;
-
-                bool outer = false;
-                SimplifyInputShape simplify_input_shape;
-                simplify_input_shape.shape = approximate_by_line_segments(hole_deflated, 1.0, outer);
-                simplify_input_shape.copies = item_type.copies;
-                simplify_input_shape.outer = outer;
-                simplify_inflated_item_types_input.push_back(simplify_input_shape);
-
-                ApproximatedShapeKey key;
-                key.type = ApproximatedShapeType::ItemShapeHoleDeflated;
-                key.item_type_id = item_type_id;
-                key.item_shape_pos = item_shape_pos;
-                key.hole_pos = hole_pos;
                 simplify_inflated_item_types_keys.push_back(key);
             }
         }
@@ -287,20 +191,12 @@ SimplifiedInstance irregular::shape_simplification(
         const ShapeWithHoles& simplified_shape = simplify_inflated_bin_types_output[shape_pos];
 
         if (key.type == ApproximatedShapeType::BorderInflated) {
-            simplified_instance.bin_types[key.bin_type_id].borders[key.defect_id].shape_inflated.shape
-                = simplified_shape.shape;
-            for (const auto& s: simplified_shape.holes)
-                simplified_instance.bin_types[key.bin_type_id].borders[key.defect_id].shape_inflated.holes.push_back(s);
+            simplified_instance.bin_types[key.bin_type_id].borders[key.defect_id].shape_inflated
+                = simplified_shape;
 
         } else if (key.type == ApproximatedShapeType::DefectInflated) {
-            simplified_instance.bin_types[key.bin_type_id].defects[key.defect_id].shape_inflated.shape
-                = simplified_shape.shape;
-            for (const auto& s: simplified_shape.holes)
-                simplified_instance.bin_types[key.bin_type_id].defects[key.defect_id].shape_inflated.holes.push_back(s);
-
-        } else if (key.type == ApproximatedShapeType::DefectHoleDeflated) {
-            for (const auto& s: simplified_shape.holes)
-                simplified_instance.bin_types[key.bin_type_id].defects[key.defect_id].shape_inflated.holes.push_back(s);
+            simplified_instance.bin_types[key.bin_type_id].defects[key.defect_id].shape_inflated
+                = simplified_shape;
         }
     }
 
@@ -321,14 +217,8 @@ SimplifiedInstance irregular::shape_simplification(
         //    std::cout << "simplified_shape " << s.to_string(0) << std::endl;
 
         if (key.type == ApproximatedShapeType::ItemShapeInflated) {
-            simplified_instance.item_types[key.item_type_id].shapes[key.item_shape_pos].shape_inflated.shape
-                = simplified_shape.shape;
-            for (const auto& s: simplified_shape.holes)
-                simplified_instance.item_types[key.item_type_id].shapes[key.item_shape_pos].shape_inflated.holes.push_back(s);
-
-        } else if (key.type == ApproximatedShapeType::ItemShapeHoleDeflated) {
-            for (const auto& s: simplified_shape.holes)
-                simplified_instance.item_types[key.item_type_id].shapes[key.item_shape_pos].shape_inflated.holes.push_back(s);
+            simplified_instance.item_types[key.item_type_id].shapes[key.item_shape_pos].shape_inflated
+                = simplified_shape;
         }
     }
 
@@ -340,15 +230,12 @@ SimplifiedInstance irregular::shape_simplification(
         const ShapeWithHoles& simplified_shape = simplify_item_types_output[shape_pos];
 
         if (key.type == ApproximatedShapeType::ItemShape) {
-            simplified_instance.item_types[key.item_type_id].shapes[key.item_shape_pos].shape.shape
-                = simplified_shape.shape;
-            for (const auto& s: simplified_shape.holes)
-                simplified_instance.item_types[key.item_type_id].shapes[key.item_shape_pos].shape.holes.push_back(s);
+            simplified_instance.item_types[key.item_type_id].shapes[key.item_shape_pos].shape
+                = simplified_shape;
 
             //const ItemType& item_type = instance.item_type(key.item_type_id);
             //const ItemShape& item_shape = item_type.shapes[key.item_shape_pos];
             //std::cout << "shape_pos " << shape_pos << std::endl;
-            //std::cout << "outer " << simplify_item_types_input[shape_pos].outer << std::endl;
             //auto mm1 = item_shape.shape_orig.compute_min_max();
             //auto mm2 = item_shape.shape_scaled.compute_min_max();
             //auto mm3 = simplify_item_types_input[shape_pos].shape.compute_min_max();
@@ -357,10 +244,6 @@ SimplifiedInstance irregular::shape_simplification(
             //std::cout << "scal " << mm2.second.to_string() << std::endl;
             //std::cout << "clea " << mm3.second.to_string() << std::endl;
             //std::cout << "simp " << mm4.second.to_string() << std::endl;
-
-        } else if (key.type == ApproximatedShapeType::ItemShapeHole) {
-            for (const auto& s: simplified_shape.holes)
-                simplified_instance.item_types[key.item_type_id].shapes[key.item_shape_pos].shape.holes.push_back(s);
         }
     }
 
