@@ -186,10 +186,18 @@ BranchingScheme::BranchingScheme(
             bb_bin_type.y_min = mm.first.y;
             bb_bin_type.y_max = mm.second.y;
 
-            LengthDbl y_min = bb_bin_type.y_min - (bb_bin_type.y_max - bb_bin_type.y_min);
-            LengthDbl y_max = bb_bin_type.y_max + (bb_bin_type.y_max - bb_bin_type.y_min);
-            LengthDbl x_min = bb_bin_type.x_min - (bb_bin_type.x_max - bb_bin_type.x_min);
-            LengthDbl x_max = bb_bin_type.x_max + (bb_bin_type.x_max - bb_bin_type.x_min);
+            LengthDbl y_min = bb_bin_type.y_min
+                - (bb_bin_type.y_max - bb_bin_type.y_min)
+                - instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing;
+            LengthDbl y_max = bb_bin_type.y_max
+                + (bb_bin_type.y_max - bb_bin_type.y_min)
+                + instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing;
+            LengthDbl x_min = bb_bin_type.x_min
+                - (bb_bin_type.x_max - bb_bin_type.x_min)
+                - instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing;
+            LengthDbl x_max = bb_bin_type.x_max
+                + (bb_bin_type.x_max - bb_bin_type.x_min)
+                + instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing;
 
             GeneralizedTrapezoid trapezoid_bottom(
                     y_min,
