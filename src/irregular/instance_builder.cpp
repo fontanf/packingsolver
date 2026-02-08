@@ -197,25 +197,13 @@ ItemTypeId InstanceBuilder::add_item_type(
 
     ItemType item_type;
     item_type.shapes = shapes;
-    for (ItemShape& item_shape: item_type.shapes) {
-        item_shape.shape_orig = shape::remove_redundant_vertices(item_shape.shape_orig).second;
-        if (!item_shape.check()) {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": "
-                    "invalid shape.");
-        }
-    }
     item_type.allowed_rotations = (!allowed_rotations.empty())?
         allowed_rotations: std::vector<std::pair<Angle, Angle>>{{0, 0}};
     item_type.area_orig = 0;
-    item_type.area_scaled = 0;
     for (const auto& item_shape: item_type.shapes) {
         item_type.area_orig += item_shape.shape_orig.shape.compute_area();
         for (const Shape& hole: item_shape.shape_orig.holes)
             item_type.area_orig -= hole.compute_area();
-        item_type.area_scaled += item_shape.shape_scaled.shape.compute_area();
-        for (const Shape& hole: item_shape.shape_scaled.holes)
-            item_type.area_scaled -= hole.compute_area();
     }
     item_type.profit = (profit != -1)? profit: item_type.area_orig;
     item_type.copies = copies;
@@ -461,6 +449,28 @@ Instance InstanceBuilder::build()
                 continue;
 
             item_shape.shape_scaled = instance_.parameters().scale_value * item_shape.shape_orig;
+            item_shape.shape_scaled = shape::remove_redundant_vertices(item_shape.shape_scaled).second;
+            item_shape.shape_scaled = shape::remove_aligned_vertices(item_shape.shape_scaled).second;
+            if (!item_shape.shape_scaled.shape.check()) {
+                throw std::runtime_error(
+                        FUNC_SIGNATURE + ": "
+                        "invalid shape; "
+                        "item_type_id: " + std::to_string(item_type_id) + "; "
+                        "shape_pos: " + std::to_string(shape_pos) + ".");
+            }
+            for (ShapePos hole_pos = 0;
+                    hole_pos < (ShapePos)item_shape.shape_scaled.holes.size();
+                    ++hole_pos) {
+                const Shape& hole = item_shape.shape_scaled.holes[hole_pos];
+                if (!hole.check()) {
+                    throw std::runtime_error(
+                            FUNC_SIGNATURE + ": "
+                            "invalid scaled shape; "
+                            "item_type_id: " + std::to_string(item_type_id) + "; "
+                            "shape_pos: " + std::to_string(shape_pos) + "; "
+                            "hole_pos: " + std::to_string(hole_pos) + ".");
+                }
+            }
             smallest_item_area = (std::min)(smallest_item_area, item_shape.shape_scaled.shape.compute_area());
         }
     }
@@ -503,10 +513,24 @@ Instance InstanceBuilder::build()
                     item_shape.shape_scaled,
                     instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing);
             if (!item_shape.shape_inflated.shape.check()) {
-                throw std::logic_error(
-                        FUNC_SIGNATURE + ": invalid item inflated shape; "
+                throw std::runtime_error(
+                        FUNC_SIGNATURE + ": "
+                        "invalid shape; "
                         "item_type_id: " + std::to_string(item_type_id) + "; "
                         "shape_pos: " + std::to_string(shape_pos) + ".");
+            }
+            for (ShapePos hole_pos = 0;
+                    hole_pos < (ShapePos)item_shape.shape_inflated.holes.size();
+                    ++hole_pos) {
+                const Shape& hole = item_shape.shape_inflated.holes[hole_pos];
+                if (!hole.check()) {
+                    throw std::runtime_error(
+                            FUNC_SIGNATURE + ": "
+                            "invalid inflated shape; "
+                            "item_type_id: " + std::to_string(item_type_id) + "; "
+                            "shape_pos: " + std::to_string(shape_pos) + "; "
+                            "hole_pos: " + std::to_string(hole_pos) + ".");
+                }
             }
 
             if (item_shape.quality_rule < -1) {
