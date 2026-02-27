@@ -285,6 +285,24 @@ void AlgorithmFormatter::update_bin_packing_bound(
     mutex_.unlock();
 }
 
+void AlgorithmFormatter::update_variable_sized_bin_packing_bound(
+        Profit cost)
+{
+    mutex_.lock();
+    if (cost > output_.variable_sized_bin_packing_bound) {
+        output_.variable_sized_bin_packing_bound = cost;
+        output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+
+        // Check optimality.
+        if (output_.solution_pool.best().full()
+                && output_.variable_sized_bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
+            end_ = true;
+        }
+    }
+    mutex_.unlock();
+}
+
 void AlgorithmFormatter::end()
 {
     output_.time = parameters_.timer.elapsed_time();

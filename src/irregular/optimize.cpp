@@ -65,10 +65,10 @@ void optimize_onedimensional_bound(
         algorithm_formatter.update_knapsack_bound(
                 onedim_output.knapsack_bound);
         break;
-    //} case Objective::VariableSizedBinPacking: {
-    //    algorithm_formatter.update_variable_sized_bin_packing_bound(
-    //            onedim_output.variable_sized_bin_packing_bound);
-    //    break;
+    } case Objective::VariableSizedBinPacking: {
+        algorithm_formatter.update_variable_sized_bin_packing_bound(
+                onedim_output.variable_sized_bin_packing_bound);
+        break;
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "

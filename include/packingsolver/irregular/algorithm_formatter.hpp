@@ -60,6 +60,10 @@ public:
     void update_bin_packing_bound(
             BinPos number_of_bins);
 
+    /** Update the variable-sized bin packing bound. */
+    void update_variable_sized_bin_packing_bound(
+            Profit cost);
+
     /** Method to call at the end of the algorithm. */
     void end();
 
