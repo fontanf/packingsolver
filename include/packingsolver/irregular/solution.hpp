@@ -176,7 +176,8 @@ public:
     /** Write the solution to an SVG file. */
     void write_svg(
             const std::string& file_path,
-            BinPos bin_pos) const;
+            BinPos bin_pos,
+            bool scaled = false) const;
 
     /** Export solution characteristics to a JSON structure. */
     nlohmann::json to_json() const;

@@ -420,7 +420,8 @@ void Solution::write(
 
 void Solution::write_svg(
         const std::string& file_path,
-        BinPos bin_pos) const
+        BinPos bin_pos,
+        bool scaled) const
 {
     if (file_path.empty())
         return;
@@ -433,12 +434,14 @@ void Solution::write_svg(
 
     const SolutionBin& bin = this->bin(bin_pos);
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
-    LengthDbl width = (bin_type.x_max - bin_type.x_min);
-    LengthDbl height = (bin_type.y_max - bin_type.y_min);
+    const Shape& bin_shape = (scaled)? bin_type.shape_scaled: bin_type.shape_orig;
+    auto bin_mm = bin_shape.compute_min_max();
+    LengthDbl width = (bin_mm.second.x - bin_mm.first.x);
+    LengthDbl height = (bin_mm.second.y - bin_mm.first.y);
 
     std::string s = "<svg viewBox=\""
-        + std::to_string(bin_type.x_min)
-        + " " + std::to_string(-bin_type.y_min - height)
+        + std::to_string(bin_mm.first.x)
+        + " " + std::to_string(-bin_mm.first.y - height)
         + " " + std::to_string(width)
         + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
@@ -446,9 +449,11 @@ void Solution::write_svg(
 
     // Write bin.
     file << "<g>" << std::endl;
-    file << bin_type.shape_scaled.to_svg();
-    for (const Defect& defect: bin_type.defects)
-        file << defect.shape_scaled.to_svg("red");
+    file << bin_shape.to_svg();
+    for (const Defect& defect: bin_type.defects) {
+        const ShapeWithHoles& defect_shape = (scaled)? defect.shape_scaled: defect.shape_orig;
+        file << defect_shape.to_svg("red");
+    }
     file << "</g>" << std::endl;
 
     // Write items.
@@ -460,9 +465,13 @@ void Solution::write_svg(
         LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
         LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
 
+        Point bl_corner = item.bl_corner;
+        if (scaled)
+            bl_corner = this->instance().parameters().scale_value * bl_corner;
+
         file << "<g>" << std::endl;
         for (const ItemShape& item_shape: item_type.shapes) {
-            ShapeWithHoles shape = item_shape.shape_scaled;
+            ShapeWithHoles shape = (scaled)? item_shape.shape_scaled: item_shape.shape_orig;
 
             // Apply mirroring.
             if (item.mirror)
@@ -470,7 +479,7 @@ void Solution::write_svg(
             // Apply angles.
             shape.shape = shape.shape.rotate(item.angle);
             // Apply shift.
-            shape.shape.shift(item.bl_corner.x, item.bl_corner.y);
+            shape.shape.shift(bl_corner.x, bl_corner.y);
 
             for (Counter hole_pos = 0;
                     hole_pos < (Counter)item_shape.shape_scaled.holes.size();
@@ -481,7 +490,7 @@ void Solution::write_svg(
                 // Apply angles.
                 shape.holes[hole_pos] = shape.holes[hole_pos].rotate(item.angle);
                 // Apply shift.
-                shape.holes[hole_pos].shift(item.bl_corner.x, item.bl_corner.y);
+                shape.holes[hole_pos].shift(bl_corner.x, bl_corner.y);
             }
 
             file << shape.to_svg("blue");
