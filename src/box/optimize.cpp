@@ -30,6 +30,7 @@ void optimize_tree_search(
     } else {
         guides = {0, 1};
     }
+    //guides = {4};
 
     std::vector<Direction> directions;
     if (instance.objective() == Objective::OpenDimensionX) {
@@ -43,6 +44,7 @@ void optimize_tree_search(
     } else {
         directions = {Direction::Any};
     }
+    //directions = {Direction::Z};
 
     std::vector<double> growth_factors = {1.5};
     if (guides.size() * directions.size() * 2 <= 4)

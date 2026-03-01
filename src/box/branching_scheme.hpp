@@ -473,18 +473,12 @@ private:
     void update_y_uncovered_item(
             std::vector<YUncoveredItem>& y_uncovered_items,
             const YUncoveredItem& y_uncovered_item,
-            Length ys,
-            Length ye,
-            Length zs,
-            Length ze) const;
+            const UncoveredItem& ref) const;
 
     void update_z_uncovered_item(
             std::vector<ZUncoveredItem>& z_uncovered_items,
             const ZUncoveredItem& z_uncovered_item,
-            Length ys,
-            Length ye,
-            Length zs,
-            Length ze) const;
+            const UncoveredItem& ref) const;
 
     /** Insertion of one item in a new stack. */
     void insertion_item(

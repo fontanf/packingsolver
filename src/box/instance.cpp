@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <bitset>
 
 using namespace packingsolver;
 using namespace packingsolver::box;
@@ -156,7 +157,7 @@ std::ostream& Instance::format(
             << std::setw(10) << "Z"
             << std::setw(12) << "Profit"
             << std::setw(10) << "Copies"
-            << std::setw(10) << "Rot."
+            << std::setw(10) << "Rotations"
             << std::setw(10) << "Weight"
             << std::endl
             << std::setw(10) << "---------"
@@ -179,7 +180,7 @@ std::ostream& Instance::format(
                 << std::setw(10) << item_type.box.z
                 << std::setw(12) << item_type.profit
                 << std::setw(10) << item_type.copies
-                << std::setw(10) << item_type.rotations
+                << std::setw(10) << std::bitset<6>(item_type.rotations)
                 << std::setw(10) << item_type.weight
                 << std::endl;
         }

@@ -11,6 +11,10 @@ Point convert_point_back(
         const Point& point,
         Direction direction);
 
+int get_flipped_rotation(
+        int r,
+        Direction direction);
+
 class InstanceFlipper
 {
 public:
@@ -20,7 +24,7 @@ public:
             Direction direction):
         instance_orig_(instance),
         direction_(direction),
-        instance_flipped_(flip(instance, direction)) { }
+        instance_flipped_(flip(instance)) { }
 
     const Instance& flipped_instance() const { return instance_flipped_; }
 
@@ -28,7 +32,9 @@ public:
 
 private:
 
-    Instance flip(const Instance& instance, Direction direction);
+    int flip_rotation_mask(int mask) const;
+
+    Instance flip(const Instance& instance);
 
     const Instance& instance_orig_;
 

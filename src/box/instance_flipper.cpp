@@ -20,12 +20,39 @@ Point packingsolver::box::convert_point_back(
     return Point();
 }
 
-Instance InstanceFlipper::flip(
-        const Instance& instance,
+static const int map_y[] = {1, 0, 3, 2, 5, 4};
+static const int map_z[] = {2, 5, 0, 4, 3, 1};
+
+int packingsolver::box::get_flipped_rotation(
+        int r,
         Direction direction)
 {
+    if (direction == Direction::X) {
+        return r;
+    } else if (direction == Direction::Y) {
+        return map_y[r];
+    } else if (direction == Direction::Z) {
+        return map_z[r];
+    }
+    throw std::runtime_error(FUNC_SIGNATURE);
+    return r;
+}
+
+int InstanceFlipper::flip_rotation_mask(int mask) const
+{
+    int new_mask = 0;
+    for (int r = 0; r < 6; ++r)
+        if (mask & (1 << r))
+            new_mask |= (1 << get_flipped_rotation(r, direction_));
+    return new_mask;
+}
+
+Instance InstanceFlipper::flip(
+        const Instance& instance)
+{
     InstanceBuilder flipped_instance_builder;
-    if (instance.objective() == Objective::OpenDimensionY) {
+    if (instance.objective() == Objective::OpenDimensionY
+            || instance.objective() == Objective::OpenDimensionZ) {
         flipped_instance_builder.set_objective(Objective::OpenDimensionX);
     } else {
         flipped_instance_builder.set_objective(instance.objective());
@@ -53,13 +80,7 @@ Instance InstanceFlipper::flip(
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
         ItemType item_type_new = item_type;
-        if (direction_ == Direction::Y) {
-            item_type_new.box.x = item_type.box.y;
-            item_type_new.box.y = item_type.box.x;
-        } else if (direction_ == Direction::Z) {
-            item_type_new.box.x = item_type.box.z;
-            item_type_new.box.z = item_type.box.x;
-        }
+        item_type_new.rotations = this->flip_rotation_mask(item_type.rotations);
         flipped_instance_builder.add_item_type(
                 item_type_new,
                 item_type.profit,
@@ -79,14 +100,13 @@ Solution InstanceFlipper::unflip_solution(const Solution& flipped_solution) cons
                 flipped_bin.bin_type_id,
                 flipped_bin.copies);
         for (const SolutionItem& flipped_item: flipped_bin.items) {
-            Point bl_corner = convert_point_back(
-                    flipped_item.bl_corner,
-                    direction_);
+            Point bl_corner = convert_point_back(flipped_item.bl_corner, direction_);
+            int original_rotation = get_flipped_rotation(flipped_item.rotation, direction_);
             solution.add_item(
                     bin_pos,
                     flipped_item.item_type_id,
                     bl_corner,
-                    flipped_item.rotation);
+                    original_rotation);
         }
     }
     return solution;
