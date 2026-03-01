@@ -231,6 +231,23 @@ void AlgorithmFormatter::update_solution(
     mutex_.unlock();
 }
 
+void AlgorithmFormatter::update_knapsack_bound(
+        Profit profit)
+{
+    mutex_.lock();
+    if (profit < output_.knapsack_bound) {
+        output_.knapsack_bound = profit;
+        output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+
+        // Check optimality.
+        if (equal(output_.knapsack_bound, output_.solution_pool.best().profit())) {
+            end_ = true;
+        }
+    }
+    mutex_.unlock();
+}
+
 void AlgorithmFormatter::update_bin_packing_bound(
         BinPos number_of_bins)
 {

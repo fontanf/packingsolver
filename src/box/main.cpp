@@ -85,6 +85,17 @@ int main(int argc, char *argv[])
 
         ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
         ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
+        ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
+        ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
+        ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
+        ("use-column-generation,", po::value<bool>(), "enable column-generation")
+        ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
+        ("sequential-value-correction-subproblem-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
+        ("column-generation-subproblem-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
+        ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
+        ("not-anytime-sequential-single-knapsack-subproblem-queue-size,", po::value<Counter>(), "")
+        ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
+        ("not-anytime-dichotomic-search-subproblem-queue-size,", po::value<Counter>(), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -158,12 +169,6 @@ int main(int argc, char *argv[])
 
     // Read algorithm parameters.
 
-#if XPRESS_FOUND
-    if (optimize_parameters.solver_name
-            == columngenerationsolver::SolverName::Xpress)
-        XPRSinit(NULL);
-#endif
-
     OptimizeParameters parameters;
     read_args(parameters, vm);
     if (vm.count("linear-programming-solver"))
@@ -171,18 +176,36 @@ int main(int argc, char *argv[])
     if (vm.count("optimization-mode"))
         parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
 
+    if (vm.count("use-tree-search"))
+        parameters.use_tree_search = vm["use-tree-search"].as<bool>();
+    if (vm.count("use-sequential-single-knapsack"))
+        parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
+    if (vm.count("use-sequential-value-correction"))
+        parameters.use_sequential_value_correction = vm["use-sequential-value-correction"].as<bool>();
+    if (vm.count("use-column-generation"))
+        parameters.use_column_generation = vm["use-column-generation"].as<bool>();
+    if (vm.count("use-dichotomic-search"))
+        parameters.use_dichotomic_search = vm["use-dichotomic-search"].as<bool>();
+
+    if (vm.count("sequential-value-correction-subproblem-queue-size"))
+        parameters.sequential_value_correction_subproblem_queue_size = vm["sequential-value-correction-subproblem-queue-size"].as<NodeId>();
+    if (vm.count("column-generation-subproblem-queue-size"))
+        parameters.column_generation_subproblem_queue_size = vm["column-generation-subproblem-queue-size"].as<NodeId>();
+    if (vm.count("not-anytime-tree-search-queue-size"))
+        parameters.not_anytime_tree_search_queue_size = vm["not-anytime-tree-search-queue-size"].as<Counter>();
+    if (vm.count("not-anytime-sequential-single-knapsack-subproblem-queue-size"))
+        parameters.not_anytime_sequential_single_knapsack_subproblem_queue_size = vm["not-anytime-sequential-single-knapsack-subproblem-queue-size"].as<Counter>();
+    if (vm.count("not-anytime-sequential-value-correction-number-of-iterations"))
+        parameters.not_anytime_sequential_value_correction_number_of_iterations = vm["not-anytime-sequential-value-correction-number-of-iterations"].as<Counter>();
+    if (vm.count("not-anytime-dichotomic-search-subproblem-queue-size"))
+        parameters.not_anytime_dichotomic_search_subproblem_queue_size = vm["not-anytime-dichotomic-search-subproblem-queue-size"].as<Counter>();
+
     const box::Output output = optimize(instance, parameters);
 
     if (vm.count("certificate"))
         output.solution_pool.best().write(vm["certificate"].as<std::string>());
     if (vm.count("output"))
         output.write_json_output(vm["output"].as<std::string>());
-
-#if XPRESS_FOUND
-    if (optimize_parameters.solver_name
-            == columngenerationsolver::SolverName::Xpress)
-        XPRSfree();
-#endif
 
     return 0;
 }
