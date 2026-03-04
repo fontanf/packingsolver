@@ -306,24 +306,22 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     const BinType& bin_type = instance.bin_type(bin_type_id);
     const ItemType& item_type = instance.item_type(insertion.item_type_id);
 
-    Length xj = item_type.x(insertion.rotation);
-    Length yj = item_type.y(insertion.rotation);
-    Length zj = item_type.z(insertion.rotation);
+    Box box = item_type.box.rotate(insertion.rotation);
     Length xs = insertion.x;
     Length ys = insertion.y;
     Length zs = insertion.z;
-    Length xe = xs + xj;
-    Length ye = ys + yj;
-    Length ze = zs + zj;
+    Length xe = xs + box.x;
+    Length ye = ys + box.y;
+    Length ze = zs + box.z;
     Length xi = bin_type.box.x;
     Length yi = bin_type.box.y;
     Length zi = bin_type.box.z;
-    Volume item_volume = xj * yj * zj;
-    if (insertion.z + zj > zi) {
+    Volume item_volume = box.volume();
+    if (insertion.z + box.z > zi) {
         throw std::runtime_error(
                 FUNC_SIGNATURE + "; "
                 "insertion.z: " + std::to_string(insertion.z)
-                + "; zj: " + std::to_string(zj)
+                + "; zj: " + std::to_string(box.z)
                 + "; zi: " + std::to_string(zi)
                 + ".");
     }
@@ -609,9 +607,7 @@ void BranchingScheme::insertion_item(
         instance.bin_type_id(parent->number_of_bins - 1):
         instance.bin_type_id(parent->number_of_bins);
     const BinType& bin_type = instance.bin_type(bin_type_id);
-    Length xj = item_type.x(rotation);
-    Length yj = item_type.y(rotation);
-    Length zj = item_type.z(rotation);
+    Box box = item_type.box.rotate(rotation);
     Length xi = bin_type.box.x;
     Length yi = bin_type.box.y;
     Length zi = bin_type.box.z;
@@ -624,8 +620,8 @@ void BranchingScheme::insertion_item(
         ys = 0;
         zs = 0;
     }
-    Length ye = ys + yj;
-    Length ze = zs + zj;
+    Length ye = ys + box.y;
+    Length ze = zs + box.z;
     // Check bin y.
     if (ye > yi) {
         //std::cout << "ye " << ye << " > yi " << yi << std::endl;
@@ -668,8 +664,8 @@ void BranchingScheme::insertion_item(
     // Compute xs.
     Length xs = 0;
     if (new_bin == 0) {
-        xs = std::max(xs, parent->y_uncovered_items[y_uncovered_item_pos].xs - xj);
-        xs = std::max(xs, parent->z_uncovered_items[z_uncovered_item_pos].xs - xj);
+        xs = std::max(xs, parent->y_uncovered_items[y_uncovered_item_pos].xs - box.x);
+        xs = std::max(xs, parent->z_uncovered_items[z_uncovered_item_pos].xs - box.x);
         for (const UncoveredItem& uncovered_item: parent->uncovered_items) {
             if (uncovered_item.ye <= ys || uncovered_item.ys >= ye)
                 continue;
@@ -679,7 +675,7 @@ void BranchingScheme::insertion_item(
                 xs = uncovered_item.x;
         }
     }
-    Length xe = xs + xj;
+    Length xe = xs + box.x;
 
     // Check bin x.
     if (xe > xi) {
@@ -921,11 +917,12 @@ nlohmann::json BranchingScheme::json_export_init() const
                 continue;
 
             json_items_init_ids_[item_type_id][rotation] = i;
+            Box box = item_type.box.rotate(rotation);
             json_init[i] = {
                 {"Type", "Box"},
-                {"X", item_type.x(rotation)},
-                {"Y", item_type.y(rotation)},
-                {"Z", item_type.z(rotation)},
+                {"X", box.x},
+                {"Y", box.y},
+                {"Z", box.z},
                 {"FillColor", "blue"},
             };
             i++;

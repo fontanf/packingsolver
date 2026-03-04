@@ -63,12 +63,10 @@ void Solution::add_item(
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
 
     const ItemType& item_type = instance().item_type(item_type_id);
-    Length xj = item_type.x(rotation);
-    Length yj = item_type.y(rotation);
-    Length zj = item_type.z(rotation);
-    Length xe = bl_corner.x + xj;
-    Length ye = bl_corner.y + yj;
-    Length ze = bl_corner.z + zj;
+    Box box = item_type.box.rotate(rotation);
+    Length xe = bl_corner.x + box.x;
+    Length ye = bl_corner.y + box.y;
+    Length ze = bl_corner.z + box.z;
     //std::cout
     //    << "j " << j
     //    << " x " << stack.x_start
@@ -86,8 +84,8 @@ void Solution::add_item(
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "item_type.rotations: " + std::to_string(item_type.rotations) + "; "
                 "rot: " + std::to_string(rotation) + "; "
-                "xj: " + std::to_string(xj) + "; "
-                "yj: " + std::to_string(yj) + ".");
+                "xj: " + std::to_string(box.x) + "; "
+                "yj: " + std::to_string(box.y) + ".");
     }
 
     SolutionItem item;
@@ -312,6 +310,7 @@ void Solution::write(
 
         for (const SolutionItem& item: bin.items) {
             const ItemType& item_type = instance().item_type(item.item_type_id);
+            Box box = item_type.box.rotate(item.rotation);
             file
                 << "ITEM,"
                 << item.item_type_id << ","
@@ -320,9 +319,9 @@ void Solution::write(
                 << item.bl_corner.x << ","
                 << item.bl_corner.y << ","
                 << item.bl_corner.z << ","
-                << item_type.x(item.rotation) << ","
-                << item_type.y(item.rotation) << ","
-                << item_type.z(item.rotation) << ","
+                << box.x << ","
+                << box.y << ","
+                << box.z << ","
                 << item.rotation << std::endl;
         }
     }
