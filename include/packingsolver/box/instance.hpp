@@ -51,6 +51,31 @@ struct Box
 
     /** Get the length of the largest size of the box. */
     Length max() const { return std::max(std::max(x, y), z); }
+
+    Box rotate(int rotation) const
+    {
+        switch (rotation) {
+        case 0: {
+            return {this->x, this->y, this->z};
+        } case 1: {
+            return {this->y, this->x, this->z};
+        } case 2: {
+            return {this->z, this->y, this->x};
+        } case 3: {
+            return {this->y, this->z, this->x};
+        } case 4: {
+            return {this->x, this->z, this->y};
+        } case 5: {
+            return {this->z, this->x, this->y};
+        } default: {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "incorrect rotation value: '"
+                    + std::to_string(rotation) + "'");
+        }
+        }
+    }
+
 };
 
 std::ostream& operator<<(
@@ -101,78 +126,6 @@ struct ItemType
     /*
      * Computed attributes
      */
-
-    Length x(int rotation) const
-    {
-        switch (rotation) {
-        case 0: {
-            return box.x;
-        } case 1: {
-            return box.y;
-        } case 2: {
-            return box.z;
-        } case 3: {
-            return box.y;
-        } case 4: {
-            return box.x;
-        } case 5: {
-            return box.z;
-        } default: {
-            throw std::invalid_argument(
-                    FUNC_SIGNATURE + ": "
-                    "incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
-        }
-        }
-    }
-
-    Length y(int rotation) const
-    {
-        switch (rotation) {
-        case 0: {
-            return box.y;
-        } case 1: {
-            return box.x;
-        } case 2: {
-            return box.y;
-        } case 3: {
-            return box.z;
-        } case 4: {
-            return box.z;
-        } case 5: {
-            return box.x;
-        } default: {
-            throw std::invalid_argument(
-                    FUNC_SIGNATURE + ": "
-                    "incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
-        }
-        }
-    }
-
-    Length z(int rotation) const
-    {
-        switch (rotation) {
-        case 0: {
-            return box.z;
-        } case 1: {
-            return box.z;
-        } case 2: {
-            return box.x;
-        } case 3: {
-            return box.x;
-        } case 4: {
-            return box.y;
-        } case 5: {
-            return box.y;
-        } default: {
-            throw std::invalid_argument(
-                    FUNC_SIGNATURE + ": "
-                    "incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
-        }
-        }
-    }
 
     /** Get the volume of the item type. */
     inline Volume volume() const { return box.volume(); }
