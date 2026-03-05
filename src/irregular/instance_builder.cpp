@@ -264,33 +264,23 @@ AreaDbl InstanceBuilder::compute_bin_types_area_max() const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Read from files ////////////////////////////////
+/////////////////////////////// Read from json  ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void InstanceBuilder::read(
-        std::string instance_path)
+void InstanceBuilder::read_json(
+    const nlohmann::json& j_instance)
 {
-    std::ifstream file(instance_path);
-    if (!file.good()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "unable to open file \"" + instance_path + "\".");
-    }
-
-    nlohmann ::json j;
-    file >> j;
-
-    if (j.contains("objective")) {
+    if (j_instance.contains("objective")) {
         std::stringstream objective_ss;
-        objective_ss << std::string(j["objective"]);
+        objective_ss << std::string(j_instance["objective"]);
         Objective objective;
         objective_ss >> objective;
         set_objective(objective);
     }
 
     // Read parameters.
-    if (j.contains("parameters")) {
-        auto json_parameters = j["parameters"];
+    if (j_instance.contains("parameters")) {
+        auto json_parameters = j_instance["parameters"];
         if (json_parameters.contains("item_item_minimum_spacing"))
             set_item_item_minimum_spacing(json_parameters["item_item_minimum_spacing"]);
         if (json_parameters.contains("open_dimension_xy_aspect_ratio"))
@@ -298,7 +288,7 @@ void InstanceBuilder::read(
     }
 
     // Read bin types.
-    for (const auto& json_item: j["bin_types"]) {
+    for (const auto& json_item : j_instance["bin_types"]) {
         Shape shape = Shape::from_json(json_item);
 
         Profit cost = -1;
@@ -319,14 +309,14 @@ void InstanceBuilder::read(
 
         BinTypeId bin_type_id = add_bin_type(shape, cost, copies, copies_min);
         set_item_bin_minimum_spacing(
-                bin_type_id,
-                item_bin_minimum_spacing);
+            bin_type_id,
+            item_bin_minimum_spacing);
 
         // Read defects.
         if (json_item.contains("defects")) {
             for (auto it_defect = json_item["defects"].begin();
-                    it_defect != json_item["defects"].end();
-                    ++it_defect) {
+                it_defect != json_item["defects"].end();
+                ++it_defect) {
                 auto json_defect = *it_defect;
 
                 // Read type.
@@ -336,38 +326,41 @@ void InstanceBuilder::read(
 
                 LengthDbl item_defect_minimum_spacing = 0;
                 if (json_defect.contains("item_defect_minimum_spacing"))
-                    item_defect_minimum_spacing = json_item["item_defect_minimum_spacing"];
+                {
+                    item_defect_minimum_spacing = json_defect["item_defect_minimum_spacing"];
+                }
 
                 // Read shape.
                 ShapeWithHoles shape = ShapeWithHoles::from_json(json_defect);
 
                 // Add defect.
                 DefectId defect_id = add_defect(
-                        bin_type_id,
-                        defect_type,
-                        shape);
+                    bin_type_id,
+                    defect_type,
+                    shape);
                 set_item_defect_minimum_spacing(
-                        bin_type_id,
-                        defect_id,
-                        item_bin_minimum_spacing);
+                    bin_type_id,
+                    defect_id,
+                    item_bin_minimum_spacing);
             }
         }
     }
 
     // Read item types.
-    for (const auto& json_item: j["item_types"]) {
+    for (const auto& json_item : j_instance["item_types"]) {
         std::vector<ItemShape> item_shapes;
         if (json_item.contains("shapes")) {
             // Multiple item shape.
             for (auto it_shape = json_item["shapes"].begin();
-                    it_shape != json_item["shapes"].end();
-                    ++it_shape) {
+                it_shape != json_item["shapes"].end();
+                ++it_shape) {
                 ItemShape item_shape;
                 item_shape.shape_orig = ShapeWithHoles::from_json(*it_shape);
                 item_shapes.push_back(item_shape);
             }
 
-        } else {
+        }
+        else {
             // Single item shape.
             ItemShape item_shape;
             item_shape.shape_orig = ShapeWithHoles::from_json(json_item);
@@ -386,10 +379,10 @@ void InstanceBuilder::read(
         std::vector<std::pair<Angle, Angle>> allowed_rotations;
         if (json_item.contains("allowed_rotations")) {
             for (auto it = json_item["allowed_rotations"].begin();
-                    it != json_item["allowed_rotations"].end();
-                    ++it) {
+                it != json_item["allowed_rotations"].end();
+                ++it) {
                 auto json_angles = *it;
-                allowed_rotations.push_back({json_angles["start"], json_angles["end"]});
+                allowed_rotations.push_back({ json_angles["start"], json_angles["end"] });
             }
         }
 
@@ -399,15 +392,33 @@ void InstanceBuilder::read(
             allow_mirroring = json_item["allow_mirroring"];
 
         ItemTypeId item_type_id = add_item_type(
-                item_shapes,
-                profit,
-                copies,
-                allowed_rotations);
+            item_shapes,
+            profit,
+            copies,
+            allowed_rotations);
         set_item_type_allow_mirroring(
-                item_type_id,
-                allow_mirroring);
+            item_type_id,
+            allow_mirroring);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// Read from files ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+void InstanceBuilder::read(
+        std::string instance_path)
+{
+    std::ifstream file(instance_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + instance_path + "\".");
     }
 
+    nlohmann::json j;
+    file >> j;
+	this->read_json(j);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
