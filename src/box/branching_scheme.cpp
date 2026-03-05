@@ -510,7 +510,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                         continue;
                     // For all valid rotations.
                     for (int rotation = 0; rotation < 6; ++rotation) {
-                        if (!instance.item_type(item_type_id).can_rotate(rotation))
+                        if (!item_type.can_rotate(rotation))
                             continue;
                         insertion_item(
                                 parent,
@@ -564,7 +564,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
             for (int rotation = 0; rotation < 6; ++rotation) {
-                if (!instance.item_type(item_type_id).can_rotate(rotation))
+                if (!item_type.can_rotate(rotation))
                     continue;
                 insertion_item(
                         parent,
@@ -913,7 +913,7 @@ nlohmann::json BranchingScheme::json_export_init() const
 
         json_items_init_ids_[item_type_id] = std::vector<Counter>(2);
         for (int rotation = 0; rotation < 6; ++rotation) {
-            if (!instance().item_type(item_type_id).can_rotate(rotation))
+            if (!item_type.can_rotate(rotation))
                 continue;
 
             json_items_init_ids_[item_type_id][rotation] = i;
