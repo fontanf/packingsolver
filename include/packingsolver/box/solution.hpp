@@ -19,6 +19,9 @@ struct SolutionItem
     int rotation;
 };
 
+inline bool operator==(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2) { return solution_item_1.item_type_id == solution_item_2.item_type_id && solution_item_1.bl_corner == solution_item_2.bl_corner && solution_item_1.rotation == solution_item_2.rotation; }
+inline bool operator!=(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2) { return !(solution_item_1 == solution_item_2); }
+
 struct SolutionBin
 {
     /** Bin type. */

@@ -31,6 +31,9 @@ struct Point
     Length z;
 };
 
+inline bool operator==(const Point& point_1, const Point& point_2) { return point_1.x == point_2.x && point_1.y == point_2.y && point_1.z == point_2.z; }
+inline bool operator!=(const Point& point_1, const Point& point_2) { return !(point_1 == point_2); }
+
 std::ostream& operator<<(
         std::ostream& os,
         Point xyz);
@@ -77,6 +80,9 @@ struct Box
     }
 
 };
+
+inline bool operator==(const Box& box_1, const Box& box_2) { return box_1.x == box_2.x && box_1.y == box_2.y && box_1.z == box_2.z; }
+inline bool operator!=(const Box& box_1, const Box& box_2) { return !(box_1 == box_2); }
 
 std::ostream& operator<<(
         std::ostream& os,
