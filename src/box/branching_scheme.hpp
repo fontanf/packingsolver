@@ -47,42 +47,6 @@ public:
         bool operator==(const UncoveredItem& uncovered_item) const;
     };
 
-    struct YUncoveredItem
-    {
-        /** Start x-coordinate. */
-        Length xs;
-
-        /** End x-coordinate. */
-        Length xe;
-
-        /** y-coordinate. */
-        Length y;
-
-        /** Start z-coordinate. */
-        Length zs;
-
-        /** End z-coordinate. */
-        Length ze;
-    };
-
-    struct ZUncoveredItem
-    {
-        /** Start x-coordinate. */
-        Length xs;
-
-        /** End x-coordinate. */
-        Length xe;
-
-        /** z-coordinate. */
-        Length z;
-
-        /** Start z-coordinate. */
-        Length ys;
-
-        /** End z-coordinate. */
-        Length ye;
-    };
-
     struct Insertion
     {
         /** Id of the inserted item type. */
@@ -145,12 +109,6 @@ public:
 
         /** Uncovered items. */
         std::vector<UncoveredItem> uncovered_items;
-
-        /** Rectangles which high y side is not covered. */
-        std::vector<YUncoveredItem> y_uncovered_items;
-
-        /** Rectangles which high z side is not covered. */
-        std::vector<ZUncoveredItem> z_uncovered_items;
 
         /** Last bin weight. */
         Weight last_bin_weight = 0;
@@ -470,16 +428,6 @@ private:
             Length zs,
             Length ze) const;
 
-    void update_y_uncovered_item(
-            std::vector<YUncoveredItem>& y_uncovered_items,
-            const YUncoveredItem& y_uncovered_item,
-            const UncoveredItem& ref) const;
-
-    void update_z_uncovered_item(
-            std::vector<ZUncoveredItem>& z_uncovered_items,
-            const ZUncoveredItem& z_uncovered_item,
-            const UncoveredItem& ref) const;
-
     /** Insertion of one item in a new stack. */
     void insertion_item(
             const std::shared_ptr<Node>& parent,
@@ -502,14 +450,6 @@ private:
 std::ostream& operator<<(
         std::ostream& os,
         const BranchingScheme::UncoveredItem& uncovered_item);
-
-std::ostream& operator<<(
-        std::ostream& os,
-        const BranchingScheme::YUncoveredItem& y_uncovered_item);
-
-std::ostream& operator<<(
-        std::ostream& os,
-        const BranchingScheme::ZUncoveredItem& uncovered_item);
 
 std::ostream& operator<<(
         std::ostream& os,
