@@ -19,6 +19,11 @@ public:
     void set_objective(Objective objective) { instance_.objective_ = objective; }
 
     /*
+    * Read from json object
+    */
+    void read_json(const nlohmann::json& j_instance);
+
+    /*
      * Read from files
      */
 
