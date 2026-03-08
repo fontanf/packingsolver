@@ -165,7 +165,7 @@ void optimize_tree_search(
         };
     } else if (instance.number_of_bin_types() == 1) {
         if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            switch (instance.parameters().leftover_corner) {
+            switch (instance.parameters().anchor_corner) {
             case Corner::BottomLeft: {
                 directions = {
                     BranchingScheme::Direction::LeftToRightThenBottomToTop,

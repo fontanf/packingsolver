@@ -74,7 +74,7 @@ BranchingScheme::Direction default_direction(
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
     bool lengthwise = (bin_type.x_max - bin_type.x_min) >= (bin_type.y_max - bin_type.y_min);
-    switch (instance.parameters().leftover_corner) {
+    switch (instance.parameters().anchor_corner) {
     case Corner::BottomLeft: {
         return (lengthwise)?
             BranchingScheme::Direction::LeftToRightThenBottomToTop:
@@ -93,6 +93,7 @@ BranchingScheme::Direction default_direction(
             BranchingScheme::Direction::TopToBottomThenRightToLeft;
     }
     }
+    return BranchingScheme::Direction::LeftToRightThenBottomToTop;
 }
 
 }
@@ -1220,7 +1221,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.y_max = xy.y + aabb.y_max;
     }
 
-    switch (instance().parameters().leftover_corner) {
+    switch (instance().parameters().anchor_corner) {
     case Corner::BottomLeft: {
         node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
             - (node.x_max - bin_type.x_min) * (node.y_max - bin_type.y_min);
@@ -2129,14 +2130,14 @@ Solution BranchingScheme::to_solution(
                 solution.write("solution_irregular.json");
                 throw std::runtime_error(
                         FUNC_SIGNATURE + "; "
-                        "node->xe_max: " + std::to_string(node->xe_max) + "; "
+                        "node->xe_max: " + std::to_string(node->x_max) + "; "
                         "solution.x_max(): " + std::to_string(solution.x_max()) + "; "
                         "d: " + std::to_string((int)node->last_bin_direction) + ".");
             }
             if (!equal(node->y_min, solution.y_min())) {
                 throw std::runtime_error(
                         FUNC_SIGNATURE + "; "
-                        "node->ye_max: " + std::to_string(node->ye_max) + "; "
+                        "node->ye_max: " + std::to_string(node->y_max) + "; "
                         "solution.y_max(): " + std::to_string(solution.y_max()) + "; "
                         "d: " + std::to_string((int)node->last_bin_direction) + ".");
             }
