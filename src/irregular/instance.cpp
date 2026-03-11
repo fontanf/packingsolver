@@ -694,7 +694,9 @@ void Instance::write(
     // Export parameters.
     json["parameters"]["item_item_minimum_spacing"] = parameters().item_item_minimum_spacing;
     json["parameters"]["open_dimension_xy_aspect_ratio"] = parameters().open_dimension_xy_aspect_ratio;
-    json["parameters"]["anchor_corner"] = parameters().anchor_corner;
+    std::stringstream anchor_corner_ss;
+    anchor_corner_ss << parameters().anchor_corner;
+    json["parameters"]["anchor_corner"] = anchor_corner_ss.str();
 
     file << std::setw(4) << json << std::endl;
 }

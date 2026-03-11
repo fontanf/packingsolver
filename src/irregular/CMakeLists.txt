@@ -7,7 +7,8 @@ target_sources(PackingSolver_irregular PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     shape_simplification.cpp
-    branching_scheme.cpp)
+    branching_scheme.cpp
+    linear_programming.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_irregular PRIVATE
@@ -16,6 +17,7 @@ target_link_libraries(PackingSolver_irregular PUBLIC
     PackingSolver_algorithms
     PackingSolver_onedimensional
     TreeSearchSolver::treesearchsolver
+    MathOptSolversCMake::milp
     Shape::shape
     Threads::Threads)
 if (PackingSolver_USE_KNITRO)

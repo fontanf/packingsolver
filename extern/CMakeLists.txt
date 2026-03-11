@@ -49,7 +49,7 @@ set(MATHOPTSOLVERSCMAKE_USE_HIGHS ${PACKINGSOLVER_USE_HIGHS})
 FetchContent_Declare(
     mathoptsolverscmake
     GIT_REPOSITORY https://github.com/fontanf/mathoptsolverscmake.git
-    GIT_TAG f03fa63814eae3a253675ed14dd618a8a0d19a11
+    GIT_TAG 7bd4a1b285b14c80fa7e54522b730e2985ab47ef
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../mathoptsolverscmake/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(mathoptsolverscmake)

@@ -3,6 +3,7 @@
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "irregular/branching_scheme.hpp"
+#include "irregular/linear_programming.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -163,7 +164,7 @@ void optimize_tree_search(
             BranchingScheme::Direction::BottomToTopThenLeftToRight,
             BranchingScheme::Direction::BottomToTopThenRightToLeft,
         };
-    } else if (instance.number_of_bin_types() == 1) {
+    } else if (instance.number_of_bins() == 1) {
         if (instance.objective() == Objective::BinPackingWithLeftovers) {
             switch (instance.parameters().anchor_corner) {
             case Corner::BottomLeft: {
@@ -209,7 +210,21 @@ void optimize_tree_search(
             };
         }
     } else {
-        directions = {BranchingScheme::Direction::Any};
+        switch (instance.parameters().anchor_corner) {
+        case Corner::BottomLeft: {
+            directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
+            break;
+        } case Corner::BottomRight: {
+            directions = {BranchingScheme::Direction::RightToLeftThenBottomToTop};
+            break;
+        } case Corner::TopLeft: {
+            directions = {BranchingScheme::Direction::LeftToRightThenTopToBottom,};
+            break;
+        } case Corner::TopRight: {
+            directions = {BranchingScheme::Direction::RightToLeftThenTopToBottom};
+            break;
+        }
+        }
     }
 
     // If all items have free rotations and all bins are squared, we consdier
@@ -293,13 +308,16 @@ void optimize_tree_search(
                 {
                     const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
                         = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
-                    Solution solution = branching_schemes[i].to_solution(
+                    Solution ts_solution = branching_schemes[i].to_solution(
                             tssibs_output.solution_pool.best());
+                    LinearProgrammingParameters lp_parameters;
+                    lp_parameters.verbosity_level = 0;
+                    auto lp_output = linear_programming(ts_solution.instance(), ts_solution, lp_parameters);
                     std::stringstream ss;
                     ss << "TS g " << branching_schemes[i].parameters().guide_id
                         << " d " << (int)branching_schemes[i].parameters().direction
                         << " q " << tssibs_output.maximum_size_of_the_queue;
-                    algorithm_formatter.update_solution(solution, ss.str());
+                    algorithm_formatter.update_solution(lp_output.solution_pool.best(), ss.str());
                 };
         } else {
             ibs_parameters_list[i].new_solution_callback
@@ -346,7 +364,10 @@ void optimize_tree_search(
             std::stringstream ss;
             ss << "TS g " << branching_schemes[i].parameters().guide_id
                 << " d " << (int)branching_schemes[i].parameters().direction;
-            algorithm_formatter.update_solution(outputs[i].solution_pool.best(), ss.str());
+            LinearProgrammingParameters lp_parameters;
+            lp_parameters.verbosity_level = 0;
+            auto lp_output = linear_programming(instance, outputs[i].solution_pool.best(), lp_parameters);
+            algorithm_formatter.update_solution(lp_output.solution_pool.best(), ss.str());
         }
     }
 }
