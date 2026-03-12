@@ -573,9 +573,9 @@ void optimize_open_dimension_sequential(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        auto mm = item_type.compute_min_max();
-        LengthDbl dx = mm.second.x - mm.first.x;
-        LengthDbl dy = mm.second.y - mm.first.y;
+        AxisAlignedBoundingBox aabb = item_type.compute_min_max();
+        LengthDbl dx = aabb.x_max - aabb.x_min;
+        LengthDbl dy = aabb.y_max - aabb.y_min;
         a += dx * dy * item_type.copies;
     }
     LengthDbl x = std::sqrt(a / instance.parameters().open_dimension_xy_aspect_ratio);

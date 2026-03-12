@@ -180,11 +180,11 @@ BranchingScheme::BranchingScheme(
 
             shape = shape::clean_extreme_slopes_inner(shape).front();
 
-            auto mm = shape.compute_min_max();
-            bb_bin_type.x_min = mm.first.x;
-            bb_bin_type.x_max = mm.second.x;
-            bb_bin_type.y_min = mm.first.y;
-            bb_bin_type.y_max = mm.second.y;
+            AxisAlignedBoundingBox aabb = shape.compute_min_max();
+            bb_bin_type.x_min = aabb.x_min;
+            bb_bin_type.x_max = aabb.x_max;
+            bb_bin_type.y_min = aabb.y_min;
+            bb_bin_type.y_max = aabb.y_max;
 
             LengthDbl y_min = bb_bin_type.y_min
                 - (bb_bin_type.y_max - bb_bin_type.y_min)
@@ -565,16 +565,10 @@ BranchingScheme::BranchingScheme(
             }
         }
 
-        for (Support& support: direction_data.supporting_parts) {
-            auto mm = support.shape.compute_min_max();
-            support.min = mm.first;
-            support.max = mm.second;
-        }
-        for (Support& support: direction_data.supported_parts) {
-            auto mm = support.shape.compute_min_max();
-            support.min = mm.first;
-            support.max = mm.second;
-        }
+        for (Support& support: direction_data.supporting_parts)
+            support.aabb = support.shape.compute_min_max();
+        for (Support& support: direction_data.supported_parts)
+            support.aabb = support.shape.compute_min_max();
     }
 
     //for (TrapezoidSetId trapezoid_set_id = 0;
@@ -585,10 +579,10 @@ BranchingScheme::BranchingScheme(
     //    std::cout << "item_type_id " << trapezoid_set.item_type_id
     //        << " angle " << trapezoid_set.angle
     //        << " mirror " << trapezoid_set.mirror
-    //        << " x_min " << item_type.compute_min_max(trapezoid_set.angle).first.x
-    //        << " x_max " << item_type.compute_min_max(trapezoid_set.angle).second.x
-    //        << " y_min " << item_type.compute_min_max(trapezoid_set.angle).first.y
-    //        << " y_max " << item_type.compute_min_max(trapezoid_set.angle).second.y
+    //        << " x_min " << item_type.compute_min_max(trapezoid_set.angle).x_min
+    //        << " x_max " << item_type.compute_min_max(trapezoid_set.angle).x_max
+    //        << " y_min " << item_type.compute_min_max(trapezoid_set.angle).y_min
+    //        << " y_max " << item_type.compute_min_max(trapezoid_set.angle).y_max
     //        << std::endl;
     //    std::cout << "trapezoid_set_id " << trapezoid_set_id << std::endl;
     //    std::cout << "item_type_id " << trapezoid_set.item_type_id
@@ -1179,15 +1173,15 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     // Compute node.xe_max and node.ye_max.
     Point xy = convert_point_back({node.x, node.y}, node.last_bin_direction);
     xy = (1.0 / instance().parameters().scale_value) * xy;
-    auto mm = item_type.compute_min_max(
+    AxisAlignedBoundingBox aabb = item_type.compute_min_max(
             trapezoid_set.angle,
             trapezoid_set.mirror);
     if (insertion.new_bin_direction == Direction::Any) {  // Same bin
-        node.xe_max = std::max(parent.xe_max, xy.x + mm.second.x);
-        node.ye_max = std::max(parent.ye_max, xy.y + mm.second.y);
+        node.xe_max = std::max(parent.xe_max, xy.x + aabb.x_max);
+        node.ye_max = std::max(parent.ye_max, xy.y + aabb.y_max);
     } else {
-        node.xe_max = xy.x + mm.second.x;
-        node.ye_max = xy.y + mm.second.y;
+        node.xe_max = xy.x + aabb.x_max;
+        node.ye_max = xy.y + aabb.y_max;
     }
 
     node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
@@ -1602,11 +1596,11 @@ void BranchingScheme::update_insertion(
     Insertion insertion = insertion_orig;
     insertion.new_bin_direction = Direction::Any;
 
-    LengthDbl ys_tmp = supporting_part.min.y + insertion.supporting_part_y
-        - (supported_part.max.y - trapezoid_set.y_min)
+    LengthDbl ys_tmp = supporting_part.aabb.y_min + insertion.supporting_part_y
+        - (supported_part.aabb.y_max - trapezoid_set.y_min)
         - instance_.parameters().scale_value * instance().parameters().item_item_minimum_spacing;
-    LengthDbl ye_tmp = supporting_part.max.y + insertion.supporting_part_y
-        + (trapezoid_set.y_max - supported_part.min.y)
+    LengthDbl ye_tmp = supporting_part.aabb.y_max + insertion.supporting_part_y
+        + (trapezoid_set.y_max - supported_part.aabb.y_min)
         + instance_.parameters().scale_value * instance().parameters().item_item_minimum_spacing;
     if (strictly_greater(ys_tmp, parent->ye)
             || strictly_lesser(ye_tmp, parent->ys)) {
@@ -1923,10 +1917,10 @@ void BranchingScheme::insertion_trapezoid_set(
         return;
     }
 
-    insertion.ys = supporting_part.min.y + supporting_part_y
+    insertion.ys = supporting_part.aabb.y_min + supporting_part_y
         - (trapezoid_set.y_max - trapezoid_set.y_min)
         - instance_.parameters().scale_value * instance().parameters().item_item_minimum_spacing;
-    insertion.ye = supporting_part.max.y + supporting_part_y
+    insertion.ye = supporting_part.aabb.y_max + supporting_part_y
         + (trapezoid_set.y_max - trapezoid_set.y_min)
         + instance_.parameters().scale_value * instance().parameters().item_item_minimum_spacing;
     parent->children_insertions.push_back(insertion);

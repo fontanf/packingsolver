@@ -96,26 +96,20 @@ ShapeType ItemType::shape_type() const
     return ShapeType::GeneralShape;
 }
 
-std::pair<Point, Point> ItemType::compute_min_max(
+AxisAlignedBoundingBox ItemType::compute_min_max(
         Angle angle,
         bool mirror,
         int type) const
 {
-    LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+    AxisAlignedBoundingBox output;
     for (const ItemShape& item_shape: shapes) {
-        auto points =
+        AxisAlignedBoundingBox aabb =
             (type == 0)? item_shape.shape_orig.shape.compute_min_max(angle, mirror):
             (type == 1)? item_shape.shape_scaled.shape.compute_min_max(angle, mirror):
             item_shape.shape_inflated.shape.compute_min_max(angle, mirror);
-        x_min = std::min(x_min, points.first.x);
-        x_max = std::max(x_max, points.second.x);
-        y_min = std::min(y_min, points.first.y);
-        y_max = std::max(y_max, points.second.y);
+        output = merge(output, aabb);
     }
-    return {{x_min, y_min}, {x_max, y_max}};
+    return output;
 }
 
 bool ItemType::has_full_continuous_rotations() const
@@ -172,13 +166,13 @@ void ItemType::write_svg(
                 "unable to open file \"" + file_path + "\".");
     }
 
-    auto mm = compute_min_max(0.0, false, 2);
-    LengthDbl width = (mm.second.x - mm.first.x);
-    LengthDbl height = (mm.second.y - mm.first.y);
+    AxisAlignedBoundingBox aabb = compute_min_max(0.0, false, 2);
+    LengthDbl width = (aabb.x_max - aabb.x_min);
+    LengthDbl height = (aabb.y_max - aabb.y_min);
 
     std::string s = "<svg viewBox=\""
-        + std::to_string(mm.first.x)
-        + " " + std::to_string(-mm.first.y - height)
+        + std::to_string(aabb.x_min)
+        + " " + std::to_string(-aabb.y_min - height)
         + " " + std::to_string(width)
         + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";

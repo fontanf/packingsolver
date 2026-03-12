@@ -193,7 +193,7 @@ struct ItemType
     /** Return type of shape of the item type. */
     ShapeType shape_type() const;
 
-    std::pair<Point, Point> compute_min_max(
+    AxisAlignedBoundingBox compute_min_max(
             Angle angle = 0.0,
             bool mirror = false,
             int type = 0) const;
