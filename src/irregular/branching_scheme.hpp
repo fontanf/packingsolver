@@ -148,8 +148,7 @@ public:
         BinTypeId bin_type_id = -1;
         DefectId defect_id = -1;
 
-        Point min = {0, 0};
-        Point max = {0, 0};
+        AxisAlignedBoundingBox aabb;
     };
 
     struct DirectionData

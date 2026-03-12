@@ -55,10 +55,10 @@ BinTypeId InstanceBuilder::add_bin_type(
     bin_type.shape_orig = shape;
     bin_type.area_orig = shape.compute_area();
     auto points = shape.compute_min_max();
-    bin_type.x_min = points.first.x;
-    bin_type.x_max = points.second.x;
-    bin_type.y_min = points.first.y;
-    bin_type.y_max = points.second.y;
+    bin_type.x_min = points.x_min;
+    bin_type.x_max = points.x_max;
+    bin_type.y_min = points.y_min;
+    bin_type.y_max = points.y_max;
     bin_type.cost = (cost == -1)? bin_type.area_orig: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
@@ -423,11 +423,11 @@ Instance InstanceBuilder::build()
                 bin_type_id < instance_.number_of_bin_types();
                 ++bin_type_id) {
             BinType& bin_type = instance_.bin_types_[bin_type_id];
-            auto mm = bin_type.shape_orig.compute_min_max();
-            value_max = (std::max)(value_max, std::abs(mm.first.x));
-            value_max = (std::max)(value_max, std::abs(mm.first.y));
-            value_max = (std::max)(value_max, std::abs(mm.second.x));
-            value_max = (std::max)(value_max, std::abs(mm.second.y));
+            AxisAlignedBoundingBox aabb = bin_type.shape_orig.compute_min_max();
+            value_max = (std::max)(value_max, std::abs(aabb.x_min));
+            value_max = (std::max)(value_max, std::abs(aabb.y_min));
+            value_max = (std::max)(value_max, std::abs(aabb.x_max));
+            value_max = (std::max)(value_max, std::abs(aabb.y_max));
         }
         instance_.parameters_.scale_value = 1024.0 / smallest_power_of_two_greater_or_equal(value_max);
         //std::cout << "instance_.scale_value() " << instance_.parameters().scale_value << std::endl;

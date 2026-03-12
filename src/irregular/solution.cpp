@@ -37,11 +37,11 @@ BinPos Solution::add_bin(
     number_of_bins_ += copies;
     bin_cost_ += copies * bin_type.cost;
     bin_area_ += copies * bin_type.area_orig;
-    auto mm = bin_type.shape_orig.compute_min_max();
-    x_min_ = mm.second.x;
-    y_min_ = mm.second.y;
-    x_max_ = mm.first.x;
-    y_max_ = mm.first.y;
+    AxisAlignedBoundingBox aabb = bin_type.shape_orig.compute_min_max();
+    x_min_ = aabb.x_max;
+    y_min_ = aabb.y_max;
+    x_max_ = aabb.x_min;
+    y_max_ = aabb.y_min;
 
     return bins_.size() - 1;
 }
@@ -99,11 +99,11 @@ void Solution::add_item(
     item_copies_[item_type_id] += bin.copies;
 
     if (bin_pos == (BinPos)bins_.size() - 1) {
-        auto mm = item_type.compute_min_max(angle, mirror);
-        x_min_ = std::min(x_min_, bl_corner.x + mm.first.x);
-        y_min_ = std::min(y_min_, bl_corner.y + mm.first.y);
-        x_max_ = std::max(x_max_, bl_corner.x + mm.second.x);
-        y_max_ = std::max(y_max_, bl_corner.y + mm.second.y);
+        AxisAlignedBoundingBox aabb = item_type.compute_min_max(angle, mirror);
+        x_min_ = std::min(x_min_, bl_corner.x + aabb.x_min);
+        y_min_ = std::min(y_min_, bl_corner.y + aabb.y_min);
+        x_max_ = std::max(x_max_, bl_corner.x + aabb.x_max);
+        y_max_ = std::max(y_max_, bl_corner.y + aabb.y_max);
         leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
             - (x_max_ - bin_type.x_min) * (y_max_ - bin_type.y_min);
     }
@@ -435,13 +435,13 @@ void Solution::write_svg(
     const SolutionBin& bin = this->bin(bin_pos);
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
     const Shape& bin_shape = (scaled)? bin_type.shape_scaled: bin_type.shape_orig;
-    auto bin_mm = bin_shape.compute_min_max();
-    LengthDbl width = (bin_mm.second.x - bin_mm.first.x);
-    LengthDbl height = (bin_mm.second.y - bin_mm.first.y);
+    AxisAlignedBoundingBox bin_aabb = bin_shape.compute_min_max();
+    LengthDbl width = (bin_aabb.x_max - bin_aabb.x_min);
+    LengthDbl height = (bin_aabb.y_max - bin_aabb.y_min);
 
     std::string s = "<svg viewBox=\""
-        + std::to_string(bin_mm.first.x)
-        + " " + std::to_string(-bin_mm.first.y - height)
+        + std::to_string(bin_aabb.x_min)
+        + " " + std::to_string(-bin_aabb.y_min - height)
         + " " + std::to_string(width)
         + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
@@ -495,11 +495,11 @@ void Solution::write_svg(
 
             file << shape.to_svg("blue");
 
-            auto mm = shape.compute_min_max(0.0);
-            x_min = (std::min)(x_min, mm.first.x);
-            x_max = (std::max)(x_max, mm.second.x);
-            y_min = (std::min)(y_min, mm.first.y);
-            y_max = (std::max)(y_max, mm.second.y);
+            AxisAlignedBoundingBox aabb = shape.compute_min_max(0.0);
+            x_min = (std::min)(x_min, aabb.x_min);
+            x_max = (std::max)(x_max, aabb.x_max);
+            y_min = (std::min)(y_min, aabb.y_min);
+            y_max = (std::max)(y_max, aabb.y_max);
         }
 
         // Write item type id.
