@@ -12,6 +12,14 @@ using namespace packingsolver::irregular;
 namespace
 {
 
+bool aabb_may_intersect(
+        const AxisAlignedBoundingBox& aabb_1,
+        const AxisAlignedBoundingBox& aabb_2)
+{
+    return aabb_1.x_max > aabb_2.x_min && aabb_2.x_max > aabb_1.x_min
+        && aabb_1.y_max > aabb_2.y_min && aabb_2.y_max > aabb_1.y_min;
+}
+
 /**
  * Try each edge of `shape_from` as a potential separator from `shape_to`.
  *
@@ -88,6 +96,8 @@ Solution linear_programming(
         }
     }
 
+    LengthDbl movement_box_half_size = 10;
+
     for (Counter number_of_iterations = 0;; ++number_of_iterations) {
 
         ////////////////////
@@ -155,6 +165,22 @@ Solution linear_programming(
                     bin_type.defects[defect_pos].shape_scaled);
         }
 
+        // Precompute AABBs for obstacle convex parts (fixed world coordinates).
+        std::vector<std::vector<AxisAlignedBoundingBox>> border_part_aabbs(bin_type.borders.size());
+        for (Counter border_pos = 0;
+                border_pos < (Counter)bin_type.borders.size();
+                ++border_pos) {
+            for (const Shape& part: borders_convex_decompositions[border_pos])
+                border_part_aabbs[border_pos].push_back(part.compute_min_max());
+        }
+        std::vector<std::vector<AxisAlignedBoundingBox>> defect_part_aabbs(bin_type.defects.size());
+        for (Counter defect_pos = 0;
+                defect_pos < (Counter)bin_type.defects.size();
+                ++defect_pos) {
+            for (const Shape& part: defects_convex_decompositions[defect_pos])
+                defect_part_aabbs[defect_pos].push_back(part.compute_min_max());
+        }
+
         // Precompute rotated convex decompositions for each solution item.
         // item_rotated_decompositions[item_pos][item_shape_pos] = list of convex parts
         // with the item's angle and mirror already applied.
@@ -180,12 +206,34 @@ Solution linear_programming(
             }
         }
 
-        // Each item must be inside the container.
-        // Set variable bounds based on the bounding box of the item's convex
-        // decomposition vertices and the precomputed bin bounding box.
+        // Precompute AABBs for rotated item convex parts (local coordinates,
+        // before adding bl_corner).
+        std::vector<std::vector<std::vector<AxisAlignedBoundingBox>>> item_part_aabbs(
+                solution_bin.items.size());
         for (ItemPos item_pos = 0;
                 item_pos < (ItemPos)solution_bin.items.size();
                 ++item_pos) {
+            const ItemType& item_type = instance.item_type(
+                    solution_bin.items[item_pos].item_type_id);
+            item_part_aabbs[item_pos].resize(item_type.shapes.size());
+            for (ItemShapePos item_shape_pos = 0;
+                    item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                    ++item_shape_pos) {
+                for (const Shape& part:
+                        item_rotated_decompositions[item_pos][item_shape_pos])
+                    item_part_aabbs[item_pos][item_shape_pos].push_back(
+                            part.compute_min_max());
+            }
+        }
+
+        // Precompute per-item bin bounds (without movement restriction) and
+        // current scaled positions. The local bounding box of each item is
+        // read from the already-computed item_part_aabbs.
+        const ItemPos n_items = (ItemPos)solution_bin.items.size();
+        std::vector<LengthDbl> item_bin_lb_x(n_items), item_bin_ub_x(n_items);
+        std::vector<LengthDbl> item_bin_lb_y(n_items), item_bin_ub_y(n_items);
+        std::vector<LengthDbl> item_cx_scaled(n_items), item_cy_scaled(n_items);
+        for (ItemPos item_pos = 0; item_pos < n_items; ++item_pos) {
             const SolutionItem& solution_item = solution_bin.items[item_pos];
             const ItemType& item_type = instance.item_type(solution_item.item_type_id);
 
@@ -193,25 +241,151 @@ Solution linear_programming(
             LengthDbl x_max_local = -std::numeric_limits<LengthDbl>::infinity();
             LengthDbl y_min_local = std::numeric_limits<LengthDbl>::infinity();
             LengthDbl y_max_local = -std::numeric_limits<LengthDbl>::infinity();
-
             for (ItemShapePos item_shape_pos = 0;
                     item_shape_pos < (ItemShapePos)item_type.shapes.size();
                     ++item_shape_pos) {
-                for (const Shape& convex_part:
-                        item_rotated_decompositions[item_pos][item_shape_pos]) {
-                    for (const ShapeElement& element: convex_part.elements) {
-                        x_min_local = std::min(x_min_local, element.start.x);
-                        x_max_local = std::max(x_max_local, element.start.x);
-                        y_min_local = std::min(y_min_local, element.start.y);
-                        y_max_local = std::max(y_max_local, element.start.y);
-                    }
+                for (const AxisAlignedBoundingBox& aabb: item_part_aabbs[item_pos][item_shape_pos]) {
+                    x_min_local = std::min(x_min_local, aabb.x_min);
+                    x_max_local = std::max(x_max_local, aabb.x_max);
+                    y_min_local = std::min(y_min_local, aabb.y_min);
+                    y_max_local = std::max(y_max_local, aabb.y_max);
                 }
             }
 
-            lp_model.variables_lower_bounds[x[item_pos]] = bin_type.x_min * sv - x_min_local;
-            lp_model.variables_upper_bounds[x[item_pos]] = bin_type.x_max * sv - x_max_local;
-            lp_model.variables_lower_bounds[y[item_pos]] = bin_type.y_min * sv - y_min_local;
-            lp_model.variables_upper_bounds[y[item_pos]] = bin_type.y_max * sv - y_max_local;
+            item_bin_lb_x[item_pos] = bin_type.x_min * sv - x_min_local;
+            item_bin_ub_x[item_pos] = bin_type.x_max * sv - x_max_local;
+            item_bin_lb_y[item_pos] = bin_type.y_min * sv - y_min_local;
+            item_bin_ub_y[item_pos] = bin_type.y_max * sv - y_max_local;
+            item_cx_scaled[item_pos] = solution_item.bl_corner.x * sv;
+            item_cy_scaled[item_pos] = solution_item.bl_corner.y * sv;
+        }
+
+        // Count total convex parts (items + borders + defects).
+        int total_convex_parts = 0;
+        for (ItemPos item_pos = 0; item_pos < n_items; ++item_pos) {
+            const ItemType& item_type = instance.item_type(
+                    solution_bin.items[item_pos].item_type_id);
+            for (ItemShapePos item_shape_pos = 0;
+                    item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                    ++item_shape_pos) {
+                total_convex_parts += (int)item_rotated_decompositions[item_pos][item_shape_pos].size();
+            }
+        }
+        for (Counter border_pos = 0;
+                border_pos < (Counter)bin_type.borders.size();
+                ++border_pos) {
+            total_convex_parts += (int)borders_convex_decompositions[border_pos].size();
+        }
+        for (Counter defect_pos = 0;
+                defect_pos < (Counter)bin_type.defects.size();
+                ++defect_pos) {
+            total_convex_parts += (int)defects_convex_decompositions[defect_pos].size();
+        }
+        const int max_pairs = 16 * total_convex_parts;
+
+        // Lambda: count AABB-passing constraint pairs for a given movement box
+        // half-size (in original coordinates). An infinity half-size means no
+        // movement restriction beyond the bin bounds.
+        auto count_pairs = [&](LengthDbl box_half) -> int {
+            LengthDbl box = box_half * sv;
+            std::vector<LengthDbl> lbx(n_items), ubx(n_items), lby(n_items), uby(n_items);
+            for (ItemPos item_pos = 0; item_pos < n_items; ++item_pos) {
+                lbx[item_pos] = std::max(item_bin_lb_x[item_pos], item_cx_scaled[item_pos] - box);
+                ubx[item_pos] = std::min(item_bin_ub_x[item_pos], item_cx_scaled[item_pos] + box);
+                lby[item_pos] = std::max(item_bin_lb_y[item_pos], item_cy_scaled[item_pos] - box);
+                uby[item_pos] = std::min(item_bin_ub_y[item_pos], item_cy_scaled[item_pos] + box);
+            }
+            int count = 0;
+            for (ItemPos item_pos = 0; item_pos < n_items; ++item_pos) {
+                const ItemType& item_type = instance.item_type(
+                        solution_bin.items[item_pos].item_type_id);
+                for (Counter border_pos = 0;
+                        border_pos < (Counter)bin_type.borders.size(); ++border_pos) {
+                    for (ItemShapePos item_shape_pos = 0;
+                            item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                            ++item_shape_pos) {
+                        for (Counter part_item_pos = 0;
+                                part_item_pos < (Counter)item_part_aabbs[item_pos][item_shape_pos].size();
+                                ++part_item_pos) {
+                            const AxisAlignedBoundingBox& la = item_part_aabbs[item_pos][item_shape_pos][part_item_pos];
+                            AxisAlignedBoundingBox w = {lbx[item_pos] + la.x_min, ubx[item_pos] + la.x_max,
+                                      lby[item_pos] + la.y_min, uby[item_pos] + la.y_max};
+                            for (const AxisAlignedBoundingBox& obs: border_part_aabbs[border_pos])
+                                if (aabb_may_intersect(w, obs)) ++count;
+                        }
+                    }
+                }
+                for (Counter defect_pos = 0;
+                        defect_pos < (Counter)bin_type.defects.size(); ++defect_pos) {
+                    for (ItemShapePos item_shape_pos = 0;
+                            item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                            ++item_shape_pos) {
+                        for (Counter part_item_pos = 0;
+                                part_item_pos < (Counter)item_part_aabbs[item_pos][item_shape_pos].size();
+                                ++part_item_pos) {
+                            const AxisAlignedBoundingBox& la = item_part_aabbs[item_pos][item_shape_pos][part_item_pos];
+                            AxisAlignedBoundingBox w = {lbx[item_pos] + la.x_min, ubx[item_pos] + la.x_max,
+                                      lby[item_pos] + la.y_min, uby[item_pos] + la.y_max};
+                            for (const AxisAlignedBoundingBox& obs: defect_part_aabbs[defect_pos])
+                                if (aabb_may_intersect(w, obs)) ++count;
+                        }
+                    }
+                }
+            }
+            for (ItemPos item_1_pos = 0; item_1_pos < n_items; ++item_1_pos) {
+                const ItemType& item_type_1 = instance.item_type(
+                        solution_bin.items[item_1_pos].item_type_id);
+                for (ItemPos item_2_pos = item_1_pos + 1; item_2_pos < n_items; ++item_2_pos) {
+                    const ItemType& item_type_2 = instance.item_type(
+                            solution_bin.items[item_2_pos].item_type_id);
+                    for (ItemShapePos sp1 = 0;
+                            sp1 < (ItemShapePos)item_type_1.shapes.size(); ++sp1) {
+                        for (ItemShapePos sp2 = 0;
+                                sp2 < (ItemShapePos)item_type_2.shapes.size(); ++sp2) {
+                            for (Counter pp1 = 0;
+                                    pp1 < (Counter)item_part_aabbs[item_1_pos][sp1].size(); ++pp1) {
+                                const AxisAlignedBoundingBox& a1 = item_part_aabbs[item_1_pos][sp1][pp1];
+                                AxisAlignedBoundingBox w1 = {lbx[item_1_pos] + a1.x_min, ubx[item_1_pos] + a1.x_max,
+                                           lby[item_1_pos] + a1.y_min, uby[item_1_pos] + a1.y_max};
+                                for (Counter pp2 = 0;
+                                        pp2 < (Counter)item_part_aabbs[item_2_pos][sp2].size(); ++pp2) {
+                                    const AxisAlignedBoundingBox& a2 = item_part_aabbs[item_2_pos][sp2][pp2];
+                                    AxisAlignedBoundingBox w2 = {lbx[item_2_pos] + a2.x_min, ubx[item_2_pos] + a2.x_max,
+                                               lby[item_2_pos] + a2.y_min, uby[item_2_pos] + a2.y_max};
+                                    if (aabb_may_intersect(w1, w2)) ++count;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return count;
+        };
+
+        // Adjust movement_box_half_size so that the pair count <= max_pairs.
+        // If even the fully unrestricted case is within budget, use infinity.
+        // Otherwise, halve while too many pairs, then double while we have room.
+        if (count_pairs(std::numeric_limits<LengthDbl>::infinity()) <= max_pairs) {
+            movement_box_half_size = std::numeric_limits<LengthDbl>::infinity();
+        } else {
+            while (count_pairs(movement_box_half_size) > max_pairs)
+                movement_box_half_size /= 2;
+            while (count_pairs(movement_box_half_size * 2) <= max_pairs)
+                movement_box_half_size *= 2;
+        }
+
+        // Compute final variable bounds using the adjusted movement box.
+        const LengthDbl box = movement_box_half_size * sv;
+        std::vector<LengthDbl> lb_x(n_items), ub_x(n_items), lb_y(n_items), ub_y(n_items);
+        for (ItemPos item_pos = 0; item_pos < n_items; ++item_pos) {
+            lb_x[item_pos] = std::max(item_bin_lb_x[item_pos], item_cx_scaled[item_pos] - box);
+            ub_x[item_pos] = std::min(item_bin_ub_x[item_pos], item_cx_scaled[item_pos] + box);
+            lb_y[item_pos] = std::max(item_bin_lb_y[item_pos], item_cy_scaled[item_pos] - box);
+            ub_y[item_pos] = std::min(item_bin_ub_y[item_pos], item_cy_scaled[item_pos] + box);
+            lp_model.variables_lower_bounds[x[item_pos]] = lb_x[item_pos];
+            lp_model.variables_upper_bounds[x[item_pos]] = ub_x[item_pos];
+            lp_model.variables_lower_bounds[y[item_pos]] = lb_y[item_pos];
+            lp_model.variables_upper_bounds[y[item_pos]] = ub_y[item_pos];
         }
 
         // Constraints for bin borders and defects.
@@ -242,10 +416,24 @@ Solution linear_programming(
                 for (ItemShapePos item_shape_pos = 0;
                         item_shape_pos < (ItemShapePos)item_type.shapes.size();
                         ++item_shape_pos) {
-                    for (const Shape& convex_part_item:
-                            item_rotated_decompositions[item_pos][item_shape_pos]) {
-                        for (const Shape& convex_part_obs:
-                                borders_convex_decompositions[border_pos]) {
+                    for (Counter part_item_pos = 0;
+                            part_item_pos < (Counter)item_rotated_decompositions[item_pos][item_shape_pos].size();
+                            ++part_item_pos) {
+                        const Shape& convex_part_item = item_rotated_decompositions[item_pos][item_shape_pos][part_item_pos];
+                        const AxisAlignedBoundingBox& local_aabb = item_part_aabbs[item_pos][item_shape_pos][part_item_pos];
+                        AxisAlignedBoundingBox item_world_aabb = {
+                            lb_x[item_pos] + local_aabb.x_min,
+                            ub_x[item_pos] + local_aabb.x_max,
+                            lb_y[item_pos] + local_aabb.y_min,
+                            ub_y[item_pos] + local_aabb.y_max
+                        };
+                        for (Counter part_obs_pos = 0;
+                                part_obs_pos < (Counter)borders_convex_decompositions[border_pos].size();
+                                ++part_obs_pos) {
+                            if (!aabb_may_intersect(item_world_aabb, border_part_aabbs[border_pos][part_obs_pos]))
+                                continue;
+                            const Shape& convex_part_obs = borders_convex_decompositions[border_pos][part_obs_pos];
+
                             LengthDbl best_min_dist = -std::numeric_limits<LengthDbl>::infinity();
                             LengthDbl best_a = 0, best_b = 0, best_rhs = 0;
                             bool best_from_item = false;
@@ -294,10 +482,24 @@ Solution linear_programming(
                 for (ItemShapePos item_shape_pos = 0;
                         item_shape_pos < (ItemShapePos)item_type.shapes.size();
                         ++item_shape_pos) {
-                    for (const Shape& convex_part_item:
-                            item_rotated_decompositions[item_pos][item_shape_pos]) {
-                        for (const Shape& convex_part_obs:
-                                defects_convex_decompositions[defect_pos]) {
+                    for (Counter part_item_pos = 0;
+                            part_item_pos < (Counter)item_rotated_decompositions[item_pos][item_shape_pos].size();
+                            ++part_item_pos) {
+                        const Shape& convex_part_item = item_rotated_decompositions[item_pos][item_shape_pos][part_item_pos];
+                        const AxisAlignedBoundingBox& local_aabb = item_part_aabbs[item_pos][item_shape_pos][part_item_pos];
+                        AxisAlignedBoundingBox item_world_aabb = {
+                            lb_x[item_pos] + local_aabb.x_min,
+                            ub_x[item_pos] + local_aabb.x_max,
+                            lb_y[item_pos] + local_aabb.y_min,
+                            ub_y[item_pos] + local_aabb.y_max
+                        };
+                        for (Counter part_obs_pos = 0;
+                                part_obs_pos < (Counter)defects_convex_decompositions[defect_pos].size();
+                                ++part_obs_pos) {
+                            if (!aabb_may_intersect(item_world_aabb, defect_part_aabbs[defect_pos][part_obs_pos]))
+                                continue;
+                            const Shape& convex_part_obs = defects_convex_decompositions[defect_pos][part_obs_pos];
+
                             LengthDbl best_min_dist = -std::numeric_limits<LengthDbl>::infinity();
                             LengthDbl best_a = 0, best_b = 0, best_rhs = 0;
                             bool best_from_item = false;
@@ -373,10 +575,31 @@ Solution linear_programming(
                     for (ItemShapePos item_shape_pos_2 = 0;
                             item_shape_pos_2 < (ItemShapePos)item_type_2.shapes.size();
                             ++item_shape_pos_2) {
-                        for (const Shape& convex_part_1:
-                                item_rotated_decompositions[item_1_pos][item_shape_pos_1]) {
-                            for (const Shape& convex_part_2:
-                                    item_rotated_decompositions[item_2_pos][item_shape_pos_2]) {
+                        for (Counter part_1_pos = 0;
+                                part_1_pos < (Counter)item_rotated_decompositions[item_1_pos][item_shape_pos_1].size();
+                                ++part_1_pos) {
+                            const Shape& convex_part_1 = item_rotated_decompositions[item_1_pos][item_shape_pos_1][part_1_pos];
+                            const AxisAlignedBoundingBox& aabb_1_local = item_part_aabbs[item_1_pos][item_shape_pos_1][part_1_pos];
+                            AxisAlignedBoundingBox world_aabb_1 = {
+                                lb_x[item_1_pos] + aabb_1_local.x_min,
+                                ub_x[item_1_pos] + aabb_1_local.x_max,
+                                lb_y[item_1_pos] + aabb_1_local.y_min,
+                                ub_y[item_1_pos] + aabb_1_local.y_max
+                            };
+                            for (Counter part_2_pos = 0;
+                                    part_2_pos < (Counter)item_rotated_decompositions[item_2_pos][item_shape_pos_2].size();
+                                    ++part_2_pos) {
+                                const Shape& convex_part_2 = item_rotated_decompositions[item_2_pos][item_shape_pos_2][part_2_pos];
+                                const AxisAlignedBoundingBox& aabb_2_local = item_part_aabbs[item_2_pos][item_shape_pos_2][part_2_pos];
+                                AxisAlignedBoundingBox world_aabb_2 = {
+                                    lb_x[item_2_pos] + aabb_2_local.x_min,
+                                    ub_x[item_2_pos] + aabb_2_local.x_max,
+                                    lb_y[item_2_pos] + aabb_2_local.y_min,
+                                    ub_y[item_2_pos] + aabb_2_local.y_max
+                                };
+                                if (!aabb_may_intersect(world_aabb_1, world_aabb_2))
+                                    continue;
+
                                 LengthDbl best_min_dist = -std::numeric_limits<LengthDbl>::infinity();
                                 LengthDbl best_a = 0, best_b = 0, best_rhs = 0;
                                 bool best_from_part_1 = false;
