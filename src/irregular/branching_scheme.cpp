@@ -65,6 +65,39 @@ void TrapezoidSet::write_svg(
     file << "</svg>" << std::endl;
 }
 
+namespace
+{
+
+BranchingScheme::Direction default_direction(
+        const Instance& instance,
+        BinTypeId bin_type_id)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    bool lengthwise = (bin_type.x_max - bin_type.x_min) >= (bin_type.y_max - bin_type.y_min);
+    switch (instance.parameters().leftover_corner) {
+    case Corner::BottomLeft: {
+        return (lengthwise)?
+            BranchingScheme::Direction::LeftToRightThenBottomToTop:
+            BranchingScheme::Direction::BottomToTopThenLeftToRight;
+    } case Corner::BottomRight: {
+        return (lengthwise)?
+            BranchingScheme::Direction::RightToLeftThenBottomToTop:
+            BranchingScheme::Direction::BottomToTopThenRightToLeft;
+    } case Corner::TopLeft: {
+        return (lengthwise)?
+            BranchingScheme::Direction::LeftToRightThenTopToBottom:
+            BranchingScheme::Direction::TopToBottomThenLeftToRight;
+    } case Corner::TopRight: {
+        return (lengthwise)?
+            BranchingScheme::Direction::RightToLeftThenTopToBottom:
+            BranchingScheme::Direction::TopToBottomThenRightToLeft;
+    }
+    }
+    return BranchingScheme::Direction::LeftToRightThenBottomToTop;
+}
+
+}
+
 BranchingScheme::BranchingScheme(
         const Instance& instance,
         const Parameters& parameters):
@@ -1170,22 +1203,43 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             node.guide_area += trapezoid.area(node.xs_max);
     }
 
-    // Compute node.xe_max and node.ye_max.
+    // Compute node.x_max and node.y_max.
     Point xy = convert_point_back({node.x, node.y}, node.last_bin_direction);
     xy = (1.0 / instance().parameters().scale_value) * xy;
     AxisAlignedBoundingBox aabb = item_type.compute_min_max(
             trapezoid_set.angle,
             trapezoid_set.mirror);
     if (insertion.new_bin_direction == Direction::Any) {  // Same bin
-        node.xe_max = std::max(parent.xe_max, xy.x + aabb.x_max);
-        node.ye_max = std::max(parent.ye_max, xy.y + aabb.y_max);
+        node.x_min = std::min(parent.x_min, xy.x + aabb.x_min);
+        node.x_max = std::max(parent.x_max, xy.x + aabb.x_max);
+        node.y_min = std::min(parent.y_min, xy.y + aabb.y_min);
+        node.y_max = std::max(parent.y_max, xy.y + aabb.y_max);
     } else {
-        node.xe_max = xy.x + aabb.x_max;
-        node.ye_max = xy.y + aabb.y_max;
+        node.x_min = xy.x + aabb.x_min;
+        node.x_max = xy.x + aabb.x_max;
+        node.y_min = xy.y + aabb.y_min;
+        node.y_max = xy.y + aabb.y_max;
     }
 
-    node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
-        - (node.xe_max - bin_type.x_min) * (node.ye_max - bin_type.y_min);
+    switch (instance().parameters().leftover_corner) {
+    case Corner::BottomLeft: {
+        node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
+            - (node.x_max - bin_type.x_min) * (node.y_max - bin_type.y_min);
+        break;
+    } case Corner::BottomRight: {
+        node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
+            - (bin_type.x_max - node.x_min) * (node.y_max - bin_type.y_min);
+        break;
+    } case Corner::TopLeft: {
+        node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
+            - (node.x_max - bin_type.x_min) * (bin_type.y_max - node.y_min);
+        break;
+    } case Corner::TopRight: {
+        node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
+            - (bin_type.x_max - node.x_min) * (bin_type.y_max - node.y_min);
+        break;
+    }
+    }
 
     node.id = node_id_++;
     //std::cout << "node.id " << node.id << std::endl;
@@ -1408,7 +1462,7 @@ void BranchingScheme::insertions(
 
         Direction new_bin_direction = parameters_.direction;
         if (new_bin_direction == Direction::Any)
-            new_bin_direction = Direction::LeftToRightThenBottomToTop;
+            new_bin_direction = default_direction(instance(), bin_type_id);
 
         const DirectionData& direction_data = directions_data_[(int)new_bin_direction];
         const std::vector<TrapezoidSet>& trapezoid_sets = direction_data.trapezoid_sets;
@@ -1964,13 +2018,13 @@ bool BranchingScheme::better(
             return false;
         if (!leaf(node_2))
             return true;
-        return node_2->xe_max > node_1->xe_max;
+        return node_2->x_max > node_1->x_max;
     } case Objective::OpenDimensionY: {
         if (!leaf(node_1))
             return false;
         if (!leaf(node_2))
             return true;
-        return node_2->ye_max > node_1->ye_max;
+        return node_2->y_max > node_1->y_max;
     } case Objective::Knapsack: {
         return node_2->profit < node_1->profit;
     } default: {
@@ -2012,11 +2066,11 @@ bool BranchingScheme::bound(
     } case Objective::OpenDimensionX: {
         if (!leaf(node_2))
             return false;
-        return node_1->xe_max >= node_2->xe_max;
+        return node_1->x_max >= node_2->x_max;
     } case Objective::OpenDimensionY: {
         if (!leaf(node_2))
             return false;
-        return node_1->ye_max >= node_2->ye_max;
+        return node_1->y_max >= node_2->y_max;
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         return false;
     } default: {
@@ -2072,18 +2126,18 @@ Solution BranchingScheme::to_solution(
     if (node->number_of_bins > 0) {
         if (node->last_bin_direction == Direction::LeftToRightThenBottomToTop
                 || node->last_bin_direction == Direction::BottomToTopThenLeftToRight) {
-            if (!equal(node->xe_max, solution.x_max())) {
+            if (!equal(node->x_min, solution.x_min())) {
                 solution.write("solution_irregular.json");
                 throw std::runtime_error(
                         FUNC_SIGNATURE + "; "
-                        "node->xe_max: " + std::to_string(node->xe_max) + "; "
+                        "node->xe_max: " + std::to_string(node->x_max) + "; "
                         "solution.x_max(): " + std::to_string(solution.x_max()) + "; "
                         "d: " + std::to_string((int)node->last_bin_direction) + ".");
             }
-            if (!equal(node->ye_max, solution.y_max())) {
+            if (!equal(node->y_min, solution.y_min())) {
                 throw std::runtime_error(
                         FUNC_SIGNATURE + "; "
-                        "node->ye_max: " + std::to_string(node->ye_max) + "; "
+                        "node->ye_max: " + std::to_string(node->y_max) + "; "
                         "solution.y_max(): " + std::to_string(solution.y_max()) + "; "
                         "d: " + std::to_string((int)node->last_bin_direction) + ".");
             }

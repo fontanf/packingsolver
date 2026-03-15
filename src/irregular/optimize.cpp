@@ -163,14 +163,43 @@ void optimize_tree_search(
             BranchingScheme::Direction::BottomToTopThenLeftToRight,
             BranchingScheme::Direction::BottomToTopThenRightToLeft,
         };
-    } else if (instance.number_of_bin_types() == 1) {
+    } else if (instance.number_of_bins() == 1) {
         if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            directions = {
-                BranchingScheme::Direction::LeftToRightThenBottomToTop,
-                BranchingScheme::Direction::BottomToTopThenLeftToRight,
-                BranchingScheme::Direction::LeftToRightThenTopToBottom,
-                BranchingScheme::Direction::BottomToTopThenRightToLeft,
-            };
+            switch (instance.parameters().leftover_corner) {
+            case Corner::BottomLeft: {
+                directions = {
+                    BranchingScheme::Direction::LeftToRightThenBottomToTop,
+                    BranchingScheme::Direction::BottomToTopThenLeftToRight,
+                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
+                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
+                };
+                break;
+            } case Corner::BottomRight: {
+                directions = {
+                    BranchingScheme::Direction::RightToLeftThenBottomToTop,
+                    BranchingScheme::Direction::BottomToTopThenLeftToRight,
+                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
+                };
+                break;
+            } case Corner::TopLeft: {
+                directions = {
+                    BranchingScheme::Direction::LeftToRightThenBottomToTop,
+                    BranchingScheme::Direction::TopToBottomThenLeftToRight,
+                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
+                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
+                };
+                break;
+            } case Corner::TopRight: {
+                directions = {
+                    BranchingScheme::Direction::RightToLeftThenBottomToTop,
+                    BranchingScheme::Direction::TopToBottomThenLeftToRight,
+                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
+                };
+                break;
+            }
+            }
         } else {
             directions = {
                 BranchingScheme::Direction::LeftToRightThenBottomToTop,
@@ -180,7 +209,21 @@ void optimize_tree_search(
             };
         }
     } else {
-        directions = {BranchingScheme::Direction::Any};
+        switch (instance.parameters().leftover_corner) {
+        case Corner::BottomLeft: {
+            directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
+            break;
+        } case Corner::BottomRight: {
+            directions = {BranchingScheme::Direction::RightToLeftThenBottomToTop};
+            break;
+        } case Corner::TopLeft: {
+            directions = {BranchingScheme::Direction::LeftToRightThenTopToBottom,};
+            break;
+        } case Corner::TopRight: {
+            directions = {BranchingScheme::Direction::RightToLeftThenTopToBottom};
+            break;
+        }
+        }
     }
 
     // If all items have free rotations and all bins are squared, we consdier
@@ -264,13 +307,13 @@ void optimize_tree_search(
                 {
                     const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
                         = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
-                    Solution solution = branching_schemes[i].to_solution(
+                    Solution ts_solution = branching_schemes[i].to_solution(
                             tssibs_output.solution_pool.best());
                     std::stringstream ss;
                     ss << "TS g " << branching_schemes[i].parameters().guide_id
                         << " d " << (int)branching_schemes[i].parameters().direction
                         << " q " << tssibs_output.maximum_size_of_the_queue;
-                    algorithm_formatter.update_solution(solution, ss.str());
+                    algorithm_formatter.update_solution(ts_solution, ss.str());
                 };
         } else {
             ibs_parameters_list[i].new_solution_callback

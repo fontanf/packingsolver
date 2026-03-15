@@ -6,6 +6,56 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
+std::istream& packingsolver::irregular::operator>>(
+        std::istream& in,
+        Corner& corner)
+{
+    std::string token;
+    in >> token;
+    if (token == "bottom-left"
+            || token == "BottomLeft"
+            || token == "bl") {
+        corner = Corner::BottomLeft;
+    } else if (token == "bottom-right"
+            || token == "BottomRight"
+            || token == "br") {
+        corner = Corner::BottomRight;
+    } else if (token == "top-left"
+            || token == "TopLeft"
+            || token == "tl") {
+        corner = Corner::TopLeft;
+    } else if (token == "top-right"
+            || token == "TopRight"
+            || token == "tr") {
+        corner = Corner::TopRight;
+    } else  {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& packingsolver::irregular::operator<<(
+        std::ostream& os,
+        Corner corner)
+{
+    switch (corner) {
+    case Corner::BottomLeft: {
+        os << "BottomLeft";
+        break;
+    } case Corner::BottomRight: {
+        os << "BottomRight";
+        break;
+    } case Corner::TopLeft: {
+        os << "TopLeft";
+        break;
+    } case Corner::TopRight: {
+        os << "TopRight";
+        break;
+    }
+    }
+    return os;
+}
+
 bool ItemShape::check() const
 {
     if (!shape_orig.shape.check())
@@ -188,7 +238,7 @@ void ItemType::write_svg(
         file << item_shape.shape_inflated.to_svg("red");
         //file << "<text x=\"" << std::to_string(x * factor)
         //    << "\" y=\"" << std::to_string(-y * factor)
-        //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
+        //    << "\" dominant-baseline=\"middle\" text-leftover=\"middle\">"
         //    << std::to_string(item_shape_pos)
         //    << "</text>" << std::endl;
         file << "</g>" << std::endl;
@@ -238,7 +288,7 @@ void BinType::write_svg(
     file << shape_scaled.to_svg();
     //file << "<text x=\"" << std::to_string(x * factor)
     //    << "\" y=\"" << std::to_string(-y * factor)
-    //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
+    //    << "\" dominant-baseline=\"middle\" text-leftover=\"middle\">"
     //    << std::to_string(item_shape_pos)
     //    << "</text>" << std::endl;
     file << "</g>" << std::endl;
@@ -282,6 +332,7 @@ std::ostream& Instance::format(
             << "Number of rectangular items:  " << number_of_rectangular_items_ << std::endl
             << "Number of circular items:     " << number_of_circular_items_ << std::endl
             << "Item-item minimum spacing:    " << parameters().item_item_minimum_spacing << std::endl
+            << "Leftover corner:              " << parameters().leftover_corner << std::endl
             << "Open dim. XY aspect ratio:    " << parameters().open_dimension_xy_aspect_ratio << std::endl
             << "Total item area:              " << item_area() << std::endl
             << "Smallest item area:           " << smallest_item_area() << std::endl
@@ -643,6 +694,9 @@ void Instance::write(
     // Export parameters.
     json["parameters"]["item_item_minimum_spacing"] = parameters().item_item_minimum_spacing;
     json["parameters"]["open_dimension_xy_aspect_ratio"] = parameters().open_dimension_xy_aspect_ratio;
+    std::stringstream leftover_corner_ss;
+    leftover_corner_ss << parameters().leftover_corner;
+    json["parameters"]["leftover_corner"] = leftover_corner_ss.str();
 
     file << std::setw(4) << json << std::endl;
 }

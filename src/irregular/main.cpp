@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
 
         ("item-bin-minimum-spacing,f", po::value<LengthDbl>(), "Item-bin minimum spacing")
         ("item-item-minimum-spacing,f", po::value<LengthDbl>(), "Item-item minimum spacing")
+        ("leftover-corner", po::value<Corner>(), "set leftover corner")
         ("bin-unweighted", "")
         ("unweighted", "")
 
@@ -110,6 +111,8 @@ int main(int argc, char *argv[])
         instance_builder.set_objective(vm["objective"].as<Objective>());
     if (vm.count("item-item-minimum-spacing"))
         instance_builder.set_item_item_minimum_spacing(vm["item-item-minimum-spacing"].as<LengthDbl>());
+    if (vm.count("leftover-corner"))
+        instance_builder.set_leftover_corner(vm["leftover-corner"].as<Corner>());
     if (vm.count("unweighted"))
         instance_builder.set_item_types_unweighted();
     if (vm.count("bin-unweighted"))

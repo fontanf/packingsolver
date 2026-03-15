@@ -6,8 +6,10 @@ target_sources(PackingSolver_irregular PRIVATE
     solution.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    post_process.cpp
     shape_simplification.cpp
-    branching_scheme.cpp)
+    branching_scheme.cpp
+    linear_programming.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_irregular PRIVATE
@@ -16,6 +18,7 @@ target_link_libraries(PackingSolver_irregular PUBLIC
     PackingSolver_algorithms
     PackingSolver_onedimensional
     TreeSearchSolver::treesearchsolver
+    MathOptSolversCMake::milp
     Shape::shape
     Threads::Threads)
 if (PackingSolver_USE_KNITRO)
@@ -35,4 +38,13 @@ if(PACKINGSOLVER_BUILD_MAIN)
         Boost::program_options)
     set_target_properties(PackingSolver_irregular_main PROPERTIES OUTPUT_NAME "packingsolver_irregular")
     install(TARGETS PackingSolver_irregular_main)
+
+    add_executable(PackingSolver_irregular_fill_solution_file)
+    target_sources(PackingSolver_irregular_fill_solution_file PRIVATE
+        fill_solution_file_main.cpp)
+    target_link_libraries(PackingSolver_irregular_fill_solution_file PUBLIC
+        PackingSolver_irregular
+        Boost::program_options)
+    set_target_properties(PackingSolver_irregular_fill_solution_file PROPERTIES OUTPUT_NAME "fill_solution_file")
+    install(TARGETS PackingSolver_irregular_fill_solution_file)
 endif()
