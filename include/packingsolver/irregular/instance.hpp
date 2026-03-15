@@ -45,7 +45,7 @@ struct Parameters
     LengthDbl item_item_minimum_spacing = 0.0;
 
     /** Reference corner to compute the leftover value. */
-    Corner anchor_corner = Corner::BottomLeft;
+    Corner leftover_corner = Corner::BottomLeft;
 
     /** Scale value. */
     LengthDbl scale_value = std::numeric_limits<LengthDbl>::infinity();

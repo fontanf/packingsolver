@@ -104,7 +104,7 @@ void Solution::add_item(
         y_min_ = std::min(y_min_, bl_corner.y + aabb.y_min);
         x_max_ = std::max(x_max_, bl_corner.x + aabb.x_max);
         y_max_ = std::max(y_max_, bl_corner.y + aabb.y_max);
-        switch (instance().parameters().anchor_corner) {
+        switch (instance().parameters().leftover_corner) {
         case Corner::BottomLeft: {
             leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
                 - (x_max_ - bin_type.x_min) * (y_max_ - bin_type.y_min);

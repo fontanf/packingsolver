@@ -74,7 +74,7 @@ BranchingScheme::Direction default_direction(
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
     bool lengthwise = (bin_type.x_max - bin_type.x_min) >= (bin_type.y_max - bin_type.y_min);
-    switch (instance.parameters().anchor_corner) {
+    switch (instance.parameters().leftover_corner) {
     case Corner::BottomLeft: {
         return (lengthwise)?
             BranchingScheme::Direction::LeftToRightThenBottomToTop:
@@ -1221,7 +1221,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.y_max = xy.y + aabb.y_max;
     }
 
-    switch (instance().parameters().anchor_corner) {
+    switch (instance().parameters().leftover_corner) {
     case Corner::BottomLeft: {
         node.leftover_value = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
             - (node.x_max - bin_type.x_min) * (node.y_max - bin_type.y_min);

@@ -6,6 +6,7 @@ target_sources(PackingSolver_irregular PRIVATE
     solution.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    post_process.cpp
     shape_simplification.cpp
     branching_scheme.cpp
     linear_programming.cpp)

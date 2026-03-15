@@ -1,0 +1,81 @@
+{
+    "bins": [
+        {
+            "copies": 1,
+            "id": 0,
+            "items": [
+                {
+                    "angle": 0.0,
+                    "id": 0,
+                    "item_shapes": [
+                        {
+                            "shape": [
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 1000.0,
+                                    "xs": 600.0,
+                                    "ye": 600.0,
+                                    "ys": 600.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 1000.0,
+                                    "xs": 1000.0,
+                                    "ye": 800.0,
+                                    "ys": 600.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 600.0,
+                                    "xs": 1000.0,
+                                    "ye": 800.0,
+                                    "ys": 800.0
+                                },
+                                {
+                                    "type": "LineSegment",
+                                    "xe": 600.0,
+                                    "xs": 600.0,
+                                    "ye": 600.0,
+                                    "ys": 800.0
+                                }
+                            ]
+                        }
+                    ],
+                    "mirror": false,
+                    "x": 600.0,
+                    "y": 600.0
+                }
+            ],
+            "shape": [
+                {
+                    "type": "LineSegment",
+                    "xe": 1000.0,
+                    "xs": 0.0,
+                    "ye": 0.0,
+                    "ys": 0.0
+                },
+                {
+                    "type": "LineSegment",
+                    "xe": 1000.0,
+                    "xs": 1000.0,
+                    "ye": 1000.0,
+                    "ys": 0.0
+                },
+                {
+                    "type": "LineSegment",
+                    "xe": 0.0,
+                    "xs": 1000.0,
+                    "ye": 1000.0,
+                    "ys": 1000.0
+                },
+                {
+                    "type": "LineSegment",
+                    "xe": 0.0,
+                    "xs": 0.0,
+                    "ye": 0.0,
+                    "ys": 1000.0
+                }
+            ]
+        }
+    ]
+}

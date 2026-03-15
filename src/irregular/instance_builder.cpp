@@ -293,12 +293,14 @@ void InstanceBuilder::read(
         auto json_parameters = j["parameters"];
         if (json_parameters.contains("item_item_minimum_spacing"))
             set_item_item_minimum_spacing(json_parameters["item_item_minimum_spacing"]);
-        if (json_parameters.contains("anchor_corner")) {
-            std::stringstream anchor_corner_ss;
-            anchor_corner_ss << std::string(json_parameters["anchor_corner"]);
-            Corner anchor_corner;
-            anchor_corner_ss >> anchor_corner;
-            set_anchor_corner(anchor_corner);
+        if (json_parameters.contains("open_dimension_xy_aspect_ratio"))
+            set_open_dimension_xy_aspect_ratio(json_parameters["open_dimension_xy_aspect_ratio"]);
+        if (json_parameters.contains("leftover_corner")) {
+            std::stringstream leftover_corner_ss;
+            leftover_corner_ss << std::string(json_parameters["leftover_corner"]);
+            Corner leftover_corner;
+            leftover_corner_ss >> leftover_corner;
+            set_leftover_corner(leftover_corner);
         }
     }
 

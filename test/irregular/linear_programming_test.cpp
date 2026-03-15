@@ -12,6 +12,7 @@ struct TestParams
 {
     fs::path instance_path;
     fs::path initial_solution_path;
+    Corner anchor_corner;
     fs::path expected_solution_path;
 };
 
@@ -37,9 +38,9 @@ TEST_P(LinearProgrammingTest, LinearProgramming)
     std::cout << "Expected solution path: " << test_params.expected_solution_path << std::endl;
     Solution expected_solution(instance, test_params.expected_solution_path.string());
 
-    LinearProgrammingParameters lp_parameters;
-    LinearProgrammingOutput lp_output = linear_programming(
-            instance,
+    LinearProgrammingAnchorToCornerParameters lp_parameters;
+    lp_parameters.anchor_corner = test_params.anchor_corner;
+    LinearProgrammingAnchorToCornerOutput lp_output = linear_programming_anchor_to_corner(
             initial_solution,
             lp_parameters);
     const Solution& solution = lp_output.solution_pool.best();
@@ -82,21 +83,26 @@ INSTANTIATE_TEST_SUITE_P(
             {
                 fs::path("data") / "irregular" / "tests" / "lp_single_item.json",
                 fs::path("data") / "irregular" / "tests" / "lp_single_item_initial.json",
+                Corner::BottomLeft,
                 fs::path("data") / "irregular" / "tests" / "lp_single_item_expected.json"
             }, {
                 fs::path("data") / "irregular" / "tests" / "lp_two_items.json",
                 fs::path("data") / "irregular" / "tests" / "lp_two_items_initial.json",
+                Corner::BottomLeft,
                 fs::path("data") / "irregular" / "tests" / "lp_two_items_expected.json"
             }, {
                 fs::path("data") / "irregular" / "tests" / "lp_rotation_90.json",
                 fs::path("data") / "irregular" / "tests" / "lp_rotation_90_initial.json",
+                Corner::BottomLeft,
                 fs::path("data") / "irregular" / "tests" / "lp_rotation_90_expected.json"
             }, {
                 fs::path("data") / "irregular" / "tests" / "lp_anchor_top_right.json",
                 fs::path("data") / "irregular" / "tests" / "lp_anchor_top_right_initial.json",
+                Corner::TopRight,
                 fs::path("data") / "irregular" / "tests" / "lp_anchor_top_right_expected.json"
             }, {
                 fs::path("data") / "irregular" / "tests" / "lp_test.json",
                 fs::path("data") / "irregular" / "tests" / "lp_test_initial.json",
+                Corner::BottomLeft,
                 fs::path("data") / "irregular" / "tests" / "lp_test_expected.json"
             }}));
