@@ -13,5 +13,13 @@ AnchorToCornerOutput packingsolver::irregular::anchor_to_corner(
 {
     AnchorToCornerOutput output(solution.instance());
 
+    LinearProgrammingAnchorToCornerParameters lpatc_parameters;
+    lpatc_parameters.verbosity_level = 0;
+    lpatc_parameters.anchor_corner = parameters.anchor_corner;
+    LinearProgrammingAnchorToCornerOutput atc_output = linear_programming_anchor_to_corner(
+            solution,
+            lpatc_parameters);
+    output.solution_pool.add(atc_output.solution_pool.best());
+
     return output;
 }
