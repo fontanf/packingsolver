@@ -28,8 +28,7 @@ BranchingScheme::BranchingScheme(
     parameters_(parameters),
     predecessors_(instance_orig.number_of_item_types())
 {
-    Direction o = parameters_.direction;
-    const Instance& instance = this->instance(o);
+    const Instance& instance = this->instance();
 
     // Compute predecessors.
     //instance.format(std::cout, 3);
