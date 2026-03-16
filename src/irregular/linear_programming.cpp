@@ -608,14 +608,17 @@ Solution linear_programming(
             }
         }
 
-        //lp_model.format(std::cout, 1);
+        //lp_model.feasiblity_tolerance = 1e-3;
+        //lp_model.check(1);
+        //lp_model.format(std::cout, 4);
 
-        std::vector<double> milp_initial_solution(lp_model.variables_lower_bounds.size());
+        std::vector<double> lp_initial_solution(lp_model.variables_lower_bounds.size());
         for (ItemPos item_pos = 0; item_pos < (ItemPos)solution_bin.items.size(); ++item_pos) {
             const SolutionItem& solution_item = solution_bin.items[item_pos];
-            milp_initial_solution[x[item_pos]] = solution_item.bl_corner.x * instance.parameters().scale_value;
-            milp_initial_solution[y[item_pos]] = solution_item.bl_corner.y * instance.parameters().scale_value;
+            lp_initial_solution[x[item_pos]] = solution_item.bl_corner.x * instance.parameters().scale_value;
+            lp_initial_solution[y[item_pos]] = solution_item.bl_corner.y * instance.parameters().scale_value;
         }
+        //lp_model.check_solution(lp_initial_solution, 1);
 
         ///////////
         // Solve //
@@ -630,7 +633,7 @@ Solution linear_programming(
             highs.setOptionValue("parallel", "off");
             //mathoptsolverscmake::set_log_file(highs, "highs.log");
             mathoptsolverscmake::load(highs, lp_model);
-            mathoptsolverscmake::set_solution(highs, milp_initial_solution);
+            mathoptsolverscmake::set_solution(highs, lp_initial_solution);
             //std::cout << "LP solve start" << std::endl;
             mathoptsolverscmake::solve(highs);
             //std::cout << "LP solve end" << std::endl;
