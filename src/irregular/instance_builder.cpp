@@ -343,7 +343,7 @@ void InstanceBuilder::read(
 
                 LengthDbl item_defect_minimum_spacing = 0;
                 if (json_defect.contains("item_defect_minimum_spacing"))
-                    item_defect_minimum_spacing = json_item["item_defect_minimum_spacing"];
+                    item_defect_minimum_spacing = json_defect["item_defect_minimum_spacing"];
 
                 // Read shape.
                 ShapeWithHoles shape = ShapeWithHoles::from_json(json_defect);
@@ -356,7 +356,7 @@ void InstanceBuilder::read(
                 set_item_defect_minimum_spacing(
                         bin_type_id,
                         defect_id,
-                        item_bin_minimum_spacing);
+                        item_defect_minimum_spacing);
             }
         }
     }
