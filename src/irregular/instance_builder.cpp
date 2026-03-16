@@ -349,7 +349,7 @@ void InstanceBuilder::read(
                 set_item_defect_minimum_spacing(
                         bin_type_id,
                         defect_id,
-                        item_bin_minimum_spacing);
+                        item_defect_minimum_spacing);
             }
         }
     }
