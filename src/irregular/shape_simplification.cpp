@@ -70,7 +70,7 @@ SimplifiedInstance irregular::shape_simplification(
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        total_bin_area += bin_type.copies * (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min);
+        total_bin_area += bin_type.copies * (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min);
 
         // Borders.
         for (DefectId border_pos = 0;

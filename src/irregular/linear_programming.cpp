@@ -434,10 +434,10 @@ Solution linear_programming(
                 }
             }
 
-            item_bin_bounds[item_pos].x_min = bin_type.x_min * instance.parameters().scale_value - x_min_local;
-            item_bin_bounds[item_pos].x_max = bin_type.x_max * instance.parameters().scale_value - x_max_local;
-            item_bin_bounds[item_pos].y_min = bin_type.y_min * instance.parameters().scale_value - y_min_local;
-            item_bin_bounds[item_pos].y_max = bin_type.y_max * instance.parameters().scale_value - y_max_local;
+            item_bin_bounds[item_pos].x_min = bin_type.aabb.x_min * instance.parameters().scale_value - x_min_local;
+            item_bin_bounds[item_pos].x_max = bin_type.aabb.x_max * instance.parameters().scale_value - x_max_local;
+            item_bin_bounds[item_pos].y_min = bin_type.aabb.y_min * instance.parameters().scale_value - y_min_local;
+            item_bin_bounds[item_pos].y_max = bin_type.aabb.y_max * instance.parameters().scale_value - y_max_local;
         }
 
         IntersectingParts intersecting_parts = compute_potentially_intersecting_parts(

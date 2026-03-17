@@ -166,6 +166,36 @@ public:
 
     bool operator<(const Solution& solution) const;
 
+    struct OverlappingItems
+    {
+        /** Overlapping (item_pos, border_pos) pairs. */
+        std::vector<std::pair<ItemPos, Counter>> item_border_pairs;
+
+        /** Overlapping (item_pos, defect_pos) pairs. */
+        std::vector<std::pair<ItemPos, DefectId>> item_defect_pairs;
+
+        /** Overlapping (item_1_pos, item_2_pos) pairs, with item_1_pos < item_2_pos. */
+        std::vector<std::pair<ItemPos, ItemPos>> item_item_pairs;
+
+        /** Items (item_pos) that are (partially or fully) outside the bin. */
+        std::vector<ItemPos> items_outside_bin;
+    };
+
+    /**
+     * Get the shape of an item in a bin transformed to world coordinates
+     * (mirror, rotate, shift applied).
+     */
+    shape::ShapeWithHoles shape(
+            BinPos bin_pos,
+            ItemPos item_pos,
+            ItemShapePos item_shape_pos) const;
+
+    /**
+     * Compute all overlapping pairs (item/border, item/defect, item/item)
+     * in the given bin using a shape::IntersectionTree.
+     */
+    OverlappingItems compute_overlapping_items(BinPos bin_pos) const;
+
     /*
      * Export
      */

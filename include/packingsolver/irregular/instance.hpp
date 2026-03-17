@@ -124,17 +124,8 @@ struct BinType
     /** Scaled area of the bin type. */
     AreaDbl area_scaled = 0.0;
 
-    /** Minimum x of the item type. */
-    LengthDbl x_min;
-
-    /** Maximum x of the item type. */
-    LengthDbl x_max;
-
-    /** Minimum y of the item type. */
-    LengthDbl y_min;
-
-    /** Maximum y of the item type. */
-    LengthDbl y_max;
+    /** Bounding box of the bin type. */
+    AxisAlignedBoundingBox aabb;
 
 
     AreaDbl space() const { return area_orig; }
