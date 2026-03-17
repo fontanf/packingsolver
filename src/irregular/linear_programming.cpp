@@ -1,6 +1,7 @@
 #include "irregular/linear_programming.hpp"
 
 #include "shape/convex_partition.hpp"
+#include "shape/intersection_tree.hpp"
 
 #include "mathoptsolverscmake/milp.hpp"
 
@@ -215,82 +216,111 @@ std::vector<std::vector<std::vector<AxisAlignedBoundingBox>>> compute_item_world
     return item_world_aabbs;
 }
 
+enum ShapeType { Item, Border, Defect };
+
+struct TreeShapeInfo
+{
+    ShapeType shape_type;
+    ItemPos item_id;
+    ItemShapePos item_shape_pos;
+    Counter part_pos;
+};
+
 /**
  * Compute the convex-part pairs that pass the AABB intersection test,
  * given pre-computed world AABBs (shifted + expanded) for each item part.
+ *
+ * Uses a single shape::IntersectionTree over all border, defect, and item
+ * part AABBs. Each tree shape is tracked via TreeShapeInfo (ShapeType +
+ * item_id/item_shape_pos/part_pos) so pair classification needs no offset
+ * arithmetic.
  */
 IntersectingParts compute_potentially_intersecting_parts(
         const std::vector<std::vector<std::vector<AxisAlignedBoundingBox>>>& item_world_aabbs,
         const std::vector<AxisAlignedBoundingBox>& border_part_aabbs,
         const std::vector<AxisAlignedBoundingBox>& defect_part_aabbs)
 {
-    IntersectingParts output;
+    // Build the unified tree and index map: borders, then defects, then items.
+    // For Border/Defect shapes, item_id holds the obstacle index.
+    std::vector<TreeShapeInfo> shape_index_map;
+    std::vector<shape::ShapeWithHoles> all_shapes;
+
+    for (Counter border_part_pos = 0;
+            border_part_pos < (Counter)border_part_aabbs.size();
+            ++border_part_pos) {
+        shape_index_map.push_back({ShapeType::Border, 0, 0, border_part_pos});
+        shape::ShapeWithHoles swh;
+        swh.shape = shape::build_rectangle(border_part_aabbs[border_part_pos]);
+        all_shapes.push_back(std::move(swh));
+    }
+    for (Counter defect_part_pos = 0;
+            defect_part_pos < (Counter)defect_part_aabbs.size();
+            ++defect_part_pos) {
+        shape_index_map.push_back({ShapeType::Defect, 0, 0, defect_part_pos});
+        shape::ShapeWithHoles swh;
+        swh.shape = shape::build_rectangle(defect_part_aabbs[defect_part_pos]);
+        all_shapes.push_back(std::move(swh));
+    }
     for (ItemPos item_pos = 0; item_pos < (ItemPos)item_world_aabbs.size(); ++item_pos) {
         for (ItemShapePos item_shape_pos = 0;
                 item_shape_pos < (ItemShapePos)item_world_aabbs[item_pos].size();
                 ++item_shape_pos) {
-            for (Counter part_item_pos = 0;
-                    part_item_pos < (Counter)item_world_aabbs[item_pos][item_shape_pos].size();
-                    ++part_item_pos) {
-                const AxisAlignedBoundingBox& item_world_aabb =
-                        item_world_aabbs[item_pos][item_shape_pos][part_item_pos];
-                for (Counter border_part_pos = 0;
-                        border_part_pos < (Counter)border_part_aabbs.size();
-                        ++border_part_pos) {
-                    if (intersect(item_world_aabb, border_part_aabbs[border_part_pos]))
-                        output.intersecting_item_part_border_part.push_back({
-                                item_pos,
-                                item_shape_pos,
-                                (ItemShapePos)part_item_pos,
-                                (DefectId)border_part_pos,
-                                0});
-                }
-                for (Counter defect_part_pos = 0;
-                        defect_part_pos < (Counter)defect_part_aabbs.size();
-                        ++defect_part_pos) {
-                    if (intersect(item_world_aabb, defect_part_aabbs[defect_part_pos]))
-                        output.intersecting_item_part_defect_part.push_back({
-                                item_pos,
-                                item_shape_pos,
-                                (ItemShapePos)part_item_pos,
-                                (DefectId)defect_part_pos,
-                                0});
-                }
+            for (Counter part_pos = 0;
+                    part_pos < (Counter)item_world_aabbs[item_pos][item_shape_pos].size();
+                    ++part_pos) {
+                shape_index_map.push_back({ShapeType::Item, item_pos, item_shape_pos, part_pos});
+                shape::ShapeWithHoles swh;
+                swh.shape = shape::build_rectangle(
+                        item_world_aabbs[item_pos][item_shape_pos][part_pos]);
+                all_shapes.push_back(std::move(swh));
             }
         }
     }
-    for (ItemPos item_1_pos = 0; item_1_pos < (ItemPos)item_world_aabbs.size(); ++item_1_pos) {
-        for (ItemPos item_2_pos = item_1_pos + 1;
-                item_2_pos < (ItemPos)item_world_aabbs.size();
-                ++item_2_pos) {
-            for (ItemShapePos item_shape_pos_1 = 0;
-                    item_shape_pos_1 < (ItemShapePos)item_world_aabbs[item_1_pos].size();
-                    ++item_shape_pos_1) {
-                for (ItemShapePos item_shape_pos_2 = 0;
-                        item_shape_pos_2 < (ItemShapePos)item_world_aabbs[item_2_pos].size();
-                        ++item_shape_pos_2) {
-                    for (Counter part_pos_1 = 0;
-                            part_pos_1 < (Counter)item_world_aabbs[item_1_pos][item_shape_pos_1].size();
-                            ++part_pos_1) {
-                        const AxisAlignedBoundingBox& item_world_aabb_1 =
-                                item_world_aabbs[item_1_pos][item_shape_pos_1][part_pos_1];
-                        for (Counter part_pos_2 = 0;
-                                part_pos_2 < (Counter)item_world_aabbs[item_2_pos][item_shape_pos_2].size();
-                                ++part_pos_2) {
-                            const AxisAlignedBoundingBox& item_world_aabb_2 =
-                                    item_world_aabbs[item_2_pos][item_shape_pos_2][part_pos_2];
-                            if (intersect(item_world_aabb_1, item_world_aabb_2))
-                                output.intersecting_item_parts.push_back({
-                                        item_1_pos,
-                                        item_shape_pos_1,
-                                        (ItemShapePos)part_pos_1,
-                                        item_2_pos,
-                                        item_shape_pos_2,
-                                        (ItemShapePos)part_pos_2});
-                        }
-                    }
-                }
-            }
+
+    shape::IntersectionTree tree(all_shapes, {}, {});
+    std::vector<std::pair<shape::ShapePos, shape::ShapePos>> pairs =
+            tree.compute_intersecting_shapes(false);
+
+    IntersectingParts output;
+    for (Counter pair_pos = 0; pair_pos < (Counter)pairs.size(); ++pair_pos) {
+        TreeShapeInfo shape_info_1 = shape_index_map[pairs[pair_pos].first];
+        TreeShapeInfo shape_info_2 = shape_index_map[pairs[pair_pos].second];
+
+        // Skip pairs with no item involved.
+        if (shape_info_1.shape_type != ShapeType::Item && shape_info_2.shape_type != ShapeType::Item)
+            continue;
+
+        // Ensure shape_info_1 is always the item.
+        if (shape_info_2.shape_type == ShapeType::Item)
+            std::swap(shape_info_1, shape_info_2);
+
+        if (shape_info_2.shape_type == ShapeType::Border) {
+            output.intersecting_item_part_border_part.push_back({
+                    shape_info_1.item_id,
+                    shape_info_1.item_shape_pos,
+                    (ItemShapePos)shape_info_1.part_pos,
+                    (DefectId)shape_info_2.part_pos,
+                    0});
+        } else if (shape_info_2.shape_type == ShapeType::Defect) {
+            output.intersecting_item_part_defect_part.push_back({
+                    shape_info_1.item_id,
+                    shape_info_1.item_shape_pos,
+                    (ItemShapePos)shape_info_1.part_pos,
+                    (DefectId)shape_info_2.part_pos,
+                    0});
+        } else {
+            // Both are items.
+            if (shape_info_1.item_id == shape_info_2.item_id)
+                continue;
+            if (shape_info_1.item_id > shape_info_2.item_id)
+                std::swap(shape_info_1, shape_info_2);
+            output.intersecting_item_parts.push_back({
+                    shape_info_1.item_id,
+                    shape_info_1.item_shape_pos,
+                    (ItemShapePos)shape_info_1.part_pos,
+                    shape_info_2.item_id,
+                    shape_info_2.item_shape_pos,
+                    (ItemShapePos)shape_info_2.part_pos});
         }
     }
     return output;
@@ -410,67 +440,10 @@ Solution linear_programming(
             item_bin_bounds[item_pos].y_max = bin_type.y_max * instance.parameters().scale_value - y_max_local;
         }
 
-        // Find the value of movement_box_half_size.
-
-        // Count total convex parts (items + borders + defects).
-        int total_convex_parts = 0;
-        for (ItemPos item_pos = 0;
-                item_pos < (ItemPos)solution_bin.items.size();
-                ++item_pos) {
-            const ItemType& item_type = instance.item_type(
-                    solution_bin.items[item_pos].item_type_id);
-            for (ItemShapePos item_shape_pos = 0;
-                    item_shape_pos < (ItemShapePos)item_type.shapes.size();
-                    ++item_shape_pos) {
-                total_convex_parts += (int)item_rotated_decompositions[item_pos][item_shape_pos].size();
-            }
-        }
-        total_convex_parts += (int)icd.bin_types_borders[bin_type_id].size();
-        total_convex_parts += (int)icd.bin_types_defects[bin_type_id].size();
-        const int max_pairs = 16 * total_convex_parts;
-        //std::cout << "total_convex_parts " << total_convex_parts << std::endl;
-
-        // Adjust movement_box_half_size so that the pair count <= max_pairs.
-        // If even the fully unrestricted case is within budget, use infinity.
-        // Otherwise, halve while too many pairs, then double while we have room.
         IntersectingParts intersecting_parts = compute_potentially_intersecting_parts(
-                compute_item_world_aabbs(instance, solution_bin, std::numeric_limits<LengthDbl>::infinity(), item_part_aabbs),
+                compute_item_world_aabbs(instance, solution_bin, movement_box_half_size, item_part_aabbs),
                 border_part_aabbs,
                 defect_part_aabbs);
-        //std::cout
-        //    << "movement_box_half_size inf"
-        //    << " number_of_intersecting_parts " << intersecting_parts.number_of_intersecting_parts() << std::endl;
-        if (intersecting_parts.number_of_intersecting_parts() <= max_pairs) {
-            movement_box_half_size = std::numeric_limits<LengthDbl>::infinity();
-        } else {
-            intersecting_parts = compute_potentially_intersecting_parts(
-                    compute_item_world_aabbs(instance, solution_bin, movement_box_half_size, item_part_aabbs),
-                    border_part_aabbs,
-                    defect_part_aabbs);
-            //std::cout
-            //    << "movement_box_half_size " << movement_box_half_size
-            //    << " number_of_intersecting_parts " << intersecting_parts.number_of_intersecting_parts() << std::endl;
-            while (intersecting_parts.number_of_intersecting_parts() <= max_pairs) {
-                movement_box_half_size *= 2;
-                intersecting_parts = compute_potentially_intersecting_parts(
-                        compute_item_world_aabbs(instance, solution_bin, movement_box_half_size, item_part_aabbs),
-                        border_part_aabbs,
-                        defect_part_aabbs);
-                //std::cout
-                //    << "movement_box_half_size " << movement_box_half_size
-                //    << " number_of_intersecting_parts " << intersecting_parts.number_of_intersecting_parts() << std::endl;
-            }
-            while (intersecting_parts.number_of_intersecting_parts() > max_pairs) {
-                movement_box_half_size /= 2;
-                intersecting_parts = compute_potentially_intersecting_parts(
-                        compute_item_world_aabbs(instance, solution_bin, movement_box_half_size, item_part_aabbs),
-                        border_part_aabbs,
-                        defect_part_aabbs);
-                //std::cout
-                //    << "movement_box_half_size " << movement_box_half_size
-                //    << " number_of_intersecting_parts " << intersecting_parts.number_of_intersecting_parts() << std::endl;
-            }
-        }
 
         ////////////////////
         // Setup LP model //

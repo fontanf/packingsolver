@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
                 solution,
                 atc_parameters);
         solution = atc_output.solution_pool.best();
-        solution.format(std::cout, 1);
+        //solution.format(std::cout, 1);
     }
 
     if (vm.count("certificate"))
