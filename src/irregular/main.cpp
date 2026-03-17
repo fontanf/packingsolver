@@ -1,4 +1,5 @@
 #include "packingsolver/irregular/optimize.hpp"
+#include "packingsolver/irregular/post_process.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
 
 #include <boost/program_options.hpp>
@@ -89,6 +90,9 @@ int main(int argc, char *argv[])
         ("not-anytime-sequential-single-knapsack-subproblem-queue-size,", po::value<Counter>(), "")
         ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
         ("not-anytime-dichotomic-search-subproblem-queue-size,", po::value<Counter>(), "")
+
+        ("anchor-to-corner,", po::value<bool>(), "")
+        ("anchor-to-corner-corner,", po::value<Corner>(), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -165,10 +169,23 @@ int main(int argc, char *argv[])
         parameters.not_anytime_dichotomic_search_subproblem_queue_size = vm["not-anytime-dichotomic-search-subproblem-queue-size"].as<Counter>();
     const irregular::Output output = optimize(instance, parameters);
 
-    if (vm.count("certificate"))
-        output.solution_pool.best().write(vm["certificate"].as<std::string>());
     if (vm.count("output"))
         output.write_json_output(vm["output"].as<std::string>());
+
+    Solution solution = output.solution_pool.best();
+    if (vm.count("anchor-to-corner")) {
+        AnchorToCornerParameters atc_parameters;
+        if (vm.count("anchor-to-corner-corner"))
+            atc_parameters.anchor_corner = vm["anchor-to-corner-corner"].as<Corner>();
+        AnchorToCornerOutput atc_output = anchor_to_corner(
+                solution,
+                atc_parameters);
+        solution = atc_output.solution_pool.best();
+        solution.format(std::cout, 1);
+    }
+
+    if (vm.count("certificate"))
+        solution.write(vm["certificate"].as<std::string>());
 
     return 0;
 }
