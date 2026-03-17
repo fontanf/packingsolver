@@ -272,12 +272,12 @@ void BinType::write_svg(
                 "unable to open file \"" + file_path + "\".");
     }
 
-    LengthDbl width = (x_max - x_min);
-    LengthDbl height = (y_max - y_min);
+    LengthDbl width = (aabb.x_max - aabb.x_min);
+    LengthDbl height = (aabb.y_max - aabb.y_min);
 
     std::string s = "<svg viewBox=\""
-        + std::to_string(x_min)
-        + " " + std::to_string(-y_min - height)
+        + std::to_string(aabb.x_min)
+        + " " + std::to_string(-aabb.y_min - height)
         + " " + std::to_string(width)
         + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";

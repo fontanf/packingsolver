@@ -1,9 +1,12 @@
 #include "packingsolver/irregular/solution.hpp"
 
+#include "shape/intersection_tree.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include "nlohmann/json.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 
@@ -106,20 +109,20 @@ void Solution::add_item(
         y_max_ = std::max(y_max_, bl_corner.y + aabb.y_max);
         switch (instance().parameters().leftover_corner) {
         case Corner::BottomLeft: {
-            leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
-                - (x_max_ - bin_type.x_min) * (y_max_ - bin_type.y_min);
+            leftover_value_ = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
+                - (x_max_ - bin_type.aabb.x_min) * (y_max_ - bin_type.aabb.y_min);
             break;
         } case Corner::BottomRight: {
-            leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
-                - (bin_type.x_max - x_min_) * (y_max_ - bin_type.y_min);
+            leftover_value_ = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
+                - (bin_type.aabb.x_max - x_min_) * (y_max_ - bin_type.aabb.y_min);
             break;
         } case Corner::TopLeft: {
-            leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
-                - (x_max_ - bin_type.x_min) * (bin_type.y_max - y_min_);
+            leftover_value_ = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
+                - (x_max_ - bin_type.aabb.x_min) * (bin_type.aabb.y_max - y_min_);
             break;
         } case Corner::TopRight: {
-            leftover_value_ = (bin_type.x_max - bin_type.x_min) * (bin_type.y_max - bin_type.y_min)
-                - (bin_type.x_max - x_min_) * (bin_type.y_max - y_min_);
+            leftover_value_ = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
+                - (bin_type.aabb.x_max - x_min_) * (bin_type.aabb.y_max - y_min_);
             break;
         }
         }
@@ -211,7 +214,7 @@ double Solution::density_x() const
         BinTypeId bin_type_id = bins_.back().bin_type_id;
         const BinType& bin_type = instance().bin_type(bin_type_id);
         area -= bin_type.area_orig;
-        area += x_max_ * (bin_type.y_max - bin_type.y_min);
+        area += x_max_ * (bin_type.aabb.y_max - bin_type.aabb.y_min);
     }
     return item_area() / area;
 }
@@ -223,7 +226,7 @@ double Solution::density_y() const
         BinTypeId bin_type_id = bins_.back().bin_type_id;
         const BinType& bin_type = instance().bin_type(bin_type_id);
         area -= bin_type.area_orig;
-        area += y_max_ * (bin_type.x_max - bin_type.x_min);
+        area += y_max_ * (bin_type.aabb.x_max - bin_type.aabb.x_min);
     }
     return item_area() / area;
 }
@@ -240,6 +243,153 @@ AreaDbl Solution::open_dimension_xy_areaarea() const
                 dy * dy / this->instance().parameters().open_dimension_xy_aspect_ratio);
     }
     return -1;
+}
+
+shape::ShapeWithHoles Solution::shape(
+        BinPos bin_pos,
+        ItemPos item_pos,
+        ItemShapePos item_shape_pos) const
+{
+    const SolutionItem& solution_item = bins_[bin_pos].items[item_pos];
+    const ItemType& item_type = instance().item_type(solution_item.item_type_id);
+    shape::ShapeWithHoles swh = item_type.shapes[item_shape_pos].shape_orig;
+    if (solution_item.mirror)
+        swh = swh.axial_symmetry_y_axis();
+    swh = swh.rotate(solution_item.angle);
+    swh.shift(solution_item.bl_corner.x, solution_item.bl_corner.y);
+    return swh;
+}
+
+Solution::OverlappingItems Solution::compute_overlapping_items(BinPos bin_pos) const
+{
+    const SolutionBin& solution_bin = bins_[bin_pos];
+    const BinType& bin_type = instance().bin_type(solution_bin.bin_type_id);
+
+    enum ShapeType { Item, Border, Defect };
+
+    struct TreeShapeInfo
+    {
+        ShapeType shape_type;
+        ItemPos item_id = -1;
+        Counter border_id = -1;
+        DefectId defect_id = -1;
+        ItemShapePos item_shape_pos = -1;
+    };
+
+    std::vector<TreeShapeInfo> shape_info_map;
+    std::vector<shape::ShapeWithHoles> all_shapes;
+
+    // Add border shapes (already in world coordinates).
+    for (Counter border_pos = 0;
+            border_pos < (Counter)bin_type.borders.size();
+            ++border_pos) {
+        TreeShapeInfo info;
+        info.shape_type = ShapeType::Border;
+        info.border_id = border_pos;
+        shape_info_map.push_back(info);
+        all_shapes.push_back(bin_type.borders[border_pos].shape_orig);
+    }
+
+    // Add defect shapes (already in world coordinates).
+    for (DefectId defect_pos = 0;
+            defect_pos < (DefectId)bin_type.defects.size();
+            ++defect_pos) {
+        TreeShapeInfo info;
+        info.shape_type = ShapeType::Defect;
+        info.defect_id = defect_pos;
+        shape_info_map.push_back(info);
+        all_shapes.push_back(bin_type.defects[defect_pos].shape_orig);
+    }
+
+    // Add item shapes transformed to world coordinates.
+    for (ItemPos item_pos = 0;
+            item_pos < (ItemPos)solution_bin.items.size();
+            ++item_pos) {
+        const SolutionItem& solution_item = solution_bin.items[item_pos];
+        const ItemType& item_type = instance().item_type(solution_item.item_type_id);
+        for (ItemShapePos item_shape_pos = 0;
+                item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                ++item_shape_pos) {
+            TreeShapeInfo info;
+            info.shape_type = ShapeType::Item;
+            info.item_id = item_pos;
+            info.item_shape_pos = item_shape_pos;
+            shape_info_map.push_back(info);
+            all_shapes.push_back(this->shape(bin_pos, item_pos, item_shape_pos));
+        }
+    }
+
+    shape::IntersectionTree tree(all_shapes, {}, {});
+    std::vector<std::pair<shape::ShapePos, shape::ShapePos>> pairs =
+            tree.compute_intersecting_shapes(true);
+
+    // Use sets to deduplicate pairs at item level.
+    OverlappingItems output;
+    for (Counter pair_pos = 0; pair_pos < (Counter)pairs.size(); ++pair_pos) {
+        TreeShapeInfo info_1 = shape_info_map[pairs[pair_pos].first];
+        TreeShapeInfo info_2 = shape_info_map[pairs[pair_pos].second];
+
+        // Skip pairs with no item involved.
+        if (info_1.shape_type != ShapeType::Item && info_2.shape_type != ShapeType::Item)
+            continue;
+
+        // Ensure info_1 is always the item.
+        if (info_2.shape_type == ShapeType::Item)
+            std::swap(info_1, info_2);
+
+        if (info_2.shape_type == ShapeType::Border) {
+            output.item_border_pairs.push_back(std::make_pair(info_1.item_id, info_2.border_id));
+        } else if (info_2.shape_type == ShapeType::Defect) {
+            output.item_defect_pairs.push_back(std::make_pair(info_1.item_id, info_2.defect_id));
+        } else {
+            // Both are items.
+            if (info_1.item_id == info_2.item_id)
+                continue;
+            if (info_1.item_id > info_2.item_id)
+                std::swap(info_1, info_2);
+            output.item_item_pairs.push_back(std::make_pair(info_1.item_id, info_2.item_id));
+        }
+    }
+
+    // Remove duplicates arising from multiple sub-shapes of the same item pair.
+    std::sort(output.item_border_pairs.begin(), output.item_border_pairs.end());
+    output.item_border_pairs.erase(
+            std::unique(output.item_border_pairs.begin(), output.item_border_pairs.end()),
+            output.item_border_pairs.end());
+
+    std::sort(output.item_defect_pairs.begin(), output.item_defect_pairs.end());
+    output.item_defect_pairs.erase(
+            std::unique(output.item_defect_pairs.begin(), output.item_defect_pairs.end()),
+            output.item_defect_pairs.end());
+
+    std::sort(output.item_item_pairs.begin(), output.item_item_pairs.end());
+    output.item_item_pairs.erase(
+            std::unique(output.item_item_pairs.begin(), output.item_item_pairs.end()),
+            output.item_item_pairs.end());
+
+    // Check for items outside the bin.
+    for (ItemPos item_pos = 0;
+            item_pos < (ItemPos)solution_bin.items.size();
+            ++item_pos) {
+        const ItemType& item_type = instance().item_type(solution_bin.items[item_pos].item_type_id);
+        bool outside = false;
+        for (ItemShapePos item_shape_pos = 0;
+                !outside && item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                ++item_shape_pos) {
+            AxisAlignedBoundingBox item_aabb = this->shape(bin_pos, item_pos, item_shape_pos).shape.compute_min_max();
+            if (item_aabb.x_min < bin_type.aabb.x_min
+                    || item_aabb.x_max > bin_type.aabb.x_max
+                    || item_aabb.y_min < bin_type.aabb.y_min
+                    || item_aabb.y_max > bin_type.aabb.y_max) {
+                outside = true;
+            }
+        }
+        if (outside) {
+            output.items_outside_bin.push_back(item_pos);
+        }
+    }
+
+    return output;
 }
 
 bool Solution::operator<(const Solution& solution) const

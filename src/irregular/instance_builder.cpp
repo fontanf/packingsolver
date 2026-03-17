@@ -54,11 +54,7 @@ BinTypeId InstanceBuilder::add_bin_type(
     BinType bin_type;
     bin_type.shape_orig = shape;
     bin_type.area_orig = shape.compute_area();
-    auto points = shape.compute_min_max();
-    bin_type.x_min = points.x_min;
-    bin_type.x_max = points.x_max;
-    bin_type.y_min = points.y_min;
-    bin_type.y_max = points.y_max;
+    bin_type.aabb = shape.compute_min_max();
     bin_type.cost = (cost == -1)? bin_type.area_orig: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
