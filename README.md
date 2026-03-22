@@ -866,3 +866,5 @@ Visualize:
 ```shell
 python3 scripts/visualize_irregular.py solution_irregular.json
 ```
+
+For the irregular solver, a third-party Python interface [HamzaYslmn/pyckingsolver](https://github.com/HamzaYslmn/pyckingsolver) is available on [PyPI](https://pypi.org/project/pyckingsolver/)
