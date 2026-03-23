@@ -1,5 +1,6 @@
 #include "irregular/branching_scheme.hpp"
 
+#include "irregular/rotations.hpp"
 #include "irregular/shape_simplification.hpp"
 
 #include "shape/convex_hull.hpp"
@@ -107,82 +108,7 @@ BranchingScheme::BranchingScheme(
             parameters.maximum_approximation_ratio)),
     parameters_(parameters)
 {
-    item_types_allowed_rotations_
-        = std::vector<std::vector<Angle>>(instance.number_of_item_types());
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        std::vector<Angle> angles;
-        for (const auto& range: item_type.allowed_rotations) {
-            angles.push_back(range.first);
-            angles.push_back(range.second);
-        }
-        for (const ItemShape& item_shape: item_type.shapes) {
-            // Find all the angles that make a side of the shape parallel
-            // to the x-axis or to the y-axis.
-            for (const ShapeElement& element: item_shape.shape_scaled.shape.elements) {
-                LengthDbl dx = element.end.x - element.start.x;
-                LengthDbl dy = element.end.y - element.start.y;
-                Angle phi = std::atan2(dx, dy) * 180 / M_PI;
-                for (Angle a: {
-                        phi,
-                        90 - phi,
-                        90 + phi,
-                        180 - phi,
-                        180 + phi,
-                        180 + 90 - phi,
-                        180 + 90 + phi,
-                        180 + 180 - phi}) {
-                    while (a < 0)
-                        a += 360;
-                    while (a >= 360)
-                        a -= 360;
-                    bool angle_ok = false;
-                    for (auto range: item_type.allowed_rotations)
-                        if (range.first <= a && a <= range.second)
-                            angle_ok = true;
-                    if (angle_ok)
-                        angles.push_back(a);
-                }
-            }
-            // Find all the angles that make a side of the convex hull
-            // parallel to the x-axis or to the y-axis.
-            Shape convex_hull = shape::convex_hull(item_shape.shape_scaled.shape);
-            for (const ShapeElement& element: convex_hull.elements) {
-                LengthDbl dx = element.end.x - element.start.x;
-                LengthDbl dy = element.end.y - element.start.y;
-                Angle phi = std::atan2(dx, dy) * 180 / M_PI;
-                for (Angle a: {
-                        phi,
-                        90 - phi,
-                        90 + phi,
-                        180 - phi,
-                        180 + phi,
-                        180 + 90 - phi,
-                        180 + 90 + phi,
-                        180 + 180 - phi}) {
-                    while (a < 0)
-                        a += 360;
-                    while (a >= 360)
-                        a -= 360;
-                    bool angle_ok = false;
-                    for (auto range: item_type.allowed_rotations)
-                        if (range.first <= a && a <= range.second)
-                            angle_ok = true;
-                    if (angle_ok)
-                        angles.push_back(a);
-                }
-            }
-        }
-        std::sort(angles.begin(), angles.end());
-        for (Angle angle: angles) {
-            if (item_types_allowed_rotations_[item_type_id].empty()
-                    || !equal(angle, item_types_allowed_rotations_[item_type_id].back())) {
-                item_types_allowed_rotations_[item_type_id].push_back(angle);
-            }
-        }
-    }
+    item_types_allowed_rotations_ = compute_item_type_rotations(instance);
 
     //std::cout << "BranchingScheme" << std::endl;
     bool write_shapes = false;

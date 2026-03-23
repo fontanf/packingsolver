@@ -8,6 +8,7 @@ target_sources(PackingSolver_irregular PRIVATE
     optimize.cpp
     post_process.cpp
     shape_simplification.cpp
+    rotations.cpp
     branching_scheme.cpp
     linear_programming.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC
