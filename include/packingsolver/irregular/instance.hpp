@@ -223,6 +223,14 @@ struct ItemType
 
     std::string to_string(Counter indentation) const;
 
+    bool is_rotation_allowed(Angle angle) const
+    {
+        for (auto range: this->allowed_rotations)
+            if (range.first <= angle && angle <= range.second)
+                return true;
+        return false;
+    }
+
     void write_svg(
             const std::string& file_path) const;
 };
