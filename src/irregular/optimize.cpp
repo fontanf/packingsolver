@@ -3,6 +3,7 @@
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "irregular/branching_scheme.hpp"
+#include "irregular/milp_raster.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -677,6 +678,24 @@ void optimize_open_dimension_sequential(
     }
 }
 
+void optimize_milp_raster(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    MilpRasterParameters milp_raster_parameters;
+    milp_raster_parameters.verbosity_level = 0;
+    milp_raster_parameters.timer = parameters.timer;
+    milp_raster_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    milp_raster_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& output) {
+        algorithm_formatter.update_solution(
+                output.solution_pool.best(),
+                "MILP raster");
+    };
+    milp_raster(instance, milp_raster_parameters);
+}
+
 }
 
 packingsolver::irregular::Output packingsolver::irregular::optimize(
@@ -697,26 +716,39 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
     bool use_open_dimension_sequential = parameters.use_open_dimension_sequential;
+    bool use_milp_raster = parameters.use_milp_raster;
     if (instance.objective() == Objective::OpenDimensionXY) {
         use_tree_search = false;
+        use_milp_raster = false;
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
+        // Automatic selection.
         use_open_dimension_sequential = true;
     } else if (instance.number_of_bins() <= 1) {
-        use_tree_search = true;
+        // Disable algorithms which are not available for this objective.
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
         use_open_dimension_sequential = false;
+        if (instance.objective() != Objective::Knapsack
+                && instance.objective() != Objective::BinPacking) {
+            use_milp_raster = false;
+        }
+        // Automatic selection.
+        if (!use_tree_search
+                && !use_milp_raster) {
+            use_tree_search = true;
+        }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
         use_open_dimension_sequential = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_milp_raster
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -742,8 +774,11 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             use_column_generation = false;
         use_dichotomic_search = false;
         use_open_dimension_sequential = false;
+        if (instance.objective() == Objective::BinPackingWithLeftovers)
+            use_milp_raster = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_milp_raster
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -772,6 +807,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         }
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
+        use_milp_raster = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
@@ -836,11 +872,12 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     }
 
     int last_algorithm =
-        (use_open_dimension_sequential)? 5:
-        (use_column_generation)? 4:
-        (use_dichotomic_search)? 3:
-        (use_sequential_value_correction)? 2:
-        (use_sequential_single_knapsack)? 1:
+        (use_open_dimension_sequential)? 6:
+        (use_column_generation)? 5:
+        (use_dichotomic_search)? 4:
+        (use_sequential_value_correction)? 3:
+        (use_sequential_single_knapsack)? 2:
+        (use_milp_raster)? 1:
         (use_tree_search)? 0:
         -1;
 
@@ -869,11 +906,33 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             }
         }
     }
+    // MILP raster.
+    if (use_milp_raster) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 1) {
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_milp_raster), optimize_milp_raster>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        } else {
+            try {
+                optimize_milp_raster(
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
+        }
+    }
     // Sequential single knapsack.
     if (use_sequential_single_knapsack) {
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 1) {
+                && last_algorithm != 2) {
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>,
                         std::ref(exception_ptr_list.front()),
@@ -896,7 +955,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     if (use_sequential_value_correction) {
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 2) {
+                && last_algorithm != 3) {
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>,
                         std::ref(exception_ptr_list.front()),
@@ -918,7 +977,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     if (use_dichotomic_search) {
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 3) {
+                && last_algorithm != 4) {
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>,
                         std::ref(exception_ptr_list.front()),
@@ -940,7 +999,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     if (use_column_generation) {
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 4) {
+                && last_algorithm != 5) {
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_column_generation), optimize_column_generation>,
                         std::ref(exception_ptr_list.front()),
@@ -962,7 +1021,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     if (use_open_dimension_sequential) {
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 5) {
+                && last_algorithm != 6) {
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_open_dimension_sequential), optimize_open_dimension_sequential>,
                         std::ref(exception_ptr_list.front()),

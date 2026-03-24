@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
         ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
         ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
         ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
+        ("use-milp-raster,", po::value<bool>(), "enable MILP raster algorithm")
         ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
         ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
         ("use-column-generation,", po::value<bool>(), "enable column-generation")
@@ -140,6 +141,8 @@ int main(int argc, char *argv[])
 
     if (vm.count("use-tree-search"))
         parameters.use_tree_search = vm["use-tree-search"].as<bool>();
+    if (vm.count("use-milp-raster"))
+        parameters.use_milp_raster = vm["use-milp-raster"].as<bool>();
     if (vm.count("use-sequential-single-knapsack"))
         parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
     if (vm.count("use-sequential-value-correction"))
