@@ -42,6 +42,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use open dimension algorithm. */
     bool use_open_dimension_sequential = false;
 
+    /** Use MILP raster algorithm. */
+    bool use_milp_raster = false;
+
     /** Initial maximum approximation ratio. */
     double initial_maximum_approximation_ratio = 0.20;
 

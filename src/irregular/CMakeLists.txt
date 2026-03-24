@@ -10,7 +10,8 @@ target_sources(PackingSolver_irregular PRIVATE
     shape_simplification.cpp
     rotations.cpp
     branching_scheme.cpp
-    linear_programming.cpp)
+    linear_programming.cpp
+    milp_raster.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_irregular PRIVATE
