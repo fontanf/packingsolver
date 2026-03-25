@@ -11,7 +11,8 @@ target_sources(PackingSolver_irregular PRIVATE
     rotations.cpp
     branching_scheme.cpp
     linear_programming.cpp
-    milp_raster.cpp)
+    milp_raster.cpp
+    trivial.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_irregular PRIVATE
