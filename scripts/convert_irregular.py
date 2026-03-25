@@ -824,6 +824,125 @@ def convert_kaggle_tree_to_vertices() -> list[dict]:
     return vertices
 
 
+def convert_calendar_puzzle():
+    from shapely.ops import unary_union
+
+    month2cell = {
+        "JAN": (0, 6), "FEB": (1, 6), "MAR": (2, 6),
+        "APR": (3, 6), "MAY": (4, 6), "JUN": (5, 6),
+        "JUL": (0, 5), "AUG": (1, 5), "SEP": (2, 5),
+        "OCT": (3, 5), "NOV": (4, 5), "DEC": (5, 5),
+    }
+    day2cell = {
+        1: (0, 4), 2: (1, 4), 3: (2, 4), 4: (3, 4), 5: (4, 4), 6: (5, 4), 7: (6, 4),
+        8: (0, 3), 9: (1, 3), 10: (2, 3), 11: (3, 3), 12: (4, 3), 13: (5, 3), 14: (6, 3),
+        15: (0, 2), 16: (1, 2), 17: (2, 2), 18: (3, 2), 19: (4, 2), 20: (5, 2), 21: (6, 2),
+        22: (0, 1), 23: (1, 1), 24: (2, 1), 25: (3, 1), 26: (4, 1), 27: (5, 1), 28: (6, 1),
+        29: (0, 0), 30: (1, 0), 31: (2, 0),
+    }
+
+    # Board polygon (hardcoded): rows y=5,6 are 6 wide (x=0..5), rows y=1..4 are 7 wide
+    # (x=0..6), row y=0 is 3 wide (x=0..2). Vertices in CCW order.
+    board_vertices = [
+        {"x": 0, "y": 0},
+        {"x": 3, "y": 0},
+        {"x": 3, "y": 1},
+        {"x": 7, "y": 1},
+        {"x": 7, "y": 5},
+        {"x": 6, "y": 5},
+        {"x": 6, "y": 7},
+        {"x": 0, "y": 7},
+    ]
+
+    # Canonical (first rotation) cells for each piece
+    items_canonical_cells = [
+        [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)],  # 0: 2x3 rectangle
+        [(0, 0), (0, 1), (0, 2), (1, 0), (2, 0)],            # 1: L-shape
+        [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1)],            # 2: P-shape (needs mirroring)
+        [(0, 0), (0, 1), (0, 2), (0, 3), (1, 0)],            # 3: L-pentomino (needs mirroring)
+        [(0, 0), (0, 1), (0, 2), (1, 0), (1, 2)],            # 4: U-shape
+        [(0, 0), (0, 1), (0, 2), (1, 2), (1, 3)],            # 5: Z/S-shape (needs mirroring)
+        [(0, 0), (0, 1), (0, 2), (0, 3), (1, 2)],            # 6: Y-shape (needs mirroring)
+        [(0, 0), (0, 1), (0, 2), (1, 1), (2, 1)],            # 7: T-shape
+    ]
+    items_allow_mirroring = [False, False, True, True, False, True, True, False]
+
+    def cells_to_vertices(cells):
+        squares = [
+            Polygon([(x, y), (x + 1, y), (x + 1, y + 1), (x, y + 1)])
+            for x, y in cells
+        ]
+        union = unary_union(squares)
+        coords = list(union.exterior.coords)[:-1]  # remove closing repeated point
+        coords = coords[::-1]  # convert to anticlockwise
+        return [{"x": float(cx), "y": float(cy)} for cx, cy in coords]
+
+    item_vertices_list = [cells_to_vertices(cells) for cells in items_canonical_cells]
+
+    days_per_month = {
+        "JAN": 31, "FEB": 28, "MAR": 31, "APR": 30,
+        "MAY": 31, "JUN": 30, "JUL": 31, "AUG": 31,
+        "SEP": 30, "OCT": 31, "NOV": 30, "DEC": 31,
+    }
+
+    for month, num_days in days_per_month.items():
+        month_cell = month2cell[month]
+        for day in range(1, num_days + 1):
+            day_cell = day2cell[day]
+
+            defects = [
+                {
+                    "type": "polygon",
+                    "vertices": [
+                        {"x": month_cell[0],     "y": month_cell[1]},
+                        {"x": month_cell[0] + 1, "y": month_cell[1]},
+                        {"x": month_cell[0] + 1, "y": month_cell[1] + 1},
+                        {"x": month_cell[0],     "y": month_cell[1] + 1},
+                    ],
+                },
+                {
+                    "type": "polygon",
+                    "vertices": [
+                        {"x": day_cell[0],     "y": day_cell[1]},
+                        {"x": day_cell[0] + 1, "y": day_cell[1]},
+                        {"x": day_cell[0] + 1, "y": day_cell[1] + 1},
+                        {"x": day_cell[0],     "y": day_cell[1] + 1},
+                    ],
+                },
+            ]
+
+            item_types = []
+            for vertices, allow_mirroring in zip(item_vertices_list, items_allow_mirroring):
+                item_type = {
+                    "type": "polygon",
+                    "copies": 1,
+                    "vertices": vertices,
+                    "allowed_rotations": [
+                        {"start": 0, "end": 0},
+                        {"start": 90, "end": 90},
+                        {"start": 180, "end": 180},
+                        {"start": 270, "end": 270},
+                    ],
+                }
+                if allow_mirroring:
+                    item_type["allow_mirroring"] = True
+                item_types.append(item_type)
+
+            dic = {
+                "objective": "bin-packing",
+                "bin_types": [
+                    {
+                        "type": "polygon",
+                        "vertices": board_vertices,
+                        "defects": defects,
+                    }
+                ],
+                "item_types": item_types,
+            }
+
+            write_dict(dic, f"calendar_puzzle/{month}_{day:02d}")
+
+
 def convert_kaggle2025():
     sample_kaggle_tree_vertices: list[dict] = convert_kaggle_tree_to_vertices()
 
@@ -852,51 +971,52 @@ def convert_kaggle2025():
 
 if __name__ == "__main__":
 
-    convert_packomania_coop()
-    convert_cgshop2024()
+    # convert_packomania_coop()
+    # convert_cgshop2024()
 
-    convert_oliveira2000(os.path.join("albano1980", "albano_2007-05-15", "albano.xml"))
-    convert_oliveira2000(os.path.join("bounsaythip1997", "mao_2007-04-23", "mao.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe1.xml"))
-    convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe2.xml"))
-    convert_oliveira2000(os.path.join("fujita1993", "fu_2007-05-15", "fu.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("han1996", "han_2007-04-23", "han.xml"))
-    convert_oliveira2000(os.path.join("hopper2000", "poly1a.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly2a.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly2b.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly3a.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly3b.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly4a.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly4b.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly5a.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("hopper2000", "poly5b.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs1.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs2.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("marques1991", "marques_2007-05-15", "marques.xml"), "http://globalnest.fe.up.pt/nesting")
-    convert_oliveira2000(os.path.join("oliveira2000", "blaz_2007-04-23", "blaz.xml"))
-    convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes0.xml"))
-    convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes1.xml"))
-    convert_oliveira2000(os.path.join("oliveira2000", "shirts_2007-05-15", "shirts.xml"))
-    convert_oliveira2000(os.path.join("oliveira2000", "swim_2007-05-15", "swim.xml"))
-    convert_oliveira2000(os.path.join("oliveira2000", "trousers_2007-05-15", "trousers.xml"))
-    convert_oliveira2000(os.path.join("ratanapan1997", "dagli_2007-05-15", "dagli.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("albano1980", "albano_2007-05-15", "albano.xml"))
+    # convert_oliveira2000(os.path.join("bounsaythip1997", "mao_2007-04-23", "mao.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe1.xml"))
+    # convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe2.xml"))
+    # convert_oliveira2000(os.path.join("fujita1993", "fu_2007-05-15", "fu.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("han1996", "han_2007-04-23", "han.xml"))
+    # convert_oliveira2000(os.path.join("hopper2000", "poly1a.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly2a.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly2b.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly3a.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly3b.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly4a.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly4b.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly5a.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("hopper2000", "poly5b.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs1.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs2.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("marques1991", "marques_2007-05-15", "marques.xml"), "http://globalnest.fe.up.pt/nesting")
+    # convert_oliveira2000(os.path.join("oliveira2000", "blaz_2007-04-23", "blaz.xml"))
+    # convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes0.xml"))
+    # convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes1.xml"))
+    # convert_oliveira2000(os.path.join("oliveira2000", "shirts_2007-05-15", "shirts.xml"))
+    # convert_oliveira2000(os.path.join("oliveira2000", "swim_2007-05-15", "swim.xml"))
+    # convert_oliveira2000(os.path.join("oliveira2000", "trousers_2007-05-15", "trousers.xml"))
+    # convert_oliveira2000(os.path.join("ratanapan1997", "dagli_2007-05-15", "dagli.xml"), "http://globalnest.fe.up.pt/nesting")
 
-    convert_lopez2018(os.path.join("lopez2018", "square1.txt"), 3, True)
-    convert_lopez2018(os.path.join("lopez2018", "square2.txt"), 3, True)
-    convert_lopez2018(os.path.join("lopez2018", "square3.txt"), 3, True)
-    convert_lopez2018(os.path.join("lopez2018", "rect1.txt"), 3, False)
-    convert_lopez2018(os.path.join("lopez2018", "rect2.txt"), 3, False)
-    convert_lopez2018(os.path.join("lopez2018", "rect3.txt"), 3, False)
-    convert_lopez2018(os.path.join("bouzid2020", "square100.txt"), 3, True)
-    convert_lopez2018(os.path.join("bouzid2020", "square150.txt"), 3, True)
-    convert_lopez2018(os.path.join("bouzid2020", "square200.txt"), 3, True)
-    convert_lopez2018(os.path.join("bouzid2020", "rect100.txt"), 3, False)
-    convert_lopez2018(os.path.join("bouzid2020", "rect150.txt"), 3, False)
-    convert_lopez2018(os.path.join("bouzid2020", "rect200.txt"), 3, False)
-    convert_lopez2018(os.path.join("silva2021", "rect30_S1.txt"), 1, False)
-    convert_lopez2018(os.path.join("silva2021", "rect30_S2.txt"), 1, False)
-    convert_lopez2018(os.path.join("silva2021", "rect30_S3.txt"), 1, False)
-    convert_lopez2018(os.path.join("silva2021", "rect30_S4.txt"), 1, False)
-    convert_lopez2018(os.path.join("silva2021", "rect30_S5.txt"), 1, False)
+    # convert_lopez2018(os.path.join("lopez2018", "square1.txt"), 3, True)
+    # convert_lopez2018(os.path.join("lopez2018", "square2.txt"), 3, True)
+    # convert_lopez2018(os.path.join("lopez2018", "square3.txt"), 3, True)
+    # convert_lopez2018(os.path.join("lopez2018", "rect1.txt"), 3, False)
+    # convert_lopez2018(os.path.join("lopez2018", "rect2.txt"), 3, False)
+    # convert_lopez2018(os.path.join("lopez2018", "rect3.txt"), 3, False)
+    # convert_lopez2018(os.path.join("bouzid2020", "square100.txt"), 3, True)
+    # convert_lopez2018(os.path.join("bouzid2020", "square150.txt"), 3, True)
+    # convert_lopez2018(os.path.join("bouzid2020", "square200.txt"), 3, True)
+    # convert_lopez2018(os.path.join("bouzid2020", "rect100.txt"), 3, False)
+    # convert_lopez2018(os.path.join("bouzid2020", "rect150.txt"), 3, False)
+    # convert_lopez2018(os.path.join("bouzid2020", "rect200.txt"), 3, False)
+    # convert_lopez2018(os.path.join("silva2021", "rect30_S1.txt"), 1, False)
+    # convert_lopez2018(os.path.join("silva2021", "rect30_S2.txt"), 1, False)
+    # convert_lopez2018(os.path.join("silva2021", "rect30_S3.txt"), 1, False)
+    # convert_lopez2018(os.path.join("silva2021", "rect30_S4.txt"), 1, False)
+    # convert_lopez2018(os.path.join("silva2021", "rect30_S5.txt"), 1, False)
 
-    convert_kaggle2025()
+    # convert_kaggle2025()
+    convert_calendar_puzzle()
