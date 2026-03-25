@@ -2,6 +2,7 @@
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
+#include "irregular/trivial.hpp"
 #include "irregular/branching_scheme.hpp"
 #include "irregular/milp_raster.hpp"
 #include "algorithms/dichotomic_search.hpp"
@@ -79,6 +80,24 @@ void optimize_onedimensional_bound(
         throw std::logic_error(ss.str());
     }
     }
+}
+
+void optimize_trivial_single_item(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    TrivialSingleItemParameters trivial_single_item_parameters;
+    trivial_single_item_parameters.verbosity_level = 0;
+    trivial_single_item_parameters.timer = parameters.timer;
+    trivial_single_item_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    trivial_single_item_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& output) {
+        algorithm_formatter.update_solution(
+                output.solution_pool.best(),
+                "Trivial");
+    };
+    trivial_single_item(instance, trivial_single_item_parameters);
 }
 
 void optimize_tree_search_worker(
@@ -864,6 +883,16 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             || instance.objective() == Objective::Knapsack
             || instance.objective() == Objective::VariableSizedBinPacking) {
         optimize_onedimensional_bound(
+                instance,
+                parameters,
+                algorithm_formatter);
+    }
+
+    if (instance.number_of_items() == 1
+            && instance.number_of_bins() == 1
+            && (instance.objective() == Objective::Knapsack
+                || instance.objective() == Objective::BinPacking)) {
+        optimize_trivial_single_item(
                 instance,
                 parameters,
                 algorithm_formatter);
