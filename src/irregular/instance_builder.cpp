@@ -250,6 +250,15 @@ void InstanceBuilder::set_item_types_unweighted()
     }
 }
 
+void InstanceBuilder::set_item_types_continuous_rotations()
+{
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        instance_.item_types_[item_type_id].allowed_rotations = {{0, 360}};
+    }
+}
+
 AreaDbl InstanceBuilder::compute_bin_types_area_max() const
 {
     AreaDbl bin_types_area_max = 0;
