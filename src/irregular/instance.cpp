@@ -167,7 +167,7 @@ bool ItemType::has_full_continuous_rotations() const
     if (allowed_rotations.size() != 1)
         return false;
     return (allowed_rotations[0].first == 0
-            && allowed_rotations[0].second >= 2 * M_PI);
+            && allowed_rotations[0].second == 360);
 }
 
 bool ItemType::has_only_discrete_rotations() const
