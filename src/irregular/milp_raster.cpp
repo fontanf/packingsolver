@@ -66,6 +66,10 @@ Solution solve_milp_raster_for_cell_size(
         LengthDbl cell_size,
         BinPos number_of_bins)
 {
+    //std::cout << "solve_milp_raster_for_cell_size"
+    //    << " cell_size " << cell_size
+    //    << " number_of_bins " << number_of_bins
+    //    << std::endl;
     const LengthDbl scale = instance.parameters().scale_value;
 
     std::vector<BinTypeData> bin_type_data(instance.number_of_bin_types());
@@ -140,56 +144,43 @@ Solution solve_milp_raster_for_cell_size(
             const ItemType& item_type = instance.item_type(item_type_id);
 
             for (Angle angle: item_type_rotations[item_type_id]) {
-                // Compute AABB of all item shapes rotated by angle (non-mirrored).
-                AxisAlignedBoundingBox combined_aabb;
-                for (const ItemShape& item_shape: item_type.shapes) {
-                    ShapeWithHoles rotated = item_shape.shape_scaled.rotate(angle);
-                    AxisAlignedBoundingBox shape_aabb = rotated.compute_min_max();
-                    combined_aabb = merge(combined_aabb, shape_aabb);
-                }
+                for (bool mirror: {false, true}) {
+                    if (mirror && !item_type.allow_mirroring)
+                        continue;
 
-                // Rasterize each item shape (shifted to origin) and collect cells.
-                std::vector<std::pair<shape::ColumnId, shape::RowId>> item_cells;
-                for (ItemShapePos item_shape_pos = 0;
-                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
-                        ++item_shape_pos) {
-                    const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                    ShapeWithHoles rotated = item_shape.shape_scaled.rotate(angle);
-                    rotated.shift(-combined_aabb.x_min, -combined_aabb.y_min);
-                    std::vector<shape::IntersectedCell> raster_cells = shape::rasterization(rotated, cell_size, cell_size);
-                    //shape::rasterization_export_inputs(
-                    //        "rasterization_input_item_type_" + std::to_string(item_type_id)
-                    //        + " " + std::to_string(item_shape_pos)
-                    //        + " " + std::to_string(angle),
-                    //        rotated,
-                    //        cell_size,
-                    //        cell_size);
-                    //writer.add_shape_with_holes(rotated, "Item type " + std::to_string(item_type_id) + " " + std::to_string(item_shape_pos) + " " + std::to_string(angle));
-                    //writer.add_shape_with_holes(cells_to_shapes(raster_cells, cell_size, cell_size).front(), "Item type " + std::to_string(item_type_id) + " " + std::to_string(item_shape_pos) + " " + std::to_string(angle));
-                    for (const shape::IntersectedCell& ic: raster_cells)
-                        item_cells.push_back(std::make_pair(ic.cell.column, ic.cell.row));
-                }
-
-                if (item_cells.empty())
-                    continue;
-
-                std::sort(item_cells.begin(), item_cells.end());
-                item_cells.erase(std::unique(item_cells.begin(), item_cells.end()), item_cells.end());
-
-                shape::ColumnId max_col = 0;
-                for (const std::pair<shape::ColumnId, shape::RowId>& cr: item_cells)
-                    if (cr.first > max_col)
-                        max_col = cr.first;
-
-                int mirror_limit = item_type.allow_mirroring ? 1 : 0;
-                for (int mirror_int = 0; mirror_int <= mirror_limit; ++mirror_int) {
-                    bool mirror = (mirror_int == 1);
-
-                    std::vector<std::pair<shape::ColumnId, shape::RowId>> placement_cells = item_cells;
-                    if (mirror) {
-                        for (std::pair<shape::ColumnId, shape::RowId>& cr: placement_cells)
-                            cr.first = max_col - cr.first;
+                    // Compute AABB of all item shapes after applying mirror then
+                    // rotation, matching the order used in convert_shape.
+                    AxisAlignedBoundingBox combined_aabb;
+                    for (const ItemShape& item_shape: item_type.shapes) {
+                        ShapeWithHoles transformed = mirror?
+                            item_shape.shape_scaled.axial_symmetry_y_axis():
+                            item_shape.shape_scaled;
+                        transformed = transformed.rotate(angle);
+                        AxisAlignedBoundingBox shape_aabb = transformed.compute_min_max();
+                        combined_aabb = merge(combined_aabb, shape_aabb);
                     }
+
+                    // Rasterize each item shape (shifted to origin) and collect cells.
+                    std::vector<std::pair<shape::ColumnId, shape::RowId>> placement_cells;
+                    for (ItemShapePos item_shape_pos = 0;
+                            item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                            ++item_shape_pos) {
+                        const ItemShape& item_shape = item_type.shapes[item_shape_pos];
+                        ShapeWithHoles transformed = mirror?
+                            item_shape.shape_scaled.axial_symmetry_y_axis():
+                            item_shape.shape_scaled;
+                        transformed = transformed.rotate(angle);
+                        transformed.shift(-combined_aabb.x_min, -combined_aabb.y_min);
+                        std::vector<shape::IntersectedCell> raster_cells = shape::rasterization(transformed, cell_size, cell_size);
+                        for (const shape::IntersectedCell& ic: raster_cells)
+                            placement_cells.push_back(std::make_pair(ic.cell.column, ic.cell.row));
+                    }
+
+                    if (placement_cells.empty())
+                        continue;
+
+                    std::sort(placement_cells.begin(), placement_cells.end());
+                    placement_cells.erase(std::unique(placement_cells.begin(), placement_cells.end()), placement_cells.end());
 
                     shape::ColumnId item_min_col = placement_cells[0].first;
                     shape::ColumnId item_max_col = placement_cells[0].first;
@@ -471,7 +462,6 @@ MilpRasterOutput packingsolver::irregular::milp_raster(
         }
     } else {
         BinPos number_of_bins = std::min(instance.number_of_bins(), (BinPos)instance.number_of_items());
-        LengthDbl cell_size = 100.0;
         while (!parameters.timer.needs_to_end()) {
             Solution solution = solve_milp_raster_for_cell_size(
                     instance,
