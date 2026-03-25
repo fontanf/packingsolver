@@ -2056,15 +2056,15 @@ Solution BranchingScheme::to_solution(
                 solution.write("solution_irregular.json");
                 throw std::runtime_error(
                         FUNC_SIGNATURE + "; "
-                        "node->xe_max: " + std::to_string(node->x_max) + "; "
-                        "solution.x_max(): " + std::to_string(solution.x_max()) + "; "
+                        "node->x_mix: " + std::to_string(node->x_min) + "; "
+                        "solution.x_min(): " + std::to_string(solution.x_min()) + "; "
                         "d: " + std::to_string((int)node->last_bin_direction) + ".");
             }
             if (!equal(node->y_min, solution.y_min())) {
                 throw std::runtime_error(
                         FUNC_SIGNATURE + "; "
-                        "node->ye_max: " + std::to_string(node->y_max) + "; "
-                        "solution.y_max(): " + std::to_string(solution.y_max()) + "; "
+                        "node->y_min: " + std::to_string(node->y_min) + "; "
+                        "solution.y_min(): " + std::to_string(solution.y_min()) + "; "
                         "d: " + std::to_string((int)node->last_bin_direction) + ".");
             }
         }
