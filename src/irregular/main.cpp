@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
         ("leftover-corner", po::value<Corner>(), "set leftover corner")
         ("bin-unweighted", "")
         ("unweighted", "")
+        ("continuous-rotations", "")
 
         ("output,o", po::value<std::string>(), "Output path")
         ("certificate,c", po::value<std::string>(), "Certificate path")
@@ -122,6 +123,8 @@ int main(int argc, char *argv[])
         instance_builder.set_item_types_unweighted();
     if (vm.count("bin-unweighted"))
         instance_builder.set_bin_types_unweighted();
+    if (vm.count("continuous-rotations"))
+        instance_builder.set_item_types_continuous_rotations();
 
     Instance instance = instance_builder.build();
 

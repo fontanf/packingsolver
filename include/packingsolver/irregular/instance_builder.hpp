@@ -134,6 +134,9 @@ public:
      */
     void set_item_types_unweighted();
 
+    /** Set continuous rotations for all item types. */
+    void set_item_types_continuous_rotations();
+
     /*
      * Build
      */
