@@ -4,6 +4,9 @@ import json
 import re
 import xml.etree.ElementTree as ET
 
+from decimal import Decimal, getcontext
+from shapely.geometry import Polygon
+
 
 def words(filename):
     f = open(os.path.join("data", "irregular_raw", filename), "r")
@@ -744,36 +747,139 @@ def convert_oliveira2000(
     write_dict(dic, filename)
 
 
+getcontext().prec = 60
+scale_factor = Decimal("1")
+
+# Taken from https://www.kaggle.com/code/inversion/santa-2025-getting-started
+class ChristmasTree:
+    """Represents a single, rotatable Christmas tree of a fixed size."""
+
+    def __init__(self, center_x="0", center_y="0", angle="0"):
+        """Initializes the Christmas tree with a specific position and rotation."""
+        self.center_x = Decimal(center_x)
+        self.center_y = Decimal(center_y)
+        self.angle = Decimal(angle)
+
+        trunk_w = Decimal("0.15")
+        trunk_h = Decimal("0.2")
+        base_w = Decimal("0.7")
+        mid_w = Decimal("0.4")
+        top_w = Decimal("0.25")
+        tip_y = Decimal("0.8")
+        tier_1_y = Decimal("0.5")
+        tier_2_y = Decimal("0.25")
+        base_y = Decimal("0.0")
+        trunk_bottom_y = -trunk_h
+
+        initial_polygon = Polygon(
+            [
+                # Start at Tip
+                (Decimal("0.0") * scale_factor, tip_y * scale_factor),
+                # Right side - Top Tier
+                (top_w / Decimal("2") * scale_factor, tier_1_y * scale_factor),
+                (top_w / Decimal("4") * scale_factor, tier_1_y * scale_factor),
+                # Right side - Middle Tier
+                (mid_w / Decimal("2") * scale_factor, tier_2_y * scale_factor),
+                (mid_w / Decimal("4") * scale_factor, tier_2_y * scale_factor),
+                # Right side - Bottom Tier
+                (base_w / Decimal("2") * scale_factor, base_y * scale_factor),
+                # Right Trunk
+                (trunk_w / Decimal("2") * scale_factor, base_y * scale_factor),
+                (trunk_w / Decimal("2") * scale_factor, trunk_bottom_y * scale_factor),
+                # Left Trunk
+                (
+                    -(trunk_w / Decimal("2")) * scale_factor,
+                    trunk_bottom_y * scale_factor,
+                ),
+                (-(trunk_w / Decimal("2")) * scale_factor, base_y * scale_factor),
+                # Left side - Bottom Tier
+                (-(base_w / Decimal("2")) * scale_factor, base_y * scale_factor),
+                # Left side - Middle Tier
+                (-(mid_w / Decimal("4")) * scale_factor, tier_2_y * scale_factor),
+                (-(mid_w / Decimal("2")) * scale_factor, tier_2_y * scale_factor),
+                # Left side - Top Tier
+                (-(top_w / Decimal("4")) * scale_factor, tier_1_y * scale_factor),
+                (-(top_w / Decimal("2")) * scale_factor, tier_1_y * scale_factor),
+            ]
+        )
+
+        # Add buffer for feasibility issues
+        self.polygon = initial_polygon.buffer(0.00001)
+
+
+def convert_kaggle_tree_to_vertices() -> list[dict]:
+    christmas_tree_sample = ChristmasTree()
+
+    exterior_coordinates = list(christmas_tree_sample.polygon.exterior.coords)
+
+    vertices = [{"x": round(x, 6), "y": round(y, 6)}
+                for x, y in exterior_coordinates]
+
+    # Solver expected format does not repeat the first and last point
+    vertices = vertices[:-1]
+
+    # Convert to counter clockwise
+    vertices = vertices[::-1]
+
+    return vertices
+
+
+def convert_kaggle2025():
+    sample_kaggle_tree_vertices: list[dict] = convert_kaggle_tree_to_vertices()
+
+    for num_trees in range(1, 201):
+        item_type = {
+            "type": "polygon",
+            "copies": num_trees,
+            "vertices": sample_kaggle_tree_vertices,
+            "allowed_rotations": [{"start": 0, "end": 360}],
+        }
+        dic = {
+            "objective": "open-dimension-xy",
+            "parameters": {"open_dimension_xy_aspect_ratio": 1},
+            "bin_types": [
+                {
+                    "type": "rectangle",
+                    "height": 200,  # Dummy value for now
+                    "width": 100,  # Dummy value for now
+                }
+            ],
+            "item_types": [item_type],
+        }
+
+        write_dict(dic, f"kaggle2025/{num_trees}_trees")
+
+
 if __name__ == "__main__":
 
     convert_packomania_coop()
-    # convert_cgshop2024()
+    convert_cgshop2024()
 
-    # convert_oliveira2000(os.path.join("albano1980", "albano_2007-05-15", "albano.xml"))
-    # convert_oliveira2000(os.path.join("bounsaythip1997", "mao_2007-04-23", "mao.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe1.xml"))
-    # convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe2.xml"))
-    # convert_oliveira2000(os.path.join("fujita1993", "fu_2007-05-15", "fu.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("han1996", "han_2007-04-23", "han.xml"))
-    # convert_oliveira2000(os.path.join("hopper2000", "poly1a.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("hopper2000", "poly2a.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("hopper2000", "poly2b.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("hopper2000", "poly3a.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("hopper2000", "poly3b.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("hopper2000", "poly4a.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("hopper2000", "poly4b.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("hopper2000", "poly5a.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("hopper2000", "poly5b.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs1.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs2.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("marques1991", "marques_2007-05-15", "marques.xml"), "http://globalnest.fe.up.pt/nesting")
-    # convert_oliveira2000(os.path.join("oliveira2000", "blaz_2007-04-23", "blaz.xml"))
-    # convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes0.xml"))
-    # convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes1.xml"))
-    # convert_oliveira2000(os.path.join("oliveira2000", "shirts_2007-05-15", "shirts.xml"))
-    # convert_oliveira2000(os.path.join("oliveira2000", "swim_2007-05-15", "swim.xml"))
-    # convert_oliveira2000(os.path.join("oliveira2000", "trousers_2007-05-15", "trousers.xml"))
-    # convert_oliveira2000(os.path.join("ratanapan1997", "dagli_2007-05-15", "dagli.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("albano1980", "albano_2007-05-15", "albano.xml"))
+    convert_oliveira2000(os.path.join("bounsaythip1997", "mao_2007-04-23", "mao.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe1.xml"))
+    convert_oliveira2000(os.path.join("dighe1996", "dighe_2007-05-15", "dighe2.xml"))
+    convert_oliveira2000(os.path.join("fujita1993", "fu_2007-05-15", "fu.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("han1996", "han_2007-04-23", "han.xml"))
+    convert_oliveira2000(os.path.join("hopper2000", "poly1a.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly2a.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly2b.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly3a.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly3b.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly4a.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly4b.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly5a.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("hopper2000", "poly5b.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs1.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("jakobs1996", "jakobs_2007-04-23", "jakobs2.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("marques1991", "marques_2007-05-15", "marques.xml"), "http://globalnest.fe.up.pt/nesting")
+    convert_oliveira2000(os.path.join("oliveira2000", "blaz_2007-04-23", "blaz.xml"))
+    convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes0.xml"))
+    convert_oliveira2000(os.path.join("oliveira2000", "shapes_2007-04-23", "shapes1.xml"))
+    convert_oliveira2000(os.path.join("oliveira2000", "shirts_2007-05-15", "shirts.xml"))
+    convert_oliveira2000(os.path.join("oliveira2000", "swim_2007-05-15", "swim.xml"))
+    convert_oliveira2000(os.path.join("oliveira2000", "trousers_2007-05-15", "trousers.xml"))
+    convert_oliveira2000(os.path.join("ratanapan1997", "dagli_2007-05-15", "dagli.xml"), "http://globalnest.fe.up.pt/nesting")
 
     convert_lopez2018(os.path.join("lopez2018", "square1.txt"), 3, True)
     convert_lopez2018(os.path.join("lopez2018", "square2.txt"), 3, True)
@@ -792,3 +898,5 @@ if __name__ == "__main__":
     convert_lopez2018(os.path.join("silva2021", "rect30_S3.txt"), 1, False)
     convert_lopez2018(os.path.join("silva2021", "rect30_S4.txt"), 1, False)
     convert_lopez2018(os.path.join("silva2021", "rect30_S5.txt"), 1, False)
+
+    convert_kaggle2025()
