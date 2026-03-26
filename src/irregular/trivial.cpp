@@ -55,6 +55,15 @@ TrivialSingleItemOutput packingsolver::irregular::trivial_single_item(
     LengthDbl dx = bl_corner.x * scale;
     LengthDbl dy = bl_corner.y * scale;
 
+    // Check that the item AABB fits within the bin AABB.
+    if (shape::strictly_lesser(dx + aabb.x_min, bin_type.x_min * scale)
+            || shape::strictly_greater(dx + aabb.x_max, bin_type.x_max * scale)
+            || shape::strictly_lesser(dy + aabb.y_min, bin_type.y_min * scale)
+            || shape::strictly_greater(dy + aabb.y_max, bin_type.y_max * scale)) {
+        algorithm_formatter.end();
+        return output;
+    }
+
     // Check intersection for each shape part.
     bool fits = true;
     for (const ItemShape& item_shape : item_type.shapes) {
