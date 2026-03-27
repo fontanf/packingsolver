@@ -56,6 +56,7 @@ void optimize_onedimensional_bound(
     onedim_parameters.timer = parameters.timer;
     onedim_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     onedim_parameters.optimization_mode = OptimizationMode::NotAnytime;
+    onedim_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     auto onedim_output = optimize(onedim_instance, onedim_parameters);
 
     std::stringstream ss("1D");
@@ -424,6 +425,7 @@ void optimize_sequential_single_knapsack(
                     OptimizationMode::NotAnytimeDeterministic;
                 kp_parameters.not_anytime_maximum_approximation_ratio = maximum_approximation_ratio;
                 kp_parameters.not_anytime_tree_search_queue_size = queue_size;
+                kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
@@ -488,6 +490,7 @@ void optimize_sequential_value_correction(
             kp_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.sequential_value_correction_subproblem_queue_size;
+            kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             auto kp_output = optimize(kp_instance, kp_parameters);
             return kp_output.solution_pool;
         };
@@ -536,6 +539,7 @@ void optimize_dichotomic_search(
                 bpp_parameters.not_anytime_maximum_approximation_ratio = maximum_approximation_ratio;
                 bpp_parameters.use_tree_search = 1;
                 bpp_parameters.not_anytime_tree_search_queue_size = queue_size;
+                bpp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
                 auto bpp_output = optimize(bpp_instance, bpp_parameters);
                 return bpp_output.solution_pool;
             };
@@ -595,6 +599,7 @@ void optimize_column_generation(
             kp_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.column_generation_subproblem_queue_size;
+            kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             return optimize(kp_instance, kp_parameters);
         };
 
@@ -679,6 +684,7 @@ void optimize_open_dimension_sequential(
             = parameters.not_anytime_maximum_approximation_ratio;
         sub_parameters.not_anytime_tree_search_queue_size
             = parameters.not_anytime_tree_search_queue_size;
+        sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         auto sub_output = optimize(sub_instance, sub_parameters);
 
         // If no solution has been found, break.
@@ -1126,6 +1132,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         last_bin_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         last_bin_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
         last_bin_parameters.tree_search_guides = {2, 3};
+        last_bin_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
 
         if (last_bin_output.solution_pool.best().full()) {
