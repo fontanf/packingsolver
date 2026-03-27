@@ -226,6 +226,7 @@ void optimize_sequential_single_knapsack(
                     OptimizationMode::NotAnytimeSequential:
                     OptimizationMode::NotAnytimeDeterministic;
                 kp_parameters.not_anytime_tree_search_queue_size = queue_size;
+                kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
                 auto kp_output = optimize(kp_instance, kp_parameters);
                 return kp_output.solution_pool;
             };
@@ -279,6 +280,7 @@ void optimize_sequential_value_correction(
                 OptimizationMode::NotAnytimeDeterministic;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.sequential_value_correction_subproblem_queue_size;
+            kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             auto kp_output = optimize(kp_instance, kp_parameters);
             return kp_output.solution_pool;
         };
@@ -324,6 +326,7 @@ void optimize_dichotomic_search(
                     OptimizationMode::NotAnytimeDeterministic;
                 bpp_parameters.use_tree_search = 1;
                 bpp_parameters.not_anytime_tree_search_queue_size = queue_size;
+                bpp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
                 auto bpp_output = optimize(bpp_instance, bpp_parameters);
                 return bpp_output.solution_pool;
             };
@@ -378,6 +381,7 @@ void optimize_column_generation(
                 OptimizationMode::NotAnytimeDeterministic;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.column_generation_subproblem_queue_size;
+            kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             return optimize(kp_instance, kp_parameters);
         };
 
