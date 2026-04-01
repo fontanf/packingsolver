@@ -1,0 +1,30 @@
+{
+    "objective": "bin-packing-with-leftovers",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 800,
+            "height": 400
+        }
+    ],
+    "item_types": [
+        {
+            "copies": 1,
+            "type": "polygon",
+            "vertices": [
+                {"x": 0, "y": 0},
+                {"x": 400, "y": 0},
+                {"x": 400, "y": 200},
+                {"x": 200, "y": 200},
+                {"x": 200, "y": 400},
+                {"x": 0, "y": 400}
+            ]
+        },
+        {
+            "copies": 1,
+            "type": "rectangle",
+            "width": 300,
+            "height": 200
+        }
+    ]
+}

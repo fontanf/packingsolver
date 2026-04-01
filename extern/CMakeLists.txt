@@ -43,24 +43,24 @@ FetchContent_Declare(
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(shape)
 
+# Fetch Highs.
+set(BUILD_SHARED_LIBS OFF)
+FetchContent_Declare(
+    highs
+    URL https://github.com/ERGO-Code/HiGHS/archive/refs/tags/v1.13.1.zip
+    EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(highs)
+
 # Fetch fontanf/mathoptsolverscmake.
 set(MATHOPTSOLVERSCMAKE_USE_CLP ${PACKINGSOLVER_USE_CLP})
 set(MATHOPTSOLVERSCMAKE_USE_HIGHS ${PACKINGSOLVER_USE_HIGHS})
 FetchContent_Declare(
     mathoptsolverscmake
     GIT_REPOSITORY https://github.com/fontanf/mathoptsolverscmake.git
-    GIT_TAG c6fa0448c89c1521ec917a14ef499411510c12a9
+    GIT_TAG 438c2f9ff79ffddcbebe71eca789ea5db077a282
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../mathoptsolverscmake/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(mathoptsolverscmake)
-
-# Fetch Highs.
-set(BUILD_SHARED_LIBS OFF)
-FetchContent_Declare(
-    highs
-    URL https://github.com/ERGO-Code/HiGHS/archive/refs/tags/v1.7.2.zip
-    EXCLUDE_FROM_ALL)
-FetchContent_MakeAvailable(highs)
 
 # Fetch fontanf/knapsacksolver.
 set(KNAPSACKSOLVER_BUILD_MAIN OFF)

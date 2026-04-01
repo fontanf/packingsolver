@@ -81,10 +81,10 @@ Solution solve_milp_raster_for_cell_size(
         const BinType& bin_type = instance.bin_type(bin_type_id);
         BinTypeData& data = bin_type_data[bin_type_id];
 
-        LengthDbl x_min_scaled = bin_type.x_min * scale;
-        LengthDbl x_max_scaled = bin_type.x_max * scale;
-        LengthDbl y_min_scaled = bin_type.y_min * scale;
-        LengthDbl y_max_scaled = bin_type.y_max * scale;
+        LengthDbl x_min_scaled = bin_type.aabb.x_min * scale;
+        LengthDbl x_max_scaled = bin_type.aabb.x_max * scale;
+        LengthDbl y_min_scaled = bin_type.aabb.y_min * scale;
+        LengthDbl y_max_scaled = bin_type.aabb.y_max * scale;
 
         data.col_shift = (shape::ColumnId)std::floor(x_min_scaled / cell_size);
         if (shape::strictly_greater(x_min_scaled, data.col_shift * cell_size))

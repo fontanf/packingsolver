@@ -5,6 +5,7 @@
 #include "irregular/trivial.hpp"
 #include "irregular/branching_scheme.hpp"
 #include "irregular/milp_raster.hpp"
+#include "irregular/local_search.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -393,6 +394,24 @@ void optimize_tree_search(
     }
 }
 
+void optimize_local_search(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    LocalSearchParameters ls_parameters;
+    ls_parameters.verbosity_level = 0;
+    ls_parameters.timer = parameters.timer;
+    ls_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& ps_output)
+    {
+        std::stringstream ss;
+        ss << "LS";
+        algorithm_formatter.update_solution(ps_output.solution_pool.best(), ss.str());
+    };
+    local_search(instance, ls_parameters);
+}
+
 void optimize_sequential_single_knapsack(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -743,6 +762,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
     bool use_tree_search = parameters.use_tree_search;
+    bool use_local_search = parameters.use_local_search;
     bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
@@ -752,6 +772,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     if (instance.objective() == Objective::OpenDimensionXY) {
         use_tree_search = false;
         use_milp_raster = false;
+        use_local_search = false;
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
@@ -768,9 +789,11 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (instance.objective() != Objective::Knapsack
                 && instance.objective() != Objective::BinPacking) {
             use_milp_raster = false;
+            use_local_search = false;
         }
         // Automatic selection.
         if (!use_tree_search
+                && !use_local_search
                 && !use_milp_raster) {
             use_tree_search = true;
         }
@@ -781,6 +804,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster
+                && !use_local_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -811,6 +835,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster
+                && !use_local_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -844,13 +869,15 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
                 use_tree_search = true;
+                use_local_search = true;
             }
         } else {
-            use_tree_search = false;
+            use_local_search = false;
         }
         use_open_dimension_sequential = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_local_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_dichotomic_search
@@ -914,12 +941,13 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     }
 
     int last_algorithm =
-        (use_open_dimension_sequential)? 6:
-        (use_column_generation)? 5:
-        (use_dichotomic_search)? 4:
-        (use_sequential_value_correction)? 3:
-        (use_sequential_single_knapsack)? 2:
-        (use_milp_raster)? 1:
+        (use_open_dimension_sequential)? 7:
+        (use_column_generation)? 6:
+        (use_dichotomic_search)? 5:
+        (use_sequential_value_correction)? 4:
+        (use_sequential_single_knapsack)? 3:
+        (use_milp_raster)? 2:
+        (use_local_search)? 1:
         (use_tree_search)? 0:
         -1;
 
@@ -962,6 +990,28 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         } else {
             try {
                 optimize_milp_raster(
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
+        }
+    }
+    // Local search.
+    if (use_local_search) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 0) {
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_local_search), optimize_local_search>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        } else {
+            try {
+                optimize_local_search(
                         instance,
                         parameters,
                         algorithm_formatter);

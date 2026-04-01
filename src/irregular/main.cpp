@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
         ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
         ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
         ("use-milp-raster,", po::value<bool>(), "enable MILP raster algorithm")
+        ("use-local-search,", po::value<bool>(), "enable local search algorithm")
         ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
         ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
         ("use-column-generation,", po::value<bool>(), "enable column-generation")
@@ -93,8 +94,9 @@ int main(int argc, char *argv[])
         ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
         ("not-anytime-dichotomic-search-subproblem-queue-size,", po::value<Counter>(), "")
 
-        ("anchor-to-corner,", po::value<bool>(), "")
-        ("anchor-to-corner-corner,", po::value<Corner>(), "")
+        ("anchor,", po::value<bool>(), "")
+        ("anchor-x-weight,", po::value<double>(), "")
+        ("anchor-y-weight,", po::value<double>(), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -146,6 +148,8 @@ int main(int argc, char *argv[])
         parameters.use_tree_search = vm["use-tree-search"].as<bool>();
     if (vm.count("use-milp-raster"))
         parameters.use_milp_raster = vm["use-milp-raster"].as<bool>();
+    if (vm.count("use-local-search"))
+        parameters.use_local_search = vm["use-local-search"].as<bool>();
     if (vm.count("use-sequential-single-knapsack"))
         parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
     if (vm.count("use-sequential-value-correction"))
@@ -179,12 +183,18 @@ int main(int argc, char *argv[])
         output.write_json_output(vm["output"].as<std::string>());
 
     Solution solution = output.solution_pool.best();
-    if (vm.count("anchor-to-corner")) {
-        AnchorToCornerParameters atc_parameters;
-        if (vm.count("anchor-to-corner-corner"))
-            atc_parameters.anchor_corner = vm["anchor-to-corner-corner"].as<Corner>();
-        AnchorToCornerOutput atc_output = anchor_to_corner(
+    if (vm.count("anchor")) {
+        double anchor_x_weight = 1.0;
+        double anchor_y_weight = 1.0;
+        if (vm.count("anchor-x-weight"))
+            anchor_x_weight = vm["anchor-x-weight"].as<double>();
+        if (vm.count("anchor-y-weight"))
+            anchor_y_weight = vm["anchor-y-weight"].as<double>();
+        AnchorParameters atc_parameters;
+        AnchorOutput atc_output = anchor(
                 solution,
+                anchor_x_weight,
+                anchor_y_weight,
                 atc_parameters);
         solution = atc_output.solution_pool.best();
         //solution.format(std::cout, 1);
