@@ -39,8 +39,8 @@ TrivialSingleItemOutput packingsolver::irregular::trivial_single_item(
     shape::IntersectionTree tree(tree_shapes, {}, {});
 
     // Bin center in scaled coordinates.
-    LengthDbl bin_cx_scaled = (bin_type.x_min + bin_type.x_max) / 2.0 * scale;
-    LengthDbl bin_cy_scaled = (bin_type.y_min + bin_type.y_max) / 2.0 * scale;
+    LengthDbl bin_cx_scaled = (bin_type.aabb.x_min + bin_type.aabb.x_max) / 2.0 * scale;
+    LengthDbl bin_cy_scaled = (bin_type.aabb.y_min + bin_type.aabb.y_max) / 2.0 * scale;
 
     // Compute item AABB in scaled coords after rotate.
     AxisAlignedBoundingBox aabb = item_type.compute_min_max(angle, mirror, 1);
@@ -56,10 +56,10 @@ TrivialSingleItemOutput packingsolver::irregular::trivial_single_item(
     LengthDbl dy = bl_corner.y * scale;
 
     // Check that the item AABB fits within the bin AABB.
-    if (shape::strictly_lesser(dx + aabb.x_min, bin_type.x_min * scale)
-            || shape::strictly_greater(dx + aabb.x_max, bin_type.x_max * scale)
-            || shape::strictly_lesser(dy + aabb.y_min, bin_type.y_min * scale)
-            || shape::strictly_greater(dy + aabb.y_max, bin_type.y_max * scale)) {
+    if (shape::strictly_lesser(dx + aabb.x_min, bin_type.aabb.x_min * scale)
+            || shape::strictly_greater(dx + aabb.x_max, bin_type.aabb.x_max * scale)
+            || shape::strictly_lesser(dy + aabb.y_min, bin_type.aabb.y_min * scale)
+            || shape::strictly_greater(dy + aabb.y_max, bin_type.aabb.y_max * scale)) {
         algorithm_formatter.end();
         return output;
     }

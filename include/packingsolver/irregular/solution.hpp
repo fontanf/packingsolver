@@ -166,6 +166,16 @@ public:
 
     bool operator<(const Solution& solution) const;
 
+    /**
+     * Get the shape of an item in a bin transformed to world coordinates
+     * (mirror, rotate, shift applied).
+     */
+    shape::ShapeWithHoles shape_scaled(
+            BinPos bin_pos,
+            ItemPos item_pos,
+            ItemShapePos item_shape_pos,
+            double scale_value = 1.0) const;
+
     struct OverlappingItems
     {
         /** Overlapping (item_pos, border_pos) pairs. */
@@ -182,19 +192,12 @@ public:
     };
 
     /**
-     * Get the shape of an item in a bin transformed to world coordinates
-     * (mirror, rotate, shift applied).
-     */
-    shape::ShapeWithHoles shape(
-            BinPos bin_pos,
-            ItemPos item_pos,
-            ItemShapePos item_shape_pos) const;
-
-    /**
      * Compute all overlapping pairs (item/border, item/defect, item/item)
      * in the given bin using a shape::IntersectionTree.
      */
-    OverlappingItems compute_overlapping_items(BinPos bin_pos) const;
+    OverlappingItems compute_overlapping_items(
+            BinPos bin_pos,
+            const std::vector<double>* items_scale_values = nullptr) const;
 
     /*
      * Export

@@ -95,6 +95,7 @@ void Solution::add_item(
     item.angle = angle;
     item.mirror = mirror;
     bin.items.push_back(item);
+    bin.item_area += item_type.area_orig;
 
     item_area_ += bin.copies * item_type.area_orig;
     item_profit_ += bin.copies * item_type.profit;
@@ -245,22 +246,28 @@ AreaDbl Solution::open_dimension_xy_areaarea() const
     return -1;
 }
 
-shape::ShapeWithHoles Solution::shape(
+shape::ShapeWithHoles Solution::shape_scaled(
         BinPos bin_pos,
         ItemPos item_pos,
-        ItemShapePos item_shape_pos) const
+        ItemShapePos item_shape_pos,
+        double scale_value) const
 {
     const SolutionItem& solution_item = bins_[bin_pos].items[item_pos];
     const ItemType& item_type = instance().item_type(solution_item.item_type_id);
-    shape::ShapeWithHoles swh = item_type.shapes[item_shape_pos].shape_orig;
+    shape::ShapeWithHoles swh = item_type.shapes[item_shape_pos].shape_scaled;
     if (solution_item.mirror)
         swh = swh.axial_symmetry_y_axis();
     swh = swh.rotate(solution_item.angle);
-    swh.shift(solution_item.bl_corner.x, solution_item.bl_corner.y);
+    swh = scale_value * swh;
+    swh.shift(
+            this->instance().parameters().scale_value * solution_item.bl_corner.x,
+            this->instance().parameters().scale_value * solution_item.bl_corner.y);
     return swh;
 }
 
-Solution::OverlappingItems Solution::compute_overlapping_items(BinPos bin_pos) const
+Solution::OverlappingItems Solution::compute_overlapping_items(
+        BinPos bin_pos,
+        const std::vector<double>* items_scale_values) const
 {
     const SolutionBin& solution_bin = bins_[bin_pos];
     const BinType& bin_type = instance().bin_type(solution_bin.bin_type_id);
@@ -287,7 +294,7 @@ Solution::OverlappingItems Solution::compute_overlapping_items(BinPos bin_pos) c
         info.shape_type = ShapeType::Border;
         info.border_id = border_pos;
         shape_info_map.push_back(info);
-        all_shapes.push_back(bin_type.borders[border_pos].shape_orig);
+        all_shapes.push_back(bin_type.borders[border_pos].shape_scaled);
     }
 
     // Add defect shapes (already in world coordinates).
@@ -298,7 +305,7 @@ Solution::OverlappingItems Solution::compute_overlapping_items(BinPos bin_pos) c
         info.shape_type = ShapeType::Defect;
         info.defect_id = defect_pos;
         shape_info_map.push_back(info);
-        all_shapes.push_back(bin_type.defects[defect_pos].shape_orig);
+        all_shapes.push_back(bin_type.defects[defect_pos].shape_scaled);
     }
 
     // Add item shapes transformed to world coordinates.
@@ -307,6 +314,9 @@ Solution::OverlappingItems Solution::compute_overlapping_items(BinPos bin_pos) c
             ++item_pos) {
         const SolutionItem& solution_item = solution_bin.items[item_pos];
         const ItemType& item_type = instance().item_type(solution_item.item_type_id);
+        double item_scale = (items_scale_values != nullptr)? (*items_scale_values)[item_pos]: 1.0;
+        if (equal(item_scale, 0.0))
+            continue;
         for (ItemShapePos item_shape_pos = 0;
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
@@ -315,7 +325,7 @@ Solution::OverlappingItems Solution::compute_overlapping_items(BinPos bin_pos) c
             info.item_id = item_pos;
             info.item_shape_pos = item_shape_pos;
             shape_info_map.push_back(info);
-            all_shapes.push_back(this->shape(bin_pos, item_pos, item_shape_pos));
+            all_shapes.push_back(this->shape_scaled(bin_pos, item_pos, item_shape_pos, item_scale));
         }
     }
 
@@ -376,11 +386,11 @@ Solution::OverlappingItems Solution::compute_overlapping_items(BinPos bin_pos) c
         for (ItemShapePos item_shape_pos = 0;
                 !outside && item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
-            AxisAlignedBoundingBox item_aabb = this->shape(bin_pos, item_pos, item_shape_pos).shape.compute_min_max();
-            if (item_aabb.x_min < bin_type.aabb.x_min
-                    || item_aabb.x_max > bin_type.aabb.x_max
-                    || item_aabb.y_min < bin_type.aabb.y_min
-                    || item_aabb.y_max > bin_type.aabb.y_max) {
+            AxisAlignedBoundingBox item_aabb = this->shape_scaled(bin_pos, item_pos, item_shape_pos).shape.compute_min_max();
+            if (shape::strictly_lesser(item_aabb.x_min, bin_type.aabb.x_min)
+                    || shape::strictly_greater(item_aabb.x_max, bin_type.aabb.x_max)
+                    || shape::strictly_lesser(item_aabb.y_min, bin_type.aabb.y_min)
+                    || shape::strictly_greater(item_aabb.y_max, bin_type.aabb.y_max)) {
                 outside = true;
             }
         }

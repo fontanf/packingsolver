@@ -27,6 +27,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use tree search algorithm. */
     bool use_tree_search = false;
 
+    /** Use local search algorithm. */
+    bool use_local_search = false;
+
     /** Use sequential single knapsack algorithm. */
     bool use_sequential_single_knapsack = false;
 

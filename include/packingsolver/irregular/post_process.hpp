@@ -9,25 +9,37 @@ namespace packingsolver
 namespace irregular
 {
 
-struct AnchorToCornerOutput: packingsolver::Output<Instance, Solution>
+struct AnchorOutput: packingsolver::Output<Instance, Solution>
 {
-    AnchorToCornerOutput(const Instance& instance):
+    AnchorOutput(const Instance& instance):
         packingsolver::Output<Instance, Solution>(instance) { }
 };
 
-struct AnchorToCornerParameters: packingsolver::Parameters<Instance, Solution>
+struct AnchorParameters: packingsolver::Parameters<Instance, Solution>
 {
-    /** Anchor corner. */
-    Corner anchor_corner = Corner::BottomLeft;
-
     /** Linear programming solver. */
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::Highs;
 };
 
-AnchorToCornerOutput anchor_to_corner(
+/**
+ * Anchor items to a corner by sliding them as close as possible to that
+ * corner without overlapping.
+ *
+ * @param x_weight  Controls horizontal sliding direction.
+ *                  Positive values slide items towards the left;
+ *                  negative values slide towards the right.
+ *                  Use 0 to disable horizontal sliding.
+ * @param y_weight  Controls vertical sliding direction.
+ *                  Positive values slide items towards the bottom;
+ *                  negative values slide towards the top.
+ *                  Use 0 to disable vertical sliding.
+ */
+AnchorOutput anchor(
         const Solution& solution,
-        const AnchorToCornerParameters& parameters = {});
+        double x_weight,
+        double y_weight,
+        const AnchorParameters& parameters = {});
 
 }
 }
