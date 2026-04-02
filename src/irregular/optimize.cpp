@@ -738,7 +738,10 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
-        use_sequential_feasibility = false;
+        if (instance.objective() != Objective::OpenDimensionX
+                && instance.objective() != Objective::OpenDimensionY) {
+            use_sequential_feasibility = false;
+        }
         if (instance.objective() != Objective::Knapsack
                 && instance.objective() != Objective::BinPacking) {
             use_milp_raster = false;
@@ -747,7 +750,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Automatic selection.
         if (!use_tree_search
                 && !use_local_search
-                && !use_milp_raster) {
+                && !use_milp_raster
+                && !use_sequential_feasibility) {
             use_tree_search = true;
         }
     } else if (instance.objective() == Objective::Knapsack) {
