@@ -6,6 +6,7 @@
 #include "irregular/branching_scheme.hpp"
 #include "irregular/milp_raster.hpp"
 #include "irregular/local_search.hpp"
+#include "irregular/sequential_feasibility.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -657,76 +658,28 @@ void optimize_column_generation(
     columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
 }
 
-void optimize_open_dimension_sequential(
+void optimize_sequential_feasibility(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    AreaDbl a = 0;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        AxisAlignedBoundingBox aabb = item_type.compute_min_max();
-        LengthDbl dx = aabb.x_max - aabb.x_min;
-        LengthDbl dy = aabb.y_max - aabb.y_min;
-        a += dx * dy * item_type.copies;
-    }
-    LengthDbl x = std::sqrt(a / instance.parameters().open_dimension_xy_aspect_ratio);
-
-    for (Counter it = 0;; ++it) {
-        LengthDbl y = x * instance.parameters().open_dimension_xy_aspect_ratio;
-
-        // Build an instance with a single bin with dimensions (x, y).
-        InstanceBuilder sub_instance_builder;
-        sub_instance_builder.set_objective(Objective::BinPacking);
-        sub_instance_builder.set_parameters(instance.parameters());
-        sub_instance_builder.add_bin_type(shape::build_rectangle(x, y));
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            const ItemType& item_type = instance.item_type(item_type_id);
-            sub_instance_builder.add_item_type(
-                    item_type,
-                    item_type.profit,
-                    item_type.copies);
-        }
-        Instance sub_instance = sub_instance_builder.build();
-
-        // Solve the instance.
-        OptimizeParameters sub_parameters;
-        sub_parameters.verbosity_level = 0;
-        sub_parameters.timer = parameters.timer;
-        sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-        sub_parameters.optimization_mode = parameters.optimization_mode;
-        sub_parameters.not_anytime_maximum_approximation_ratio
-            = parameters.not_anytime_maximum_approximation_ratio;
-        sub_parameters.not_anytime_tree_search_queue_size
-            = parameters.not_anytime_tree_search_queue_size;
-        sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-        auto sub_output = optimize(sub_instance, sub_parameters);
-
-        // If no solution has been found, break.
-        if (!sub_output.solution_pool.best().full())
-            break;
-        Solution solution(instance);
-        solution.append(
-                sub_output.solution_pool.best(),
-                0,  // bin_pos
-                1,  // copies
-                {0});  // bin_types_ids
-        std::stringstream ss;
-        ss << "ODS it " << it;
-        algorithm_formatter.update_solution(solution, ss.str());
-
-        x = 0.99 * (std::max)(
-                solution.x_max() - solution.x_min(),
-                solution.y_max() - solution.y_min());
-        AreaDbl a = (solution.x_max() - solution.x_min()) * (solution.y_max() - solution.y_min());
-        LengthDbl x_cur = std::sqrt(a / instance.parameters().open_dimension_xy_aspect_ratio);
-        if (x > x_cur)
-            x = x_cur;
-    }
+    SequentialFeasibilityParameters sf_parameters;
+    sf_parameters.verbosity_level = 0;
+    sf_parameters.timer = parameters.timer;
+    sf_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    sf_parameters.optimization_mode = parameters.optimization_mode;
+    sf_parameters.not_anytime_maximum_approximation_ratio
+        = parameters.not_anytime_maximum_approximation_ratio;
+    sf_parameters.not_anytime_tree_search_queue_size
+        = parameters.not_anytime_tree_search_queue_size;
+    sf_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    sf_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& output) {
+        algorithm_formatter.update_solution(
+                output.solution_pool.best(),
+                "Sequential feasibility");
+    };
+    sequential_feasibility(instance, sf_parameters);
 }
 
 void optimize_milp_raster(
@@ -767,7 +720,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
-    bool use_open_dimension_sequential = parameters.use_open_dimension_sequential;
+    bool use_sequential_feasibility = parameters.use_sequential_feasibility;
     bool use_milp_raster = parameters.use_milp_raster;
     if (instance.objective() == Objective::OpenDimensionXY) {
         use_tree_search = false;
@@ -778,14 +731,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         use_dichotomic_search = false;
         use_column_generation = false;
         // Automatic selection.
-        use_open_dimension_sequential = true;
+        use_sequential_feasibility = true;
     } else if (instance.number_of_bins() <= 1) {
         // Disable algorithms which are not available for this objective.
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
-        use_open_dimension_sequential = false;
+        use_sequential_feasibility = false;
         if (instance.objective() != Objective::Knapsack
                 && instance.objective() != Objective::BinPacking) {
             use_milp_raster = false;
@@ -800,7 +753,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
-        use_open_dimension_sequential = false;
+        use_sequential_feasibility = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster
@@ -829,7 +782,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
-        use_open_dimension_sequential = false;
+        use_sequential_feasibility = false;
         if (instance.objective() == Objective::BinPackingWithLeftovers)
             use_milp_raster = false;
         // Automatic selection.
@@ -874,7 +827,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         } else {
             use_local_search = false;
         }
-        use_open_dimension_sequential = false;
+        use_sequential_feasibility = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_local_search
@@ -941,7 +894,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     }
 
     int last_algorithm =
-        (use_open_dimension_sequential)? 7:
+        (use_sequential_feasibility)? 7:
         (use_column_generation)? 6:
         (use_dichotomic_search)? 5:
         (use_sequential_value_correction)? 4:
@@ -1109,20 +1062,20 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             }
         }
     }
-    // Open dimension sequential.
-    if (use_open_dimension_sequential) {
+    // Sequential feasibility.
+    if (use_sequential_feasibility) {
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 6) {
             threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_open_dimension_sequential), optimize_open_dimension_sequential>,
+                        wrapper<decltype(&optimize_sequential_feasibility), optimize_sequential_feasibility>,
                         std::ref(exception_ptr_list.front()),
                         std::ref(instance),
                         std::ref(parameters),
                         std::ref(algorithm_formatter)));
         } else {
             try {
-                optimize_open_dimension_sequential(
+                optimize_sequential_feasibility(
                         instance,
                         parameters,
                         algorithm_formatter);

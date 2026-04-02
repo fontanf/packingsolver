@@ -42,8 +42,8 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use column generation algorithm. */
     bool use_column_generation = false;
 
-    /** Use open dimension algorithm. */
-    bool use_open_dimension_sequential = false;
+    /** Use sequential feasibility algorithm. */
+    bool use_sequential_feasibility = false;
 
     /** Use MILP raster algorithm. */
     bool use_milp_raster = false;
