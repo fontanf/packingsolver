@@ -342,6 +342,10 @@ bool Solution::operator<(const Solution& solution) const
         return solution.height() < height();
     } case Objective::Knapsack: {
         return strictly_greater(solution.profit(), profit());
+    } case Objective::Feasibility: {
+        if (solution.full() != full())
+            return solution.full();
+        return strictly_greater(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
         if (!solution.full())
             return false;

@@ -326,7 +326,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
 
         // Build subproblem instance.
         InstanceBuilder sub_instance_builder;
-        sub_instance_builder.set_objective(Objective::Knapsack);
+        sub_instance_builder.set_objective(Objective::Feasibility);
         sub_instance_builder.set_parameters(instance.parameters());
         sub_instance_builder.add_bin_type(bin_type, 1);
         std::vector<ItemTypeId> sub_to_orig;

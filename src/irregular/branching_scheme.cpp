@@ -1953,6 +1953,8 @@ bool BranchingScheme::better(
         return node_2->y_max > node_1->y_max;
     } case Objective::Knapsack: {
         return node_2->profit < node_1->profit;
+    } case Objective::Feasibility: {
+        return node_2->profit < node_1->profit;
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
@@ -1986,6 +1988,10 @@ bool BranchingScheme::bound(
             return (node_1->leftover_value <= node_2->leftover_value);
         }
     } case Objective::Knapsack: {
+        if (leaf(node_2))
+            return true;
+        return false;
+    } case Objective::Feasibility: {
         if (leaf(node_2))
             return true;
         return false;

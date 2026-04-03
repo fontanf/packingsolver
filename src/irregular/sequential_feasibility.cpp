@@ -68,7 +68,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                 {{bin_type.shape_orig}, {restricting_rect}});
 
         InstanceBuilder sub_instance_builder;
-        sub_instance_builder.set_objective(Objective::BinPacking);
+        sub_instance_builder.set_objective(Objective::Feasibility);
         sub_instance_builder.set_parameters(instance.parameters());
         sub_instance_builder.add_bin_type(intersection[0].shape);
         sub_instance_builder.set_item_bin_minimum_spacing(

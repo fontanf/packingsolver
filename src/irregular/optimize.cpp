@@ -743,7 +743,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             use_sequential_feasibility = false;
         }
         if (instance.objective() != Objective::Knapsack
-                && instance.objective() != Objective::BinPacking) {
+                && instance.objective() != Objective::BinPacking
+                && instance.objective() != Objective::Feasibility) {
             use_milp_raster = false;
             use_local_search = false;
         }
@@ -881,7 +882,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     if (instance.number_of_items() == 1
             && instance.number_of_bins() == 1
             && (instance.objective() == Objective::Knapsack
-                || instance.objective() == Objective::BinPacking)) {
+                || instance.objective() == Objective::BinPacking
+                || instance.objective() == Objective::Feasibility)) {
         optimize_trivial_single_item(
                 instance,
                 parameters,
