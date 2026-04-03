@@ -1030,6 +1030,8 @@ bool BranchingScheme::better(
         return node_2->xe_max > node_1->xe_max;
     } case Objective::Knapsack: {
         return node_2->profit < node_1->profit;
+    } case Objective::Feasibility: {
+        return node_2->profit < node_1->profit;
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         if (node_1->profit != node_2->profit)
             return node_1->profit > node_2->profit;
@@ -1084,6 +1086,10 @@ bool BranchingScheme::bound(
             return (node_1->leftover_value <= node_2->leftover_value);
         }
     } case Objective::Knapsack: {
+        if (leaf(node_2))
+            return true;
+        return false;
+    } case Objective::Feasibility: {
         if (leaf(node_2))
             return true;
         return false;

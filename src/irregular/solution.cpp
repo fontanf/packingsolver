@@ -439,6 +439,10 @@ bool Solution::operator<(const Solution& solution) const
         return strictly_lesser(solution.open_dimension_xy_areaarea(), open_dimension_xy_areaarea());
     } case Objective::Knapsack: {
         return strictly_greater(solution.profit(), profit());
+    } case Objective::Feasibility: {
+        if (solution.full() != full())
+            return solution.full();
+        return strictly_greater(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
         if (!solution.full())
             return false;

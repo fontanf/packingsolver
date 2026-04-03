@@ -1402,6 +1402,8 @@ bool BranchingScheme::better(
         return node_2->xe_max > node_1->xe_max;
     } case Objective::Knapsack: {
         return node_2->profit < node_1->profit;
+    } case Objective::Feasibility: {
+        return node_2->profit < node_1->profit;
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
@@ -1445,6 +1447,10 @@ bool BranchingScheme::bound(
             return false;
         return node_1->waste >= node_2->waste;
     } case Objective::Knapsack: {
+        if (leaf(node_2))
+            return true;
+        return false;
+    } case Objective::Feasibility: {
         if (leaf(node_2))
             return true;
         return false;

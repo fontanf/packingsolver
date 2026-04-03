@@ -117,6 +117,10 @@ bool BranchingScheme::bound(
         return node_1->waste > node_2->waste;
     } case Objective::Knapsack: {
         return ubkp(*node_1) <= node_2->profit;
+    } case Objective::Feasibility: {
+        if (leaf(node_2))
+            return true;
+        return false;
     } case Objective::OpenDimensionX: {
         if (!leaf(node_2))
             return false;
@@ -182,6 +186,8 @@ bool BranchingScheme::better(
             return true;
         return height(*node_2) > height(*node_1);
     } case Objective::Knapsack: {
+        return node_2->profit < node_1->profit;
+    } case Objective::Feasibility: {
         return node_2->profit < node_1->profit;
     } default: {
         std::stringstream ss;

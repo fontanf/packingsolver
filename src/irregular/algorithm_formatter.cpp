@@ -123,6 +123,19 @@ void AlgorithmFormatter::print_header()
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
+    } case Objective::Feasibility: {
+        *os_
+                << std::setw(12) << "Time"
+                << std::setw(14) << "Profit"
+                << std::setw(10) << "# items"
+                << std::setw(32) << "Comment"
+                << std::endl
+                << std::setw(12) << "----"
+                << std::setw(14) << "------"
+                << std::setw(10) << "-------"
+                << std::setw(32) << "-------"
+                << std::endl;
+        break;
     } case Objective::VariableSizedBinPacking: {
         *os_
                 << std::setw(12) << "Time"
@@ -203,6 +216,14 @@ void AlgorithmFormatter::print(
                 << std::setw(32) << s
                 << std::endl;
         break;
+    } case Objective::Feasibility: {
+        *os_
+                << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
+                << std::setw(14) << output_.solution_pool.best().profit()
+                << std::setw(10) << output_.solution_pool.best().number_of_items()
+                << std::setw(32) << s
+                << std::endl;
+        break;
     } case Objective::VariableSizedBinPacking: {
         *os_
                 << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
@@ -242,6 +263,10 @@ void AlgorithmFormatter::update_solution(
         } else if (instance_.objective() == Objective::BinPacking) {
             if (output_.solution_pool.best().full()
                     && output_.bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
+                end_ = true;
+            }
+        } else if (instance_.objective() == Objective::Feasibility) {
+            if (output_.solution_pool.best().full()) {
                 end_ = true;
             }
         }

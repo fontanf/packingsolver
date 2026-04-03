@@ -198,6 +198,9 @@ std::ostream& packingsolver::operator<<(
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         os << "SequentialOneDimensionalRectangleSubproblem";
         break;
+    } case Objective::Feasibility: {
+        os << "Feasibility";
+        break;
     }
     }
     return os;

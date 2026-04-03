@@ -137,6 +137,7 @@ enum class Objective
     Knapsack,
     VariableSizedBinPacking,
     SequentialOneDimensionalRectangleSubproblem,
+    Feasibility,
 };
 
 std::istream& operator>>(
