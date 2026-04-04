@@ -2,7 +2,6 @@
 #include "irregular/linear_programming.hpp"
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
-#include "packingsolver/irregular/instance_builder.hpp"
 
 #include "shape/boolean_operations.hpp"
 //#include "shape/writer.hpp"
@@ -219,21 +218,22 @@ bool pack_item(
     return true;
 }
 
-void local_search_bin_packing(
+}  // namespace
+
+LocalSearchOutput packingsolver::irregular::local_search(
         const Instance& instance,
-        const LocalSearchParameters& parameters,
-        LocalSearchOutput& output,
-        AlgorithmFormatter& algorithm_formatter)
+        const LocalSearchParameters& parameters)
 {
+    LocalSearchOutput output(instance);
+
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
+
     std::mt19937_64 rng(parameters.seed);
 
-    // Open bins: one per item, capped at the available bin count.
-    const BinPos number_of_bins = std::min(
-            (BinPos)instance.number_of_items(),
-            instance.number_of_bins());
-
     Solution solution(instance);
-    for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos)
+    for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos)
         solution.add_bin(instance.bin_type_id(bin_pos), 1);
 
     // Build a flat list of all item copies sorted ascending by area so that
@@ -253,130 +253,13 @@ void local_search_bin_packing(
             });
 
     // Per-bin state.
-    std::vector<LocalSearchBinData> bin_data(number_of_bins);
-    for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
+    std::vector<LocalSearchBinData> bin_data(instance.number_of_bins());
+    for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos) {
         const BinType& bin_type = instance.bin_type(instance.bin_type_id(bin_pos));
         bin_data[bin_pos].remaining_area = bin_type.area_scaled;
     }
 
-    for (BinPos target_bins = number_of_bins; target_bins >= 1; --target_bins) {
-        if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
-            break;
-
-        // While the solution is incomplete, add one unpacked item to a bin,
-        // then immediately run minimize_shrinkage on that bin until it is
-        // feasible before moving on to the next item.
-        while (!unpacked_items.empty()) {
-            if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
-                break;
-            const ItemTypeId item_type_id = unpacked_items.back();
-            unpacked_items.pop_back();
-            if (!pack_item(
-                    instance,
-                    rng,
-                    item_type_id,
-                    solution,
-                    bin_data,
-                    algorithm_formatter,
-                    parameters))
-                break;
-        }
-        if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
-            break;
-
-        // The solution is now complete and all items are at full scale.
-        std::stringstream ss;
-        ss << "bins " << solution.number_of_bins();
-        algorithm_formatter.update_solution(solution, ss.str());
-
-        if (target_bins == 1)
-            break;
-
-        // Remove the last bin and move its items to the unpacked list.
-        const BinPos last_bin_pos = solution.number_of_bins() - 1;
-        const SolutionBin& last_bin = solution.bin(last_bin_pos);
-
-        for (const SolutionItem& solution_item: last_bin.items)
-            unpacked_items.push_back(solution_item.item_type_id);
-        std::sort(unpacked_items.begin(), unpacked_items.end(),
-                [&](ItemTypeId a, ItemTypeId b) {
-                    return instance.item_type(a).area_orig < instance.item_type(b).area_orig;
-                });
-
-        // Rebuild the solution without the last bin.
-        Solution new_solution(instance);
-        for (BinPos bin_pos = 0; bin_pos < last_bin_pos; ++bin_pos)
-            new_solution.append(solution, bin_pos, 1);
-        solution = std::move(new_solution);
-
-        bin_data.resize(last_bin_pos);
-    }
-
-    (void)output;
-}
-
-void local_search_open_dimension_x(
-        const Instance& instance,
-        const LocalSearchParameters& parameters,
-        LocalSearchOutput& output,
-        AlgorithmFormatter& algorithm_formatter)
-{
-    std::mt19937_64 rng(parameters.seed);
-
-    const BinType& original_bin_type = instance.bin_type(instance.bin_type_id(0));
-
-    // Build a BinPacking sub-instance with a single bin whose shape is the
-    // intersection of the original bin shape with a rectangle restricted to
-    // x ≤ bin_x_max.  Items are copied in the same order so that item_type_ids
-    // are identical in both instances.
-    auto make_sub_instance = [&](LengthDbl bin_x_max) -> Instance {
-        AxisAlignedBoundingBox restricting_aabb;
-        restricting_aabb.x_min = original_bin_type.aabb.x_min;
-        restricting_aabb.x_max = bin_x_max;
-        restricting_aabb.y_min = original_bin_type.aabb.y_min;
-        restricting_aabb.y_max = original_bin_type.aabb.y_max;
-        const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
-
-        const std::vector<shape::ShapeWithHoles> intersection = shape::compute_intersection(
-                        {{original_bin_type.shape_orig},
-                        {restricting_rect}});
-
-        InstanceBuilder instance_builder;
-        instance_builder.set_objective(Objective::BinPacking);
-        instance_builder.set_parameters(instance.parameters());
-        instance_builder.add_bin_type(intersection[0].shape);
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            const ItemType& item_type = instance.item_type(item_type_id);
-            instance_builder.add_item_type(item_type, item_type.profit, item_type.copies);
-        }
-        return instance_builder.build();
-    };
-
-    // Build a flat list of all item copies sorted ascending by area so that
-    // pop_back processes the largest items first.
-    std::vector<ItemTypeId> unpacked_items;
-    unpacked_items.reserve(instance.number_of_items());
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        for (ItemPos copy = 0; copy < item_type.copies; ++copy)
-            unpacked_items.push_back(item_type_id);
-    }
-    std::sort(unpacked_items.begin(), unpacked_items.end(),
-            [&](ItemTypeId a, ItemTypeId b) {
-                return instance.item_type(a).area_orig < instance.item_type(b).area_orig;
-            });
-
-    // Pack all items into the original bin (no width restriction yet).
-    Solution solution(instance);
-    solution.add_bin(instance.bin_type_id(0), 1);
-
-    std::vector<LocalSearchBinData> bin_data(1);
-    bin_data[0].remaining_area = original_bin_type.area_scaled;
-
+    // Pack all items into the available bins.
     while (!unpacked_items.empty()) {
         if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
             break;
@@ -389,164 +272,13 @@ void local_search_open_dimension_x(
                 solution,
                 bin_data,
                 algorithm_formatter,
-                parameters)) {
+                parameters))
             break;
-        }
-
-        // Slide all items as far left as possible before measuring the initial width.
-        solution = linear_programming_anchor(solution, 1.0, 1.0).solution;
-    }
-    if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
-        return;
-
-    // Record the initial feasible solution.
-    LengthDbl best_x_max = solution.x_max();
-    {
-        std::stringstream ss;
-        ss << "x_max " << best_x_max;
-        algorithm_formatter.update_solution(solution, ss.str());
     }
 
-    // Iteratively evict the rightmost item and try to fit everything into a
-    // sub-instance whose bin is restricted to x ≤ best_x_max.  The bin
-    // containment constraints of the LP guarantee new x_max ≤ best_x_max;
-    // if strictly smaller we have an improvement.
-    for (;;) {
-        if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
-            break;
-
-        const SolutionBin& bin = solution.bin(0);
-        if ((ItemPos)bin.items.size() <= 1)
-            break;
-
-        // Build a sub-instance with 95% of the current best width.
-        const LengthDbl new_bin_x_max = 0.95 * best_x_max;
-        const Instance sub_instance = make_sub_instance(new_bin_x_max);
-
-        // Identify items whose right edge exceeds the new bin width; they must
-        // be removed and re-packed.
-        std::vector<ItemPos> positions_to_remove;
-        for (ItemPos item_pos = 0; item_pos < (ItemPos)bin.items.size(); ++item_pos) {
-            const SolutionItem& si = bin.items[item_pos];
-            const ItemType& it = instance.item_type(si.item_type_id);
-            const AxisAlignedBoundingBox aabb = it.compute_min_max(si.angle, si.mirror);
-            if (si.bl_corner.x + aabb.x_max > new_bin_x_max)
-                positions_to_remove.push_back(item_pos);
-        }
-
-        // Collect item types to re-pack, sorted largest-first.
-        std::vector<ItemTypeId> items_to_repack;
-        for (ItemPos item_pos : positions_to_remove)
-            items_to_repack.push_back(bin.items[item_pos].item_type_id);
-        std::sort(items_to_repack.begin(), items_to_repack.end(),
-                [&](ItemTypeId a, ItemTypeId b) {
-                    return instance.item_type(a).area_orig > instance.item_type(b).area_orig;
-                });
-
-        // Build sub-solution with the items that remain inside the new bin.
-        Solution sub_solution(sub_instance);
-        sub_solution.add_bin(0, 1);
-        {
-            std::size_t remove_idx = 0;
-            for (ItemPos item_pos = 0; item_pos < (ItemPos)bin.items.size(); ++item_pos) {
-                if (remove_idx < positions_to_remove.size()
-                        && positions_to_remove[remove_idx] == item_pos) {
-                    ++remove_idx;
-                    continue;
-                }
-                const SolutionItem& si = bin.items[item_pos];
-                sub_solution.add_item(0, si.item_type_id, si.bl_corner, si.angle, si.mirror);
-            }
-        }
-
-        // Build sub-bin data, carrying over penalties and lambdas for items
-        // that remain; erase entries for removed items (highest index first).
-        std::vector<LocalSearchBinData> sub_bin_data(1);
-        sub_bin_data[0].item_penalties = bin_data[0].item_penalties;
-        sub_bin_data[0].lambda = bin_data[0].lambda;
-        for (auto it = positions_to_remove.rbegin(); it != positions_to_remove.rend(); ++it) {
-            sub_bin_data[0].item_penalties.erase(
-                    sub_bin_data[0].item_penalties.begin() + *it);
-            sub_bin_data[0].lambda.erase(
-                    sub_bin_data[0].lambda.begin() + *it);
-        }
-        sub_bin_data[0].remaining_area = sub_instance.bin_type(0).area_scaled;
-        {
-            std::size_t remove_idx = 0;
-            for (ItemPos item_pos = 0; item_pos < (ItemPos)bin.items.size(); ++item_pos) {
-                if (remove_idx < positions_to_remove.size()
-                        && positions_to_remove[remove_idx] == item_pos) {
-                    ++remove_idx;
-                    continue;
-                }
-                sub_bin_data[0].remaining_area -=
-                        sub_instance.item_type(bin.items[item_pos].item_type_id).area_scaled;
-            }
-        }
-
-        // Re-pack each item that was outside the new bin.
-        bool ok = true;
-        for (ItemTypeId item_type_id : items_to_repack) {
-            if (!pack_item(
-                    sub_instance,
-                    rng,
-                    item_type_id,
-                    sub_solution,
-                    sub_bin_data,
-                    algorithm_formatter,
-                    parameters)) {
-                ok = false;
-                break;
-            }
-        }
-        if (!ok)
-            break;
-
-        // Convert the sub-solution back to the original instance.
-        // bin_type_ids: sub bin type 0 → original bin type 0.
-        // item_type_ids: identity (items added in the same order).
-        Solution new_solution(instance);
-        new_solution.append(sub_solution, 0, 1, {instance.bin_type_id(0)}, {});
-        solution = std::move(new_solution);
-        bin_data[0] = std::move(sub_bin_data[0]);
-
-        // Slide all items as far left as possible before measuring the initial width.
-        solution = linear_programming_anchor(solution, 1.0, 1.0).solution;
-
-        // Check for improvement.
-        best_x_max = solution.x_max();
-
-        std::stringstream ss;
-        ss << "x_max " << solution.x_max();
-        algorithm_formatter.update_solution(solution, ss.str());
-    }
-}
-
-}  // namespace
-
-LocalSearchOutput packingsolver::irregular::local_search(
-        const Instance& instance,
-        const LocalSearchParameters& parameters)
-{
-    LocalSearchOutput output(instance);
-
-    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
-    algorithm_formatter.start();
-    algorithm_formatter.print_header();
-
-    switch (instance.objective()) {
-    case Objective::BinPacking:
-    case Objective::BinPackingWithLeftovers:
-        local_search_bin_packing(instance, parameters, output, algorithm_formatter);
-        break;
-    case Objective::OpenDimensionX:
-        local_search_open_dimension_x(instance, parameters, output, algorithm_formatter);
-        break;
-    default:
-        throw std::invalid_argument(
-                "local_search: unsupported objective "
-                + std::to_string(static_cast<int>(instance.objective())));
-    }
+    std::stringstream ss;
+    ss << "LS";
+    algorithm_formatter.update_solution(solution, ss.str());
 
     algorithm_formatter.end();
     return output;

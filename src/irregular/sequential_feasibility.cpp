@@ -39,10 +39,15 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
     LengthDbl x = 0;
     LengthDbl y = 0;
     if (instance.objective() == Objective::BinPacking) {
-        current_number_of_bins = instance.number_of_bins();
+        current_number_of_bins = std::min(
+                (BinPos)instance.number_of_items(),
+                instance.number_of_bins());
     } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-        current_number_of_bins = instance.number_of_bins();
-        const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
+        current_number_of_bins = std::min(
+                (BinPos)instance.number_of_items(),
+                instance.number_of_bins());
+        BinTypeId bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
+        const BinType& bin_type = instance.bin_type(bin_type_id);
         x = bin_type.aabb.x_max - bin_type.aabb.x_min;
     } else if (instance.objective() == Objective::OpenDimensionX) {
         const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
@@ -62,6 +67,9 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             break;
         if (parameters.timer.needs_to_end())
             break;
+        //std::cout << "current_number_of_bins " << current_number_of_bins
+        //    << " x " << x
+        //    << " y " << y << std::endl;
 
         // Build the Feasibility sub-instance.
         InstanceBuilder sub_instance_builder;
@@ -170,16 +178,22 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             if (current_number_of_bins == 0)
                 break;
         } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            const BinType& bin_type = instance.bin_type(
-                    instance.bin_type_id(current_number_of_bins - 1));
+            BinTypeId bin_type_id = instance.bin_type_id(solution.number_of_bins() - 1);
+            const BinType& bin_type = instance.bin_type(bin_type_id);
             x = 0.99 * (solution.x_max() - bin_type.aabb.x_min)
                 + bin_type.item_bin_minimum_spacing;
-            if (x < bin_type.aabb.x_min) {
-                current_number_of_bins--;
+            if (solution.number_of_bins() < current_number_of_bins) {
+                current_number_of_bins = solution.number_of_bins();
+                BinTypeId bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
+                const BinType& bin_type = instance.bin_type(bin_type_id);
+                x = bin_type.aabb.x_max;
+            } else if (!strictly_greater(x, bin_type.aabb.x_min + bin_type.item_bin_minimum_spacing)) {
+                current_number_of_bins = solution.number_of_bins() - 1;
                 if (current_number_of_bins == 0)
                     break;
-                x = instance.bin_type(
-                        instance.bin_type_id(current_number_of_bins - 1)).aabb.x_max;
+                BinTypeId bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
+                const BinType& bin_type = instance.bin_type(bin_type_id);
+                x = bin_type.aabb.x_max;
             }
         } else if (instance.objective() == Objective::OpenDimensionX) {
             const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
