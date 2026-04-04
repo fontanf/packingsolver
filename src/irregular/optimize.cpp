@@ -733,7 +733,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (instance.objective() == Objective::Knapsack)
             use_sequential_feasibility = false;
         if (instance.objective() != Objective::Knapsack
-                && instance.objective() != Objective::BinPacking
                 && instance.objective() != Objective::Feasibility) {
             use_milp_raster = false;
         }
@@ -815,8 +814,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             use_column_generation = false;
         use_dichotomic_search = false;
         use_local_search = false;
-        if (instance.objective() == Objective::BinPackingWithLeftovers)
-            use_milp_raster = false;
+        use_milp_raster = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster

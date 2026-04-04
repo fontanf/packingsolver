@@ -929,7 +929,7 @@ def convert_calendar_puzzle():
                 item_types.append(item_type)
 
             dic = {
-                "objective": "bin-packing",
+                "objective": "feasibility",
                 "bin_types": [
                     {
                         "type": "polygon",

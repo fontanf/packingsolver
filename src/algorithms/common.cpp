@@ -121,6 +121,10 @@ std::istream& packingsolver::operator>>(
     if (token == "default"
             || token == "Default") {
         objective = Objective::Default;
+    } else if (token == "feasibility"
+            || token == "Feasibility"
+            || token == "F") {
+        objective = Objective::Feasibility;
     } else if (token == "bin-packing"
             || token == "BinPacking"
             || token == "BPP") {
@@ -171,6 +175,9 @@ std::ostream& packingsolver::operator<<(
     case Objective::Default: {
         os << "Default";
         break;
+    } case Objective::Feasibility: {
+        os << "Feasibility";
+        break;
     } case Objective::BinPacking: {
         os << "BinPacking";
         break;
@@ -197,9 +204,6 @@ std::ostream& packingsolver::operator<<(
         break;
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         os << "SequentialOneDimensionalRectangleSubproblem";
-        break;
-    } case Objective::Feasibility: {
-        os << "Feasibility";
         break;
     }
     }
