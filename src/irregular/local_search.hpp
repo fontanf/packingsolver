@@ -28,9 +28,7 @@ struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution>
 };
 
 /**
- * Run the appropriate local search algorithm depending on the objective of
- * the instance (BinPacking → local_search_bin_packing, OpenDimensionX →
- * local_search_open_dimension_x).
+ * Run the local search algorithm for instances with objective Feasibility.
  */
 LocalSearchOutput local_search(
         const Instance& instance,

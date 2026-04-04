@@ -736,6 +736,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 && instance.objective() != Objective::BinPacking
                 && instance.objective() != Objective::Feasibility) {
             use_milp_raster = false;
+        }
+        if (instance.objective() != Objective::Feasibility) {
             use_local_search = false;
         }
         // Automatic selection.
@@ -751,12 +753,12 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
+        use_local_search = false;
         use_dichotomic_search = false;
         use_sequential_feasibility = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster
-                && !use_local_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -775,18 +777,50 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 use_column_generation = true;
             }
         }
+    } else if (instance.objective() == Objective::Feasibility) {
+        // Disable algorithms which are not available for this objective.
+        use_dichotomic_search = false;
+        use_sequential_feasibility = false;
+        // Automatic selection.
+        if (!use_tree_search
+                && !use_milp_raster
+                && !use_local_search
+                && !use_column_generation) {
+            use_tree_search = true;
+            //if (mean_item_type_copies(instance)
+            //        > parameters.many_item_type_copies_factor
+            //        * mean_number_of_items_in_bins) {
+            //    if (mean_number_of_items_in_bins
+            //            > parameters.many_items_in_bins_threshold) {
+            //        use_sequential_single_knapsack = true;
+            //    } else {
+            //        use_sequential_value_correction = true;
+            //        use_column_generation = true;
+            //    }
+            //} else {
+            //    use_tree_search = true;
+            //    if (mean_number_of_items_in_bins
+            //            > parameters.many_items_in_bins_threshold) {
+            //        use_sequential_single_knapsack = true;
+            //    } else {
+            //        use_sequential_value_correction = true;
+            //        use_column_generation = true;
+            //    }
+            //}
+        }
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
+        use_local_search = false;
         if (instance.objective() == Objective::BinPackingWithLeftovers)
             use_milp_raster = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster
-                && !use_local_search
+                && !use_sequential_feasibility
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -816,14 +850,12 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
         use_milp_raster = false;
+        use_local_search = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
                 use_tree_search = true;
-                use_local_search = true;
             }
-        } else {
-            use_local_search = false;
         }
         use_sequential_feasibility = false;
         // Automatic selection.
