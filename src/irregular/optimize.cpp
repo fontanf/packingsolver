@@ -722,26 +722,16 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_column_generation = parameters.use_column_generation;
     bool use_sequential_feasibility = parameters.use_sequential_feasibility;
     bool use_milp_raster = parameters.use_milp_raster;
-    if (instance.objective() == Objective::OpenDimensionXY) {
-        use_tree_search = false;
-        use_milp_raster = false;
-        use_local_search = false;
-        use_sequential_single_knapsack = false;
-        use_sequential_value_correction = false;
-        use_dichotomic_search = false;
-        use_column_generation = false;
-        // Automatic selection.
-        use_sequential_feasibility = true;
-    } else if (instance.number_of_bins() <= 1) {
+    if (instance.number_of_bins() <= 1) {
         // Disable algorithms which are not available for this objective.
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
-        if (instance.objective() != Objective::OpenDimensionX
-                && instance.objective() != Objective::OpenDimensionY) {
+        if (instance.objective() == Objective::OpenDimensionXY)
+            use_tree_search = false;
+        if (instance.objective() == Objective::Knapsack)
             use_sequential_feasibility = false;
-        }
         if (instance.objective() != Objective::Knapsack
                 && instance.objective() != Objective::BinPacking
                 && instance.objective() != Objective::Feasibility) {
@@ -753,7 +743,11 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 && !use_local_search
                 && !use_milp_raster
                 && !use_sequential_feasibility) {
-            use_tree_search = true;
+            if (instance.objective() == Objective::OpenDimensionXY) {
+                use_sequential_feasibility = true;
+            } else {
+                use_tree_search = true;
+            }
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
@@ -787,7 +781,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
-        use_sequential_feasibility = false;
         if (instance.objective() == Objective::BinPackingWithLeftovers)
             use_milp_raster = false;
         // Automatic selection.
