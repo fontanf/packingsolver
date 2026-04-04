@@ -554,10 +554,14 @@ Solution linear_programming_anchor(
                 item_pos < (ItemPos)solution_bin.items.size();
                 ++item_pos) {
             const AxisAlignedBoundingBox& ia = item_aabbs[item_pos].item_aabb;
-            item_bin_bounds[item_pos].x_min = bin_type.aabb.x_min * instance.parameters().scale_value - ia.x_min;
-            item_bin_bounds[item_pos].x_max = bin_type.aabb.x_max * instance.parameters().scale_value - ia.x_max;
-            item_bin_bounds[item_pos].y_min = bin_type.aabb.y_min * instance.parameters().scale_value - ia.y_min;
-            item_bin_bounds[item_pos].y_max = bin_type.aabb.y_max * instance.parameters().scale_value - ia.y_max;
+            LengthDbl x_min = (x_weight < 0)? solution.x_min(): bin_type.aabb.x_min;
+            LengthDbl x_max = (x_weight > 0)? solution.x_max(): bin_type.aabb.x_max;
+            LengthDbl y_min = (y_weight < 0)? solution.y_min(): bin_type.aabb.y_min;
+            LengthDbl y_max = (y_weight > 0)? solution.y_max(): bin_type.aabb.y_max;
+            item_bin_bounds[item_pos].x_min = x_min * instance.parameters().scale_value - ia.x_min;
+            item_bin_bounds[item_pos].x_max = x_max * instance.parameters().scale_value - ia.x_max;
+            item_bin_bounds[item_pos].y_min = y_min * instance.parameters().scale_value - ia.y_min;
+            item_bin_bounds[item_pos].y_max = y_max * instance.parameters().scale_value - ia.y_max;
         }
 
         IntersectingParts intersecting_parts = compute_potentially_intersecting_parts(
