@@ -147,6 +147,9 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         sub_parameters.not_anytime_tree_search_queue_size
             = parameters.not_anytime_tree_search_queue_size;
         sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+        sub_parameters.use_tree_search = parameters.use_tree_search;
+        sub_parameters.use_local_search = parameters.use_local_search;
+        sub_parameters.use_milp_raster = parameters.use_milp_raster;
         auto sub_output = optimize(sub_instance, sub_parameters);
 
         // If no feasible solution found, stop.
