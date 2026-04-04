@@ -253,15 +253,17 @@ Solution solve_milp_raster_for_cell_size(
     model.variables_types.assign(total_placements, mathoptsolverscmake::VariableType::Integer);
     model.objective_coefficients.assign(total_placements, 0.0);
 
-    for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
-        BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
-        const BinTypeData& data = bin_type_data[bin_type_id];
-        for (PlacementId placement_id = 0;
-                placement_id < (PlacementId)data.base_placements.size();
-                ++placement_id) {
-            const BasePlacement& bp = data.base_placements[placement_id];
-            const ItemType& item_type = instance.item_type(bp.item_type_id);
-            model.objective_coefficients[global_offset[bin_pos] + placement_id] = item_type.profit;
+    if (instance.objective() == Objective::Knapsack) {
+        for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
+            BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
+            const BinTypeData& data = bin_type_data[bin_type_id];
+            for (PlacementId placement_id = 0;
+                    placement_id < (PlacementId)data.base_placements.size();
+                    ++placement_id) {
+                const BasePlacement& bp = data.base_placements[placement_id];
+                const ItemType& item_type = instance.item_type(bp.item_type_id);
+                model.objective_coefficients[global_offset[bin_pos] + placement_id] = item_type.profit;
+            }
         }
     }
 
@@ -271,7 +273,11 @@ Solution solve_milp_raster_for_cell_size(
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
         model.constraints_starts.push_back(model.elements_variables.size());
-        model.constraints_lower_bounds.push_back(0.0);
+        if (instance.objective() == Objective::Feasibility) {
+            model.constraints_lower_bounds.push_back(item_type.copies);
+        } else {
+            model.constraints_lower_bounds.push_back(0.0);
+        }
         model.constraints_upper_bounds.push_back((double)item_type.copies);
         for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
             BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
@@ -346,6 +352,7 @@ Solution solve_milp_raster_for_cell_size(
                     HighsCallbackInput* highs_input,
                     void*)
                 {
+                    // Check bound (Knapsack only).
                     if (instance.objective() == Objective::Knapsack) {
                         if (!highs_output->mip_solution.empty()) {
                             // Retrieve solution.
@@ -355,13 +362,7 @@ Solution solve_milp_raster_for_cell_size(
                                 algorithm_formatter.update_solution(solution, "node " + std::to_string(highs_output->mip_node_count));
                             }
                         }
-                        // Check bound.
                         if (!shape::strictly_greater(highs_output->mip_dual_bound, output.solution_pool.best().profit()))
-                            highs_input->user_interrupt = 1;
-
-                    } else if (instance.objective() == Objective::BinPacking) {
-                        // Check bound.
-                        if (shape::strictly_lesser(highs_output->mip_dual_bound, instance.item_profit()))
                             highs_input->user_interrupt = 1;
                     }
 
@@ -397,8 +398,9 @@ MilpRasterOutput packingsolver::irregular::milp_raster(
     algorithm_formatter.print_header();
 
     if (instance.objective() != Objective::Knapsack
-            && instance.objective() != Objective::BinPacking)
+            && instance.objective() != Objective::Feasibility) {
         throw std::invalid_argument(FUNC_SIGNATURE + ": unsupported objective.");
+    }
 
     LengthDbl gcd = -1;
     for (ItemTypeId item_type_id = 0;
@@ -444,44 +446,20 @@ MilpRasterOutput packingsolver::irregular::milp_raster(
 
     const std::vector<std::vector<Angle>> item_type_rotations = compute_item_type_rotations(instance);
 
-    if (instance.objective() == Objective::Knapsack) {
-        for (; ; cell_size /= 2) {
-            if (parameters.timer.needs_to_end())
-                break;
-            Solution solution = solve_milp_raster_for_cell_size(
-                    instance,
-                    item_type_rotations,
-                    parameters,
-                    output,
-                    algorithm_formatter,
-                    cell_size,
-                    instance.number_of_bins());
-            algorithm_formatter.update_solution(solution, "milp-raster cs=" + std::to_string(cell_size));
-            if (algorithm_formatter.end_boolean())
-                break;
-        }
-    } else {
-        BinPos number_of_bins = std::min(instance.number_of_bins(), (BinPos)instance.number_of_items());
-        while (!parameters.timer.needs_to_end()) {
-            Solution solution = solve_milp_raster_for_cell_size(
-                    instance,
-                    item_type_rotations,
-                    parameters,
-                    output,
-                    algorithm_formatter,
-                    cell_size,
-                    number_of_bins);
-            if (solution.full()) {
-                algorithm_formatter.update_solution(solution, "milp-raster cs=" + std::to_string(cell_size));
-                if (algorithm_formatter.end_boolean())
-                    break;
-                number_of_bins = solution.number_of_bins() - 1;
-                if (number_of_bins == 0)
-                    break;
-            } else {
-                cell_size /= std::sqrt(2.0);
-            }
-        }
+    for (; ; cell_size /= 2) {
+        if (parameters.timer.needs_to_end())
+            break;
+        Solution solution = solve_milp_raster_for_cell_size(
+                instance,
+                item_type_rotations,
+                parameters,
+                output,
+                algorithm_formatter,
+                cell_size,
+                instance.number_of_bins());
+        algorithm_formatter.update_solution(solution, "milp-raster cs=" + std::to_string(cell_size));
+        if (algorithm_formatter.end_boolean())
+            break;
     }
 
     algorithm_formatter.end();
