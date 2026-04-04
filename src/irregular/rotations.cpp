@@ -110,6 +110,8 @@ std::vector<std::vector<Angle>> packingsolver::irregular::compute_item_type_rota
 
     // Score each candidate rotation by (bounding_box_area - convex_hull_area).
     // Convex hull area is rotation-invariant; bounding box area is not.
+    // Rotations that produce the same shape (up to translation) are deduplicated
+    // by comparing normalized rotated shapes using shape::equal.
     struct RotationCandidate
     {
         ItemTypeId item_type_id = -1;
@@ -122,11 +124,16 @@ std::vector<std::vector<Angle>> packingsolver::irregular::compute_item_type_rota
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
         AreaDbl convex_hull_area = 0.0;
         for (const Shape& ch: item_shapes_convex_hulls[item_type_id])
             convex_hull_area += ch.compute_area();
 
         const std::vector<Point>& points = item_types_convex_hull_points[item_type_id];
+
+        std::vector<RotationCandidate> item_candidates;
+        std::vector<std::vector<ShapeWithHoles>> item_normalized_shapes;
+
         for (Angle angle: candidate_rotations[item_type_id]) {
             double cos_a = std::cos(angle * M_PI / 180.0);
             double sin_a = std::sin(angle * M_PI / 180.0);
@@ -148,8 +155,43 @@ std::vector<std::vector<Angle>> packingsolver::irregular::compute_item_type_rota
             candidate.width = x_max - x_min;
             candidate.height = y_max - y_min;
             candidate.score = (candidate.width * candidate.height - convex_hull_area) / (convex_hull_area * convex_hull_area);
-            candidates.push_back(candidate);
+
+            // Build normalized rotated shapes for deduplication.
+            std::vector<ShapeWithHoles> rotated_shapes;
+            for (const ItemShape& item_shape: item_type.shapes) {
+                ShapeWithHoles swh = item_shape.shape_scaled.rotate(angle);
+                swh.shift(-x_min, -y_min);
+                rotated_shapes.push_back(std::move(swh));
+            }
+
+            // Check if this rotation produces the same shape as an existing candidate.
+            bool is_duplicate = false;
+            for (const std::vector<ShapeWithHoles>& existing: item_normalized_shapes) {
+                bool all_equal = (existing.size() == rotated_shapes.size());
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)rotated_shapes.size() && all_equal;
+                        ++item_shape_pos) {
+                    all_equal = shape::equal(rotated_shapes[item_shape_pos], existing[item_shape_pos]);
+                }
+                if (all_equal) {
+                    is_duplicate = true;
+                    break;
+                }
+            }
+
+            if (is_duplicate) {
+                //std::cout << "duplicate"
+                //    << " item_type_id " << item_type_id
+                //    << " angle " << angle << std::endl;
+                continue;
+            }
+
+            item_candidates.push_back(candidate);
+            item_normalized_shapes.push_back(std::move(rotated_shapes));
         }
+
+        for (const RotationCandidate& candidate: item_candidates)
+            candidates.push_back(candidate);
     }
 
     // Sort by ascending score (lower = better).
