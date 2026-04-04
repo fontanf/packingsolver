@@ -673,6 +673,9 @@ void optimize_sequential_feasibility(
     sf_parameters.not_anytime_tree_search_queue_size
         = parameters.not_anytime_tree_search_queue_size;
     sf_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    sf_parameters.use_tree_search = parameters.sequential_feasibility_use_tree_search;
+    sf_parameters.use_local_search = parameters.sequential_feasibility_use_local_search;
+    sf_parameters.use_milp_raster = parameters.sequential_feasibility_use_milp_raster;
     sf_parameters.new_solution_callback = [&algorithm_formatter](
             const packingsolver::Output<Instance, Solution>& output) {
         algorithm_formatter.update_solution(

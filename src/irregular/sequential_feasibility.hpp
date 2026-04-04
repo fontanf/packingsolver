@@ -38,6 +38,15 @@ struct SequentialFeasibilityParameters: packingsolver::Parameters<Instance, Solu
 
     /** Size of the queue in the tree search algorithm (not-anytime mode). */
     NodeId not_anytime_tree_search_queue_size = 512;
+
+    /** Use tree search in sub-problems. */
+    bool use_tree_search = false;
+
+    /** Use local search in sub-problems. */
+    bool use_local_search = false;
+
+    /** Use MILP raster in sub-problems. */
+    bool use_milp_raster = false;
 };
 
 SequentialFeasibilityOutput sequential_feasibility(
