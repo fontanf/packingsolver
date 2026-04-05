@@ -2,6 +2,7 @@
 
 #include "packingsolver/irregular/solution.hpp"
 
+#include "irregular/rotations.hpp"
 #include "shape_simplification.hpp"
 
 #include "shape/trapezoid.hpp"
@@ -508,7 +509,7 @@ private:
 
     std::vector<AreaDbl> item_types_convex_hull_area_;
 
-    std::vector<std::vector<Angle>> item_types_allowed_rotations_;
+    std::vector<std::vector<ItemTypeRotation>> item_types_allowed_rotations_;
 
     DirectionData directions_data_[8];
 

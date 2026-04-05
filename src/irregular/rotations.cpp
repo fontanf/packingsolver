@@ -7,7 +7,7 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
-std::vector<std::vector<Angle>> packingsolver::irregular::compute_item_type_rotations(
+std::vector<std::vector<ItemTypeRotation>> packingsolver::irregular::compute_item_type_rotations(
         const Instance& instance)
 {
     // Precompute the convex hull of each item shape (reused for both candidate
@@ -108,14 +108,15 @@ std::vector<std::vector<Angle>> packingsolver::irregular::compute_item_type_rota
                 item_types_convex_hull_points[item_type_id].push_back(element.start);
     }
 
-    // Score each candidate rotation by (bounding_box_area - convex_hull_area).
+    // Score each (angle, mirror) candidate by (bounding_box_area - convex_hull_area).
     // Convex hull area is rotation-invariant; bounding box area is not.
-    // Rotations that produce the same shape (up to translation) are deduplicated
-    // by comparing normalized rotated shapes using shape::equal.
+    // Candidates that produce the same shape (up to translation) are deduplicated
+    // by comparing normalized transformed shapes using shape::equal.
     struct RotationCandidate
     {
         ItemTypeId item_type_id = -1;
         Angle angle;
+        bool mirror;
         LengthDbl width;
         LengthDbl height;
         AreaDbl score;
@@ -134,60 +135,65 @@ std::vector<std::vector<Angle>> packingsolver::irregular::compute_item_type_rota
         std::vector<RotationCandidate> item_candidates;
         std::vector<std::vector<ShapeWithHoles>> item_normalized_shapes;
 
-        for (Angle angle: candidate_rotations[item_type_id]) {
-            double cos_a = std::cos(angle * M_PI / 180.0);
-            double sin_a = std::sin(angle * M_PI / 180.0);
-            LengthDbl x_min = +std::numeric_limits<LengthDbl>::infinity();
-            LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
-            LengthDbl y_min = +std::numeric_limits<LengthDbl>::infinity();
-            LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
-            for (const Point& p: points) {
-                LengthDbl x = p.x * cos_a - p.y * sin_a;
-                LengthDbl y = p.x * sin_a + p.y * cos_a;
-                x_min = (std::min)(x_min, x);
-                x_max = (std::max)(x_max, x);
-                y_min = (std::min)(y_min, y);
-                y_max = (std::max)(y_max, y);
-            }
-            RotationCandidate candidate;
-            candidate.item_type_id = item_type_id;
-            candidate.angle = angle;
-            candidate.width = x_max - x_min;
-            candidate.height = y_max - y_min;
-            candidate.score = (candidate.width * candidate.height - convex_hull_area) / (convex_hull_area * convex_hull_area);
-
-            // Build normalized rotated shapes for deduplication.
-            std::vector<ShapeWithHoles> rotated_shapes;
-            for (const ItemShape& item_shape: item_type.shapes) {
-                ShapeWithHoles swh = item_shape.shape_scaled.rotate(angle);
-                swh.shift(-x_min, -y_min);
-                rotated_shapes.push_back(std::move(swh));
-            }
-
-            // Check if this rotation produces the same shape as an existing candidate.
-            bool is_duplicate = false;
-            for (const std::vector<ShapeWithHoles>& existing: item_normalized_shapes) {
-                bool all_equal = (existing.size() == rotated_shapes.size());
-                for (ItemShapePos item_shape_pos = 0;
-                        item_shape_pos < (ItemShapePos)rotated_shapes.size() && all_equal;
-                        ++item_shape_pos) {
-                    all_equal = shape::equal(rotated_shapes[item_shape_pos], existing[item_shape_pos]);
-                }
-                if (all_equal) {
-                    is_duplicate = true;
-                    break;
-                }
-            }
-
-            if (is_duplicate) {
-                //std::cout << "duplicate"
-                //    << " item_type_id " << item_type_id
-                //    << " angle " << angle << std::endl;
+        for (bool mirror: {false, true}) {
+            if (mirror && !item_type.allow_mirroring)
                 continue;
-            }
+            for (Angle angle: candidate_rotations[item_type_id]) {
+                double cos_a = std::cos(angle * M_PI / 180.0);
+                double sin_a = std::sin(angle * M_PI / 180.0);
+                LengthDbl x_min = +std::numeric_limits<LengthDbl>::infinity();
+                LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+                LengthDbl y_min = +std::numeric_limits<LengthDbl>::infinity();
+                LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+                for (const Point& p: points) {
+                    // Apply mirror (axial_symmetry_y_axis: x -> -x) then rotation.
+                    LengthDbl px = mirror? -p.x: p.x;
+                    LengthDbl x = px * cos_a - p.y * sin_a;
+                    LengthDbl y = px * sin_a + p.y * cos_a;
+                    x_min = (std::min)(x_min, x);
+                    x_max = (std::max)(x_max, x);
+                    y_min = (std::min)(y_min, y);
+                    y_max = (std::max)(y_max, y);
+                }
+                RotationCandidate candidate;
+                candidate.item_type_id = item_type_id;
+                candidate.angle = angle;
+                candidate.mirror = mirror;
+                candidate.width = x_max - x_min;
+                candidate.height = y_max - y_min;
+                candidate.score = (candidate.width * candidate.height - convex_hull_area) / (convex_hull_area * convex_hull_area);
 
-            item_candidates.push_back(candidate);
-            item_normalized_shapes.push_back(std::move(rotated_shapes));
+                // Build normalized transformed shapes for deduplication.
+                std::vector<ShapeWithHoles> transformed_shapes;
+                for (const ItemShape& item_shape: item_type.shapes) {
+                    ShapeWithHoles swh = mirror?
+                        item_shape.shape_scaled.axial_symmetry_y_axis():
+                        item_shape.shape_scaled;
+                    swh = swh.rotate(angle);
+                    swh.shift(-x_min, -y_min);
+                    transformed_shapes.push_back(std::move(swh));
+                }
+
+                // Check if this (angle, mirror) produces the same shape as an existing candidate.
+                bool is_duplicate = false;
+                for (const std::vector<ShapeWithHoles>& existing: item_normalized_shapes) {
+                    bool all_equal = (existing.size() == transformed_shapes.size());
+                    for (ItemShapePos item_shape_pos = 0;
+                            item_shape_pos < (ItemShapePos)transformed_shapes.size() && all_equal;
+                            ++item_shape_pos) {
+                        all_equal = shape::equal(transformed_shapes[item_shape_pos], existing[item_shape_pos]);
+                    }
+                    if (all_equal) {
+                        is_duplicate = true;
+                        break;
+                    }
+                }
+
+                if (!is_duplicate) {
+                    item_candidates.push_back(candidate);
+                    item_normalized_shapes.push_back(std::move(transformed_shapes));
+                }
+            }
         }
 
         for (const RotationCandidate& candidate: item_candidates)
@@ -205,16 +211,20 @@ std::vector<std::vector<Angle>> packingsolver::irregular::compute_item_type_rota
                 return candidate_1.score < candidate_2.score;
             });
 
-    // Helper to add an angle to output if not already present.
-    std::vector<std::vector<Angle>> output(instance.number_of_item_types());
+    // Helper to add an (angle, mirror) pair to output if not already present.
+    // Two entries are considered the same if they have the same mirror flag and
+    // their angles are within 5 degrees.
+    std::vector<std::vector<ItemTypeRotation>> output(instance.number_of_item_types());
     ItemPos budget = (std::max)(100, 5 * instance.number_of_item_types());
-    auto add_if_new = [&](ItemTypeId item_type_id, Angle angle) {
-        for (Angle a: output[item_type_id]) {
-            Angle diff = std::abs(angle - a);
+    auto add_if_new = [&](ItemTypeId item_type_id, Angle angle, bool mirror) {
+        for (const ItemTypeRotation& r: output[item_type_id]) {
+            if (r.mirror != mirror)
+                continue;
+            Angle diff = std::abs(angle - r.angle);
             if (diff < 5 || diff > 355)
                 return;
         }
-        output[item_type_id].push_back(angle);
+        output[item_type_id].push_back({angle, mirror});
         budget--;
     };
 
@@ -235,21 +245,21 @@ std::vector<std::vector<Angle>> packingsolver::irregular::compute_item_type_rota
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        add_if_new(item_type_id, min_width[item_type_id].angle);
+        const RotationCandidate& mw = min_width[item_type_id];
+        const RotationCandidate& mh = min_height[item_type_id];
+        add_if_new(item_type_id, mw.angle, mw.mirror);
         {
-            Angle angle = min_width[item_type_id].angle + 180;
-            while (angle >= 360)
-                angle -= 360;
-            if (item_type.is_rotation_allowed(angle))
-                add_if_new(item_type_id, angle);
+            Angle angle = mw.angle + 180;
+            while (angle >= 360) angle -= 360;
+            if (!mw.mirror && item_type.is_rotation_allowed(angle))
+                add_if_new(item_type_id, angle, false);
         }
-        add_if_new(item_type_id, min_height[item_type_id].angle);
+        add_if_new(item_type_id, mh.angle, mh.mirror);
         {
-            Angle angle = min_height[item_type_id].angle + 180;
-            while (angle >= 360)
-                angle -= 360;
-            if (item_type.is_rotation_allowed(angle))
-                add_if_new(item_type_id, angle);
+            Angle angle = mh.angle + 180;
+            while (angle >= 360) angle -= 360;
+            if (!mh.mirror && item_type.is_rotation_allowed(angle))
+                add_if_new(item_type_id, angle, false);
         }
     }
 
@@ -257,23 +267,23 @@ std::vector<std::vector<Angle>> packingsolver::irregular::compute_item_type_rota
     for (const RotationCandidate& candidate: candidates) {
         if (item_type_covered[candidate.item_type_id])
             continue;
-        add_if_new(candidate.item_type_id, candidate.angle);
+        add_if_new(candidate.item_type_id, candidate.angle, candidate.mirror);
         item_type_covered[candidate.item_type_id] = true;
     }
 
-    // Pass 2: fill up to 4 * number_of_item_types total selected rotations.
+    // Pass 2: fill up to budget total selected rotations.
     for (const RotationCandidate& candidate: candidates) {
         if (budget == 0)
             break;
-        add_if_new(candidate.item_type_id, candidate.angle);
+        add_if_new(candidate.item_type_id, candidate.angle, candidate.mirror);
     }
 
     //for (ItemTypeId item_type_id = 0;
     //        item_type_id < instance.number_of_item_types();
     //        ++item_type_id) {
     //    std::cout << "item_type_id " << item_type_id << ":";
-    //    for (Angle angle: output[item_type_id])
-    //        std::cout << " " << angle;
+    //    for (const ItemTypeRotation& r: output[item_type_id])
+    //        std::cout << " (" << r.angle << "," << r.mirror << ")";
     //    std::cout << std::endl;
     //}
 
