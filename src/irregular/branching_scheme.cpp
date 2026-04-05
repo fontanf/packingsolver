@@ -307,220 +307,215 @@ BranchingScheme::BranchingScheme(
                         + ".svg");
             }
 
-            for (bool mirror: {false, true}) {
-                if (mirror && !item_type.allow_mirroring)
-                    continue;
+            for (const ItemTypeRotation& rotation: item_types_allowed_rotations_[item_type_id]) {
+                //std::cout << "angle " << angle;
+                TrapezoidSetId trapezoid_set_id = direction_data.trapezoid_sets.size();
+                TrapezoidSet trapezoid_set;
+                trapezoid_set.item_type_id = item_type_id;
+                trapezoid_set.angle = rotation.angle;
+                trapezoid_set.mirror = rotation.mirror;
 
-                for (Angle angle: item_types_allowed_rotations_[item_type_id]) {
-                    //std::cout << "angle " << angle;
-                    TrapezoidSetId trapezoid_set_id = direction_data.trapezoid_sets.size();
-                    TrapezoidSet trapezoid_set;
-                    trapezoid_set.item_type_id = item_type_id;
-                    trapezoid_set.angle = angle;
-                    trapezoid_set.mirror = mirror;
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                        ++item_shape_pos) {
+                    const ItemShape& item_shape = item_type.shapes[item_shape_pos];
+                    const Shape& simplified_shape = simplified_item_type.shapes[item_shape_pos].shape.shape;
+                    if (write_shapes) {
+                        simplified_shape.write_svg(
+                                "item_type_" + std::to_string(item_type_id)
+                                + "_shape_pos_" + std::to_string(item_shape_pos)
+                                + "_simplified.svg");
+                    }
 
-                    for (ItemShapePos item_shape_pos = 0;
-                            item_shape_pos < (ItemShapePos)item_type.shapes.size();
-                            ++item_shape_pos) {
-                        const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                        const Shape& simplified_shape = simplified_item_type.shapes[item_shape_pos].shape.shape;
-                        if (write_shapes) {
-                            simplified_shape.write_svg(
-                                    "item_type_" + std::to_string(item_type_id)
-                                    + "_shape_pos_" + std::to_string(item_shape_pos)
-                                    + "_simplified.svg");
-                        }
+                    ShapeWithHoles shape;
+                    shape.shape = convert_shape(simplified_shape, rotation.angle, rotation.mirror, direction);
+                    shape = shape::clean_extreme_slopes_outer(shape.shape);
+                    for (ShapePos hole_pos = 0;
+                            hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape.holes.size();
+                            ++hole_pos) {
+                        const Shape& simplified_hole = simplified_item_type.shapes[item_shape_pos].shape.holes[hole_pos];
 
-                        ShapeWithHoles shape;
-                        shape.shape = convert_shape(simplified_shape, angle, mirror, direction);
-                        shape = shape::clean_extreme_slopes_outer(shape.shape);
-                        for (ShapePos hole_pos = 0;
-                                hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape.holes.size();
-                                ++hole_pos) {
-                            const Shape& simplified_hole = simplified_item_type.shapes[item_shape_pos].shape.holes[hole_pos];
+                        Shape hole = convert_shape(simplified_hole, rotation.angle, rotation.mirror, direction);
 
-                            Shape hole = convert_shape(simplified_hole, angle, mirror, direction);
+                        auto res = shape::clean_extreme_slopes_inner(hole);
 
-                            auto res = shape::clean_extreme_slopes_inner(hole);
+                        for (const auto& hole: res)
+                            shape.holes.push_back(hole);
+                    }
 
-                            for (const auto& hole: res)
-                                shape.holes.push_back(hole);
-                        }
+                    // Supports.
+                    std::vector<Shape> supported_parts
+                        = shape::compute_shape_supports(shape.shape, false).supported_parts;
+                    for (const Shape& supported_part: supported_parts) {
+                        ShapePos supported_part_pos = direction_data.supported_parts.size();
+                        Support support;
+                        support.trapezoid_set_id = trapezoid_set_id;
+                        support.item_shape_pos = item_shape_pos;
+                        support.shape = supported_part;
+                        direction_data.supported_parts.push_back(support);
+                        trapezoid_set.supported_parts.push_back(supported_part_pos);
+                    }
+
+                    for (ShapePos hole_pos = 0;
+                            hole_pos < (ShapePos)shape.holes.size();
+                            ++hole_pos) {
+                        const Shape& hole = shape.holes[hole_pos];
 
                         // Supports.
                         std::vector<Shape> supported_parts
-                            = shape::compute_shape_supports(shape.shape, false).supported_parts;
+                            = shape::compute_shape_supports(hole, true).supported_parts;
                         for (const Shape& supported_part: supported_parts) {
                             ShapePos supported_part_pos = direction_data.supported_parts.size();
                             Support support;
                             support.trapezoid_set_id = trapezoid_set_id;
                             support.item_shape_pos = item_shape_pos;
+                            support.hole_pos = hole_pos;
                             support.shape = supported_part;
                             direction_data.supported_parts.push_back(support);
                             trapezoid_set.supported_parts.push_back(supported_part_pos);
                         }
-
-                        for (ShapePos hole_pos = 0;
-                                hole_pos < (ShapePos)shape.holes.size();
-                                ++hole_pos) {
-                            const Shape& hole = shape.holes[hole_pos];
-
-                            // Supports.
-                            std::vector<Shape> supported_parts
-                                = shape::compute_shape_supports(hole, true).supported_parts;
-                            for (const Shape& supported_part: supported_parts) {
-                                ShapePos supported_part_pos = direction_data.supported_parts.size();
-                                Support support;
-                                support.trapezoid_set_id = trapezoid_set_id;
-                                support.item_shape_pos = item_shape_pos;
-                                support.hole_pos = hole_pos;
-                                support.shape = supported_part;
-                                direction_data.supported_parts.push_back(support);
-                                trapezoid_set.supported_parts.push_back(supported_part_pos);
-                            }
-                        }
-
-                        // Write rotated item shape.
-                        if (write_shapes) {
-                            std::string name = "item_type_" + std::to_string(item_type_id)
-                                + "_x"
-                                + "_" + std::to_string(item_shape_pos)
-                                + "_mirror_" + std::to_string(mirror)
-                                + "_rotated_" + std::to_string(angle)
-                                + ".svg";
-                            shape.write_svg(name);
-                        }
-
-                        // Trapezoidation.
-                        auto trapezoids = trapezoidation(shape);
-                        trapezoid_set.shapes.push_back({});
-                        for (const GeneralizedTrapezoid& trapezoid: trapezoids)
-                            trapezoid_set.shapes.back().push_back(trapezoid);
                     }
 
-                    for (ItemShapePos item_shape_pos = 0;
-                            item_shape_pos < (ItemShapePos)item_type.shapes.size();
-                            ++item_shape_pos) {
-                        const Shape& simplified_inflated_shape = simplified_item_type.shapes[item_shape_pos].shape_inflated.shape;
-                        //std::cout << "item_type_id " << item_type_id
+                    // Write rotated item shape.
+                    if (write_shapes) {
+                        std::string name = "item_type_" + std::to_string(item_type_id)
+                            + "_x"
+                            + "_" + std::to_string(item_shape_pos)
+                            + "_mirror_" + std::to_string(rotation.mirror)
+                            + "_rotated_" + std::to_string(rotation.angle)
+                            + ".svg";
+                        shape.write_svg(name);
+                    }
+
+                    // Trapezoidation.
+                    auto trapezoids = trapezoidation(shape);
+                    trapezoid_set.shapes.push_back({});
+                    for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+                        trapezoid_set.shapes.back().push_back(trapezoid);
+                }
+
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                        ++item_shape_pos) {
+                    const Shape& simplified_inflated_shape = simplified_item_type.shapes[item_shape_pos].shape_inflated.shape;
+                    //std::cout << "item_type_id " << item_type_id
+                    //    << " item_shape_pos " << item_shape_pos
+                    //    << " angle " << angle
+                    //    << " mirror " << mirror
+                    //    //<< " simplified_shape " << simplified_shape.to_string(2)
+                    //    << std::endl;
+
+                    if (write_shapes) {
+                        simplified_inflated_shape.write_svg(
+                                "item_type_" + std::to_string(item_type_id)
+                                + "_shape_pos_" + std::to_string(item_shape_pos)
+                                + "_inflated_simplified.svg");
+                    }
+
+                    ShapeWithHoles shape_inflated;
+                    shape_inflated.shape = convert_shape(simplified_inflated_shape, rotation.angle, rotation.mirror, direction);
+                    shape_inflated = shape::clean_extreme_slopes_outer(shape_inflated.shape);
+                    for (ShapePos hole_pos = 0;
+                            hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape_inflated.holes.size();
+                            ++hole_pos) {
+                        const Shape& simplified_deflated_hole = simplified_item_type.shapes[item_shape_pos].shape_inflated.holes[hole_pos];
+
+                        Shape hole_deflated = convert_shape(simplified_deflated_hole, rotation.angle, rotation.mirror, direction);
+
+                        auto res = shape::clean_extreme_slopes_inner(hole_deflated);
+
+                        for (const auto& hole: res)
+                            shape_inflated.holes.push_back(hole);
+                    }
+
+                    if (write_shapes) {
+                        simplified_inflated_shape.write_svg(
+                                "item_type_" + std::to_string(item_type_id)
+                                + "_shape_pos_" + std::to_string(item_shape_pos)
+                                + "_inflated_simplified_cleaned.svg");
+                    }
+
+                    // Supports.
+                    // Supporting parts are computed on inflated shapes.
+                    // Supported parts are computed on (original) non-inflated shapes.
+                    std::vector<Shape> supporting_parts
+                        = shape::compute_shape_supports(shape_inflated.shape, false).supporting_parts;
+                    for (const Shape& supporting_part: supporting_parts) {
+                        ShapePos supporting_part_pos = direction_data.supporting_parts.size();
+                        Support support;
+                        support.trapezoid_set_id = trapezoid_set_id;
+                        support.item_shape_pos = item_shape_pos;
+                        support.shape = supporting_part;
+                        //std::cout << "trapezoid_set_id " << trapezoid_set_id
                         //    << " item_shape_pos " << item_shape_pos
-                        //    << " angle " << angle
-                        //    << " mirror " << mirror
-                        //    //<< " simplified_shape " << simplified_shape.to_string(2)
                         //    << std::endl;
+                        //std::cout << support.shape.to_string(2) << std::endl;
+                        direction_data.supporting_parts.push_back(support);
+                        trapezoid_set.supporting_parts.push_back(supporting_part_pos);
+                    }
 
-                        if (write_shapes) {
-                            simplified_inflated_shape.write_svg(
-                                    "item_type_" + std::to_string(item_type_id)
-                                    + "_shape_pos_" + std::to_string(item_shape_pos)
-                                    + "_inflated_simplified.svg");
-                        }
-
-                        ShapeWithHoles shape_inflated;
-                        shape_inflated.shape = convert_shape(simplified_inflated_shape, angle, mirror, direction);
-                        shape_inflated = shape::clean_extreme_slopes_outer(shape_inflated.shape);
-                        for (ShapePos hole_pos = 0;
-                                hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape_inflated.holes.size();
-                                ++hole_pos) {
-                            const Shape& simplified_deflated_hole = simplified_item_type.shapes[item_shape_pos].shape_inflated.holes[hole_pos];
-
-                            Shape hole_deflated = convert_shape(simplified_deflated_hole, angle, mirror, direction);
-
-                            auto res = shape::clean_extreme_slopes_inner(hole_deflated);
-
-                            for (const auto& hole: res)
-                                shape_inflated.holes.push_back(hole);
-                        }
-
-                        if (write_shapes) {
-                            simplified_inflated_shape.write_svg(
-                                    "item_type_" + std::to_string(item_type_id)
-                                    + "_shape_pos_" + std::to_string(item_shape_pos)
-                                    + "_inflated_simplified_cleaned.svg");
-                        }
+                    for (ShapePos hole_pos = 0;
+                            hole_pos < (ShapePos)shape_inflated.holes.size();
+                            ++hole_pos) {
+                        const Shape& hole_deflated = shape_inflated.holes[hole_pos];
 
                         // Supports.
-                        // Supporting parts are computed on inflated shapes.
-                        // Supported parts are computed on (original) non-inflated shapes.
                         std::vector<Shape> supporting_parts
-                            = shape::compute_shape_supports(shape_inflated.shape, false).supporting_parts;
+                            = shape::compute_shape_supports(hole_deflated, true).supporting_parts;
                         for (const Shape& supporting_part: supporting_parts) {
                             ShapePos supporting_part_pos = direction_data.supporting_parts.size();
                             Support support;
                             support.trapezoid_set_id = trapezoid_set_id;
                             support.item_shape_pos = item_shape_pos;
+                            support.hole_pos = hole_pos;
                             support.shape = supporting_part;
-                            //std::cout << "trapezoid_set_id " << trapezoid_set_id
-                            //    << " item_shape_pos " << item_shape_pos
-                            //    << std::endl;
-                            //std::cout << support.shape.to_string(2) << std::endl;
                             direction_data.supporting_parts.push_back(support);
                             trapezoid_set.supporting_parts.push_back(supporting_part_pos);
                         }
-
-                        for (ShapePos hole_pos = 0;
-                                hole_pos < (ShapePos)shape_inflated.holes.size();
-                                ++hole_pos) {
-                            const Shape& hole_deflated = shape_inflated.holes[hole_pos];
-
-                            // Supports.
-                            std::vector<Shape> supporting_parts
-                                = shape::compute_shape_supports(hole_deflated, true).supporting_parts;
-                            for (const Shape& supporting_part: supporting_parts) {
-                                ShapePos supporting_part_pos = direction_data.supporting_parts.size();
-                                Support support;
-                                support.trapezoid_set_id = trapezoid_set_id;
-                                support.item_shape_pos = item_shape_pos;
-                                support.hole_pos = hole_pos;
-                                support.shape = supporting_part;
-                                direction_data.supporting_parts.push_back(support);
-                                trapezoid_set.supporting_parts.push_back(supporting_part_pos);
-                            }
-                        }
-
-                        // Trapezoidation.
-                        auto trapezoids_inflated = trapezoidation(shape_inflated);
-                        trapezoid_set.shapes_inflated.push_back({});
-                        for (const GeneralizedTrapezoid& trapezoid: trapezoids_inflated)
-                            trapezoid_set.shapes_inflated.back().push_back(trapezoid);
                     }
 
-                    for (std::vector<GeneralizedTrapezoid>& item_shape_trapezoids: trapezoid_set.shapes) {
-                        std::sort(
-                                item_shape_trapezoids.begin(),
-                                item_shape_trapezoids.end(),
-                                [](
-                                    const GeneralizedTrapezoid& trapezoid_1,
-                                    const GeneralizedTrapezoid& trapezoid_2)
-                                {
-                                    return trapezoid_1.x_min() < trapezoid_2.x_min();
-                                });
-                    }
-
-                    trapezoid_set.x_min = std::numeric_limits<LengthDbl>::infinity();
-                    trapezoid_set.x_max = -std::numeric_limits<LengthDbl>::infinity();
-                    trapezoid_set.y_min = std::numeric_limits<LengthDbl>::infinity();
-                    trapezoid_set.y_max = -std::numeric_limits<LengthDbl>::infinity();
-                    for (const auto& item_shape_trapezoids: trapezoid_set.shapes) {
-                        for (const GeneralizedTrapezoid& trapezoid: item_shape_trapezoids) {
-                            if (trapezoid_set.x_min > trapezoid.x_bottom_left())
-                                trapezoid_set.x_min = trapezoid.x_bottom_left();
-                            if (trapezoid_set.x_min > trapezoid.x_top_left())
-                                trapezoid_set.x_min = trapezoid.x_top_left();
-                            if (trapezoid_set.x_max < trapezoid.x_bottom_right())
-                                trapezoid_set.x_max = trapezoid.x_bottom_right();
-                            if (trapezoid_set.x_max < trapezoid.x_top_right())
-                                trapezoid_set.x_max = trapezoid.x_top_right();
-
-                            if (trapezoid_set.y_min > trapezoid.y_bottom())
-                                trapezoid_set.y_min = trapezoid.y_bottom();
-                            if (trapezoid_set.y_max < trapezoid.y_top())
-                                trapezoid_set.y_max = trapezoid.y_top();
-                        }
-                    }
-
-                    direction_data.trapezoid_sets.push_back(trapezoid_set);
+                    // Trapezoidation.
+                    auto trapezoids_inflated = trapezoidation(shape_inflated);
+                    trapezoid_set.shapes_inflated.push_back({});
+                    for (const GeneralizedTrapezoid& trapezoid: trapezoids_inflated)
+                        trapezoid_set.shapes_inflated.back().push_back(trapezoid);
                 }
+
+                for (std::vector<GeneralizedTrapezoid>& item_shape_trapezoids: trapezoid_set.shapes) {
+                    std::sort(
+                            item_shape_trapezoids.begin(),
+                            item_shape_trapezoids.end(),
+                            [](
+                                const GeneralizedTrapezoid& trapezoid_1,
+                                const GeneralizedTrapezoid& trapezoid_2)
+                            {
+                            return trapezoid_1.x_min() < trapezoid_2.x_min();
+                            });
+                }
+
+                trapezoid_set.x_min = std::numeric_limits<LengthDbl>::infinity();
+                trapezoid_set.x_max = -std::numeric_limits<LengthDbl>::infinity();
+                trapezoid_set.y_min = std::numeric_limits<LengthDbl>::infinity();
+                trapezoid_set.y_max = -std::numeric_limits<LengthDbl>::infinity();
+                for (const auto& item_shape_trapezoids: trapezoid_set.shapes) {
+                    for (const GeneralizedTrapezoid& trapezoid: item_shape_trapezoids) {
+                        if (trapezoid_set.x_min > trapezoid.x_bottom_left())
+                            trapezoid_set.x_min = trapezoid.x_bottom_left();
+                        if (trapezoid_set.x_min > trapezoid.x_top_left())
+                            trapezoid_set.x_min = trapezoid.x_top_left();
+                        if (trapezoid_set.x_max < trapezoid.x_bottom_right())
+                            trapezoid_set.x_max = trapezoid.x_bottom_right();
+                        if (trapezoid_set.x_max < trapezoid.x_top_right())
+                            trapezoid_set.x_max = trapezoid.x_top_right();
+
+                        if (trapezoid_set.y_min > trapezoid.y_bottom())
+                            trapezoid_set.y_min = trapezoid.y_bottom();
+                        if (trapezoid_set.y_max < trapezoid.y_top())
+                            trapezoid_set.y_max = trapezoid.y_top();
+                    }
+                }
+
+                direction_data.trapezoid_sets.push_back(trapezoid_set);
             }
         }
 
@@ -2107,11 +2102,9 @@ void BranchingScheme::json_export_setup() const
             ++item_type_id) {
         const ItemType& item_type = instance().item_type(item_type_id);
         json_items_init_ids_[item_type_id] = std::vector<std::unordered_map<double, Counter>>(2);
-        for (bool mirror: {false, true}) {
-            for (Angle angle: item_types_allowed_rotations_[item_type_id]) {
-                json_items_init_ids_[item_type_id][mirror][angle] = json_counter_;
-                json_counter_++;
-            }
+        for (const ItemTypeRotation& rotation: item_types_allowed_rotations_[item_type_id]) {
+            json_items_init_ids_[item_type_id][rotation.mirror][rotation.angle] = json_counter_;
+            json_counter_++;
         }
     }
 }
@@ -2158,10 +2151,10 @@ nlohmann::json BranchingScheme::json_export_init() const
             ++item_type_id) {
         const ItemType& item_type = instance().item_type(item_type_id);
 
-        for (bool mirror: {false, true}) {
-
-            for (Angle angle: item_types_allowed_rotations_[item_type_id]) {
-
+        for (const ItemTypeRotation& rotation: item_types_allowed_rotations_[item_type_id]) {
+            const Angle angle = rotation.angle;
+            const bool mirror = rotation.mirror;
+            {
                 Counter json_counter = json_items_init_ids_[item_type_id][mirror][angle];
 
                 for (ItemShapePos item_shape_pos = 0;

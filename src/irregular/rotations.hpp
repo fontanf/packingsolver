@@ -7,6 +7,12 @@ namespace packingsolver
 namespace irregular
 {
 
+struct ItemTypeRotation
+{
+    Angle angle;
+    bool mirror;
+};
+
 /**
  * Compute the rotations to consider for each item type.
  *
@@ -30,7 +36,7 @@ namespace irregular
  *
  * Mirroring is applied separately to all selected rotations.
  */
-std::vector<std::vector<Angle>> compute_item_type_rotations(
+std::vector<std::vector<ItemTypeRotation>> compute_item_type_rotations(
         const Instance& instance);
 
 }

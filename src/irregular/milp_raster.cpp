@@ -59,7 +59,7 @@ struct BinTypeData
 
 Solution solve_milp_raster_for_cell_size(
         const Instance& instance,
-        const std::vector<std::vector<Angle>>& item_type_rotations,
+        const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations,
         const MilpRasterParameters& parameters,
         MilpRasterOutput& output,
         AlgorithmFormatter& algorithm_formatter,
@@ -143,98 +143,94 @@ Solution solve_milp_raster_for_cell_size(
                 ++item_type_id) {
             const ItemType& item_type = instance.item_type(item_type_id);
 
-            for (Angle angle: item_type_rotations[item_type_id]) {
-                for (bool mirror: {false, true}) {
-                    if (mirror && !item_type.allow_mirroring)
-                        continue;
+            for (const ItemTypeRotation& rotation: item_type_rotations[item_type_id]) {
+                // Compute AABB of all item shapes after applying mirror then
+                // rotation, matching the order used in convert_shape.
+                AxisAlignedBoundingBox combined_aabb;
+                for (const ItemShape& item_shape: item_type.shapes) {
+                    ShapeWithHoles transformed = rotation.mirror?
+                        item_shape.shape_scaled.axial_symmetry_y_axis():
+                        item_shape.shape_scaled;
+                    transformed = transformed.rotate(rotation.angle);
+                    AxisAlignedBoundingBox shape_aabb = transformed.compute_min_max();
+                    combined_aabb = merge(combined_aabb, shape_aabb);
+                }
 
-                    // Compute AABB of all item shapes after applying mirror then
-                    // rotation, matching the order used in convert_shape.
-                    AxisAlignedBoundingBox combined_aabb;
-                    for (const ItemShape& item_shape: item_type.shapes) {
-                        ShapeWithHoles transformed = mirror?
-                            item_shape.shape_scaled.axial_symmetry_y_axis():
-                            item_shape.shape_scaled;
-                        transformed = transformed.rotate(angle);
-                        AxisAlignedBoundingBox shape_aabb = transformed.compute_min_max();
-                        combined_aabb = merge(combined_aabb, shape_aabb);
-                    }
+                // Rasterize each item shape (shifted to origin) and collect cells.
+                std::vector<std::pair<shape::ColumnId, shape::RowId>> placement_cells;
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                        ++item_shape_pos) {
+                    const ItemShape& item_shape = item_type.shapes[item_shape_pos];
+                    ShapeWithHoles transformed = (rotation.mirror)?
+                        item_shape.shape_scaled.axial_symmetry_y_axis():
+                        item_shape.shape_scaled;
+                    transformed = transformed.rotate(rotation.angle);
+                    transformed.shift(-combined_aabb.x_min, -combined_aabb.y_min);
+                    std::vector<shape::IntersectedCell> raster_cells = shape::rasterization(transformed, cell_size, cell_size);
+                    for (const shape::IntersectedCell& ic: raster_cells)
+                        placement_cells.push_back(std::make_pair(ic.cell.column, ic.cell.row));
+                }
 
-                    // Rasterize each item shape (shifted to origin) and collect cells.
-                    std::vector<std::pair<shape::ColumnId, shape::RowId>> placement_cells;
-                    for (ItemShapePos item_shape_pos = 0;
-                            item_shape_pos < (ItemShapePos)item_type.shapes.size();
-                            ++item_shape_pos) {
-                        const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                        ShapeWithHoles transformed = mirror?
-                            item_shape.shape_scaled.axial_symmetry_y_axis():
-                            item_shape.shape_scaled;
-                        transformed = transformed.rotate(angle);
-                        transformed.shift(-combined_aabb.x_min, -combined_aabb.y_min);
-                        std::vector<shape::IntersectedCell> raster_cells = shape::rasterization(transformed, cell_size, cell_size);
-                        for (const shape::IntersectedCell& ic: raster_cells)
-                            placement_cells.push_back(std::make_pair(ic.cell.column, ic.cell.row));
-                    }
+                if (placement_cells.empty())
+                    continue;
 
-                    if (placement_cells.empty())
-                        continue;
+                std::sort(placement_cells.begin(), placement_cells.end());
+                placement_cells.erase(std::unique(placement_cells.begin(), placement_cells.end()), placement_cells.end());
 
-                    std::sort(placement_cells.begin(), placement_cells.end());
-                    placement_cells.erase(std::unique(placement_cells.begin(), placement_cells.end()), placement_cells.end());
+                shape::ColumnId item_min_col = placement_cells[0].first;
+                shape::ColumnId item_max_col = placement_cells[0].first;
+                shape::RowId item_min_row = placement_cells[0].second;
+                shape::RowId item_max_row = placement_cells[0].second;
+                for (const std::pair<shape::ColumnId, shape::RowId>& cr: placement_cells) {
+                    if (cr.first < item_min_col) item_min_col = cr.first;
+                    if (cr.first > item_max_col) item_max_col = cr.first;
+                    if (cr.second < item_min_row) item_min_row = cr.second;
+                    if (cr.second > item_max_row) item_max_row = cr.second;
+                }
 
-                    shape::ColumnId item_min_col = placement_cells[0].first;
-                    shape::ColumnId item_max_col = placement_cells[0].first;
-                    shape::RowId item_min_row = placement_cells[0].second;
-                    shape::RowId item_max_row = placement_cells[0].second;
-                    for (const std::pair<shape::ColumnId, shape::RowId>& cr: placement_cells) {
-                        if (cr.first < item_min_col) item_min_col = cr.first;
-                        if (cr.first > item_max_col) item_max_col = cr.first;
-                        if (cr.second < item_min_row) item_min_row = cr.second;
-                        if (cr.second > item_max_row) item_max_row = cr.second;
-                    }
+                shape::ColumnId col_start = data.col_shift - item_min_col;
+                shape::ColumnId col_end = data.col_max - item_max_col;
+                shape::RowId row_start = data.row_shift - item_min_row;
+                shape::RowId row_end = data.row_max - item_max_row;
 
-                    shape::ColumnId col_start = data.col_shift - item_min_col;
-                    shape::ColumnId col_end = data.col_max - item_max_col;
-                    shape::RowId row_start = data.row_shift - item_min_row;
-                    shape::RowId row_end = data.row_max - item_max_row;
-
-                    for (shape::ColumnId col = col_start; col <= col_end; ++col) {
-                        for (shape::RowId row = row_start; row <= row_end; ++row) {
-                            bool valid = true;
-                            for (const std::pair<shape::ColumnId, shape::RowId>& cr: placement_cells) {
-                                shape::ColumnId bc = col + cr.first - data.col_shift;
-                                shape::RowId br = row + cr.second - data.row_shift;
-                                if (!data.available[bc][br]) {
-                                    valid = false;
-                                    break;
-                                }
+                for (shape::ColumnId col = col_start; col <= col_end; ++col) {
+                    for (shape::RowId row = row_start; row <= row_end; ++row) {
+                        bool valid = true;
+                        for (const std::pair<shape::ColumnId, shape::RowId>& cr: placement_cells) {
+                            shape::ColumnId bc = col + cr.first - data.col_shift;
+                            shape::RowId br = row + cr.second - data.row_shift;
+                            if (!data.available[bc][br]) {
+                                valid = false;
+                                break;
                             }
-                            if (!valid)
-                                continue;
+                        }
+                        if (!valid)
+                            continue;
 
-                            PlacementId placement_id = (PlacementId)data.base_placements.size();
-                            BasePlacement bp;
-                            bp.item_type_id = item_type_id;
-                            bp.angle = angle;
-                            bp.mirror = mirror;
-                            bp.col = col;
-                            bp.row = row;
-                            bp.aabb_x_min = combined_aabb.x_min;
-                            bp.aabb_y_min = combined_aabb.y_min;
-                            data.base_placements.push_back(bp);
-                            data.base_item_placements[item_type_id].push_back(placement_id);
+                        PlacementId placement_id = (PlacementId)data.base_placements.size();
+                        BasePlacement bp;
+                        bp.item_type_id = item_type_id;
+                        bp.angle = rotation.angle;
+                        bp.mirror = rotation.mirror;
+                        bp.col = col;
+                        bp.row = row;
+                        bp.aabb_x_min = combined_aabb.x_min;
+                        bp.aabb_y_min = combined_aabb.y_min;
+                        data.base_placements.push_back(bp);
+                        data.base_item_placements[item_type_id].push_back(placement_id);
 
-                            for (const std::pair<shape::ColumnId, shape::RowId>& cr: placement_cells) {
-                                shape::ColumnId bc = col + cr.first - data.col_shift;
-                                shape::RowId br = row + cr.second - data.row_shift;
-                                data.base_cell_placements[bc][br].push_back(placement_id);
-                            }
+                        for (const std::pair<shape::ColumnId, shape::RowId>& cr: placement_cells) {
+                            shape::ColumnId bc = col + cr.first - data.col_shift;
+                            shape::RowId br = row + cr.second - data.row_shift;
+                            data.base_cell_placements[bc][br].push_back(placement_id);
                         }
                     }
                 }
             }
         }
     }
+
     //writer.write_json("rasterization_" + std::to_string(number_of_bins) + "_" + std::to_string(cell_size) + ".json");
 
     std::vector<PlacementId> global_offset(number_of_bins);
@@ -444,7 +440,7 @@ MilpRasterOutput packingsolver::irregular::milp_raster(
             cell_size *= 2;
     }
 
-    const std::vector<std::vector<Angle>> item_type_rotations = compute_item_type_rotations(instance);
+    const std::vector<std::vector<ItemTypeRotation>> item_type_rotations = compute_item_type_rotations(instance);
 
     for (; ; cell_size /= 2) {
         if (parameters.timer.needs_to_end())
