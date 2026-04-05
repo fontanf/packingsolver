@@ -3,6 +3,7 @@
 #include "shape/convex_hull.hpp"
 
 #include <algorithm>
+#include <unordered_map>
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -133,7 +134,29 @@ std::vector<std::vector<ItemTypeRotation>> packingsolver::irregular::compute_ite
         const std::vector<Point>& points = item_types_convex_hull_points[item_type_id];
 
         std::vector<RotationCandidate> item_candidates;
-        std::vector<std::vector<ShapeWithHoles>> item_normalized_shapes;
+
+        // Hash map for O(1) deduplication by quantized (width, height).
+        // Values in the map are normalized transformed shapes already accepted.
+        // Because shape::equal uses tolerance 1e-6, we use step 1e-3 and check
+        // up to 4 buckets (2 per dimension) on lookup to avoid missing pairs
+        // that straddle a bucket boundary.
+        static const double dedup_step = 1e-3;
+        static const double dedup_tol = 1e-6;
+        struct PairHash {
+            size_t operator()(const std::pair<int64_t, int64_t>& p) const {
+                return std::hash<int64_t>{}(p.first) ^ (std::hash<int64_t>{}(p.second) << 32);
+            }
+        };
+        std::unordered_map<
+            std::pair<int64_t, int64_t>,
+            std::vector<std::vector<ShapeWithHoles>>,
+            PairHash> shapes_by_dims;
+
+        auto dim_buckets = [](double v) -> std::pair<int64_t, int64_t> {
+            return std::make_pair(
+                (int64_t)std::floor((v - dedup_tol) / dedup_step),
+                (int64_t)std::floor((v + dedup_tol) / dedup_step));
+        };
 
         for (bool mirror: {false, true}) {
             if (mirror && !item_type.allow_mirroring)
@@ -175,24 +198,47 @@ std::vector<std::vector<ItemTypeRotation>> packingsolver::irregular::compute_ite
                 }
 
                 // Check if this (angle, mirror) produces the same shape as an existing candidate.
+                // Look up all buckets that could contain a matching entry.
+                std::pair<int64_t, int64_t> wb = dim_buckets(candidate.width);
+                std::pair<int64_t, int64_t> hb = dim_buckets(candidate.height);
+                int64_t bw0 = wb.first;
+                int64_t bw1 = wb.second;
+                int64_t bh0 = hb.first;
+                int64_t bh1 = hb.second;
                 bool is_duplicate = false;
-                for (const std::vector<ShapeWithHoles>& existing: item_normalized_shapes) {
-                    bool all_equal = (existing.size() == transformed_shapes.size());
-                    for (ItemShapePos item_shape_pos = 0;
-                            item_shape_pos < (ItemShapePos)transformed_shapes.size() && all_equal;
-                            ++item_shape_pos) {
-                        all_equal = shape::equal(transformed_shapes[item_shape_pos], existing[item_shape_pos]);
-                    }
-                    if (all_equal) {
-                        is_duplicate = true;
-                        break;
+                for (int64_t bw: {bw0, bw1}) {
+                    if (is_duplicate) break;
+                    for (int64_t bh: {bh0, bh1}) {
+                        if (is_duplicate) break;
+                        auto it = shapes_by_dims.find({bw, bh});
+                        if (it == shapes_by_dims.end())
+                            continue;
+                        for (const std::vector<ShapeWithHoles>& existing: it->second) {
+                            bool all_equal = (existing.size() == transformed_shapes.size());
+                            for (ItemShapePos item_shape_pos = 0;
+                                    item_shape_pos < (ItemShapePos)transformed_shapes.size() && all_equal;
+                                    ++item_shape_pos) {
+                                all_equal = shape::equal(transformed_shapes[item_shape_pos], existing[item_shape_pos]);
+                            }
+                            if (all_equal) {
+                                is_duplicate = true;
+                                break;
+                            }
+                        }
                     }
                 }
 
-                if (!is_duplicate) {
-                    item_candidates.push_back(candidate);
-                    item_normalized_shapes.push_back(std::move(transformed_shapes));
+                if (is_duplicate) {
+                    //std::cout << "item_type_id " << item_type_id
+                    //    << " angle " << angle
+                    //    << " mirror " << mirror
+                    //    << std::endl;
+                    continue;
                 }
+
+                item_candidates.push_back(candidate);
+                // Insert only under the canonical bucket (bw0, bh0).
+                shapes_by_dims[{bw0, bh0}].push_back(std::move(transformed_shapes));
             }
         }
 
