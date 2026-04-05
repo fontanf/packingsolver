@@ -35,6 +35,18 @@ struct SolutionBin
 
     /** Item area. */
     AreaDbl item_area = 0;
+
+    /** Minimum x of the items in this bin. */
+    LengthDbl x_min = +std::numeric_limits<LengthDbl>::infinity();
+
+    /** Maximum x of the items in this bin. */
+    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+
+    /** Minimum y of the items in this bin. */
+    LengthDbl y_min = +std::numeric_limits<LengthDbl>::infinity();
+
+    /** Maximum y of the items in this bin. */
+    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
 };
 
 /**
