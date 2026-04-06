@@ -127,7 +127,7 @@ public:
      */
     struct BranchingSchemeBinType
     {
-        /** Trapezoids of the defects. */
+        /** Trapezoids of the defects and fixed items. */
         std::vector<UncoveredTrapezoid> defects;
 
         /** Supporting parts of the bin (includes supporting parts of defects). */
@@ -546,6 +546,11 @@ private:
             const Shape& shape,
             Angle angle,
             bool mirror,
+            Direction direction) const;
+
+    /** Convert a point from original coordinates to direction coordinates. */
+    Point convert_point(
+            const Point& point,
             Direction direction) const;
 
     Point convert_point_back(

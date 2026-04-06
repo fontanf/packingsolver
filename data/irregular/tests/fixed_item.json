@@ -1,0 +1,81 @@
+{
+    "objective": "open-dimension-x",
+    "bin_types": [
+        {
+            "type": "polygon",
+            "copies": 1,
+            "copies_min": 1,
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 40,
+                    "y": 0
+                },
+                {
+                    "x": 40,
+                    "y": 30
+                },
+                {
+                    "x": 0,
+                    "y": 30
+                }
+            ],
+            "fixed_items": [
+                {
+                    "item_type_id": 0,
+                    "angle": 0,
+                    "mirror": false,
+                    "bl_corner": {"x": 10, "y": 10}
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        { 
+            "type": "polygon",
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 10,
+                    "y": 0
+                },
+                {
+                    "x": 10,
+                    "y": 20
+                },
+                {
+                    "x": 0,
+                    "y": 20
+                }
+            ]
+        },
+        { 
+            "type": "polygon",
+            "allow_mirroring": true,
+            "vertices": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 10,
+                    "y": 0
+                },
+                {
+                    "x": 10,
+                    "y": 10
+                },
+                {
+                    "x": 0,
+                    "y": 10
+                }
+            ]
+        }
+    ]
+}

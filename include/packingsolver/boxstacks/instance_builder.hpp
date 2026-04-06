@@ -91,8 +91,10 @@ public:
      * This method is used in the column generation procedure.
      */
     void add_bin_type(
-            const BinType& bin_type,
-            BinPos copies);
+            const Instance& original_instance,
+            BinTypeId original_bin_type_id,
+            BinPos copies,
+            BinPos copies_min = 0);
 
     /**
      * For each bin type, set an infinite x.
@@ -174,7 +176,8 @@ public:
      * This method is used in the column generation procedure.
      */
     void add_item_type(
-            const ItemType& item_type,
+            const Instance& original_instance,
+            ItemTypeId original_item_type_id,
             Profit profit,
             ItemPos copies);
 
@@ -228,6 +231,12 @@ private:
 
     /** Instance. */
     Instance instance_;
+
+    /** Mapping from original bin type IDs to sub-instance bin type IDs. */
+    std::vector<BinTypeId> orig_to_sub_bin_type_ids_;
+
+    /** Mapping from original item type IDs to sub-instance item type IDs. */
+    std::vector<ItemTypeId> orig_to_sub_item_type_ids_;
 
 };
 

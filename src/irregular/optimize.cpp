@@ -1135,7 +1135,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
 
         // Add bin types.
         const SolutionBin& last_bin = solution_best.bin(solution_best.number_of_different_bins() - 1);
-        last_bin_instance_builder.add_bin_type(instance.bin_type(last_bin.bin_type_id), 1);
+        last_bin_instance_builder.add_bin_type(instance, last_bin.bin_type_id, 1);
 
         // Add item types.
         std::vector<ItemPos> last_bin_item_copies(instance.number_of_item_types(), 0);
@@ -1149,7 +1149,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             const ItemType& item_type = instance.item_type(item_type_id);
             if (last_bin_item_copies[item_type_id] > 0) {
                 last_bin_instance_builder.add_item_type(
-                        item_type,
+                        instance,
+                        item_type_id,
                         item_type.profit,
                         last_bin_item_copies[item_type_id]);
                 last_bin_to_orig.push_back(item_type_id);

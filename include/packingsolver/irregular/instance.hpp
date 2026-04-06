@@ -86,6 +86,26 @@ struct Defect
 };
 
 /**
+ * Structure representing a single item placement that is already fixed
+ * (i.e. part of the solution determined before the search begins).
+ * Fixed items belong to a bin type and apply to every bin of that type.
+ */
+struct FixedItem
+{
+    /** Item type. */
+    ItemTypeId item_type_id;
+
+    /** Position of the bottom-left corner of the item. */
+    Point bl_corner;
+
+    /** Rotation angle of the item. */
+    Angle angle;
+
+    /** Mirror the item. */
+    bool mirror;
+};
+
+/**
  * Bin type structure for a problem of type 'irregular'.
  */
 struct BinType
@@ -104,6 +124,9 @@ struct BinType
 
     /** Defects of the bin type. */
     std::vector<Defect> defects;
+
+    /** Fixed items pre-placed in every bin of this type. */
+    std::vector<FixedItem> fixed_items;
 
     /** Minimum distance between and item and the bin. */
     LengthDbl item_bin_minimum_spacing = 0.0;
@@ -190,6 +213,9 @@ struct ItemType
     /*
      * Computed attributes.
      */
+
+    /** Number of copies already fixed in the instance. */
+    ItemPos copies_fixed = 0;
 
     /** Area of the item type. */
     AreaDbl area_orig = 0;
@@ -289,6 +315,12 @@ public:
     /** Get the number of defects. */
     inline DefectId number_of_defects() const { return number_of_defects_; }
 
+    /**
+     * Get the position of the last bin whose bin type has fixed items.
+     * Returns -1 if no bin type has fixed items.
+     */
+    inline BinPos last_bin_with_fixed_items() const { return last_bin_with_fixed_items_; }
+
     /*
      * Getters: item types
      */
@@ -301,6 +333,9 @@ public:
 
     /** Get the number of items. */
     inline ItemPos number_of_items() const { return number_of_items_; }
+
+    /** Get the number of fixed items. */
+    inline ItemPos number_of_fixed_items() const { return number_of_fixed_items_; }
 
     /** Get the number rectangular of items. */
     inline ItemPos number_of_rectangular_items() const { return number_of_rectangular_items_; }
@@ -334,6 +369,7 @@ public:
 
     /** Return true iff all items have infinite copies. */
     inline bool unbounded_knapsack() const { return all_item_types_infinite_copies_; }
+
 
     /*
      * Export
@@ -391,8 +427,14 @@ private:
     /** Number of defects. */
     DefectId number_of_defects_ = 0;
 
+    /** Position of the last bin whose bin type has fixed items (-1 if none). */
+    BinPos last_bin_with_fixed_items_ = -1;
+
     /** Number of items. */
     ItemPos number_of_items_ = 0;
+
+    /** Number of fixed items. */
+    ItemPos number_of_fixed_items_ = 0;
 
     /** Number of rectangular items. */
     ItemPos number_of_rectangular_items_ = 0;
@@ -423,6 +465,7 @@ private:
 
     /** True iff all item types have an infinite number of copies. */
     bool all_item_types_infinite_copies_ = false;
+
 
     friend class InstanceBuilder;
 

@@ -326,6 +326,7 @@ std::ostream& Instance::format(
             << "Objective:                    " << objective() << std::endl
             << "Number of item types:         " << number_of_item_types() << std::endl
             << "Number of items:              " << number_of_items() << std::endl
+            << "Number of fixed items:        " << this->number_of_fixed_items() << std::endl
             << "Number of bin types:          " << number_of_bin_types() << std::endl
             << "Number of bins:               " << number_of_bins() << std::endl
             << "Number of defects:            " << number_of_defects() << std::endl
@@ -363,7 +364,7 @@ std::ostream& Instance::format(
             << std::setw(12) << "-------"
             << std::endl;
         for (BinTypeId bin_type_id = 0;
-                bin_type_id < number_of_bin_types();
+                bin_type_id < this->number_of_bin_types();
                 ++bin_type_id) {
             const BinType& bin_type = this->bin_type(bin_type_id);
             os
@@ -376,7 +377,7 @@ std::ostream& Instance::format(
                 << std::endl;
         }
 
-        if (number_of_defects() > 0) {
+        if (this->number_of_defects() > 0) {
             os
                 << std::endl
                 << std::setw(12) << "Bin type"
@@ -424,7 +425,7 @@ std::ostream& Instance::format(
             << std::setw(12) << "--------"
             << std::endl;
         for (ItemTypeId item_type_id = 0;
-                item_type_id < number_of_item_types();
+                item_type_id < this->number_of_item_types();
                 ++item_type_id) {
             const ItemType& item_type = this->item_type(item_type_id);
             os
@@ -435,6 +436,40 @@ std::ostream& Instance::format(
                 << std::setw(12) << item_type.copies
                 << std::setw(12) << item_type.shapes.size()
                 << std::endl;
+        }
+
+        if (this->last_bin_with_fixed_items() >= 0) {
+            os
+                << std::endl
+                << std::setw(12) << "Bin type"
+                << std::setw(12) << "Item type"
+                << std::setw(12) << "Angle"
+                << std::setw(12) << "Mirror"
+                << std::setw(12) << "X"
+                << std::setw(12) << "Y"
+                << std::endl
+                << std::setw(12) << "--------"
+                << std::setw(12) << "---------"
+                << std::setw(12) << "-----"
+                << std::setw(12) << "------"
+                << std::setw(12) << "-"
+                << std::setw(12) << "-"
+                << std::endl;
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < this->number_of_bin_types();
+                    ++bin_type_id) {
+                const BinType& bin_type = this->bin_type(bin_type_id);
+                for (const FixedItem& fixed_item: bin_type.fixed_items) {
+                    os
+                        << std::setw(12) << bin_type_id
+                        << std::setw(12) << fixed_item.item_type_id
+                        << std::setw(12) << fixed_item.angle
+                        << std::setw(12) << fixed_item.mirror
+                        << std::setw(12) << fixed_item.bl_corner.x
+                        << std::setw(12) << fixed_item.bl_corner.y
+                        << std::endl;
+                }
+            }
         }
     }
 

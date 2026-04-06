@@ -110,6 +110,8 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
     auto lbs = largest_bin_space(instance);
 
     for (output.number_of_iterations = 0;; output.number_of_iterations++) {
+        // track fixed copies from bins added to the partial solution in this iteration
+        std::vector<ItemPos> partial_fixed_copies(instance.number_of_item_types(), 0);
         //std::cout << "it " << output.number_of_iterations
         //    << " / " << parameters.maximum_number_of_iterations
         //    << std::endl;
@@ -142,16 +144,6 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
             // Stop if all bins have been used.
             if (solution.number_of_bins() == instance.number_of_bins())
                 break;
-
-            std::vector<ItemTypeId> kp2orig;
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance.number_of_item_types();
-                    ++item_type_id) {
-                ItemPos copies = instance.item_type(item_type_id).copies
-                    - solution.item_copies(item_type_id);
-                if (copies > 0)
-                    kp2orig.push_back(item_type_id);
-            }
 
             // Find bin types to try.
             std::vector<BinTypeId> bin_type_ids;
@@ -186,8 +178,13 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 bin_type_ids.push_back(instance.bin_type_id(solution.number_of_bins()));
             }
 
+            std::vector<ItemPos> bin_fixed_copies(instance.number_of_item_types(), 0);
             for (BinTypeId bin_type_id: bin_type_ids) {
                 const auto& bin_type = instance.bin_type(bin_type_id);
+
+                // Compute k_i: fixed copies of each item type in this bin type.
+                for (const auto& fixed_item: bin_type.fixed_items)
+                    bin_fixed_copies[fixed_item.item_type_id]++;
 
                 if (instance.objective() == Objective::VariableSizedBinPacking
                         && solutions_cur[bin_type_id].first.number_of_items() > 0) {
@@ -196,32 +193,45 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     for (ItemTypeId item_type_id = 0;
                             item_type_id < instance.number_of_item_types();
                             ++item_type_id) {
-                        ItemPos item_remaining_copies
-                            = instance.item_type(item_type_id).copies
-                            - solution.item_copies(item_type_id);
-                        if (item_remaining_copies
+                        ItemPos available = instance.item_type(item_type_id).copies
+                            - instance.item_type(item_type_id).copies_fixed
+                            - (solution.item_copies(item_type_id) - partial_fixed_copies[item_type_id])
+                            + bin_fixed_copies[item_type_id];
+                        if (available
                                 < solutions_cur[bin_type_id].first.item_copies(item_type_id)) {
                             valid = false;
                             break;
                         }
                     }
-                    if (valid)
+                    if (valid) {
+                        for (const auto& fixed_item: bin_type.fixed_items)
+                            bin_fixed_copies[fixed_item.item_type_id]--;
                         continue;
+                    }
                 }
 
                 // Build Knapsack subproblem instance.
+                // Copies = k_orig - k_fixed - k_sol_free + k_i.
                 InstanceBuilder kp_instance_builder = InstanceBuilder();
                 kp_instance_builder.set_objective(Objective::Knapsack);
                 kp_instance_builder.set_parameters(instance.parameters());
-                kp_instance_builder.add_bin_type(bin_type, 1);
-                for (ItemTypeId item_type_id: kp2orig) {
-                    ItemPos copies
-                        = instance.item_type(item_type_id).copies
-                        - solution.item_copies(item_type_id);
+                kp_instance_builder.add_bin_type(instance, bin_type_id, 1);
+                std::vector<ItemTypeId> kp2orig;
+                for (ItemTypeId item_type_id = 0;
+                        item_type_id < instance.number_of_item_types();
+                        ++item_type_id) {
+                    ItemPos copies = instance.item_type(item_type_id).copies
+                        - instance.item_type(item_type_id).copies_fixed
+                        - (solution.item_copies(item_type_id) - partial_fixed_copies[item_type_id])
+                        + bin_fixed_copies[item_type_id];
+                    if (copies <= 0)
+                        continue;
                     kp_instance_builder.add_item_type(
-                            instance.item_type(item_type_id),
+                            instance,
+                            item_type_id,
                             profits[item_type_id],
                             copies);
+                    kp2orig.push_back(item_type_id);
                 }
                 Instance kp_instance = kp_instance_builder.build();
 
@@ -235,11 +245,14 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 if (kp_solution.number_of_different_bins() == 0) {
                     solutions_cur[bin_type_id].first = Solution(instance);
                     solutions_cur[bin_type_id].second = 0;
+                    for (const auto& fixed_item: bin_type.fixed_items)
+                        bin_fixed_copies[fixed_item.item_type_id]--;
                     continue;
                 }
 
                 // Compute the number of copies of the selected Knapsack solution
-                // to add.
+                // to add. Only free items limit number_of_copies; fixed items
+                // are always present in the bin type.
                 BinPos number_of_copies
                     = instance.bin_type(bin_type_id).copies
                     - solution.bin_copies(bin_type_id);
@@ -247,14 +260,15 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                         kp_item_type_id < kp_instance.number_of_item_types();
                         ++kp_item_type_id) {
                     ItemTypeId item_type_id = kp2orig[kp_item_type_id];
-                    ItemPos item_remaining_copies
-                        = instance.item_type(item_type_id).copies
-                        - solution.item_copies(item_type_id);
-                    ItemPos item_packed_copies = kp_solution.item_copies(kp_item_type_id);
-                    if (item_packed_copies > 0) {
+                    ItemPos free_remaining = instance.item_type(item_type_id).copies
+                        - instance.item_type(item_type_id).copies_fixed
+                        - (solution.item_copies(item_type_id) - partial_fixed_copies[item_type_id]);
+                    ItemPos free_packed = kp_solution.item_copies(kp_item_type_id)
+                        - bin_fixed_copies[item_type_id];
+                    if (free_packed > 0) {
                         number_of_copies = std::min(
                                 number_of_copies,
-                                (BinPos)(item_remaining_copies / item_packed_copies));
+                                (BinPos)(free_remaining / free_packed));
                     }
                 }
                 if (number_of_copies < 1) {
@@ -274,14 +288,16 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     InstanceBuilder bppl_instance_builder;
                     bppl_instance_builder.set_objective(Objective::BinPackingWithLeftovers);
                     bppl_instance_builder.set_parameters(instance.parameters());
-                    bppl_instance_builder.add_bin_type(bin_type, 1);
+                    bppl_instance_builder.add_bin_type(instance, bin_type_id, 1);
                     for (ItemTypeId item_type_id: kp2orig) {
-                        ItemPos copies
-                            = instance.item_type(item_type_id).copies
-                            - solution.item_copies(item_type_id);
-                        copies /= number_of_copies;
+                        ItemPos free_copies = instance.item_type(item_type_id).copies
+                            - instance.item_type(item_type_id).copies_fixed
+                            - (solution.item_copies(item_type_id) - partial_fixed_copies[item_type_id]);
+                        ItemPos copies = (free_copies / number_of_copies)
+                            + bin_fixed_copies[item_type_id];
                         bppl_instance_builder.add_item_type(
-                                instance.item_type(item_type_id),
+                                instance,
+                                item_type_id,
                                 profits[item_type_id],
                                 copies);
                     }
@@ -325,6 +341,10 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     ss << "iteration " << output.number_of_iterations;
                     algorithm_formatter.update_solution(solution_tmp, ss.str());
                 }
+
+                // Revert bin_fixed_copies for the next bin type.
+                for (const auto& fixed_item: bin_type.fixed_items)
+                    bin_fixed_copies[fixed_item.item_type_id]--;
             }
 
             // Find best solution.
@@ -353,23 +373,28 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
             const Solution& kp_solution_best = solutions_cur[bin_type_id_best].first;
 
             // Compute the number of copies of the selected Knapsack solution
-            // to add.
+            // to add. Only free items limit number_of_copies.
+            for (const auto& fixed_item: instance.bin_type(bin_type_id_best).fixed_items)
+                bin_fixed_copies[fixed_item.item_type_id]++;
             BinPos number_of_copies
                 = instance.bin_type(bin_type_id_best).copies
                 - solution.bin_copies(bin_type_id_best);
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
                     ++item_type_id) {
-                ItemPos item_remaining_copies
-                    = instance.item_type(item_type_id).copies
-                    - solution.item_copies(item_type_id);
-                ItemPos item_packed_copies = kp_solution_best.item_copies(item_type_id);
-                if (item_packed_copies > 0) {
+                ItemPos free_remaining = instance.item_type(item_type_id).copies
+                    - instance.item_type(item_type_id).copies_fixed
+                    - (solution.item_copies(item_type_id) - partial_fixed_copies[item_type_id]);
+                ItemPos free_packed = kp_solution_best.item_copies(item_type_id)
+                    - bin_fixed_copies[item_type_id];
+                if (free_packed > 0) {
                     number_of_copies = std::min(
                             number_of_copies,
-                            (BinPos)(item_remaining_copies / item_packed_copies));
+                            (BinPos)(free_remaining / free_packed));
                 }
             }
+            for (const auto& fixed_item: instance.bin_type(bin_type_id_best).fixed_items)
+                bin_fixed_copies[fixed_item.item_type_id]--;
             if (number_of_copies < 1) {
                 throw std::logic_error(
                         FUNC_SIGNATURE + "; "
@@ -402,7 +427,9 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 //std::cout << " adjusted_space " << item_type_adjusted_space[item_type_id] << std::endl;
             }
 
-            // Update current solution.
+            // Update partial_fixed_copies, then current solution.
+            for (const auto& fixed_item: instance.bin_type(bin_type_id_best).fixed_items)
+                partial_fixed_copies[fixed_item.item_type_id] += number_of_copies;
             solution.append(
                     kp_solution_best,
                     0,
@@ -451,7 +478,8 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
             //    << " adjusted_space " << item_type_adjusted_space[item_type_id]
             //    << " profit " << profits[item_type_id];
             item_type_adjusted_space[item_type_id]
-                += 100 * lbs * (item_type.copies - solution.item_copies(item_type_id));
+                += 100 * lbs * (item_type.copies - item_type.copies_fixed
+                        - (solution.item_copies(item_type_id) - partial_fixed_copies[item_type_id]));
             Profit profit_new = 0.0;
             if (instance.objective() == Objective::Knapsack) {
                 profit_new

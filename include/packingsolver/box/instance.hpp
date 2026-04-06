@@ -141,11 +141,26 @@ struct ItemType
     inline Volume space() const { return volume(); }
 
     inline bool can_rotate(int rotation) const { return ((rotations >> rotation) & 1); }
+
+    /** Number of fixed copies of the item type (pre-placed in bin types). */
+    ItemPos copies_fixed = 0;
 };
 
 std::ostream& operator<<(
         std::ostream& os,
         const ItemType& item_type);
+
+struct FixedItem
+{
+    /** Item type. */
+    ItemTypeId item_type_id;
+
+    /** Bottom-left corner of the item. */
+    Point bl_corner;
+
+    /** Rotation of the item. */
+    int rotation;
+};
 
 /**
  * Bin type structure for a problem of type 'box'.
@@ -166,6 +181,9 @@ struct BinType
 
     /** Maximum weight. */
     Weight maximum_weight = std::numeric_limits<Weight>::infinity();
+
+    /** Fixed items pre-placed in every bin of this type. */
+    std::vector<FixedItem> fixed_items;
 
     /*
      * Computed attributes

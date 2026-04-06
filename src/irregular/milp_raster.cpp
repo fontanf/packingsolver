@@ -52,6 +52,8 @@ struct BinTypeData
     shape::ColumnId num_cols;
     shape::RowId num_rows;
     std::vector<std::vector<bool>> available;
+    /** Grid cells blocked by fixed items of this bin type. */
+    std::vector<std::vector<bool>> fixed_items;
     std::vector<BasePlacement> base_placements;
     std::vector<std::vector<std::vector<PlacementId>>> base_cell_placements;
     std::vector<std::vector<PlacementId>> base_item_placements;
@@ -130,6 +132,31 @@ Solution solve_milp_raster_for_cell_size(
                 shape::RowId r = ic.cell.row - data.row_shift;
                 if (c >= 0 && c < data.num_cols && r >= 0 && r < data.num_rows)
                     data.available[c][r] = false;
+            }
+        }
+
+        // Mark cells occupied by fixed items of this bin type.
+        data.fixed_items.assign(data.num_cols, std::vector<bool>(data.num_rows, false));
+        for (const FixedItem& fixed_item: bin_type.fixed_items) {
+            const ItemType& item_type = instance.item_type(fixed_item.item_type_id);
+            for (ItemShapePos item_shape_pos = 0;
+                    item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                    ++item_shape_pos) {
+                const ItemShape& item_shape = item_type.shapes[item_shape_pos];
+                ShapeWithHoles transformed = fixed_item.mirror?
+                    item_shape.shape_scaled.axial_symmetry_y_axis():
+                    item_shape.shape_scaled;
+                transformed = transformed.rotate(fixed_item.angle);
+                transformed.shift(
+                        fixed_item.bl_corner.x * scale,
+                        fixed_item.bl_corner.y * scale);
+                std::vector<shape::IntersectedCell> raster_cells = shape::rasterization(transformed, cell_size, cell_size);
+                for (const shape::IntersectedCell& ic: raster_cells) {
+                    shape::ColumnId c = ic.cell.column - data.col_shift;
+                    shape::RowId r = ic.cell.row - data.row_shift;
+                    if (c >= 0 && c < data.num_cols && r >= 0 && r < data.num_rows)
+                        data.fixed_items[c][r] = true;
+                }
             }
         }
 
@@ -263,18 +290,19 @@ Solution solve_milp_raster_for_cell_size(
         }
     }
 
-    // Copy constraints: for each item type, total placements across all bins <= copies.
+    // Copy constraints: for each item type, total placements across all bins <= copies - copies_fixed.
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
+        ItemPos remaining_copies = item_type.copies - item_type.copies_fixed;
         model.constraints_starts.push_back(model.elements_variables.size());
         if (instance.objective() == Objective::Feasibility) {
-            model.constraints_lower_bounds.push_back(item_type.copies);
+            model.constraints_lower_bounds.push_back(remaining_copies);
         } else {
             model.constraints_lower_bounds.push_back(0.0);
         }
-        model.constraints_upper_bounds.push_back((double)item_type.copies);
+        model.constraints_upper_bounds.push_back((double)remaining_copies);
         for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
             BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
             const BinTypeData& data = bin_type_data[bin_type_id];
@@ -285,18 +313,23 @@ Solution solve_milp_raster_for_cell_size(
         }
     }
 
-    // Cell conflict constraints: for each (bin_pos, col, row), at most one placement.
+    // Cell conflict constraints: for each (bin_pos, col, row), at most one placement,
+    // or zero if the cell is occupied by a fixed item.
     for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
         BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
         const BinTypeData& data = bin_type_data[bin_type_id];
         for (shape::ColumnId col_idx = 0; col_idx < data.num_cols; ++col_idx) {
             for (shape::RowId row_idx = 0; row_idx < data.num_rows; ++row_idx) {
                 const std::vector<PlacementId>& cell_placements = data.base_cell_placements[col_idx][row_idx];
-                if (cell_placements.size() <= 1)
+                if (cell_placements.empty())
+                    continue;
+                bool blocked = bin_type_data[bin_type_id].fixed_items[col_idx][row_idx];
+                double upper_bound = blocked ? 0.0 : 1.0;
+                if (cell_placements.size() <= 1 && !blocked)
                     continue;
                 model.constraints_starts.push_back(model.elements_variables.size());
                 model.constraints_lower_bounds.push_back(0.0);
-                model.constraints_upper_bounds.push_back(1.0);
+                model.constraints_upper_bounds.push_back(upper_bound);
                 for (PlacementId placement_id: cell_placements) {
                     model.elements_variables.push_back(global_offset[bin_pos] + placement_id);
                     model.elements_coefficients.push_back(1.0);
@@ -323,6 +356,26 @@ Solution solve_milp_raster_for_cell_size(
                 bl_corner.x = (bp.col * cell_size - bp.aabb_x_min) / scale;
                 bl_corner.y = (bp.row * cell_size - bp.aabb_y_min) / scale;
                 solution.add_item(solution_bin_pos, bp.item_type_id, bl_corner, bp.angle, bp.mirror);
+            }
+        }
+        // Add fixed items to each bin up to the last bin with fixed items.
+        for (BinPos bin_pos = 0;
+                bin_pos <= instance.last_bin_with_fixed_items();
+                ++bin_pos) {
+            if (bin_pos >= solution.number_of_bins()) {
+                BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
+                solution.add_bin(bin_type_id, 1);
+            }
+            BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            for (const FixedItem& fixed_item: bin_type.fixed_items) {
+                solution.add_item(
+                        bin_pos,
+                        fixed_item.item_type_id,
+                        fixed_item.bl_corner,
+                        fixed_item.angle,
+                        fixed_item.mirror,
+                        true);
             }
         }
         return solution;
