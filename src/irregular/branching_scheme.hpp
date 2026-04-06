@@ -547,6 +547,11 @@ private:
             bool mirror,
             Direction direction) const;
 
+    /** Convert a point from original coordinates to direction coordinates. */
+    Point convert_point(
+            const Point& point,
+            Direction direction) const;
+
     Point convert_point_back(
             const Point& point,
             Direction direction) const;

@@ -84,15 +84,20 @@ DefectId InstanceBuilder::add_defect(
 }
 
 void InstanceBuilder::add_bin_type(
-        const BinType& bin_type,
+        const Instance& original_instance,
+        BinTypeId original_bin_type_id,
         BinPos copies,
         BinPos copies_min)
 {
+    const BinType& bin_type = original_instance.bin_type(original_bin_type_id);
     BinTypeId bin_type_id = add_bin_type(
             bin_type.shape_orig,
             bin_type.cost,
             copies,
             copies_min);
+    if ((BinTypeId)orig_to_sub_bin_type_ids_.size() <= original_bin_type_id)
+        orig_to_sub_bin_type_ids_.resize(original_bin_type_id + 1, -1);
+    orig_to_sub_bin_type_ids_[original_bin_type_id] = bin_type_id;
     this->set_item_bin_minimum_spacing(
             bin_type_id,
             bin_type.item_bin_minimum_spacing);
@@ -105,6 +110,14 @@ void InstanceBuilder::add_bin_type(
                 bin_type_id,
                 defect_id,
                 defect.item_defect_minimum_spacing);
+    }
+    for (const FixedItem& fixed_item: bin_type.fixed_items) {
+        add_fixed_item(
+                bin_type_id,
+                fixed_item.item_type_id,
+                fixed_item.bl_corner,
+                fixed_item.angle,
+                fixed_item.mirror);
     }
 }
 
@@ -223,10 +236,12 @@ void InstanceBuilder::add_item_type_allowed_rotation(
 }
 
 void InstanceBuilder::add_item_type(
-        const ItemType& item_type,
+        const Instance& original_instance,
+        ItemTypeId original_item_type_id,
         Profit profit,
         ItemPos copies)
 {
+    const ItemType& item_type = original_instance.item_type(original_item_type_id);
     ItemTypeId item_type_id = add_item_type(
             item_type.shapes,
             profit,
@@ -238,6 +253,9 @@ void InstanceBuilder::add_item_type(
                 rotation.end_angle,
                 rotation.mirror);
     }
+    if ((ItemTypeId)orig_to_sub_item_type_ids_.size() <= original_item_type_id)
+        orig_to_sub_item_type_ids_.resize(original_item_type_id + 1, -1);
+    orig_to_sub_item_type_ids_[original_item_type_id] = item_type_id;
 }
 
 void InstanceBuilder::set_item_types_unweighted()
@@ -365,6 +383,23 @@ void InstanceBuilder::read(
                         bin_type_id,
                         defect_id,
                         item_defect_minimum_spacing);
+            }
+        }
+
+        // Read fixed items.
+        if (json_item.contains("fixed_items")) {
+            for (const auto& json_fixed_item: json_item["fixed_items"]) {
+                ItemTypeId item_type_id = json_fixed_item["item_type_id"];
+                Point bl_corner;
+                bl_corner.x = json_fixed_item["bl_corner"]["x"];
+                bl_corner.y = json_fixed_item["bl_corner"]["y"];
+                Angle angle = 0;
+                if (json_fixed_item.contains("angle"))
+                    angle = json_fixed_item["angle"];
+                bool mirror = false;
+                if (json_fixed_item.contains("mirror"))
+                    mirror = json_fixed_item["mirror"];
+                add_fixed_item(bin_type_id, item_type_id, bl_corner, angle, mirror);
             }
         }
     }
@@ -688,6 +723,44 @@ Instance InstanceBuilder::build()
             instance_.largest_bin_cost_ = bin_type.cost;
         // Update number_of_defects_.
         instance_.number_of_defects_ += bin_type.defects.size();
+    }
+
+    // Remap fixed item type IDs if a sub-instance mapping is present.
+    if (!orig_to_sub_item_type_ids_.empty()) {
+        for (BinType& bin_type: instance_.bin_types_) {
+            for (FixedItem& fixed_item: bin_type.fixed_items) {
+                if (fixed_item.item_type_id >= (ItemTypeId)orig_to_sub_item_type_ids_.size()
+                        || orig_to_sub_item_type_ids_[fixed_item.item_type_id] == -1) {
+                    throw std::invalid_argument(
+                            FUNC_SIGNATURE + ": "
+                            "fixed item type id not found in sub-instance mapping; "
+                            "item_type_id: " + std::to_string(fixed_item.item_type_id) + ".");
+                }
+                fixed_item.item_type_id = orig_to_sub_item_type_ids_[fixed_item.item_type_id];
+            }
+        }
+    }
+
+    // Compute copies_fixed for each item type.
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < this->instance_.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = this->instance_.bin_types_[bin_type_id];
+        for (const FixedItem& fixed_item: bin_type.fixed_items) {
+            this->instance_.item_types_[fixed_item.item_type_id].copies_fixed += bin_type.copies;
+            this->instance_.number_of_fixed_items_ += bin_type.copies;
+        }
+    }
+    // Compute last_bin_with_fixed_items_: position of the last bin whose bin
+    // type has fixed items.
+    for (BinPos bin_pos = (BinPos)instance_.bin_type_ids_.size() - 1;
+            bin_pos >= 0;
+            --bin_pos) {
+        BinTypeId bin_type_id = instance_.bin_type_ids_[bin_pos];
+        if (!instance_.bin_types_[bin_type_id].fixed_items.empty()) {
+            instance_.last_bin_with_fixed_items_ = bin_pos;
+            break;
+        }
     }
 
     if (instance_.objective() == Objective::OpenDimensionX

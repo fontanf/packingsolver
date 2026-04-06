@@ -93,15 +93,20 @@ void InstanceBuilder::add_bin_type_eligibility(
 }
 
 void InstanceBuilder::add_bin_type(
-        const BinType& bin_type,
+        const Instance& original_instance,
+        BinTypeId original_bin_type_id,
         BinPos copies,
         BinPos copies_min)
 {
+    const BinType& bin_type = original_instance.bin_type(original_bin_type_id);
     BinTypeId bin_type_id = add_bin_type(
             bin_type.length,
             bin_type.cost,
             copies,
             copies_min);
+    if ((BinTypeId)orig_to_sub_bin_type_ids_.size() <= original_bin_type_id)
+        orig_to_sub_bin_type_ids_.resize(original_bin_type_id + 1, -1);
+    orig_to_sub_bin_type_ids_[original_bin_type_id] = bin_type_id;
     set_bin_type_maximum_weight(
             bin_type_id,
             bin_type.maximum_weight);
@@ -230,14 +235,19 @@ void InstanceBuilder::set_item_type_eligibility(
 }
 
 void InstanceBuilder::add_item_type(
-        const ItemType& item_type,
+        const Instance& original_instance,
+        ItemTypeId original_item_type_id,
         Profit profit,
         ItemPos copies)
 {
+    const ItemType& item_type = original_instance.item_type(original_item_type_id);
     ItemTypeId item_type_id = add_item_type(
             item_type.length,
             profit,
             copies);
+    if ((ItemTypeId)orig_to_sub_item_type_ids_.size() <= original_item_type_id)
+        orig_to_sub_item_type_ids_.resize(original_item_type_id + 1, -1);
+    orig_to_sub_item_type_ids_[original_item_type_id] = item_type_id;
     set_item_type_weight(
             item_type_id,
             item_type.weight);
@@ -540,6 +550,24 @@ Instance InstanceBuilder::build()
             }
             bin_type.item_type_ids.push_back(item_type_id);
         }
+    }
+
+    // Check and compute copies_fixed for each item type.
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance_.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance_.bin_types_[bin_type_id];
+        if (!bin_type.fixed_items.empty()
+                && bin_type.copies_min != bin_type.copies) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "bin type " + std::to_string(bin_type_id) + " has fixed items "
+                    "but copies_min (" + std::to_string(bin_type.copies_min) + ") "
+                    "!= copies (" + std::to_string(bin_type.copies) + "); "
+                    "a bin type with fixed items must be mandatory (copies_min == copies).");
+        }
+        for (const FixedItem& fixed_item: bin_type.fixed_items)
+            instance_.item_types_[fixed_item.item_type_id].copies_fixed += bin_type.copies;
     }
 
     return std::move(instance_);

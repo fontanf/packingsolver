@@ -79,7 +79,8 @@ public:
      * This method is used in the column generation procedure.
      */
     void add_bin_type(
-            const BinType& bin_type,
+            const Instance& original_instance,
+            BinTypeId original_bin_type_id,
             BinPos copies,
             BinPos copies_min = 0);
 
@@ -130,7 +131,8 @@ public:
      * This method is used in the column generation procedure.
      */
     void add_item_type(
-            const ItemType& item_type,
+            const Instance& original_instance,
+            ItemTypeId original_item_type_id,
             Profit profit,
             ItemPos copies);
 
@@ -144,6 +146,17 @@ public:
 
     /** Set continuous rotations for all item types. */
     void set_item_types_continuous_rotations();
+
+    /** Add a fixed item (a placement that is already determined before the search). */
+    void add_fixed_item(
+            BinTypeId bin_type_id,
+            ItemTypeId item_type_id,
+            Point bl_corner,
+            Angle angle,
+            bool mirror)
+    {
+        instance_.bin_types_[bin_type_id].fixed_items.push_back({item_type_id, bl_corner, angle, mirror});
+    }
 
     /*
      * Build
@@ -170,6 +183,12 @@ private:
 
     /** Instance. */
     Instance instance_;
+
+    /** Mapping from original bin type IDs to sub-instance bin type IDs. */
+    std::vector<BinTypeId> orig_to_sub_bin_type_ids_;
+
+    /** Mapping from original item type IDs to sub-instance item type IDs. */
+    std::vector<ItemTypeId> orig_to_sub_item_type_ids_;
 
 };
 

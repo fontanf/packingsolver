@@ -21,41 +21,42 @@ Instance InstanceFlipper::flip(const Instance& instance)
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        BinType bin_type_new = bin_type;
-        bin_type_new.rect.w = bin_type.rect.h;
-        bin_type_new.rect.h = bin_type.rect.w;
-        bin_type_new.left_trim = bin_type.bottom_trim;
-        bin_type_new.left_trim_type = bin_type.bottom_trim_type;
-        bin_type_new.right_trim = bin_type.top_trim;
-        bin_type_new.right_trim_type = bin_type.top_trim_type;
-        bin_type_new.bottom_trim = bin_type.left_trim;
-        bin_type_new.bottom_trim_type = bin_type.left_trim_type;
-        bin_type_new.top_trim = bin_type.right_trim;
-        bin_type_new.top_trim_type = bin_type.right_trim_type;
-        for (DefectId defect_id = 0;
-                defect_id < (DefectId)bin_type.defects.size();
-                ++defect_id) {
-            bin_type_new.defects[defect_id].pos.x = bin_type.defects[defect_id].pos.y;
-            bin_type_new.defects[defect_id].pos.y = bin_type.defects[defect_id].pos.x;
-            bin_type_new.defects[defect_id].rect.w = bin_type.defects[defect_id].rect.h;
-            bin_type_new.defects[defect_id].rect.h = bin_type.defects[defect_id].rect.w;
-        }
-        flipped_instance_builder.add_bin_type(
-                bin_type_new,
+        BinTypeId flipped_bin_type_id = flipped_instance_builder.add_bin_type(
+                bin_type.rect.h,
+                bin_type.rect.w,
+                bin_type.cost,
                 bin_type.copies,
                 bin_type.copies_min);
+        flipped_instance_builder.add_trims(
+                flipped_bin_type_id,
+                bin_type.bottom_trim,
+                bin_type.bottom_trim_type,
+                bin_type.top_trim,
+                bin_type.top_trim_type,
+                bin_type.left_trim,
+                bin_type.left_trim_type,
+                bin_type.right_trim,
+                bin_type.right_trim_type);
+        for (const Defect& defect: bin_type.defects) {
+            flipped_instance_builder.add_defect(
+                    flipped_bin_type_id,
+                    defect.pos.y,
+                    defect.pos.x,
+                    defect.rect.h,
+                    defect.rect.w);
+        }
     }
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        ItemType item_type_new = item_type;
-        item_type_new.rect.w = item_type.rect.h;
-        item_type_new.rect.h = item_type.rect.w;
         flipped_instance_builder.add_item_type(
-                item_type_new,
+                item_type.rect.h,
+                item_type.rect.w,
                 item_type.profit,
-                item_type.copies);
+                item_type.copies,
+                item_type.oriented,
+                item_type.stack_id);
     }
     return flipped_instance_builder.build();
 }

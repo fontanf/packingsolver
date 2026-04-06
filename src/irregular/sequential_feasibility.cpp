@@ -84,7 +84,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                     ++bin_type_id) {
                 const BinType& bin_type = instance.bin_type(bin_type_id);
                 BinPos copies = std::min(bin_type.copies, remaining_bins);
-                sub_instance_builder.add_bin_type(bin_type, copies);
+                sub_instance_builder.add_bin_type(instance, bin_type_id, copies);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id);
                 remaining_bins -= copies;
             }
@@ -130,7 +130,8 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                 ++item_type_id) {
             const ItemType& item_type = instance.item_type(item_type_id);
             sub_instance_builder.add_item_type(
-                    item_type,
+                    instance,
+                    item_type_id,
                     item_type.profit,
                     item_type.copies);
         }

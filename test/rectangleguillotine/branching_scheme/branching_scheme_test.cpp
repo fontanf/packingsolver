@@ -193,7 +193,8 @@ TEST_P(RectangleGuillotineBranchingSchemeRoadef2018FixedStackTest, RectangleGuil
             ++bin_type_id) {
         const BinType& bin_type = instance_0.bin_type(bin_type_id);
         instance_builder.add_bin_type(
-                bin_type,
+                instance_0,
+                bin_type_id,
                 bin_type.copies,
                 bin_type.copies_min);
     }
