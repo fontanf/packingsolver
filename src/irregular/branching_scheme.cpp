@@ -292,6 +292,91 @@ BranchingScheme::BranchingScheme(
                 }
             }
 
+            // Append fixed-item inflated trapezoids into each bin type's defects,
+            // and add the fixed items' supporting surfaces so that items can be
+            // placed on top of fixed items when opening a new bin.
+            for (const FixedItem& fixed_item: bin_type.fixed_items) {
+                Point bl_corner = convert_point(
+                        instance.parameters().scale_value * fixed_item.bl_corner,
+                        direction);
+                const ItemType& fixed_item_type = instance.item_type(fixed_item.item_type_id);
+                const SimplifiedItemType& simplified_item_type
+                    = simplified_instance_.item_types[fixed_item.item_type_id];
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)fixed_item_type.shapes.size();
+                        ++item_shape_pos) {
+                    const Shape& simplified_inflated_shape
+                        = simplified_item_type.shapes[item_shape_pos].shape_inflated.shape;
+                    ShapeWithHoles shape_inflated;
+                    shape_inflated.shape = convert_shape(
+                            simplified_inflated_shape,
+                            fixed_item.angle,
+                            fixed_item.mirror,
+                            direction);
+                    shape_inflated = shape::clean_extreme_slopes_outer(shape_inflated.shape);
+                    for (ShapePos hole_pos = 0;
+                            hole_pos < (ShapePos)simplified_item_type.shapes[item_shape_pos].shape_inflated.holes.size();
+                            ++hole_pos) {
+                        const Shape& simplified_deflated_hole
+                            = simplified_item_type.shapes[item_shape_pos].shape_inflated.holes[hole_pos];
+                        Shape hole_deflated = convert_shape(
+                                simplified_deflated_hole,
+                                fixed_item.angle,
+                                fixed_item.mirror,
+                                direction);
+                        auto res = shape::clean_extreme_slopes_inner(hole_deflated);
+                        for (const auto& hole: res)
+                            shape_inflated.holes.push_back(hole);
+                    }
+                    // Add defect trapezoids (inflated shape shifted to bl_corner).
+                    auto trapezoids_inflated = trapezoidation(shape_inflated);
+                    for (const GeneralizedTrapezoid& trapezoid: trapezoids_inflated) {
+                        GeneralizedTrapezoid shifted = trapezoid;
+                        shifted.shift_right(bl_corner.x);
+                        shifted.shift_top(bl_corner.y);
+                        bb_bin_type.defects.push_back(UncoveredTrapezoid(-1, shifted));
+                    }
+                    // Add supporting surfaces of the outer inflated shape,
+                    // shifted to bl_corner, so that items can be placed on
+                    // top of this fixed item when opening a new bin.
+                    std::vector<Shape> supporting_parts
+                        = shape::compute_shape_supports(shape_inflated.shape, false).supporting_parts;
+                    for (const Shape& supporting_part: supporting_parts) {
+                        ShapePos new_pos = (ShapePos)bb_bin_type.supporting_parts.size();
+                        Support support;
+                        support.bin_type_id = bin_type_id;
+                        support.item_shape_pos = item_shape_pos;
+                        support.defect_id = -1;
+                        support.shape = supporting_part;
+                        support.shape.shift(bl_corner.x, bl_corner.y);
+                        support.aabb = support.shape.compute_min_max();
+                        bb_bin_type.supporting_parts.push_back(support);
+                        bb_bin_type.bin_supporting_part_ids.push_back(new_pos);
+                    }
+                    // Add supporting surfaces from holes of the inflated shape.
+                    for (ShapePos hole_pos = 0;
+                            hole_pos < (ShapePos)shape_inflated.holes.size();
+                            ++hole_pos) {
+                        const Shape& hole = shape_inflated.holes[hole_pos];
+                        std::vector<Shape> hole_supporting_parts
+                            = shape::compute_shape_supports(hole, true).supporting_parts;
+                        for (const Shape& supporting_part: hole_supporting_parts) {
+                            ShapePos new_pos = (ShapePos)bb_bin_type.supporting_parts.size();
+                            Support support;
+                            support.bin_type_id = bin_type_id;
+                            support.item_shape_pos = item_shape_pos;
+                            support.hole_pos = hole_pos;
+                            support.defect_id = -1;
+                            support.shape = supporting_part;
+                            support.shape.shift(bl_corner.x, bl_corner.y);
+                            support.aabb = support.shape.compute_min_max();
+                            bb_bin_type.supporting_parts.push_back(support);
+                            bb_bin_type.bin_supporting_part_ids.push_back(new_pos);
+                        }
+                    }
+                }
+            }
+
             // Item types: build one trapezoid set per (item_type, rotation)
             // for this bin type.
             for (ItemTypeId item_type_id = 0;
@@ -609,6 +694,31 @@ Shape BranchingScheme::convert_shape(
         shape = shape.axial_symmetry_x_axis();
     }
     return shape;
+}
+
+Point BranchingScheme::convert_point(
+        const Point& point,
+        Direction direction) const
+{
+    if (direction == Direction::LeftToRightThenBottomToTop) {
+        return Point{point.x, point.y};
+    } else if (direction == Direction::LeftToRightThenTopToBottom) {
+        return Point{point.x, -point.y};
+    } else if (direction == Direction::RightToLeftThenBottomToTop) {
+        return Point{-point.x, point.y};
+    } else if (direction == Direction::RightToLeftThenTopToBottom) {
+        return Point{-point.x, -point.y};
+    } else if (direction == Direction::BottomToTopThenLeftToRight) {
+        return Point{point.y, point.x};
+    } else if (direction == Direction::BottomToTopThenRightToLeft) {
+        return Point{point.y, -point.x};
+    } else if (direction == Direction::TopToBottomThenLeftToRight) {
+        return Point{-point.y, point.x};
+    } else if (direction == Direction::TopToBottomThenRightToLeft) {
+        return Point{-point.y, -point.x};
+    }
+    throw std::runtime_error(FUNC_SIGNATURE);
+    return Point();
 }
 
 Point BranchingScheme::convert_point_back(
@@ -960,7 +1070,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.uncovered_trapezoids.push_back(uncovered_trapezoid);
         node.all_trapezoids_skyline.push_back(uncovered_trapezoid);
 
-        // Add extra trapezoids from defects.
+        // Add defect trapezoids (including fixed items) for this bin type.
         for (DefectId defect_id = 0;
                 defect_id < (DefectId)bb_bin_type.defects.size();
                 ++defect_id) {
@@ -1922,6 +2032,22 @@ const std::shared_ptr<BranchingScheme::Node> BranchingScheme::root() const
 {
     BranchingScheme::Node node;
     node.item_number_of_copies = std::vector<ItemPos>(instance().number_of_item_types(), 0);
+
+    // Update node attributes to reflect already-fixed items.
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance().number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        for (const FixedItem& fixed_item: bin_type.fixed_items) {
+            const ItemType& item_type = instance().item_type(fixed_item.item_type_id);
+            node.item_number_of_copies[fixed_item.item_type_id] += bin_type.copies;
+            node.number_of_items += bin_type.copies;
+            node.item_area += bin_type.copies * item_type.area_scaled;
+            node.item_convex_hull_area += bin_type.copies * item_types_convex_hull_area_[fixed_item.item_type_id];
+            node.profit += bin_type.copies * item_type.profit;
+        }
+    }
+
     node.id = node_id_++;
     return std::make_shared<Node>(node);
 }
@@ -2080,6 +2206,27 @@ Solution BranchingScheme::to_solution(
                         "solution.y_min(): " + std::to_string(solution.y_min()) + "; "
                         "d: " + std::to_string((int)node->last_bin_direction) + ".");
             }
+        }
+    }
+    // Add fixed items to each bin, extending the solution up to the last bin
+    // that has a bin type with fixed items.
+    for (BinPos bin_pos = 0;
+            bin_pos <= instance().last_bin_with_fixed_items();
+            ++bin_pos) {
+        if (bin_pos >= solution.number_of_bins()) {
+            BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+            solution.add_bin(bin_type_id, 1);
+        }
+        BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+        const BinType& bin_type = instance().bin_type(bin_type_id);
+        for (const FixedItem& fixed_item: bin_type.fixed_items) {
+            solution.add_item(
+                    bin_pos,
+                    fixed_item.item_type_id,
+                    fixed_item.bl_corner,
+                    fixed_item.angle,
+                    fixed_item.mirror,
+                    true);
         }
     }
     return solution;

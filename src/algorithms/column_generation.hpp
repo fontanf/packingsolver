@@ -70,7 +70,8 @@ public:
         instance_(instance),
         pricing_function_(pricing_function),
         fixed_bin_types_(instance.number_of_bin_types()),
-        filled_demands_(instance.number_of_item_types())
+        filled_demands_(instance.number_of_item_types()),
+        filled_fixed_demands_(instance.number_of_item_types())
     { }
 
     virtual std::vector<std::shared_ptr<const Column>> initialize_pricing(
@@ -88,6 +89,9 @@ private:
     std::vector<BinPos> fixed_bin_types_;
 
     std::vector<double> filled_demands_;
+
+    /** Fixed copies already covered by selected LP columns (per item type). */
+    std::vector<double> filled_fixed_demands_;
 
 };
 
@@ -154,6 +158,7 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver<Instanc
     //std::cout << "initialize_pricing " << fixed_columns.size() << std::endl;
     std::fill(fixed_bin_types_.begin(), fixed_bin_types_.end(), 0);
     std::fill(filled_demands_.begin(), filled_demands_.end(), 0);
+    std::fill(filled_fixed_demands_.begin(), filled_fixed_demands_.end(), 0);
     for (auto p: fixed_columns) {
         const Column& column = *(p.first);
         Value value = p.second;
@@ -161,7 +166,10 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver<Instanc
             continue;
         for (const columngenerationsolver::LinearTerm& element: column.elements) {
             if (element.row < instance_.number_of_bin_types()) {
-                fixed_bin_types_[element.row] += value;
+                BinTypeId bin_type_id = element.row;
+                fixed_bin_types_[bin_type_id] += value;
+                for (const auto& fixed_item: instance_.bin_type(bin_type_id).fixed_items)
+                    filled_fixed_demands_[fixed_item.item_type_id] += value;
             } else {
                 filled_demands_[element.row - instance_.number_of_bin_types()] += value * element.coefficient;
             }
@@ -223,6 +231,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
     PricingOutput output;
     Value reduced_cost_bound = 0.0;
 
+    std::vector<ItemPos> bin_fixed_copies(instance_.number_of_item_types(), 0);
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
@@ -230,19 +239,19 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
         if (fixed_bin_types_[bin_type_id] == bin_type.copies)
             continue;
 
+        for (const auto& fixed_item: bin_type.fixed_items)
+            bin_fixed_copies[fixed_item.item_type_id]++;
+
         // Build knapsack instance.
         InstanceBuilder kp_instance_builder = InstanceBuilder();
         kp_instance_builder.set_objective(Objective::Knapsack);
         kp_instance_builder.set_parameters(instance_.parameters());
-        kp_instance_builder.add_bin_type(bin_type, 1);
+        kp_instance_builder.add_bin_type(instance_, bin_type_id, 1);
         std::vector<ItemTypeId> kp2vbpp;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance_.number_of_item_types();
                 ++item_type_id) {
             const auto& item_type = instance_.item_type(item_type_id);
-            ItemPos copies = item_type.copies - filled_demands_[item_type_id];
-            if (copies == 0)
-                continue;
 
             Profit profit = 0;
             if (instance_.objective() == Objective::VariableSizedBinPacking
@@ -254,11 +263,23 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
                     * multiplier_profit;
             }
 
+            // If profit <= 0, only add fixed copies (they must be in the bin).
+            // If profit > 0, add all available copies.
+            ItemPos copies;
+            if (profit <= 0) {
+                copies = bin_fixed_copies[item_type_id];
+            } else {
+                copies = item_type.copies
+                    - item_type.copies_fixed
+                    - (filled_demands_[item_type_id] - filled_fixed_demands_[item_type_id])
+                    + bin_fixed_copies[item_type_id];
+            }
             //std::cout << "j " << j << " profit " << profit << std::endl;
-            if (profit <= 0)
+            if (copies <= 0)
                 continue;
             kp_instance_builder.add_item_type(
-                    item_type,
+                    instance_,
+                    item_type_id,
                     profit,
                     copies);
             kp2vbpp.push_back(item_type_id);
@@ -323,6 +344,9 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
                         kp_output.knapsack_bound / multiplier_profit - duals[bin_type_id]);
             }
         }
+
+        for (const auto& fixed_item: bin_type.fixed_items)
+            bin_fixed_copies[fixed_item.item_type_id]--;
     }
 
     output.overcost

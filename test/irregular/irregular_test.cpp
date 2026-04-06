@@ -229,4 +229,7 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 fs::path("data") / "irregular" / "tests" / "free_rotation.json",
                 fs::path("data") / "irregular" / "tests" / "free_rotation_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "tests" / "fixed_item.json",
+                fs::path("data") / "irregular" / "tests" / "fixed_item_solution.json"
             }}));

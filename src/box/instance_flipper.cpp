@@ -63,28 +63,40 @@ Instance InstanceFlipper::flip(
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        BinType bin_type_new = bin_type;
+        Length flipped_x = bin_type.box.x;
+        Length flipped_y = bin_type.box.y;
+        Length flipped_z = bin_type.box.z;
         if (direction_ == Direction::Y) {
-            bin_type_new.box.x = bin_type.box.y;
-            bin_type_new.box.y = bin_type.box.x;
+            flipped_x = bin_type.box.y;
+            flipped_y = bin_type.box.x;
         } else if (direction_ == Direction::Z) {
-            bin_type_new.box.x = bin_type.box.z;
-            bin_type_new.box.z = bin_type.box.x;
+            flipped_x = bin_type.box.z;
+            flipped_z = bin_type.box.x;
         }
-        flipped_instance_builder.add_bin_type(
-                bin_type_new,
+        BinTypeId flipped_bin_type_id = flipped_instance_builder.add_bin_type(
+                flipped_x,
+                flipped_y,
+                flipped_z,
+                bin_type.cost,
                 bin_type.copies);
+        flipped_instance_builder.set_bin_type_maximum_weight(
+                flipped_bin_type_id,
+                bin_type.maximum_weight);
     }
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        ItemType item_type_new = item_type;
-        item_type_new.rotations = this->flip_rotation_mask(item_type.rotations);
-        flipped_instance_builder.add_item_type(
-                item_type_new,
+        ItemTypeId flipped_item_type_id = flipped_instance_builder.add_item_type(
+                item_type.box.x,
+                item_type.box.y,
+                item_type.box.z,
                 item_type.profit,
-                item_type.copies);
+                item_type.copies,
+                this->flip_rotation_mask(item_type.rotations));
+        flipped_instance_builder.set_item_type_weight(
+                flipped_item_type_id,
+                item_type.weight);
     }
     return flipped_instance_builder.build();
 }

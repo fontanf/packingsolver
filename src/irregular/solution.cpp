@@ -54,7 +54,8 @@ void Solution::add_item(
         ItemTypeId item_type_id,
         Point bl_corner,
         Angle angle,
-        bool mirror)
+        bool mirror,
+        bool is_fixed)
 {
     if (item_type_id < 0
             || item_type_id >= instance().number_of_item_types()) {
@@ -84,6 +85,7 @@ void Solution::add_item(
     item.bl_corner = bl_corner;
     item.angle = angle;
     item.mirror = mirror;
+    item.is_fixed = is_fixed;
     bin.items.push_back(item);
     bin.item_area += item_type.area_orig;
 
@@ -156,7 +158,7 @@ void Solution::append(
         ItemTypeId item_type_id = (item_type_ids.empty())?
             item.item_type_id:
             item_type_ids[item.item_type_id];
-        add_item(i_pos, item_type_id, item.bl_corner, item.angle, item.mirror);
+        add_item(i_pos, item_type_id, item.bl_corner, item.angle, item.mirror, item.is_fixed);
     }
 }
 

@@ -233,28 +233,44 @@ LocalSearchOutput packingsolver::irregular::local_search(
     for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos)
         solution.add_bin(instance.bin_type_id(bin_pos), 1);
 
-    // Build a flat list of all item copies sorted ascending by area so that
-    // pop_back processes the largest items first.
+    // Pre-place fixed items and initialize their bin_data entries.
+    // Per-bin state.
+    std::vector<LocalSearchBinData> bin_data(instance.number_of_bins());
+    for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos) {
+        const BinType& bin_type = instance.bin_type(instance.bin_type_id(bin_pos));
+        bin_data[bin_pos].remaining_area = bin_type.area_scaled;
+        for (const FixedItem& fixed_item: bin_type.fixed_items) {
+            const ItemType& item_type = instance.item_type(fixed_item.item_type_id);
+            solution.add_item(
+                    bin_pos,
+                    fixed_item.item_type_id,
+                    fixed_item.bl_corner,
+                    fixed_item.angle,
+                    fixed_item.mirror,
+                    true);
+            bin_data[bin_pos].remaining_area -= item_type.area_scaled;
+            bin_data[bin_pos].item_penalties.push_back(
+                    std::numeric_limits<Profit>::infinity());
+            bin_data[bin_pos].lambda.push_back(1.0);
+        }
+    }
+
+    // Build a flat list of all remaining item copies sorted ascending by area
+    // so that pop_back processes the largest items first.
+    // Exclude copies already fixed in the bin types.
     std::vector<ItemTypeId> unpacked_items;
     unpacked_items.reserve(instance.number_of_items());
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        for (ItemPos copy = 0; copy < item_type.copies; ++copy)
+        for (ItemPos copy = 0; copy < item_type.copies - item_type.copies_fixed; ++copy)
             unpacked_items.push_back(item_type_id);
     }
     std::sort(unpacked_items.begin(), unpacked_items.end(),
             [&](ItemTypeId a, ItemTypeId b) {
                 return instance.item_type(a).area_orig < instance.item_type(b).area_orig;
             });
-
-    // Per-bin state.
-    std::vector<LocalSearchBinData> bin_data(instance.number_of_bins());
-    for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos) {
-        const BinType& bin_type = instance.bin_type(instance.bin_type_id(bin_pos));
-        bin_data[bin_pos].remaining_area = bin_type.area_scaled;
-    }
 
     // Pack all items into the available bins.
     while (!unpacked_items.empty()) {

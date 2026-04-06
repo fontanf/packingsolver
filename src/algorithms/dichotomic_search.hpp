@@ -194,7 +194,8 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
                 ++item_type_id) {
             const auto& item_type = instance.item_type(item_type_id);
             bpp_instance_builder.add_item_type(
-                    item_type,
+                    instance,
+                    item_type_id,
                     item_type.profit,
                     item_type.copies);
         }
@@ -221,7 +222,8 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
                 if (bin_copies[bin_type_id] > 0) {
                     //std::cout << "bin_type_id " << i << " " << bin_copies[i] << " " << instance.bin_type(i).space() << std::endl;
                     bpp_instance_builder.add_bin_type(
-                            instance.bin_type(bin_type_id),
+                            instance,
+                            bin_type_id,
                             bin_copies[bin_type_id]);
                     bin_types_bpp2ps.push_back(bin_type_id);
                     number_of_bins += bin_copies[bin_type_id];
@@ -233,7 +235,8 @@ DichotomicSearchOutput<Instance, Solution> dichotomic_search(
                 if (copies > 0) {
                     //std::cout << "bin_type_id " << i << " " << bin_copies[i] << " " << instance.bin_type(i).space() << std::endl;
                     bpp_instance_builder.add_bin_type(
-                            instance.bin_type(bin_type_id),
+                            instance,
+                            bin_type_id,
                             copies);
                     bin_types_bpp2ps.push_back(bin_type_id);
                 }

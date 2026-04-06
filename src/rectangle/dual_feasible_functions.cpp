@@ -143,24 +143,27 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
                     ++item_type_id) {
-                ItemType item_type = instance.item_type(item_type_id);
-                item_type.oriented = true;
+                const ItemType& item_type = instance.item_type(item_type_id);
                 if (item_type.rect.x == item_type.rect.y) {
                     modified_instance_builder.add_item_type(
-                            item_type,
+                            item_type.rect.x,
+                            item_type.rect.y,
                             item_type.profit,
-                            2 * item_type.copies);
+                            2 * item_type.copies,
+                            true);
                 } else {
                     modified_instance_builder.add_item_type(
-                            item_type,
+                            item_type.rect.x,
+                            item_type.rect.y,
                             item_type.profit,
-                            item_type.copies);
-                    item_type.rect.x = instance.item_type(item_type_id).rect.y;
-                    item_type.rect.y = instance.item_type(item_type_id).rect.x;
+                            item_type.copies,
+                            true);
                     modified_instance_builder.add_item_type(
-                            item_type,
+                            item_type.rect.y,
+                            item_type.rect.x,
                             item_type.profit,
-                            item_type.copies);
+                            item_type.copies,
+                            true);
                 }
             }
             Instance modified_instance = modified_instance_builder.build();

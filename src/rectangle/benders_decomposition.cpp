@@ -328,13 +328,14 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
         InstanceBuilder sub_instance_builder;
         sub_instance_builder.set_objective(Objective::Feasibility);
         sub_instance_builder.set_parameters(instance.parameters());
-        sub_instance_builder.add_bin_type(bin_type, 1);
+        sub_instance_builder.add_bin_type(instance, 0, 1);
         std::vector<ItemTypeId> sub_to_orig;
         for (const auto& p: selected_items) {
             const ItemType& item_type = instance.item_type(p.first);
             ItemPos copies = p.second;
             sub_instance_builder.add_item_type(
-                    item_type,
+                    instance,
+                    p.first,
                     item_type.profit,
                     copies);
             sub_to_orig.push_back(p.first);

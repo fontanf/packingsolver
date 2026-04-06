@@ -144,6 +144,9 @@ struct ItemType
     inline Area area() const { return rect.area(); }
 
     inline Area space() const { return area(); }
+
+    /** Number of fixed copies of the item type (pre-placed in bin types). */
+    ItemPos copies_fixed = 0;
 };
 
 std::ostream& operator<<(
@@ -185,6 +188,18 @@ std::ostream& operator<<(
         std::ostream& os,
         const Defect& defect);
 
+struct FixedItem
+{
+    /** Item type. */
+    ItemTypeId item_type_id;
+
+    /** Position of the bottom-left corner of the item. */
+    Point bl_corner;
+
+    /** Whether the item is rotated or not. */
+    bool rotate;
+};
+
 /**
  * Bin type structure for a problem of type 'rectangle'.
  */
@@ -213,6 +228,9 @@ struct BinType
 
     /** Defects of the bin type. */
     std::vector<Defect> defects;
+
+    /** Fixed items pre-placed in every bin of this type. */
+    std::vector<FixedItem> fixed_items;
 
     /*
      * Computed attributes

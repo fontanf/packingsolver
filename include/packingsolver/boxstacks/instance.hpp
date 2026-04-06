@@ -219,11 +219,29 @@ struct ItemType
     inline Volume space() const { return volume(); }
 
     inline bool can_rotate(int rotation) const { return ((rotations >> rotation) & 1); }
+
+    /** Number of fixed copies of the item type (pre-placed in bin types). */
+    ItemPos copies_fixed = 0;
 };
 
 std::ostream& operator<<(
         std::ostream& os,
         const ItemType& item_type);
+
+struct FixedItem
+{
+    /** Item type. */
+    ItemTypeId item_type_id;
+
+    /** Position of the bottom-left corner of the stack. */
+    Point bl_corner;
+
+    /** Initial z-coordinate of the item. */
+    Length z_start;
+
+    /** Rotation of the item. */
+    int rotation;
+};
 
 /**
  * Bin type structure for a problem of type 'boxstacks'.
@@ -257,6 +275,9 @@ struct BinType
 
     /** Semi-trailer truck data. */
     SemiTrailerTruckData semi_trailer_truck_data;
+
+    /** Fixed items pre-placed in every bin of this type. */
+    std::vector<FixedItem> fixed_items;
 
     /*
      * Computed attributes

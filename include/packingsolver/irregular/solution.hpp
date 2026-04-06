@@ -20,6 +20,9 @@ struct SolutionItem
 
     /** Mirror the item. */
     bool mirror;
+
+    /** True if this item is a fixed item of the instance. */
+    bool is_fixed = false;
 };
 
 bool operator==(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
@@ -81,7 +84,8 @@ public:
             ItemTypeId item_type_id,
             Point bl_corner,
             Angle angle,
-            bool mirror);
+            bool mirror,
+            bool is_fixed = false);
 
     void append(
             const Solution& solution,

@@ -58,11 +58,27 @@ struct ItemType
 
     Length space() const { return length; }
 
+    /*
+     * Computed attributes.
+     */
+
+    /** Number of fixed copies of the item type (pre-placed in bin types). */
+    ItemPos copies_fixed = 0;
+
 };
 
 std::ostream& operator<<(
         std::ostream& os,
         const ItemType& item_type);
+
+struct FixedItem
+{
+    /** Item type. */
+    ItemTypeId item_type_id;
+
+    /** Initial position of the item. */
+    Length start;
+};
 
 /**
  * Bin type structure for a problem of type 'onedimensional'.
@@ -86,6 +102,9 @@ struct BinType
 
     /** Eligibility ids. */
     std::vector<EligibilityId> eligibility_ids;
+
+    /** Fixed items pre-placed in every bin of this type. */
+    std::vector<FixedItem> fixed_items;
 
     /*
      * Computed attributes.
