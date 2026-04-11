@@ -7,6 +7,7 @@ target_sources(PackingSolver_box PRIVATE
     instance_flipper.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    post_process.cpp
     branching_scheme.cpp)
 target_include_directories(PackingSolver_box PUBLIC
     ${PROJECT_SOURCE_DIR}/include)

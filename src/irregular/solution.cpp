@@ -795,3 +795,35 @@ void Solution::format(
         }
     }
 }
+
+bool packingsolver::irregular::operator==(
+        const SolutionItem& solution_item_1,
+        const SolutionItem& solution_item_2)
+{
+    return solution_item_1.item_type_id == solution_item_2.item_type_id
+        && solution_item_1.bl_corner == solution_item_2.bl_corner
+        && solution_item_1.angle == solution_item_2.angle
+        && solution_item_1.mirror == solution_item_2.mirror;
+}
+
+bool packingsolver::irregular::operator!=(
+        const SolutionItem& solution_item_1,
+        const SolutionItem& solution_item_2)
+{
+    return !(solution_item_1 == solution_item_2);
+}
+
+bool packingsolver::irregular::operator==(
+        const SolutionBin& solution_bin_1,
+        const SolutionBin& solution_bin_2)
+{
+    return solution_bin_1.bin_type_id == solution_bin_2.bin_type_id
+        && solution_bin_1.items == solution_bin_2.items;
+}
+
+bool packingsolver::irregular::operator!=(
+        const SolutionBin& solution_bin_1,
+        const SolutionBin& solution_bin_2)
+{
+    return !(solution_bin_1 == solution_bin_2);
+}

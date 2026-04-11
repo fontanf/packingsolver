@@ -19,6 +19,9 @@ struct SolutionItem
     int rotation;
 };
 
+bool operator==(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
+bool operator!=(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
+
 struct SolutionStack
 {
     /** Initial x-coordinate of the stack. */
@@ -54,6 +57,9 @@ struct SolutionStack
     Profit profit = 0.0;
 };
 
+bool operator==(const SolutionStack& solution_stack_1, const SolutionStack& solution_stack_2);
+bool operator!=(const SolutionStack& solution_stack_1, const SolutionStack& solution_stack_2);
+
 struct SolutionBin
 {
     /** Bin type. */
@@ -79,6 +85,9 @@ struct SolutionBin
     /** Profit. */
     Profit profit = 0.0;
 };
+
+bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
+bool operator!=(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
 
 /**
  * Solution class for a problem of type "boxstacks".

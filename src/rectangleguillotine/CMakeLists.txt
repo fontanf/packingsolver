@@ -8,6 +8,7 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     instance_flipper.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    post_process.cpp
     branching_scheme.cpp
     column_generation_2.cpp)
 target_include_directories(PackingSolver_rectangleguillotine PUBLIC

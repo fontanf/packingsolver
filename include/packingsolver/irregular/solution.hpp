@@ -22,6 +22,9 @@ struct SolutionItem
     bool mirror;
 };
 
+bool operator==(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
+bool operator!=(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
+
 struct SolutionBin
 {
     /** Bin type. */
@@ -48,6 +51,9 @@ struct SolutionBin
     /** Maximum y of the items in this bin. */
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
 };
+
+bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
+bool operator!=(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
 
 /**
  * Solution class for a problem of type "irregular".

@@ -5,6 +5,15 @@
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
+GroupIdenticalBinsOutput packingsolver::irregular::group_identical_bins(
+        const Solution& solution)
+{
+    GroupIdenticalBinsOutput output(solution.instance());
+    Solution grouped_solution = packingsolver::group_identical_bins(solution);
+    output.solution_pool.add(grouped_solution);
+    return output;
+}
+
 /**
  * Build a solution in which each bin is independently shifted towards the
  * target corner (controlled by x_weight / y_weight).  If the shift keeps a

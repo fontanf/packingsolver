@@ -8,6 +8,7 @@ target_sources(PackingSolver_rectangle PRIVATE
     instance_flipper.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    post_process.cpp
     branching_scheme.cpp
     benders_decomposition.cpp
     dual_feasible_functions.cpp)

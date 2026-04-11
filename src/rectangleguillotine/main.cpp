@@ -1,4 +1,5 @@
 #include "packingsolver/rectangleguillotine/optimize.hpp"
+#include "packingsolver/rectangleguillotine/post_process.hpp"
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 
 #include <boost/program_options.hpp>
@@ -111,6 +112,8 @@ int main(int argc, char *argv[])
         ("not-anytime-sequential-single-knapsack-subproblem-queue-size,", po::value<Counter>(), "")
         ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
         ("not-anytime-dichotomic-search-subproblem-queue-size,", po::value<Counter>(), "")
+
+        ("group-identical-bins,", po::value<bool>(), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -254,10 +257,17 @@ int main(int argc, char *argv[])
         parameters.not_anytime_dichotomic_search_subproblem_queue_size = vm["not-anytime-dichotomic-search-subproblem-queue-size"].as<Counter>();
     const rectangleguillotine::Output output = optimize(instance, parameters);
 
-    if (vm.count("certificate"))
-        output.solution_pool.best().write(vm["certificate"].as<std::string>());
     if (vm.count("output"))
         output.write_json_output(vm["output"].as<std::string>());
+
+    Solution solution = output.solution_pool.best();
+    if (vm.count("group-identical-bins")) {
+        GroupIdenticalBinsOutput gib_output = group_identical_bins(solution);
+        solution = gib_output.solution_pool.best();
+    }
+
+    if (vm.count("certificate"))
+        solution.write(vm["certificate"].as<std::string>());
 
     return 0;
 }

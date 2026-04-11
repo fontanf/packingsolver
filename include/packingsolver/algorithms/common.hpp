@@ -341,4 +341,44 @@ struct wrapper_impl<R(*)(Args...), f>
 template<class F, F f>
 constexpr auto wrapper = wrapper_impl<F, f>::wrap;
 
+/**
+ * Return a copy of the solution with identical bins grouped together.
+ *
+ * Bins with the same bin type and the same content (items / stacks / nodes at
+ * the same positions) are merged into a single SolutionBin with the combined
+ * copy count.  The domain-specific Solution must provide operator== on
+ * SolutionBin.
+ */
+template <typename Solution>
+Solution group_identical_bins(const Solution& solution)
+{
+    struct BinGroup
+    {
+        BinPos original_bin_pos;
+        BinPos total_copies;
+    };
+    std::vector<BinGroup> groups;
+
+    for (BinPos bin_pos = 0;
+            bin_pos < solution.number_of_different_bins();
+            ++bin_pos) {
+        const auto& bin = solution.bin(bin_pos);
+        bool found = false;
+        for (BinGroup& group: groups) {
+            if (solution.bin(group.original_bin_pos) == bin) {
+                group.total_copies += bin.copies;
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            groups.push_back({bin_pos, bin.copies});
+    }
+
+    Solution grouped_solution(solution.instance());
+    for (const BinGroup& group: groups)
+        grouped_solution.append(solution, group.original_bin_pos, group.total_copies);
+    return grouped_solution;
+}
+
 }

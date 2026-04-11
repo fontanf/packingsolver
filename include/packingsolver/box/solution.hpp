@@ -40,6 +40,9 @@ struct SolutionBin
     Profit profit = 0.0;
 };
 
+bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
+bool operator!=(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
+
 /**
  * Solution class for a problem of type "box".
  */

@@ -16,6 +16,9 @@ struct SolutionItem
     Length start;
 };
 
+bool operator==(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
+bool operator!=(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
+
 struct SolutionBin
 {
     /** Bin type. */
@@ -42,6 +45,9 @@ struct SolutionBin
      */
     Weight remaining_weight = -1;
 };
+
+bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
+bool operator!=(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
 
 /**
  * Solution class for a problem of type "onedimensional".

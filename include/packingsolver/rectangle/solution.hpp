@@ -19,6 +19,9 @@ struct SolutionItem
     bool rotate;
 };
 
+bool operator==(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
+bool operator!=(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
+
 struct SolutionBin
 {
     /** Bin type. */
@@ -41,6 +44,9 @@ struct SolutionBin
      */
     std::vector<Weight> weight_weighted_sum;
 };
+
+bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
+bool operator!=(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
 
 /**
  * Solution class for a problem of type "rectangle".
