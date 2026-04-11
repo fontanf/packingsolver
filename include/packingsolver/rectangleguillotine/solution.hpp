@@ -32,6 +32,9 @@ struct SolutionNode
     ItemTypeId item_type_id;
 };
 
+bool operator==(const SolutionNode& solution_node_1, const SolutionNode& solution_node_2);
+bool operator!=(const SolutionNode& solution_node_1, const SolutionNode& solution_node_2);
+
 struct SolutionBin
 {
     /** Bin type. */
@@ -46,6 +49,9 @@ struct SolutionBin
     /** Nodes. */
     std::vector<SolutionNode> nodes;
 };
+
+bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
+bool operator!=(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
 
 /**
  * Solution class for a problem of type "rectangleguillotine".

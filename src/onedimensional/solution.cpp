@@ -437,3 +437,33 @@ void Solution::format(
         }
     }
 }
+
+bool packingsolver::onedimensional::operator==(
+        const SolutionItem& solution_item_1,
+        const SolutionItem& solution_item_2)
+{
+    return solution_item_1.item_type_id == solution_item_2.item_type_id
+        && solution_item_1.start == solution_item_2.start;
+}
+
+bool packingsolver::onedimensional::operator!=(
+        const SolutionItem& solution_item_1,
+        const SolutionItem& solution_item_2)
+{
+    return !(solution_item_1 == solution_item_2);
+}
+
+bool packingsolver::onedimensional::operator==(
+        const SolutionBin& solution_bin_1,
+        const SolutionBin& solution_bin_2)
+{
+    return solution_bin_1.bin_type_id == solution_bin_2.bin_type_id
+        && solution_bin_1.items == solution_bin_2.items;
+}
+
+bool packingsolver::onedimensional::operator!=(
+        const SolutionBin& solution_bin_1,
+        const SolutionBin& solution_bin_2)
+{
+    return !(solution_bin_1 == solution_bin_2);
+}

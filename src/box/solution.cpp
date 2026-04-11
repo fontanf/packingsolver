@@ -452,3 +452,18 @@ void Solution::format(
         }
     }
 }
+
+bool packingsolver::box::operator==(
+        const SolutionBin& solution_bin_1,
+        const SolutionBin& solution_bin_2)
+{
+    return solution_bin_1.bin_type_id == solution_bin_2.bin_type_id
+        && solution_bin_1.items == solution_bin_2.items;
+}
+
+bool packingsolver::box::operator!=(
+        const SolutionBin& solution_bin_1,
+        const SolutionBin& solution_bin_2)
+{
+    return !(solution_bin_1 == solution_bin_2);
+}

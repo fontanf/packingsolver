@@ -7,6 +7,7 @@ target_sources(PackingSolver_boxstacks PRIVATE
     instance_flipper.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    post_process.cpp
     sequential_onedimensional_rectangle.cpp
     branching_scheme.cpp)
 target_include_directories(PackingSolver_boxstacks PUBLIC

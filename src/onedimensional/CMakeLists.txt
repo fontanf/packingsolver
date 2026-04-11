@@ -6,6 +6,7 @@ target_sources(PackingSolver_onedimensional PRIVATE
     solution.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    post_process.cpp
     branching_scheme.cpp)
 target_include_directories(PackingSolver_onedimensional PUBLIC
     ${PROJECT_SOURCE_DIR}/include)

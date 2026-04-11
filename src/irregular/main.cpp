@@ -98,6 +98,8 @@ int main(int argc, char *argv[])
         ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
         ("not-anytime-dichotomic-search-subproblem-queue-size,", po::value<Counter>(), "")
 
+        ("group-identical-bins,", po::value<bool>(), "")
+
         ("anchor,", po::value<bool>(), "")
         ("anchor-x-weight,", po::value<double>(), "")
         ("anchor-y-weight,", po::value<double>(), "")
@@ -195,6 +197,10 @@ int main(int argc, char *argv[])
         output.write_json_output(vm["output"].as<std::string>());
 
     Solution solution = output.solution_pool.best();
+    if (vm.count("group-identical-bins")) {
+        GroupIdenticalBinsOutput gib_output = group_identical_bins(solution);
+        solution = gib_output.solution_pool.best();
+    }
     if (vm.count("anchor")) {
         double anchor_x_weight = 1.0;
         double anchor_y_weight = 1.0;

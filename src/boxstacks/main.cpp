@@ -1,4 +1,5 @@
 #include "packingsolver/boxstacks/optimize.hpp"
+#include "packingsolver/boxstacks/post_process.hpp"
 #include "packingsolver/boxstacks/instance_builder.hpp"
 
 #include <boost/program_options.hpp>
@@ -85,6 +86,8 @@ int main(int argc, char *argv[])
 
         ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
         ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
+
+        ("group-identical-bins,", po::value<bool>(), "")
         ;
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -181,10 +184,17 @@ int main(int argc, char *argv[])
 
     const boxstacks::Output output = optimize(instance, parameters);
 
-    if (vm.count("certificate"))
-        output.solution_pool.best().write(vm["certificate"].as<std::string>());
     if (vm.count("output"))
         output.write_json_output(vm["output"].as<std::string>());
+
+    Solution solution = output.solution_pool.best();
+    if (vm.count("group-identical-bins")) {
+        GroupIdenticalBinsOutput gib_output = group_identical_bins(solution);
+        solution = gib_output.solution_pool.best();
+    }
+
+    if (vm.count("certificate"))
+        solution.write(vm["certificate"].as<std::string>());
 
 #if XPRESS_FOUND
     if (optimize_parameters.solver_name

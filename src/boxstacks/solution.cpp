@@ -642,3 +642,53 @@ void Solution::format(
         }
     }
 }
+
+bool packingsolver::boxstacks::operator==(
+        const SolutionItem& solution_item_1,
+        const SolutionItem& solution_item_2)
+{
+    return solution_item_1.item_type_id == solution_item_2.item_type_id
+        && solution_item_1.z_start == solution_item_2.z_start
+        && solution_item_1.rotation == solution_item_2.rotation;
+}
+
+bool packingsolver::boxstacks::operator!=(
+        const SolutionItem& solution_item_1,
+        const SolutionItem& solution_item_2)
+{
+    return !(solution_item_1 == solution_item_2);
+}
+
+bool packingsolver::boxstacks::operator==(
+        const SolutionStack& solution_stack_1,
+        const SolutionStack& solution_stack_2)
+{
+    return solution_stack_1.x_start == solution_stack_2.x_start
+        && solution_stack_1.x_end == solution_stack_2.x_end
+        && solution_stack_1.y_start == solution_stack_2.y_start
+        && solution_stack_1.y_end == solution_stack_2.y_end
+        && solution_stack_1.z_end == solution_stack_2.z_end
+        && solution_stack_1.items == solution_stack_2.items;
+}
+
+bool packingsolver::boxstacks::operator!=(
+        const SolutionStack& solution_stack_1,
+        const SolutionStack& solution_stack_2)
+{
+    return !(solution_stack_1 == solution_stack_2);
+}
+
+bool packingsolver::boxstacks::operator==(
+        const SolutionBin& solution_bin_1,
+        const SolutionBin& solution_bin_2)
+{
+    return solution_bin_1.bin_type_id == solution_bin_2.bin_type_id
+        && solution_bin_1.stacks == solution_bin_2.stacks;
+}
+
+bool packingsolver::boxstacks::operator!=(
+        const SolutionBin& solution_bin_1,
+        const SolutionBin& solution_bin_2)
+{
+    return !(solution_bin_1 == solution_bin_2);
+}
