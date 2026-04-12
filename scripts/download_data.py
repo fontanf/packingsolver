@@ -81,3 +81,19 @@ if args.data is None or "cgshop2024" in args.data:
     if dir_path.exists():
         shutil.rmtree(dir_path)
     shutil.move("cgshop2024_packingsolver", dir_path)
+
+
+if args.data is None or "alma2025" in args.data:
+    # alma2025
+    download("1XY_QlJe75dualBHUxYjpUcH0cgwb8edI")
+    dir_path = pathlib.Path("data") / "irregular_raw" / "alma2025"
+    if dir_path.exists():
+        shutil.rmtree(dir_path)
+    shutil.move("alma2025", dir_path)
+
+    # alma2025_packingsolver
+    download("1Qd3VN2Ew6yOUdEjIXycadFuD4NKTyyFW")
+    dir_path = pathlib.Path("data") / "irregular" / "alma2025"
+    if dir_path.exists():
+        shutil.rmtree(dir_path)
+    shutil.move("alma2025_packingsolver", dir_path)
