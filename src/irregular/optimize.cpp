@@ -7,6 +7,7 @@
 #include "irregular/milp_raster.hpp"
 #include "irregular/local_search.hpp"
 #include "irregular/sequential_feasibility.hpp"
+#include "irregular/large_item_first.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -253,6 +254,7 @@ void optimize_tree_search(
         switch (instance.parameters().leftover_corner) {
         case Corner::BottomLeft: {
             directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
+            //directions = {BranchingScheme::Direction::LeftToRightThenTopToBottom};
             break;
         } case Corner::BottomRight: {
             directions = {BranchingScheme::Direction::RightToLeftThenBottomToTop};
@@ -685,6 +687,34 @@ void optimize_sequential_feasibility(
     sequential_feasibility(instance, sf_parameters);
 }
 
+void optimize_large_item_first(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    LargeItemFirstParameters lif_parameters;
+    lif_parameters.verbosity_level = 0;
+    lif_parameters.timer = parameters.timer;
+    lif_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    lif_parameters.optimization_mode = parameters.optimization_mode;
+    lif_parameters.initial_maximum_approximation_ratio
+        = parameters.initial_maximum_approximation_ratio;
+    lif_parameters.maximum_approximation_ratio_factor
+        = parameters.maximum_approximation_ratio_factor;
+    lif_parameters.not_anytime_maximum_approximation_ratio
+        = parameters.not_anytime_maximum_approximation_ratio;
+    lif_parameters.not_anytime_tree_search_queue_size
+        = parameters.not_anytime_tree_search_queue_size;
+    lif_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    lif_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& output) {
+        algorithm_formatter.update_solution(
+                output.solution_pool.best(),
+                "Large item first");
+    };
+    large_item_first(instance, lif_parameters);
+}
+
 void optimize_milp_raster(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -718,13 +748,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
     bool use_tree_search = parameters.use_tree_search;
+    bool use_milp_raster = parameters.use_milp_raster;
     bool use_local_search = parameters.use_local_search;
+    bool use_large_item_first = parameters.use_large_item_first;
+    bool use_sequential_feasibility = parameters.use_sequential_feasibility;
     bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
-    bool use_sequential_feasibility = parameters.use_sequential_feasibility;
-    bool use_milp_raster = parameters.use_milp_raster;
     if (instance.number_of_bins() <= 1) {
         // Disable algorithms which are not available for this objective.
         use_sequential_single_knapsack = false;
@@ -733,6 +764,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         use_column_generation = false;
         if (instance.objective() == Objective::OpenDimensionXY)
             use_tree_search = false;
+        if (instance.objective() == Objective::OpenDimensionXY)
+            use_large_item_first = false;
         if (instance.objective() == Objective::Knapsack)
             use_sequential_feasibility = false;
         if (instance.objective() != Objective::Knapsack
@@ -746,7 +779,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (!use_tree_search
                 && !use_local_search
                 && !use_milp_raster
-                && !use_sequential_feasibility) {
+                && !use_sequential_feasibility
+                && !use_large_item_first) {
             if (instance.objective() == Objective::OpenDimensionXY) {
                 use_sequential_feasibility = true;
             } else {
@@ -761,6 +795,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster
+                && !use_large_item_first
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -787,6 +822,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (!use_tree_search
                 && !use_milp_raster
                 && !use_local_search
+                && !use_large_item_first
                 && !use_column_generation) {
             use_tree_search = true;
             //if (mean_item_type_copies(instance)
@@ -821,6 +857,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster
+                && !use_large_item_first
                 && !use_sequential_feasibility
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
@@ -862,6 +899,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Automatic selection.
         if (!use_tree_search
                 && !use_local_search
+                && !use_large_item_first
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_dichotomic_search
@@ -926,6 +964,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     }
 
     int last_algorithm =
+        (use_large_item_first)? 8:
         (use_sequential_feasibility)? 7:
         (use_column_generation)? 6:
         (use_dichotomic_search)? 5:
@@ -1108,6 +1147,28 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         } else {
             try {
                 optimize_sequential_feasibility(
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
+        }
+    }
+    // Large item first.
+    if (use_large_item_first) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 7) {
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_large_item_first), optimize_large_item_first>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        } else {
+            try {
+                optimize_large_item_first(
                         instance,
                         parameters,
                         algorithm_formatter);

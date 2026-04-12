@@ -37,35 +37,18 @@ struct LargeItemFirstParameters: packingsolver::Parameters<Instance, Solution>
     /** Optimization mode. */
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
+    /** Initial maximum approximation ratio (anytime mode). */
+    double initial_maximum_approximation_ratio = 0.20;
+
+    /** Multiplicative factor applied to the approximation ratio each iteration (anytime mode). */
+    double maximum_approximation_ratio_factor = 0.75;
+
     /** Maximum approximation ratio (not-anytime mode). */
     double not_anytime_maximum_approximation_ratio = 0.05;
 
     /** Size of the queue in the tree search algorithm (not-anytime mode). */
     NodeId not_anytime_tree_search_queue_size = 512;
 
-    /** Use tree search in sub-problems. */
-    bool use_tree_search = false;
-
-    /** Use local search in sub-problems. */
-    bool use_local_search = false;
-
-    /** Use MILP raster in sub-problems. */
-    bool use_milp_raster = false;
-
-    /** Use sequential single knapsack in sub-problems. */
-    bool use_sequential_single_knapsack = false;
-
-    /** Use sequential value correction in sub-problems. */
-    bool use_sequential_value_correction = false;
-
-    /** Use dichotomic search in sub-problems. */
-    bool use_dichotomic_search = false;
-
-    /** Use column generation in sub-problems. */
-    bool use_column_generation = false;
-
-    /** Use sequential feasibility in sub-problems. */
-    bool use_sequential_feasibility = false;
 };
 
 LargeItemFirstOutput large_item_first(

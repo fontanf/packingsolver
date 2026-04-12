@@ -48,6 +48,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use sequential feasibility algorithm. */
     bool use_sequential_feasibility = false;
 
+    /** Use large-item-first algorithm. */
+    bool use_large_item_first = false;
+
     /** Initial maximum approximation ratio. */
     double initial_maximum_approximation_ratio = 0.20;
 
