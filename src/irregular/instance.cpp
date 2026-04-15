@@ -166,14 +166,15 @@ bool ItemType::has_full_continuous_rotations() const
 {
     if (allowed_rotations.size() != 1)
         return false;
-    return (allowed_rotations[0].first == 0
-            && allowed_rotations[0].second == 360);
+    return (allowed_rotations[0].start_angle == 0
+            && allowed_rotations[0].end_angle == 360
+            && !allowed_rotations[0].mirror);
 }
 
 bool ItemType::has_only_discrete_rotations() const
 {
-    for (const auto& angles: allowed_rotations)
-        if (angles.first != angles.second)
+    for (const auto& rotation: allowed_rotations)
+        if (rotation.start_angle != rotation.end_angle)
             return false;
     return true;
 }
@@ -195,8 +196,9 @@ std::string ItemType::to_string(
             angle_pos < (AnglePos)allowed_rotations.size();
             ++angle_pos) {
         s += indent + "  - "
-            + std::to_string(allowed_rotations[angle_pos].first)
-            + " -> " + std::to_string(allowed_rotations[angle_pos].second)
+            + std::to_string(allowed_rotations[angle_pos].start_angle)
+            + " -> " + std::to_string(allowed_rotations[angle_pos].end_angle)
+            + (allowed_rotations[angle_pos].mirror? " (mirror)": "")
             + "\n";
     }
     s += indent + "- profit " + std::to_string(profit) + "\n";
@@ -679,8 +681,9 @@ void Instance::write(
         for (AnglePos angle_pos = 0;
                 angle_pos < (AnglePos)item_type.allowed_rotations.size();
                 ++angle_pos) {
-            json["item_types"][item_type_id]["allowed_rotations"][angle_pos]["start"] = item_type.allowed_rotations[angle_pos].first;
-            json["item_types"][item_type_id]["allowed_rotations"][angle_pos]["end"] = item_type.allowed_rotations[angle_pos].second;
+            json["item_types"][item_type_id]["allowed_rotations"][angle_pos]["start"] = item_type.allowed_rotations[angle_pos].start_angle;
+            json["item_types"][item_type_id]["allowed_rotations"][angle_pos]["end"] = item_type.allowed_rotations[angle_pos].end_angle;
+            json["item_types"][item_type_id]["allowed_rotations"][angle_pos]["mirror"] = item_type.allowed_rotations[angle_pos].mirror;
         }
 
         for (Counter item_shape_pos = 0;

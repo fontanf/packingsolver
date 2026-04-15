@@ -69,23 +69,13 @@ void Solution::add_item(
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
     const ItemType& item_type = instance().item_type(item_type_id);
 
-    // Check angle.
-    bool angle_ok = false;
-    for (auto angles: item_type.allowed_rotations)
-        if (angles.first <= angle && angle <= angles.second)
-            angle_ok = true;
-    if (!angle_ok) {
+    // Check angle and mirror.
+    if (!item_type.is_rotation_allowed(angle, mirror)) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
-                "invalid 'angle'; "
+                "invalid (angle, mirror) combination; "
                 "angle: " + std::to_string(angle) + "; "
-                "item_type_id: " + std::to_string(item_type_id) + ".");
-    }
-
-    if (mirror && !item_type.allow_mirroring) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "mirroring is not allowed for this item type; "
+                "mirror: " + std::to_string(mirror) + "; "
                 "item_type_id: " + std::to_string(item_type_id) + ".");
     }
 

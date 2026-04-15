@@ -163,6 +163,20 @@ struct ItemShape
 };
 
 /**
+ * Allowed rotation entry for an item type.
+ *
+ * Defines a continuous range of allowed angles [start_angle, end_angle] and
+ * whether the item shape is mirrored (axial symmetry about the y-axis) for
+ * this rotation entry.
+ */
+struct AllowedRotation
+{
+    Angle start_angle;
+    Angle end_angle;
+    bool mirror;
+};
+
+/**
  * Item type structure for a problem of type 'irregular'.
  */
 struct ItemType
@@ -181,11 +195,15 @@ struct ItemType
      */
     std::vector<ItemShape> shapes;
 
-    /** Allowed rotations of the item type. */
-    std::vector<std::pair<Angle, Angle>> allowed_rotations = {{0, 0}};
-
-    /** Allow mirroring the item type. */
-    bool allow_mirroring = false;
+    /**
+     * Allowed rotations of the item type.
+     *
+     * Each entry defines a continuous range [start_angle, end_angle] and
+     * whether the item is mirrored for that range. Mirrored and non-mirrored
+     * ranges are listed independently, allowing fine-grained control over
+     * which (angle, mirror) combinations are permitted.
+     */
+    std::vector<AllowedRotation> allowed_rotations = {{0, 0, false}};
 
     /*
      * Computed attributes.
@@ -214,10 +232,12 @@ struct ItemType
 
     std::string to_string(Counter indentation) const;
 
-    bool is_rotation_allowed(Angle angle) const
+    bool is_rotation_allowed(Angle angle, bool mirror) const
     {
-        for (auto range: this->allowed_rotations)
-            if (range.first <= angle && angle <= range.second)
+        for (const auto& range: this->allowed_rotations)
+            if (range.mirror == mirror
+                    && range.start_angle <= angle
+                    && angle <= range.end_angle)
                 return true;
         return false;
     }

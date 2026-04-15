@@ -274,7 +274,7 @@ void optimize_tree_search(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        if (item_type.allowed_rotations != std::vector<std::pair<Angle, Angle>>{{0, 360}}) {
+        if (!item_type.has_full_continuous_rotations()) {
             all_items_full_rotation = false;
             break;
         }

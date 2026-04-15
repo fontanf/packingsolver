@@ -27,7 +27,7 @@ TrivialSingleItemOutput packingsolver::irregular::trivial_single_item(
     const ItemType& item_type = instance.item_type(0);
 
     // Use the first allowed rotation and no mirroring.
-    Angle angle = item_type.allowed_rotations[0].first;
+    Angle angle = item_type.allowed_rotations[0].start_angle;
     bool mirror = false;
 
     // Build IntersectionTree from bin borders and defects (inflated shapes).

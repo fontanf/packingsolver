@@ -176,8 +176,7 @@ void InstanceBuilder::set_bin_types_unweighted()
 ItemTypeId InstanceBuilder::add_item_type(
         const std::vector<ItemShape>& shapes,
         Profit profit,
-        ItemPos copies,
-        const std::vector<std::pair<Angle, Angle>>& allowed_rotations)
+        ItemPos copies)
 {
     if (shapes.empty()) {
         throw std::invalid_argument(
@@ -193,8 +192,7 @@ ItemTypeId InstanceBuilder::add_item_type(
 
     ItemType item_type;
     item_type.shapes = shapes;
-    item_type.allowed_rotations = (!allowed_rotations.empty())?
-        allowed_rotations: std::vector<std::pair<Angle, Angle>>{{0, 0}};
+    item_type.allowed_rotations = {};  // populated via add_item_type_allowed_rotation; defaulted in build()
     item_type.area_orig = 0;
     for (const auto& item_shape: item_type.shapes) {
         item_type.area_orig += item_shape.shape_orig.shape.compute_area();
@@ -207,11 +205,13 @@ ItemTypeId InstanceBuilder::add_item_type(
     return instance_.item_types_.size() - 1;
 }
 
-void InstanceBuilder::set_item_type_allow_mirroring(
+void InstanceBuilder::add_item_type_allowed_rotation(
         ItemTypeId item_type_id,
-        bool allow_mirroring)
+        Angle start_angle,
+        Angle end_angle,
+        bool mirror)
 {
-    if (item_type_id < 0 || item_type_id >= instance_.item_types_.size()) {
+    if (item_type_id < 0 || item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "invalid 'item_type_id'; "
@@ -219,7 +219,7 @@ void InstanceBuilder::set_item_type_allow_mirroring(
                 "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
     }
 
-    instance_.item_types_[item_type_id].allow_mirroring = allow_mirroring;
+    instance_.item_types_[item_type_id].allowed_rotations.push_back({start_angle, end_angle, mirror});
 }
 
 void InstanceBuilder::add_item_type(
@@ -230,11 +230,14 @@ void InstanceBuilder::add_item_type(
     ItemTypeId item_type_id = add_item_type(
             item_type.shapes,
             profit,
-            copies,
-            item_type.allowed_rotations);
-    set_item_type_allow_mirroring(
-            item_type_id,
-            item_type.allow_mirroring);
+            copies);
+    for (const AllowedRotation& rotation: item_type.allowed_rotations) {
+        add_item_type_allowed_rotation(
+                item_type_id,
+                rotation.start_angle,
+                rotation.end_angle,
+                rotation.mirror);
+    }
 }
 
 void InstanceBuilder::set_item_types_unweighted()
@@ -251,7 +254,7 @@ void InstanceBuilder::set_item_types_continuous_rotations()
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
-        instance_.item_types_[item_type_id].allowed_rotations = {{0, 360}};
+        instance_.item_types_[item_type_id].allowed_rotations = {{0, 360, false}};
     }
 }
 
@@ -394,30 +397,48 @@ void InstanceBuilder::read(
         if (json_item.contains("copies"))
             copies = json_item["copies"];
 
+        ItemTypeId item_type_id = add_item_type(
+                item_shapes,
+                profit,
+                copies);
+
         // Read allowed rotations.
-        std::vector<std::pair<Angle, Angle>> allowed_rotations;
         if (json_item.contains("allowed_rotations")) {
             for (auto it = json_item["allowed_rotations"].begin();
                     it != json_item["allowed_rotations"].end();
                     ++it) {
-                auto json_angles = *it;
-                allowed_rotations.push_back({json_angles["start"], json_angles["end"]});
+                auto json_rotation = *it;
+                Angle start_angle = json_rotation["start"];
+                Angle end_angle = json_rotation["end"];
+                bool mirror = json_rotation.value("mirror", false);
+                add_item_type_allowed_rotation(
+                        item_type_id,
+                        start_angle,
+                        end_angle,
+                        mirror);
             }
         }
 
-        // Read allow_mirroring.
-        bool allow_mirroring = false;
-        if (json_item.contains("allow_mirroring"))
-            allow_mirroring = json_item["allow_mirroring"];
-
-        ItemTypeId item_type_id = add_item_type(
-                item_shapes,
-                profit,
-                copies,
-                allowed_rotations);
-        set_item_type_allow_mirroring(
-                item_type_id,
-                allow_mirroring);
+        // Backward compatibility: the old format uses a top-level "allow_mirroring"
+        // boolean flag; the new format encodes the mirror flag per rotation entry.
+        // Expand each non-mirrored rotation entry with a corresponding mirrored entry.
+        if (json_item.value("allow_mirroring", false)) {
+            // If no rotations were specified, add the default non-mirrored one
+            // first so it can be expanded below.
+            if (instance_.item_types_[item_type_id].allowed_rotations.empty())
+                add_item_type_allowed_rotation(item_type_id, 0, 0, false);
+            const std::vector<AllowedRotation> rotations
+                = instance_.item_types_[item_type_id].allowed_rotations;
+            for (const AllowedRotation& rotation: rotations) {
+                if (!rotation.mirror) {
+                    add_item_type_allowed_rotation(
+                            item_type_id,
+                            rotation.start_angle,
+                            rotation.end_angle,
+                            true);
+                }
+            }
+        }
     }
 
 }
@@ -443,6 +464,15 @@ Instance InstanceBuilder::build()
         }
         instance_.parameters_.scale_value = 1024.0 / smallest_power_of_two_greater_or_equal(value_max);
         //std::cout << "instance_.scale_value() " << instance_.parameters().scale_value << std::endl;
+    }
+
+    // Apply default rotation {{0, 0, false}} to item types with no explicit rotation.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        if (item_type.allowed_rotations.empty())
+            item_type.allowed_rotations.push_back({0, 0, false});
     }
 
     // Compute scaled shapes of item type.
