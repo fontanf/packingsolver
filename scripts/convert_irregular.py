@@ -658,9 +658,9 @@ def convert_lopez2018(filename, number_of_radii, squares=False):
             if squares and rotation:
                 continue
             name = filename
-            allowed_rotations = [{"start": 0, "end": 0}]
+            allowed_rotations = [{"start": 0, "end": 0, "mirror": False}]
             if rotation:
-                allowed_rotations.append({"start": 90, "end": 90})
+                allowed_rotations.append({"start": 90, "end": 90, "mirror": False})
                 name += "_rotation"
             else:
                 name += "_oriented"
@@ -733,7 +733,7 @@ def convert_oliveira2000(
         allowed_rotations = []
         for sec_angle in sec_piece.find(ns + 'orientation').iter(ns + "enumeration"):
             angle = float(sec_angle.get('angle'))
-            allowed_rotations.append({"start": angle, "end": angle})
+            allowed_rotations.append({"start": angle, "end": angle, "mirror": False})
         polygon = sec_piece.find(ns + 'component').get('idPolygon')
         dic["item_types"].append(
             {
@@ -866,6 +866,18 @@ def convert_calendar_puzzle():
         [(0, 0), (0, 1), (0, 2), (1, 1), (2, 1)],            # 7: T-shape
     ]
     items_allow_mirroring = [False, False, True, True, False, True, True, False]
+    base_rotations = [
+        {"start": 0, "end": 0, "mirror": False},
+        {"start": 90, "end": 90, "mirror": False},
+        {"start": 180, "end": 180, "mirror": False},
+        {"start": 270, "end": 270, "mirror": False},
+    ]
+    base_rotations_mirrored = base_rotations + [
+        {"start": 0, "end": 0, "mirror": True},
+        {"start": 90, "end": 90, "mirror": True},
+        {"start": 180, "end": 180, "mirror": True},
+        {"start": 270, "end": 270, "mirror": True},
+    ]
 
     def cells_to_vertices(cells):
         squares = [
@@ -917,15 +929,8 @@ def convert_calendar_puzzle():
                     "type": "polygon",
                     "copies": 1,
                     "vertices": vertices,
-                    "allowed_rotations": [
-                        {"start": 0, "end": 0},
-                        {"start": 90, "end": 90},
-                        {"start": 180, "end": 180},
-                        {"start": 270, "end": 270},
-                    ],
+                    "allowed_rotations": base_rotations_mirrored if allow_mirroring else base_rotations,
                 }
-                if allow_mirroring:
-                    item_type["allow_mirroring"] = True
                 item_types.append(item_type)
 
             dic = {
@@ -951,7 +956,7 @@ def convert_kaggle2025():
             "type": "polygon",
             "copies": num_trees,
             "vertices": sample_kaggle_tree_vertices,
-            "allowed_rotations": [{"start": 0, "end": 360}],
+            "allowed_rotations": [{"start": 0, "end": 360, "mirror": False}],
         }
         dic = {
             "objective": "open-dimension-xy",

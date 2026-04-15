@@ -45,17 +45,14 @@ BinPos assign_item_to_bin(
 {
     const ItemType& item_type = instance.item_type(item_type_id);
 
-    // Choose a random mirror (if allowed).
-    std::bernoulli_distribution mirror_dist(0.5);
-    const bool mirror = item_type.allow_mirroring && mirror_dist(rng);
-
-    // Choose a random rotation range then a random angle within it.
+    // Choose a random allowed rotation entry, then a random angle within it.
     std::uniform_int_distribution<Counter> range_dist(
             0, (Counter)item_type.allowed_rotations.size() - 1);
-    const auto& rotation_range = item_type.allowed_rotations[range_dist(rng)];
+    const AllowedRotation& rotation_range = item_type.allowed_rotations[range_dist(rng)];
     std::uniform_real_distribution<Angle> angle_dist(
-            rotation_range.first, rotation_range.second);
+            rotation_range.start_angle, rotation_range.end_angle);
     const Angle angle = angle_dist(rng);
+    const bool mirror = rotation_range.mirror;
 
     const AxisAlignedBoundingBox item_aabb = item_type.compute_min_max(angle, mirror);
 

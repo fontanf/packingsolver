@@ -108,13 +108,21 @@ public:
     ItemTypeId add_item_type(
             const std::vector<ItemShape>& shapes,
             Profit profit = -1,
-            ItemPos copies = 1,
-            const std::vector<std::pair<Angle, Angle>>& allowed_rotations = {{0, 0}});
+            ItemPos copies = 1);
 
-    /** Set allow mirroring of an item type. */
-    void set_item_type_allow_mirroring(
+    /**
+     * Add an allowed rotation to an item type.
+     *
+     * Appends an entry with a continuous range [start_angle, end_angle] and
+     * the given mirror flag to the item type's allowed_rotations list.
+     * The first call to this function replaces the default {{0, 0, false}}
+     * entry created by add_item_type.
+     */
+    void add_item_type_allowed_rotation(
             ItemTypeId item_type_id,
-            bool allow_mirroring);
+            Angle start_angle,
+            Angle end_angle,
+            bool mirror);
 
     /**
      * Add an item type from another item type.
