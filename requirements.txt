@@ -1,0 +1,6 @@
+gdown
+numpy
+pandas
+plotly
+shapely
+streamlit
