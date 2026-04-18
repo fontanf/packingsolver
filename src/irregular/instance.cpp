@@ -445,6 +445,35 @@ std::ostream& Instance::format(
         os
             << std::endl
             << std::setw(12) << "Item type"
+            << std::setw(12) << "Start angle"
+            << std::setw(12) << "End angle"
+            << std::setw(12) << "Mirror"
+            << std::endl
+            << std::setw(12) << "---------"
+            << std::setw(12) << "-----------"
+            << std::setw(12) << "---------"
+            << std::setw(12) << "------"
+            << std::endl;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = this->item_type(item_type_id);
+            for (const AllowedRotation& rotation: item_type.allowed_rotations) {
+                os
+                    << std::setw(12) << item_type_id
+                    << std::setw(12) << rotation.start_angle
+                    << std::setw(12) << rotation.end_angle
+                    << std::setw(12) << rotation.mirror
+                    << std::endl;
+            }
+        }
+    }
+
+    if (verbosity_level >= 3) {
+        // Item shapes
+        os
+            << std::endl
+            << std::setw(12) << "Item type"
             << std::setw(12) << "Shape"
             << std::setw(12) << "Q. rule"
             << std::setw(12) << "# holes"
@@ -470,7 +499,9 @@ std::ostream& Instance::format(
                     << std::endl;
             }
         }
+    }
 
+    if (verbosity_level >= 4) {
         // Elements.
         os
             << std::endl

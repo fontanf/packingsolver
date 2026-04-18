@@ -59,7 +59,7 @@ struct BinTypeData
 
 Solution solve_milp_raster_for_cell_size(
         const Instance& instance,
-        const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations,
+        const std::vector<std::vector<std::vector<ItemTypeRotation>>>& item_type_rotations,
         const MilpRasterParameters& parameters,
         MilpRasterOutput& output,
         AlgorithmFormatter& algorithm_formatter,
@@ -143,7 +143,7 @@ Solution solve_milp_raster_for_cell_size(
                 ++item_type_id) {
             const ItemType& item_type = instance.item_type(item_type_id);
 
-            for (const ItemTypeRotation& rotation: item_type_rotations[item_type_id]) {
+            for (const ItemTypeRotation& rotation: item_type_rotations[bin_type_id][item_type_id]) {
                 // Compute AABB of all item shapes after applying mirror then
                 // rotation, matching the order used in convert_shape.
                 AxisAlignedBoundingBox combined_aabb;
@@ -440,7 +440,7 @@ MilpRasterOutput packingsolver::irregular::milp_raster(
             cell_size *= 2;
     }
 
-    const std::vector<std::vector<ItemTypeRotation>> item_type_rotations = compute_item_type_rotations(instance);
+    const std::vector<std::vector<std::vector<ItemTypeRotation>>> item_type_rotations = compute_item_type_rotations(instance);
 
     for (; ; cell_size /= 2) {
         if (parameters.timer.needs_to_end())

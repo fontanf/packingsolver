@@ -122,23 +122,6 @@ public:
         bool operator==(const UncoveredTrapezoid& uncovered_trapezoid) const;
     };
 
-    /**
-     * Bin type structure used in the branching scheme.
-     */
-    struct BranchingSchemeBinType
-    {
-        /** Trapezoids of the defects. */
-        std::vector<UncoveredTrapezoid> defects;
-
-        /** Supporting parts of the bin (includes supporting parts of defects). */
-        std::vector<ShapePos> supporting_parts;
-
-        LengthDbl x_min;
-        LengthDbl x_max;
-        LengthDbl y_min;
-        LengthDbl y_max;
-    };
-
     struct Support
     {
         Shape shape;
@@ -152,23 +135,39 @@ public:
         AxisAlignedBoundingBox aabb;
     };
 
+    /**
+     * Bin type structure used in the branching scheme.
+     */
+    struct BranchingSchemeBinType
+    {
+        /** Trapezoids of the defects. */
+        std::vector<UncoveredTrapezoid> defects;
+
+        /**
+         * Indices into supporting_parts for the supports belonging to the bin
+         * itself (floor and defect top surfaces).
+         */
+        std::vector<ShapePos> bin_supporting_part_ids;
+
+        /** Trapezoid sets for items placed in this bin type. */
+        std::vector<TrapezoidSet> trapezoid_sets;
+
+        /** All Support objects for this bin type (bin + item shapes). */
+        std::vector<Support> supporting_parts;
+
+        /** All supported-part Support objects for items in this bin type. */
+        std::vector<Support> supported_parts;
+
+        LengthDbl x_min;
+        LengthDbl x_max;
+        LengthDbl y_min;
+        LengthDbl y_max;
+    };
+
     struct DirectionData
     {
         /** Bin types in each direction. */
         std::vector<BranchingSchemeBinType> bin_types;
-
-        /** Trapezoid sets in each direction. */
-        std::vector<TrapezoidSet> trapezoid_sets;
-
-        /*
-         * Supports
-         */
-
-        /** Supporting parts. */
-        std::vector<Support> supporting_parts;
-
-        /** Supported parts. */
-        std::vector<Support> supported_parts;
     };
 
     struct Insertion
@@ -509,7 +508,7 @@ private:
 
     std::vector<AreaDbl> item_types_convex_hull_area_;
 
-    std::vector<std::vector<ItemTypeRotation>> item_types_allowed_rotations_;
+    std::vector<std::vector<std::vector<ItemTypeRotation>>> item_types_allowed_rotations_;
 
     DirectionData directions_data_[8];
 
