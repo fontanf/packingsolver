@@ -5,6 +5,10 @@ OneDimensional solver
 
 The OneDimensional solver solves problems with one-dimensional items and bins.
 
+.. image:: ../img/onedimensional.png
+   :width: 512pt
+   :align: center
+
 These problems occur for example when cutting paper rolls, pipes, cables, steel bars; or when stacking parcels.
 
 This dimension is called length here.
@@ -118,76 +122,16 @@ A line corresponding to an item contains:
 
 **Example**
 
-Inputs
+Inputs:
 
-.. code-block:: none
+.. literalinclude:: examples/onedimensional/items.csv
    :caption: items.csv
 
-   X
-   193
-   197
-   199
-   211
-   223
-   227
-   229
-   233
-   239
-   241
-   251
-   257
-   263
-   269
-   271
-   277
-   281
-   283
-   293
-   307
-   311
-   313
-   317
-   331
-   337
-   347
-   349
-   353
-   359
-   367
-   373
-   379
-   383
-   389
-   397
-   401
-   409
-   419
-   421
-   431
-   433
-   439
-   443
-   449
-   457
-   461
-   463
-   467
-   479
-   487
-   491
-   499
-
-.. code-block:: none
+.. literalinclude:: examples/onedimensional/bins.csv
    :caption: bins.csv
 
-   X,COPIES
-   1000,100
-
-.. code-block:: none
+.. literalinclude:: examples/onedimensional/parameters.csv
    :caption: parameters.csv
-
-   NAME,VALUE
-   objective,bin-packing
 
 Solve:
 
@@ -199,123 +143,10 @@ Solve:
             --parameters parameters.csv \
             --certificate solution.csv
 
-.. code-block:: none
+.. literalinclude:: examples/onedimensional/output.txt
 
-    =================================
-              PackingSolver          
-    =================================
-
-    Problem type
-    ------------
-    OneDimensional
-
-    Instance
-    --------
-    Objective:             BinPacking
-    Number of item types:  52
-    Number of items:       52
-    Number of bin types:   1
-    Number of bins:        100
-    Maximum item copies:   1
-    Maximum bin cost:      1000
-
-            Time    Bins  Full waste (%)                         Comment
-            ----    ----  --------------                         -------
-           0.001      20           10.51                      TS g 0 q 1
-           0.003      19            5.80                      TS g 2 q 2
-           0.130      18            0.57                         CG n 18
-
-    Final statistics
-    ----------------
-    Time (s):  0.131665
-
-    Solution
-    --------
-    Number of items:  52 / 52 (100%)
-    Item length:      17898 / 17898 (100%)
-    Item profit:      17898 / 17898 (100%)
-    Number of bins:   18 / 100 (18%)
-    Bin length:       18000 / 100000 (18%)
-    Bin cost:         18000
-    Waste:            75
-    Waste (%):        0.417293
-    Full waste:       102
-    Full waste (%):   0.566667
-
-.. code-block:: none
+.. literalinclude:: examples/onedimensional/solution.csv
    :caption: solution.csv
-
-    TYPE,ID,COPIES,BIN,X,LX
-    BIN,0,1,0,0,1000
-    ITEM,50,1,0,0,491
-    ITEM,51,1,0,491,499
-    BIN,0,1,1,0,1000
-    ITEM,48,1,1,0,479
-    ITEM,49,1,1,479,487
-    BIN,0,1,2,0,1000
-    ITEM,5,1,2,0,227
-    ITEM,32,1,2,227,383
-    ITEM,33,1,2,610,389
-    BIN,0,1,3,0,1000
-    ITEM,9,1,3,0,241
-    ITEM,26,1,3,241,349
-    ITEM,36,1,3,590,409
-    BIN,0,1,4,0,1000
-    ITEM,15,1,4,0,277
-    ITEM,17,1,4,277,283
-    ITEM,41,1,4,560,439
-    BIN,0,1,5,0,1000
-    ITEM,3,1,5,0,211
-    ITEM,29,1,5,211,367
-    ITEM,38,1,5,578,421
-    BIN,0,1,6,0,1000
-    ITEM,0,1,6,0,193
-    ITEM,30,1,6,193,373
-    ITEM,40,1,6,566,433
-    BIN,0,1,7,0,1000
-    ITEM,1,1,7,0,197
-    ITEM,27,1,7,197,353
-    ITEM,43,1,7,550,449
-    BIN,0,1,8,0,1000
-    ITEM,8,1,8,0,239
-    ITEM,28,1,8,239,359
-    ITEM,35,1,8,598,401
-    BIN,0,1,9,0,1000
-    ITEM,11,1,9,0,257
-    ITEM,16,1,9,257,281
-    ITEM,45,1,9,538,461
-    BIN,0,1,10,0,1000
-    ITEM,10,1,10,0,251
-    ITEM,22,1,10,251,317
-    ITEM,39,1,10,568,431
-    BIN,0,1,11,0,1000
-    ITEM,13,1,11,0,269
-    ITEM,20,1,11,269,311
-    ITEM,37,1,11,580,419
-    BIN,0,1,12,0,1000
-    ITEM,14,1,12,0,271
-    ITEM,25,1,12,271,347
-    ITEM,31,1,12,618,379
-    BIN,0,1,13,0,1000
-    ITEM,12,1,13,0,263
-    ITEM,24,1,13,263,337
-    ITEM,34,1,13,600,397
-    BIN,0,1,14,0,1000
-    ITEM,6,1,14,0,229
-    ITEM,21,1,14,229,313
-    ITEM,44,1,14,542,457
-    BIN,0,1,15,0,1000
-    ITEM,7,1,15,0,233
-    ITEM,18,1,15,233,293
-    ITEM,46,1,15,526,463
-    BIN,0,1,16,0,1000
-    ITEM,4,1,16,0,223
-    ITEM,19,1,16,223,307
-    ITEM,47,1,16,530,467
-    BIN,0,1,17,0,1000
-    ITEM,2,1,17,0,199
-    ITEM,23,1,17,199,331
-    ITEM,42,1,17,530,443
 
 Visualize:
 

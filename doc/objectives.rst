@@ -10,6 +10,8 @@ First, the objectives can be classified in two categories:
 
 There is a single output maximization objective called **knapsack**.
 
+There is also a **feasibility** objective that simply checks whether a valid packing exists.
+
 For input minimization, there are 3 objective types:
 
 * **Open-dimension**: there is a single bin and the objective is to minimize the space used in this bin
@@ -217,3 +219,10 @@ The items are the same as in the previous examples. Only 2 copies of the small b
 .. image:: img/objective_knapsack_solution.png
    :width: 200pt
    :align: center
+
+Feasibility
+-----------
+
+In feasibility problems, the objective is simply to **determine whether a valid packing exists** — no optimization is performed.
+
+The solver returns a solution as soon as it finds one valid placement of all items, or reports that no feasible packing was found.
