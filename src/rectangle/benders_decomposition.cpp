@@ -4,6 +4,16 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/optimize.hpp"
 
+#ifdef CBC_FOUND
+#include "mathoptsolverscmake/mathopt_cbc.hpp"
+#endif
+#ifdef HIGHS_FOUND
+#include "mathoptsolverscmake/mathopt_highs.hpp"
+#endif
+#ifdef XPRESS_FOUND
+#include "mathoptsolverscmake/mathopt_xpress.hpp"
+#endif
+
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
 
@@ -36,7 +46,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
         }
 
         // Build MILP model.
-        mathoptsolverscmake::MilpModel milp_model;
+        mathoptsolverscmake::MathOptModel milp_model;
 
         // Variables.
         // x[item_type_id][copy]

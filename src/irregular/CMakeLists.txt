@@ -23,7 +23,7 @@ target_link_libraries(PackingSolver_irregular PUBLIC
     PackingSolver_algorithms
     PackingSolver_onedimensional
     TreeSearchSolver::treesearchsolver
-    MathOptSolversCMake::milp
+    MathOptSolversCMake::mathopt
     Shape::shape
     Threads::Threads)
 if (PackingSolver_USE_KNITRO)

@@ -5,7 +5,16 @@
 
 #include "shape/rasterization.hpp"
 //#include "shape/writer.hpp"
-#include "mathoptsolverscmake/milp.hpp"
+
+#ifdef CBC_FOUND
+#include "mathoptsolverscmake/mathopt_cbc.hpp"
+#endif
+#ifdef HIGHS_FOUND
+#include "mathoptsolverscmake/mathopt_highs.hpp"
+#endif
+#ifdef XPRESS_FOUND
+#include "mathoptsolverscmake/mathopt_xpress.hpp"
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -268,7 +277,7 @@ Solution solve_milp_raster_for_cell_size(
     }
 
     // Build MILP model.
-    mathoptsolverscmake::MilpModel model;
+    mathoptsolverscmake::MathOptModel model;
     model.objective_direction = mathoptsolverscmake::ObjectiveDirection::Maximize;
 
     model.variables_lower_bounds.assign(total_placements, 0.0);
