@@ -10,6 +10,7 @@ PackingSolver's documentation
    optimization_modes
    rectangleguillotine
    rectangle
+   box
    boxstacks
    onedimensional
    irregular
@@ -34,6 +35,8 @@ PackingSolver solves multiple problem types:
    :width: 512pt
 .. |rectangle| image:: ../img/rectangle.png
    :width: 512pt
+.. |box| image:: ../img/box.png
+   :width: 512pt
 .. |boxstacks| image:: ../img/boxstacks.png
    :width: 512pt
 .. |onedimensional| image:: ../img/onedimensional.png
@@ -55,10 +58,14 @@ PackingSolver solves multiple problem types:
 
        * Items: two-dimensional rectangles
      - |rectangle|
+   * - :ref:`Box<box>`
+
+       * Items: three-dimensional rectangular parallelepipeds
+     - |box|
    * - :ref:`BoxStacks<boxstacks>`
 
        * Items: three-dimensional rectangular parallelepipeds
-       * Items can be stacked; a stack contains items with the same width and length
+       * Items are stacked; a stack contains items with the same width and length
      - |boxstacks|
    * - :ref:`OneDimensional<onedimensional>`
 
@@ -116,63 +123,7 @@ Now, we use the following command to launch the optimization:
 
 The terminal output looks like:
 
-.. code-block:: none
-
-    =================================
-              PackingSolver          
-    =================================
-
-    Problem type
-    ------------
-    Rectangle
-
-    Instance
-    --------
-    Objective:             BinPacking
-    Number of item types:  2
-    Number of items:       20
-    Number of bin types:   1
-    Number of bins:        10
-    Number of groups:      1
-    Number of defects:     0
-    Unloading constraint:  None
-    Total item area:       975000
-    Total item width:      5500
-    Total item height:     3500
-    Smallest item width:   150
-    Smallest item height:  150
-    Total bin area:        5000000
-    Total item weight:     0
-    Total bin weight:      0
-
-            Time    Bins  Full waste (%)                         Comment
-            ----    ----  --------------                         -------
-           0.001       3           35.00                  TS g 0 d X q 1
-           0.002       2            2.50                  TS g 0 d X q 9
-
-    Final statistics
-    ----------------
-    Time (s):  0.0166683
-
-    Solution
-    --------
-    Number of items:  20 / 20 (100%)
-    Item area:        975000 / 975000 (100%)
-    Item weight:      0 / 0 (-nan%)
-    Item profit:      975000 / 975000 (100%)
-    Number of bins:   2 / 10 (20%)
-    Bin area:         1000000 / 5000000 (20%)
-    Bin weight:       0 / 0 (-nan%)
-    Bin cost:         1e+06
-    Waste:            25000
-    Waste (%):        2.5
-    Full waste:       25000
-    Full waste (%):   2.5
-    Area load:        0.195
-    Weight load:      -nan
-    X max:            1000
-    Y max:            500
-    Leftover value:   0
+.. literalinclude:: examples/rectangle/output.txt
 
 From the terminal output, we see that the solver managed to pack all the items using two bins.
 The loading plans are written in the :code:`solution_rectangle.csv` file. A script is available to visualize them:

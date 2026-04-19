@@ -1,0 +1,57 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Irregular
+
+Instance
+--------
+Objective:                    BinPackingWithLeftovers
+Number of item types:         2
+Number of items:              4
+Number of bin types:          1
+Number of bins:               1
+Number of defects:            0
+Number of rectangular items:  2
+Number of circular items:     0
+Item-item minimum spacing:    0
+Leftover corner:              BottomLeft
+Open dim. XY aspect ratio:    -1
+Total item area:              60000
+Smallest item area:           3600
+Largest item area:            26400
+Total item profit:            60000
+Largest item profit:          26400
+Largest item copies:          2
+Total bin area:               125000
+Largest bin cost:             125000
+
+        Time      # bins    Leftover                         Comment
+        ----      ------    --------                         -------
+       0.001           1       25000                  TS g 0 d 1 q 1
+       0.001           1       45000                  TS g 0 d 0 q 1
+
+Final statistics
+----------------
+Time (s):  0.00682228
+
+Solution
+--------
+Number of items:  4 / 4 (100%)
+Item area:        60000 / 60000 (100%)
+Item profit:      60000 / 60000 (100%)
+Number of bins:   1 / 1 (100%)
+Bin area:         125000 / 125000 (100%)
+Bin cost:         125000
+Full waste:       65000
+Full waste (%):   52
+X min:            0
+Y min:            0
+X max:            400
+Y max:            200
+Density X:        0.6
+Density Y:        0.6
+ODXY area:        80000
+Leftover value:   45000

@@ -1,0 +1,56 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Box
+
+Instance
+--------
+Objective:             BinPackingWithLeftovers
+Number of item types:  1
+Number of items:       15
+Number of bin types:   1
+Number of bins:        1
+Number of defects:     0
+Total item volume:     45000
+Total item profit:     45000
+Largest item profit:   3000
+Total item weight:     0
+Largest item copies:   15
+Total bin volume:      60000
+Total bin weight:      inf
+Largest bin cost:      3000
+
+        Time       Waste   Waste (%)                         Comment
+        ----       -----   ---------                         -------
+       0.000       15000       25.00                  TS g 0 d X q 1
+
+Final statistics
+----------------
+Time (s):  0.000636844
+
+Solution
+--------
+Number of items:   15 / 15 (100%)
+Item volume:       45000 / 45000 (100%)
+Item weight:       0 / 0 (-nan%)
+Item profit:       45000 / 45000 (100%)
+Number of stacks:  0
+Stack area:        0
+Number of bins:    1 / 1 (100%)
+Bin volume:        60000 / 60000 (100%)
+Bin area:          3000 / 3000 (100%)
+Bin weight:        inf / inf (-nan%)
+Bin cost:          3000
+Waste:             15000
+Waste (%):         25
+Full waste:        15000
+Full waste (%):    25
+Volume load:       0.75
+Area load:         0
+Weight load:       0
+X max:             100
+Y max:             30
+Z max:             20
