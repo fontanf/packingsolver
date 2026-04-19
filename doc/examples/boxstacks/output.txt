@@ -1,0 +1,54 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+BoxStacks
+
+Instance
+--------
+Objective:             BinPackingWithLeftovers
+Number of item types:  1
+Number of items:       8
+Number of bin types:   1
+Number of bins:        1
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item volume:     72000000
+Total item profit:     7.2e+07
+Total item weight:     0
+Total bin volume:      144000000
+Total bin weight:      0
+
+        Time       Waste   Waste (%)                         Comment
+        ----       -----   ---------                         -------
+       0.001    72000000       50.00                        SOR it 0
+
+Final statistics
+----------------
+Time (s):  0.000878539
+
+Solution
+--------
+Number of items:   8 / 8 (100%)
+Item volume:       7.2e+07 / 7.2e+07 (100%)
+Item weight:       0 / 0 (-nan%)
+Item profit:       7.2e+07 / 7.2e+07 (100%)
+Number of stacks:  2
+Stack area:        120000
+Number of bins:    1 / 1 (100%)
+Bin volume:        144000000 / 144000000 (100%)
+Bin area:          240000 / 240000 (100%)
+Bin weight:        0 / 0 (-nan%)
+Bin cost:          240000
+Waste:             72000000
+Waste (%):         50
+Full waste:        72000000
+Full waste (%):    50
+Volume load:       0.5
+Area load:         0.5
+Weight load:       -nan
+X max:             600
+Y max:             200

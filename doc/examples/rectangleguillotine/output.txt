@@ -1,0 +1,62 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+RectangleGuillotine
+
+Instance
+--------
+Objective:                             BinPackingWithLeftovers
+Number of item types:                  3
+Number of items:                       7
+Number of bin types:                   1
+Number of bins:                        5
+Number of stacks:                      3
+Number of defects:                     0
+Number of stages:                      3
+Cut type:                              NonExact
+First stage orientation:               Vertical
+Minimum distance between 1-cuts:       0
+Maximum distance between 1-cuts:       -1
+Minimum distance between 2-cuts:       0
+Minimum waste length:                  0
+Maximum number of consecutive 2-cuts:  -1
+Cut through defects:                   0
+Cut thickness:                         0
+Total item area:                       280000
+Total item profit:                     280000
+Largest item profit:                   50000
+Largest item copies:                   3
+Total bin area:                        3500000
+Largest bin cost:                      700000
+
+        Time      # bins       Waste   Waste (%)                         Comment
+        ----      ------       -----   ---------                         -------
+       0.000           1      385000       57.89           TS g 0 d Vertical q 1
+       0.001           1      210000       42.86           TS g 1 d Vertical q 1
+       0.001           1      175000       38.46           TS g 1 d Vertical q 1
+       0.001           1      175000       38.46           TS g 0 d Vertical q 6
+       0.001           1       70000       20.00           TS g 1 d Vertical q 1
+       0.002           1       35000       11.11          TS g 0 d Vertical q 28
+       0.009           1       35000       11.11         TS g 1 d Vertical q 211
+
+Final statistics
+----------------
+Time (s):  30.0002
+
+Solution
+--------
+Number of items:           7 / 7 (100%)
+Item area:                 280000 / 280000 (100%)
+Item profit:               280000 / 280000 (100%)
+Number of bins:            1 / 5 (20%)
+Number of different bins:  1
+Bin area:                  700000 / 3500000 (20%)
+Bin cost:                  700000
+Waste:                     35000 (11.1111%)
+Full waste:                420000 (60%)
+Width:                     450
+Height:                    700
+Second leftover value:     15000
