@@ -398,11 +398,18 @@ std::vector<std::vector<std::vector<ItemTypeRotation>>> packingsolver::irregular
         std::vector<ShapesByDimsMap> bin_shapes_by_dims(instance.number_of_item_types());
 
         auto add_if_new_for_bin = [&](ItemTypeId item_type_id, Angle angle, bool mirror) {
-            const ItemType& item_type = instance.item_type(item_type_id);
-            const std::vector<Point>& hull_points = item_types_convex_hull_points[item_type_id];
+            for (const ItemTypeRotation& r: bin_output[item_type_id]) {
+                if (r.mirror != mirror)
+                    continue;
+                Angle diff = std::abs(angle - r.angle);
+                if (diff < 5 || diff > 355)
+                    return;
+            }
 
             // Compute the AABB of the transformed convex hull to get (x_min, y_min)
             // for normalizing the shape position.
+            const ItemType& item_type = instance.item_type(item_type_id);
+            const std::vector<Point>& hull_points = item_types_convex_hull_points[item_type_id];
             double cos_a = std::cos(angle * M_PI / 180.0);
             double sin_a = std::sin(angle * M_PI / 180.0);
             LengthDbl x_min_t = +std::numeric_limits<LengthDbl>::infinity();
