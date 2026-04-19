@@ -6,6 +6,7 @@ import plotly.subplots
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('csvpath', help='path to CSV file')
+parser.add_argument('-o', '--output', help='save image to file instead of opening browser (e.g. output.png)')
 args = parser.parse_args()
 
 bins_x = []
@@ -102,4 +103,7 @@ fig.update_layout(
 fig.update_xaxes(
         rangeslider=dict(visible=False))
 fig.update_yaxes(visible=False)
-fig.show()
+if args.output:
+    fig.write_image(args.output)
+else:
+    fig.show()
