@@ -1,15 +1,15 @@
-.. _boxstacks:
+.. _box:
 
-BoxStacks solver
-================
+Box solver
+==========
 
-The BoxStacks solver solves three-dimensional bin packing problems where items are rectangular parallelepipeds (boxes) that must be packed into rectangular bins. Items can be stacked vertically: a **stack** is a column of items that all have the same footprint (X and Y dimensions) and the same stackability identifier.
+The Box solver solves three-dimensional bin packing problems where items are rectangular parallelepipeds (boxes) that must be packed into rectangular bins without overlapping. Unlike the :ref:`BoxStacks<boxstacks>` solver, items are placed freely in 3D space — they are not restricted to vertical stacks and do not need to share a footprint.
 
-.. image:: ../img/boxstacks.png
+.. image:: ../img/box.png
    :width: 512pt
    :align: center
 
-These problems occur for example in pallet building, container loading, and warehouse management.
+These problems occur for example in container loading, truck loading, and warehouse picking.
 
 Features:
 
@@ -20,33 +20,21 @@ Features:
   * Bin packing with leftovers
   * Open dimension X
   * Open dimension Y
-  * Open dimension Z
-  * Open dimension XY
   * Variable-sized bin packing
 
 * Item types
 
   * 3D rotations (up to 6 orientations per item)
-  * Groups (for unloading constraints)
   * Weight
-  * Stacking constraints
-
-    * Stackability identifier
-    * Nesting height
-    * Maximum number of items in a stack
-    * Maximum weight above an item
 
 * Bin types
 
   * Maximum weight
-  * Maximum stack density (weight per unit floor area)
-
-* Unloading constraints (same as the :ref:`Rectangle<rectangle>` solver)
 
 Basic usage
 -----------
 
-The BoxStacks solver takes as input:
+The Box solver takes as input:
 
 * an item CSV file; option: ``--items items.csv``
 * a bin CSV file; option: ``--bins bins.csv``
@@ -94,31 +82,6 @@ The **item file** contains:
   * default value: ``1`` (default orientation only)
   * See `Rotations`_ below
 
-* The group of the item (for unloading constraints)
-
-  * column ``GROUP_ID``
-  * default value: ``0``
-
-* The stackability identifier; only items with the same X and Y dimensions **and** the same stackability identifier may be stacked on top of each other
-
-  * column ``STACKABILITY_ID``
-  * default value: ``0``
-
-* The nesting height; extra Z space saved when this item is placed on top of another item (e.g., for hollow boxes that nest inside each other)
-
-  * column ``NESTING_HEIGHT``
-  * default value: ``0``
-
-* The maximum number of items that may be placed in a stack containing an item of this type
-
-  * column ``MAXIMUM_STACKABILITY``
-  * default value: no limit
-
-* The maximum weight that may be placed above an item of this type
-
-  * column ``MAXIMUM_WEIGHT_ABOVE``
-  * default value: no limit
-
 The **bin file** contains:
 
 * The X dimension of the bin type (**mandatory**)
@@ -146,7 +109,7 @@ The **bin file** contains:
   * column ``COPIES_MIN``
   * default value: ``0``
 
-* The cost of a bin of this type
+* The cost of a bin of this type (for a variable-sized bin packing objective)
 
   * column ``COST``
   * default value: bin volume
@@ -154,11 +117,6 @@ The **bin file** contains:
 * The maximum total weight allowed in a bin of this type
 
   * column ``MAXIMUM_WEIGHT``
-  * default value: no limit
-
-* The maximum weight per unit floor area for any stack in the bin
-
-  * column ``MAXIMUM_STACK_DENSITY``
   * default value: no limit
 
 The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible entries are:
@@ -170,42 +128,40 @@ The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible ent
   * ``bin-packing-with-leftovers``
   * ``open-dimension-x``
   * ``open-dimension-y``
-  * ``open-dimension-z``
-  * ``open-dimension-xy``
   * ``variable-sized-bin-packing``
 
 **Example**
 
 Inputs:
 
-.. literalinclude:: examples/boxstacks/items.csv
+.. literalinclude:: examples/box/items.csv
    :caption: items.csv
 
-.. literalinclude:: examples/boxstacks/bins.csv
+.. literalinclude:: examples/box/bins.csv
    :caption: bins.csv
 
-.. literalinclude:: examples/boxstacks/parameters.csv
+.. literalinclude:: examples/box/parameters.csv
    :caption: parameters.csv
 
 Solve:
 
 .. code-block:: shell
 
-    packingsolver_boxstacks \
+    packingsolver_box \
             --items items.csv \
             --bins bins.csv \
             --parameters parameters.csv \
             --certificate solution.csv
 
-.. literalinclude:: examples/boxstacks/output.txt
+.. literalinclude:: examples/box/output.txt
 
 Visualize:
 
 .. code-block:: shell
 
-    python3 scripts/visualize_boxstacks.py solution.csv
+    python3 scripts/visualize_box.py solution.csv
 
-.. image:: img/boxstacks_example_solution.png
+.. image:: img/box_example_solution.png
    :width: 512pt
    :align: center
 
@@ -214,11 +170,11 @@ Command-line options
 
 .. code-block:: none
 
-    packingsolver_boxstacks --items items.csv [options]
+    packingsolver_box --items items.csv [options]
 
 Mandatory option:
 
-* ``--items, -i``: path to the items CSV file
+* ``--items, -i``: path to the items CSV file (or path prefix when files follow the ``<prefix>items.csv`` naming convention)
 
 Other input options:
 
@@ -229,7 +185,7 @@ Instance modifier options:
 
 * ``--objective, -f``: objective (overrides the parameters file)
 * ``--no-item-rotation``: fix all items in their default orientation
-* ``--bin-infinite-x``, ``--bin-infinite-y``: make bins infinite in one direction
+* ``--bin-infinite-x``, ``--bin-infinite-y``: make bins infinite in one direction (for open-dimension objectives)
 * ``--bin-infinite-copies``: make all bin types available in unlimited copies
 * ``--unweighted``: set all item profits to 1
 * ``--bin-unweighted``: set all bin costs to 1
@@ -286,22 +242,12 @@ The ``ROTATIONS`` column is a **bitmask**: bit *k* (value 2^k) is set if rotatio
 * ``51`` (= 2^0 + 2^1 + 2^4 + 2^5): X face cannot be on top
 * ``63`` (= all 6 bits): all six orientations allowed
 
-Stacking
---------
+Comparison with BoxStacks
+--------------------------
 
-Items can be stacked on top of each other within a bin. An item can only be placed on top of another item if:
+The Box and :ref:`BoxStacks<boxstacks>` solvers both handle 3D rectangular bin packing. The key difference is in how items are arranged vertically:
 
-1. Both items have exactly the same X and Y dimensions in their placed orientations.
-2. Both items have the same ``STACKABILITY_ID``.
+* **Box**: items can be placed anywhere in 3D space; any item can rest on top of any other item regardless of their footprints.
+* **BoxStacks**: items are organized into vertical stacks; an item can only be placed on top of another item if they share the same footprint and stackability identifier.
 
-The ``NESTING_HEIGHT`` field models hollow items that can partially nest into each other: when item B is placed on item A, the effective Z space consumed by A is reduced by ``A.NESTING_HEIGHT``.
-
-Stacking constraints per item type:
-
-* ``MAXIMUM_STACKABILITY``: limits the total number of items in a single stack containing an item of this type.
-* ``MAXIMUM_WEIGHT_ABOVE``: limits the total weight of items placed above an item of this type.
-
-Groups
-------
-
-Items can be assigned to delivery groups via the ``GROUP_ID`` column. Groups work the same way as in the :ref:`Rectangle<rectangle>` solver: group 0 is unloaded first (placed last / nearest the door), group 1 next, etc.
+Use **Box** when items can be placed freely in 3D and there are no stacking-compatibility constraints. Use **BoxStacks** when items must be organized into vertical stacks with matching footprints, or when stacking constraints (maximum weight above, nesting height, etc.) are needed.
