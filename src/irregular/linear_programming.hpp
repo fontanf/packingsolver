@@ -9,7 +9,7 @@
 
 #include "packingsolver/irregular/solution.hpp"
 
-#include "mathoptsolverscmake/common.hpp"
+#include "mathoptsolverscmake/mathopt.hpp"
 
 namespace packingsolver
 {

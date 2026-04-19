@@ -4,7 +4,15 @@
 
 #include "shape/writer.hpp"
 
-#include "mathoptsolverscmake/milp.hpp"
+#ifdef CBC_FOUND
+#include "mathoptsolverscmake/mathopt_cbc.hpp"
+#endif
+#ifdef HIGHS_FOUND
+#include "mathoptsolverscmake/mathopt_highs.hpp"
+#endif
+#ifdef XPRESS_FOUND
+#include "mathoptsolverscmake/mathopt_xpress.hpp"
+#endif
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -339,7 +347,7 @@ Solution linear_programming_anchor(
         ////////////////////
 
         // Build LP model.
-        mathoptsolverscmake::MilpModel lp_model;
+        mathoptsolverscmake::MathOptModel lp_model;
 
         /////////////////////////////
         // Objective and variables //
@@ -777,7 +785,7 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
         // Setup LP model //
         ////////////////////
 
-        mathoptsolverscmake::MilpModel lp_model;
+        mathoptsolverscmake::MathOptModel lp_model;
 
         /////////////////////////////
         // Objective and variables //

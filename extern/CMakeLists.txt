@@ -52,12 +52,19 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(highs)
 
 # Fetch fontanf/mathoptsolverscmake.
-set(MATHOPTSOLVERSCMAKE_USE_CLP ${PACKINGSOLVER_USE_CLP})
-set(MATHOPTSOLVERSCMAKE_USE_HIGHS ${PACKINGSOLVER_USE_HIGHS})
+if (PACKINGSOLVER_USE_CLP)
+    set(MATHOPTSOLVERSCMAKE_USE_CLP ON)
+endif()
+if (PACKINGSOLVER_USE_HIGHS)
+    set(MATHOPTSOLVERSCMAKE_USE_HIGHS ON)
+endif()
+if (PACKINGSOLVER_USE_KNITRO)
+    set(MATHOPTSOLVERSCMAKE_USE_KNITRO oN)
+endif()
 FetchContent_Declare(
     mathoptsolverscmake
     GIT_REPOSITORY https://github.com/fontanf/mathoptsolverscmake.git
-    GIT_TAG 438c2f9ff79ffddcbebe71eca789ea5db077a282
+    GIT_TAG 94b28a403a9f8b6a4ca130b820b5f21ae313b520
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../mathoptsolverscmake/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(mathoptsolverscmake)
