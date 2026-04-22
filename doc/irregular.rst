@@ -45,8 +45,8 @@ Features:
   * Item-bin minimum spacing
   * Item-defect minimum spacing
 
-Basic usage
------------
+Usage
+-----
 
 The Irregular solver takes as input a single JSON file and outputs:
 
@@ -59,7 +59,8 @@ The **input file** is a JSON file containing:
 * A list of bin types (``bin_types`` field)
 * A list of item types (``item_types`` field)
 
-**Example**
+Basic example
+-------------
 
 This example has two item types:
 
@@ -289,30 +290,3 @@ The solution JSON file has a single ``bins`` array. Each entry corresponds to on
   * ``angle``: rotation angle in degrees
   * ``mirror``: whether the item is mirrored
 
-Command-line options
---------------------
-
-.. code-block:: none
-
-    packingsolver_irregular --input instance.json [options]
-
-Mandatory option:
-
-* ``--input, -i``: path to the input JSON file
-
-Instance options (override values in the JSON file):
-
-* ``--objective, -f``: objective (``knapsack``, ``bin-packing``, ``bin-packing-with-leftovers``, ``open-dimension-x``, ``open-dimension-y``, ``open-dimension-xy``, ``variable-sized-bin-packing``, ``feasibility``)
-* ``--item-item-minimum-spacing``: global minimum spacing between items
-* ``--item-bin-minimum-spacing``: global minimum spacing between items and bin boundary
-* ``--leftover-corner``: reference corner for the leftover value in bin-packing-with-leftovers (``bottom-left``, ``top-left``, ``bottom-right``, ``top-right``)
-* ``--continuous-rotations``: allow continuous rotations for all item types
-* ``--unweighted``: set all item profits to 1
-* ``--bin-unweighted``: set all bin costs to 1
-
-Output options:
-
-* ``--certificate, -c``: path for the solution JSON file
-* ``--output, -o``: path for a JSON file with detailed statistics
-* ``--time-limit, -t``: time limit in seconds
-* ``--verbosity-level, -v``: verbosity level (0–3)

@@ -8,11 +8,11 @@ PackingSolver's documentation
    self
    objectives
    optimization_modes
-   rectangleguillotine
-   rectangle
-   box
-   boxstacks
    onedimensional
+   rectangle
+   rectangleguillotine
+   boxstacks
+   box
    irregular
 
 

@@ -1,0 +1,59 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             OpenDimensionX
+Number of item types:  3
+Number of items:       3
+Number of bin types:   1
+Number of bins:        1
+Number of groups:      2
+Number of defects:     0
+Unloading constraint:  IncreasingX
+Total item area:       162500
+Total item width:      850
+Total item height:     550
+Smallest item width:   150
+Smallest item height:  150
+Total item profit:     162500
+Largest item profit:   100000
+Total item weight:     0
+Largest item copies:   1
+Total bin area:        320000
+Total bin weight:      0
+Largest bin cost:      320000
+
+        Time           X                         Comment
+        ----       -----                         -------
+       0.000         700                  TS g 1 d X q 1
+       0.000         650                  TS g 1 d X q 1
+
+Final statistics
+----------------
+Time (s):  0.000902646
+
+Solution
+--------
+Number of items:  3 / 3 (100%)
+Item area:        162500 / 162500 (100%)
+Item weight:      0 / 0 (-nan%)
+Item profit:      162500 / 162500 (100%)
+Number of bins:   1 / 1 (100%)
+Bin area:         320000 / 320000 (100%)
+Bin weight:       0 / 0 (-nan%)
+Bin cost:         320000
+Waste:            97500
+Waste (%):        37.5
+Full waste:       157500
+Full waste (%):   49.2188
+Area load:        0.507812
+Weight load:      -nan
+X max:            650
+Y max:            400
+Leftover value:   60000

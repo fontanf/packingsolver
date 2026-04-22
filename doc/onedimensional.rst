@@ -16,26 +16,23 @@ This dimension is called length here.
 Features:
 
 * Objectives:
-
   * Knapsack
   * Bin packing
   * Bin packing with leftovers
   * Variable-sized bin packing
 
-* Item types
+* Nesting length between consecutive items
 
-  * Nesting length
-  * Maximum number of items in a bin containing an item of a given type
-  * Maximum weight allowed after an item of a given type
+* Maximum number of items in a bin containing an item of a given type
 
-* Bin types
+* Maximum weight allowed after an item of a given type
 
-  * Maximum weight
+* Maximum weight in bins
 
 * Item type / bin type eligibility
 
-Basic usage
------------
+Usage
+-----
 
 The OneDimensional solver takes as input:
 
@@ -120,7 +117,8 @@ A line corresponding to an item contains:
 
   * Column ``LX``
 
-**Example**
+Basic example
+-------------
 
 Inputs:
 

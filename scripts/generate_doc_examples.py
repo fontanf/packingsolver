@@ -17,12 +17,137 @@ subprocess.run([
     "--bins", os.path.join(ex, "rectangle", "bins.csv"),
     "--parameters", os.path.join(ex, "rectangle", "parameters.csv"),
     "--certificate", os.path.join(ex, "rectangle", "solution.csv"),
-    "--time-limit", "30",
+    "--time-limit", "5",
 ], stdout=open(os.path.join(ex, "rectangle", "output.txt"), "w"), stderr=subprocess.STDOUT)
 subprocess.run([
     sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
     os.path.join(ex, "rectangle", "solution.csv"),
     "--output", os.path.join(img, "rectangle_example_solution.png"),
+])
+
+print("rectangle_defects_no")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--items", os.path.join(ex, "rectangle", "defects_no", "items.csv"),
+    "--bins", os.path.join(ex, "rectangle", "defects_no", "bins.csv"),
+    "--parameters", os.path.join(ex, "rectangle", "defects_no", "parameters.csv"),
+    "--certificate", os.path.join(ex, "rectangle", "defects_no", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "defects_no", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "defects_no", "solution.csv"),
+    "--output", os.path.join(img, "rectangle_defects_no.png"),
+])
+
+print("rectangle_defects_yes")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--items", os.path.join(ex, "rectangle", "defects_yes", "items.csv"),
+    "--bins", os.path.join(ex, "rectangle", "defects_yes", "bins.csv"),
+    "--defects", os.path.join(ex, "rectangle", "defects_yes", "defects.csv"),
+    "--parameters", os.path.join(ex, "rectangle", "defects_yes", "parameters.csv"),
+    "--certificate", os.path.join(ex, "rectangle", "defects_yes", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "defects_yes", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "defects_yes", "solution.csv"),
+    "--output", os.path.join(img, "rectangle_defects_yes.png"),
+])
+
+print("rectangle_rotation_no")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--items", os.path.join(ex, "rectangle", "rotation_no", "items.csv"),
+    "--bins", os.path.join(ex, "rectangle", "rotation_no", "bins.csv"),
+    "--parameters", os.path.join(ex, "rectangle", "rotation_no", "parameters.csv"),
+    "--certificate", os.path.join(ex, "rectangle", "rotation_no", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "rotation_no", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "rotation_no", "solution.csv"),
+    "--output", os.path.join(img, "rectangle_rotation_no.png"),
+])
+
+print("rectangle_rotation_yes")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--items", os.path.join(ex, "rectangle", "rotation_yes", "items.csv"),
+    "--bins", os.path.join(ex, "rectangle", "rotation_yes", "bins.csv"),
+    "--parameters", os.path.join(ex, "rectangle", "rotation_yes", "parameters.csv"),
+    "--certificate", os.path.join(ex, "rectangle", "rotation_yes", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "rotation_yes", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "rotation_yes", "solution.csv"),
+    "--output", os.path.join(img, "rectangle_rotation_yes.png"),
+])
+
+print("rectangle_unloading_no")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--items", os.path.join(ex, "rectangle", "unloading_no", "items.csv"),
+    "--bins", os.path.join(ex, "rectangle", "unloading_no", "bins.csv"),
+    "--parameters", os.path.join(ex, "rectangle", "unloading_no", "parameters.csv"),
+    "--certificate", os.path.join(ex, "rectangle", "unloading_no", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "unloading_no", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "unloading_no", "solution.csv"),
+     "GROUP_ID",
+    "--output", os.path.join(img, "rectangle_unloading_no.png"),
+])
+
+print("rectangle_unloading_yes")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--items", os.path.join(ex, "rectangle", "unloading_yes", "items.csv"),
+    "--bins", os.path.join(ex, "rectangle", "unloading_yes", "bins.csv"),
+    "--parameters", os.path.join(ex, "rectangle", "unloading_yes", "parameters.csv"),
+    "--certificate", os.path.join(ex, "rectangle", "unloading_yes", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "unloading_yes", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "unloading_yes", "solution.csv"),
+    "GROUP_ID",
+    "--output", os.path.join(img, "rectangle_unloading_yes.png"),
+])
+
+print("rectangle_unloading_x_movements")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--items", os.path.join(ex, "rectangle", "unloading_x_movements", "items.csv"),
+    "--bins", os.path.join(ex, "rectangle", "unloading_x_movements", "bins.csv"),
+    "--parameters", os.path.join(ex, "rectangle", "unloading_x_movements", "parameters.csv"),
+    "--certificate", os.path.join(ex, "rectangle", "unloading_x_movements", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "unloading_x_movements", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "unloading_x_movements", "solution.csv"),
+    "GROUP_ID",
+    "--output", os.path.join(img, "rectangle_unloading_x_movements.png"),
+])
+
+print("rectangle_unloading_increasing_x")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--items", os.path.join(ex, "rectangle", "unloading_increasing_x", "items.csv"),
+    "--bins", os.path.join(ex, "rectangle", "unloading_increasing_x", "bins.csv"),
+    "--parameters", os.path.join(ex, "rectangle", "unloading_increasing_x", "parameters.csv"),
+    "--certificate", os.path.join(ex, "rectangle", "unloading_increasing_x", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "unloading_increasing_x", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "unloading_increasing_x", "solution.csv"),
+    "GROUP_ID",
+    "--output", os.path.join(img, "rectangle_unloading_increasing_x.png"),
 ])
 
 ######################
@@ -36,7 +161,7 @@ subprocess.run([
     "--bins", os.path.join(ex, "rectangleguillotine", "bins.csv"),
     "--parameters", os.path.join(ex, "rectangleguillotine", "parameters.csv"),
     "--certificate", os.path.join(ex, "rectangleguillotine", "solution.csv"),
-    "--time-limit", "30",
+    "--time-limit", "5",
 ], stdout=open(os.path.join(ex, "rectangleguillotine", "output.txt"), "w"), stderr=subprocess.STDOUT)
 subprocess.run([
     sys.executable, os.path.join("scripts", "visualize_rectangleguillotine.py"),
@@ -55,7 +180,7 @@ subprocess.run([
     "--bins", os.path.join(ex, "box", "bins.csv"),
     "--parameters", os.path.join(ex, "box", "parameters.csv"),
     "--certificate", os.path.join(ex, "box", "solution.csv"),
-    "--time-limit", "30",
+    "--time-limit", "5",
 ], stdout=open(os.path.join(ex, "box", "output.txt"), "w"), stderr=subprocess.STDOUT)
 subprocess.run([
     sys.executable, os.path.join("scripts", "visualize_box.py"),
@@ -74,7 +199,7 @@ subprocess.run([
     "--bins", os.path.join(ex, "boxstacks", "bins.csv"),
     "--parameters", os.path.join(ex, "boxstacks", "parameters.csv"),
     "--certificate", os.path.join(ex, "boxstacks", "solution.csv"),
-    "--time-limit", "30",
+    "--time-limit", "5",
 ], stdout=open(os.path.join(ex, "boxstacks", "output.txt"), "w"), stderr=subprocess.STDOUT)
 subprocess.run([
     sys.executable, os.path.join("scripts", "visualize_boxstacks.py"),
@@ -91,7 +216,7 @@ subprocess.run([
     os.path.join(bin_dir, "packingsolver_irregular"),
     "--input", os.path.join(ex, "irregular", "instance.json"),
     "--certificate", os.path.join(ex, "irregular", "solution.json"),
-    "--time-limit", "30",
+    "--time-limit", "5",
 ], stdout=open(os.path.join(ex, "irregular", "output.txt"), "w"), stderr=subprocess.STDOUT)
 subprocess.run([
     sys.executable, os.path.join("scripts", "visualize_irregular.py"),
@@ -110,7 +235,7 @@ subprocess.run([
     "--bins", os.path.join(ex, "onedimensional", "bins.csv"),
     "--parameters", os.path.join(ex, "onedimensional", "parameters.csv"),
     "--certificate", os.path.join(ex, "onedimensional", "solution.csv"),
-    "--time-limit", "30",
+    "--time-limit", "5",
 ], stdout=open(os.path.join(ex, "onedimensional", "output.txt"), "w"), stderr=subprocess.STDOUT)
 subprocess.run([
     sys.executable, os.path.join("scripts", "visualize_onedimensional.py"),
