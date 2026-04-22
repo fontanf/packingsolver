@@ -42,8 +42,8 @@ Features:
   * Maximum number of 2-cuts per strip
   * Cut thickness
 
-Basic usage
------------
+Usage
+-----
 
 The RectangleGuillotine solver takes as input:
 
@@ -153,7 +153,8 @@ The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible ent
   * ``cut_through_defects``: ``0`` or ``1``; whether cuts may pass through defects (default: ``0``)
   * ``cut_thickness``: width of the saw blade (default: ``0``)
 
-**Example**
+Basic example
+-------------
 
 Inputs:
 
@@ -187,49 +188,6 @@ Visualize:
 .. image:: img/rectangleguillotine_example_solution.png
    :width: 512pt
    :align: center
-
-Command-line options
---------------------
-
-.. code-block:: none
-
-    packingsolver_rectangleguillotine --items items.csv [options]
-
-Mandatory option:
-
-* ``--items, -i``: path to the items CSV file
-
-Other input options:
-
-* ``--bins, -b``: bins CSV file
-* ``--defects, -d``: defects CSV file
-* ``--parameters``: parameters CSV file
-
-Instance modifier options:
-
-* ``--objective, -f``: objective (overrides parameters file)
-* ``--no-item-rotation``: fix all items in their original orientation
-* ``--number-of-stages``: number of cutting stages
-* ``--cut-type``: cut pattern type
-* ``--first-stage-orientation``: orientation of first-stage cuts
-* ``--minimum-distance-1-cuts``: minimum distance between stage-1 cuts
-* ``--maximum-distance-1-cuts``: maximum distance between stage-1 cuts
-* ``--minimum-distance-2-cuts``: minimum distance between stage-2 cuts
-* ``--minimum-waste-length``: minimum waste length
-* ``--maximum-number-2-cuts``: maximum number of stage-2 cuts per strip
-* ``--cut-through-defects``: allow cuts through defects
-* ``--cut-thickness``: saw-blade thickness
-* ``--bin-infinite-x``, ``--bin-infinite-y``: make bins infinite in one direction
-* ``--bin-infinite-copies``: make all bin types available in unlimited copies
-* ``--unweighted``: set all item profits to 1
-* ``--bin-unweighted``: set all bin costs to 1
-
-Output options:
-
-* ``--certificate, -c``: solution CSV file
-* ``--output, -o``: JSON statistics file
-* ``--time-limit, -t``: time limit in seconds
-* ``--verbosity-level, -v``: verbosity level (0–3)
 
 Cutting stages
 --------------

@@ -33,14 +33,13 @@ Largest bin cost:      500000
         ----      ------    --------                         -------
        0.000           3      162500                  TS g 0 d X q 1
        0.001           3      207500                  TS g 0 d X q 1
-       0.008           3      275000                  TS g 0 d X q 1
-       0.009           3      350000                  TS g 0 d Y q 2
-       0.009           3      462500                  TS g 0 d X q 2
+       0.007           3      275000                  TS g 0 d X q 1
+       0.008           3      462500                  TS g 0 d X q 2
        0.010           2           0                  TS g 0 d X q 9
 
 Final statistics
 ----------------
-Time (s):  30.024
+Time (s):  5.00693
 
 Solution
 --------

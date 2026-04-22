@@ -31,8 +31,8 @@ Features:
 
   * Maximum weight
 
-Basic usage
------------
+Usage
+-----
 
 The Box solver takes as input:
 
@@ -130,7 +130,8 @@ The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible ent
   * ``open-dimension-y``
   * ``variable-sized-bin-packing``
 
-**Example**
+Basic example
+-------------
 
 Inputs:
 
@@ -164,38 +165,6 @@ Visualize:
 .. image:: img/box_example_solution.png
    :width: 512pt
    :align: center
-
-Command-line options
---------------------
-
-.. code-block:: none
-
-    packingsolver_box --items items.csv [options]
-
-Mandatory option:
-
-* ``--items, -i``: path to the items CSV file (or path prefix when files follow the ``<prefix>items.csv`` naming convention)
-
-Other input options:
-
-* ``--bins, -b``: bins CSV file
-* ``--parameters``: parameters CSV file
-
-Instance modifier options:
-
-* ``--objective, -f``: objective (overrides the parameters file)
-* ``--no-item-rotation``: fix all items in their default orientation
-* ``--bin-infinite-x``, ``--bin-infinite-y``: make bins infinite in one direction (for open-dimension objectives)
-* ``--bin-infinite-copies``: make all bin types available in unlimited copies
-* ``--unweighted``: set all item profits to 1
-* ``--bin-unweighted``: set all bin costs to 1
-
-Output options:
-
-* ``--certificate, -c``: solution CSV file
-* ``--output, -o``: JSON statistics file
-* ``--time-limit, -t``: time limit in seconds
-* ``--verbosity-level, -v``: verbosity level (0–3)
 
 Rotations
 ---------

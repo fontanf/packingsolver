@@ -30,12 +30,12 @@ Largest bin cost:             125000
 
         Time      # bins    Leftover                         Comment
         ----      ------    --------                         -------
-       0.001           1       25000                  TS g 0 d 1 q 1
-       0.001           1       45000                  TS g 0 d 0 q 1
+       0.001           1       25000                  TS g 0 d 5 q 1
+       0.002           1       45000                  TS g 0 d 0 q 1
 
 Final statistics
 ----------------
-Time (s):  0.00682228
+Time (s):  0.00760062
 
 Solution
 --------
