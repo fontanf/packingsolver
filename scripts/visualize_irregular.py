@@ -61,8 +61,12 @@ def shape_path(path_x, path_y, shape, is_hole=False):
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('csvpath', help='path to JSON file')
+parser.add_argument('itemcolor', nargs='?', default='ID', help='color palette used among ["SAME", "ID"]')
 parser.add_argument('-o', '--output', help='save image to file instead of opening browser (e.g. output.png)')
 args = parser.parse_args()
+
+if args.itemcolor not in ["SAME", "ID"]:
+    raise ValueError(f"color palette {args.itemcolor} is unknown, please use one of the following: 'SAME', 'ID'")
 
 bins_x = []
 bins_y = []
@@ -90,16 +94,20 @@ with open(args.csvpath, 'r') as f:
                          if "holes" in defect else []):
                 shape_path(defects_x[bin_pos], defects_y[bin_pos], hole, True)
         for solution_item in solution_bin["items"]:
+            item_id = solution_item["id"]
+            while len(items_x[bin_pos]) <= item_id:
+                items_x[bin_pos].append([])
+                items_y[bin_pos].append([])
             for item_shape in solution_item["item_shapes"]:
-                shape_path(items_x[bin_pos],
-                           items_y[bin_pos],
+                shape_path(items_x[bin_pos][item_id],
+                           items_y[bin_pos][item_id],
                            item_shape["shape"])
                 for hole in (item_shape["holes"]
                              if "holes" in item_shape else []):
-                    shape_path(items_x[bin_pos], items_y[bin_pos], hole, True)
+                    shape_path(items_x[bin_pos][item_id], items_y[bin_pos][item_id], hole, True)
 
 m = len(bins_x)
-colors = px.colors.qualitative.Plotly
+colors = px.colors.qualitative.Pastel
 fig = plotly.subplots.make_subplots(
         rows=m,
         cols=1,
@@ -134,19 +142,35 @@ for i in range(0, m):
         row=i + 1,
         col=1)
 
-    fig.add_trace(go.Scatter(
-        x=items_x[i],
-        y=items_y[i],
-        name="Items",
-        legendgroup="items",
-        showlegend=(i == 0),
-        fillcolor="cornflowerblue",
-        fill="toself",
-        marker=dict(
-            color='black',
-            size=1)),
-        row=i + 1,
-        col=1)
+    for k in range(len(items_x[i])):
+        if args.itemcolor == 'SAME':
+            fig.add_trace(go.Scatter(
+                x=items_x[i][k],
+                y=items_y[i][k],
+                name="Items",
+                legendgroup="items",
+                showlegend=(i == 0 and k == 0),
+                fillcolor="cornflowerblue",
+                fill="toself",
+                marker=dict(
+                    color='black',
+                    size=1)),
+                row=i + 1,
+                col=1)
+        elif args.itemcolor == 'ID':
+            fig.add_trace(go.Scatter(
+                x=items_x[i][k],
+                y=items_y[i][k],
+                name=f"Items {k}",
+                legendgroup="item",
+                showlegend=i == 0,
+                fillcolor=colors[k % len(colors)],
+                fill="toself",
+                marker=dict(
+                    color='black',
+                    size=1)),
+                row=i + 1,
+                col=1)
 
 # Plot.
 fig.update_layout(
