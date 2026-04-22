@@ -30,11 +30,9 @@ Features:
   * Bin packing
   * Bin packing with leftovers
   * Variable-sized bin packing
-* Item types:
-  * With or without rotations
-  * Stacks (precedence constraints on the order in which items are extracted)
-* Bins types:
-  * May contain defects
+* With or without item rotations
+* Stacks (precedence constraints on the order in which items are extracted)
+* Bins may contain defects
   * Allow or forbid cutting through a defect
 * Two- and three-staged, exact, non-exact, roadef2018 and homogenous patterns
 * First cut vertical, horizontal or any
@@ -175,11 +173,9 @@ Features:
   * Bin packing
   * Bin packing with leftovers
   * Variable-sized bin packing
-* Item types:
-  * With or without rotations
-* Bin types:
-  * May contain defects
-  * Maximum weight
+* With or without item rotations
+* Bins may contain defects
+* Maximum weight in bins
 * Unloading constraints: only horizontal/vertical movements, increasing x/y
 
 Example:
@@ -306,10 +302,8 @@ Features:
   * Open dimension Y
   * Open dimension Z
   * Variable-sized bin packing
-* Item types:
-  * Rotations (among the 6 possible rotations)
-* Bin types:
-  * Maximum weight
+* Select allowed item rotations (among the 6 possible rotations)
+* Maximum weight in bins
 
 Example:
 ```shell
@@ -575,15 +569,13 @@ Features:
   * Knapsack
   * Bin packing
   * Variable-sized bin packing
-* Item types:
-  * Rotations (among the 6 possible rotations)
-  * Nesting height
-  * Maximum number of items in a stack containing an item of a given type
-  * Maximum weight allowed above an item of a given type
-* Bin types:
-  * Maximum weight
-  * Maximum stack density
-  * Maximum weight on middle and rear axles
+* Select allowed item rotations (among the 6 possible rotations)
+* Nesting height when stacking items
+* Maximum number of items in a stack containing an item of a given type
+* Maximum weight allowed above an item of a given type
+* Maximum weight in bins
+* Maximum stack density
+* Maximum weight on middle and rear axles
 * Unloading constraints: only horizontal/vertical movements, increasing x/y
 
 Example:
@@ -673,12 +665,10 @@ Features:
   * Bin packing
   * Bin packing with leftovers
   * Variable-sized bin packing
-* Item types:
-  * Nesting length
-  * Maximum number of items in a bin containing an item of a given type
-  * Maximum weight allowed after an item of a given type
-* Bin types:
-  * Maximum weight
+* Nesting length between consecutive items
+* Maximum number of items in a bin containing an item of a given type
+* Maximum weight allowed after an item of a given type
+* Maximum weight in bins
 * Item type / bin type eligibility
 
 Example:
@@ -781,13 +771,12 @@ Features:
   * Bin packing
   * Bin packing with leftovers
   * Variable-sized bin packing
-* Item types:
-  * Polygonal shape (possibly non-convex, possibly with holes)
-  * Discrete rotations
-* Bin types:
-  * Polygonal shape (possibly non-convex)
-  * May contain different quality areas
-  * Minimum distance between the bin and the items
+* Non-convex shapes (for items or bins)
+* Shapes with holes
+* Discrete and continuous rotations of items
+* Mirroring of items
+* Bins may contain different quality areas
+* Minimum distance between the bin and the items
 * Minimum distance between each pair of items
 
 Example:
