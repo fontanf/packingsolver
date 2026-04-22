@@ -449,7 +449,7 @@ void Solution::write(
                 "unable to open file \"" + certificate_path + "\".");
     }
 
-    file << "TYPE,ID,COPIES,BIN,STACK,X,Y,Z,LX,LY,LZ" << std::endl;
+    file << "TYPE,ID,COPIES,BIN,STACK,X,Y,Z,LX,LY,LZ,GROUP_ID" << std::endl;
     for (BinPos bin_pos = 0;
             bin_pos < number_of_different_bins();
             ++bin_pos) {
@@ -467,7 +467,8 @@ void Solution::write(
             << "0,"
             << instance().bin_type(bin_type_id).box.x << ","
             << instance().bin_type(bin_type_id).box.y << ","
-            << instance().bin_type(bin_type_id).box.z << std::endl;
+            << instance().bin_type(bin_type_id).box.z << ","
+            << std::endl;
 
         for (DefectId defect_id = 0;
                 defect_id < (DefectId)bin_type.defects.size();
@@ -485,7 +486,8 @@ void Solution::write(
                 << defect.rect.x << ","
                 << defect.rect.y << ","
                 << "0,"
-                << defect.rect.x << std::endl;
+                << defect.rect.x << ","
+                << std::endl;
         }
 
         for (StackId stack_id = 0; stack_id < (StackId)bin.stacks.size(); ++stack_id) {
@@ -501,7 +503,8 @@ void Solution::write(
                 << 0 << ","
                 << stack.x_end - stack.x_start << ","
                 << stack.y_end - stack.y_start << ","
-                << stack.z_end << std::endl;
+                << stack.z_end << ","
+                << std::endl;
 
             for (const SolutionItem& item: stack.items) {
                 const ItemType& item_type = instance().item_type(item.item_type_id);
@@ -516,7 +519,8 @@ void Solution::write(
                     << item.z_start << ","
                     << item_type.x(item.rotation) << ","
                     << item_type.y(item.rotation) << ","
-                    << item_type.z(item.rotation) << std::endl;
+                    << item_type.z(item.rotation) << ","
+                    << item_type.group_id << std::endl;
             }
 
         }

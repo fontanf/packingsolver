@@ -199,7 +199,7 @@ void Solution::write(
                 "unable to open file \"" + certificate_path + "\".");
     }
 
-    file << "TYPE,ID,COPIES,BIN,X,Y,LX,LY" << std::endl;
+    file << "TYPE,ID,COPIES,BIN,X,Y,LX,LY,GROUP_ID" << std::endl;
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& bin = bins_[bin_pos];
         BinTypeId bin_type_id = bin.bin_type_id;
@@ -212,7 +212,8 @@ void Solution::write(
             << "0,"
             << "0,"
             << instance().bin_type(bin_type_id).rect.x << ","
-            << instance().bin_type(bin_type_id).rect.y << std::endl;
+            << instance().bin_type(bin_type_id).rect.y << ","
+            << std::endl;
 
 
         for (DefectId defect_id = 0;
@@ -227,7 +228,8 @@ void Solution::write(
                 << defect.pos.x << ","
                 << defect.pos.y << ","
                 << defect.rect.x << ","
-                << defect.rect.y << std::endl;
+                << defect.rect.y << ","
+                << std::endl;
         }
 
         for (const SolutionItem& item: bin.items) {
@@ -240,8 +242,8 @@ void Solution::write(
                 << item.bl_corner.x << ","
                 << item.bl_corner.y << ","
                 << ((!item.rotate)? item_type.rect.x: item_type.rect.y) << ","
-                << ((!item.rotate)? item_type.rect.y: item_type.rect.x)
-                << std::endl;
+                << ((!item.rotate)? item_type.rect.y: item_type.rect.x) << ","
+                << item_type.group_id << std::endl;
         }
     }
 }
