@@ -37,14 +37,13 @@ Largest bin cost:                      700000
        0.000           1      385000       57.89           TS g 0 d Vertical q 1
        0.001           1      210000       42.86           TS g 1 d Vertical q 1
        0.001           1      175000       38.46           TS g 1 d Vertical q 1
-       0.001           1      175000       38.46           TS g 0 d Vertical q 6
        0.001           1       70000       20.00           TS g 1 d Vertical q 1
-       0.002           1       35000       11.11          TS g 0 d Vertical q 28
-       0.009           1       35000       11.11         TS g 1 d Vertical q 211
+       0.002           1       35000       11.11          TS g 1 d Vertical q 19
+       0.010           1       35000       11.11         TS g 0 d Vertical q 211
 
 Final statistics
 ----------------
-Time (s):  30.0002
+Time (s):  5.00022
 
 Solution
 --------

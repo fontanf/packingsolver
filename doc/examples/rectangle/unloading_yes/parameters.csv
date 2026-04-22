@@ -1,0 +1,3 @@
+NAME,VALUE
+objective,bin-packing-with-leftovers
+unloading_constraint,only-x-movements

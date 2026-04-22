@@ -28,7 +28,7 @@ Total bin weight:      0
 
 Final statistics
 ----------------
-Time (s):  0.000878539
+Time (s):  0.0013856
 
 Solution
 --------
