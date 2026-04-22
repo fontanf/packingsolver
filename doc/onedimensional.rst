@@ -16,6 +16,7 @@ This dimension is called length here.
 Features:
 
 * Objectives:
+
   * Knapsack
   * Bin packing
   * Bin packing with leftovers
