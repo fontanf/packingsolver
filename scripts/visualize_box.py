@@ -6,8 +6,12 @@ import plotly.subplots
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('csvpath', help='path to CSV file')
+parser.add_argument('itemcolor', nargs='?', default='ID', help='color palette used among ["SAME", "ID"]')
 parser.add_argument('-o', '--output', help='save image to file instead of opening browser (e.g. output.png)')
 args = parser.parse_args()
+
+if args.itemcolor not in ["SAME", "ID"]:
+    raise ValueError(f"color palette {args.itemcolor} is unknown, please use one of the following: 'SAME', 'ID'")
 
 bins_x = []
 bins_y = []
@@ -125,7 +129,7 @@ with open(args.csvpath, newline='') as csvfile:
             item_ids[i].append(id_)
 
 m = len(bins_x)
-colors = px.colors.qualitative.Plotly
+colors = px.colors.qualitative.Pastel
 fig = plotly.subplots.make_subplots(
         rows=m,
         cols=1,
@@ -168,6 +172,10 @@ for i in range(0, m):
         col=1)
 
     for k in range(len(items_x[i])):
+        if args.itemcolor == 'SAME':
+            item_color = "cornflowerblue"
+        else:
+            item_color = colors[int(item_ids[i][k]) % len(colors)]
         fig.add_trace(go.Mesh3d(
             x=items_x[i][k],
             y=items_y[i][k],
@@ -175,12 +183,12 @@ for i in range(0, m):
             i=items_i[i][k],
             j=items_j[i][k],
             k=items_k[i][k],
-            name="Items",
+            name="Items" if args.itemcolor == 'SAME' else f"Items {item_ids[i][k]}",
             legendgroup="items",
             showlegend=(i == 0 and k == 0),
             opacity=1,
             flatshading=True,
-            color=colors[(int(item_ids[i][k]) % len(colors))]),
+            color=item_color),
             row=i + 1,
             col=1)
 
@@ -212,14 +220,17 @@ for i in range(0, m):
 
 # Plot.
 fig.update_layout(
-        autosize=True,
+        autosize=False,
+        width=1000,
         height=m*1000)
 fig.update_xaxes(
         rangeslider=dict(visible=False))
 fig.update_yaxes(
         scaleanchor="x",
         scaleratio=1)
-fig.update_scenes(aspectmode='data')
+fig.update_scenes(
+        aspectmode='data',
+        camera=dict(eye=dict(x=2, y=2, z=2)))
 if args.output:
     fig.write_image(args.output)
 else:
