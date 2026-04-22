@@ -20,29 +20,18 @@ Features:
   * Bin packing with leftovers
   * Open dimension X
   * Open dimension Y
-  * Open dimension XY
   * Variable-sized bin packing
 
-* Item types
+* With or without item rotations
 
-  * Item rotation (90°)
-  * Groups (for unloading constraints)
-  * Weight
+* Bins may contain defects
 
-* Bin types
+* Maximum weight in bins
 
-  * Rectangular defects
-  * Maximum weight
+* Unloading constraints: only horizontal/vertical movements, increasing x/y
 
-* Unloading constraints
-
-  * ``only-x-movements``
-  * ``only-y-movements``
-  * ``increasing-x``
-  * ``increasing-y``
-
-Basic usage
------------
+Usage
+-----
 
 The Rectangle solver takes as input:
 
@@ -130,22 +119,27 @@ The **defect file** contains:
 * The bin type that contains the defect (**mandatory**)
 
   * column ``BIN``
+  * It refers to the bin type by its position (0-indexed) in the bins file
 
 * The X coordinate of the bottom-left corner of the defect (**mandatory**)
 
   * column ``X``
+  * **Integer value**
 
 * The Y coordinate of the bottom-left corner of the defect (**mandatory**)
 
   * column ``Y``
+  * **Integer value**
 
 * The width of the defect (**mandatory**)
 
   * column ``WIDTH``
+  * **Integer value**
 
 * The height of the defect (**mandatory**)
 
   * column ``HEIGHT``
+  * **Integer value**
 
 The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible entries are:
 
@@ -167,7 +161,8 @@ The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible ent
   * ``increasing-x``
   * ``increasing-y``
 
-**Example**
+Basic example
+-------------
 
 Inputs:
 
@@ -202,61 +197,208 @@ Visualize:
    :width: 512pt
    :align: center
 
-Command-line options
---------------------
-
-.. code-block:: none
-
-    packingsolver_rectangle --items items.csv [options]
-
-Mandatory option:
-
-* ``--items, -i``: path to the items CSV file (or path prefix when files follow the ``<prefix>items.csv`` naming convention)
-
-Other input options:
-
-* ``--bins, -b``: path to the bins CSV file
-* ``--defects, -d``: path to the defects CSV file
-* ``--parameters``: path to the parameters CSV file
-
-Instance modifier options:
-
-* ``--objective, -f``: objective (overrides the parameters file)
-* ``--no-item-rotation``: fix all items in their original orientation
-* ``--bin-infinite-x``: make all bins infinite in the X direction (for open-dimension-x)
-* ``--bin-infinite-y``: make all bins infinite in the Y direction (for open-dimension-y)
-* ``--bin-infinite-copies``: make all bin types available in unlimited copies
-* ``--unweighted``: set all item profits to 1
-* ``--bin-unweighted``: set all bin costs to 1
-
-Output options:
-
-* ``--certificate, -c``: path for the solution CSV file
-* ``--output, -o``: path for a JSON file with detailed statistics
-* ``--time-limit, -t``: time limit in seconds
-* ``--verbosity-level, -v``: verbosity level (0–3)
-
 Rotation
 --------
 
-By default, items may be rotated 90°. Set ``ORIENTED = 1`` in the items file to fix an item in its original orientation, or use ``--no-item-rotation`` on the command line to disable rotation for all items.
+Item 90° rotation may be enabled or disabled for each item by setting the ``ORIENTED`` column to ``0`` (no rotation alllowed) or to ``1`` (rotation allowed) in the item CSV file.
+
+By default, item rotation is allowed.
+
+The following example packs 3 items of size 400×200 into a 1000×500 bin. Without rotation, the items occupy an 800×400 region and leave a narrow leftover. With rotation, one item is placed at 200×400, allowing all three to pack into a compact 600×400 region and leaving a larger leftover.
+
+.. |rect_rotation_no| image:: img/rectangle_rotation_no.png
+   :width: 100%
+
+.. |rect_rotation_yes| image:: img/rectangle_rotation_yes.png
+   :width: 100%
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - Without rotation
+     - With rotation
+   * - .. literalinclude:: examples/rectangle/rotation_no/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/rectangle/rotation_yes/items.csv
+          :caption: items.csv
+   * - .. literalinclude:: examples/rectangle/rotation_no/bins.csv
+          :caption: bins.csv
+     - .. literalinclude:: examples/rectangle/rotation_yes/bins.csv
+          :caption: bins.csv
+   * - .. literalinclude:: examples/rectangle/rotation_no/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/rectangle/rotation_yes/parameters.csv
+          :caption: parameters.csv
+   * - .. code-block:: shell
+
+            packingsolver_rectangle \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_rectangle \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |rect_rotation_no|
+     - |rect_rotation_yes|
 
 Defects
 -------
 
-Defects are rectangular regions inside a bin where items cannot be placed. They are specified in the defects CSV file. The ``BIN`` column refers to the bin type by its position (0-indexed) in the bins file.
+Defects are rectangular regions inside a bin where items cannot be placed. They are specified in the defects CSV file (see above).
+
+The following example packs 3 items of size 400×200 into a 1000×500 bin. Without defects, the items fill a compact L-shaped region. With a 200×300 defect at position (450, 150), the item that would naturally sit there is pushed further right, reducing the leftover.
+
+.. |rect_defects_no| image:: img/rectangle_defects_no.png
+   :width: 100%
+
+.. |rect_defects_yes| image:: img/rectangle_defects_yes.png
+   :width: 100%
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - Without defects
+     - With defects
+   * - .. literalinclude:: examples/rectangle/defects_no/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/rectangle/defects_yes/items.csv
+          :caption: items.csv
+   * - .. literalinclude:: examples/rectangle/defects_no/bins.csv
+          :caption: bins.csv
+     - .. literalinclude:: examples/rectangle/defects_yes/bins.csv
+          :caption: bins.csv
+   * - .. literalinclude:: examples/rectangle/defects_no/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/rectangle/defects_yes/parameters.csv
+          :caption: parameters.csv
+   * -
+     - .. literalinclude:: examples/rectangle/defects_yes/defects.csv
+          :caption: defects.csv
+   * - .. code-block:: shell
+
+            packingsolver_rectangle \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_rectangle \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --defects defects.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |rect_defects_no|
+     - |rect_defects_yes|
 
 Unloading constraints
 ---------------------
 
-Unloading constraints model situations where items placed later in the bin must be reachable without moving items placed earlier (e.g., truck loading). The available constraints are:
+When loading a truck that visits multiple loading/unloading locations, it might be necessary to be able to load/unload the items at a location without having to move the items which are already in the truck.
 
-* ``only-x-movements``: items can only be moved out along the X axis; therefore no item is blocked in the X direction by a later item
+This is modeled in the solver with unloading constraints. Items are assigned to groups via the ``GROUP_ID`` column: items in group 0 are placed last (nearest the door) and unloaded first, items in group 1 are placed next, etc.
+
+In the following examples, without unloading constraints, all items fit using a width of 600. But with unloading constraints, a width of 750 is necessary.
+
+.. |rect_unloading_no| image:: img/rectangle_unloading_no.png
+   :width: 100%
+
+.. |rect_unloading_yes| image:: img/rectangle_unloading_yes.png
+   :width: 100%
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - No constraint
+     - ``With unloading constraints``
+   * - .. literalinclude:: examples/rectangle/unloading_no/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/rectangle/unloading_yes/items.csv
+          :caption: items.csv
+   * - .. literalinclude:: examples/rectangle/unloading_no/bins.csv
+          :caption: bins.csv
+     - .. literalinclude:: examples/rectangle/unloading_yes/bins.csv
+          :caption: bins.csv
+   * - .. literalinclude:: examples/rectangle/unloading_no/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/rectangle/unloading_yes/parameters.csv
+          :caption: parameters.csv
+   * - .. code-block:: shell
+
+            packingsolver_rectangle \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_rectangle \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |rect_unloading_no|
+     - |rect_unloading_yes|
+
+Two types of unloading constraints are available:
+
+* ``only-x-movements``: items can only be moved out along the X axis; therefore, within each horizontal row, no item from a later group may be positioned to the right of an item from an earlier group
 * ``only-y-movements``: same along the Y axis
-* ``increasing-x``: items must be packed in non-decreasing order of their X coordinate; later items are always at a higher X position
+* ``increasing-x``: all items from group 0 have a greater X coordinate than all items from group 1, which in turn have a greater X coordinate than all items from group 2, etc.
 * ``increasing-y``: same along the Y axis
 
-Groups
-------
+In the following examples, two different solutions are obtained depending of the type of unloading constraint.
 
-Items can be assigned to groups via the ``GROUP_ID`` column. Groups are used together with unloading constraints to model deliveries: items in group 0 must be placed last (nearest the door) and unloaded first, items in group 1 are placed next, etc.
+.. |rect_unloading_x_movements| image:: img/rectangle_unloading_x_movements.png
+   :width: 100%
+
+.. |rect_unloading_increasing_x| image:: img/rectangle_unloading_increasing_x.png
+   :width: 100%
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - ``only-x-movements``
+     - ``increasing-x``
+   * - .. literalinclude:: examples/rectangle/unloading_x_movements/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/rectangle/unloading_increasing_x/items.csv
+          :caption: items.csv
+   * - .. literalinclude:: examples/rectangle/unloading_x_movements/bins.csv
+          :caption: bins.csv
+     - .. literalinclude:: examples/rectangle/unloading_increasing_x/bins.csv
+          :caption: bins.csv
+   * - .. literalinclude:: examples/rectangle/unloading_x_movements/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/rectangle/unloading_increasing_x/parameters.csv
+          :caption: parameters.csv
+   * - .. code-block:: shell
+
+            packingsolver_rectangle \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_rectangle \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |rect_unloading_x_movements|
+     - |rect_unloading_increasing_x|
