@@ -642,17 +642,21 @@ LinearProgrammingAnchorOutput packingsolver::irregular::linear_programming_ancho
         const SolutionBin& solution_bin = initial_solution.bin(bin_pos);
         Solution initial_solution_cur(instance);
         initial_solution_cur.append(initial_solution, bin_pos, 1);
-        Solution new_solution_cur = ::linear_programming_anchor(
-                instance,
-                initial_solution_cur,
-                x_weight,
-                y_weight,
-                parameters,
-                icd);
-        solution.append(
-                new_solution_cur,
-                0,
-                solution_bin.copies);
+        // Contingency: LP anchor occasionally throws on FP-precision violations
+        // (value just below -1e-6 tolerance). Keep the rigid-shifted bin instead
+        // of crashing the whole process.
+        try {
+            Solution new_solution_cur = ::linear_programming_anchor(
+                    instance,
+                    initial_solution_cur,
+                    x_weight,
+                    y_weight,
+                    parameters,
+                    icd);
+            solution.append(new_solution_cur, 0, solution_bin.copies);
+        } catch (const std::exception&) {
+            solution.append(initial_solution, bin_pos, solution_bin.copies);
+        }
     }
     //initial_solution.format(std::cout, 1);
     //solution.format(std::cout, 1);
