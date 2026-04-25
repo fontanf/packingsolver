@@ -200,9 +200,11 @@ Visualize:
 Rotation
 --------
 
-Item 90° rotation may be enabled or disabled for each item by setting the ``ORIENTED`` column to ``0`` (no rotation alllowed) or to ``1`` (rotation allowed) in the item CSV file.
+Each item may individually be allowed to be rotated by 90° or have a fixed orientation.
 
 By default, item rotation is allowed.
+
+Fixed orientation is specified via the ``ORIENTED`` column in the item CSV file. Value ``1`` specifies fixed orientation (no rotation alllowed), and value ``1`` rotation allowed.
 
 The following example packs 3 items of size 400×200 into a 1000×500 bin. Without rotation, the items occupy an 800×400 region and leave a narrow leftover. With rotation, one item is placed at 200×400, allowing all three to pack into a compact 600×400 region and leaving a larger leftover.
 
@@ -251,7 +253,9 @@ The following example packs 3 items of size 400×200 into a 1000×500 bin. Witho
 Defects
 -------
 
-Defects are rectangular regions inside a bin where items cannot be placed. They are specified in the defects CSV file (see above).
+Defects are rectangular regions inside a bin where items cannot be placed.
+
+Defects are specified in the defects CSV file (see above).
 
 The following example packs 3 items of size 400×200 into a 1000×500 bin. Without defects, the items fill a compact L-shaped region. With a 200×300 defect at position (450, 150), the item that would naturally sit there is pushed further right, reducing the leftover.
 
@@ -301,12 +305,66 @@ The following example packs 3 items of size 400×200 into a 1000×500 bin. Witho
    * - |rect_defects_no|
      - |rect_defects_yes|
 
+Maximum weight
+--------------
+
+Each bin type may have a maximum weight limits: the total weight of items placed in any bin must not exceed its maximum weight.
+
+The weight of an item type is specified vie the ``WEIGHT`` column in the item CSV file.
+The maximum weight of a bin type is specified via the ``MAXIMUM_WEIGHT`` column in the bin CSV file. Items are assigned a weight via the ``WEIGHT`` column in the item CSV file.
+
+The following example packs 4 items of size 300×200 with weight 100 each into 600×400 bins. Without a weight limit, all 4 items (total weight 400) fit in a single bin. With ``MAXIMUM_WEIGHT=200``, at most 2 items can share a bin, so 2 bins are required.
+
+.. |rect_maximum_weight_no| image:: img/rectangle_maximum_weight_no.png
+   :width: 100%
+
+.. |rect_maximum_weight_yes| image:: img/rectangle_maximum_weight_yes.png
+   :width: 100%
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - Without maximum weight
+     - With maximum weight
+   * - .. literalinclude:: examples/rectangle/maximum_weight_no/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/rectangle/maximum_weight_yes/items.csv
+          :caption: items.csv
+   * - .. literalinclude:: examples/rectangle/maximum_weight_no/bins.csv
+          :caption: bins.csv
+     - .. literalinclude:: examples/rectangle/maximum_weight_yes/bins.csv
+          :caption: bins.csv
+   * - .. literalinclude:: examples/rectangle/maximum_weight_no/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/rectangle/maximum_weight_yes/parameters.csv
+          :caption: parameters.csv
+   * - .. code-block:: shell
+
+            packingsolver_rectangle \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_rectangle \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |rect_maximum_weight_no|
+     - |rect_maximum_weight_yes|
+
 Unloading constraints
 ---------------------
 
 When loading a truck that visits multiple loading/unloading locations, it might be necessary to be able to load/unload the items at a location without having to move the items which are already in the truck.
+This is modeled in the solver with unloading constraints. Items are assigned to groups: items in group 0 are placed last (nearest the door) and unloaded first, items in group 1 are placed next, etc.
 
-This is modeled in the solver with unloading constraints. Items are assigned to groups via the ``GROUP_ID`` column: items in group 0 are placed last (nearest the door) and unloaded first, items in group 1 are placed next, etc.
+The group of an item type is specified via the ``GROUP_ID`` column in the item CSV file.
+Unloading constraints are specified via the ``unloading_constraint`` key in the parameters CSV file.
 
 In the following examples, without unloading constraints, all items fit using a width of 600. But with unloading constraints, a width of 750 is necessary.
 
@@ -352,7 +410,7 @@ In the following examples, without unloading constraints, all items fit using a 
    * - |rect_unloading_no|
      - |rect_unloading_yes|
 
-Two types of unloading constraints are available:
+4 types of unloading constraints are available:
 
 * ``only-x-movements``: items can only be moved out along the X axis; therefore, within each horizontal row, no item from a later group may be positioned to the right of an item from an earlier group
 * ``only-y-movements``: same along the Y axis

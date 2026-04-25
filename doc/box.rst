@@ -211,12 +211,54 @@ The ``ROTATIONS`` column is a **bitmask**: bit *k* (value 2^k) is set if rotatio
 * ``51`` (= 2^0 + 2^1 + 2^4 + 2^5): X face cannot be on top
 * ``63`` (= all 6 bits): all six orientations allowed
 
-Comparison with BoxStacks
---------------------------
+Maximum weight
+--------------
 
-The Box and :ref:`BoxStacks<boxstacks>` solvers both handle 3D rectangular bin packing. The key difference is in how items are arranged vertically:
+Each bin type may have a maximum weight limits: the total weight of items placed in any bin must not exceed its maximum weight.
 
-* **Box**: items can be placed anywhere in 3D space; any item can rest on top of any other item regardless of their footprints.
-* **BoxStacks**: items are organized into vertical stacks; an item can only be placed on top of another item if they share the same footprint and stackability identifier.
+The weight of an item type is specified via the ``WEIGHT`` column in the item CSV file.
+The maximum weight of a bin type is specified via the ``MAXIMUM_WEIGHT`` column in the bin CSV file. Items are assigned a weight via the ``WEIGHT`` column in the item CSV file.
 
-Use **Box** when items can be placed freely in 3D and there are no stacking-compatibility constraints. Use **BoxStacks** when items must be organized into vertical stacks with matching footprints, or when stacking constraints (maximum weight above, nesting height, etc.) are needed.
+The following example packs 4 items of size 10×10×10 with weight 100 each into 20×20×10 bins. Without a weight limit, all 4 items (total weight 400) fit in a single bin arranged as a 2×2 grid. With ``MAXIMUM_WEIGHT=200``, at most 2 items can share a bin, so 2 bins are required.
+
+.. |box_maximum_weight_no| image:: img/box_maximum_weight_no.png
+   :width: 100%
+
+.. |box_maximum_weight_yes| image:: img/box_maximum_weight_yes.png
+   :width: 100%
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - Without maximum weight
+     - With maximum weight
+   * - .. literalinclude:: examples/box/maximum_weight_no/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/box/maximum_weight_yes/items.csv
+          :caption: items.csv
+   * - .. literalinclude:: examples/box/maximum_weight_no/bins.csv
+          :caption: bins.csv
+     - .. literalinclude:: examples/box/maximum_weight_yes/bins.csv
+          :caption: bins.csv
+   * - .. literalinclude:: examples/box/maximum_weight_no/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/box/maximum_weight_yes/parameters.csv
+          :caption: parameters.csv
+   * - .. code-block:: shell
+
+            packingsolver_box \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_box \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |box_maximum_weight_no|
+     - |box_maximum_weight_yes|
