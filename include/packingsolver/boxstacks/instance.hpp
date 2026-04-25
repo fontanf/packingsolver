@@ -264,7 +264,7 @@ struct BinType
     std::vector<rectangle::Defect> defects;
 
     /** Maximum weight. */
-    Weight maximum_weight = 0;
+    Weight maximum_weight = std::numeric_limits<Weight>::infinity();
 
     /**
      * Maximum stack density (in Weight / Length^2).
