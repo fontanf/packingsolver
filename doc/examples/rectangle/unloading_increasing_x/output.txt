@@ -26,17 +26,17 @@ Largest item profit:   100000
 Total item weight:     0
 Largest item copies:   1
 Total bin area:        320000
-Total bin weight:      0
+Total bin weight:      inf
 Largest bin cost:      320000
 
         Time           X                         Comment
         ----       -----                         -------
-       0.000         700                  TS g 1 d X q 1
-       0.000         650                  TS g 1 d X q 1
+       0.000         700                  TS g 0 d X q 1
+       0.000         650                  TS g 0 d X q 1
 
 Final statistics
 ----------------
-Time (s):  0.000902646
+Time (s):  0.00150232
 
 Solution
 --------
@@ -46,14 +46,14 @@ Item weight:      0 / 0 (-nan%)
 Item profit:      162500 / 162500 (100%)
 Number of bins:   1 / 1 (100%)
 Bin area:         320000 / 320000 (100%)
-Bin weight:       0 / 0 (-nan%)
+Bin weight:       -9.22337e+18 / inf (-0%)
 Bin cost:         320000
 Waste:            97500
 Waste (%):        37.5
 Full waste:       157500
 Full waste (%):   49.2188
 Area load:        0.507812
-Weight load:      -nan
+Weight load:      0
 X max:            650
 Y max:            400
 Leftover value:   60000

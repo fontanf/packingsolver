@@ -20,7 +20,7 @@ Total item volume:     72000000
 Total item profit:     7.2e+07
 Total item weight:     0
 Total bin volume:      144000000
-Total bin weight:      0
+Total bin weight:      inf
 
         Time       Waste   Waste (%)                         Comment
         ----       -----   ---------                         -------
@@ -28,7 +28,7 @@ Total bin weight:      0
 
 Final statistics
 ----------------
-Time (s):  0.0013856
+Time (s):  0.000868594
 
 Solution
 --------
@@ -41,7 +41,7 @@ Stack area:        120000
 Number of bins:    1 / 1 (100%)
 Bin volume:        144000000 / 144000000 (100%)
 Bin area:          240000 / 240000 (100%)
-Bin weight:        0 / 0 (-nan%)
+Bin weight:        inf / inf (-nan%)
 Bin cost:          240000
 Waste:             72000000
 Waste (%):         50
@@ -49,6 +49,6 @@ Full waste:        72000000
 Full waste (%):    50
 Volume load:       0.5
 Area load:         0.5
-Weight load:       -nan
+Weight load:       0
 X max:             600
 Y max:             200

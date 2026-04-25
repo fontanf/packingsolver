@@ -1,0 +1,56 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Box
+
+Instance
+--------
+Objective:             BinPacking
+Number of item types:  1
+Number of items:       4
+Number of bin types:   1
+Number of bins:        10
+Number of defects:     0
+Total item volume:     4000
+Total item profit:     4000
+Largest item profit:   1000
+Total item weight:     400
+Largest item copies:   4
+Total bin volume:      40000
+Total bin weight:      2000
+Largest bin cost:      400
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.000       2           50.00                  TS g 0 d Y q 1
+
+Final statistics
+----------------
+Time (s):  0.00335056
+
+Solution
+--------
+Number of items:   4 / 4 (100%)
+Item volume:       4000 / 4000 (100%)
+Item weight:       400 / 400 (100%)
+Item profit:       4000 / 4000 (100%)
+Number of stacks:  0
+Stack area:        0
+Number of bins:    2 / 10 (20%)
+Bin volume:        8000 / 40000 (20%)
+Bin area:          800 / 4000 (20%)
+Bin weight:        400 / 2000 (20%)
+Bin cost:          800
+Waste:             2000
+Waste (%):         33.3333
+Full waste:        4000
+Full waste (%):    50
+Volume load:       0.1
+Area load:         0
+Weight load:       0.2
+X max:             10
+Y max:             20
+Z max:             10
