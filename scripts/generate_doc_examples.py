@@ -86,6 +86,36 @@ subprocess.run([
     "--output", os.path.join(img, "rectangle_rotation_yes.png"),
 ])
 
+print("rectangle_maximum_weight_no")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--items", os.path.join(ex, "rectangle", "maximum_weight_no", "items.csv"),
+    "--bins", os.path.join(ex, "rectangle", "maximum_weight_no", "bins.csv"),
+    "--parameters", os.path.join(ex, "rectangle", "maximum_weight_no", "parameters.csv"),
+    "--certificate", os.path.join(ex, "rectangle", "maximum_weight_no", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "maximum_weight_no", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "maximum_weight_no", "solution.csv"),
+    "--output", os.path.join(img, "rectangle_maximum_weight_no.png"),
+])
+
+print("rectangle_maximum_weight_yes")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_rectangle"),
+    "--items", os.path.join(ex, "rectangle", "maximum_weight_yes", "items.csv"),
+    "--bins", os.path.join(ex, "rectangle", "maximum_weight_yes", "bins.csv"),
+    "--parameters", os.path.join(ex, "rectangle", "maximum_weight_yes", "parameters.csv"),
+    "--certificate", os.path.join(ex, "rectangle", "maximum_weight_yes", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "rectangle", "maximum_weight_yes", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_rectangle.py"),
+    os.path.join(ex, "rectangle", "maximum_weight_yes", "solution.csv"),
+    "--output", os.path.join(img, "rectangle_maximum_weight_yes.png"),
+])
+
 print("rectangle_unloading_no")
 subprocess.run([
     os.path.join(bin_dir, "packingsolver_rectangle"),
@@ -188,6 +218,36 @@ subprocess.run([
     "--output", os.path.join(img, "box_example_solution.png"),
 ])
 
+print("box_maximum_weight_no")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_box"),
+    "--items", os.path.join(ex, "box", "maximum_weight_no", "items.csv"),
+    "--bins", os.path.join(ex, "box", "maximum_weight_no", "bins.csv"),
+    "--parameters", os.path.join(ex, "box", "maximum_weight_no", "parameters.csv"),
+    "--certificate", os.path.join(ex, "box", "maximum_weight_no", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "box", "maximum_weight_no", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_box.py"),
+    os.path.join(ex, "box", "maximum_weight_no", "solution.csv"),
+    "--output", os.path.join(img, "box_maximum_weight_no.png"),
+])
+
+print("box_maximum_weight_yes")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_box"),
+    "--items", os.path.join(ex, "box", "maximum_weight_yes", "items.csv"),
+    "--bins", os.path.join(ex, "box", "maximum_weight_yes", "bins.csv"),
+    "--parameters", os.path.join(ex, "box", "maximum_weight_yes", "parameters.csv"),
+    "--certificate", os.path.join(ex, "box", "maximum_weight_yes", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "box", "maximum_weight_yes", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_box.py"),
+    os.path.join(ex, "box", "maximum_weight_yes", "solution.csv"),
+    "--output", os.path.join(img, "box_maximum_weight_yes.png"),
+])
+
 ###########
 # BoxStacks
 ###########
@@ -206,6 +266,7 @@ subprocess.run([
     os.path.join(ex, "boxstacks", "solution.csv"),
     "--output", os.path.join(img, "boxstacks_example_solution.png"),
 ])
+
 
 ##########
 # Irregular
@@ -241,4 +302,124 @@ subprocess.run([
     sys.executable, os.path.join("scripts", "visualize_onedimensional.py"),
     os.path.join(ex, "onedimensional", "solution.csv"),
     "--output", os.path.join(img, "onedimensional_solution.png"),
+])
+
+print("onedimensional_maximum_weight_no")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_onedimensional"),
+    "--items", os.path.join(ex, "onedimensional", "maximum_weight_no", "items.csv"),
+    "--bins", os.path.join(ex, "onedimensional", "maximum_weight_no", "bins.csv"),
+    "--parameters", os.path.join(ex, "onedimensional", "maximum_weight_no", "parameters.csv"),
+    "--certificate", os.path.join(ex, "onedimensional", "maximum_weight_no", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "onedimensional", "maximum_weight_no", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_onedimensional.py"),
+    os.path.join(ex, "onedimensional", "maximum_weight_no", "solution.csv"),
+    "--output", os.path.join(img, "onedimensional_maximum_weight_no.png"),
+])
+
+print("onedimensional_maximum_weight_yes")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_onedimensional"),
+    "--items", os.path.join(ex, "onedimensional", "maximum_weight_yes", "items.csv"),
+    "--bins", os.path.join(ex, "onedimensional", "maximum_weight_yes", "bins.csv"),
+    "--parameters", os.path.join(ex, "onedimensional", "maximum_weight_yes", "parameters.csv"),
+    "--certificate", os.path.join(ex, "onedimensional", "maximum_weight_yes", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "onedimensional", "maximum_weight_yes", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_onedimensional.py"),
+    os.path.join(ex, "onedimensional", "maximum_weight_yes", "solution.csv"),
+    "--output", os.path.join(img, "onedimensional_maximum_weight_yes.png"),
+])
+
+print("onedimensional_nesting_length_no")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_onedimensional"),
+    "--items", os.path.join(ex, "onedimensional", "nesting_length_no", "items.csv"),
+    "--bins", os.path.join(ex, "onedimensional", "nesting_length_no", "bins.csv"),
+    "--parameters", os.path.join(ex, "onedimensional", "nesting_length_no", "parameters.csv"),
+    "--certificate", os.path.join(ex, "onedimensional", "nesting_length_no", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "onedimensional", "nesting_length_no", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_onedimensional.py"),
+    os.path.join(ex, "onedimensional", "nesting_length_no", "solution.csv"),
+    "--output", os.path.join(img, "onedimensional_nesting_length_no.png"),
+])
+
+print("onedimensional_nesting_length_yes")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_onedimensional"),
+    "--items", os.path.join(ex, "onedimensional", "nesting_length_yes", "items.csv"),
+    "--bins", os.path.join(ex, "onedimensional", "nesting_length_yes", "bins.csv"),
+    "--parameters", os.path.join(ex, "onedimensional", "nesting_length_yes", "parameters.csv"),
+    "--certificate", os.path.join(ex, "onedimensional", "nesting_length_yes", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "onedimensional", "nesting_length_yes", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_onedimensional.py"),
+    os.path.join(ex, "onedimensional", "nesting_length_yes", "solution.csv"),
+    "--output", os.path.join(img, "onedimensional_nesting_length_yes.png"),
+])
+
+print("onedimensional_maximum_stackability_no")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_onedimensional"),
+    "--items", os.path.join(ex, "onedimensional", "maximum_stackability_no", "items.csv"),
+    "--bins", os.path.join(ex, "onedimensional", "maximum_stackability_no", "bins.csv"),
+    "--parameters", os.path.join(ex, "onedimensional", "maximum_stackability_no", "parameters.csv"),
+    "--certificate", os.path.join(ex, "onedimensional", "maximum_stackability_no", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "onedimensional", "maximum_stackability_no", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_onedimensional.py"),
+    os.path.join(ex, "onedimensional", "maximum_stackability_no", "solution.csv"),
+    "--output", os.path.join(img, "onedimensional_maximum_stackability_no.png"),
+])
+
+print("onedimensional_maximum_stackability_yes")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_onedimensional"),
+    "--items", os.path.join(ex, "onedimensional", "maximum_stackability_yes", "items.csv"),
+    "--bins", os.path.join(ex, "onedimensional", "maximum_stackability_yes", "bins.csv"),
+    "--parameters", os.path.join(ex, "onedimensional", "maximum_stackability_yes", "parameters.csv"),
+    "--certificate", os.path.join(ex, "onedimensional", "maximum_stackability_yes", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "onedimensional", "maximum_stackability_yes", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_onedimensional.py"),
+    os.path.join(ex, "onedimensional", "maximum_stackability_yes", "solution.csv"),
+    "--output", os.path.join(img, "onedimensional_maximum_stackability_yes.png"),
+])
+
+print("onedimensional_maximum_weight_after_no")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_onedimensional"),
+    "--items", os.path.join(ex, "onedimensional", "maximum_weight_after_no", "items.csv"),
+    "--bins", os.path.join(ex, "onedimensional", "maximum_weight_after_no", "bins.csv"),
+    "--parameters", os.path.join(ex, "onedimensional", "maximum_weight_after_no", "parameters.csv"),
+    "--certificate", os.path.join(ex, "onedimensional", "maximum_weight_after_no", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "onedimensional", "maximum_weight_after_no", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_onedimensional.py"),
+    os.path.join(ex, "onedimensional", "maximum_weight_after_no", "solution.csv"),
+    "--output", os.path.join(img, "onedimensional_maximum_weight_after_no.png"),
+])
+
+print("onedimensional_maximum_weight_after_yes")
+subprocess.run([
+    os.path.join(bin_dir, "packingsolver_onedimensional"),
+    "--items", os.path.join(ex, "onedimensional", "maximum_weight_after_yes", "items.csv"),
+    "--bins", os.path.join(ex, "onedimensional", "maximum_weight_after_yes", "bins.csv"),
+    "--parameters", os.path.join(ex, "onedimensional", "maximum_weight_after_yes", "parameters.csv"),
+    "--certificate", os.path.join(ex, "onedimensional", "maximum_weight_after_yes", "solution.csv"),
+    "--time-limit", "5",
+], stdout=open(os.path.join(ex, "onedimensional", "maximum_weight_after_yes", "output.txt"), "w"), stderr=subprocess.STDOUT)
+subprocess.run([
+    sys.executable, os.path.join("scripts", "visualize_onedimensional.py"),
+    os.path.join(ex, "onedimensional", "maximum_weight_after_yes", "solution.csv"),
+    "--output", os.path.join(img, "onedimensional_maximum_weight_after_yes.png"),
 ])

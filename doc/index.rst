@@ -11,8 +11,8 @@ PackingSolver's documentation
    onedimensional
    rectangle
    rectangleguillotine
-   boxstacks
    box
+   boxstacks
    irregular
 
 

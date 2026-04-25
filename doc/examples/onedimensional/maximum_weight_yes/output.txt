@@ -1,0 +1,41 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+OneDimensional
+
+Instance
+--------
+Objective:             BinPacking
+Number of item types:  1
+Number of items:       4
+Number of bin types:   1
+Number of bins:        10
+Total item length:     800
+Total item profit:     800
+Largest item profit:   200
+Largest item copies:   4
+Largest bin cost:      800
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.000       2           50.00                      TS g 2 q 1
+
+Final statistics
+----------------
+Time (s):  0.000894471
+
+Solution
+--------
+Number of items:  4 / 4 (100%)
+Item length:      800 / 800 (100%)
+Item profit:      800 / 800 (100%)
+Number of bins:   2 / 10 (20%)
+Bin length:       1600 / 8000 (20%)
+Bin cost:         1600
+Waste:            400
+Waste (%):        33.3333
+Full waste:       800
+Full waste (%):   50
