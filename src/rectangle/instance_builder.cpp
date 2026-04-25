@@ -479,7 +479,7 @@ void InstanceBuilder::read_bin_types(
         Profit cost = -1;
         BinPos copies = 1;
         BinPos copies_min = 0;
-        Weight maximum_weight = 0;
+        Weight maximum_weight = std::numeric_limits<Weight>::infinity();
         SemiTrailerTruckData semi_trailer_truck_data;
 
         for (Counter i = 0; i < (Counter)line.size(); ++i) {
@@ -720,6 +720,8 @@ Instance InstanceBuilder::build()
         // Update largest_item_copies_.
         if (instance_.largest_item_copies_ < item_type.copies)
             instance_.largest_item_copies_ = item_type.copies;
+        // Update item_weight_.
+        instance_.item_weight_ += item_type.copies * item_type.weight;
     }
 
     // Compute bin type attributes.

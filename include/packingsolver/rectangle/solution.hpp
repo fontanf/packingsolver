@@ -236,7 +236,7 @@ private:
     Area bin_area_ = 0;
 
     /** Total weight of the bins of the solution. */
-    Volume bin_weight_ = 0;
+    Weight bin_weight_ = 0;
 
     /** Total area of the items of the solution. */
     Area item_area_ = 0;

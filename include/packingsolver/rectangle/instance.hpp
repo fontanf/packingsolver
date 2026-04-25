@@ -218,7 +218,7 @@ struct BinType
     BinPos copies_min;
 
     /** Maximum weight. */
-    Weight maximum_weight = 0;
+    Weight maximum_weight = std::numeric_limits<Weight>::infinity();
 
     /** Semi-trailer truck data. */
     SemiTrailerTruckData semi_trailer_truck_data;
