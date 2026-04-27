@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
             GroupIdenticalBinsOutput gib_output = group_identical_bins(solution);
             solution = gib_output.solution_pool.best();
         }
-        if (vm.count("anchor")) {
+        if (vm.count("anchor") && vm["anchor"].as<bool>()) {
             double anchor_x_weight = 1.0;
             double anchor_y_weight = 1.0;
             if (vm.count("anchor-x-weight"))
