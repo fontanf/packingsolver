@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>PackingSolver’s documentation &#8212; PackingSolver 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Objectives" href="objectives.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="objectives.html" title="Objectives"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">PackingSolver’s documentation</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="packingsolver-s-documentation">
+<h1>PackingSolver’s documentation<a class="headerlink" href="#packingsolver-s-documentation" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">¶</a></h2>
+<p><cite>PackingSolver</cite> is a software package dedicated to the practical resolution of cutting and packing problems.</p>
+<p><cite>PackingSolver</cite> takes as input:</p>
+<ul class="simple">
+<li><p>A set of pieces to cut/pack called <strong>items</strong>.</p></li>
+<li><p>A set of containers from which to cut / in which to pack these items, called <strong>bins</strong>.</p></li>
+<li><p>A set of parameters for the optimization</p></li>
+</ul>
+<p>Then <cite>PackingSolver</cite> outputs the cutting/loading plans.</p>
+<p>PackingSolver solves multiple problem types:</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="rectangleguillotine.html#rectangleguillotine"><span class="std std-ref">RectangleGuillotine</span></a></p>
+<ul class="simple">
+<li><p>Items: two-dimensional rectangles</p></li>
+<li><p>Only edge-to-edge cuts are allowed</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine.png"><img alt="rectangleguillotine" src="_images/rectangleguillotine.png" style="width: 512pt;" /></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="rectangle.html#rectangle"><span class="std std-ref">Rectangle</span></a></p>
+<ul class="simple">
+<li><p>Items: two-dimensional rectangles</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/rectangle.png"><img alt="rectangle" src="_images/rectangle.png" style="width: 512pt;" /></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="box.html#box"><span class="std std-ref">Box</span></a></p>
+<ul class="simple">
+<li><p>Items: three-dimensional rectangular parallelepipeds</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/box.png"><img alt="box" src="_images/box.png" style="width: 512pt;" /></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="boxstacks.html#boxstacks"><span class="std std-ref">BoxStacks</span></a></p>
+<ul class="simple">
+<li><p>Items: three-dimensional rectangular parallelepipeds</p></li>
+<li><p>Items are stacked; a stack contains items with the same width and length</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/boxstacks.png"><img alt="boxstacks" src="_images/boxstacks.png" style="width: 512pt;" /></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="onedimensional.html#onedimensional"><span class="std std-ref">OneDimensional</span></a></p>
+<ul class="simple">
+<li><p>Items: one-dimensional items</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/onedimensional.png"><img alt="onedimensional" src="_images/onedimensional.png" style="width: 512pt;" /></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="irregular.html#irregular"><span class="std std-ref">Irregular</span></a></p>
+<ul class="simple">
+<li><p>Items: two-dimensional polygons</p></li>
+</ul>
+</td>
+<td><p><a class="reference internal" href="_images/irregular.png"><img alt="irregular" src="_images/irregular.png" style="width: 512pt;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="getting-started">
+<h2>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h2>
+<p>Let’s see how to solve a simple rectangle packing problem.</p>
+<p>In a first CSV file, we provide the width, height and number of copies of the items to pack.
+Here we consider two items:</p>
+<ul class="simple">
+<li><p>The first one has a width of 300, a height of 200 and 10 copies.</p></li>
+<li><p>The second one has a width of 250, a height of 150 and 10 copies.</p></li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>WIDTH,HEIGHT,COPIES
+300,200,10
+250,150,10
+</pre></div>
+</div>
+</div>
+<p>In a second CSV file, we provide the width, height and number of copies of the bins in which the items must be packed.
+Here we consider a single container of width 1000 and of height 500 available in 10 copies.</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>WIDTH,HEIGHT,COPIES
+1000,500,10
+</pre></div>
+</div>
+</div>
+<p>Finally, in a third CSV file, we provide the other optimizaton parameters. Here we just set the <code class="code docutils literal notranslate"><span class="pre">objective</span></code> parameter to <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, which means that we look to pack all the items using as few bins as possible. The <a class="reference internal" href="objectives.html#objectives"><span class="std std-ref">objectives</span></a> page gives more details about the possible objectives.</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>NAME,VALUE
+objective,bin-packing
+</pre></div>
+</div>
+</div>
+<p>Now, we use the following command to launch the optimization:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution_rectangle.csv
+</pre></div>
+</div>
+<p>The terminal output looks like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">=================================</span>
+          <span class="n">PackingSolver</span>          
+<span class="o">=================================</span>
+
+<span class="n">Problem</span> <span class="nb">type</span>
+<span class="o">------------</span>
+<span class="n">Rectangle</span>
+
+<span class="n">Instance</span>
+<span class="o">--------</span>
+<span class="n">Objective</span><span class="p">:</span>             <span class="n">BinPackingWithLeftovers</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">item</span> <span class="n">types</span><span class="p">:</span>  <span class="mi">2</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>       <span class="mi">20</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="nb">bin</span> <span class="n">types</span><span class="p">:</span>   <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>        <span class="mi">10</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">groups</span><span class="p">:</span>      <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">defects</span><span class="p">:</span>     <span class="mi">0</span>
+<span class="n">Unloading</span> <span class="n">constraint</span><span class="p">:</span>  <span class="kc">None</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">area</span><span class="p">:</span>       <span class="mi">975000</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">width</span><span class="p">:</span>      <span class="mi">5500</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">height</span><span class="p">:</span>     <span class="mi">3500</span>
+<span class="n">Smallest</span> <span class="n">item</span> <span class="n">width</span><span class="p">:</span>   <span class="mi">150</span>
+<span class="n">Smallest</span> <span class="n">item</span> <span class="n">height</span><span class="p">:</span>  <span class="mi">150</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>     <span class="mi">975000</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>   <span class="mi">60000</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">weight</span><span class="p">:</span>     <span class="mi">0</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">copies</span><span class="p">:</span>   <span class="mi">10</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">area</span><span class="p">:</span>        <span class="mi">5000000</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">weight</span><span class="p">:</span>      <span class="n">inf</span>
+<span class="n">Largest</span> <span class="nb">bin</span> <span class="n">cost</span><span class="p">:</span>      <span class="mi">500000</span>
+
+        <span class="n">Time</span>      <span class="c1"># bins    Leftover                         Comment</span>
+        <span class="o">----</span>      <span class="o">------</span>    <span class="o">--------</span>                         <span class="o">-------</span>
+       <span class="mf">0.000</span>           <span class="mi">3</span>      <span class="mi">162500</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">X</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.001</span>           <span class="mi">3</span>      <span class="mi">207500</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">X</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.007</span>           <span class="mi">3</span>      <span class="mi">275000</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">X</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.008</span>           <span class="mi">3</span>      <span class="mi">462500</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">X</span> <span class="n">q</span> <span class="mi">2</span>
+       <span class="mf">0.009</span>           <span class="mi">2</span>           <span class="mi">0</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">X</span> <span class="n">q</span> <span class="mi">9</span>
+
+<span class="n">Final</span> <span class="n">statistics</span>
+<span class="o">----------------</span>
+<span class="n">Time</span> <span class="p">(</span><span class="n">s</span><span class="p">):</span>  <span class="mf">5.00721</span>
+
+<span class="n">Solution</span>
+<span class="o">--------</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>  <span class="mi">20</span> <span class="o">/</span> <span class="mi">20</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">area</span><span class="p">:</span>        <span class="mi">975000</span> <span class="o">/</span> <span class="mi">975000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">weight</span><span class="p">:</span>      <span class="mi">0</span> <span class="o">/</span> <span class="mi">0</span> <span class="p">(</span><span class="o">-</span><span class="n">nan</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">profit</span><span class="p">:</span>      <span class="mi">975000</span> <span class="o">/</span> <span class="mi">975000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>   <span class="mi">2</span> <span class="o">/</span> <span class="mi">10</span> <span class="p">(</span><span class="mi">20</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">area</span><span class="p">:</span>         <span class="mi">1000000</span> <span class="o">/</span> <span class="mi">5000000</span> <span class="p">(</span><span class="mi">20</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">weight</span><span class="p">:</span>       <span class="o">-</span><span class="mf">9.22337e+18</span> <span class="o">/</span> <span class="n">inf</span> <span class="p">(</span><span class="o">-</span><span class="mi">0</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">cost</span><span class="p">:</span>         <span class="mf">1e+06</span>
+<span class="n">Waste</span><span class="p">:</span>            <span class="mi">25000</span>
+<span class="n">Waste</span> <span class="p">(</span><span class="o">%</span><span class="p">):</span>        <span class="mf">2.5</span>
+<span class="n">Full</span> <span class="n">waste</span><span class="p">:</span>       <span class="mi">25000</span>
+<span class="n">Full</span> <span class="n">waste</span> <span class="p">(</span><span class="o">%</span><span class="p">):</span>   <span class="mf">2.5</span>
+<span class="n">Area</span> <span class="n">load</span><span class="p">:</span>        <span class="mf">0.195</span>
+<span class="n">Weight</span> <span class="n">load</span><span class="p">:</span>      <span class="mi">0</span>
+<span class="n">X</span> <span class="nb">max</span><span class="p">:</span>            <span class="mi">1000</span>
+<span class="n">Y</span> <span class="nb">max</span><span class="p">:</span>            <span class="mi">500</span>
+<span class="n">Leftover</span> <span class="n">value</span><span class="p">:</span>   <span class="mi">0</span>
+</pre></div>
+</div>
+<p>From the terminal output, we see that the solver managed to pack all the items using two bins.
+The loading plans are written in the <code class="code docutils literal notranslate"><span class="pre">solution_rectangle.csv</span></code> file. A script is available to visualize them:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/visualize_rectangle.py<span class="w"> </span>solution_rectangle.csv
+</pre></div>
+</div>
+<p>The script opens a page in a browser where the loading plans are displayed:</p>
+<a class="reference internal image-reference" href="_images/getting_started_solution.png"><img alt="_images/getting_started_solution.png" class="align-center" src="_images/getting_started_solution.png" style="width: 256pt;" />
+</a>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="#">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html">OneDimensional solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html">Rectangle solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html">RectangleGuillotine solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="box.html">Box solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html">BoxStacks solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html">Irregular solver</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="objectives.html" title="Objectives"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">PackingSolver’s documentation</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>RectangleGuillotine solver &#8212; PackingSolver 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Box solver" href="box.html" />
+    <link rel="prev" title="Rectangle solver" href="rectangle.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="box.html" title="Box solver"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="rectangle.html" title="Rectangle solver"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">RectangleGuillotine solver</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="rectangleguillotine-solver">
+<span id="rectangleguillotine"></span><h1>RectangleGuillotine solver<a class="headerlink" href="#rectangleguillotine-solver" title="Link to this heading">¶</a></h1>
+<p>The RectangleGuillotine solver solves problems where items are two-dimensional rectangles that must be cut from rectangular bins using <strong>guillotine cuts</strong> — cuts that go all the way from one side of the current plate to the other.</p>
+<a class="reference internal image-reference" href="_images/rectangleguillotine.png"><img alt="_images/rectangleguillotine.png" class="align-center" src="_images/rectangleguillotine.png" style="width: 512pt;" />
+</a>
+<p>These problems occur for example in glass cutting, wooden panel cutting, and paper cutting industries.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Objectives:</p>
+<ul>
+<li><p>Knapsack</p></li>
+<li><p>Bin packing</p></li>
+<li><p>Bin packing with leftovers</p></li>
+<li><p>Open dimension X</p></li>
+<li><p>Open dimension Y</p></li>
+<li><p>Open dimension XY</p></li>
+<li><p>Variable-sized bin packing</p></li>
+</ul>
+</li>
+<li><p>Item types</p>
+<ul>
+<li><p>Item rotation (90°)</p></li>
+<li><p>Stacks (items that must stay grouped)</p></li>
+</ul>
+</li>
+<li><p>Bin types</p>
+<ul>
+<li><p>Trims (border offsets on each side)</p></li>
+<li><p>Rectangular defects</p></li>
+</ul>
+</li>
+<li><p>Cutting constraints</p>
+<ul>
+<li><p>Number of cutting stages</p></li>
+<li><p>Cut type (Roadef2018, NonExact, Exact, Homogenous)</p></li>
+<li><p>First stage orientation (horizontal or vertical)</p></li>
+<li><p>Minimum and maximum distances between cuts</p></li>
+<li><p>Maximum number of 2-cuts per strip</p></li>
+<li><p>Cut thickness</p></li>
+</ul>
+</li>
+</ul>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<p>The RectangleGuillotine solver takes as input:</p>
+<ul class="simple">
+<li><p>an item CSV file; option: <code class="docutils literal notranslate"><span class="pre">--items</span> <span class="pre">items.csv</span></code></p></li>
+<li><p>a bin CSV file; option: <code class="docutils literal notranslate"><span class="pre">--bins</span> <span class="pre">bins.csv</span></code></p></li>
+<li><p>optionally a defect CSV file; option: <code class="docutils literal notranslate"><span class="pre">--defects</span> <span class="pre">defects.csv</span></code></p></li>
+<li><p>optionally a parameter CSV file; option: <code class="docutils literal notranslate"><span class="pre">--parameters</span> <span class="pre">parameters.csv</span></code></p></li>
+</ul>
+<p>It outputs:</p>
+<ul class="simple">
+<li><p>a solution CSV file; option: <code class="docutils literal notranslate"><span class="pre">--certificate</span> <span class="pre">solution.csv</span></code></p></li>
+</ul>
+<p>The <strong>item file</strong> contains:</p>
+<ul class="simple">
+<li><p>The width of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WIDTH</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The height of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">HEIGHT</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the item type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>Whether the item is fixed in its original orientation (cannot be rotated 90°)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">ORIENTED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: rotation allowed (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: item is oriented; rotation not allowed</p></li>
+</ul>
+</li>
+<li><p>The profit of an item of this type (for a knapsack objective)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">PROFIT</span></code></p></li>
+<li><p>default value: item area (<code class="docutils literal notranslate"><span class="pre">WIDTH</span> <span class="pre">*</span> <span class="pre">HEIGHT</span></code>)</p></li>
+</ul>
+</li>
+<li><p>The stack identifier; items with the same stack id must remain contiguous in the solution</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">STACK_ID</span></code></p></li>
+<li><p>default value: no stack grouping</p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>bin file</strong> contains:</p>
+<ul class="simple">
+<li><p>The width of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WIDTH</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The height of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">HEIGHT</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the bin type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>The minimum number of copies that must be used</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES_MIN</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The cost of a bin of this type (for a variable-sized bin packing objective)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COST</span></code></p></li>
+<li><p>default value: bin area</p></li>
+</ul>
+</li>
+<li><p>Border trims: distances from each edge before any item can be placed</p>
+<ul>
+<li><p>columns <code class="docutils literal notranslate"><span class="pre">BOTTOM_TRIM</span></code>, <code class="docutils literal notranslate"><span class="pre">TOP_TRIM</span></code>, <code class="docutils literal notranslate"><span class="pre">LEFT_TRIM</span></code>, <code class="docutils literal notranslate"><span class="pre">RIGHT_TRIM</span></code></p></li>
+<li><p><strong>Integer values</strong>, default: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>Trim types: whether trimming strips are cut (hard) or just reserved (soft)</p>
+<ul>
+<li><p>columns <code class="docutils literal notranslate"><span class="pre">BOTTOM_TRIM_TYPE</span></code>, <code class="docutils literal notranslate"><span class="pre">TOP_TRIM_TYPE</span></code>, <code class="docutils literal notranslate"><span class="pre">LEFT_TRIM_TYPE</span></code>, <code class="docutils literal notranslate"><span class="pre">RIGHT_TRIM_TYPE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Hard</span></code>: the trim is physically cut; the strip is waste</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Soft</span></code>: the trim is reserved but not cut; default for top and right trims</p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>defect file</strong> contains the same columns as for the <a class="reference internal" href="rectangle.html#rectangle"><span class="std std-ref">Rectangle</span></a> solver: <code class="docutils literal notranslate"><span class="pre">BIN</span></code>, <code class="docutils literal notranslate"><span class="pre">X</span></code>, <code class="docutils literal notranslate"><span class="pre">Y</span></code>, <code class="docutils literal notranslate"><span class="pre">WIDTH</span></code>, <code class="docutils literal notranslate"><span class="pre">HEIGHT</span></code>.</p>
+<p>The <strong>parameter file</strong> has two columns: <code class="docutils literal notranslate"><span class="pre">NAME</span></code> and <code class="docutils literal notranslate"><span class="pre">VALUE</span></code>. The possible entries are:</p>
+<ul class="simple">
+<li><p>The objective; name: <code class="docutils literal notranslate"><span class="pre">objective</span></code>; possible values:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">knapsack</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-x</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-y</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code></p></li>
+</ul>
+</li>
+<li><p>Cutting constraints (all have integer values unless noted):</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">number_of_stages</span></code>: number of cutting stages (default: <code class="docutils literal notranslate"><span class="pre">3</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cut_type</span></code>: cut pattern type; <code class="docutils literal notranslate"><span class="pre">roadef2018</span></code>, <code class="docutils literal notranslate"><span class="pre">non-exact</span></code>, <code class="docutils literal notranslate"><span class="pre">exact</span></code>, or <code class="docutils literal notranslate"><span class="pre">homogenous</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">first_stage_orientation</span></code>: <code class="docutils literal notranslate"><span class="pre">vertical</span></code> or <code class="docutils literal notranslate"><span class="pre">horizontal</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minimum_distance_1_cuts</span></code>: minimum distance between first-level (stage-1) cuts (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maximum_distance_1_cuts</span></code>: maximum distance between first-level cuts; <code class="docutils literal notranslate"><span class="pre">-1</span></code> for no limit</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minimum_distance_2_cuts</span></code>: minimum distance between second-level cuts (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minimum_waste_length</span></code>: minimum length for any waste piece (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maximum_number_2_cuts</span></code>: maximum number of stage-2 cuts per strip; <code class="docutils literal notranslate"><span class="pre">-1</span></code> for no limit</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cut_through_defects</span></code>: <code class="docutils literal notranslate"><span class="pre">0</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>; whether cuts may pass through defects (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cut_thickness</span></code>: width of the saw blade (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>)</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="basic-example">
+<h2>Basic example<a class="headerlink" href="#basic-example" title="Link to this heading">¶</a></h2>
+<p>Inputs:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">250</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span>
+<span class="mi">150</span><span class="p">,</span><span class="mi">300</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span>
+<span class="mi">200</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1000</span><span class="p">,</span><span class="mi">700</span><span class="p">,</span><span class="mi">5</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+</pre></div>
+</div>
+</div>
+<p>Solve:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">=================================</span>
+          <span class="n">PackingSolver</span>          
+<span class="o">=================================</span>
+
+<span class="n">Problem</span> <span class="nb">type</span>
+<span class="o">------------</span>
+<span class="n">RectangleGuillotine</span>
+
+<span class="n">Instance</span>
+<span class="o">--------</span>
+<span class="n">Objective</span><span class="p">:</span>                             <span class="n">BinPackingWithLeftovers</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">item</span> <span class="n">types</span><span class="p">:</span>                  <span class="mi">3</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>                       <span class="mi">7</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="nb">bin</span> <span class="n">types</span><span class="p">:</span>                   <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>                        <span class="mi">5</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">stacks</span><span class="p">:</span>                      <span class="mi">3</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">defects</span><span class="p">:</span>                     <span class="mi">0</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">stages</span><span class="p">:</span>                      <span class="mi">3</span>
+<span class="n">Cut</span> <span class="nb">type</span><span class="p">:</span>                              <span class="n">NonExact</span>
+<span class="n">First</span> <span class="n">stage</span> <span class="n">orientation</span><span class="p">:</span>               <span class="n">Vertical</span>
+<span class="n">Minimum</span> <span class="n">distance</span> <span class="n">between</span> <span class="mi">1</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>       <span class="mi">0</span>
+<span class="n">Maximum</span> <span class="n">distance</span> <span class="n">between</span> <span class="mi">1</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>       <span class="o">-</span><span class="mi">1</span>
+<span class="n">Minimum</span> <span class="n">distance</span> <span class="n">between</span> <span class="mi">2</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>       <span class="mi">0</span>
+<span class="n">Minimum</span> <span class="n">waste</span> <span class="n">length</span><span class="p">:</span>                  <span class="mi">0</span>
+<span class="n">Maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">consecutive</span> <span class="mi">2</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>  <span class="o">-</span><span class="mi">1</span>
+<span class="n">Cut</span> <span class="n">through</span> <span class="n">defects</span><span class="p">:</span>                   <span class="mi">0</span>
+<span class="n">Cut</span> <span class="n">thickness</span><span class="p">:</span>                         <span class="mi">0</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">area</span><span class="p">:</span>                       <span class="mi">280000</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>                     <span class="mi">280000</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>                   <span class="mi">50000</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">copies</span><span class="p">:</span>                   <span class="mi">3</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">area</span><span class="p">:</span>                        <span class="mi">3500000</span>
+<span class="n">Largest</span> <span class="nb">bin</span> <span class="n">cost</span><span class="p">:</span>                      <span class="mi">700000</span>
+
+        <span class="n">Time</span>      <span class="c1"># bins       Waste   Waste (%)                         Comment</span>
+        <span class="o">----</span>      <span class="o">------</span>       <span class="o">-----</span>   <span class="o">---------</span>                         <span class="o">-------</span>
+       <span class="mf">0.000</span>           <span class="mi">1</span>      <span class="mi">385000</span>       <span class="mf">57.89</span>           <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.001</span>           <span class="mi">1</span>      <span class="mi">280000</span>       <span class="mf">50.00</span>           <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">3</span>
+       <span class="mf">0.001</span>           <span class="mi">1</span>      <span class="mi">210000</span>       <span class="mf">42.86</span>           <span class="n">TS</span> <span class="n">g</span> <span class="mi">1</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.001</span>           <span class="mi">1</span>      <span class="mi">175000</span>       <span class="mf">38.46</span>           <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">6</span>
+       <span class="mf">0.001</span>           <span class="mi">1</span>       <span class="mi">70000</span>       <span class="mf">20.00</span>          <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">13</span>
+       <span class="mf">0.002</span>           <span class="mi">1</span>       <span class="mi">35000</span>       <span class="mf">11.11</span>          <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">28</span>
+       <span class="mf">0.012</span>           <span class="mi">1</span>       <span class="mi">35000</span>       <span class="mf">11.11</span>         <span class="n">TS</span> <span class="n">g</span> <span class="mi">1</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">211</span>
+
+<span class="n">Final</span> <span class="n">statistics</span>
+<span class="o">----------------</span>
+<span class="n">Time</span> <span class="p">(</span><span class="n">s</span><span class="p">):</span>  <span class="mf">5.00012</span>
+
+<span class="n">Solution</span>
+<span class="o">--------</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>           <span class="mi">7</span> <span class="o">/</span> <span class="mi">7</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">area</span><span class="p">:</span>                 <span class="mi">280000</span> <span class="o">/</span> <span class="mi">280000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">profit</span><span class="p">:</span>               <span class="mi">280000</span> <span class="o">/</span> <span class="mi">280000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>            <span class="mi">1</span> <span class="o">/</span> <span class="mi">5</span> <span class="p">(</span><span class="mi">20</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">different</span> <span class="n">bins</span><span class="p">:</span>  <span class="mi">1</span>
+<span class="n">Bin</span> <span class="n">area</span><span class="p">:</span>                  <span class="mi">700000</span> <span class="o">/</span> <span class="mi">3500000</span> <span class="p">(</span><span class="mi">20</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">cost</span><span class="p">:</span>                  <span class="mi">700000</span>
+<span class="n">Waste</span><span class="p">:</span>                     <span class="mi">35000</span> <span class="p">(</span><span class="mf">11.1111</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Full</span> <span class="n">waste</span><span class="p">:</span>                <span class="mi">420000</span> <span class="p">(</span><span class="mi">60</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Width</span><span class="p">:</span>                     <span class="mi">450</span>
+<span class="n">Height</span><span class="p">:</span>                    <span class="mi">700</span>
+<span class="n">Second</span> <span class="n">leftover</span> <span class="n">value</span><span class="p">:</span>     <span class="mi">15000</span>
+</pre></div>
+</div>
+<p>Visualize:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/visualize_rectangleguillotine.py<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/rectangleguillotine_example_solution.png"><img alt="_images/rectangleguillotine_example_solution.png" class="align-center" src="_images/rectangleguillotine_example_solution.png" style="width: 512pt;" />
+</a>
+</section>
+<section id="cutting-stages">
+<h2>Cutting stages<a class="headerlink" href="#cutting-stages" title="Link to this heading">¶</a></h2>
+<p>A <strong>guillotine cut</strong> divides a plate into two sub-plates. Repeated cuts create a hierarchy of plates:</p>
+<ul class="simple">
+<li><p><strong>Stage 1</strong>: cuts that divide the original bin into vertical (or horizontal) <strong>strips</strong></p></li>
+<li><p><strong>Stage 2</strong>: cuts inside each strip, perpendicular to stage-1 cuts</p></li>
+<li><p><strong>Stage 3</strong>: cuts inside the resulting sub-strips (exact cutting only)</p></li>
+</ul>
+<p>The number of stages controls how many levels of cuts are applied. Three-stage cutting is the most common in practice.</p>
+</section>
+<section id="cut-types">
+<h2>Cut types<a class="headerlink" href="#cut-types" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">roadef2018</span></code>: pattern from the 2018 ROADEF challenge; stage-2 cuts produce only items of identical height; trimming cuts are allowed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">non-exact</span></code>: more flexible; stage-3 cuts are not required; some waste is allowed in sub-plates</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exact</span></code>: items must fill their sub-plate exactly with no waste at stage 3</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">homogenous</span></code>: all items in a strip have the same height</p></li>
+</ul>
+</section>
+<section id="trims">
+<h2>Trims<a class="headerlink" href="#trims" title="Link to this heading">¶</a></h2>
+<p>Trims model a reserved border around the bin (e.g., for clamping or edge defects). They prevent items from being placed within the specified distance of each edge.</p>
+<ul class="simple">
+<li><p>A <strong>hard</strong> trim is physically cut away: the trim strip is counted as waste.</p></li>
+<li><p>A <strong>soft</strong> trim is reserved but not cut: waste is only counted from the first actual cut inward.</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html">OneDimensional solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html">Rectangle solver</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">RectangleGuillotine solver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-example">Basic example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cutting-stages">Cutting stages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cut-types">Cut types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#trims">Trims</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="box.html">Box solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html">BoxStacks solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html">Irregular solver</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="box.html" title="Box solver"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="rectangle.html" title="Rectangle solver"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">RectangleGuillotine solver</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

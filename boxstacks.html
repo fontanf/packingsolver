@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>BoxStacks solver &#8212; PackingSolver 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Irregular solver" href="irregular.html" />
+    <link rel="prev" title="Box solver" href="box.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="irregular.html" title="Irregular solver"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="box.html" title="Box solver"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">BoxStacks solver</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="boxstacks-solver">
+<span id="boxstacks"></span><h1>BoxStacks solver<a class="headerlink" href="#boxstacks-solver" title="Link to this heading">¶</a></h1>
+<p>The BoxStacks solver solves three-dimensional bin packing problems where items are rectangular parallelepipeds (boxes) that must be packed into rectangular bins. Items can be stacked vertically: a <strong>stack</strong> is a column of items that all have the same footprint (X and Y dimensions) and the same stackability identifier.</p>
+<a class="reference internal image-reference" href="_images/boxstacks.png"><img alt="_images/boxstacks.png" class="align-center" src="_images/boxstacks.png" style="width: 512pt;" />
+</a>
+<p>These problems occur for example in pallet building, container loading, and warehouse management.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Objectives:</p>
+<ul>
+<li><p>Knapsack</p></li>
+<li><p>Bin packing</p></li>
+<li><p>Bin packing with leftovers</p></li>
+<li><p>Open dimension X</p></li>
+<li><p>Open dimension Y</p></li>
+<li><p>Open dimension Z</p></li>
+<li><p>Open dimension XY</p></li>
+<li><p>Variable-sized bin packing</p></li>
+</ul>
+</li>
+<li><p>Item types</p>
+<ul>
+<li><p>3D rotations (up to 6 orientations per item)</p></li>
+<li><p>Groups (for unloading constraints)</p></li>
+<li><p>Weight</p></li>
+<li><p>Stacking constraints</p>
+<ul>
+<li><p>Stackability identifier</p></li>
+<li><p>Nesting height</p></li>
+<li><p>Maximum number of items in a stack</p></li>
+<li><p>Maximum weight above an item</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Bin types</p>
+<ul>
+<li><p>Maximum weight</p></li>
+<li><p>Maximum stack density (weight per unit floor area)</p></li>
+</ul>
+</li>
+<li><p>Unloading constraints (same as the <a class="reference internal" href="rectangle.html#rectangle"><span class="std std-ref">Rectangle</span></a> solver)</p></li>
+</ul>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<p>The BoxStacks solver takes as input:</p>
+<ul class="simple">
+<li><p>an item CSV file; option: <code class="docutils literal notranslate"><span class="pre">--items</span> <span class="pre">items.csv</span></code></p></li>
+<li><p>a bin CSV file; option: <code class="docutils literal notranslate"><span class="pre">--bins</span> <span class="pre">bins.csv</span></code></p></li>
+<li><p>optionally a parameter CSV file; option: <code class="docutils literal notranslate"><span class="pre">--parameters</span> <span class="pre">parameters.csv</span></code></p></li>
+</ul>
+<p>It outputs:</p>
+<ul class="simple">
+<li><p>a solution CSV file; option: <code class="docutils literal notranslate"><span class="pre">--certificate</span> <span class="pre">solution.csv</span></code></p></li>
+</ul>
+<p>The <strong>item file</strong> contains:</p>
+<ul class="simple">
+<li><p>The X dimension of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">X</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The Y dimension of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">Y</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The Z dimension of the item type (<strong>mandatory</strong>) — the vertical dimension in the default orientation</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">Z</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the item type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>The profit of an item of this type (for a knapsack objective)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">PROFIT</span></code></p></li>
+<li><p>default value: item volume (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">*</span> <span class="pre">Y</span> <span class="pre">*</span> <span class="pre">Z</span></code>)</p></li>
+</ul>
+</li>
+<li><p>The weight of the item</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WEIGHT</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The allowed orientations, encoded as a bitmask</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">ROTATIONS</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code> (default orientation only)</p></li>
+<li><p>See <a class="reference internal" href="#rotations">Rotations</a> below</p></li>
+</ul>
+</li>
+<li><p>The group of the item (for unloading constraints)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">GROUP_ID</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The stackability identifier; only items with the same X and Y dimensions <strong>and</strong> the same stackability identifier may be stacked on top of each other</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">STACKABILITY_ID</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The nesting height; extra Z space saved when this item is placed on top of another item (e.g., for hollow boxes that nest inside each other)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">NESTING_HEIGHT</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The maximum number of items that may be placed in a stack containing an item of this type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">MAXIMUM_STACKABILITY</span></code></p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+<li><p>The maximum weight that may be placed above an item of this type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">MAXIMUM_WEIGHT_ABOVE</span></code></p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>bin file</strong> contains:</p>
+<ul class="simple">
+<li><p>The X dimension of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">X</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The Y dimension of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">Y</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The Z dimension of the bin type (<strong>mandatory</strong>) — the height of the bin</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">Z</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the bin type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>The minimum number of copies that must be used</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES_MIN</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The cost of a bin of this type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COST</span></code></p></li>
+<li><p>default value: bin volume</p></li>
+</ul>
+</li>
+<li><p>The maximum total weight allowed in a bin of this type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">MAXIMUM_WEIGHT</span></code></p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+<li><p>The maximum weight per unit floor area for any stack in the bin</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">MAXIMUM_STACK_DENSITY</span></code></p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>parameter file</strong> has two columns: <code class="docutils literal notranslate"><span class="pre">NAME</span></code> and <code class="docutils literal notranslate"><span class="pre">VALUE</span></code>. The possible entries are:</p>
+<ul class="simple">
+<li><p>The objective; name: <code class="docutils literal notranslate"><span class="pre">objective</span></code>; possible values:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">knapsack</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-x</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-y</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-z</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-xy</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="basic-example">
+<h2>Basic example<a class="headerlink" href="#basic-example" title="Link to this heading">¶</a></h2>
+<p>Inputs:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span><span class="p">,</span><span class="n">STACKABILITY_ID</span>
+<span class="mi">300</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">0</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span>
+<span class="mi">600</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">600</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+</pre></div>
+</div>
+</div>
+<p>Solve:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">=================================</span>
+          <span class="n">PackingSolver</span>          
+<span class="o">=================================</span>
+
+<span class="n">Problem</span> <span class="nb">type</span>
+<span class="o">------------</span>
+<span class="n">BoxStacks</span>
+
+<span class="n">Instance</span>
+<span class="o">--------</span>
+<span class="n">Objective</span><span class="p">:</span>             <span class="n">BinPackingWithLeftovers</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">item</span> <span class="n">types</span><span class="p">:</span>  <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>       <span class="mi">8</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="nb">bin</span> <span class="n">types</span><span class="p">:</span>   <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>        <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">groups</span><span class="p">:</span>      <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">defects</span><span class="p">:</span>     <span class="mi">0</span>
+<span class="n">Unloading</span> <span class="n">constraint</span><span class="p">:</span>  <span class="kc">None</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">volume</span><span class="p">:</span>     <span class="mi">72000000</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>     <span class="mf">7.2e+07</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">weight</span><span class="p">:</span>     <span class="mi">0</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">volume</span><span class="p">:</span>      <span class="mi">144000000</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">weight</span><span class="p">:</span>      <span class="n">inf</span>
+
+        <span class="n">Time</span>       <span class="n">Waste</span>   <span class="n">Waste</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span>                         <span class="n">Comment</span>
+        <span class="o">----</span>       <span class="o">-----</span>   <span class="o">---------</span>                         <span class="o">-------</span>
+       <span class="mf">0.001</span>    <span class="mi">72000000</span>       <span class="mf">50.00</span>                        <span class="n">SOR</span> <span class="n">it</span> <span class="mi">0</span>
+
+<span class="n">Final</span> <span class="n">statistics</span>
+<span class="o">----------------</span>
+<span class="n">Time</span> <span class="p">(</span><span class="n">s</span><span class="p">):</span>  <span class="mf">0.000868594</span>
+
+<span class="n">Solution</span>
+<span class="o">--------</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>   <span class="mi">8</span> <span class="o">/</span> <span class="mi">8</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">volume</span><span class="p">:</span>       <span class="mf">7.2e+07</span> <span class="o">/</span> <span class="mf">7.2e+07</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">weight</span><span class="p">:</span>       <span class="mi">0</span> <span class="o">/</span> <span class="mi">0</span> <span class="p">(</span><span class="o">-</span><span class="n">nan</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">profit</span><span class="p">:</span>       <span class="mf">7.2e+07</span> <span class="o">/</span> <span class="mf">7.2e+07</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">stacks</span><span class="p">:</span>  <span class="mi">2</span>
+<span class="n">Stack</span> <span class="n">area</span><span class="p">:</span>        <span class="mi">120000</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>    <span class="mi">1</span> <span class="o">/</span> <span class="mi">1</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">volume</span><span class="p">:</span>        <span class="mi">144000000</span> <span class="o">/</span> <span class="mi">144000000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">area</span><span class="p">:</span>          <span class="mi">240000</span> <span class="o">/</span> <span class="mi">240000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">weight</span><span class="p">:</span>        <span class="n">inf</span> <span class="o">/</span> <span class="n">inf</span> <span class="p">(</span><span class="o">-</span><span class="n">nan</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">cost</span><span class="p">:</span>          <span class="mi">240000</span>
+<span class="n">Waste</span><span class="p">:</span>             <span class="mi">72000000</span>
+<span class="n">Waste</span> <span class="p">(</span><span class="o">%</span><span class="p">):</span>         <span class="mi">50</span>
+<span class="n">Full</span> <span class="n">waste</span><span class="p">:</span>        <span class="mi">72000000</span>
+<span class="n">Full</span> <span class="n">waste</span> <span class="p">(</span><span class="o">%</span><span class="p">):</span>    <span class="mi">50</span>
+<span class="n">Volume</span> <span class="n">load</span><span class="p">:</span>       <span class="mf">0.5</span>
+<span class="n">Area</span> <span class="n">load</span><span class="p">:</span>         <span class="mf">0.5</span>
+<span class="n">Weight</span> <span class="n">load</span><span class="p">:</span>       <span class="mi">0</span>
+<span class="n">X</span> <span class="nb">max</span><span class="p">:</span>             <span class="mi">600</span>
+<span class="n">Y</span> <span class="nb">max</span><span class="p">:</span>             <span class="mi">200</span>
+</pre></div>
+</div>
+<p>Visualize:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/visualize_boxstacks.py<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/boxstacks_example_solution.png"><img alt="_images/boxstacks_example_solution.png" class="align-center" src="_images/boxstacks_example_solution.png" style="width: 512pt;" />
+</a>
+</section>
+<section id="rotations">
+<h2>Rotations<a class="headerlink" href="#rotations" title="Link to this heading">¶</a></h2>
+<p>The six possible 3D orientations of a box are:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Rotation id</p></th>
+<th class="head"><p>X direction</p></th>
+<th class="head"><p>Y direction</p></th>
+<th class="head"><p>Z direction (vertical)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>x</p></td>
+<td><p>y</p></td>
+<td><p>z</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>y</p></td>
+<td><p>x</p></td>
+<td><p>z</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>z</p></td>
+<td><p>y</p></td>
+<td><p>x</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>y</p></td>
+<td><p>z</p></td>
+<td><p>x</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>x</p></td>
+<td><p>z</p></td>
+<td><p>y</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>z</p></td>
+<td><p>x</p></td>
+<td><p>y</p></td>
+</tr>
+</tbody>
+</table>
+<p>The <code class="docutils literal notranslate"><span class="pre">ROTATIONS</span></code> column is a <strong>bitmask</strong>: bit <em>k</em> (value 2^k) is set if rotation <em>k</em> is allowed. Common values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> (= 2^0): only the default orientation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">3</span></code> (= 2^0 + 2^1): Z face always on top; both XY rotations allowed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">15</span></code> (= 2^0 + 2^1 + 2^2 + 2^3): Y face cannot be on top</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">51</span></code> (= 2^0 + 2^1 + 2^4 + 2^5): X face cannot be on top</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">63</span></code> (= all 6 bits): all six orientations allowed</p></li>
+</ul>
+</section>
+<section id="stacking">
+<h2>Stacking<a class="headerlink" href="#stacking" title="Link to this heading">¶</a></h2>
+<p>Items can be stacked on top of each other within a bin. An item can only be placed on top of another item if:</p>
+<ol class="arabic simple">
+<li><p>Both items have exactly the same X and Y dimensions in their placed orientations.</p></li>
+<li><p>Both items have the same <code class="docutils literal notranslate"><span class="pre">STACKABILITY_ID</span></code>.</p></li>
+</ol>
+<p>The <code class="docutils literal notranslate"><span class="pre">NESTING_HEIGHT</span></code> field models hollow items that can partially nest into each other: when item B is placed on item A, the effective Z space consumed by A is reduced by <code class="docutils literal notranslate"><span class="pre">A.NESTING_HEIGHT</span></code>.</p>
+<p>Stacking constraints per item type:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MAXIMUM_STACKABILITY</span></code>: limits the total number of items in a single stack containing an item of this type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MAXIMUM_WEIGHT_ABOVE</span></code>: limits the total weight of items placed above an item of this type.</p></li>
+</ul>
+</section>
+<section id="groups">
+<h2>Groups<a class="headerlink" href="#groups" title="Link to this heading">¶</a></h2>
+<p>Items can be assigned to delivery groups via the <code class="docutils literal notranslate"><span class="pre">GROUP_ID</span></code> column. Groups work the same way as in the <a class="reference internal" href="rectangle.html#rectangle"><span class="std std-ref">Rectangle</span></a> solver: group 0 is unloaded first (placed last / nearest the door), group 1 next, etc.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html">OneDimensional solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html">Rectangle solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html">RectangleGuillotine solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="box.html">Box solver</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">BoxStacks solver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-example">Basic example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rotations">Rotations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stacking">Stacking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#groups">Groups</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html">Irregular solver</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="irregular.html" title="Irregular solver"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="box.html" title="Box solver"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">BoxStacks solver</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

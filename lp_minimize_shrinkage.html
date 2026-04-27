@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>LP model: linear_programming_minimize_shrinkage &#8212; PackingSolver 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">LP model: <code class="docutils literal notranslate"><span class="pre">linear_programming_minimize_shrinkage</span></code></a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="lp-model-linear-programming-minimize-shrinkage">
+<h1>LP model: <code class="docutils literal notranslate"><span class="pre">linear_programming_minimize_shrinkage</span></code><a class="headerlink" href="#lp-model-linear-programming-minimize-shrinkage" title="Link to this heading">¶</a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">linear_programming_minimize_shrinkage</span></code> takes a single-bin solution whose items
+may overlap or lie outside the bin and tries to grow each item as large as
+possible while keeping them mutually non-overlapping and inside the bin.  It is
+used as the inner LP solver of the local-search algorithm.</p>
+<p>Items are <strong>scaled</strong>: item $i$ is represented at scale $\lambda_i \in [0,1]$,
+meaning its shape is $\lambda_i \cdot S_i$ centered at position $(X_i, Y_i)$
+(scaled world coordinates, see §Coordinates).  At $\lambda_i = 0$ the item is a
+point; at $\lambda_i = 1$ it has its original full size.</p>
+<p>The outer loop re-linearises the non-overlap constraints and iterates until no
+further improvement is possible.</p>
+</section>
+<hr class="docutils" />
+<section id="coordinates">
+<h2>Coordinates<a class="headerlink" href="#coordinates" title="Link to this heading">¶</a></h2>
+<p>All item shapes are stored pre-multiplied by a scale factor $s$ (<code class="docutils literal notranslate"><span class="pre">scale_value</span></code>)
+chosen so that coordinates are integers:
+$$
+S_i^{\text{scaled}} = s \cdot S_i^{\text{orig}}.
+$$
+The LP works entirely in scaled coordinates.  The LP variable for item $i$’s
+position is
+$$
+X_i = s \cdot \text{bl_corner}_i^x, \qquad Y_i = s \cdot \text{bl_corner}_i^y.
+$$
+After solving, the stored <code class="docutils literal notranslate"><span class="pre">bl_corner</span></code> is recovered by dividing by $s$.</p>
+</section>
+<hr class="docutils" />
+<section id="decision-variables">
+<h2>Decision variables<a class="headerlink" href="#decision-variables" title="Link to this heading">¶</a></h2>
+<p>For each item $i \in {1,\dots,n}$:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Domain</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>$X_i$</p></td>
+<td><p>$[\underline{X}_i,, \overline{X}_i]$</p></td>
+<td><p>$x$-coordinate of bl_corner (scaled)</p></td>
+</tr>
+<tr class="row-odd"><td><p>$Y_i$</p></td>
+<td><p>$[\underline{Y}_i,, \overline{Y}_i]$</p></td>
+<td><p>$y$-coordinate of bl_corner (scaled)</p></td>
+</tr>
+<tr class="row-even"><td><p>$\lambda_i$</p></td>
+<td><p>$[0, 1]$</p></td>
+<td><p>scale factor of item $i$</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable bounds for $X_i$, $Y_i$.</strong>  Let $[\underline{x}<em>i, \overline{x}<em>i]$
+(resp. $y$) be the extent of the rotated full-size item in the $x$ (resp. $y$)
+direction.  The bl_corner bounds that keep the full-size item inside the bin
+AABB $[B^x</em>{\min}, B^x</em>{\max}] \times [B^y_{\min}, B^y_{\max}]$ are:
+$$
+\underline{X}<em>i = s B^x</em>{\min} - \underline{x}_i, \qquad
+\overline{X}<em>i  = s B^x</em>{\max} - \overline{x}_i,
+$$
+and analogously for $Y_i$.  If the item is larger than the bin in a given
+dimension ($\underline{X}_i &gt; \overline{X}_i$), the raw bin-AABB bounds are
+used instead (the item will be forced to $\lambda_i &lt; 1$).</p>
+<p>A movement box of half-size $\delta = |B|_2 \cdot s$ (bin diagonal in scaled
+units) is applied around the current position, so the effective bounds are:
+$$
+\underline{X}_i^{\text{eff}} = \max!\bigl(\underline{X}_i,; X_i^{\text{cur}} - \delta\bigr),
+\qquad
+\overline{X}_i^{\text{eff}}  = \min!\bigl(\overline{X}_i,;  X_i^{\text{cur}} + \delta\bigr),
+$$
+and analogously for $Y_i$.  Because $\delta$ equals the bin diagonal, these
+reduce to $[\underline{X}_i, \overline{X}_i]$ in practice.</p>
+</section>
+<hr class="docutils" />
+<section id="objective">
+<h2>Objective<a class="headerlink" href="#objective" title="Link to this heading">¶</a></h2>
+<p>$$
+\max \sum_{i=1}^{n} w_i \lambda_i
+$$</p>
+<p>where $w_i &gt; 0$ is a per-item penalty weight (<code class="docutils literal notranslate"><span class="pre">item_penalties[i]</span></code>, defaulting to
+$1$).  Weights are increased by the outer local-search loop whenever item $i$
+remains shrunken ($\lambda_i &lt; 1$) after an LP call, so frequently-problematic
+items are prioritised.</p>
+</section>
+<hr class="docutils" />
+<section id="constraints">
+<h2>Constraints<a class="headerlink" href="#constraints" title="Link to this heading">¶</a></h2>
+<p>Non-overlap is enforced via <strong>linearised supporting-hyperplane constraints</strong>.
+At each outer iteration the separating direction $(a, b)$ for each conflicting
+pair is fixed from the current positions (using the shrunken shapes
+$\lambda_i^{\text{cur}} \cdot S_i$), and the resulting linear constraints are
+added to the LP.  $H_i$ and $L_j$ below always use the <strong>full-size</strong> shapes
+(since $\lambda$ is an LP variable).</p>
+<section id="support-function">
+<h3>Support function<a class="headerlink" href="#support-function" title="Link to this heading">¶</a></h3>
+<p>For a convex polygon $P$ with vertices ${v_k}$:
+$$
+h(P,, \mathbf{d}) = \max_k; \mathbf{d}^\top v_k.
+$$</p>
+</section>
+<section id="separating-direction">
+<h3>Separating direction<a class="headerlink" href="#separating-direction" title="Link to this heading">¶</a></h3>
+<p>Given the current positions $X_i^{\text{cur}}$, $Y_i^{\text{cur}}$ and the
+current shrunken shapes $\lambda_i^{\text{cur}} \cdot S_i$, the direction
+$(a, b)$ for a pair of shapes is the outward normal of the edge (from either
+shape) that maximises the current signed separation:
+$$
+(a, b) = \operatorname*{arg,max}_{\text{edges}} \Bigl[
+a,(X_j^{\text{cur}} - X_i^{\text{cur}}) + b,(Y_j^{\text{cur}} - Y_i^{\text{cur}})</p>
+<ul class="simple">
+<li><p>h(\lambda_i^{\text{cur}} S_i,; (a,b))</p></li>
+<li><p>h(\lambda_j^{\text{cur}} S_j,; (-a,-b))
+\Bigr].
+$$
+For a border/defect obstacle $O$ (fixed at world origin) and item $i$, the
+shrunken item shape is used as shape_to and the direction $(a, b)$ maximises
+the separation of the item center from the obstacle.</p></li>
+</ul>
+</section>
+<section id="itemborder-and-itemdefect-constraints">
+<h3>Item–border and item–defect constraints<a class="headerlink" href="#itemborder-and-itemdefect-constraints" title="Link to this heading">¶</a></h3>
+<p>Let $O$ be a convex part of a bin border or defect (fixed).  Define:
+$$
+H_O = h(O,; (a,b)), \qquad L_i = h(S_i,; (-a,-b)).
+$$
+Constraint:
+$$
+a X_i + b Y_i - L_i, \lambda_i ;\ge; H_O.
+$$
+At $\lambda_i = 1$ this reduces to $a X_i + b Y_i \ge H_O + L_i$, which is
+exactly the Minkowski-sum separation condition for the full-size item and the
+obstacle.  At $\lambda_i = 0$ the item is a point and the constraint requires
+its center to lie outside the obstacle.</p>
+</section>
+<section id="itemitem-constraints">
+<h3>Item–item constraints<a class="headerlink" href="#itemitem-constraints" title="Link to this heading">¶</a></h3>
+<p>For a pair of items $i, j$ with convex parts $S_i$, $S_j$, define:
+$$
+H_i = h(S_i,; (a,b)), \qquad L_j = h(S_j,; (-a,-b)).
+$$
+Constraint:
+$$
+a,(X_j - X_i) + b,(Y_j - Y_i) - H_i,\lambda_i - L_j,\lambda_j ;\ge; 0.
+$$
+At $\lambda_i = \lambda_j = 1$ this is the standard edge-based separation
+condition for the two full-size items.  At $\lambda_i = \lambda_j = 0$ both
+items are points and the constraint becomes $a(X_j - X_i) + b(Y_j - Y_i) \ge
+0$; because both scaled shapes are degenerate, the separating direction
+$(a, b)$ reduces to $(0, 0)$ and the constraint is dropped entirely, so
+zero-size items are unconstrained relative to each other.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="feasibility-at-lambda-0">
+<h2>Feasibility at $\lambda = 0$<a class="headerlink" href="#feasibility-at-lambda-0" title="Link to this heading">¶</a></h2>
+<p>When all $\lambda_i = 0$ items are zero-sized.  The only active constraints are
+the border/defect constraints, which require each item’s center to lie in the
+bin interior (outside every border/defect obstacle).  Since items can be placed
+at any position in the bin interior simultaneously, the LP is always feasible at
+$\lambda = 0$.</p>
+</section>
+<hr class="docutils" />
+<section id="outer-iteration-loop">
+<h2>Outer iteration loop<a class="headerlink" href="#outer-iteration-loop" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>current_value ← 0
+current_lambda ← [0, …, 0]
+
+repeat:
+    for each item i:
+        compute rotated convex decomposition of λᵢ·Sᵢ  (shrunken)
+    for each pair (item, obstacle) and (item, item):
+        find best separating direction (a, b) using shrunken shapes
+        compute constraint coefficients H, L from full-size shapes
+    build and solve LP
+    if LP objective ≤ current_value: stop
+    current_value   ← LP objective
+    current_lambda  ← LP solution λ values
+    update item positions from LP solution
+</pre></div>
+</div>
+<p><strong>Convergence.</strong>  The objective is non-decreasing.  It is bounded above by
+$\sum_i w_i$.  The loop terminates when no improving move is found.</p>
+<p><strong>Output.</strong>  The function returns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">solution</span></code>: item positions at the last improving LP solution.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">final_lambda</span></code>: $\lambda_i$ values at that solution.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">items_shrunken</span></code>: whether $\lambda_i &lt; 1 - 10^{-6}$ for each item.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">feasible</span></code>: <code class="docutils literal notranslate"><span class="pre">true</span></code> iff all $\lambda_i = 1$ (all items at full size, no overlaps).</p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html">OneDimensional solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html">Rectangle solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html">RectangleGuillotine solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="box.html">Box solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html">BoxStacks solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html">Irregular solver</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">LP model: <code class="docutils literal notranslate"><span class="pre">linear_programming_minimize_shrinkage</span></code></a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

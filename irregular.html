@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Irregular solver &#8212; PackingSolver 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="BoxStacks solver" href="boxstacks.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="boxstacks.html" title="BoxStacks solver"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Irregular solver</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="irregular-solver">
+<span id="irregular"></span><h1>Irregular solver<a class="headerlink" href="#irregular-solver" title="Link to this heading">¶</a></h1>
+<p>The Irregular solver solves problems where items are arbitrary two-dimensional polygons that must be placed inside polygonal bins without overlapping.</p>
+<a class="reference internal image-reference" href="_images/irregular.png"><img alt="_images/irregular.png" class="align-center" src="_images/irregular.png" style="width: 512pt;" />
+</a>
+<p>These problems occur for example in the textile, leather, sheet metal, and wood industries.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Objectives:</p>
+<ul>
+<li><p>Knapsack</p></li>
+<li><p>Bin packing</p></li>
+<li><p>Bin packing with leftovers</p></li>
+<li><p>Open dimension X</p></li>
+<li><p>Open dimension Y</p></li>
+<li><p>Open dimension XY</p></li>
+<li><p>Variable-sized bin packing</p></li>
+<li><p>Feasibility</p></li>
+</ul>
+</li>
+<li><p>Item types</p>
+<ul>
+<li><p>Polygon shapes (convex or concave)</p></li>
+<li><p>Rectangular and circular shapes</p></li>
+<li><p>Holes inside shapes</p></li>
+<li><p>Discrete and continuous rotations</p></li>
+<li><p>Mirroring (axial symmetry)</p></li>
+<li><p>Multiple item shapes</p></li>
+</ul>
+</li>
+<li><p>Bin types</p>
+<ul>
+<li><p>Polygon, rectangle and circle shapes</p></li>
+<li><p>Defects</p></li>
+<li><p>Item-bin minimum spacing</p></li>
+</ul>
+</li>
+<li><p>Spacing constraints</p>
+<ul>
+<li><p>Item-item minimum spacing</p></li>
+<li><p>Item-bin minimum spacing</p></li>
+<li><p>Item-defect minimum spacing</p></li>
+</ul>
+</li>
+</ul>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<p>The Irregular solver takes as input a single JSON file and outputs:</p>
+<ul class="simple">
+<li><p>a solution JSON file; option: <code class="docutils literal notranslate"><span class="pre">--certificate</span> <span class="pre">solution.json</span></code></p></li>
+</ul>
+<p>The <strong>input file</strong> is a JSON file containing:</p>
+<ul class="simple">
+<li><p>The objective (<code class="docutils literal notranslate"><span class="pre">objective</span></code> field)</p></li>
+<li><p>Optional global parameters (<code class="docutils literal notranslate"><span class="pre">parameters</span></code> field)</p></li>
+<li><p>A list of bin types (<code class="docutils literal notranslate"><span class="pre">bin_types</span></code> field)</p></li>
+<li><p>A list of item types (<code class="docutils literal notranslate"><span class="pre">item_types</span></code> field)</p></li>
+</ul>
+</section>
+<section id="basic-example">
+<h2>Basic example<a class="headerlink" href="#basic-example" title="Link to this heading">¶</a></h2>
+<p>This example has two item types:</p>
+<ul class="simple">
+<li><p>An L-shaped piece (non-convex outer boundary) with a rectangular hole in its vertical arm. Two copies are packed, fixed at 0° rotation.</p></li>
+<li><p>A small square (60×60) that fits exactly into the hole of the L-shaped piece. Two copies are packed.</p></li>
+</ul>
+<p>The objective is <code class="docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> in a 500×250 bin. The solver packs all four items in one bin and maximizes the leftover value. The optimal solution places each small square inside the hole of one L-shaped piece.</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">instance.json</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;objective&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bin-packing-with-leftovers&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;bin_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;width&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;height&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">250</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;item_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;polygon&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;vertices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">}</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;holes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;polygon&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;vertices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">110</span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">80</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">110</span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">80</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">170</span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">170</span><span class="p">}</span>
+<span class="w">          </span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;allowed_rotations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;copies&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;polygon&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;vertices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">  </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">  </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<p>Solve:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_irregular<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--input<span class="w"> </span>instance.json<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.json
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">=================================</span>
+          <span class="n">PackingSolver</span>          
+<span class="o">=================================</span>
+
+<span class="n">Problem</span> <span class="nb">type</span>
+<span class="o">------------</span>
+<span class="n">Irregular</span>
+
+<span class="n">Instance</span>
+<span class="o">--------</span>
+<span class="n">Objective</span><span class="p">:</span>                    <span class="n">BinPackingWithLeftovers</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">item</span> <span class="n">types</span><span class="p">:</span>         <span class="mi">2</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>              <span class="mi">4</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">fixed</span> <span class="n">items</span><span class="p">:</span>        <span class="mi">0</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="nb">bin</span> <span class="n">types</span><span class="p">:</span>          <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>               <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">defects</span><span class="p">:</span>            <span class="mi">0</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">rectangular</span> <span class="n">items</span><span class="p">:</span>  <span class="mi">2</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">circular</span> <span class="n">items</span><span class="p">:</span>     <span class="mi">0</span>
+<span class="n">Item</span><span class="o">-</span><span class="n">item</span> <span class="n">minimum</span> <span class="n">spacing</span><span class="p">:</span>    <span class="mi">0</span>
+<span class="n">Leftover</span> <span class="n">corner</span><span class="p">:</span>              <span class="n">BottomLeft</span>
+<span class="n">Open</span> <span class="n">dim</span><span class="o">.</span> <span class="n">XY</span> <span class="n">aspect</span> <span class="n">ratio</span><span class="p">:</span>    <span class="o">-</span><span class="mi">1</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">area</span><span class="p">:</span>              <span class="mi">60000</span>
+<span class="n">Smallest</span> <span class="n">item</span> <span class="n">area</span><span class="p">:</span>           <span class="mi">3600</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">area</span><span class="p">:</span>            <span class="mi">26400</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>            <span class="mi">60000</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>          <span class="mi">26400</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">copies</span><span class="p">:</span>          <span class="mi">2</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">area</span><span class="p">:</span>               <span class="mi">125000</span>
+<span class="n">Largest</span> <span class="nb">bin</span> <span class="n">cost</span><span class="p">:</span>             <span class="mi">125000</span>
+
+        <span class="n">Time</span>      <span class="c1"># bins    Leftover                         Comment</span>
+        <span class="o">----</span>      <span class="o">------</span>    <span class="o">--------</span>                         <span class="o">-------</span>
+       <span class="mf">0.001</span>           <span class="mi">1</span>       <span class="mi">25000</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="mi">1</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.001</span>           <span class="mi">1</span>       <span class="mi">45000</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="mi">0</span> <span class="n">q</span> <span class="mi">1</span>
+
+<span class="n">Final</span> <span class="n">statistics</span>
+<span class="o">----------------</span>
+<span class="n">Time</span> <span class="p">(</span><span class="n">s</span><span class="p">):</span>  <span class="mf">0.00538591</span>
+
+<span class="n">Solution</span>
+<span class="o">--------</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>  <span class="mi">4</span> <span class="o">/</span> <span class="mi">4</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">area</span><span class="p">:</span>        <span class="mi">60000</span> <span class="o">/</span> <span class="mi">60000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">profit</span><span class="p">:</span>      <span class="mi">60000</span> <span class="o">/</span> <span class="mi">60000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>   <span class="mi">1</span> <span class="o">/</span> <span class="mi">1</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">area</span><span class="p">:</span>         <span class="mi">125000</span> <span class="o">/</span> <span class="mi">125000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">cost</span><span class="p">:</span>         <span class="mi">125000</span>
+<span class="n">Full</span> <span class="n">waste</span><span class="p">:</span>       <span class="mi">65000</span>
+<span class="n">Full</span> <span class="n">waste</span> <span class="p">(</span><span class="o">%</span><span class="p">):</span>   <span class="mi">52</span>
+<span class="n">X</span> <span class="nb">min</span><span class="p">:</span>            <span class="mi">0</span>
+<span class="n">Y</span> <span class="nb">min</span><span class="p">:</span>            <span class="mi">0</span>
+<span class="n">X</span> <span class="nb">max</span><span class="p">:</span>            <span class="mi">400</span>
+<span class="n">Y</span> <span class="nb">max</span><span class="p">:</span>            <span class="mi">200</span>
+<span class="n">Density</span> <span class="n">X</span><span class="p">:</span>        <span class="mf">0.6</span>
+<span class="n">Density</span> <span class="n">Y</span><span class="p">:</span>        <span class="mf">0.6</span>
+<span class="n">ODXY</span> <span class="n">area</span><span class="p">:</span>        <span class="mi">80000</span>
+<span class="n">Leftover</span> <span class="n">value</span><span class="p">:</span>   <span class="mi">45000</span>
+</pre></div>
+</div>
+<p>The solution is written to <code class="docutils literal notranslate"><span class="pre">solution.json</span></code>.</p>
+<p>A script is available to visualize the solution:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/visualize_irregular.py<span class="w"> </span>solution.json
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/irregular_example_solution.png"><img alt="_images/irregular_example_solution.png" class="align-center" src="_images/irregular_example_solution.png" style="width: 512pt;" />
+</a>
+</section>
+<section id="input-format">
+<h2>Input format<a class="headerlink" href="#input-format" title="Link to this heading">¶</a></h2>
+<section id="objectives">
+<h3>Objectives<a class="headerlink" href="#objectives" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">objective</span></code> field in the JSON input accepts the following values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">knapsack</span></code>: maximize the profit of packed items in a single bin</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing</span></code>: pack all items using as few bins as possible</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>: bin packing, then maximize the leftover value in the last bin</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-x</span></code>: minimize the X dimension of a single bin</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-y</span></code>: minimize the Y dimension of a single bin</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-xy</span></code>: minimize the area of a single bin (aspect ratio can be constrained)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code>: pack all items minimizing total bin cost; bins may be used in any order</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">feasibility</span></code>: determine whether a packing exists</p></li>
+</ul>
+</section>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Link to this heading">¶</a></h3>
+<p>The optional <code class="docutils literal notranslate"><span class="pre">parameters</span></code> object supports:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">item_item_minimum_spacing</span></code>: minimum distance between any two items (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>)</p></li>
+</ul>
+<p>Global spacing constraints apply to all items. Per-bin spacing can be set on individual bin types.</p>
+</section>
+<section id="bin-types">
+<h3>Bin types<a class="headerlink" href="#bin-types" title="Link to this heading">¶</a></h3>
+<p>Each entry in <code class="docutils literal notranslate"><span class="pre">bin_types</span></code> describes one bin type. Common fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">copies</span></code>: number of available copies of this bin type (default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cost</span></code>: cost of one bin of this type, used for variable-sized bin packing (default: bin area)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">item_bin_minimum_spacing</span></code>: minimum distance between items and the bin boundary (default: <code class="docutils literal notranslate"><span class="pre">0</span></code>)</p></li>
+</ul>
+<p>Shape specification (one of the following):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">type:</span> <span class="pre">&quot;rectangle&quot;</span></code>: axis-aligned rectangle</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">width</span></code> (<strong>mandatory</strong>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">height</span></code> (<strong>mandatory</strong>)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">type:</span> <span class="pre">&quot;circle&quot;</span></code>: circle</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">radius</span></code> (<strong>mandatory</strong>)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">type:</span> <span class="pre">&quot;polygon&quot;</span></code>: arbitrary polygon</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">vertices</span></code> (<strong>mandatory</strong>): list of <code class="docutils literal notranslate"><span class="pre">{&quot;x&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;y&quot;:</span> <span class="pre">...}</span></code> objects in counter-clockwise order</p></li>
+</ul>
+</li>
+</ul>
+<p>Defects can be specified with the <code class="docutils literal notranslate"><span class="pre">defects</span></code> field on a bin type. Each defect is a shape (using the same shape fields as above) placed at a position inside the bin.</p>
+</section>
+<section id="item-types">
+<h3>Item types<a class="headerlink" href="#item-types" title="Link to this heading">¶</a></h3>
+<p>Each entry in <code class="docutils literal notranslate"><span class="pre">item_types</span></code> describes one item type. Common fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">copies</span></code>: number of copies of this item type (default: <code class="docutils literal notranslate"><span class="pre">1</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">profit</span></code>: profit of one item, used for knapsack (default: item area)</p></li>
+</ul>
+<p>Shape specification — same format as bin types:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">type:</span> <span class="pre">&quot;rectangle&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">type:</span> <span class="pre">&quot;circle&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">type:</span> <span class="pre">&quot;polygon&quot;</span></code> with <code class="docutils literal notranslate"><span class="pre">vertices</span></code></p></li>
+</ul>
+<p>Additional polygon fields:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">holes</span></code>: list of polygonal holes inside the shape. Each hole is a <code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;polygon&quot;,</span> <span class="pre">&quot;vertices&quot;:</span> <span class="pre">[...]}</span></code> object. Vertices must be in counter-clockwise order.</p>
+<p>All shapes (outer contour and holes) must use counter-clockwise vertex ordering.</p>
+</li>
+</ul>
+</section>
+<section id="rotation-constraints">
+<h3>Rotation constraints<a class="headerlink" href="#rotation-constraints" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">allowed_rotations</span></code> field on an item type controls which orientations are allowed.
+It is a list of rotation ranges, each with:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">start</span></code>: start angle in degrees</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">end</span></code>: end angle in degrees</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mirror</span></code>: if <code class="docutils literal notranslate"><span class="pre">true</span></code>, the item is first mirrored about the Y axis, then rotated (default: <code class="docutils literal notranslate"><span class="pre">false</span></code>)</p></li>
+</ul>
+<p>When <code class="docutils literal notranslate"><span class="pre">start</span> <span class="pre">==</span> <span class="pre">end</span></code>, only that exact angle is allowed.
+When <code class="docutils literal notranslate"><span class="pre">start</span> <span class="pre">&lt;</span> <span class="pre">end</span></code>, any angle in <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end]</span></code> is allowed (continuous rotation range).
+When <code class="docutils literal notranslate"><span class="pre">end</span> <span class="pre">==</span> <span class="pre">360</span></code>, a full 360° continuous rotation is allowed.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">allowed_rotations</span></code> is omitted, any rotation is allowed by default.</p>
+<p><strong>Examples</strong></p>
+<p>Discrete 90° rotations only:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;allowed_rotations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">90</span><span class="p">,</span><span class="w">  </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">90</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">180</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">180</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">270</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">270</span><span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>Fixed orientation (no rotation):</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;allowed_rotations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>Full 360° continuous rotation:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;allowed_rotations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">360</span><span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>Both orientations and their mirrors:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;allowed_rotations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="nt">&quot;mirror&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="nt">&quot;mirror&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="polygon-with-hole">
+<h3>Polygon with hole<a class="headerlink" href="#polygon-with-hole" title="Link to this heading">¶</a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;objective&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;open-dimension-x&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;bin_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;width&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;height&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">}</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;item_types&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;polygon&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;vertices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">}</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;holes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;polygon&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="nt">&quot;vertices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">},</span>
+<span class="w">            </span><span class="p">{</span><span class="nt">&quot;x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">}</span>
+<span class="w">          </span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="spacing-constraints">
+<h3>Spacing constraints<a class="headerlink" href="#spacing-constraints" title="Link to this heading">¶</a></h3>
+<p>Item-item and item-bin minimum spacings can be set globally in <code class="docutils literal notranslate"><span class="pre">parameters</span></code> or per bin type:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>{
+  &quot;objective&quot;: &quot;knapsack&quot;,
+  &quot;parameters&quot;: {
+    &quot;item_item_minimum_spacing&quot;: 2.0
+  },
+  &quot;bin_types&quot;: [
+    {
+      &quot;type&quot;: &quot;rectangle&quot;,
+      &quot;width&quot;: 1000,
+      &quot;height&quot;: 700,
+      &quot;item_bin_minimum_spacing&quot;: 5.0
+    }
+  ],
+  &quot;item_types&quot;: [...]
+}
+</pre></div>
+</div>
+</section>
+</section>
+<section id="output-format">
+<h2>Output format<a class="headerlink" href="#output-format" title="Link to this heading">¶</a></h2>
+<p>The solution JSON file has a single <code class="docutils literal notranslate"><span class="pre">bins</span></code> array. Each entry corresponds to one used bin and contains:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code>: bin type index</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">copies</span></code>: number of copies of this bin represented by this entry</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">items</span></code>: list of placed items, each with:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code>: item type index</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>: position of the item’s origin</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">angle</span></code>: rotation angle in degrees</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mirror</span></code>: whether the item is mirrored</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html">OneDimensional solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html">Rectangle solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html">RectangleGuillotine solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="box.html">Box solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html">BoxStacks solver</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Irregular solver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-example">Basic example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input-format">Input format</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#objectives">Objectives</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bin-types">Bin types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#item-types">Item types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rotation-constraints">Rotation constraints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#polygon-with-hole">Polygon with hole</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#spacing-constraints">Spacing constraints</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#output-format">Output format</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="boxstacks.html" title="BoxStacks solver"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Irregular solver</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

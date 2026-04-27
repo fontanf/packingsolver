@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Rectangle solver &#8212; PackingSolver 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=2bf1fcf8" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="RectangleGuillotine solver" href="rectangleguillotine.html" />
+    <link rel="prev" title="OneDimensional solver" href="onedimensional.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="rectangleguillotine.html" title="RectangleGuillotine solver"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="onedimensional.html" title="OneDimensional solver"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Rectangle solver</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="rectangle-solver">
+<span id="rectangle"></span><h1>Rectangle solver<a class="headerlink" href="#rectangle-solver" title="Link to this heading">¶</a></h1>
+<p>The Rectangle solver solves problems where items are two-dimensional rectangles that must be packed into rectangular bins without overlapping. Unlike the <a class="reference internal" href="rectangleguillotine.html#rectangleguillotine"><span class="std std-ref">RectangleGuillotine</span></a> solver, items can be placed in any position (guillotine cuts are not required).</p>
+<a class="reference internal image-reference" href="_images/rectangle.png"><img alt="_images/rectangle.png" class="align-center" src="_images/rectangle.png" style="width: 512pt;" />
+</a>
+<p>These problems occur for example in logistics (palletizing), sheet-metal cutting, and warehousing.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Objectives:</p>
+<ul>
+<li><p>Knapsack</p></li>
+<li><p>Bin packing</p></li>
+<li><p>Bin packing with leftovers</p></li>
+<li><p>Open dimension X</p></li>
+<li><p>Open dimension Y</p></li>
+<li><p>Variable-sized bin packing</p></li>
+</ul>
+</li>
+<li><p>With or without item rotations</p></li>
+<li><p>Bins may contain defects</p></li>
+<li><p>Maximum weight in bins</p></li>
+<li><p>Unloading constraints: only horizontal/vertical movements, increasing x/y</p></li>
+</ul>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<p>The Rectangle solver takes as input:</p>
+<ul class="simple">
+<li><p>an item CSV file; option: <code class="docutils literal notranslate"><span class="pre">--items</span> <span class="pre">items.csv</span></code></p></li>
+<li><p>a bin CSV file; option: <code class="docutils literal notranslate"><span class="pre">--bins</span> <span class="pre">bins.csv</span></code></p></li>
+<li><p>optionally a defect CSV file; option: <code class="docutils literal notranslate"><span class="pre">--defects</span> <span class="pre">defects.csv</span></code></p></li>
+<li><p>optionally a parameter CSV file; option: <code class="docutils literal notranslate"><span class="pre">--parameters</span> <span class="pre">parameters.csv</span></code></p></li>
+</ul>
+<p>It outputs:</p>
+<ul class="simple">
+<li><p>a solution CSV file; option: <code class="docutils literal notranslate"><span class="pre">--certificate</span> <span class="pre">solution.csv</span></code></p></li>
+</ul>
+<p>The <strong>item file</strong> contains:</p>
+<ul class="simple">
+<li><p>The width of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WIDTH</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The height of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">HEIGHT</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the item type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>Whether the item is fixed in its original orientation (cannot be rotated 90°)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">ORIENTED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: rotation allowed (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: item is oriented; rotation not allowed</p></li>
+</ul>
+</li>
+<li><p>The profit of an item of this type (for a knapsack objective)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">PROFIT</span></code></p></li>
+<li><p>default value: item area (<code class="docutils literal notranslate"><span class="pre">WIDTH</span> <span class="pre">*</span> <span class="pre">HEIGHT</span></code>)</p></li>
+</ul>
+</li>
+<li><p>The group of the item (for unloading constraints)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">GROUP_ID</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The weight of the item</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WEIGHT</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>bin file</strong> contains:</p>
+<ul class="simple">
+<li><p>The width of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WIDTH</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The height of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">HEIGHT</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the bin type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>The minimum number of copies of the bin type that must be used</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES_MIN</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The cost of a bin of this type (for a variable-sized bin packing objective)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COST</span></code></p></li>
+<li><p>default value: bin area (<code class="docutils literal notranslate"><span class="pre">WIDTH</span> <span class="pre">*</span> <span class="pre">HEIGHT</span></code>)</p></li>
+</ul>
+</li>
+<li><p>The maximum total weight that can be placed in a bin of this type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">MAXIMUM_WEIGHT</span></code></p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>defect file</strong> contains:</p>
+<ul class="simple">
+<li><p>The bin type that contains the defect (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">BIN</span></code></p></li>
+<li><p>It refers to the bin type by its position (0-indexed) in the bins file</p></li>
+</ul>
+</li>
+<li><p>The X coordinate of the bottom-left corner of the defect (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">X</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The Y coordinate of the bottom-left corner of the defect (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">Y</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The width of the defect (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WIDTH</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The height of the defect (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">HEIGHT</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>parameter file</strong> has two columns: <code class="docutils literal notranslate"><span class="pre">NAME</span></code> and <code class="docutils literal notranslate"><span class="pre">VALUE</span></code>. The possible entries are:</p>
+<ul class="simple">
+<li><p>The objective; name: <code class="docutils literal notranslate"><span class="pre">objective</span></code>; possible values:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">knapsack</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-x</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-y</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-xy</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code></p></li>
+</ul>
+</li>
+<li><p>The unloading constraint; name: <code class="docutils literal notranslate"><span class="pre">unloading_constraint</span></code>; possible values:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">none</span></code> (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">only-x-movements</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">only-y-movements</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">increasing-x</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">increasing-y</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="basic-example">
+<h2>Basic example<a class="headerlink" href="#basic-example" title="Link to this heading">¶</a></h2>
+<p>Inputs:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">300</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">10</span>
+<span class="mi">250</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">10</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1000</span><span class="p">,</span><span class="mi">500</span><span class="p">,</span><span class="mi">10</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+</pre></div>
+</div>
+</div>
+<p>Solve:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">=================================</span>
+          <span class="n">PackingSolver</span>          
+<span class="o">=================================</span>
+
+<span class="n">Problem</span> <span class="nb">type</span>
+<span class="o">------------</span>
+<span class="n">Rectangle</span>
+
+<span class="n">Instance</span>
+<span class="o">--------</span>
+<span class="n">Objective</span><span class="p">:</span>             <span class="n">BinPackingWithLeftovers</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">item</span> <span class="n">types</span><span class="p">:</span>  <span class="mi">2</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>       <span class="mi">20</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="nb">bin</span> <span class="n">types</span><span class="p">:</span>   <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>        <span class="mi">10</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">groups</span><span class="p">:</span>      <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">defects</span><span class="p">:</span>     <span class="mi">0</span>
+<span class="n">Unloading</span> <span class="n">constraint</span><span class="p">:</span>  <span class="kc">None</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">area</span><span class="p">:</span>       <span class="mi">975000</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">width</span><span class="p">:</span>      <span class="mi">5500</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">height</span><span class="p">:</span>     <span class="mi">3500</span>
+<span class="n">Smallest</span> <span class="n">item</span> <span class="n">width</span><span class="p">:</span>   <span class="mi">150</span>
+<span class="n">Smallest</span> <span class="n">item</span> <span class="n">height</span><span class="p">:</span>  <span class="mi">150</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>     <span class="mi">975000</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>   <span class="mi">60000</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">weight</span><span class="p">:</span>     <span class="mi">0</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">copies</span><span class="p">:</span>   <span class="mi">10</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">area</span><span class="p">:</span>        <span class="mi">5000000</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">weight</span><span class="p">:</span>      <span class="n">inf</span>
+<span class="n">Largest</span> <span class="nb">bin</span> <span class="n">cost</span><span class="p">:</span>      <span class="mi">500000</span>
+
+        <span class="n">Time</span>      <span class="c1"># bins    Leftover                         Comment</span>
+        <span class="o">----</span>      <span class="o">------</span>    <span class="o">--------</span>                         <span class="o">-------</span>
+       <span class="mf">0.000</span>           <span class="mi">3</span>      <span class="mi">162500</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">X</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.001</span>           <span class="mi">3</span>      <span class="mi">207500</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">X</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.007</span>           <span class="mi">3</span>      <span class="mi">275000</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">X</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.008</span>           <span class="mi">3</span>      <span class="mi">462500</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">X</span> <span class="n">q</span> <span class="mi">2</span>
+       <span class="mf">0.009</span>           <span class="mi">2</span>           <span class="mi">0</span>                  <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">X</span> <span class="n">q</span> <span class="mi">9</span>
+
+<span class="n">Final</span> <span class="n">statistics</span>
+<span class="o">----------------</span>
+<span class="n">Time</span> <span class="p">(</span><span class="n">s</span><span class="p">):</span>  <span class="mf">5.00721</span>
+
+<span class="n">Solution</span>
+<span class="o">--------</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>  <span class="mi">20</span> <span class="o">/</span> <span class="mi">20</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">area</span><span class="p">:</span>        <span class="mi">975000</span> <span class="o">/</span> <span class="mi">975000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">weight</span><span class="p">:</span>      <span class="mi">0</span> <span class="o">/</span> <span class="mi">0</span> <span class="p">(</span><span class="o">-</span><span class="n">nan</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">profit</span><span class="p">:</span>      <span class="mi">975000</span> <span class="o">/</span> <span class="mi">975000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>   <span class="mi">2</span> <span class="o">/</span> <span class="mi">10</span> <span class="p">(</span><span class="mi">20</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">area</span><span class="p">:</span>         <span class="mi">1000000</span> <span class="o">/</span> <span class="mi">5000000</span> <span class="p">(</span><span class="mi">20</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">weight</span><span class="p">:</span>       <span class="o">-</span><span class="mf">9.22337e+18</span> <span class="o">/</span> <span class="n">inf</span> <span class="p">(</span><span class="o">-</span><span class="mi">0</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">cost</span><span class="p">:</span>         <span class="mf">1e+06</span>
+<span class="n">Waste</span><span class="p">:</span>            <span class="mi">25000</span>
+<span class="n">Waste</span> <span class="p">(</span><span class="o">%</span><span class="p">):</span>        <span class="mf">2.5</span>
+<span class="n">Full</span> <span class="n">waste</span><span class="p">:</span>       <span class="mi">25000</span>
+<span class="n">Full</span> <span class="n">waste</span> <span class="p">(</span><span class="o">%</span><span class="p">):</span>   <span class="mf">2.5</span>
+<span class="n">Area</span> <span class="n">load</span><span class="p">:</span>        <span class="mf">0.195</span>
+<span class="n">Weight</span> <span class="n">load</span><span class="p">:</span>      <span class="mi">0</span>
+<span class="n">X</span> <span class="nb">max</span><span class="p">:</span>            <span class="mi">1000</span>
+<span class="n">Y</span> <span class="nb">max</span><span class="p">:</span>            <span class="mi">500</span>
+<span class="n">Leftover</span> <span class="n">value</span><span class="p">:</span>   <span class="mi">0</span>
+</pre></div>
+</div>
+<p>Visualize:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/visualize_rectangle.py<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/rectangle_example_solution.png"><img alt="_images/rectangle_example_solution.png" class="align-center" src="_images/rectangle_example_solution.png" style="width: 512pt;" />
+</a>
+</section>
+<section id="rotation">
+<h2>Rotation<a class="headerlink" href="#rotation" title="Link to this heading">¶</a></h2>
+<p>Each item may individually be allowed to be rotated by 90° or have a fixed orientation.</p>
+<p>By default, item rotation is allowed.</p>
+<p>Fixed orientation is specified via the <code class="docutils literal notranslate"><span class="pre">ORIENTED</span></code> column in the item CSV file. Value <code class="docutils literal notranslate"><span class="pre">1</span></code> specifies fixed orientation (no rotation alllowed), and value <code class="docutils literal notranslate"><span class="pre">1</span></code> rotation allowed.</p>
+<p>The following example packs 3 items of size 400×200 into a 1000×500 bin. Without rotation, the items occupy an 800×400 region and leave a narrow leftover. With rotation, one item is placed at 200×400, allowing all three to pack into a compact 600×400 region and leaving a larger leftover.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without rotation</p></th>
+<th class="head"><p>With rotation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id4" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span><span class="p">,</span><span class="n">ORIENTED</span>
+<span class="mi">400</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id5" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span><span class="p">,</span><span class="n">ORIENTED</span>
+<span class="mi">400</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id6" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1000</span><span class="p">,</span><span class="mi">500</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id7">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id7" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1000</span><span class="p">,</span><span class="mi">500</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id8">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id8" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id9">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id9" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangle_rotation_no.png"><img alt="rect_rotation_no" src="_images/rectangle_rotation_no.png" style="width: 100%;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangle_rotation_yes.png"><img alt="rect_rotation_yes" src="_images/rectangle_rotation_yes.png" style="width: 100%;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="defects">
+<h2>Defects<a class="headerlink" href="#defects" title="Link to this heading">¶</a></h2>
+<p>Defects are rectangular regions inside a bin where items cannot be placed.</p>
+<p>Defects are specified in the defects CSV file (see above).</p>
+<p>The following example packs 3 items of size 400×200 into a 1000×500 bin. Without defects, the items fill a compact L-shaped region. With a 200×300 defect at position (450, 150), the item that would naturally sit there is pushed further right, reducing the leftover.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without defects</p></th>
+<th class="head"><p>With defects</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id10">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id10" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span><span class="p">,</span><span class="n">ORIENTED</span>
+<span class="mi">400</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id11">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id11" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span><span class="p">,</span><span class="n">ORIENTED</span>
+<span class="mi">400</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id12">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id12" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1000</span><span class="p">,</span><span class="mi">500</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id13">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id13" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1000</span><span class="p">,</span><span class="mi">500</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id14">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id14" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id15">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id15" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><div class="literal-block-wrapper docutils container" id="id16">
+<div class="code-block-caption"><span class="caption-text">defects.csv</span><a class="headerlink" href="#id16" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">BIN</span><span class="p">,</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span>
+<span class="mi">0</span><span class="p">,</span><span class="mi">450</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span><span class="mi">200</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--defects<span class="w"> </span>defects.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_images/rectangle_defects_no.png"><img alt="rect_defects_no" src="_images/rectangle_defects_no.png" style="width: 100%;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangle_defects_yes.png"><img alt="rect_defects_yes" src="_images/rectangle_defects_yes.png" style="width: 100%;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="maximum-weight">
+<h2>Maximum weight<a class="headerlink" href="#maximum-weight" title="Link to this heading">¶</a></h2>
+<p>Each bin type may have a maximum weight limits: the total weight of items placed in any bin must not exceed its maximum weight.</p>
+<p>The weight of an item type is specified vie the <code class="docutils literal notranslate"><span class="pre">WEIGHT</span></code> column in the item CSV file.
+The maximum weight of a bin type is specified via the <code class="docutils literal notranslate"><span class="pre">MAXIMUM_WEIGHT</span></code> column in the bin CSV file. Items are assigned a weight via the <code class="docutils literal notranslate"><span class="pre">WEIGHT</span></code> column in the item CSV file.</p>
+<p>The following example packs 4 items of size 300×200 with weight 100 each into 600×400 bins. Without a weight limit, all 4 items (total weight 400) fit in a single bin. With <code class="docutils literal notranslate"><span class="pre">MAXIMUM_WEIGHT=200</span></code>, at most 2 items can share a bin, so 2 bins are required.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without maximum weight</p></th>
+<th class="head"><p>With maximum weight</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id17">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id17" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span><span class="p">,</span><span class="n">WEIGHT</span>
+<span class="mi">300</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">100</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id18">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id18" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span><span class="p">,</span><span class="n">WEIGHT</span>
+<span class="mi">300</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">100</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id19">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id19" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">600</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">10</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id20">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id20" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span><span class="p">,</span><span class="n">MAXIMUM_WEIGHT</span>
+<span class="mi">600</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">200</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id21">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id21" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id22">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id22" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangle_maximum_weight_no.png"><img alt="rect_maximum_weight_no" src="_images/rectangle_maximum_weight_no.png" style="width: 100%;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangle_maximum_weight_yes.png"><img alt="rect_maximum_weight_yes" src="_images/rectangle_maximum_weight_yes.png" style="width: 100%;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="unloading-constraints">
+<h2>Unloading constraints<a class="headerlink" href="#unloading-constraints" title="Link to this heading">¶</a></h2>
+<p>When loading a truck that visits multiple loading/unloading locations, it might be necessary to be able to load/unload the items at a location without having to move the items which are already in the truck.
+This is modeled in the solver with unloading constraints. Items are assigned to groups: items in group 0 are placed last (nearest the door) and unloaded first, items in group 1 are placed next, etc.</p>
+<p>The group of an item type is specified via the <code class="docutils literal notranslate"><span class="pre">GROUP_ID</span></code> column in the item CSV file.
+Unloading constraints are specified via the <code class="docutils literal notranslate"><span class="pre">unloading_constraint</span></code> key in the parameters CSV file.</p>
+<p>In the following examples, without unloading constraints, all items fit using a width of 600. But with unloading constraints, a width of 750 is necessary.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>No constraint</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">With</span> <span class="pre">unloading</span> <span class="pre">constraints</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id23">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id23" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">GROUP_ID</span>
+<span class="mi">200</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">0</span>
+<span class="mi">400</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">150</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id24">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id24" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">GROUP_ID</span>
+<span class="mi">200</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">0</span>
+<span class="mi">400</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">150</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id25">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id25" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">800</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id26">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id26" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">800</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id27">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id27" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id28">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id28" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+<span class="n">unloading_constraint</span><span class="p">,</span><span class="n">only</span><span class="o">-</span><span class="n">x</span><span class="o">-</span><span class="n">movements</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangle_unloading_no.png"><img alt="rect_unloading_no" src="_images/rectangle_unloading_no.png" style="width: 100%;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangle_unloading_yes.png"><img alt="rect_unloading_yes" src="_images/rectangle_unloading_yes.png" style="width: 100%;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+<p>4 types of unloading constraints are available:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">only-x-movements</span></code>: items can only be moved out along the X axis; therefore, within each horizontal row, no item from a later group may be positioned to the right of an item from an earlier group</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">only-y-movements</span></code>: same along the Y axis</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">increasing-x</span></code>: all items from group 0 have a greater X coordinate than all items from group 1, which in turn have a greater X coordinate than all items from group 2, etc.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">increasing-y</span></code>: same along the Y axis</p></li>
+</ul>
+<p>In the following examples, two different solutions are obtained depending of the type of unloading constraint.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">only-x-movements</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">increasing-x</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id29">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id29" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">GROUP_ID</span>
+<span class="mi">500</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">0</span>
+<span class="mi">200</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">150</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id30">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id30" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">GROUP_ID</span>
+<span class="mi">500</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">0</span>
+<span class="mi">200</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">150</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id31">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id31" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">800</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id32">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id32" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">800</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id33">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id33" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">open</span><span class="o">-</span><span class="n">dimension</span><span class="o">-</span><span class="n">x</span>
+<span class="n">unloading_constraint</span><span class="p">,</span><span class="n">only</span><span class="o">-</span><span class="n">x</span><span class="o">-</span><span class="n">movements</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id34">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id34" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">open</span><span class="o">-</span><span class="n">dimension</span><span class="o">-</span><span class="n">x</span>
+<span class="n">unloading_constraint</span><span class="p">,</span><span class="n">increasing</span><span class="o">-</span><span class="n">x</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangle_unloading_x_movements.png"><img alt="rect_unloading_x_movements" src="_images/rectangle_unloading_x_movements.png" style="width: 100%;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangle_unloading_increasing_x.png"><img alt="rect_unloading_increasing_x" src="_images/rectangle_unloading_increasing_x.png" style="width: 100%;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html">OneDimensional solver</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Rectangle solver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-example">Basic example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rotation">Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#defects">Defects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-weight">Maximum weight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#unloading-constraints">Unloading constraints</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html">RectangleGuillotine solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="box.html">Box solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html">BoxStacks solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html">Irregular solver</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="rectangleguillotine.html" title="RectangleGuillotine solver"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="onedimensional.html" title="OneDimensional solver"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver 0.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Rectangle solver</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>
