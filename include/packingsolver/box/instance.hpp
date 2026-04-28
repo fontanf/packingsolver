@@ -10,6 +10,34 @@ namespace box
 
 enum class Direction { X, Y, Z, Any };
 
+/**
+ * The 6 rotations of a 3D item.
+ *
+ * Each enumerator name encodes where the item's (x, y, z) dimensions end up
+ * after the rotation — e.g. XYZ is the identity, YXZ swaps x and y.
+ *
+ * | Rotation | placed-x | placed-y | placed-z |
+ * |----------|----------|----------|----------|
+ * | XYZ      | x        | y        | z        |
+ * | YXZ      | y        | x        | z        |
+ * | ZYX      | z        | y        | x        |
+ * | YZX      | y        | z        | x        |
+ * | XZY      | x        | z        | y        |
+ * | ZXY      | z        | x        | y        |
+ */
+enum class Rotation
+{
+    XYZ = 0,
+    YXZ = 1,
+    ZYX = 2,
+    YZX = 3,
+    XZY = 4,
+    ZXY = 5,
+};
+
+/** Total number of 3D item rotations. */
+constexpr int NUMBER_OF_ROTATIONS = 6;
+
 std::istream& operator>>(
         std::istream& in,
         Direction& o);
@@ -17,6 +45,14 @@ std::istream& operator>>(
 std::ostream& operator<<(
         std::ostream& os,
         Direction o);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        Rotation rotation);
+
+std::string to_string(Rotation rotation);
+
+Rotation rotation_from_string(const std::string& str);
 
 
 struct Point
@@ -55,27 +91,20 @@ struct Box
     /** Get the length of the largest size of the box. */
     Length max() const { return std::max(std::max(x, y), z); }
 
-    Box rotate(int rotation) const
+    Box rotate(Rotation rotation) const
     {
         switch (rotation) {
-        case 0: {
-            return {this->x, this->y, this->z};
-        } case 1: {
-            return {this->y, this->x, this->z};
-        } case 2: {
-            return {this->z, this->y, this->x};
-        } case 3: {
-            return {this->y, this->z, this->x};
-        } case 4: {
-            return {this->x, this->z, this->y};
-        } case 5: {
-            return {this->z, this->x, this->y};
-        } default: {
+        case Rotation::XYZ: return {this->x, this->y, this->z};
+        case Rotation::YXZ: return {this->y, this->x, this->z};
+        case Rotation::ZYX: return {this->z, this->y, this->x};
+        case Rotation::YZX: return {this->y, this->z, this->x};
+        case Rotation::XZY: return {this->x, this->z, this->y};
+        case Rotation::ZXY: return {this->z, this->x, this->y};
+        default:
             throw std::invalid_argument(
                     FUNC_SIGNATURE + ": "
                     "incorrect rotation value: '"
-                    + std::to_string(rotation) + "'");
-        }
+                    + std::to_string((int)rotation) + "'");
         }
     }
 
@@ -106,25 +135,8 @@ struct ItemType
     /** Number of copies of the item type. */
     ItemPos copies;
 
-    /**
-     * Allowed rotations of the item type.
-     *
-     * Rotations
-     * - 0: x -> x, y -> y, z -> z (no rotation)
-     * - 1: x -> y, y -> x, z -> z
-     * - 2: x -> z, y -> y, z -> x
-     * - 3: x -> y, y -> z, z -> x
-     * - 4: x -> x, y -> z, z -> y
-     * - 5: x -> z, y -> x, z -> y
-     *
-     * Examples:
-     * - 1: only default orientation
-     * - 3: the top faces is z, both remaining rotations are allowed
-     * - 15: the top faces cannot be y, all remaining orientations are allowed
-     * - 51: the top faces cannot be x, all remaining orientations are allowed
-     * - 63: all orientations are allowed
-     */
-    int rotations;
+    /** Allowed rotations of the item type. */
+    std::vector<Rotation> rotations;
 
     /** Weight of the item type. */
     Weight weight = 0;
@@ -140,7 +152,12 @@ struct ItemType
 
     inline Volume space() const { return volume(); }
 
-    inline bool can_rotate(int rotation) const { return ((rotations >> rotation) & 1); }
+    inline bool can_rotate(Rotation rotation) const
+    {
+        for (Rotation r : rotations)
+            if (r == rotation) return true;
+        return false;
+    }
 
     /** Number of fixed copies of the item type (pre-placed in bin types). */
     ItemPos copies_fixed = 0;

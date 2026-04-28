@@ -11,6 +11,42 @@ namespace boxstacks
 
 using Direction = rectangle::Direction;
 
+/**
+ * The 6 rotations of a 3D item.
+ *
+ * Each enumerator name encodes where the item's (x, y, z) dimensions end up
+ * after the rotation — e.g. XYZ is the identity, YXZ swaps x and y.
+ *
+ * | Rotation | placed-x | placed-y | placed-z |
+ * |----------|----------|----------|----------|
+ * | XYZ      | x        | y        | z        |
+ * | YXZ      | y        | x        | z        |
+ * | ZYX      | z        | y        | x        |
+ * | YZX      | y        | z        | x        |
+ * | XZY      | x        | z        | y        |
+ * | ZXY      | z        | x        | y        |
+ */
+enum class Rotation
+{
+    XYZ = 0,
+    YXZ = 1,
+    ZYX = 2,
+    YZX = 3,
+    XZY = 4,
+    ZXY = 5,
+};
+
+/** Total number of 3D item rotations. */
+constexpr int NUMBER_OF_ROTATIONS = 6;
+
+std::ostream& operator<<(
+        std::ostream& os,
+        Rotation rotation);
+
+std::string to_string(Rotation rotation);
+
+Rotation rotation_from_string(const std::string& str);
+
 struct Point
 {
     /** x-coordinate. */
@@ -98,14 +134,8 @@ struct ItemType
      * - 4: x -> x, y -> z, z -> y
      * - 5: x -> z, y -> x, z -> y
      *
-     * Examples:
-     * - 1: only default orientation
-     * - 3: the top faces is z, both remaining rotations are allowed
-     * - 15: the top faces cannot be y, all remaining orientations are allowed
-     * - 51: the top faces cannot be x, all remaining orientations are allowed
-     * - 63: all orientations are allowed
      */
-    int rotations;
+    std::vector<Rotation> rotations;
 
     /** Weight of the item type. */
     Weight weight = 0;
@@ -139,75 +169,54 @@ struct ItemType
      * Computed attributes
      */
 
-    Length x(int rotation) const
+    Length x(Rotation rotation) const
     {
         switch (rotation) {
-        case 0: {
-            return box.x;
-        } case 1: {
-            return box.y;
-        } case 2: {
-            return box.z;
-        } case 3: {
-            return box.y;
-        } case 4: {
-            return box.x;
-        } case 5: {
-            return box.z;
-        } default: {
+        case Rotation::XYZ: return box.x;
+        case Rotation::YXZ: return box.y;
+        case Rotation::ZYX: return box.z;
+        case Rotation::YZX: return box.y;
+        case Rotation::XZY: return box.x;
+        case Rotation::ZXY: return box.z;
+        default:
             throw std::invalid_argument(
                     FUNC_SIGNATURE + ": "
-                    "incorrect rotation value; "
-                    "rotation: '" + std::to_string(rotation) + "'");
-        }
+                    "incorrect rotation value: '"
+                    + std::to_string((int)rotation) + "'");
         }
     }
 
-    Length y(int rotation) const
+    Length y(Rotation rotation) const
     {
         switch (rotation) {
-        case 0: {
-            return box.y;
-        } case 1: {
-            return box.x;
-        } case 2: {
-            return box.y;
-        } case 3: {
-            return box.z;
-        } case 4: {
-            return box.z;
-        } case 5: {
-            return box.x;
-        } default: {
+        case Rotation::XYZ: return box.y;
+        case Rotation::YXZ: return box.x;
+        case Rotation::ZYX: return box.y;
+        case Rotation::YZX: return box.z;
+        case Rotation::XZY: return box.z;
+        case Rotation::ZXY: return box.x;
+        default:
             throw std::invalid_argument(
                     FUNC_SIGNATURE + ": "
-                    "incorrect rotation value; "
-                    "rotation: '" + std::to_string(rotation) + "'");
-        }
+                    "incorrect rotation value: '"
+                    + std::to_string((int)rotation) + "'");
         }
     }
 
-    Length z(int rotation) const
+    Length z(Rotation rotation) const
     {
         switch (rotation) {
-        case 0: {
-            return box.z;
-        } case 1: {
-            return box.z;
-        } case 2: {
-            return box.x;
-        } case 3: {
-            return box.x;
-        } case 4: {
-            return box.y;
-        } case 5: {
-            return box.y;
-        } default: {
+        case Rotation::XYZ: return box.z;
+        case Rotation::YXZ: return box.z;
+        case Rotation::ZYX: return box.x;
+        case Rotation::YZX: return box.x;
+        case Rotation::XZY: return box.y;
+        case Rotation::ZXY: return box.y;
+        default:
             throw std::invalid_argument(
                     FUNC_SIGNATURE + ": "
-                    "incorrect rotation value; "
-                    "rotation: '" + std::to_string(rotation) + "'");
-        }
+                    "incorrect rotation value: '"
+                    + std::to_string((int)rotation) + "'");
         }
     }
 
@@ -218,7 +227,12 @@ struct ItemType
 
     inline Volume space() const { return volume(); }
 
-    inline bool can_rotate(int rotation) const { return ((rotations >> rotation) & 1); }
+    inline bool can_rotate(Rotation rotation) const
+    {
+        for (Rotation r: rotations)
+            if (r == rotation) return true;
+        return false;
+    }
 
     /** Number of fixed copies of the item type (pre-placed in bin types). */
     ItemPos copies_fixed = 0;
@@ -240,7 +254,7 @@ struct FixedItem
     Length z_start;
 
     /** Rotation of the item. */
-    int rotation;
+    Rotation rotation;
 };
 
 /**

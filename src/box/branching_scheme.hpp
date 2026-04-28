@@ -53,7 +53,7 @@ public:
         ItemTypeId item_type_id;
 
         /** Rotation of the inserted item. */
-        int rotation;
+        Rotation rotation;
 
         /**
          * - < 0: the item is inserted in the last bin
@@ -93,7 +93,7 @@ public:
         ItemTypeId item_type_id = -1;
 
         /** Rotation of the last inserted item. */
-        int rotation = -1;
+        Rotation rotation = Rotation::XYZ;
 
         /** x-coordinates of the bottom-left corner of the last inserted item. */
         Length x = -1;
@@ -432,7 +432,7 @@ private:
     void insertion_item(
             const std::shared_ptr<Node>& parent,
             ItemTypeId item_type_id,
-            int rotation,
+            Rotation rotation,
             int8_t new_bin,
             ItemPos y_uncovered_item_pos,
             ItemPos z_uncovered_item_pos) const;

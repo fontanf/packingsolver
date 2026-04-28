@@ -14,7 +14,7 @@ std::ostream& packingsolver::box::operator<<(
         << " x " << item.bl_corner.x
         << " y " << item.bl_corner.y
         << " z " << item.bl_corner.z
-        << " rotation " << item.rotation;
+        << " rotation " << to_string(item.rotation);
     return os;
 }
 
@@ -45,7 +45,7 @@ void Solution::add_item(
         BinPos bin_pos,
         ItemTypeId item_type_id,
         const Point& bl_corner,
-        int rotation)
+        Rotation rotation)
 {
     if (bin_pos >= number_of_bins()) {
         throw std::runtime_error(
@@ -82,8 +82,7 @@ void Solution::add_item(
                 FUNC_SIGNATURE + ": "
                 "forbidden rotation; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
-                "item_type.rotations: " + std::to_string(item_type.rotations) + "; "
-                "rot: " + std::to_string(rotation) + "; "
+                "rotation: " + to_string(rotation) + "; "
                 "xj: " + std::to_string(box.x) + "; "
                 "yj: " + std::to_string(box.y) + ".");
     }
@@ -182,7 +181,7 @@ Solution::Solution(
         Length lx = -1;
         Length ly = -1;
         Length lz = -1;
-        int rotation = -1;
+        Rotation rotation = Rotation::XYZ;
 
         for (Counter i = 0; i < (Counter)line.size(); ++i) {
             if (labels[i] == "TYPE") {
@@ -206,7 +205,7 @@ Solution::Solution(
             } else if (labels[i] == "LZ") {
                 lz = (Length)std::stol(line[i]);
             } else if (labels[i] == "ROTATION") {
-                rotation = (int)std::stol(line[i]);
+                rotation = rotation_from_string(line[i]);
             }
         }
 
@@ -326,7 +325,7 @@ void Solution::write(
                 << box.x << ","
                 << box.y << ","
                 << box.z << ","
-                << item.rotation << std::endl;
+                << to_string(item.rotation) << std::endl;
         }
     }
 }
