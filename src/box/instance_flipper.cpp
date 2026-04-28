@@ -23,28 +23,28 @@ Point packingsolver::box::convert_point_back(
 static const int map_y[] = {1, 0, 3, 2, 5, 4};
 static const int map_z[] = {2, 5, 0, 4, 3, 1};
 
-int packingsolver::box::get_flipped_rotation(
-        int r,
+Rotation packingsolver::box::get_flipped_rotation(
+        Rotation r,
         Direction direction)
 {
     if (direction == Direction::X) {
         return r;
     } else if (direction == Direction::Y) {
-        return map_y[r];
+        return static_cast<Rotation>(map_y[(int)r]);
     } else if (direction == Direction::Z) {
-        return map_z[r];
+        return static_cast<Rotation>(map_z[(int)r]);
     }
     throw std::runtime_error(FUNC_SIGNATURE);
     return r;
 }
 
-int InstanceFlipper::flip_rotation_mask(int mask) const
+std::vector<Rotation> InstanceFlipper::flip_rotations(
+        const std::vector<Rotation>& rotations) const
 {
-    int new_mask = 0;
-    for (int r = 0; r < 6; ++r)
-        if (mask & (1 << r))
-            new_mask |= (1 << get_flipped_rotation(r, direction_));
-    return new_mask;
+    std::vector<Rotation> flipped;
+    for (Rotation r: rotations)
+        flipped.push_back(get_flipped_rotation(r, direction_));
+    return flipped;
 }
 
 Instance InstanceFlipper::flip(
@@ -92,8 +92,9 @@ Instance InstanceFlipper::flip(
                 item_type.box.y,
                 item_type.box.z,
                 item_type.profit,
-                item_type.copies,
-                this->flip_rotation_mask(item_type.rotations));
+                item_type.copies);
+        for (Rotation r: flip_rotations(item_type.rotations))
+            flipped_instance_builder.add_item_type_rotation(flipped_item_type_id, r);
         flipped_instance_builder.set_item_type_weight(
                 flipped_item_type_id,
                 item_type.weight);
@@ -113,7 +114,7 @@ Solution InstanceFlipper::unflip_solution(const Solution& flipped_solution) cons
                 flipped_bin.copies);
         for (const SolutionItem& flipped_item: flipped_bin.items) {
             Point bl_corner = convert_point_back(flipped_item.bl_corner, direction_);
-            int original_rotation = get_flipped_rotation(flipped_item.rotation, direction_);
+            Rotation original_rotation = get_flipped_rotation(flipped_item.rotation, direction_);
             solution.add_item(
                     bin_pos,
                     flipped_item.item_type_id,

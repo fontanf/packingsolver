@@ -137,8 +137,12 @@ public:
             Length y,
             Length z,
             Profit p = -1,
-            ItemPos copies = 1,
-            int rotations = 1);
+            ItemPos copies = 1);
+
+    /** Add a rotation to an item type. */
+    void add_item_type_rotation(
+            ItemTypeId item_type_id,
+            Rotation rotation);
 
     /** Set the group of an item type. */
     void set_item_type_group(

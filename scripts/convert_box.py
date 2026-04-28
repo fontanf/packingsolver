@@ -37,7 +37,13 @@ def convert_bischoff1995(filename):
         bins["Y"].append(int(line[1]))
         bins["Z"].append(int(line[2]))
         # Items.
-        items = {"X": [], "Y": [], "Z": [], "ROTATIONS": [], "COPIES": []}
+        items = {
+            "X": [], "Y": [], "Z": [],
+            "ROTATION_XYZ": [], "ROTATION_YXZ": [],
+            "ROTATION_ZYX": [], "ROTATION_YZX": [],
+            "ROTATION_XZY": [], "ROTATION_ZXY": [],
+            "COPIES": [],
+        }
         line = f.readline().strip().split(" ")
         number_of_item_types = int(line[0])
         for j in range(number_of_item_types):
@@ -59,13 +65,37 @@ def convert_bischoff1995(filename):
                 ry = 0
                 rz = int(line[5])
             if rx == 0 and ry == 0 and rz == 1:
-                items["ROTATIONS"].append(int("000011", 2))
+                # XYZ and YXZ only
+                items["ROTATION_XYZ"].append(1)
+                items["ROTATION_YXZ"].append(1)
+                items["ROTATION_ZYX"].append(0)
+                items["ROTATION_YZX"].append(0)
+                items["ROTATION_XZY"].append(0)
+                items["ROTATION_ZXY"].append(0)
             elif rx == 1 and ry == 0 and rz == 1:
-                items["ROTATIONS"].append(int("001111", 2))
+                # XYZ, YXZ, ZYX, YZX
+                items["ROTATION_XYZ"].append(1)
+                items["ROTATION_YXZ"].append(1)
+                items["ROTATION_ZYX"].append(1)
+                items["ROTATION_YZX"].append(1)
+                items["ROTATION_XZY"].append(0)
+                items["ROTATION_ZXY"].append(0)
             elif rx == 0 and ry == 1 and rz == 1:
-                items["ROTATIONS"].append(int("110011", 2))
+                # XYZ, YXZ, XZY, ZXY
+                items["ROTATION_XYZ"].append(1)
+                items["ROTATION_YXZ"].append(1)
+                items["ROTATION_ZYX"].append(0)
+                items["ROTATION_YZX"].append(0)
+                items["ROTATION_XZY"].append(1)
+                items["ROTATION_ZXY"].append(1)
             elif rx == 1 and ry == 1 and rz == 1:
-                items["ROTATIONS"].append(int("111111", 2))
+                # All 6 rotations
+                items["ROTATION_XYZ"].append(1)
+                items["ROTATION_YXZ"].append(1)
+                items["ROTATION_ZYX"].append(1)
+                items["ROTATION_YZX"].append(1)
+                items["ROTATION_XZY"].append(1)
+                items["ROTATION_ZXY"].append(1)
             else:
                 print(rx, ry, rz)
         write_dict(bins, path + "_bins.csv")

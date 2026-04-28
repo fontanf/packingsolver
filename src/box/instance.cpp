@@ -2,10 +2,43 @@
 
 #include <iostream>
 #include <fstream>
-#include <bitset>
 
 using namespace packingsolver;
 using namespace packingsolver::box;
+
+std::string box::to_string(Rotation rotation)
+{
+    switch (rotation) {
+    case Rotation::XYZ: return "XYZ";
+    case Rotation::YXZ: return "YXZ";
+    case Rotation::ZYX: return "ZYX";
+    case Rotation::YZX: return "YZX";
+    case Rotation::XZY: return "XZY";
+    case Rotation::ZXY: return "ZXY";
+    default: return "?";
+    }
+}
+
+std::ostream& box::operator<<(
+        std::ostream& os,
+        Rotation rotation)
+{
+    os << to_string(rotation);
+    return os;
+}
+
+Rotation box::rotation_from_string(const std::string& str)
+{
+    if (str == "XYZ") return Rotation::XYZ;
+    if (str == "YXZ") return Rotation::YXZ;
+    if (str == "ZYX") return Rotation::ZYX;
+    if (str == "YZX") return Rotation::YZX;
+    if (str == "XZY") return Rotation::XZY;
+    if (str == "ZXY") return Rotation::ZXY;
+    throw std::invalid_argument(
+            FUNC_SIGNATURE + ": "
+            "unknown rotation string \"" + str + "\".");
+}
 
 std::istream& box::operator>>(
         std::istream& in,
@@ -71,8 +104,9 @@ std::ostream& packingsolver::box::operator<<(
         << " z " << item_type.box.z
         << " profit " << item_type.profit
         << " copies " << item_type.copies
-        << " rotations " << item_type.rotations
-        ;
+        << " rotations";
+    for (Rotation r: item_type.rotations)
+        os << " " << r;
     return os;
 }
 
@@ -180,7 +214,7 @@ std::ostream& Instance::format(
                 << std::setw(10) << item_type.box.z
                 << std::setw(12) << item_type.profit
                 << std::setw(10) << item_type.copies
-                << std::setw(10) << std::bitset<6>(item_type.rotations)
+                << std::setw(10) << item_type.rotations.size()
                 << std::setw(10) << item_type.weight
                 << std::endl;
         }
@@ -212,7 +246,12 @@ void Instance::write_item_types(
         "Z,"
         "COPIES,"
         "PROFIT,"
-        "ROTATIONS,"
+        "ROTATION_XYZ,"
+        "ROTATION_YXZ,"
+        "ROTATION_ZYX,"
+        "ROTATION_YZX,"
+        "ROTATION_XZY,"
+        "ROTATION_ZXY,"
         "WEIGHT" << std::endl;
     for (ItemTypeId item_type_id = 0;
             item_type_id < number_of_item_types();
@@ -225,7 +264,12 @@ void Instance::write_item_types(
             << item_type.box.z << ","
             << item_type.copies << ","
             << item_type.profit << ","
-            << item_type.rotations << ","
+            << (item_type.can_rotate(Rotation::XYZ)? 1: 0) << ","
+            << (item_type.can_rotate(Rotation::YXZ)? 1: 0) << ","
+            << (item_type.can_rotate(Rotation::ZYX)? 1: 0) << ","
+            << (item_type.can_rotate(Rotation::YZX)? 1: 0) << ","
+            << (item_type.can_rotate(Rotation::XZY)? 1: 0) << ","
+            << (item_type.can_rotate(Rotation::ZXY)? 1: 0) << ","
             << item_type.weight << std::endl;
     }
 }

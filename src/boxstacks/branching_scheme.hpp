@@ -75,7 +75,7 @@ public:
         ItemTypeId item_type_id;
 
         /** Rotation of the inserted item. */
-        int rotation;
+        Rotation rotation;
 
         /**
          * When added above a previous item, the position of the uncovered
@@ -155,7 +155,7 @@ public:
         ItemTypeId item_type_id;
 
         /** Rotation of the last inserted item. */
-        int rotation;
+        Rotation rotation = Rotation::XYZ;
 
         /** x-coordinates of the bottom-left corner of the last inserted item. */
         Length x;
@@ -473,14 +473,14 @@ private:
     void insertion_item_above(
             const std::shared_ptr<Node>& parent,
             ItemTypeId item_type_id,
-            int rotation,
+            Rotation rotation,
             ItemPos uncovered_item_pos) const;
 
     /** Insertion of one item in a new stack. */
     void insertion_item(
             const std::shared_ptr<Node>& parent,
             ItemTypeId item_type_id,
-            int rotation,
+            Rotation rotation,
             int8_t new_bin,
             ItemPos uncovered_item_pos,
             DefectId defect_id) const;
@@ -489,7 +489,7 @@ private:
     void insertion_item_left(
             const std::shared_ptr<Node>& parent,
             ItemTypeId item_type_id,
-            int rotation,
+            Rotation rotation,
             ItemPos uncovered_item_pos) const;
 
 };

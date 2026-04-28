@@ -253,8 +253,7 @@ ItemTypeId InstanceBuilder::add_item_type(
         Length y,
         Length z,
         Profit profit,
-        ItemPos copies,
-        int rotations)
+        ItemPos copies)
 {
     if (x < 0) {
         throw std::invalid_argument(
@@ -288,9 +287,21 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.profit = (profit == -1)? x * y * z: profit;
     item_type.copies = copies;
     item_type.group_id = 0;
-    item_type.rotations = rotations;
     instance_.item_types_.push_back(item_type);
     return instance_.item_types_.size() - 1;
+}
+
+void InstanceBuilder::add_item_type_rotation(
+        ItemTypeId item_type_id,
+        Rotation rotation)
+{
+    if (item_type_id < 0 || item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + ".");
+    }
+    instance_.item_types_[item_type_id].rotations.push_back(rotation);
 }
 
 void InstanceBuilder::set_item_type_group(
@@ -394,8 +405,9 @@ void InstanceBuilder::add_item_type(
             item_type.box.y,
             item_type.box.z,
             profit,
-            copies,
-            item_type.rotations);
+            copies);
+    for (Rotation rotation: item_type.rotations)
+        add_item_type_rotation(item_type_id, rotation);
     if ((ItemTypeId)orig_to_sub_item_type_ids_.size() <= original_item_type_id)
         orig_to_sub_item_type_ids_.resize(original_item_type_id + 1, -1);
     orig_to_sub_item_type_ids_[original_item_type_id] = item_type_id;
@@ -462,7 +474,7 @@ void InstanceBuilder::set_item_types_oriented()
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
-        instance_.item_types_[item_type_id].rotations = 1;
+        instance_.item_types_[item_type_id].rotations = {Rotation::XYZ};
     }
 }
 
@@ -729,7 +741,7 @@ void InstanceBuilder::read_item_types(
         Profit profit = -1;
         Weight weight = 0;
         ItemPos copies = 1;
-        int rotations = 1;
+        std::vector<Rotation> rotations;
         GroupId group_id = 0;
         StackabilityId stackability_id = 0;
         Length nesting_height = 0;
@@ -749,8 +761,18 @@ void InstanceBuilder::read_item_types(
                 weight = (Weight)std::stod(line[i]);
             } else if (labels[i] == "COPIES") {
                 copies = (ItemPos)std::stol(line[i]);
-            } else if (labels[i] == "ROTATIONS") {
-                rotations = (int)std::stol(line[i]);
+            } else if (labels[i] == "ROTATION_XYZ" && std::stol(line[i])) {
+                rotations.push_back(Rotation::XYZ);
+            } else if (labels[i] == "ROTATION_YXZ" && std::stol(line[i])) {
+                rotations.push_back(Rotation::YXZ);
+            } else if (labels[i] == "ROTATION_ZYX" && std::stol(line[i])) {
+                rotations.push_back(Rotation::ZYX);
+            } else if (labels[i] == "ROTATION_YZX" && std::stol(line[i])) {
+                rotations.push_back(Rotation::YZX);
+            } else if (labels[i] == "ROTATION_XZY" && std::stol(line[i])) {
+                rotations.push_back(Rotation::XZY);
+            } else if (labels[i] == "ROTATION_ZXY" && std::stol(line[i])) {
+                rotations.push_back(Rotation::ZXY);
             } else if (labels[i] == "GROUP_ID") {
                 group_id = (GroupId)std::stol(line[i]);
             } else if (labels[i] == "STACKABILITY_ID") {
@@ -788,8 +810,9 @@ void InstanceBuilder::read_item_types(
                 y,
                 z,
                 profit,
-                copies,
-                rotations);
+                copies);
+        for (Rotation rotation: rotations)
+            add_item_type_rotation(item_type_id, rotation);
         this->set_item_type_group(
                 item_type_id,
                 group_id);
@@ -817,6 +840,14 @@ void InstanceBuilder::read_item_types(
 
 Instance InstanceBuilder::build()
 {
+    // Default rotations to {XYZ} for item types with no rotation specified.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        if (instance_.item_types_[item_type_id].rotations.empty())
+            instance_.item_types_[item_type_id].rotations = {Rotation::XYZ};
+    }
+
     // Compute item type attributes.
     Volume bin_types_volume_max = compute_bin_types_volume_max();
     instance_.all_item_types_infinite_copies_ = true;

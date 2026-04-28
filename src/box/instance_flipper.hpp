@@ -11,8 +11,8 @@ Point convert_point_back(
         const Point& point,
         Direction direction);
 
-int get_flipped_rotation(
-        int r,
+Rotation get_flipped_rotation(
+        Rotation r,
         Direction direction);
 
 class InstanceFlipper
@@ -32,7 +32,7 @@ public:
 
 private:
 
-    int flip_rotation_mask(int mask) const;
+    std::vector<Rotation> flip_rotations(const std::vector<Rotation>& rotations) const;
 
     Instance flip(const Instance& instance);
 

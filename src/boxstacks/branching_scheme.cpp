@@ -83,7 +83,7 @@ std::vector<StackSet> generate_all_stacks(
 
                     // Update current stack.
                     const ItemType& item_type = instance.item_type(item_type_id);
-                    Length zj = item_type.z(0) - item_type.nesting_height;
+                    Length zj = item_type.z(Rotation::XYZ) - item_type.nesting_height;
                     current_stack_item_number_of_copies[item_type_id]++;
                     current_stack_item_type_ids.push_back(item_type_id);
                     current_stack_height.push_back(current_stack_height.back() + zj);
@@ -119,7 +119,7 @@ std::vector<StackSet> generate_all_stacks(
                         }
 
                         const ItemType& item_type = instance.item_type(item_type_id);
-                        Length zj = item_type.z(0) - item_type.nesting_height;
+                        Length zj = item_type.z(Rotation::XYZ) - item_type.nesting_height;
                         Length zi = bin_type.box.z;
 
                         // Check bin z.
@@ -284,11 +284,9 @@ BranchingScheme::BranchingScheme(
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
         for (ItemPos copies = 0; copies < item_type.copies; ++copies) {
-            for (int rotation = 0; rotation < 6; ++rotation) {
-                if (instance.item_type(item_type_id).can_rotate(rotation)) {
-                    Length xj = item_type.x(rotation);
-                    mcss_instance_builder.add_item(mcss_pos, xj);
-                }
+            for (Rotation rotation: item_type.rotations) {
+                Length xj = item_type.x(rotation);
+                mcss_instance_builder.add_item(mcss_pos, xj);
             }
             mcss_pos++;
         }
@@ -774,13 +772,12 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                 const ItemType& item_type = instance.item_type(item_type_id);
                 if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                     continue;
-                for (int rotation = 0; rotation < 6; ++rotation)
-                    if (instance.item_type(item_type_id).can_rotate(rotation))
-                        insertion_item_above(
-                                parent,
-                                item_type_id,
-                                rotation,
-                                uncovered_item_pos);
+                for (Rotation rotation: item_type.rotations)
+                    insertion_item_above(
+                            parent,
+                            item_type_id,
+                            rotation,
+                            uncovered_item_pos);
             }
         }
 
@@ -798,9 +795,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                 const ItemType& item_type = instance.item_type(item_type_id);
                 if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                     continue;
-                for (int rotation = 0; rotation < 6; ++rotation) {
-                    if (!instance.item_type(item_type_id).can_rotate(rotation))
-                        continue;
+                for (Rotation rotation: item_type.rotations) {
                     insertion_item(
                             parent,
                             item_type_id,
@@ -850,15 +845,14 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                 const ItemType& item_type = instance.item_type(item_type_id);
                 if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                     continue;
-                for (int rotation = 0; rotation < 6; ++rotation)
-                    if (instance.item_type(item_type_id).can_rotate(rotation))
-                        insertion_item(
-                                parent,
-                                item_type_id,
-                                rotation,
-                                0,  // new_bin
-                                -1,  // uncovered_item_pos
-                                defect_id);
+                for (Rotation rotation: item_type.rotations)
+                    insertion_item(
+                            parent,
+                            item_type_id,
+                            rotation,
+                            0,  // new_bin
+                            -1,  // uncovered_item_pos
+                            defect_id);
             }
         }
     }
@@ -897,15 +891,14 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             const ItemType& item_type = instance.item_type(item_type_id);
             if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
-            for (int rotation = 0; rotation < 6; ++rotation)
-                if (instance.item_type(item_type_id).can_rotate(rotation))
-                    insertion_item(
-                            parent,
-                            item_type_id,
-                            rotation,
-                            new_bin,
-                            0,  // uncovered_item_pos
-                            -1);  // defect_id
+            for (Rotation rotation: item_type.rotations)
+                insertion_item(
+                        parent,
+                        item_type_id,
+                        rotation,
+                        new_bin,
+                        0,  // uncovered_item_pos
+                        -1);  // defect_id
         }
 
         // Defects.
@@ -924,15 +917,14 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                 const ItemType& item_type = instance.item_type(item_type_id);
                 if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                     continue;
-                for (int rotation = 0; rotation < 6; ++rotation)
-                    if (instance.item_type(item_type_id).can_rotate(rotation))
-                        insertion_item(
-                                parent,
-                                item_type_id,
-                                rotation,
-                                new_bin,
-                                -1,  // uncovered_item_pos
-                                defect_id);
+                for (Rotation rotation: item_type.rotations)
+                    insertion_item(
+                            parent,
+                            item_type_id,
+                            rotation,
+                            new_bin,
+                            -1,  // uncovered_item_pos
+                            defect_id);
             }
         }
     }
@@ -943,7 +935,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 void BranchingScheme::insertion_item_above(
         const std::shared_ptr<Node>& parent,
         ItemTypeId item_type_id,
-        int rotation,
+        Rotation rotation,
         ItemPos uncovered_item_pos) const
 {
     Direction o = parent->last_bin_direction;
@@ -1034,7 +1026,7 @@ void BranchingScheme::insertion_item_above(
 void BranchingScheme::insertion_item(
         const std::shared_ptr<Node>& parent,
         ItemTypeId item_type_id,
-        int rotation,
+        Rotation rotation,
         int8_t new_bin,
         ItemPos uncovered_item_pos,
         DefectId defect_id) const
@@ -1199,7 +1191,7 @@ void BranchingScheme::insertion_item(
 void BranchingScheme::insertion_item_left(
         const std::shared_ptr<Node>& parent,
         ItemTypeId item_type_id,
-        int rotation,
+        Rotation rotation,
         ItemPos uncovered_item_pos) const
 {
     //std::cout << "insertion_item_left " << uncovered_item_pos << std::endl;

@@ -288,7 +288,7 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
                     bin_pos,
                     stack_id,
                     *it2,
-                    location.rotate);
+                    location.rotate ? Rotation::YXZ : Rotation::XYZ);
         }
     }
     ItemPos number_of_items_before_repair = solution.number_of_items();
@@ -372,8 +372,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                 continue;
             if (item_type.group_id != highest_group_id)
                 continue;
-            for (int rotation = 0; rotation < 6; ++rotation) {
-                if (instance.item_type(item_type_id).can_rotate(rotation)) {
+            for (Rotation rotation: item_type.rotations) {
+                {
                     Solution solution_child = solution;
                     Length xj = item_type.x(rotation);
                     Length yj = item_type.y(rotation);
@@ -567,21 +567,21 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                 onedim_instance_builder.set_item_type_nesting_length(
                         onedim_item_type_id,
                         item_type.nesting_height);
-                if (item_type.can_rotate(0) && item_type.can_rotate(1)) {
+                if (item_type.can_rotate(Rotation::XYZ) && item_type.can_rotate(Rotation::YXZ)) {
                     onedim_instance_builder.set_item_type_eligibility(
                             onedim_item_type_id,
                             2);
                     //std::cout << "item_type_id " << item_type_id
                     //    << " onedim_item_type_id " << onedim_item_type_id
                     //    << " eligibility " << 1 << std::endl;
-                } else if (item_type.can_rotate(0)) {
+                } else if (item_type.can_rotate(Rotation::XYZ)) {
                     onedim_instance_builder.set_item_type_eligibility(
                             onedim_item_type_id,
                             0);
                     //std::cout << "item_type_id " << item_type_id
                     //    << " onedim_item_type_id " << onedim_item_type_id
                     //    << " eligibility " << 0 << std::endl;
-                } else if (item_type.can_rotate(1)) {
+                } else if (item_type.can_rotate(Rotation::YXZ)) {
                     onedim_instance_builder.set_item_type_eligibility(
                             onedim_item_type_id,
                             1);

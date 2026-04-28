@@ -16,7 +16,7 @@ struct SolutionItem
     Length z_start;
 
     /** Rotation of the item. */
-    int rotation;
+    Rotation rotation;
 };
 
 bool operator==(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
@@ -126,7 +126,7 @@ public:
             BinPos bin_pos,
             StackId stack_id,
             ItemTypeId item_type_id,
-            int rotation);
+            Rotation rotation);
 
     /** Destructor. */
     virtual ~Solution() { }
@@ -289,7 +289,7 @@ public:
      */
     bool check_stack(
             BinTypeId bin_type_id,
-            const std::vector<std::pair<ItemTypeId, int>>& item_type_ids) const;
+            const std::vector<std::pair<ItemTypeId, Rotation>>& item_type_ids) const;
 
     bool feasible_total_weight() const;
 

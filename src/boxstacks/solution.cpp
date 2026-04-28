@@ -14,7 +14,7 @@ std::ostream& packingsolver::boxstacks::operator<<(
     os
         << " item_type_id " << item.item_type_id
         << " z_start " << item.z_start
-        << " rotation " << item.rotation;
+        << " rotation " << to_string(item.rotation);
     return os;
 }
 
@@ -87,7 +87,7 @@ void Solution::add_item(
         BinPos bin_pos,
         StackId stack_id,
         ItemTypeId item_type_id,
-        int rotation)
+        Rotation rotation)
 {
     if (bin_pos >= number_of_bins()) {
         throw std::runtime_error(
@@ -123,8 +123,7 @@ void Solution::add_item(
                 FUNC_SIGNATURE + ": "
                 "forbidden rotation; "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
-                "item_type.rotations: " + std::to_string(item_type.rotations) + "; "
-                "rot: " + std::to_string(rotation) + "; "
+                "rotation: " + to_string(rotation) + "; "
                 "xj: " + std::to_string(xj) + "; "
                 "yj: " + std::to_string(yj) + "; "
                 "stack.x_start: " + std::to_string(stack.x_start) + "; "
@@ -137,7 +136,7 @@ void Solution::add_item(
                 FUNC_SIGNATURE + ": "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
                 "z: " + std::to_string(stack.z_end) + "; "
-                "rot: " + std::to_string(rotation) + "; "
+                "rotation: " + to_string(rotation) + "; "
                 "xj: " + std::to_string(xj) + "; "
                 "yj: " + std::to_string(yj) + "; "
                 "zj: " + std::to_string(zj) + "; "
@@ -150,7 +149,7 @@ void Solution::add_item(
         throw std::runtime_error(
                 FUNC_SIGNATURE + ": "
                 "item_type_id: " + std::to_string(item_type_id) + "; "
-                "rot: " + std::to_string(rotation) + "; "
+                "rotation: " + to_string(rotation) + "; "
                 "xj: " + std::to_string(xj) + "; "
                 "yj: " + std::to_string(yj) + "; "
                 "zj: " + std::to_string(zj) + "; "
@@ -230,7 +229,7 @@ bool Solution::feasible() const
 
 bool Solution::check_stack(
         BinTypeId bin_type_id,
-        const std::vector<std::pair<ItemTypeId, int>>& item_type_ids) const
+        const std::vector<std::pair<ItemTypeId, Rotation>>& item_type_ids) const
 {
     const BinType& bin_type = instance().bin_type(bin_type_id);
     Length z_end = 0;
@@ -239,7 +238,7 @@ bool Solution::check_stack(
     Weight remaining_weight = std::numeric_limits<Weight>::infinity();
     for (ItemPos item_pos = 0; item_pos < (ItemPos)item_type_ids.size(); ++item_pos) {
         const ItemType& item_type = instance().item_type(item_type_ids[item_pos].first);
-        int rotation = item_type_ids[item_pos].second;
+        Rotation rotation = item_type_ids[item_pos].second;
 
         Length xj = item_type.x(rotation);
         Length yj = item_type.y(rotation);

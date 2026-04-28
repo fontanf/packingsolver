@@ -61,8 +61,9 @@ Instance InstanceFlipper::flip(const Instance& instance)
                 item_type.box.x,
                 item_type.box.z,
                 item_type.profit,
-                item_type.copies,
-                item_type.rotations);
+                item_type.copies);
+        for (Rotation rotation: item_type.rotations)
+            flipped_instance_builder.add_item_type_rotation(flipped_item_type_id, rotation);
         flipped_instance_builder.set_item_type_group(
                 flipped_item_type_id,
                 item_type.group_id);

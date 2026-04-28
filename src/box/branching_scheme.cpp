@@ -335,9 +335,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                     if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                         continue;
                     // For all valid rotations.
-                    for (int rotation = 0; rotation < 6; ++rotation) {
-                        if (!item_type.can_rotate(rotation))
-                            continue;
+                    for (Rotation rotation: item_type.rotations) {
                         insertion_item(
                                 parent,
                                 item_type_id,
@@ -389,9 +387,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             const ItemType& item_type = instance.item_type(item_type_id);
             if (parent->item_number_of_copies[item_type_id] == item_type.copies)
                 continue;
-            for (int rotation = 0; rotation < 6; ++rotation) {
-                if (!item_type.can_rotate(rotation))
-                    continue;
+            for (Rotation rotation: item_type.rotations) {
                 insertion_item(
                         parent,
                         item_type_id,
@@ -412,7 +408,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 void BranchingScheme::insertion_item(
         const std::shared_ptr<Node>& parent,
         ItemTypeId item_type_id,
-        int rotation,
+        Rotation rotation,
         int8_t new_bin,
         ItemPos y_uncovered_item_pos,
         ItemPos z_uncovered_item_pos) const
@@ -674,7 +670,7 @@ Solution BranchingScheme::to_solution(
         Point bl_corner = convert_point_back(
                 {current_node->x, current_node->y, current_node->z},
                 current_node->last_bin_direction);
-        int original_rotation = get_flipped_rotation(
+        Rotation original_rotation = get_flipped_rotation(
                 current_node->rotation,
                 current_node->last_bin_direction);
         //std::cout
@@ -730,12 +726,9 @@ nlohmann::json BranchingScheme::json_export_init() const
             ++item_type_id) {
         const ItemType& item_type = instance().item_type(item_type_id);
 
-        json_items_init_ids_[item_type_id] = std::vector<Counter>(2);
-        for (int rotation = 0; rotation < 6; ++rotation) {
-            if (!item_type.can_rotate(rotation))
-                continue;
-
-            json_items_init_ids_[item_type_id][rotation] = i;
+        json_items_init_ids_[item_type_id] = std::vector<Counter>(NUMBER_OF_ROTATIONS, -1);
+        for (Rotation rotation: item_type.rotations) {
+            json_items_init_ids_[item_type_id][(int)rotation] = i;
             Box box = item_type.box.rotate(rotation);
             json_init[i] = {
                 {"Type", "Box"},
@@ -769,7 +762,7 @@ nlohmann::json BranchingScheme::json_export(
         {"Id", node->id},
         {"ParentId", (node->parent == nullptr)? -1: node->parent->id},
         {"ItemTypeId", node->item_type_id},
-        {"Rotation", node->rotation},
+        {"Rotation", (int)node->rotation},
         {"X", node->x},
         {"Y", node->y},
         {"Z", node->z},
@@ -802,7 +795,7 @@ nlohmann::json BranchingScheme::json_export(
                 {node_tmp->x, node_tmp->y, node_tmp->z},
                 node_tmp->last_bin_direction);
         plot[i] = {
-            {"Id", json_items_init_ids_[node->item_type_id][node->rotation]},
+            {"Id", json_items_init_ids_[node->item_type_id][(int)node->rotation]},
             {"X", bl_corner.x},
             {"Y", bl_corner.y},
             {"Z", bl_corner.z},
