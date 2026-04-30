@@ -17,19 +17,14 @@ Features:
 
   * Knapsack
   * Bin packing
-  * Bin packing with leftovers
   * Open dimension X
   * Open dimension Y
+  * Open dimension Z
   * Variable-sized bin packing
 
-* Item types
+* Select allowed item rotations (among the 6 possible rotations)
 
-  * 3D rotations (up to 6 orientations per item)
-  * Weight
-
-* Bin types
-
-  * Maximum weight
+* Maximum weight in bins
 
 Usage
 -----
