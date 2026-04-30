@@ -1,4 +1,4 @@
-# PackingSolver
+![PackingSolver banner](img/banner.png)
 
 A state-of-the-art solver for (geometrical) packing problems.
 
