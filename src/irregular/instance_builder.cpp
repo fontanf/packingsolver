@@ -54,7 +54,7 @@ BinTypeId InstanceBuilder::add_bin_type(
     BinType bin_type;
     bin_type.shape_orig = shape;
     bin_type.area_orig = shape.compute_area();
-    bin_type.aabb = shape.compute_min_max();
+    bin_type.aabb_orig = shape.compute_min_max();
     bin_type.cost = (cost == -1)? bin_type.area_orig: cost;
     bin_type.copies = copies;
     bin_type.copies_min = copies_min;
@@ -684,6 +684,7 @@ Instance InstanceBuilder::build()
                 defect.shape_scaled = instance_.parameters().scale_value * defect.shape_orig;
         }
         bin_type.area_scaled = bin_type.shape_scaled.compute_area();
+        bin_type.aabb_scaled = bin_type.shape_scaled.compute_min_max();
 
         // Compute inflated defects.
         for (Defect& defect: bin_type.defects) {

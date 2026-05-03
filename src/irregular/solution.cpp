@@ -106,20 +106,20 @@ void Solution::add_item(
         y_max_ = bin.y_max;
         switch (instance().parameters().leftover_corner) {
         case Corner::BottomLeft: {
-            leftover_value_ = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
-                - (x_max_ - bin_type.aabb.x_min) * (y_max_ - bin_type.aabb.y_min);
+            leftover_value_ = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
+                - (x_max_ - bin_type.aabb_scaled.x_min) * (y_max_ - bin_type.aabb_scaled.y_min);
             break;
         } case Corner::BottomRight: {
-            leftover_value_ = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
-                - (bin_type.aabb.x_max - x_min_) * (y_max_ - bin_type.aabb.y_min);
+            leftover_value_ = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
+                - (bin_type.aabb_scaled.x_max - x_min_) * (y_max_ - bin_type.aabb_scaled.y_min);
             break;
         } case Corner::TopLeft: {
-            leftover_value_ = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
-                - (x_max_ - bin_type.aabb.x_min) * (bin_type.aabb.y_max - y_min_);
+            leftover_value_ = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
+                - (x_max_ - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - y_min_);
             break;
         } case Corner::TopRight: {
-            leftover_value_ = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
-                - (bin_type.aabb.x_max - x_min_) * (bin_type.aabb.y_max - y_min_);
+            leftover_value_ = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
+                - (bin_type.aabb_scaled.x_max - x_min_) * (bin_type.aabb_scaled.y_max - y_min_);
             break;
         }
         }
@@ -211,7 +211,7 @@ double Solution::density_x() const
         BinTypeId bin_type_id = bins_.back().bin_type_id;
         const BinType& bin_type = instance().bin_type(bin_type_id);
         area -= bin_type.area_orig;
-        area += x_max_ * (bin_type.aabb.y_max - bin_type.aabb.y_min);
+        area += x_max_ * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min);
     }
     return item_area() / area;
 }
@@ -223,7 +223,7 @@ double Solution::density_y() const
         BinTypeId bin_type_id = bins_.back().bin_type_id;
         const BinType& bin_type = instance().bin_type(bin_type_id);
         area -= bin_type.area_orig;
-        area += y_max_ * (bin_type.aabb.x_max - bin_type.aabb.x_min);
+        area += y_max_ * (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min);
     }
     return item_area() / area;
 }
@@ -383,10 +383,10 @@ Solution::OverlappingItems Solution::compute_overlapping_items(
                 !outside && item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
             AxisAlignedBoundingBox item_aabb = this->shape_scaled(bin_pos, item_pos, item_shape_pos).shape.compute_min_max();
-            if (shape::strictly_lesser(item_aabb.x_min, bin_type.aabb.x_min)
-                    || shape::strictly_greater(item_aabb.x_max, bin_type.aabb.x_max)
-                    || shape::strictly_lesser(item_aabb.y_min, bin_type.aabb.y_min)
-                    || shape::strictly_greater(item_aabb.y_max, bin_type.aabb.y_max)) {
+            if (shape::strictly_lesser(item_aabb.x_min, bin_type.aabb_scaled.x_min)
+                    || shape::strictly_greater(item_aabb.x_max, bin_type.aabb_scaled.x_max)
+                    || shape::strictly_lesser(item_aabb.y_min, bin_type.aabb_scaled.y_min)
+                    || shape::strictly_greater(item_aabb.y_max, bin_type.aabb_scaled.y_max)) {
                 outside = true;
             }
         }

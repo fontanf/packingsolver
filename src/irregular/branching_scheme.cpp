@@ -74,7 +74,7 @@ BranchingScheme::Direction default_direction(
         BinTypeId bin_type_id)
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
-    bool lengthwise = (bin_type.aabb.x_max - bin_type.aabb.x_min) >= (bin_type.aabb.y_max - bin_type.aabb.y_min);
+    bool lengthwise = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) >= (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min);
     switch (instance.parameters().leftover_corner) {
     case Corner::BottomLeft: {
         return (lengthwise)?
@@ -1256,20 +1256,20 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     switch (instance().parameters().leftover_corner) {
     case Corner::BottomLeft: {
-        node.leftover_value = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
-            - (node.x_max - bin_type.aabb.x_min) * (node.y_max - bin_type.aabb.y_min);
+        node.leftover_value = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
+            - (node.x_max - bin_type.aabb_scaled.x_min) * (node.y_max - bin_type.aabb_scaled.y_min);
         break;
     } case Corner::BottomRight: {
-        node.leftover_value = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
-            - (bin_type.aabb.x_max - node.x_min) * (node.y_max - bin_type.aabb.y_min);
+        node.leftover_value = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
+            - (bin_type.aabb_scaled.x_max - node.x_min) * (node.y_max - bin_type.aabb_scaled.y_min);
         break;
     } case Corner::TopLeft: {
-        node.leftover_value = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
-            - (node.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - node.y_min);
+        node.leftover_value = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
+            - (node.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - node.y_min);
         break;
     } case Corner::TopRight: {
-        node.leftover_value = (bin_type.aabb.x_max - bin_type.aabb.x_min) * (bin_type.aabb.y_max - bin_type.aabb.y_min)
-            - (bin_type.aabb.x_max - node.x_min) * (bin_type.aabb.y_max - node.y_min);
+        node.leftover_value = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
+            - (bin_type.aabb_scaled.x_max - node.x_min) * (bin_type.aabb_scaled.y_max - node.y_min);
         break;
     }
     }

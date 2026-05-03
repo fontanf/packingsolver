@@ -38,14 +38,14 @@ static Solution compute_shifted_solution(
         LengthDbl dx = 0.0;
         LengthDbl dy = 0.0;
         if (x_weight > 0) {
-            dx = bin_type.aabb.x_min - solution_bin.x_min;
+            dx = bin_type.aabb_scaled.x_min - solution_bin.x_min;
         } else if (x_weight < 0) {
-            dx = bin_type.aabb.x_max - solution_bin.x_max;
+            dx = bin_type.aabb_scaled.x_max - solution_bin.x_max;
         }
         if (y_weight > 0) {
-            dy = bin_type.aabb.y_min - solution_bin.y_min;
+            dy = bin_type.aabb_scaled.y_min - solution_bin.y_min;
         } else if (y_weight < 0) {
-            dy = bin_type.aabb.y_max - solution_bin.y_max;
+            dy = bin_type.aabb_scaled.y_max - solution_bin.y_max;
         }
         //std::cout << "dx " << dx << " dy " << dy << std::endl;
 

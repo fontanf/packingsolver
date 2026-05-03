@@ -147,8 +147,11 @@ struct BinType
     /** Scaled area of the bin type. */
     AreaDbl area_scaled = 0.0;
 
-    /** Bounding box of the bin type. */
-    AxisAlignedBoundingBox aabb;
+    /** Bounding box of the original bin type. */
+    AxisAlignedBoundingBox aabb_orig;
+
+    /** Bounding box of the scaled bin type. */
+    AxisAlignedBoundingBox aabb_scaled;
 
 
     AreaDbl space() const { return area_orig; }
@@ -350,6 +353,17 @@ public:
 
     /** Get an item type. */
     inline const ItemType& item_type(ItemTypeId item_type_id) const { return item_types_[item_type_id]; }
+
+    /**
+     * Return the scaled shape of item type 'item_type_id', shape 'item_shape_pos',
+     * after applying the given mirror (axial symmetry about the y-axis) and
+     * rotation angle.
+     */
+    ShapeWithHoles item_shape(
+            ItemTypeId item_type_id,
+            ItemPos item_shape_pos,
+            Angle angle,
+            bool mirror) const;
 
     /** Get the number of items. */
     inline ItemPos number_of_items() const { return number_of_items_; }
