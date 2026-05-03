@@ -326,10 +326,10 @@ Solution linear_programming_anchor(
                 item_var_pos < (ItemPos)unfixed_items.size();
                 ++item_var_pos) {
             const AxisAlignedBoundingBox& ia = unfixed_item_aabbs[item_var_pos].item_aabb;
-            LengthDbl x_min = (x_weight < 0)? solution.x_min(): bin_type.aabb.x_min;
-            LengthDbl x_max = (x_weight > 0)? solution.x_max(): bin_type.aabb.x_max;
-            LengthDbl y_min = (y_weight < 0)? solution.y_min(): bin_type.aabb.y_min;
-            LengthDbl y_max = (y_weight > 0)? solution.y_max(): bin_type.aabb.y_max;
+            LengthDbl x_min = (x_weight < 0)? solution.x_min(): bin_type.aabb_scaled.x_min;
+            LengthDbl x_max = (x_weight > 0)? solution.x_max(): bin_type.aabb_scaled.x_max;
+            LengthDbl y_min = (y_weight < 0)? solution.y_min(): bin_type.aabb_scaled.y_min;
+            LengthDbl y_max = (y_weight > 0)? solution.y_max(): bin_type.aabb_scaled.y_max;
             item_bin_bounds[item_var_pos].x_min = x_min * instance.parameters().scale_value - ia.x_min;
             item_bin_bounds[item_var_pos].x_max = x_max * instance.parameters().scale_value - ia.x_max;
             item_bin_bounds[item_var_pos].y_min = y_min * instance.parameters().scale_value - ia.y_min;
@@ -847,10 +847,10 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
                             unfixed_item_aabbs[item_var_pos].part_movement_aabbs[shape_pos][part_pos];
 
                     // RHS: part movement AABB clamped to bin bounds.
-                    const LengthDbl x_min = (std::max)(pm.x_min, bin_type.aabb.x_min * sv);
-                    const LengthDbl x_max = (std::min)(pm.x_max, bin_type.aabb.x_max * sv);
-                    const LengthDbl y_min = (std::max)(pm.y_min, bin_type.aabb.y_min * sv);
-                    const LengthDbl y_max = (std::min)(pm.y_max, bin_type.aabb.y_max * sv);
+                    const LengthDbl x_min = (std::max)(pm.x_min, bin_type.aabb_scaled.x_min * sv);
+                    const LengthDbl x_max = (std::min)(pm.x_max, bin_type.aabb_scaled.x_max * sv);
+                    const LengthDbl y_min = (std::max)(pm.y_min, bin_type.aabb_scaled.y_min * sv);
+                    const LengthDbl y_max = (std::min)(pm.y_max, bin_type.aabb_scaled.y_max * sv);
 
                     const std::string sid = std::to_string(item_pos)
                             + "_s" + std::to_string(shape_pos)

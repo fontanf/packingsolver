@@ -274,12 +274,12 @@ void BinType::write_svg(
                 "unable to open file \"" + file_path + "\".");
     }
 
-    LengthDbl width = (aabb.x_max - aabb.x_min);
-    LengthDbl height = (aabb.y_max - aabb.y_min);
+    LengthDbl width = (aabb_orig.x_max - aabb_orig.x_min);
+    LengthDbl height = (aabb_orig.y_max - aabb_orig.y_min);
 
     std::string s = "<svg viewBox=\""
-        + std::to_string(aabb.x_min)
-        + " " + std::to_string(-aabb.y_min - height)
+        + std::to_string(aabb_orig.x_min)
+        + " " + std::to_string(-aabb_orig.y_min - height)
         + " " + std::to_string(width)
         + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
@@ -307,6 +307,18 @@ void BinType::write_svg(
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Instance ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+ShapeWithHoles Instance::item_shape(
+        ItemTypeId item_type_id,
+        ItemPos item_shape_pos,
+        Angle angle,
+        bool mirror) const
+{
+    ShapeWithHoles shape = item_types_[item_type_id].shapes[item_shape_pos].shape_scaled;
+    if (mirror)
+        shape = shape.axial_symmetry_y_axis();
+    return shape.rotate(angle);
+}
 
 bool Instance::can_contain(
         QualityRule quality_rule,

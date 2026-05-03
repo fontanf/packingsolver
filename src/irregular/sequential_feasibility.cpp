@@ -48,14 +48,14 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                 instance.number_of_bins());
         BinTypeId bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        x = bin_type.aabb.x_max - bin_type.aabb.x_min;
+        x = bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min;
     } else if (instance.objective() == Objective::OpenDimensionX) {
         const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
-        y = bin_type.aabb.y_max - bin_type.aabb.y_min;
+        y = bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min;
         x = 2 * total_item_aabb_area / y;
     } else if (instance.objective() == Objective::OpenDimensionY) {
         const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
-        x = bin_type.aabb.x_max - bin_type.aabb.x_min;
+        x = bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min;
         y = 2 * total_item_aabb_area / x;
     } else {  // OpenDimensionXY
         x = std::sqrt(total_item_aabb_area / instance.parameters().open_dimension_xy_aspect_ratio);
@@ -96,7 +96,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                     ++bin_type_id) {
                 const BinType& bin_type = instance.bin_type(bin_type_id);
                 BinPos copies = std::min(bin_type.copies, remaining_bins);
-                AxisAlignedBoundingBox restricting_aabb = bin_type.aabb;
+                AxisAlignedBoundingBox restricting_aabb = bin_type.aabb_scaled;
                 restricting_aabb.x_max = restricting_aabb.x_min + x;
                 const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
                 const std::vector<shape::ShapeWithHoles> intersection = shape::compute_intersection(
@@ -113,7 +113,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             // Build a single bin as the intersection of the original bin with a
             // rectangle restricted to the current open dimension estimate.
             const BinType& original_bin_type = instance.bin_type(instance.bin_type_id(0));
-            AxisAlignedBoundingBox restricting_aabb = original_bin_type.aabb;
+            AxisAlignedBoundingBox restricting_aabb = original_bin_type.aabb_scaled;
             restricting_aabb.x_max = restricting_aabb.x_min + x;
             restricting_aabb.y_max = restricting_aabb.y_min + y;
             const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
@@ -184,34 +184,34 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
             BinTypeId bin_type_id = instance.bin_type_id(solution.number_of_bins() - 1);
             const BinType& bin_type = instance.bin_type(bin_type_id);
-            x = 0.99 * (solution.x_max() - bin_type.aabb.x_min)
+            x = 0.99 * (solution.x_max() - bin_type.aabb_scaled.x_min)
                 + bin_type.item_bin_minimum_spacing;
             if (solution.number_of_bins() < current_number_of_bins) {
                 current_number_of_bins = solution.number_of_bins();
                 BinTypeId bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
                 const BinType& bin_type = instance.bin_type(bin_type_id);
-                x = bin_type.aabb.x_max;
-            } else if (!strictly_greater(x, bin_type.aabb.x_min + bin_type.item_bin_minimum_spacing)) {
+                x = bin_type.aabb_scaled.x_max;
+            } else if (!strictly_greater(x, bin_type.aabb_scaled.x_min + bin_type.item_bin_minimum_spacing)) {
                 current_number_of_bins = solution.number_of_bins() - 1;
                 if (current_number_of_bins == 0)
                     break;
                 BinTypeId bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
                 const BinType& bin_type = instance.bin_type(bin_type_id);
-                x = bin_type.aabb.x_max;
+                x = bin_type.aabb_scaled.x_max;
             }
         } else if (instance.objective() == Objective::OpenDimensionX) {
             const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
-            x = 0.99 * (solution.x_max() - bin_type.aabb.x_min)
+            x = 0.99 * (solution.x_max() - bin_type.aabb_scaled.x_min)
                 + bin_type.item_bin_minimum_spacing;
         } else if (instance.objective() == Objective::OpenDimensionY) {
             const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
-            y = 0.99 * (solution.y_max() - bin_type.aabb.y_min)
+            y = 0.99 * (solution.y_max() - bin_type.aabb_scaled.y_min)
                 + bin_type.item_bin_minimum_spacing;
         } else {  // OpenDimensionXY
             const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
             x = 0.99 * (std::max)(
-                    solution.x_max() - bin_type.aabb.x_min,
-                    solution.y_max() - bin_type.aabb.y_min)
+                    solution.x_max() - bin_type.aabb_scaled.x_min,
+                    solution.y_max() - bin_type.aabb_scaled.y_min)
                 + bin_type.item_bin_minimum_spacing;
             AreaDbl a_cur = (solution.x_max() - solution.x_min()) * (solution.y_max() - solution.y_min());
             LengthDbl x_cur = std::sqrt(a_cur / instance.parameters().open_dimension_xy_aspect_ratio);
