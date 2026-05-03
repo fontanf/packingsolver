@@ -359,7 +359,18 @@ public:
      * after applying the given mirror (axial symmetry about the y-axis) and
      * rotation angle.
      */
-    ShapeWithHoles item_shape(
+    ShapeWithHoles item_shape_scaled(
+            ItemTypeId item_type_id,
+            ItemPos item_shape_pos,
+            Angle angle,
+            bool mirror) const;
+
+    /**
+     * Return the original (unscaled) shape of item type 'item_type_id', shape
+     * 'item_shape_pos', after applying the given mirror (axial symmetry about
+     * the y-axis) and rotation angle.
+     */
+    ShapeWithHoles item_shape_orig(
             ItemTypeId item_type_id,
             ItemPos item_shape_pos,
             Angle angle,

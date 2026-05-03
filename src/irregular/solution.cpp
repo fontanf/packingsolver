@@ -249,11 +249,7 @@ shape::ShapeWithHoles Solution::shape_scaled(
         double scale_value) const
 {
     const SolutionItem& solution_item = bins_[bin_pos].items[item_pos];
-    const ItemType& item_type = instance().item_type(solution_item.item_type_id);
-    shape::ShapeWithHoles swh = item_type.shapes[item_shape_pos].shape_scaled;
-    if (solution_item.mirror)
-        swh = swh.axial_symmetry_y_axis();
-    swh = swh.rotate(solution_item.angle);
+    shape::ShapeWithHoles swh = instance().item_shape_scaled(solution_item.item_type_id, item_shape_pos, solution_item.angle, solution_item.mirror);
     swh = scale_value * swh;
     swh.shift(
             this->instance().parameters().scale_value * solution_item.bl_corner.x,
@@ -647,28 +643,13 @@ void Solution::write_svg(
             bl_corner = this->instance().parameters().scale_value * bl_corner;
 
         file << "<g>" << std::endl;
-        for (const ItemShape& item_shape: item_type.shapes) {
-            ShapeWithHoles shape = (scaled)? item_shape.shape_scaled: item_shape.shape_orig;
-
-            // Apply mirroring.
-            if (item.mirror)
-                shape.shape = shape.shape.axial_symmetry_y_axis();
-            // Apply angles.
-            shape.shape = shape.shape.rotate(item.angle);
-            // Apply shift.
-            shape.shape.shift(bl_corner.x, bl_corner.y);
-
-            for (Counter hole_pos = 0;
-                    hole_pos < (Counter)item_shape.shape_scaled.holes.size();
-                    ++hole_pos) {
-                // Apply mirroring.
-                if (item.mirror)
-                    shape.holes[hole_pos] = shape.holes[hole_pos].axial_symmetry_y_axis();
-                // Apply angles.
-                shape.holes[hole_pos] = shape.holes[hole_pos].rotate(item.angle);
-                // Apply shift.
-                shape.holes[hole_pos].shift(bl_corner.x, bl_corner.y);
-            }
+        for (ItemShapePos item_shape_pos = 0;
+                item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                ++item_shape_pos) {
+            ShapeWithHoles shape = scaled?
+                instance().item_shape_scaled(item.item_type_id, item_shape_pos, item.angle, item.mirror):
+                instance().item_shape_orig(item.item_type_id, item_shape_pos, item.angle, item.mirror);
+            shape.shift(bl_corner.x, bl_corner.y);
 
             file << shape.to_svg("blue");
 
