@@ -633,16 +633,12 @@ void Solution::write_svg(
     for (const SolutionItem& item: bin.items) {
         const ItemType& item_type = instance().item_type(item.item_type_id);
 
-        LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
-        LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
-        LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
-        LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
-
         Point bl_corner = item.bl_corner;
         if (scaled)
             bl_corner = this->instance().parameters().scale_value * bl_corner;
 
         file << "<g>" << std::endl;
+        AxisAlignedBoundingBox item_aabb;
         for (ItemShapePos item_shape_pos = 0;
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
@@ -653,16 +649,12 @@ void Solution::write_svg(
 
             file << shape.to_svg("blue");
 
-            AxisAlignedBoundingBox aabb = shape.compute_min_max(0.0);
-            x_min = (std::min)(x_min, aabb.x_min);
-            x_max = (std::max)(x_max, aabb.x_max);
-            y_min = (std::min)(y_min, aabb.y_min);
-            y_max = (std::max)(y_max, aabb.y_max);
+            item_aabb = merge(item_aabb, shape.compute_min_max(0.0));
         }
 
         // Write item type id.
-        LengthDbl x = (x_min + x_max) / 2;
-        LengthDbl y = (y_min + y_max) / 2;
+        LengthDbl x = (item_aabb.x_min + item_aabb.x_max) / 2;
+        LengthDbl y = (item_aabb.y_min + item_aabb.y_max) / 2;
         file << "<text x=\"" << std::to_string(x)
             << "\" y=\"" << std::to_string(-y)
             << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
