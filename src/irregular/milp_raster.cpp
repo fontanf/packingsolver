@@ -151,11 +151,7 @@ Solution solve_milp_raster_for_cell_size(
             for (ItemShapePos item_shape_pos = 0;
                     item_shape_pos < (ItemShapePos)item_type.shapes.size();
                     ++item_shape_pos) {
-                const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                ShapeWithHoles transformed = fixed_item.mirror?
-                    item_shape.shape_scaled.axial_symmetry_y_axis():
-                    item_shape.shape_scaled;
-                transformed = transformed.rotate(fixed_item.angle);
+                ShapeWithHoles transformed = instance.item_shape_scaled(fixed_item.item_type_id, item_shape_pos, fixed_item.angle, fixed_item.mirror);
                 transformed.shift(
                         fixed_item.bl_corner.x * scale,
                         fixed_item.bl_corner.y * scale);
@@ -183,11 +179,10 @@ Solution solve_milp_raster_for_cell_size(
                 // Compute AABB of all item shapes after applying mirror then
                 // rotation, matching the order used in convert_shape.
                 AxisAlignedBoundingBox combined_aabb;
-                for (const ItemShape& item_shape: item_type.shapes) {
-                    ShapeWithHoles transformed = rotation.mirror?
-                        item_shape.shape_scaled.axial_symmetry_y_axis():
-                        item_shape.shape_scaled;
-                    transformed = transformed.rotate(rotation.angle);
+                for (ItemShapePos item_shape_pos = 0;
+                        item_shape_pos < (ItemShapePos)item_type.shapes.size();
+                        ++item_shape_pos) {
+                    ShapeWithHoles transformed = instance.item_shape_scaled(item_type_id, item_shape_pos, rotation.angle, rotation.mirror);
                     AxisAlignedBoundingBox shape_aabb = transformed.compute_min_max();
                     combined_aabb = merge(combined_aabb, shape_aabb);
                 }
@@ -197,11 +192,7 @@ Solution solve_milp_raster_for_cell_size(
                 for (ItemShapePos item_shape_pos = 0;
                         item_shape_pos < (ItemShapePos)item_type.shapes.size();
                         ++item_shape_pos) {
-                    const ItemShape& item_shape = item_type.shapes[item_shape_pos];
-                    ShapeWithHoles transformed = (rotation.mirror)?
-                        item_shape.shape_scaled.axial_symmetry_y_axis():
-                        item_shape.shape_scaled;
-                    transformed = transformed.rotate(rotation.angle);
+                    ShapeWithHoles transformed = instance.item_shape_scaled(item_type_id, item_shape_pos, rotation.angle, rotation.mirror);
                     transformed.shift(-combined_aabb.x_min, -combined_aabb.y_min);
                     std::vector<shape::IntersectedCell> raster_cells = shape::rasterization(transformed, cell_size, cell_size);
                     for (const shape::IntersectedCell& ic: raster_cells)

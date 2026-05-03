@@ -308,13 +308,25 @@ void BinType::write_svg(
 /////////////////////////////////// Instance ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-ShapeWithHoles Instance::item_shape(
+ShapeWithHoles Instance::item_shape_scaled(
         ItemTypeId item_type_id,
         ItemPos item_shape_pos,
         Angle angle,
         bool mirror) const
 {
     ShapeWithHoles shape = item_types_[item_type_id].shapes[item_shape_pos].shape_scaled;
+    if (mirror)
+        shape = shape.axial_symmetry_y_axis();
+    return shape.rotate(angle);
+}
+
+ShapeWithHoles Instance::item_shape_orig(
+        ItemTypeId item_type_id,
+        ItemPos item_shape_pos,
+        Angle angle,
+        bool mirror) const
+{
+    ShapeWithHoles shape = item_types_[item_type_id].shapes[item_shape_pos].shape_orig;
     if (mirror)
         shape = shape.axial_symmetry_y_axis();
     return shape.rotate(angle);
