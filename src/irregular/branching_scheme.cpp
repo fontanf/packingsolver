@@ -1256,20 +1256,20 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     switch (instance().parameters().leftover_corner) {
     case Corner::BottomLeft: {
-        node.leftover_value = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
-            - (node.x_max - bin_type.aabb_scaled.x_min) * (node.y_max - bin_type.aabb_scaled.y_min);
+        node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            - (node.x_max - bin_type.aabb_orig.x_min) * (node.y_max - bin_type.aabb_orig.y_min);
         break;
     } case Corner::BottomRight: {
-        node.leftover_value = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
-            - (bin_type.aabb_scaled.x_max - node.x_min) * (node.y_max - bin_type.aabb_scaled.y_min);
+        node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            - (bin_type.aabb_orig.x_max - node.x_min) * (node.y_max - bin_type.aabb_orig.y_min);
         break;
     } case Corner::TopLeft: {
-        node.leftover_value = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
-            - (node.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - node.y_min);
+        node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            - (node.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - node.y_min);
         break;
     } case Corner::TopRight: {
-        node.leftover_value = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) * (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min)
-            - (bin_type.aabb_scaled.x_max - node.x_min) * (bin_type.aabb_scaled.y_max - node.y_min);
+        node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            - (bin_type.aabb_orig.x_max - node.x_min) * (bin_type.aabb_orig.y_max - node.y_min);
         break;
     }
     }
