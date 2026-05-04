@@ -92,22 +92,17 @@ Solution solve_milp_raster_for_cell_size(
         const BinType& bin_type = instance.bin_type(bin_type_id);
         BinTypeData& data = bin_type_data[bin_type_id];
 
-        LengthDbl x_min_scaled = bin_type.aabb_scaled.x_min;
-        LengthDbl x_max_scaled = bin_type.aabb_scaled.x_max;
-        LengthDbl y_min_scaled = bin_type.aabb_scaled.y_min;
-        LengthDbl y_max_scaled = bin_type.aabb_scaled.y_max;
-
-        data.col_shift = (shape::ColumnId)std::floor(x_min_scaled / cell_size);
-        if (shape::strictly_greater(x_min_scaled, data.col_shift * cell_size))
+        data.col_shift = (shape::ColumnId)std::floor(bin_type.aabb_scaled.x_min / cell_size);
+        if (shape::strictly_greater(bin_type.aabb_scaled.x_min, data.col_shift * cell_size))
             data.col_shift++;
-        data.col_max = (shape::ColumnId)std::floor(x_max_scaled / cell_size);
-        if (shape::strictly_lesser(x_max_scaled, (data.col_max + 1) * cell_size))
+        data.col_max = (shape::ColumnId)std::floor(bin_type.aabb_scaled.x_max / cell_size);
+        if (shape::strictly_lesser(bin_type.aabb_scaled.x_max, (data.col_max + 1) * cell_size))
             data.col_max--;
-        data.row_shift = (shape::RowId)std::floor(y_min_scaled / cell_size);
-        if (shape::strictly_greater(y_min_scaled, data.row_shift * cell_size))
+        data.row_shift = (shape::RowId)std::floor(bin_type.aabb_scaled.y_min / cell_size);
+        if (shape::strictly_greater(bin_type.aabb_scaled.y_min, data.row_shift * cell_size))
             data.row_shift++;
-        data.row_max = (shape::RowId)std::floor(y_max_scaled / cell_size);
-        if (shape::strictly_lesser(y_max_scaled, (data.row_max + 1) * cell_size))
+        data.row_max = (shape::RowId)std::floor(bin_type.aabb_scaled.y_max / cell_size);
+        if (shape::strictly_lesser(bin_type.aabb_scaled.y_max, (data.row_max + 1) * cell_size))
             data.row_max--;
         data.num_cols = data.col_max - data.col_shift + 1;
         data.num_rows = data.row_max - data.row_shift + 1;

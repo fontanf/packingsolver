@@ -228,7 +228,7 @@ double Solution::density_y() const
     return item_area() / area;
 }
 
-AreaDbl Solution::open_dimension_xy_areaarea() const
+AreaDbl Solution::open_dimension_xy_area() const
 {
     LengthDbl dx = this->x_max() - this->x_min();
     LengthDbl dy = this->y_max() - this->y_min();
@@ -410,37 +410,37 @@ bool Solution::operator<(const Solution& solution) const
             return true;
         if (solution.number_of_bins() != number_of_bins())
             return solution.number_of_bins() < number_of_bins();
-        return strictly_greater(solution.leftover_value(), leftover_value());
+        return solution.leftover_value() > leftover_value();
     } case Objective::OpenDimensionX: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return strictly_lesser(solution.x_max(), x_max());
+        return solution.x_max() < x_max();
     } case Objective::OpenDimensionY: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return strictly_lesser(solution.y_max(), y_max());
+        return solution.y_max() < y_max();
     } case Objective::OpenDimensionXY: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return strictly_lesser(solution.open_dimension_xy_areaarea(), open_dimension_xy_areaarea());
+        return solution.open_dimension_xy_area() < open_dimension_xy_area();
     } case Objective::Knapsack: {
-        return strictly_greater(solution.profit(), profit());
+        return solution.profit() > profit();
     } case Objective::Feasibility: {
         if (solution.full() != full())
             return solution.full();
-        return strictly_greater(solution.profit(), profit());
+        return solution.profit() > profit();
     } case Objective::VariableSizedBinPacking: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return strictly_lesser(solution.cost(), cost());
+        return solution.cost() < cost();
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
@@ -685,7 +685,7 @@ nlohmann::json Solution::to_json() const
         {"YMax", y_max()},
         {"DensityX", density_x()},
         {"DensityY", density_y()},
-        {"OpenDimensionXYArea", open_dimension_xy_areaarea()},
+        {"OpenDimensionXYArea", open_dimension_xy_area()},
         {"LeftoverValue", leftover_value()},
     };
 }
@@ -710,7 +710,7 @@ void Solution::format(
             << "Y max:            " << y_max() << std::endl
             << "Density X:        " << density_x() << std::endl
             << "Density Y:        " << density_y() << std::endl
-            << "ODXY area:        " << open_dimension_xy_areaarea() << std::endl
+            << "ODXY area:        " << open_dimension_xy_area() << std::endl
             << "Leftover value:   " << leftover_value() << std::endl
             ;
     }
