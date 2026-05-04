@@ -65,8 +65,8 @@ BinPos assign_item_to_bin(
             ++bin_pos) {
         const BinTypeId bin_type_id = solution.bin(bin_pos).bin_type_id;
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        if (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min < item_aabb.x_max - item_aabb.x_min
-                || bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min < item_aabb.y_max - item_aabb.y_min)
+        if (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min < item_aabb.x_max - item_aabb.x_min
+                || bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min < item_aabb.y_max - item_aabb.y_min)
             continue;
         if (bin_data[bin_pos].remaining_area > best_remaining) {
             best_remaining = bin_data[bin_pos].remaining_area;
@@ -87,7 +87,7 @@ BinPos assign_item_to_bin(
     // bin AABB and the shapes of existing items, defects, and borders.
     const BinTypeId best_bin_type_id = solution.bin(best_bin_pos).bin_type_id;
     const BinType& best_bin_type = instance.bin_type(best_bin_type_id);
-    const AxisAlignedBoundingBox& bin_aabb = best_bin_type.aabb_scaled;
+    const AxisAlignedBoundingBox& bin_aabb = best_bin_type.aabb_orig;
 
     shape::ShapeWithHoles bin_shape{instance.parameters().scale_value * shape::build_rectangle(bin_aabb), {}};
 

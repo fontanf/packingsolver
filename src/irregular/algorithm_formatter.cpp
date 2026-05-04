@@ -202,7 +202,7 @@ void AlgorithmFormatter::print(
     } case Objective::OpenDimensionXY: {
         *os_
                 << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
-                << std::setw(12) << output_.solution_pool.best().open_dimension_xy_areaarea()
+                << std::setw(12) << output_.solution_pool.best().open_dimension_xy_area()
                 << std::setw(12) << output_.solution_pool.best().x_max()
                 << std::setw(12) << output_.solution_pool.best().y_max()
                 << std::setw(32) << s
