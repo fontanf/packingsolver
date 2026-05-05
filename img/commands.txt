@@ -1,0 +1,19 @@
+install/bin/packingsolver_onedimensional  --verbosity-level 1  --items "data/onedimensional/scholl1997/Scholl_2/N1W1B3R1.txt" --bin-infinite-copies --objective bin-packing  --certificate solution_onedimensional.csv
+
+install/bin/packingsolver_rectangle  --verbosity-level 4  --items "data/rectangle/alvarez2002/ATP34" --objective knapsack  --certificate solution_rectangle.csv
+
+install/bin/packingsolver_rectangleguillotine  --verbosity-level 4  --items "data/rectangle/alvarez2002/ATP34" --objective knapsack  --certificate solution_rectangleguillotine.csv
+
+install/bin/packingsolver_irregular  --verbosity-level 1  --input "data/irregular/opencutlist/sofa_structure.json"  --certificate solution.json
+
+install/bin/packingsolver_box   --verbosity-level 4  --items ./data/box/bischoff1995/BR1.txt_10 --objective knapsack --unweighted  --certificate solution_box.csv
+
+install/bin/packingsolver_boxstacks  --verbosity-level 2  --items "data/boxstacks/roadef2022_2024-04-25_kp/C/CI2/CI2_24" --objective knapsack  --certificate solution_boxstacks.csv
+
+python scripts/visualize_onedimensional.py img/solution_onedimensional.csv  --output img/onedimensional.png --width 2048 --height 1024
+python scripts/visualize_rectangle.py img/solution_rectangle.csv  --output img/rectangle.png --width 2048 --height 1280
+python scripts/visualize_rectangleguillotine.py img/solution_rectangleguillotine.csv  --output img/rectangleguillotine.png --width 2048 --height 1280
+python scripts/visualize_irregular.py img/solution.json  --output img/irregular.png --width 2048 --height 1536
+python scripts/visualize_box.py img/solution_box.csv  --output img/box.png --width 2048 --height 1024
+python scripts/visualize_boxstacks.py img/solution_boxstacks.csv   --output img/boxstacks.png --width 2048 --height 1024
+
