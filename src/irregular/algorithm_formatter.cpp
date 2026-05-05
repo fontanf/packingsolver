@@ -181,7 +181,7 @@ void AlgorithmFormatter::print(
         *os_
                 << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
                 << std::setw(12) << output_.solution_pool.best().number_of_bins()
-                << std::setw(12) << output_.solution_pool.best().leftover_value()
+                << std::setw(12) << output_.solution_pool.best().leftover_value_orig()
                 << std::setw(32) << s
                 << std::endl;
         break;
