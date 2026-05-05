@@ -106,23 +106,24 @@ void Solution::add_item(
         y_max_ = bin.y_max;
         switch (instance().parameters().leftover_corner) {
         case Corner::BottomLeft: {
-            leftover_value_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
                 - (x_max_ - bin_type.aabb_orig.x_min) * (y_max_ - bin_type.aabb_orig.y_min);
             break;
         } case Corner::BottomRight: {
-            leftover_value_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
                 - (bin_type.aabb_orig.x_max - x_min_) * (y_max_ - bin_type.aabb_orig.y_min);
             break;
         } case Corner::TopLeft: {
-            leftover_value_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
                 - (x_max_ - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - y_min_);
             break;
         } case Corner::TopRight: {
-            leftover_value_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
                 - (bin_type.aabb_orig.x_max - x_min_) * (bin_type.aabb_orig.y_max - y_min_);
             break;
         }
         }
+        leftover_value_scaled_ = leftover_value_orig_ * instance().parameters().scale_value;
     }
 
     //if (strictly_lesser(leftover_value_, 0.0)) {
@@ -410,7 +411,9 @@ bool Solution::operator<(const Solution& solution) const
             return true;
         if (solution.number_of_bins() != number_of_bins())
             return solution.number_of_bins() < number_of_bins();
-        return solution.leftover_value() > leftover_value();
+        return shape::strictly_greater(
+                std::sqrt(solution.leftover_value_scaled()),
+                std::sqrt(leftover_value_scaled()));
     } case Objective::OpenDimensionX: {
         if (!solution.full())
             return false;
@@ -686,7 +689,7 @@ nlohmann::json Solution::to_json() const
         {"DensityX", density_x()},
         {"DensityY", density_y()},
         {"OpenDimensionXYArea", open_dimension_xy_area()},
-        {"LeftoverValue", leftover_value()},
+        {"LeftoverValue", leftover_value_orig()},
     };
 }
 
@@ -711,7 +714,7 @@ void Solution::format(
             << "Density X:        " << density_x() << std::endl
             << "Density Y:        " << density_y() << std::endl
             << "ODXY area:        " << open_dimension_xy_area() << std::endl
-            << "Leftover value:   " << leftover_value() << std::endl
+            << "Leftover value:   " << leftover_value_orig() << std::endl
             ;
     }
 

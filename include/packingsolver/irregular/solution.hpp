@@ -172,7 +172,9 @@ public:
     AreaDbl open_dimension_xy_area() const;
 
     /** Get the area of the solution. */
-    inline Profit leftover_value() const { return leftover_value_; }
+    inline Profit leftover_value_orig() const { return leftover_value_orig_; }
+
+    inline Profit leftover_value_scaled() const { return leftover_value_scaled_; }
 
     /** Get the waste of the solution including the residual. */
     inline AreaDbl full_waste() const { return bin_area() - item_area(); }
@@ -256,8 +258,11 @@ private:
     /** Number of items. */
     ItemPos number_of_items_ = 0;
 
-    /** Value of the leftover. */
-    Profit leftover_value_ = 0.0;
+    /** Value of the leftover in original coordinates. */
+    Profit leftover_value_orig_ = 0.0;
+
+    /** Value of the leftover in scaled coordinates. */
+    Profit leftover_value_scaled_ = 0.0;
 
     /** Total area of the bins of the solution. */
     AreaDbl bin_area_ = 0;
