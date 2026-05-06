@@ -3,6 +3,7 @@ import csv
 import plotly.graph_objects as go
 import plotly.express as px
 import plotly.subplots
+import math
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('csvpath', help='path to CSV file')
@@ -132,14 +133,17 @@ with open(args.csvpath, newline='') as csvfile:
 
 m = len(bins_x)
 colors = px.colors.qualitative.Pastel
+number_of_rows = math.ceil(math.sqrt(m))
 fig = plotly.subplots.make_subplots(
-        rows=m,
-        cols=1,
+        rows=number_of_rows,
+        cols=number_of_rows,
         shared_xaxes=True,
-        specs=[[{'type': 'mesh3d'}] for _ in range(m)],
+        specs=[[{'type': 'mesh3d'} for _ in range(number_of_rows)] for _ in range(number_of_rows)],
         vertical_spacing=0.001)
 
 for i in range(0, m):
+    row = (i // number_of_rows) + 1
+    col = (i % number_of_rows) + 1
 
     fig.add_trace(go.Mesh3d(
         x=bins_x[i],
@@ -154,8 +158,8 @@ for i in range(0, m):
         opacity=0.1,
         color="grey",
         flatshading=True),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     fig.add_trace(go.Mesh3d(
         x=defects_x[i],
@@ -170,8 +174,8 @@ for i in range(0, m):
         opacity=0.2,
         color="grey",
         flatshading=True),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     for k in range(len(items_x[i])):
         if args.itemcolor == 'SAME':
@@ -191,8 +195,8 @@ for i in range(0, m):
             opacity=1,
             flatshading=True,
             color=item_color),
-            row=i + 1,
-            col=1)
+            row=row,
+            col=col)
 
     fig.add_trace(go.Scatter3d(
         x=item_borders_x[i],
@@ -203,8 +207,8 @@ for i in range(0, m):
         showlegend=False,
         mode="lines",
         line=dict(color="black", width=10)),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     fig.add_trace(go.Scatter3d(
         x=item_ids_x[i],
@@ -217,8 +221,8 @@ for i in range(0, m):
         text=item_ids[i],
         textfont=dict(size=8),
         textposition="middle center"),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
 # Plot.
 fig.update_layout(

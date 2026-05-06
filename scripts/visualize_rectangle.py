@@ -135,13 +135,16 @@ for i in range(0, m):
 
 # colors = px.colors.qualitative.Plotly
 colors = px.colors.qualitative.Pastel
+number_of_rows = math.ceil(math.sqrt(m))
 fig = plotly.subplots.make_subplots(
-        rows=m,
-        cols=1,
+        rows=number_of_rows,
+        cols=number_of_rows,
         shared_xaxes=True,
         vertical_spacing=0.001)
 
 for i in range(0, m):
+    row = (i // number_of_rows) + 1
+    col = (i % number_of_rows) + 1
 
     fig.add_trace(go.Scatter(
         x=bins_x[i],
@@ -152,8 +155,8 @@ for i in range(0, m):
         marker=dict(
             color='black',
             size=1)),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     fig.add_trace(go.Scatter(
         x=defects_x[i],
@@ -166,8 +169,8 @@ for i in range(0, m):
         marker=dict(
             color='black',
             size=1)),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     for k in range(0, len(items_x[i])):
         if args.itemcolor == 'SAME':
@@ -182,8 +185,8 @@ for i in range(0, m):
                 marker=dict(
                     color='black',
                     size=1)),
-                row=i + 1,
-                col=1)
+                row=row,
+                col=col)
 
         elif args.itemcolor == 'ID':
             fig.add_trace(go.Scatter(
@@ -197,8 +200,8 @@ for i in range(0, m):
                 marker=dict(
                     color='black',
                     size=1)),
-                row=i + 1,
-                col=1)
+                row=row,
+                col=col)
 
         elif args.itemcolor == 'GROUP_ID':
             fig.add_trace(go.Scatter(
@@ -212,8 +215,8 @@ for i in range(0, m):
                 marker=dict(
                     color='black',
                     size=1)),
-                row=i + 1,
-                col=1)
+                row=row,
+                col=col)
 
         elif args.itemcolor == 'DENSITY':
             if min(items_density[i]) != max(items_density[i]):
@@ -231,8 +234,8 @@ for i in range(0, m):
                 marker=dict(
                     color='black',
                     size=1)),
-                row=i + 1,
-                col=1)
+                row=row,
+                col=col)
 
     fig.add_trace(go.Scatter(
         x=item_ids_x[i],
@@ -244,8 +247,8 @@ for i in range(0, m):
         text=item_ids[i],
         textfont=dict(size=8),
         textposition="middle center"),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     if args.itemcolor == 'DENSITY':
         fig.add_trace(go.Scatter(
@@ -259,8 +262,8 @@ for i in range(0, m):
             marker=dict(
                 color='red',
                 size=1)),
-            row=i + 1,
-            col=1)
+            row=row,
+            col=col)
         fig.add_trace(go.Scatter(
             text="y:" + str(round(bins_gravity_repartition_y[i], 2)) + "% / " + str(100 - round(bins_gravity_repartition_y[i], 2)) +"%",
             x=bins_x[i],
@@ -272,8 +275,8 @@ for i in range(0, m):
             marker=dict(
                 color='red',
                 size=1)),
-            row=i + 1,
-            col=1)
+            row=row,
+            col=col)
 
 
 # Plot.

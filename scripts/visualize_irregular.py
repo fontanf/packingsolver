@@ -108,15 +108,17 @@ with open(args.csvpath, 'r') as f:
                              if "holes" in item_shape else []):
                     shape_path(items_x[bin_pos][item_id], items_y[bin_pos][item_id], hole, True)
 
-m = len(bins_x)
 colors = px.colors.qualitative.Pastel
+number_of_rows = math.ceil(math.sqrt(len(bins_x)))
 fig = plotly.subplots.make_subplots(
-        rows=m,
-        cols=1,
+        rows=number_of_rows,
+        cols=number_of_rows,
         shared_xaxes=True,
         vertical_spacing=0.001)
 
-for i in range(0, m):
+for i in range(0, len(bins_x)):
+    row = (i // number_of_rows) + 1
+    col = (i % number_of_rows) + 1
 
     fig.add_trace(go.Scatter(
         x=bins_x[i],
@@ -127,8 +129,8 @@ for i in range(0, m):
         marker=dict(
             color='black',
             size=1)),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     fig.add_trace(go.Scatter(
         x=defects_x[i],
@@ -141,8 +143,8 @@ for i in range(0, m):
         marker=dict(
             color='black',
             size=1)),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     for k in range(len(items_x[i])):
         if args.itemcolor == 'SAME':
@@ -171,8 +173,8 @@ for i in range(0, m):
                 marker=dict(
                     color='black',
                     size=1)),
-                row=i + 1,
-                col=1)
+                row=row,
+                col=col)
 
 # Plot.
 fig.update_layout(

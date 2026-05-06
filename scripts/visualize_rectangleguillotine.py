@@ -3,6 +3,7 @@ import csv
 import plotly.graph_objects as go
 import plotly.express as px
 import plotly.subplots
+import math
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('csvpath', help='path to CSV file')
@@ -84,13 +85,16 @@ with open(args.csvpath, newline='') as csvfile:
 
 m = len(bins_x)
 colors = px.colors.qualitative.Pastel
+number_of_rows = math.ceil(math.sqrt(m))
 fig = plotly.subplots.make_subplots(
-        rows=m,
-        cols=1,
+        rows=number_of_rows,
+        cols=number_of_rows,
         shared_xaxes=True,
         vertical_spacing=0.001)
 
 for i in range(0, m):
+    row = (i // number_of_rows) + 1
+    col = (i % number_of_rows) + 1
 
     fig.add_trace(go.Scatter(
         x=bins_x[i],
@@ -101,8 +105,8 @@ for i in range(0, m):
         marker=dict(
             color='black',
             size=1)),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     fig.add_trace(go.Scatter(
         x=defects_x[i],
@@ -115,8 +119,8 @@ for i in range(0, m):
         marker=dict(
             color='black',
             size=1)),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     fig.add_trace(go.Scatter(
         x=trims_x[i],
@@ -127,8 +131,8 @@ for i in range(0, m):
         marker=dict(
             color='black',
             size=1)),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     for k in range(len(cuts_x[i])):
         fig.add_trace(go.Scatter(
@@ -140,8 +144,8 @@ for i in range(0, m):
             marker=dict(
                 color='black',
                 size=1)),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
     for k in range(len(items_x[i])):
         if args.itemcolor == 'SAME':
@@ -156,8 +160,8 @@ for i in range(0, m):
                 marker=dict(
                     color='black',
                     size=1)),
-                row=i + 1,
-                col=1)
+                row=row,
+                col=col)
         elif args.itemcolor == 'ID':
             fig.add_trace(go.Scatter(
                 x=items_x[i][k],
@@ -170,8 +174,8 @@ for i in range(0, m):
                 marker=dict(
                     color='black',
                     size=1)),
-                row=i + 1,
-                col=1)
+                row=row,
+                col=col)
 
     fig.add_trace(go.Scatter(
         x=item_ids_x[i],
@@ -183,8 +187,8 @@ for i in range(0, m):
         text=item_ids[i],
         textfont=dict(size=8),
         textposition="middle center"),
-        row=i + 1,
-        col=1)
+        row=row,
+        col=col)
 
 # Plot.
 fig.update_layout(
