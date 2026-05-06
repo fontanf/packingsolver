@@ -8,6 +8,8 @@ parser = argparse.ArgumentParser(description='')
 parser.add_argument('csvpath', help='path to CSV file')
 parser.add_argument('itemcolor', nargs='?', default='ID', help='color palette used among ["SAME", "ID"]')
 parser.add_argument('-o', '--output', help='save image to file instead of opening browser (e.g. output.png)')
+parser.add_argument('--width', type=int, default=None, help='image width in pixels for PNG export')
+parser.add_argument('--height', type=int, default=None, help='image height in pixels for PNG export')
 args = parser.parse_args()
 
 if args.itemcolor not in ["SAME", "ID"]:
@@ -220,9 +222,7 @@ for i in range(0, m):
 
 # Plot.
 fig.update_layout(
-        autosize=False,
-        width=1000,
-        height=m*1000)
+        autosize=True)
 fig.update_xaxes(
         rangeslider=dict(visible=False))
 fig.update_yaxes(
@@ -230,8 +230,10 @@ fig.update_yaxes(
         scaleratio=1)
 fig.update_scenes(
         aspectmode='data',
-        camera=dict(eye=dict(x=2, y=2, z=2)))
+        camera=dict(
+            center=dict(x=0, y=0, z=-0.25),
+            eye=dict(x=-1.75, y=-1.5, z=0.75)))
 if args.output:
-    fig.write_image(args.output)
+    fig.write_image(args.output, width=args.width, height=args.height)
 else:
     fig.show()

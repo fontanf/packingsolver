@@ -59,6 +59,8 @@ def shape_path(path_x, path_y, shape, is_hole=False):
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('csvpath', help='path to JSON file')
 parser.add_argument('-o', '--output', help='save image to file instead of opening browser (e.g. output.png)')
+parser.add_argument('--width', type=int, default=None, help='image width in pixels for PNG export')
+parser.add_argument('--height', type=int, default=None, help='image height in pixels for PNG export')
 args = parser.parse_args()
 
 bin_types_x = []
@@ -174,6 +176,6 @@ fig.update_yaxes(
         scaleanchor="x",
         scaleratio=1)
 if args.output:
-    fig.write_image(args.output)
+    fig.write_image(args.output, width=args.width, height=args.height)
 else:
     fig.show()
