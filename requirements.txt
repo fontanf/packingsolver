@@ -4,3 +4,4 @@ pandas
 plotly
 shapely
 streamlit
+kaleido
