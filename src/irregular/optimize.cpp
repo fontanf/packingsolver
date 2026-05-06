@@ -45,8 +45,11 @@ void optimize_onedimensional_bound(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
+        Length length = std::floor(item_type.area_scaled);
+        if (length == 0)
+            continue;
         onedim_instance_builder.add_item_type(
-                std::floor(item_type.area_scaled),
+                length,
                 item_type.profit,
                 item_type.copies);
     }
