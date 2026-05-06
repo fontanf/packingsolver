@@ -34,6 +34,15 @@ if (PackingSolver_USE_KNITRO)
 endif()
 add_library(PackingSolver::irregular ALIAS PackingSolver_irregular)
 
+add_library(PackingSolver_irregular_convert)
+target_sources(PackingSolver_irregular_convert PRIVATE
+    convert.cpp)
+target_include_directories(PackingSolver_irregular_convert PUBLIC
+    ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(PackingSolver_irregular_convert PUBLIC
+    PackingSolver_irregular)
+add_library(PackingSolver::irregular_convert ALIAS PackingSolver_irregular_convert)
+
 if(PACKINGSOLVER_BUILD_MAIN)
     add_executable(PackingSolver_irregular_main)
     target_sources(PackingSolver_irregular_main PRIVATE
@@ -52,4 +61,13 @@ if(PACKINGSOLVER_BUILD_MAIN)
         Boost::program_options)
     set_target_properties(PackingSolver_irregular_fill_solution_file PROPERTIES OUTPUT_NAME "fill_solution_file")
     install(TARGETS PackingSolver_irregular_fill_solution_file)
+
+    add_executable(PackingSolver_irregular_convert_main)
+    target_sources(PackingSolver_irregular_convert_main PRIVATE
+        convert_main.cpp)
+    target_link_libraries(PackingSolver_irregular_convert_main PUBLIC
+        PackingSolver_irregular_convert
+        Boost::program_options)
+    set_target_properties(PackingSolver_irregular_convert_main PROPERTIES OUTPUT_NAME "irregular_convert")
+    install(TARGETS PackingSolver_irregular_convert_main)
 endif()
