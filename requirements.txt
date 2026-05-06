@@ -5,3 +5,4 @@ plotly
 shapely
 streamlit
 kaleido
+py7zr
