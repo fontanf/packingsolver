@@ -109,7 +109,7 @@ BinPos assign_item_to_bin(
         occupied_shapes.push_back(border.shape_scaled);
 
     const std::vector<shape::ShapeWithHoles> free_regions =
-            shape::compute_difference(bin_shape, occupied_shapes);
+            shape::compute_difference({bin_shape}, occupied_shapes);
     //shape::Writer().add_shape_with_holes(bin_shape, "Bin")
     //    .add_shapes_with_holes(occupied_shapes, "Occupied")
     //    .add_shapes_with_holes(free_regions, "Difference")
