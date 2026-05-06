@@ -120,6 +120,7 @@ std::vector<std::vector<std::vector<ItemTypeRotation>>> packingsolver::irregular
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
+        //std::cout << "item_type_id " << item_type_id << std::endl;
         const ItemType& item_type = instance.item_type(item_type_id);
         std::vector<std::pair<Angle, bool>> angle_mirror_pairs;
         for (const AllowedRotation& rotation: item_type.allowed_rotations) {
@@ -187,15 +188,27 @@ std::vector<std::vector<std::vector<ItemTypeRotation>>> packingsolver::irregular
                 angle_mirror_pairs.begin(),
                 angle_mirror_pairs.end(),
                 [](const std::pair<Angle, bool>& p1, const std::pair<Angle, bool>& p2) {
-                    if (!equal(p1.first, p2.first))
-                        return p1.first < p2.first;
-                    return (int)p1.second < (int)p2.second;
+                    if (p1.second != p2.second)
+                        return (int)p1.second < (int)p2.second;
+                    return p1.first < p2.first;
                 });
-        for (const std::pair<Angle, bool>& p: angle_mirror_pairs) {
-            if (candidate_rotations[item_type_id].empty()
-                    || candidate_rotations[item_type_id].back().second != p.second
-                    || !equal(p.first, candidate_rotations[item_type_id].back().first)) {
-                candidate_rotations[item_type_id].push_back(p);
+        if (angle_mirror_pairs.size() > 512) {
+            for (const std::pair<Angle, bool>& p: angle_mirror_pairs) {
+                if (candidate_rotations[item_type_id].empty()
+                        || candidate_rotations[item_type_id].back().second != p.second
+                        || shape::angular_distance(p.first, candidate_rotations[item_type_id].back().first) >= 1) {
+                    //std::cout << p.first << " " << p.second << std::endl;
+                    candidate_rotations[item_type_id].push_back(p);
+                }
+            }
+        } else {
+            for (const std::pair<Angle, bool>& p: angle_mirror_pairs) {
+                if (candidate_rotations[item_type_id].empty()
+                        || candidate_rotations[item_type_id].back().second != p.second
+                        || !equal(p.first, candidate_rotations[item_type_id].back().first)) {
+                    //std::cout << p.first << " " << p.second << std::endl;
+                    candidate_rotations[item_type_id].push_back(p);
+                }
             }
         }
     }
@@ -248,6 +261,8 @@ std::vector<std::vector<std::vector<ItemTypeRotation>>> packingsolver::irregular
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
+        //std::cout << "item_type_id " << item_type_id
+        //    << " candidate_rotations " << candidate_rotations[item_type_id].size() << std::endl;
         const ItemType& item_type = instance.item_type(item_type_id);
         AreaDbl convex_hull_area = 0.0;
         for (const Shape& ch: item_shapes_convex_hulls[item_type_id])
