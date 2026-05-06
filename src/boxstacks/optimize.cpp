@@ -264,6 +264,7 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
+        svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         svc_parameters.new_solution_callback = [&algorithm_formatter](
                 const packingsolver::Output<Instance, Solution>& ps_output)
         {

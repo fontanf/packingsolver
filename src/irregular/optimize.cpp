@@ -455,6 +455,7 @@ void optimize_sequential_single_knapsack(
         SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
+        svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         svc_parameters.maximum_number_of_iterations = 1;
         svc_parameters.new_solution_callback = [
             &algorithm_formatter, &queue_size](
@@ -520,6 +521,7 @@ void optimize_sequential_value_correction(
     SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
     svc_parameters.verbosity_level = 0;
     svc_parameters.timer = parameters.timer;
+    svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
     svc_parameters.new_solution_callback = [&algorithm_formatter](
@@ -569,6 +571,7 @@ void optimize_dichotomic_search(
         DichotomicSearchParameters<Instance, Solution> ds_parameters;
         ds_parameters.verbosity_level = 0;
         ds_parameters.timer = parameters.timer;
+        ds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         ds_parameters.initial_waste_percentage_upper_bound = waste_percentage_upper_bound;
         ds_parameters.new_solution_callback = [
             &algorithm_formatter, &queue_size](
@@ -630,6 +633,7 @@ void optimize_column_generation(
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
+    cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = 1;
     cgslds_parameters.dummy_column_objective_coefficient = 2 * (double)instance.largest_item_copies();
     if (parameters.optimization_mode != OptimizationMode::Anytime)
