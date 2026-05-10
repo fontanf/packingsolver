@@ -94,6 +94,14 @@ std::ostream& box::operator<<(
     return os;
 }
 
+std::ostream& box::operator<<(
+        std::ostream& os,
+        Box box)
+{
+    os << "x " << box.x << " y " << box.y << " z " << box.z;
+    return os;
+}
+
 std::ostream& packingsolver::box::operator<<(
         std::ostream& os,
         const ItemType& item_type)

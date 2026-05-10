@@ -9,7 +9,8 @@ target_sources(PackingSolver_box PRIVATE
     optimize.cpp
     post_process.cpp
     block.cpp
-    branching_scheme.cpp)
+    branching_scheme.cpp
+    branching_scheme_maximal_spaces.cpp)
 target_include_directories(PackingSolver_box PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_box PRIVATE

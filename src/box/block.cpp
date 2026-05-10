@@ -3,6 +3,7 @@
 #include "optimizationtools/utils/utils.hpp"
 
 #include <algorithm>
+#include <ostream>
 #include <unordered_set>
 
 using namespace packingsolver;
@@ -11,6 +12,19 @@ using namespace packingsolver::box;
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Internals ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+std::ostream& packingsolver::box::operator<<(std::ostream& os, const Block& block)
+{
+    os << "x " << block.box.x
+       << " y " << block.box.y
+       << " z " << block.box.z
+       << " item_volume " << block.item_volume
+       << " fill_rate " << block.fill_rate()
+       << " item_copies";
+    for (const auto& item_copy: block.item_copies)
+        os << " " << item_copy.first << "*" << item_copy.second;
+    return os;
+}
 
 namespace
 {
@@ -39,9 +53,12 @@ struct BlockKeyHasher
 
 struct BlockKeyEqual
 {
-    bool operator()(const BlockKey& a, const BlockKey& b) const
+    bool operator()(
+            const BlockKey& block_1,
+            const BlockKey& block_2) const
     {
-        return a.box == b.box && a.item_copies == b.item_copies;
+        return block_1.box == block_2.box
+            && block_1.item_copies == block_2.item_copies;
     }
 };
 
@@ -52,13 +69,40 @@ BlockKey make_key(const Block& block)
     return {block.box, block.item_copies};
 }
 
+bool is_valid_item_copies(
+    const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies_1,
+    const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies_2,
+    const Instance& instance)
+{
+    auto it1 = item_copies_1.begin();
+    auto it2 = item_copies_2.begin();
+    while (it1 != item_copies_1.end() || it2 != item_copies_2.end()) {
+        ItemTypeId item_type_id;
+        ItemPos copies;
+        if (it1 == item_copies_1.end()) {
+            item_type_id = it2->first; copies = it2->second; ++it2;
+        } else if (it2 == item_copies_2.end()) {
+            item_type_id = it1->first; copies = it1->second; ++it1;
+        } else if (it1->first < it2->first) {
+            item_type_id = it1->first; copies = it1->second; ++it1;
+        } else if (it1->first > it2->first) {
+            item_type_id = it2->first; copies = it2->second; ++it2;
+        } else {
+            item_type_id = it1->first; copies = it1->second + it2->second; ++it1; ++it2;
+        }
+        if (copies > instance.item_type(item_type_id).copies)
+            return false;
+    }
+    return true;
+}
+
 /**
  * Merge two sorted sparse item_copies vectors and check quantity constraints.
  *
  * Returns {true, merged} if all merged counts are within instance limits,
  * {false, {}} otherwise.
  */
-std::pair<bool, std::vector<std::pair<ItemTypeId, ItemPos>>> merge_item_copies(
+std::vector<std::pair<ItemTypeId, ItemPos>> merge_item_copies(
     const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies_1,
     const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies_2,
     const Instance& instance)
@@ -80,17 +124,15 @@ std::pair<bool, std::vector<std::pair<ItemTypeId, ItemPos>>> merge_item_copies(
         } else {
             item_type_id = it1->first; copies = it1->second + it2->second; ++it1; ++it2;
         }
-        if (copies > instance.item_type(item_type_id).copies)
-            return {false, {}};
         result.push_back({item_type_id, copies});
     }
-    return {true, result};
+    return result;
 }
 
 
-bool block_allocated_volume_greater(const Block& block_1, const Block& block_2)
+bool block_item_volume_greater(const Block& block_1, const Block& block_2)
 {
-    return block_1.allocated_volume > block_2.allocated_volume;
+    return block_1.item_volume > block_2.item_volume;
 }
 
 /** Check space and fill-rate validity of a block against the given bin type. */
@@ -136,31 +178,54 @@ std::vector<Block> compute_blocks_for_bin(
         if (item_type.copies < 1)
             continue;
         for (Rotation rotation: item_type.rotations) {
-            Block block;
-            block.box = item_type.box.rotate(rotation);
-            block.allocated_volume = item_type.volume();
-            block.item_copies = {{item_type_id, 1}};
-            SolutionItem solution_item;
-            solution_item.item_type_id = item_type_id;
-            solution_item.rotation = rotation;
-            solution_item.bl_corner = {0, 0, 0};
-            block.items.push_back(solution_item);
-            if (!is_valid_block(block, bin_type, parameters.minimum_fill_rate))
-                continue;
-            BlockKey key = make_key(block);
-            if (!seen.insert(key).second)
-                continue;
-            blocks.push_back(std::move(block));
+            Box box = item_type.box.rotate(rotation);
+            ItemPos copies_max_x = (std::min)(
+                    item_type.copies,
+                    (ItemPos)(bin_type.box.x / box.x));
+            for (ItemPos cx = 1; cx <= copies_max_x; ++cx) {
+                ItemPos copies_max_y = (std::min)(
+                        item_type.copies / cx,
+                        (ItemPos)(bin_type.box.y / box.y));
+                for (ItemPos cy = 1; cy <= copies_max_y; ++cy) {
+                    ItemPos copies_max_z = (std::min)(
+                            item_type.copies / (cx * cy),
+                            (ItemPos)(bin_type.box.z / box.z));
+                    for (ItemPos cz = 1; cz <= copies_max_z; ++cz) {
+                        Block block;
+                        block.is_simple = true;
+                        block.item_type_id = item_type_id;
+                        block.rotation = rotation;
+                        block.box = {cx * box.x, cy * box.y, cz * box.z};
+                        block.item_volume = cx * cy * cz * item_type.volume();
+                        block.item_copies = {{item_type_id, cx * cy * cz}};
+                        block.items.reserve(cx * cy * cz);
+                        for (ItemPos ccx = 0; ccx < cx; ++ccx) {
+                            for (ItemPos ccy = 0; ccy < cy; ++ccy) {
+                                for (ItemPos ccz = 0; ccz < cz; ++ccz) {
+                                    SolutionItem solution_item;
+                                    solution_item.item_type_id = item_type_id;
+                                    solution_item.rotation = rotation;
+                                    solution_item.bl_corner = {ccx * box.x, ccy * box.y, ccz * box.z};
+                                    block.items.push_back(solution_item);
+                                }
+                            }
+                        }
+                        blocks.push_back(std::move(block));
+                    }
+                }
+            }
         }
     }
 
-    std::sort(blocks.begin(), blocks.end(), block_allocated_volume_greater);
+    std::sort(blocks.begin(), blocks.end(), block_item_volume_greater);
 
     // Algorithm 3.5: iterative combination
     // P starts as singular blocks; after each iteration P ← N (newly generated blocks)
     std::vector<Block> previous_blocks(blocks.begin(), blocks.end());
 
-    while ((ItemPos)blocks.size() < parameters.maximum_number_of_blocks) {
+    ItemPos number_of_simple_blocks = blocks.size();
+    for (;;) {
+        //std::cout << blocks.size() << std::endl;
         std::vector<Block> new_blocks;
         bool limit_reached = false;
 
@@ -170,16 +235,20 @@ std::vector<Block> compute_blocks_for_bin(
             for (const Block& existing_block: blocks) {
                 if (limit_reached)
                     break;
-                auto merged = merge_item_copies(
-                    previous_block.item_copies,
-                    existing_block.item_copies,
-                    instance);
-                if (!merged.first)
+                if (previous_block.is_simple == existing_block.is_simple
+                        && previous_block.item_type_id == existing_block.item_type_id
+                        && previous_block.rotation == existing_block.rotation) {
                     continue;
+                }
+                if (!is_valid_item_copies(
+                            previous_block.item_copies,
+                            existing_block.item_copies,
+                            instance)) {
+                    continue;
+                }
                 for (Direction direction: {Direction::X, Direction::Y, Direction::Z}) {
                     Block combined;
-                    combined.allocated_volume = previous_block.allocated_volume + existing_block.allocated_volume;
-                    combined.item_copies = merged.second;
+                    combined.item_volume = previous_block.item_volume + existing_block.item_volume;
                     switch (direction) {
                     case Direction::X:
                         combined.box.x = previous_block.box.x + existing_block.box.x;
@@ -200,9 +269,15 @@ std::vector<Block> compute_blocks_for_bin(
                     }
                     if (!is_valid_block(combined, bin_type, parameters.minimum_fill_rate))
                         continue;
-                    BlockKey key = make_key(combined);
+                    BlockKey key;
+                    key.box = combined.box;
+                    key.item_copies = merge_item_copies(
+                            previous_block.item_copies,
+                            existing_block.item_copies,
+                            instance);
                     if (seen.count(key))
                         continue;
+                    combined.item_copies = key.item_copies;
                     combined.items = previous_block.items;
                     for (const SolutionItem& item: existing_block.items) {
                         SolutionItem shifted = item;
@@ -216,8 +291,15 @@ std::vector<Block> compute_blocks_for_bin(
                     }
                     seen.insert(key);
                     new_blocks.push_back(std::move(combined));
-                    if ((ItemPos)(blocks.size() + new_blocks.size())
+                    if (parameters.maximum_number_of_blocks != -1
+                            && (ItemPos)(blocks.size() + new_blocks.size())
                             >= parameters.maximum_number_of_blocks) {
+                        limit_reached = true;
+                        break;
+                    }
+                    if (parameters.maximum_number_of_non_simple_blocks != -1
+                            && (ItemPos)(blocks.size() - number_of_simple_blocks + new_blocks.size())
+                            >= parameters.maximum_number_of_non_simple_blocks) {
                         limit_reached = true;
                         break;
                     }
@@ -228,7 +310,7 @@ std::vector<Block> compute_blocks_for_bin(
         if (new_blocks.empty())
             break;
 
-        std::sort(new_blocks.begin(), new_blocks.end(), block_allocated_volume_greater);
+        std::sort(new_blocks.begin(), new_blocks.end(), block_item_volume_greater);
         previous_blocks = std::move(new_blocks);
         const ItemPos old_blocks_size = (ItemPos)blocks.size();
         for (const Block& block: previous_blocks)
@@ -237,8 +319,14 @@ std::vector<Block> compute_blocks_for_bin(
             blocks.begin(),
             blocks.begin() + old_blocks_size,
             blocks.end(),
-            block_allocated_volume_greater);
+            block_item_volume_greater);
+
+        if (limit_reached)
+            break;
     }
+
+    //for (const Block& block: blocks)
+    //    std::cout << block << std::endl;
 
     return blocks;
 }
