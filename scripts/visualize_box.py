@@ -117,9 +117,13 @@ with open(args.csvpath, newline='') as csvfile:
             items_i[i].append([])
             items_j[i].append([])
             items_k[i].append([])
-            items_x[i][k] = [x1, x2, x1, x2, x1, x2, x1, x2]
-            items_y[i][k] = [y1, y1, y2, y2, y1, y1, y2, y2]
-            items_z[i][k] = [z1, z1, z1, z1, z2, z2, z2, z2]
+            eps = 0.1
+            mx1, mx2 = x1 + eps, x2 - eps
+            my1, my2 = y1 + eps, y2 - eps
+            mz1, mz2 = z1 + eps, z2 - eps
+            items_x[i][k] = [mx1, mx2, mx1, mx2, mx1, mx2, mx1, mx2]
+            items_y[i][k] = [my1, my1, my2, my2, my1, my1, my2, my2]
+            items_z[i][k] = [mz1, mz1, mz1, mz1, mz2, mz2, mz2, mz2]
             items_i[i][k] = [a + 0, a + 3, a + 4, a + 7, a + 0, a + 5, a + 2, a + 7, a + 0, a + 6, a + 1, a + 7]
             items_j[i][k] = [a + 1, a + 1, a + 5, a + 5, a + 1, a + 1, a + 3, a + 3, a + 2, a + 2, a + 3, a + 3]
             items_k[i][k] = [a + 2, a + 2, a + 6, a + 6, a + 4, a + 4, a + 6, a + 6, a + 4, a + 4, a + 5, a + 5]
@@ -206,7 +210,7 @@ for i in range(0, m):
         legendgroup="items",
         showlegend=False,
         mode="lines",
-        line=dict(color="black", width=10)),
+        line=dict(color="black", width=1)),
         row=row,
         col=col)
 
