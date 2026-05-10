@@ -32,6 +32,9 @@ public:
         /** x-coordinate. */
         Length x;
 
+        /** x-coordinate used for dominance (>= x; inflated when adjacent gaps are too small). */
+        Length x_dominance;
+
         /** Start y-coordinate. */
         Length ys;
 
@@ -276,7 +279,7 @@ public:
                     continue;
                 if (uncovered_item_1.ze <= uncovered_item_2.zs)
                     continue;
-                if (uncovered_item_1.x > uncovered_item_2.x)
+                if (uncovered_item_1.x_dominance > uncovered_item_2.x_dominance)
                     return false;
             }
         }

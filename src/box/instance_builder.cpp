@@ -558,6 +558,8 @@ Instance InstanceBuilder::build()
     // Compute item type attributes.
     Volume bin_types_volume_max = compute_bin_types_volume_max();
     instance_.all_item_types_infinite_copies_ = true;
+    instance_.smallest_item_y_ = std::numeric_limits<Length>::max();
+    instance_.smallest_item_z_ = std::numeric_limits<Length>::max();
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
@@ -587,6 +589,16 @@ Instance InstanceBuilder::build()
         // Update largest_item_copies_.
         if (instance_.largest_item_copies_ < item_type.copies)
             instance_.largest_item_copies_ = item_type.copies;
+        // Update smallest_item_y_ and smallest_item_z_.
+        for (Rotation rotation: item_type.rotations) {
+            Box rotated = item_type.box.rotate(rotation);
+            instance_.smallest_item_y_ = std::min(instance_.smallest_item_y_, rotated.y);
+            instance_.smallest_item_z_ = std::min(instance_.smallest_item_z_, rotated.z);
+        }
+    }
+    if (instance_.number_of_item_types() == 0) {
+        instance_.smallest_item_y_ = 0;
+        instance_.smallest_item_z_ = 0;
     }
 
     // Compute bin type attributes.
