@@ -318,6 +318,12 @@ public:
     /** Get the id of the item type with largest efficiency. */
     inline ItemTypeId largest_efficiency_item_type_id() const { return largest_efficiency_item_type_id_; }
 
+    /** Get the smallest y-extent of the items (over all rotations). */
+    inline Length smallest_item_y() const { return smallest_item_y_; }
+
+    /** Get the smallest z-extent of the items (over all rotations). */
+    inline Length smallest_item_z() const { return smallest_item_z_; }
+
     /** Get the largest number of copies of the items. */
     inline ItemPos largest_item_copies() const { return largest_item_copies_; }
 
@@ -418,6 +424,12 @@ private:
 
     /** True iff all item types have an infinite number of copies. */
     bool all_item_types_infinite_copies_ = false;
+
+    /** Smallest y-extent of the items (over all rotations). */
+    Length smallest_item_y_ = 0;
+
+    /** Smallest z-extent of the items (over all rotations). */
+    Length smallest_item_z_ = 0;
 
     friend class InstanceBuilder;
 

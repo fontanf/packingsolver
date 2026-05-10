@@ -217,6 +217,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     UncoveredItem new_uncovered_item;
     new_uncovered_item.x = xe;
+    new_uncovered_item.x_dominance = xe;
     new_uncovered_item.ys = ys;
     new_uncovered_item.ye = ye;
     new_uncovered_item.zs = zs;
@@ -227,6 +228,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         {
             UncoveredItem uncovered_item;
             uncovered_item.x = 0;
+            uncovered_item.x_dominance = 0;
             uncovered_item.ys = 0;
             uncovered_item.ye = bin_type.box.y;
             uncovered_item.zs = 0;
@@ -239,6 +241,38 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         for (const UncoveredItem& uncovered_item: parent.uncovered_items)
             update_uncovered_item(node.uncovered_items, uncovered_item, ys, ye, zs, ze);
         node.uncovered_items.push_back(new_uncovered_item);
+    }
+
+    // Update x_dominance for regions adjacent to thin gaps.
+    // If a gap between the new item's edge and the bin boundary is smaller than
+    // the smallest item dimension in that direction, no item can ever fill it,
+    // so inflate x_dominance of uncovered items in that strip.
+    {
+        const UncoveredItem& new_ui = node.uncovered_items.back();
+        // Gap above new item in y.
+        if (yi - new_ui.ye < instance.smallest_item_y()) {
+            for (UncoveredItem& ui: node.uncovered_items)
+                if (ui.ys >= new_ui.ye)
+                    ui.x_dominance = std::max(ui.x_dominance, new_ui.x_dominance);
+        }
+        // Gap below new item in y.
+        if (new_ui.ys < instance.smallest_item_y()) {
+            for (UncoveredItem& ui: node.uncovered_items)
+                if (ui.ye <= new_ui.ys)
+                    ui.x_dominance = std::max(ui.x_dominance, new_ui.x_dominance);
+        }
+        // Gap above new item in z.
+        if (zi - new_ui.ze < instance.smallest_item_z()) {
+            for (UncoveredItem& ui: node.uncovered_items)
+                if (ui.zs >= new_ui.ze)
+                    ui.x_dominance = std::max(ui.x_dominance, new_ui.x_dominance);
+        }
+        // Gap below new item in z.
+        if (new_ui.zs < instance.smallest_item_z()) {
+            for (UncoveredItem& ui: node.uncovered_items)
+                if (ui.ze <= new_ui.zs)
+                    ui.x_dominance = std::max(ui.x_dominance, new_ui.x_dominance);
+        }
     }
 
     // Compute item_number_of_copies, number_of_items, items_area,
@@ -260,13 +294,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.current_volume = instance.previous_bin_volume(i);
     node.guide_volume = instance.previous_bin_volume(i) + node.xs_max * yi * zi;
     for (const UncoveredItem& uncovered_item: node.uncovered_items) {
-        node.current_volume += uncovered_item.x
+        node.current_volume += uncovered_item.x_dominance
             * (uncovered_item.ye - uncovered_item.ys)
             * (uncovered_item.ze - uncovered_item.zs);
         if (node.xe_max < uncovered_item.x)
             node.xe_max = uncovered_item.x;
-        if (uncovered_item.x > node.xs_max) {
-            node.guide_volume += (uncovered_item.x - node.xs_max)
+        if (uncovered_item.x_dominance > node.xs_max) {
+            node.guide_volume += (uncovered_item.x_dominance - node.xs_max)
                 * (uncovered_item.ye - uncovered_item.ys)
                 * (uncovered_item.ze - uncovered_item.zs);
         }
