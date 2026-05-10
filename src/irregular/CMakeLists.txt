@@ -14,7 +14,8 @@ target_sources(PackingSolver_irregular PRIVATE
     milp_raster.cpp
     trivial.cpp
     local_search.cpp
-    sequential_feasibility.cpp)
+    sequential_feasibility.cpp
+    large_neighborhood_search.cpp)
 target_include_directories(PackingSolver_irregular PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_irregular PRIVATE

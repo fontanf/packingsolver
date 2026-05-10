@@ -7,6 +7,7 @@
 #include "irregular/milp_raster.hpp"
 #include "irregular/local_search.hpp"
 #include "irregular/sequential_feasibility.hpp"
+#include "irregular/large_neighborhood_search.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -703,6 +704,25 @@ void optimize_milp_raster(
     milp_raster(instance, milp_raster_parameters);
 }
 
+void optimize_large_neighborhood_search(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    LargeNeighborhoodSearchParameters lns_parameters;
+    lns_parameters.verbosity_level = 0;
+    lns_parameters.timer = parameters.timer;
+    lns_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    lns_parameters.subproblem_queue_size = parameters.not_anytime_tree_search_queue_size;
+    lns_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& output) {
+        algorithm_formatter.update_solution(
+                output.solution_pool.best(),
+                "Large neighborhood search");
+    };
+    large_neighborhood_search(instance, lns_parameters);
+}
+
 }
 
 packingsolver::irregular::Output packingsolver::irregular::optimize(
@@ -725,6 +745,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_column_generation = parameters.use_column_generation;
     bool use_sequential_feasibility = parameters.use_sequential_feasibility;
     bool use_milp_raster = parameters.use_milp_raster;
+    bool use_large_neighborhood_search = parameters.use_large_neighborhood_search;
     if (instance.number_of_bins() <= 1) {
         // Disable algorithms which are not available for this objective.
         use_sequential_single_knapsack = false;
@@ -741,12 +762,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         }
         if (instance.objective() != Objective::Feasibility) {
             use_local_search = false;
+            use_large_neighborhood_search = false;
         }
         // Automatic selection.
         if (!use_tree_search
                 && !use_local_search
                 && !use_milp_raster
-                && !use_sequential_feasibility) {
+                && !use_sequential_feasibility
+                && !use_large_neighborhood_search) {
             if (instance.objective() == Objective::OpenDimensionXY) {
                 use_sequential_feasibility = true;
             } else {
@@ -787,7 +810,8 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (!use_tree_search
                 && !use_milp_raster
                 && !use_local_search
-                && !use_column_generation) {
+                && !use_column_generation
+                && !use_large_neighborhood_search) {
             use_tree_search = true;
             //if (mean_item_type_copies(instance)
             //        > parameters.many_item_type_copies_factor
@@ -926,6 +950,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     }
 
     int last_algorithm =
+        (use_large_neighborhood_search)? 8:
         (use_sequential_feasibility)? 7:
         (use_column_generation)? 6:
         (use_dichotomic_search)? 5:
@@ -1108,6 +1133,28 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         } else {
             try {
                 optimize_sequential_feasibility(
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
+        }
+    }
+    // Large neighborhood search.
+    if (use_large_neighborhood_search) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 8) {
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_large_neighborhood_search), optimize_large_neighborhood_search>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        } else {
+            try {
+                optimize_large_neighborhood_search(
                         instance,
                         parameters,
                         algorithm_formatter);

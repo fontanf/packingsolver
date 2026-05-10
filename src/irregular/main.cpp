@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
             ("use-milp-raster,", po::value<bool>(), "enable MILP raster algorithm")
             ("use-local-search,", po::value<bool>(), "enable local search algorithm")
             ("use-sequential-feasibility,", po::value<bool>(), "enable sequential feasibility")
+            ("use-large-neighborhood-search,", po::value<bool>(), "enable large neighborhood search")
             ("sequential-feasibility-use-tree-search,", po::value<bool>(), "enable tree search in sequential feasibility sub-problems")
             ("sequential-feasibility-use-local-search,", po::value<bool>(), "enable local search in sequential feasibility sub-problems")
             ("sequential-feasibility-use-milp-raster,", po::value<bool>(), "enable MILP raster in sequential feasibility sub-problems")
@@ -159,6 +160,8 @@ int main(int argc, char *argv[])
             parameters.use_local_search = vm["use-local-search"].as<bool>();
         if (vm.count("use-sequential-feasibility"))
             parameters.use_sequential_feasibility = vm["use-sequential-feasibility"].as<bool>();
+        if (vm.count("use-large-neighborhood-search"))
+            parameters.use_large_neighborhood_search = vm["use-large-neighborhood-search"].as<bool>();
         if (vm.count("sequential-feasibility-use-tree-search"))
             parameters.sequential_feasibility_use_tree_search = vm["sequential-feasibility-use-tree-search"].as<bool>();
         if (vm.count("sequential-feasibility-use-local-search"))
