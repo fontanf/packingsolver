@@ -22,6 +22,19 @@ target_link_libraries(PackingSolver_irregular_rotations_test
 gtest_discover_tests(PackingSolver_irregular_rotations_test
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
+add_executable(PackingSolver_irregular_periodic_packing_test)
+target_sources(PackingSolver_irregular_periodic_packing_test PRIVATE
+    periodic_packing_test.cpp)
+target_include_directories(PackingSolver_irregular_periodic_packing_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(PackingSolver_irregular_periodic_packing_test
+    PackingSolver_irregular
+    PackingSolver_algorithms
+    Boost::filesystem
+    GTest::gtest_main)
+gtest_discover_tests(PackingSolver_irregular_periodic_packing_test
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
 add_executable(PackingSolver_irregular_linear_programming_test)
 target_sources(PackingSolver_irregular_linear_programming_test PRIVATE
     linear_programming_test.cpp)
