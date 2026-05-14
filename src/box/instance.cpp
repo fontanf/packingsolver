@@ -129,20 +129,23 @@ std::ostream& Instance::format(
 {
     if (verbosity_level >= 1) {
         os
-            << "Objective:             " << objective() << std::endl
-            << "Number of item types:  " << number_of_item_types() << std::endl
-            << "Number of items:       " << number_of_items() << std::endl
-            << "Number of bin types:   " << number_of_bin_types() << std::endl
-            << "Number of bins:        " << number_of_bins() << std::endl
-            << "Number of defects:     " << number_of_defects() << std::endl
-            << "Total item volume:     " << item_volume() << std::endl
-            << "Total item profit:     " << item_profit() << std::endl
-            << "Largest item profit:   " << largest_item_profit() << std::endl
-            << "Total item weight:     " << item_weight() << std::endl
-            << "Largest item copies:   " << largest_item_copies() << std::endl
-            << "Total bin volume:      " << bin_volume() << std::endl
-            << "Total bin weight:      " << bin_weight() << std::endl
-            << "Largest bin cost:      " << largest_bin_cost() << std::endl
+            << "Objective:             " << this->objective() << std::endl
+            << "Number of item types:  " << this->number_of_item_types() << std::endl
+            << "Number of items:       " << this->number_of_items() << std::endl
+            << "Number of bin types:   " << this->number_of_bin_types() << std::endl
+            << "Number of bins:        " << this->number_of_bins() << std::endl
+            << "Number of defects:     " << this->number_of_defects() << std::endl
+            << "Total item volume:     " << this->item_volume() << std::endl
+            << "Total item profit:     " << this->item_profit() << std::endl
+            << "Largest item profit:   " << this->largest_item_profit() << std::endl
+            << "Total item weight:     " << this->item_weight() << std::endl
+            << "Largest item copies:   " << this->largest_item_copies() << std::endl
+            << "Smallest item x:       " << this->smallest_item_x() << std::endl
+            << "Smallest item y:       " << this->smallest_item_y() << std::endl
+            << "Smallest item z:       " << this->smallest_item_z() << std::endl
+            << "Total bin volume:      " << this->bin_volume() << std::endl
+            << "Total bin weight:      " << this->bin_weight() << std::endl
+            << "Largest bin cost:      " << this->largest_bin_cost() << std::endl
             ;
     }
 
@@ -168,7 +171,7 @@ std::ostream& Instance::format(
             << std::setw(12) << "------"
             << std::endl;
         for (BinTypeId bin_type_id = 0;
-                bin_type_id < number_of_bin_types();
+                bin_type_id < this->number_of_bin_types();
                 ++bin_type_id) {
             const BinType& bin_type = this->bin_type(bin_type_id);
             os
@@ -204,7 +207,7 @@ std::ostream& Instance::format(
             << std::setw(10) << "------"
             << std::endl;
         for (ItemTypeId item_type_id = 0;
-                item_type_id < number_of_item_types();
+                item_type_id < this->number_of_item_types();
                 ++item_type_id) {
             const ItemType& item_type = this->item_type(item_type_id);
             os
@@ -226,9 +229,9 @@ std::ostream& Instance::format(
 void Instance::write(
         const std::string& instance_path) const
 {
-    write_item_types(instance_path + "_items.csv");
-    write_bin_types(instance_path + "_bins.csv");
-    write_parameters(instance_path + "_parameters.csv");
+    this->write_item_types(instance_path + "_items.csv");
+    this->write_bin_types(instance_path + "_bins.csv");
+    this->write_parameters(instance_path + "_parameters.csv");
 }
 
 void Instance::write_item_types(
@@ -254,7 +257,7 @@ void Instance::write_item_types(
         "ROTATION_ZXY,"
         "WEIGHT" << std::endl;
     for (ItemTypeId item_type_id = 0;
-            item_type_id < number_of_item_types();
+            item_type_id < this->number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = this->item_type(item_type_id);
         file
@@ -292,7 +295,7 @@ void Instance::write_bin_types(
         "COPIES_MIN,"
         "MAXIMUM_WEIGHT" << std::endl;
     for (BinTypeId bin_type_id = 0;
-            bin_type_id < number_of_bin_types();
+            bin_type_id < this->number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = this->bin_type(bin_type_id);
         file
