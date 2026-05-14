@@ -318,6 +318,9 @@ public:
     /** Get the id of the item type with largest efficiency. */
     inline ItemTypeId largest_efficiency_item_type_id() const { return largest_efficiency_item_type_id_; }
 
+    /** Get the smallest x-extent of the items (over all rotations). */
+    inline Length smallest_item_x() const { return smallest_item_x_; }
+
     /** Get the smallest y-extent of the items (over all rotations). */
     inline Length smallest_item_y() const { return smallest_item_y_; }
 
@@ -424,6 +427,9 @@ private:
 
     /** True iff all item types have an infinite number of copies. */
     bool all_item_types_infinite_copies_ = false;
+
+    /** Smallest x-extent of the items (over all rotations). */
+    Length smallest_item_x_ = 0;
 
     /** Smallest y-extent of the items (over all rotations). */
     Length smallest_item_y_ = 0;
