@@ -157,6 +157,7 @@ void optimize_tree_search_maximal_spaces(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
+    MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
     std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
 
     std::vector<double> growth_factors = {1.5};
@@ -168,7 +169,7 @@ void optimize_tree_search_maximal_spaces(
     std::vector<box::Output> outputs;
     for (double growth_factor: growth_factors) {
         BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
-        branching_schemes.push_back(BranchingSchemeMaximalSpaces(instance, all_blocks, branching_scheme_parameters));
+        branching_schemes.push_back(BranchingSchemeMaximalSpaces(instance, all_blocks, max_reachable_lengths, branching_scheme_parameters));
         treesearchsolver::IterativeBeamSearch2Parameters<BranchingSchemeMaximalSpaces> ibs_parameters;
         ibs_parameters.verbosity_level = 0;
         ibs_parameters.timer = parameters.timer;

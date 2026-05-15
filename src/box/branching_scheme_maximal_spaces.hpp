@@ -42,6 +42,16 @@ struct EmptySpace
     {
         return this->bl_corner == other.bl_corner && this->box == other.box;
     }
+
+    inline bool operator<(const EmptySpace& other) const
+    {
+        if (this->bl_corner.x != other.bl_corner.x) return this->bl_corner.x < other.bl_corner.x;
+        if (this->bl_corner.y != other.bl_corner.y) return this->bl_corner.y < other.bl_corner.y;
+        if (this->bl_corner.z != other.bl_corner.z) return this->bl_corner.z < other.bl_corner.z;
+        if (this->box.x != other.box.x) return this->box.x < other.box.x;
+        if (this->box.y != other.box.y) return this->box.y < other.box.y;
+        return this->box.z < other.box.z;
+    }
 };
 
 /**
@@ -153,6 +163,16 @@ public:
          * unreachable regardless of future placements.  Lower is better.
          */
         Volume volume_loss_estimate = 0;
+
+        /**
+         * Accumulated volume of empty spaces that were found to be permanently
+         * unfillable and removed.  For each removed space, the contribution is
+         * max(0, vol(space) - sum of intersection volumes with surviving spaces):
+         * the portion of the space's volume not covered by any fillable space,
+         * which can never be reached regardless of future placements.
+         * Lower is better.
+         */
+        Volume unable_volume = 0;
     };
 
     /** Fitness-function exponents (K4). */
@@ -172,6 +192,7 @@ public:
     BranchingSchemeMaximalSpaces(
             const Instance& instance,
             const std::vector<std::vector<Block>>& blocks,
+            const MaxReachableLengths& max_reachable_lengths,
             const Parameters& parameters);
 
     const Instance& instance() const { return instance_; }
@@ -268,13 +289,16 @@ public:
             return true;
         if (node_1->number_of_bins > node_2->number_of_bins)
             return false;
-        double volume_load_1 = (double)node_1->item_volume / node_1->block_volume;
-        double volume_load_2 = (double)node_2->item_volume / node_2->block_volume;
-        if ((volume_load_1 >= 0.98) != (volume_load_2 >= 0.98))
-            return volume_load_1 > volume_load_2;
-        if (node_1->contact_area != node_2->contact_area)
-            return node_1->contact_area > node_2->contact_area;
-        return true;
+        if (node_1->empty_spaces == node_2->empty_spaces)
+            return true;
+        return false;
+        //double volume_load_1 = (double)node_1->item_volume / node_1->block_volume;
+        //double volume_load_2 = (double)node_2->item_volume / node_2->block_volume;
+        //if ((volume_load_1 >= 0.98) != (volume_load_2 >= 0.98))
+        //    return volume_load_1 > volume_load_2;
+        //if (node_1->contact_area != node_2->contact_area)
+        //    return node_1->contact_area > node_2->contact_area;
+        //return true;
     }
 
     /*
@@ -305,7 +329,36 @@ private:
     std::vector<Length> max_reachable_y_;
     std::vector<Length> max_reachable_z_;
 
-    void compute_reachable_lengths();
+    /**
+     * For each bin type, the indices of Pareto-minimal blocks: those not
+     * dominated by any other block in all three box dimensions.  A space has
+     * no fitting block by size iff none of these blocks fits inside it.
+     */
+    std::vector<std::vector<ItemPos>> pareto_front_block_ids_;
+
+    void compute_pareto_fronts();
+
+    /**
+     * For each space ID in space_ids, compute the waste contribution
+     * (vol(space) - coverage by surviving spaces, floored at 0) and add it to
+     * node.unable_volume, then erase all those spaces from node.empty_spaces.
+     * Coverage is measured only against spaces not in space_ids, since other
+     * removed spaces are also permanently inaccessible.
+     */
+    void remove_spaces_and_update_waste(
+            Node& node,
+            const std::vector<ItemPos>& space_ids) const;
+
+    inline double volume_load(const Node& node) const;
+
+    /**
+     * Return true iff node's volume load (item_volume / block_volume) meets
+     * a density threshold that decreases linearly as the bin fills up:
+     *   threshold(f) = 0.99 - 0.04 * f,  f = block_volume / bin_volume
+     * At the start (f = 0) the threshold is 0.99; at the end (f = 1) it
+     * relaxes to 0.95, accepting the small inevitable waste in a full bin.
+     */
+    inline bool volume_load_ok(const Node& node) const;
 
     mutable NodeId node_id_ = 0;
     mutable std::vector<Insertion> insertions_;
@@ -341,19 +394,39 @@ private:
 /////////////////////////////// Inlined methods ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+inline double BranchingSchemeMaximalSpaces::volume_load(const Node& node) const
+{
+    Volume used_volume = node.block_volume + node.unable_volume;
+    if (used_volume == 0)
+        return 0;
+    return (double)node.item_volume / used_volume;
+}
+
+inline bool BranchingSchemeMaximalSpaces::volume_load_ok(const Node& node) const
+{
+    Volume used_volume = node.block_volume + node.unable_volume;
+    if (used_volume == 0)
+        return true;
+    double volume_load = (double)node.item_volume / used_volume;
+    double f = std::min(1.0, (double)used_volume / instance_.bin_volume());
+    double threshold = 0.99 - 0.04 * f;
+    return volume_load >= threshold;
+}
+
 inline bool BranchingSchemeMaximalSpaces::operator()(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    double volume_load_1 = (double)node_1->item_volume / node_1->block_volume;
-    double volume_load_2 = (double)node_2->item_volume / node_2->block_volume;
-    double waste_percentage_1 = (double)(node_1->block_volume - node_1->item_volume) / node_1->block_volume;
-    double waste_percentage_2 = (double)(node_2->block_volume - node_2->item_volume) / node_2->block_volume;
     double mean_item_volume_1 = (double)(node_1->item_volume) / node_1->number_of_items;
     double mean_item_volume_2 = (double)(node_2->item_volume) / node_2->number_of_items;
 
-    if ((volume_load_1 >= 0.98) != (volume_load_2 >= 0.98))
-        return volume_load_1 > volume_load_2;
+    //if (volume_load(*node_1) != volume_load(*node_2))
+    //    return volume_load(*node_1) > volume_load(*node_2);
+
+    bool ok_1 = volume_load_ok(*node_1);
+    bool ok_2 = volume_load_ok(*node_2);
+    if (ok_1 != ok_2)
+        return ok_1;
 
     if (node_1->contact_area != node_2->contact_area)
         return node_1->contact_area > node_2->contact_area;

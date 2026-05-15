@@ -107,88 +107,163 @@ Volume compute_contact_area(
 BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
         const Instance& instance,
         const std::vector<std::vector<Block>>& blocks,
+        const MaxReachableLengths& max_reachable_lengths,
         const Parameters& parameters):
     instance_(instance),
     blocks_(blocks),
     parameters_(parameters)
 {
-    compute_reachable_lengths();
+    max_reachable_x_ = max_reachable_lengths.x;
+    max_reachable_y_ = max_reachable_lengths.y;
+    max_reachable_z_ = max_reachable_lengths.z;
+    compute_pareto_fronts();
 }
 
-void BranchingSchemeMaximalSpaces::compute_reachable_lengths()
+void BranchingSchemeMaximalSpaces::compute_pareto_fronts()
 {
-    Length max_x = 0;
-    Length max_y = 0;
-    Length max_z = 0;
+    pareto_front_block_ids_.resize(instance_.number_of_bin_types());
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
-        const BinType& bin_type = instance_.bin_type(bin_type_id);
-        max_x = std::max(max_x, bin_type.box.x);
-        max_y = std::max(max_y, bin_type.box.y);
-        max_z = std::max(max_z, bin_type.box.z);
+        const std::vector<Block>& blocks = blocks_[bin_type_id];
+        std::vector<ItemPos>& front = pareto_front_block_ids_[bin_type_id];
+        for (ItemPos block_id = 0;
+                block_id < (ItemPos)blocks.size();
+                ++block_id) {
+            const Box& box = blocks[block_id].box;
+            bool dominated = false;
+            for (ItemPos other_id = 0;
+                    other_id < (ItemPos)blocks.size() && !dominated;
+                    ++other_id) {
+                if (other_id == block_id)
+                    continue;
+                const Box& other_box = blocks[other_id].box;
+                // other dominates block if it is smaller or equal in every
+                // dimension, strictly smaller in at least one (or identical
+                // box with a lower id, to keep exactly one representative
+                // per distinct size).
+                if (other_box.x <= box.x
+                        && other_box.y <= box.y
+                        && other_box.z <= box.z
+                        && (other_box.x < box.x
+                            || other_box.y < box.y
+                            || other_box.z < box.z
+                            || other_id < block_id)) {
+                    dominated = true;
+                }
+            }
+            if (!dominated)
+                front.push_back(block_id);
+        }
+    }
+}
+
+void BranchingSchemeMaximalSpaces::remove_spaces_and_update_waste(
+        Node& node,
+        const std::vector<ItemPos>& space_ids) const
+{
+    // Build the list of surviving space indices for the coverage computation.
+    std::vector<bool> is_removed(node.empty_spaces.size(), false);
+    for (ItemPos space_id: space_ids)
+        is_removed[space_id] = true;
+    std::vector<ItemPos> surviving_ids;
+    for (ItemPos other_id = 0;
+            other_id < (ItemPos)node.empty_spaces.size();
+            ++other_id) {
+        if (!is_removed[other_id])
+            surviving_ids.push_back(other_id);
     }
 
-    // Multiple-choice subset-sum per axis: reachable[v] = true iff length v
-    // is achievable by stacking copies of items, where each copy contributes
-    // the dimension of exactly one chosen rotation (not multiple rotations).
-    std::vector<uint8_t> reachable_x(max_x + 1, false);
-    std::vector<uint8_t> reachable_y(max_y + 1, false);
-    std::vector<uint8_t> reachable_z(max_z + 1, false);
-    std::vector<uint8_t> temp_x(max_x + 1, false);
-    std::vector<uint8_t> temp_y(max_y + 1, false);
-    std::vector<uint8_t> temp_z(max_z + 1, false);
-    reachable_x[0] = true;
-    reachable_y[0] = true;
-    reachable_z[0] = true;
+    // For each removed space R, compute vol(R \ union of surviving spaces)
+    // exactly using a stack-based region-subtraction:
+    //   - Each stack item is (remaining_box, next_surviving_idx).
+    //   - When remaining_box intersects the next surviving space, split it
+    //     into the (up to 6) disjoint sub-boxes that cover remaining_box minus
+    //     the intersection, and push each with next_surviving_idx + 1.
+    //   - When all surviving spaces have been consumed, the box is fully
+    //     uncovered: add its volume to unable_volume.
+    // This avoids the overcounting that arises from simply summing pairwise
+    // intersection volumes when multiple surviving spaces overlap each other
+    // within R.
+    struct StackItem {
+        EmptySpace remaining;
+        ItemPos next_surviving_idx;
+    };
+    std::vector<StackItem> stack;
 
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance_.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance_.item_type(item_type_id);
-        const ItemPos copies = item_type.copies;
-        for (ItemPos copy_idx = 0; copy_idx < copies; ++copy_idx) {
-            // Multiple-choice update: initialize temp from the pre-copy
-            // reachable (the "skip this copy" option), then propagate each
-            // rotation's contribution using the same pre-copy reachable as
-            // source so that at most one rotation is counted per copy.
-            temp_x = reachable_x;
-            temp_y = reachable_y;
-            temp_z = reachable_z;
-            for (Rotation rotation: item_type.rotations) {
-                Box box = item_type.box.rotate(rotation);
-                if (box.x <= max_x)
-                    for (Length v = max_x; v >= box.x; --v)
-                        if (reachable_x[v - box.x])
-                            temp_x[v] = true;
-                if (box.y <= max_y)
-                    for (Length v = max_y; v >= box.y; --v)
-                        if (reachable_y[v - box.y])
-                            temp_y[v] = true;
-                if (box.z <= max_z)
-                    for (Length v = max_z; v >= box.z; --v)
-                        if (reachable_z[v - box.z])
-                            temp_z[v] = true;
+    for (ItemPos remove_id: space_ids) {
+        stack.clear();
+        stack.push_back({node.empty_spaces[remove_id], 0});
+        while (!stack.empty()) {
+            StackItem item = stack.back();
+            stack.pop_back();
+            const EmptySpace& rem = item.remaining;
+            if (item.next_surviving_idx >= (ItemPos)surviving_ids.size()) {
+                node.unable_volume += rem.box.volume();
+                continue;
             }
-            reachable_x = temp_x;
-            reachable_y = temp_y;
-            reachable_z = temp_z;
+            const EmptySpace& other =
+                node.empty_spaces[surviving_ids[item.next_surviving_idx]];
+            ItemPos next = item.next_surviving_idx + 1;
+            Length ix_start = std::max(rem.xs(), other.xs());
+            Length ix_end   = std::min(rem.xe(), other.xe());
+            Length iy_start = std::max(rem.ys(), other.ys());
+            Length iy_end   = std::min(rem.ye(), other.ye());
+            Length iz_start = std::max(rem.zs(), other.zs());
+            Length iz_end   = std::min(rem.ze(), other.ze());
+            if (ix_end <= ix_start || iy_end <= iy_start || iz_end <= iz_start) {
+                // No intersection: pass unchanged to the next surviving space.
+                stack.push_back({rem, next});
+                continue;
+            }
+            // Split rem into up to 6 sub-boxes covering rem \ intersection.
+            // Each sub-box is disjoint and the union equals rem \ intersection.
+            if (ix_start > rem.xs()) {
+                EmptySpace sub;
+                sub.bl_corner = rem.bl_corner;
+                sub.box = {ix_start - rem.xs(), rem.box.y, rem.box.z};
+                stack.push_back({sub, next});
+            }
+            if (ix_end < rem.xe()) {
+                EmptySpace sub;
+                sub.bl_corner = {ix_end, rem.bl_corner.y, rem.bl_corner.z};
+                sub.box = {rem.xe() - ix_end, rem.box.y, rem.box.z};
+                stack.push_back({sub, next});
+            }
+            if (iy_start > rem.ys()) {
+                EmptySpace sub;
+                sub.bl_corner = {ix_start, rem.bl_corner.y, rem.bl_corner.z};
+                sub.box = {ix_end - ix_start, iy_start - rem.ys(), rem.box.z};
+                stack.push_back({sub, next});
+            }
+            if (iy_end < rem.ye()) {
+                EmptySpace sub;
+                sub.bl_corner = {ix_start, iy_end, rem.bl_corner.z};
+                sub.box = {ix_end - ix_start, rem.ye() - iy_end, rem.box.z};
+                stack.push_back({sub, next});
+            }
+            if (iz_start > rem.zs()) {
+                EmptySpace sub;
+                sub.bl_corner = {ix_start, iy_start, rem.bl_corner.z};
+                sub.box = {ix_end - ix_start, iy_end - iy_start, iz_start - rem.zs()};
+                stack.push_back({sub, next});
+            }
+            if (iz_end < rem.ze()) {
+                EmptySpace sub;
+                sub.bl_corner = {ix_start, iy_start, iz_end};
+                sub.box = {ix_end - ix_start, iy_end - iy_start, rem.ze() - iz_end};
+                stack.push_back({sub, next});
+            }
         }
     }
 
-    // max_reachable_x_[r] = largest reachable length <= r.
-    max_reachable_x_.resize(max_x + 1);
-    max_reachable_y_.resize(max_y + 1);
-    max_reachable_z_.resize(max_z + 1);
-    max_reachable_x_[0] = 0;
-    max_reachable_y_[0] = 0;
-    max_reachable_z_[0] = 0;
-    for (Length v = 1; v <= max_x; ++v)
-        max_reachable_x_[v] = reachable_x[v] ? v : max_reachable_x_[v - 1];
-    for (Length v = 1; v <= max_y; ++v)
-        max_reachable_y_[v] = reachable_y[v] ? v : max_reachable_y_[v - 1];
-    for (Length v = 1; v <= max_z; ++v)
-        max_reachable_z_[v] = reachable_z[v] ? v : max_reachable_z_[v - 1];
+    // Erase all listed spaces in descending index order so that earlier
+    // indices remain valid after each erase and sorted order is preserved.
+    std::vector<ItemPos> sorted_ids = space_ids;
+    std::sort(sorted_ids.begin(), sorted_ids.end(),
+            [](ItemPos id_1, ItemPos id_2) { return id_1 > id_2; });
+    for (ItemPos remove_id: sorted_ids)
+        node.empty_spaces.erase(node.empty_spaces.begin() + remove_id);
 }
 
 const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces::root() const
@@ -205,9 +280,12 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
 {
     //std::cout << "node_id " << parent->id
     //    << " # items " << parent->number_of_items
-    //    << " # vol " << parent->item_volume
-    //    << " load " << (double)parent->item_volume / parent->block_volume
+    //    << " item vol " << parent->item_volume
+    //    << " block vol " << parent->block_volume
+    //    << " unable vol " << parent->unable_volume
+    //    << " load " << (double)parent->item_volume / (parent->block_volume + parent->unable_volume)
     //    << " " << (double)parent->item_volume / instance_.bin_volume()
+    //    << " " << volume_load_ok(*parent)
     //    << std::endl;
     insertions_.clear();
 
@@ -220,37 +298,52 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
         BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
         const BinType& bin_type = instance_.bin_type(bin_type_id);
 
-        // Find the best space that can fit at least one block (K3).
-        // Spaces that fit no block are skipped permanently: item counts only
-        // increase deeper, so they will never become useful.
+        // Pass 1: find spaces where no block fits (full size + feasibility check)
+        // and remove them, updating parent->unable_volume.  All remaining spaces
+        // are guaranteed to have at least one feasible block for Pass 2.
+        {
+            std::vector<ItemPos> unfillable_space_ids;
+            for (ItemPos space_idx = 0;
+                    space_idx < (ItemPos)parent->empty_spaces.size();
+                    ++space_idx) {
+                const EmptySpace& space = parent->empty_spaces[space_idx];
+                bool has_fitting_block = false;
+                for (ItemPos block_id = 0;
+                        block_id < (ItemPos)blocks_[bin_type_id].size();
+                        ++block_id) {
+                    const Block& block = blocks_[bin_type_id][block_id];
+                    if (block.box.x > space.box.x
+                            || block.box.y > space.box.y
+                            || block.box.z > space.box.z)
+                        continue;
+                    bool feasible = true;
+                    for (const auto& item_copy: block.item_copies) {
+                        if (parent->item_number_of_copies[item_copy.first] + item_copy.second
+                                > instance_.item_type(item_copy.first).copies) {
+                            feasible = false;
+                            break;
+                        }
+                    }
+                    if (feasible) {
+                        has_fitting_block = true;
+                        break;
+                    }
+                }
+                if (!has_fitting_block)
+                    unfillable_space_ids.push_back(space_idx);
+            }
+            if (!unfillable_space_ids.empty())
+                remove_spaces_and_update_waste(*parent, unfillable_space_ids);
+        }
+
+        // Pass 2: select the best space (K3).  All remaining spaces have at
+        // least one feasible block, so no has_fitting_block check is needed.
         ItemPos best_space_idx = -1;
         AnchorInfo best_anchor;
         for (ItemPos space_idx = 0;
                 space_idx < (ItemPos)parent->empty_spaces.size();
                 ++space_idx) {
             const EmptySpace& space = parent->empty_spaces[space_idx];
-            bool has_fitting_block = false;
-            for (ItemPos block_id = 0; block_id < (ItemPos)blocks_[bin_type_id].size(); ++block_id) {
-                const Block& block = blocks_[bin_type_id][block_id];
-                if (block.box.x > space.box.x
-                        || block.box.y > space.box.y
-                        || block.box.z > space.box.z)
-                    continue;
-                bool feasible = true;
-                for (const auto& item_copy: block.item_copies) {
-                    if (parent->item_number_of_copies[item_copy.first] + item_copy.second
-                            > instance_.item_type(item_copy.first).copies) {
-                        feasible = false;
-                        break;
-                    }
-                }
-                if (feasible) {
-                    has_fitting_block = true;
-                    break;
-                }
-            }
-            if (!has_fitting_block)
-                continue;
             AnchorInfo anchor = compute_anchor_info(space, bin_type.box);
             if (best_space_idx == -1
                     || anchor.distance < best_anchor.distance
@@ -345,6 +438,7 @@ BranchingSchemeMaximalSpaces::Node BranchingSchemeMaximalSpaces::child_tmp(
     node.number_of_blocks = parent->number_of_blocks;
     node.number_of_bins = parent->number_of_bins;
     node.profit = parent->profit;
+    node.unable_volume = parent->unable_volume;
 
     if (insertion.new_bin) {
         node.number_of_bins++;
@@ -484,19 +578,45 @@ BranchingSchemeMaximalSpaces::Node BranchingSchemeMaximalSpaces::child_tmp(
     Volume usable_volume = (Volume)(block.box.x + ux) * (block.box.y + uy) * (block.box.z + uz);
     node.volume_loss_estimate = parent->volume_loss_estimate + space.box.volume() - usable_volume;
 
-    std::cout << "node " << node_id_
-        << " # blocks " << node.number_of_blocks
-        << " # items " << node.number_of_items
-        << " item_volume " << node.item_volume
-        << " block_volume " << node.block_volume
-        << " contact_area " << node.contact_area
-        << " load " << (double)node.item_volume / node.block_volume
-        << " space " << space.box
-        << " block " << block.box
-        << " ext " << extended_box
-        << std::endl;
+    //std::cout << "node " << node_id_
+    //    << " # blocks " << node.number_of_blocks
+    //    << " # items " << node.number_of_items
+    //    << " item_volume " << node.item_volume
+    //    << " block_volume " << node.block_volume
+    //    << " contact_area " << node.contact_area
+    //    << " load " << (double)node.item_volume / node.block_volume
+    //    << " space " << space.box
+    //    << " block " << block.box
+    //    << " ext " << extended_box
+    //    << std::endl;
 
     cut_spaces(node.empty_spaces, extended_bl_corner, extended_box);
+
+    // Remove spaces too small for any block (Pareto-front size check).
+    {
+        std::vector<ItemPos> unfillable_space_ids;
+        for (ItemPos space_id = 0;
+                space_id < (ItemPos)node.empty_spaces.size();
+                ++space_id) {
+            const EmptySpace& space = node.empty_spaces[space_id];
+            bool has_fitting_block = false;
+            for (ItemPos front_block_id: pareto_front_block_ids_[bin_type_id]) {
+                const Block& front_block = blocks_[bin_type_id][front_block_id];
+                if (front_block.box.x <= space.box.x
+                        && front_block.box.y <= space.box.y
+                        && front_block.box.z <= space.box.z) {
+                    has_fitting_block = true;
+                    break;
+                }
+            }
+            if (!has_fitting_block)
+                unfillable_space_ids.push_back(space_id);
+        }
+        if (!unfillable_space_ids.empty())
+            remove_spaces_and_update_waste(node, unfillable_space_ids);
+    }
+
+    std::sort(node.empty_spaces.begin(), node.empty_spaces.end());
 
     return node;
 }

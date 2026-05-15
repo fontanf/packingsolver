@@ -18,7 +18,7 @@ namespace box
  */
 struct Block
 {
-    /** Envelope dimensions. */
+    /** Envelope dimensions (lifted: extended by max_reachable in each direction). */
     Box box;
 
     /** Sum of volumes of all items inside the block. */
@@ -43,10 +43,29 @@ struct Block
      */
     std::vector<SolutionItem> items;
 
+    ItemPos number_of_items = 0;
+
     double fill_rate() const { return (double)item_volume / box.volume(); }
 };
 
 std::ostream& operator<<(std::ostream& os, const Block& block);
+
+/**
+ * Per-axis reachable-length tables.
+ *
+ * max_reachable_x[r] = largest length ≤ r achievable by stacking copies of
+ * items (one rotation per copy, respecting copy limits) along x.  Computed
+ * once from the instance and shared by compute_blocks and
+ * BranchingSchemeMaximalSpaces.
+ */
+struct MaxReachableLengths
+{
+    std::vector<Length> x;
+    std::vector<Length> y;
+    std::vector<Length> z;
+};
+
+MaxReachableLengths compute_max_reachable_lengths(const Instance& instance);
 
 /**
  * Parameters for compute_blocks().
@@ -54,26 +73,20 @@ std::ostream& operator<<(std::ostream& os, const Block& block);
 struct BlockParameters
 {
     /** Maximum number of blocks to generate (N_B in the thesis). */
-    ItemPos maximum_number_of_blocks = -1;
-
-    ItemPos maximum_number_of_non_simple_blocks = 20000;
-
-    /**
-     * Minimum fill rate ε: blocks whose fill_rate < minimum_fill_rate are
-     * discarded.  0.0 disables the check (accept all blocks).
-     */
-    double minimum_fill_rate = 0.98;
+    ItemPos maximum_number_of_blocks = 10000;
 };
 
 /**
  * Generate up to parameters.maximum_number_of_blocks guillotine blocks for
  * each bin type of the given instance.
  *
- * Returns one vector of blocks per bin type (indexed by BinTypeId).
+ * max_reachable_lengths is used to lift each returned block's declared box:
+ *   block.box.x += max_reachable_lengths.x[bin.x - block.box.x]
+ * and similarly for y and z.  This extends each block's footprint to the
+ * maximum coverage achievable when the block is placed against the bin wall,
+ * avoiding the creation of provably-unusable sub-spaces.
  *
- * Implements Algorithm 3.5 (GENERATE-GUILLOTINE-BLOCKS) from:
- *   Lucas Guesser Targino da Silva, "A Tree Search-Based Heuristic for the
- *   Three-Dimensional Single Container Loading Problem", UNICAMP 2025.
+ * Returns one vector of blocks per bin type (indexed by BinTypeId).
  */
 std::vector<std::vector<Block>> compute_blocks(
     const Instance& instance,
