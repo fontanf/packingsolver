@@ -3,8 +3,8 @@ import os.path
 import json
 
 
-def words(filename):
-    with open(os.path.join("data", "irregular_raw", "lopez2013_jp1", filename)) as f:
+def words(dataset, filename):
+    with open(os.path.join("data", "irregular_raw", dataset, filename)) as f:
         for line in f:
             for word in line.split():
                 yield word
@@ -32,8 +32,8 @@ def vertices_to_elements(vertices):
     ]
 
 
-def convert_lopez2013_jp1(txt_filename):
-    w = words(txt_filename)
+def convert_lopez2013(dataset, txt_filename):
+    w = words(dataset, txt_filename)
     n_items = int(next(w))
     strip_width = float(next(w))
     next(w)  # strip_height_limit (unused)
@@ -69,7 +69,7 @@ def convert_lopez2013_jp1(txt_filename):
             "elements": vertices_to_elements(vertices),
         })
 
-    output_name = os.path.join("lopez2013_jp1", os.path.splitext(txt_filename)[0])
+    output_name = os.path.join(dataset, os.path.splitext(txt_filename)[0])
     write_dict(dic, output_name)
 
 
@@ -78,4 +78,8 @@ if __name__ == "__main__":
               "TK", "TL", "TM", "TN", "TO", "TP", "TQ", "TR"]
     for group in groups:
         for i in range(1, 31):
-            convert_lopez2013_jp1(f"{group}{i:03d}.txt")
+            convert_lopez2013("lopez2013_jp1", f"{group}{i:03d}.txt")
+
+    for filename in sorted(os.listdir(os.path.join("data", "irregular_raw", "lopez2013_jp2"))):
+        if filename.endswith(".txt"):
+            convert_lopez2013("lopez2013_jp2", filename)
