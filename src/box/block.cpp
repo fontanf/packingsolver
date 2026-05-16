@@ -211,6 +211,9 @@ std::vector<Block> compute_blocks_for_bin(
                         block.item_volume = cx * cy * cz * item_type.volume();
                         block.item_copies = {{item_type_id, cx * cy * cz}};
                         block.number_of_items = cx * cy * cz;
+                        block.contact_area = (cx - 1) * cy * cz * rotated_box.y * rotated_box.z
+                            + (cy - 1) * cx * cz * rotated_box.x * rotated_box.z
+                            + (cz - 1) * cx * cy * rotated_box.x * rotated_box.y;
                         block.items.reserve(cx * cy * cz);
                         for (ItemPos ccx = 0; ccx < cx; ++ccx) {
                             for (ItemPos ccy = 0; ccy < cy; ++ccy) {
@@ -308,6 +311,18 @@ std::vector<Block> compute_blocks_for_bin(
                 if (seen.count(key))
                     continue;
                 combined.number_of_items = block.number_of_items + existing_block.number_of_items;
+                switch (direction) {
+                case Direction::X:
+                    combined.contact_area = block.contact_area + existing_block.contact_area + combined.box.y * combined.box.z;
+                    break;
+                case Direction::Y:
+                    combined.contact_area = block.contact_area + existing_block.contact_area + combined.box.x * combined.box.z;
+                    break;
+                case Direction::Z:
+                    combined.contact_area = block.contact_area + existing_block.contact_area + combined.box.x * combined.box.y;
+                    break;
+                default: break;
+                }
                 combined.item_copies = key.item_copies;
                 combined.items = block.items;
                 for (const SolutionItem& item: existing_block.items) {

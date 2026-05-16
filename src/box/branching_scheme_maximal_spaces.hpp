@@ -54,6 +54,13 @@ struct EmptySpace
     }
 };
 
+inline std::ostream& operator<<(std::ostream& os, const EmptySpace& space)
+{
+    os << "bl (" << space.bl_corner.x << ", " << space.bl_corner.y << ", " << space.bl_corner.z << ")"
+       << " size (" << space.box.x << ", " << space.box.y << ", " << space.box.z << ")";
+    return os;
+}
+
 /**
  * Branching scheme for the single container loading problem using a maximal
  * empty-space representation (K1–K5 from Lucas Guesser Targino da Silva,
@@ -420,19 +427,38 @@ inline bool BranchingSchemeMaximalSpaces::operator()(
     double mean_item_volume_1 = (double)(node_1->item_volume) / node_1->number_of_items;
     double mean_item_volume_2 = (double)(node_2->item_volume) / node_2->number_of_items;
 
+    //double alpha = 4.0;
+    //double beta = 1.0;
+    //double gamma = 5.0;
+    //double guide_1 = node_1->item_volume
+    //    * std::pow(node_1->contact_area, alpha)
+    //    * std::pow(volume_load(*node_1), beta)
+    //    * std::pow(mean_item_volume_1, gamma);
+    //double guide_2 = node_2->item_volume
+    //    * std::pow(node_2->contact_area, alpha)
+    //    * std::pow(volume_load(*node_2), beta)
+    //    * std::pow(mean_item_volume_2, gamma);
+    //if (guide_1 != guide_2)
+    //    return guide_1 < guide_2;
+
     //if (volume_load(*node_1) != volume_load(*node_2))
     //    return volume_load(*node_1) > volume_load(*node_2);
 
-    bool ok_1 = volume_load_ok(*node_1);
-    bool ok_2 = volume_load_ok(*node_2);
-    if (ok_1 != ok_2)
-        return ok_1;
+    //bool ok_1 = volume_load_ok(*node_1);
+    //bool ok_2 = volume_load_ok(*node_2);
+    //if (ok_1 != ok_2)
+    //    return ok_1;
 
-    if (node_1->contact_area != node_2->contact_area)
-        return node_1->contact_area > node_2->contact_area;
+    double guide_1 = node_1->contact_area * mean_item_volume_1 * volume_load(*node_1);
+    double guide_2 = node_2->contact_area * mean_item_volume_2 * volume_load(*node_2);
+    if (guide_1 != guide_2)
+        return guide_1 > guide_2;
 
-    if (mean_item_volume_1 != mean_item_volume_2)
-        return mean_item_volume_1 > mean_item_volume_2;
+    //if (node_1->contact_area != node_2->contact_area)
+    //    return node_1->contact_area > node_2->contact_area;
+
+    //if (mean_item_volume_1 != mean_item_volume_2)
+    //    return mean_item_volume_1 > mean_item_volume_2;
 
     //if (node_1->corner_alignment != node_2->corner_alignment)
     //    return node_1->corner_alignment > node_2->corner_alignment;

@@ -281,12 +281,15 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
     //std::cout << "node_id " << parent->id
     //    << " # items " << parent->number_of_items
     //    << " item vol " << parent->item_volume
-    //    << " block vol " << parent->block_volume
+    //    //<< " block vol " << parent->block_volume
     //    << " unable vol " << parent->unable_volume
     //    << " load " << (double)parent->item_volume / (parent->block_volume + parent->unable_volume)
     //    << " " << (double)parent->item_volume / instance_.bin_volume()
     //    << " " << volume_load_ok(*parent)
+    //    << " " << parent->contact_area
     //    << std::endl;
+    //for (const EmptySpace& space: parent->empty_spaces)
+    //    std::cout << "- " << space << std::endl;
     insertions_.clear();
 
     // Try spaces in anchor-distance order (K3) until one yields a feasible
@@ -529,7 +532,7 @@ BranchingSchemeMaximalSpaces::Node BranchingSchemeMaximalSpaces::child_tmp(
                     break;
             }
         }
-        node.contact_area = parent->contact_area + new_contact;
+        node.contact_area = parent->contact_area + block.contact_area + new_contact;
     }
 
     // Extend the block's bounding box by the unreachable gap in each direction

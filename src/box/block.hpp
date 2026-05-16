@@ -45,6 +45,8 @@ struct Block
 
     ItemPos number_of_items = 0;
 
+    Area contact_area = 0;
+
     double fill_rate() const { return (double)item_volume / box.volume(); }
 };
 
