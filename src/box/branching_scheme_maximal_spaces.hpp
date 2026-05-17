@@ -45,6 +45,12 @@ struct EmptySpace
 
     inline bool operator<(const EmptySpace& other) const
     {
+        Length this_dist = this->bl_corner.x + this->bl_corner.y + this->bl_corner.z;
+        Length other_dist = other.bl_corner.x + other.bl_corner.y + other.bl_corner.z;
+        if (this_dist != other_dist) return this_dist < other_dist;
+        Volume this_vol = this->box.volume();
+        Volume other_vol = other.box.volume();
+        if (this_vol != other_vol) return this_vol > other_vol;
         if (this->bl_corner.x != other.bl_corner.x) return this->bl_corner.x < other.bl_corner.x;
         if (this->bl_corner.y != other.bl_corner.y) return this->bl_corner.y < other.bl_corner.y;
         if (this->bl_corner.z != other.bl_corner.z) return this->bl_corner.z < other.bl_corner.z;
@@ -52,6 +58,14 @@ struct EmptySpace
         if (this->box.y != other.box.y) return this->box.y < other.box.y;
         return this->box.z < other.box.z;
     }
+};
+
+struct AnchorInfo {
+    Length distance = 0;
+    bool dir_x = false;
+    bool dir_y = false;
+    bool dir_z = false;
+    Volume space_volume = 0;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const EmptySpace& space)
@@ -99,11 +113,14 @@ public:
         /**
          * Index of the space in parent->empty_spaces from which this insertion
          * was generated.  -1 for new_bin insertions (the space is the full bin).
-         * Used in child_tmp() to retrieve the anchor corner without re-searching.
+         * Used in apply_insertion() to retrieve the anchor corner without re-searching.
          * Not included in operator== since two insertions placing the same block
          * at the same position are equivalent regardless of the originating space.
          */
         ItemPos space_id = -1;
+
+        /** contact_area * mean_item_volume * volume_load estimated for the child node. */
+        double guide = 0.0;
 
         bool operator==(const Insertion& other) const
         {
@@ -117,9 +134,19 @@ public:
 
     struct Node
     {
-        NodeId id = -1;
+        /**
+         * One entry per block placed so far (in order of placement).
+         * Holds block identity, position, and the extra items packed into the
+         * gap next to it.  Used instead of a parent pointer to avoid
+         * linked-list chain walks.
+         */
+        struct PlacedBlock {
+            ItemPos block_id = -1;
+            Point bl_corner = {0, 0, 0};
+            std::vector<SolutionItem> extra_items;
+        };
 
-        std::shared_ptr<Node> parent = nullptr;
+        NodeId id = -1;
 
         /** Block placed at this node (index into blocks_). */
         ItemPos block_id = -1;
@@ -127,14 +154,21 @@ public:
         /** Absolute position of the block placed at this node. */
         Point bl_corner = {0, 0, 0};
 
+        /** True if this node opened a new bin. */
+        bool new_bin = false;
+
+        /**
+         * All blocks placed so far, indexed by bin position.
+         * placed_blocks[bin_idx] contains all PlacedBlocks in that bin, in
+         * order of placement.
+         */
+        std::vector<std::vector<PlacedBlock>> placed_blocks;
+
         /** Maximal empty spaces remaining after all placements up to this node. */
         std::vector<EmptySpace> empty_spaces;
 
         /** For each item type, how many copies have been placed so far. */
         std::vector<ItemPos> item_number_of_copies;
-
-        /** True if this node opened a new bin. */
-        bool new_bin = false;
 
         Volume item_volume = 0;
         Volume block_volume = 0;
@@ -180,6 +214,27 @@ public:
          * Lower is better.
          */
         Volume unable_volume = 0;
+
+        /**
+         * Item volume reached by running the greedy (best_insertion loop)
+         * from this node to completion.  Set by child() and children();
+         * not set by apply_insertion().
+         */
+        Volume volume_guide = 0;
+
+        /**
+         * Sorted insertion list populated on the first call to next_child()
+         * for this node.  Stored here so that interleaved next_child() calls
+         * on other nodes do not disturb this node's expansion.
+         */
+        std::vector<Insertion> cached_insertions;
+
+        /**
+         * Index of the next child to generate via next_child().
+         * Incremented each time next_child() is called on this node.
+         */
+        NodeId next_child_pos = 0;
+
     };
 
     /** Fitness-function exponents (K4). */
@@ -212,24 +267,46 @@ public:
     const std::vector<Insertion>& insertions(
             const std::shared_ptr<Node>& parent) const;
 
-    Node child_tmp(
-            const std::shared_ptr<Node>& parent,
+    Insertion best_insertion(
+            Node& parent) const;
+
+    void apply_insertion(
+            Node& node,
             const Insertion& insertion) const;
 
     std::shared_ptr<Node> child(
             const std::shared_ptr<Node>& parent,
             const Insertion& insertion) const
     {
-        return std::make_shared<Node>(child_tmp(parent, insertion));
+        auto node = std::make_shared<Node>(*parent);
+        apply_insertion(*node, insertion);
+        node->volume_guide = compute_guide_greedy(*node);
+        return node;
+    }
+
+    std::shared_ptr<Node> next_child(const std::shared_ptr<Node>& parent) const;
+
+    inline bool infertile(const std::shared_ptr<Node>& node) const
+    {
+        return node->next_child_pos > 0
+            && node->next_child_pos >= (NodeId)node->cached_insertions.size();
     }
 
     std::vector<std::shared_ptr<Node>> children(
-            const std::shared_ptr<Node>& parent) const
+            const std::shared_ptr<Node>& parent,
+            NodeId number_of_children = -1) const
     {
+        //std::cout << "children " << parent->id
+        //    << " " << parent->number_of_blocks << std::endl;
         insertions(parent);
-        std::vector<std::shared_ptr<Node>> nodes(insertions_.size());
-        for (Counter i = 0; i < (Counter)insertions_.size(); ++i)
-            nodes[i] = std::make_shared<Node>(child_tmp(parent, insertions_[i]));
+        if (number_of_children < 0 || number_of_children > (NodeId)insertions_.size())
+            number_of_children = (NodeId)insertions_.size();
+        std::vector<std::shared_ptr<Node>> nodes(number_of_children);
+        for (NodeId i = 0; i < number_of_children; ++i) {
+            nodes[i] = std::make_shared<Node>(*parent);
+            apply_insertion(*nodes[i], insertions_[i]);
+            nodes[i]->volume_guide = compute_guide_greedy(*nodes[i]);
+        }
         return nodes;
     }
 
@@ -352,9 +429,78 @@ private:
      * Coverage is measured only against spaces not in space_ids, since other
      * removed spaces are also permanently inaccessible.
      */
+    struct BestSpaceResult {
+        ItemPos space_idx = -1;
+        AnchorInfo anchor = {};
+    };
+
+    /**
+     * Remove spaces with no fitting feasible block (Pass 1), then return the
+     * index of the space with the smallest anchor distance (Pass 2).
+     * Returns space_idx == -1 if no space remains.
+     */
+    BestSpaceResult find_best_space(
+            const Node& parent,
+            BinTypeId bin_type_id) const;
+
     void remove_spaces_and_update_waste(
             Node& node,
             const std::vector<ItemPos>& space_ids) const;
+
+    /**
+     * For the given direction (X, Y or Z), check whether the far face of the
+     * placed block directly faces the bin wall (no packed block in the gap
+     * region), then attempt to pack all remaining fitting items in that gap
+     * using a grid heuristic.  On success, node.extra_items, item counts,
+     * volumes and profit are updated, and the effective far extent in that
+     * direction (eff_xe / eff_ye / eff_ze) is advanced to the bin wall.
+     */
+    void try_extend_block(
+            Node& node,
+            BinTypeId bin_type_id,
+            const BinType& bin_type,
+            const Insertion& insertion,
+            std::vector<SolutionItem>& extra_items,
+            Length eff_xs,
+            Length eff_ys,
+            Length eff_zs,
+            Length& eff_xe,
+            Length& eff_ye,
+            Length& eff_ze,
+            Direction direction) const;
+
+    /**
+     * Recompute node_max_reachable_x/y/z_ for the given node using each item
+     * type's remaining copies (item_type.copies - node.item_number_of_copies).
+     */
+    void update_node_max_reachable(const Node& node) const;
+
+    /**
+     * Contact area of a block placed at bl_corner with the bin walls and all
+     * previously placed blocks in the same bin (found by walking placed_blocks
+     * backward until the new_bin marker).  Does not include the block's own
+     * internal contact area (block.contact_area).
+     * Pass an empty placed_blocks when the block opens a new bin.
+     */
+    Volume compute_new_contact_area(
+            const std::vector<Node::PlacedBlock>& placed_blocks,
+            BinTypeId bin_type_id,
+            Point bl_corner,
+            const Block& block) const;
+
+    /**
+     * Estimate contact_area * mean_item_volume * volume_load for the child
+     * that would result from applying insertion to parent.
+     */
+    double compute_insertion_guide(
+            const Node& parent,
+            const Insertion& insertion) const;
+
+    /**
+     * Copy node, run best_insertion + apply_insertion until no insertion is
+     * possible, and return the item_volume of the resulting greedy solution.
+     */
+    Volume compute_guide_greedy(const Node& node) const;
 
     inline double volume_load(const Node& node) const;
 
@@ -369,6 +515,19 @@ private:
 
     mutable NodeId node_id_ = 0;
     mutable std::vector<Insertion> insertions_;
+
+    /** Stack item used by remove_spaces_and_update_waste(). */
+    struct RemoveWasteStackItem {
+        EmptySpace remaining;
+        ItemPos next_surviving_idx;
+    };
+
+    /** Scratch buffers reused across calls to avoid repeated heap allocations. */
+    mutable std::vector<bool> scratch_is_removed_;
+    mutable std::vector<ItemPos> scratch_surviving_ids_;
+    mutable std::vector<ItemPos> scratch_sorted_ids_;
+    mutable std::vector<RemoveWasteStackItem> scratch_remove_stack_;
+    mutable std::vector<ItemPos> scratch_unfillable_space_ids_;
 
     /** True iff the block occupies any interior point of the space. */
     static bool overlaps(
@@ -424,8 +583,11 @@ inline bool BranchingSchemeMaximalSpaces::operator()(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    double mean_item_volume_1 = (double)(node_1->item_volume) / node_1->number_of_items;
-    double mean_item_volume_2 = (double)(node_2->item_volume) / node_2->number_of_items;
+    if (node_1->volume_guide != node_2->volume_guide)
+        return node_1->volume_guide > node_2->volume_guide;
+
+    //double mean_item_volume_1 = (double)(node_1->item_volume) / node_1->number_of_items;
+    //double mean_item_volume_2 = (double)(node_2->item_volume) / node_2->number_of_items;
 
     //double alpha = 4.0;
     //double beta = 1.0;
@@ -449,10 +611,10 @@ inline bool BranchingSchemeMaximalSpaces::operator()(
     //if (ok_1 != ok_2)
     //    return ok_1;
 
-    double guide_1 = node_1->contact_area * mean_item_volume_1 * volume_load(*node_1);
-    double guide_2 = node_2->contact_area * mean_item_volume_2 * volume_load(*node_2);
-    if (guide_1 != guide_2)
-        return guide_1 > guide_2;
+    //double guide_1 = node_1->contact_area * mean_item_volume_1 * std::pow(volume_load(*node_1), 1);
+    //double guide_2 = node_2->contact_area * mean_item_volume_2 * std::pow(volume_load(*node_2), 1);
+    //if (guide_1 != guide_2)
+    //    return guide_1 > guide_2;
 
     //if (node_1->contact_area != node_2->contact_area)
     //    return node_1->contact_area > node_2->contact_area;
@@ -482,7 +644,7 @@ inline bool BranchingSchemeMaximalSpaces::operator()(
     //if (guide_1 != guide_2)
     //    return guide_1 > guide_2;
 
-    return node_1->id < node_2->id;
+    return node_1->id > node_2->id;
 }
 
 } // namespace box

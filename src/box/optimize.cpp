@@ -9,6 +9,7 @@
 #include "algorithms/column_generation.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
+#include "treesearchsolver/anytime_column_search.hpp"
 
 #include <thread>
 
@@ -160,29 +161,17 @@ void optimize_tree_search_maximal_spaces(
     MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
     std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
 
-    std::vector<double> growth_factors = {1.5};
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
-        growth_factors = {1.5};
-
     std::vector<BranchingSchemeMaximalSpaces> branching_schemes;
-    std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingSchemeMaximalSpaces>> ibs_parameters_list;
+    std::vector<treesearchsolver::AnytimeColumnSearchParameters<BranchingSchemeMaximalSpaces>> bfs_parameters_list;
     std::vector<box::Output> outputs;
-    for (double growth_factor: growth_factors) {
+    {
         BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
         branching_schemes.push_back(BranchingSchemeMaximalSpaces(instance, all_blocks, max_reachable_lengths, branching_scheme_parameters));
-        treesearchsolver::IterativeBeamSearch2Parameters<BranchingSchemeMaximalSpaces> ibs_parameters;
-        ibs_parameters.verbosity_level = 0;
-        ibs_parameters.timer = parameters.timer;
-        ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-        ibs_parameters.growth_factor = growth_factor;
-        if (parameters.optimization_mode != OptimizationMode::Anytime) {
-            ibs_parameters.minimum_size_of_the_queue = 1;
-            ibs_parameters.growth_factor
-                = parameters.not_anytime_tree_search_queue_size;
-            ibs_parameters.maximum_size_of_the_queue
-                = parameters.not_anytime_tree_search_queue_size;
-        }
-        ibs_parameters_list.push_back(ibs_parameters);
+        treesearchsolver::AnytimeColumnSearchParameters<BranchingSchemeMaximalSpaces> bfs_parameters;
+        bfs_parameters.verbosity_level = 0;
+        bfs_parameters.timer = parameters.timer;
+        bfs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        bfs_parameters_list.push_back(bfs_parameters);
         outputs.push_back(box::Output(instance));
     }
 
@@ -190,41 +179,41 @@ void optimize_tree_search_maximal_spaces(
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
-            ibs_parameters_list[i].new_solution_callback
+            bfs_parameters_list[i].new_solution_callback
                 = [&algorithm_formatter, &branching_schemes, i](
                         const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
                 {
-                    const treesearchsolver::IterativeBeamSearch2Output<BranchingSchemeMaximalSpaces>& tssibs_output
-                        = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingSchemeMaximalSpaces>&>(tss_output);
+                    const treesearchsolver::AnytimeColumnSearchOutput<BranchingSchemeMaximalSpaces>& tssbfs_output
+                        = static_cast<const treesearchsolver::AnytimeColumnSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
                     Solution solution = branching_schemes[i].to_solution(
-                            tssibs_output.solution_pool.best());
+                            tssbfs_output.solution_pool.best());
                     std::stringstream ss;
-                    ss << "TSMS q " << tssibs_output.maximum_size_of_the_queue;
+                    ss << "TSMS n " << tssbfs_output.number_of_nodes;
                     algorithm_formatter.update_solution(solution, ss.str());
                 };
         } else {
-            ibs_parameters_list[i].new_solution_callback
+            bfs_parameters_list[i].new_solution_callback
                 = [&outputs, &branching_schemes, i](
                         const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
                 {
-                    const treesearchsolver::IterativeBeamSearch2Output<BranchingSchemeMaximalSpaces>& tssibs_output
-                        = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingSchemeMaximalSpaces>&>(tss_output);
+                    const treesearchsolver::AnytimeColumnSearchOutput<BranchingSchemeMaximalSpaces>& tssbfs_output
+                        = static_cast<const treesearchsolver::AnytimeColumnSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
                     Solution solution = branching_schemes[i].to_solution(
-                            tssibs_output.solution_pool.best());
+                            tssbfs_output.solution_pool.best());
                     outputs[i].solution_pool.add(solution);
                 };
         }
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
-                        wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingSchemeMaximalSpaces>), treesearchsolver::iterative_beam_search_2<BranchingSchemeMaximalSpaces>>,
+                        wrapper<decltype(&treesearchsolver::anytime_column_search<BranchingSchemeMaximalSpaces>), treesearchsolver::anytime_column_search<BranchingSchemeMaximalSpaces>>,
                         std::ref(exception_ptr_list.front()),
                         std::ref(branching_schemes[i]),
-                        ibs_parameters_list[i]));
+                        bfs_parameters_list[i]));
         } else {
-            treesearchsolver::iterative_beam_search_2<BranchingSchemeMaximalSpaces>(
+            treesearchsolver::anytime_column_search<BranchingSchemeMaximalSpaces>(
                     branching_schemes[i],
-                    ibs_parameters_list[i]);
+                    bfs_parameters_list[i]);
         }
     }
     for (Counter i = 0; i < (Counter)threads.size(); ++i)
