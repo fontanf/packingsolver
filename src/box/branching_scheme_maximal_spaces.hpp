@@ -143,7 +143,6 @@ public:
         struct PlacedBlock {
             ItemPos block_id = -1;
             Point bl_corner = {0, 0, 0};
-            std::vector<SolutionItem> extra_items;
         };
 
         NodeId id = -1;
@@ -178,34 +177,6 @@ public:
         Profit profit = 0;
 
         /**
-         * For each block placed so far, the volume of the block's bounding box
-         * that lies inside its anchor octant minus the volume that lies outside.
-         * The bin is split at its midpoint along each axis into 8 octants; a
-         * block's anchor octant is the one belonging to the bin corner the block
-         * was snapped towards.  Accumulated over the path from root to this node.
-         */
-        Volume corner_alignment = 0;
-
-        /**
-         * Total face-contact area accumulated over all blocks placed so far.
-         * Counts each shared face once: block-to-block contacts (both blocks in
-         * the same bin) and block-to-bin-wall contacts.
-         */
-        Volume contact_area = 0;
-
-        /**
-         * Accumulated estimate of provably-wasted volume across all block
-         * placements so far (Zhu and Lim, 2012).  For each placed block b in
-         * empty space e, the contribution is v_e - (l_b + u_x)(w_b + u_y)(h_b + u_z),
-         * where u_d = max_reachable_d[space.d - block.d] is the maximum length
-         * achievable by remaining items in direction d.  The usable box
-         * (l_b + u_x) x (w_b + u_y) x (h_b + u_z) is the largest region of e
-         * that could conceivably be filled; everything outside it is permanently
-         * unreachable regardless of future placements.  Lower is better.
-         */
-        Volume volume_loss_estimate = 0;
-
-        /**
          * Accumulated volume of empty spaces that were found to be permanently
          * unfillable and removed.  For each removed space, the contribution is
          * max(0, vol(space) - sum of intersection volumes with surviving spaces):
@@ -213,7 +184,7 @@ public:
          * which can never be reached regardless of future placements.
          * Lower is better.
          */
-        Volume unable_volume = 0;
+        Volume waste = 0;
 
         /**
          * Item volume reached by running the greedy (best_insertion loop)
@@ -237,12 +208,35 @@ public:
 
     };
 
-    /** Fitness-function exponents (K4). */
     struct Parameters
     {
-        double alpha = 1.0;
+        /**
+         * Exponent of the relative contact area C in the fitness formula
+         * V * C^alpha * L^beta * N^(-gamma).  Higher values reward blocks
+         * that are well-supported by walls and neighbours.  Reference default: 4.
+         */
+        double alpha = 4.0;
+
+        /**
+         * Exponent of the volume-loss factor L in the fitness formula.
+         * L ∈ (0, 1] measures the fraction of the space volume that can still
+         * be reached after placing the block; higher values penalise wasteful
+         * placements more strongly.  Reference default: 1.
+         */
         double beta = 1.0;
-        double gamma = 1.0;
+
+        /**
+         * Exponent of the item-count penalty N^(-gamma) in the fitness formula.
+         * Blocks with many items are slightly discouraged to keep individual
+         * items manageable.  Reference default: 0.2.
+         */
+        double gamma = 0.2;
+
+        /** Relative contact tolerance delta: a placed block is considered in
+         *  pseudo-contact with a space face if the gap is ≤ floor(delta * space_dim).
+         *  Then the block being scored must also satisfy gap ≤ floor(delta * block_dim).
+         *  Reference default: 0.04. */
+        double delta = 0.04;
     };
 
     /**
@@ -373,8 +367,10 @@ public:
             return true;
         if (node_1->number_of_bins > node_2->number_of_bins)
             return false;
-        if (node_1->empty_spaces == node_2->empty_spaces)
+        if (node_1->volume_guide >= node_2->volume_guide)
             return true;
+        //if (node_1->empty_spaces == node_2->empty_spaces)
+        //    return true;
         return false;
         //double volume_load_1 = (double)node_1->item_volume / node_1->block_volume;
         //double volume_load_2 = (double)node_2->item_volume / node_2->block_volume;
@@ -409,9 +405,9 @@ private:
     Parameters parameters_;
 
     /** max_reachable_x_[r] = largest length ≤ r achievable by stacking items along x. */
-    std::vector<Length> max_reachable_x_;
-    std::vector<Length> max_reachable_y_;
-    std::vector<Length> max_reachable_z_;
+    mutable std::vector<Length> max_reachable_x_;
+    mutable std::vector<Length> max_reachable_y_;
+    mutable std::vector<Length> max_reachable_z_;
 
     /**
      * For each bin type, the indices of Pareto-minimal blocks: those not
@@ -420,12 +416,10 @@ private:
      */
     std::vector<std::vector<ItemPos>> pareto_front_block_ids_;
 
-    void compute_pareto_fronts();
-
     /**
      * For each space ID in space_ids, compute the waste contribution
      * (vol(space) - coverage by surviving spaces, floored at 0) and add it to
-     * node.unable_volume, then erase all those spaces from node.empty_spaces.
+     * node.waste, then erase all those spaces from node.empty_spaces.
      * Coverage is measured only against spaces not in space_ids, since other
      * removed spaces are also permanently inaccessible.
      */
@@ -448,53 +442,128 @@ private:
             const std::vector<ItemPos>& space_ids) const;
 
     /**
-     * For the given direction (X, Y or Z), check whether the far face of the
-     * placed block directly faces the bin wall (no packed block in the gap
-     * region), then attempt to pack all remaining fitting items in that gap
-     * using a grid heuristic.  On success, node.extra_items, item counts,
-     * volumes and profit are updated, and the effective far extent in that
-     * direction (eff_xe / eff_ye / eff_ze) is advanced to the bin wall.
-     */
-    void try_extend_block(
-            Node& node,
-            BinTypeId bin_type_id,
-            const BinType& bin_type,
-            const Insertion& insertion,
-            std::vector<SolutionItem>& extra_items,
-            Length eff_xs,
-            Length eff_ys,
-            Length eff_zs,
-            Length& eff_xe,
-            Length& eff_ye,
-            Length& eff_ze,
-            Direction direction) const;
-
-    /**
      * Recompute node_max_reachable_x/y/z_ for the given node using each item
      * type's remaining copies (item_type.copies - node.item_number_of_copies).
      */
     void update_node_max_reachable(const Node& node) const;
 
+    /** A box together with the position of its bottom-left-back corner. */
+    struct PositionedBox {
+        Box box;
+        Point bl_corner;
+    };
+
     /**
-     * Contact area of a block placed at bl_corner with the bin walls and all
-     * previously placed blocks in the same bin (found by walking placed_blocks
-     * backward until the new_bin marker).  Does not include the block's own
-     * internal contact area (block.contact_area).
-     * Pass an empty placed_blocks when the block opens a new bin.
+     * Compute the extended bounding box used to cut empty spaces after placing
+     * block in space with the given anchor.  See the implementation for a full
+     * explanation of the Zhu formula.
      */
-    Volume compute_new_contact_area(
+    PositionedBox compute_extended_placement(
+            const AnchorInfo& anchor,
+            const EmptySpace& space,
+            const BinType& bin_type,
+            const Block& block,
+            Point bl_corner) const;
+
+    /**
+     * Per-face neighbour information for a selected empty space.
+     *
+     * Precomputed once per space selection so that contact-area scoring can
+     * skip the full placed_blocks list for every block candidate.
+     *
+     * NOTE: valid only when all anchor directions are false (bl_corner ==
+     * space.bl_corner for every block), which is the current invariant.
+     */
+    struct SpaceContactInfo {
+        bool xl_wall = false;
+        bool yl_wall = false;
+        bool zl_wall = false;
+        bool xh_wall = false;
+        bool yh_wall = false;
+        bool zh_wall = false;
+        Length space_xs = 0;
+        Length space_ys = 0;
+        Length space_zs = 0;
+        Length space_bx = 0;
+        Length space_by = 0;
+        Length space_bz = 0;
+        /** floor(delta * space_bx/y/z): first-filter tolerance for neighbor collection. */
+        Length tol_x = 0;
+        Length tol_y = 0;
+        Length tol_z = 0;
+
+        /**
+         * Transverse overlap range for one adjacent placed block, stored
+         * relative to space.bl_corner and clamped to [0, space.box.<axis>].
+         * lo1/hi1 span the first transverse axis; lo2/hi2 the second.
+         * orthogonal_pos: the placed block's face position on the orthogonal axis.
+         */
+        struct Neighbor {
+            Length lo1 = 0;
+            Length hi1 = 0;
+            Length lo2 = 0;
+            Length hi2 = 0;
+            Length orthogonal_pos = 0;
+        };
+        /** xe_pb == space.bl_corner.x; transverse axes: y, z. */
+        std::vector<Neighbor> xl_neighbors;
+        /** xl_pb == space.bl_corner.x + space.box.x; transverse axes: y, z.
+         *  Only contributes when block.box.x == space_bx. */
+        std::vector<Neighbor> xh_neighbors;
+        /** ye_pb == space.bl_corner.y; transverse axes: x, z. */
+        std::vector<Neighbor> yl_neighbors;
+        /** yl_pb == space.bl_corner.y + space.box.y; transverse axes: x, z.
+         *  Only contributes when block.box.y == space_by. */
+        std::vector<Neighbor> yh_neighbors;
+        /** ze_pb == space.bl_corner.z; transverse axes: x, y. */
+        std::vector<Neighbor> zl_neighbors;
+        /** zl_pb == space.bl_corner.z + space.box.z; transverse axes: x, y.
+         *  Only contributes when block.box.z == space_bz. */
+        std::vector<Neighbor> zh_neighbors;
+    };
+
+    /** Build SpaceContactInfo for space from the placed blocks of the current bin. */
+    SpaceContactInfo compute_space_contact_info(
             const std::vector<Node::PlacedBlock>& placed_blocks,
             BinTypeId bin_type_id,
-            Point bl_corner,
+            const EmptySpace& space) const;
+
+    /**
+     * Pseudo-contact area C of block placed at bl_corner: total face area
+     * touching bin walls and neighbouring blocks (within delta tolerance),
+     * divided by the block's surface area.  Result is in [0, 1].
+     *
+     * Uses two filters:
+     *   1. (precomputed) placed block's face within floor(delta*space_dim) of space face
+     *   2. (per block) block's face within floor(delta*block_dim) of neighbour's face
+     */
+    double compute_relative_contact_area(
+            const SpaceContactInfo& info,
+            const Block& block,
+            Point bl_corner) const;
+
+    /**
+     * Fraction of space_volume that is usable after placing block: the block
+     * itself plus the maximum reachable gap in each axis.  Equals 1 when the
+     * block fills the space exactly and approaches 0 when it leaves a large
+     * unreachable remainder.  Uses the global max_reachable tables (all item
+     * copies), which is optimistic but avoids per-node recomputation.
+     */
+    double compute_volume_loss_factor(
+            const SpaceContactInfo& info,
             const Block& block) const;
 
     /**
-     * Estimate contact_area * mean_item_volume * volume_load for the child
-     * that would result from applying insertion to parent.
+     * Fitness score for placing block in the selected space:
+     *   V * C^alpha * L^beta * N^(-gamma)
+     * where V = block item volume, C = relative contact area, L = volume loss
+     * factor, N = number of items in the block.  Exponents are taken from
+     * Parameters.  Matches the reference formula from Araya et al. / da Silva 2025.
      */
     double compute_insertion_guide(
             const Node& parent,
-            const Insertion& insertion) const;
+            const Insertion& insertion,
+            const SpaceContactInfo& info) const;
 
     /**
      * Copy node, run best_insertion + apply_insertion until no insertion is
@@ -502,18 +571,8 @@ private:
      */
     Volume compute_guide_greedy(const Node& node) const;
 
-    inline double volume_load(const Node& node) const;
-
-    /**
-     * Return true iff node's volume load (item_volume / block_volume) meets
-     * a density threshold that decreases linearly as the bin fills up:
-     *   threshold(f) = 0.99 - 0.04 * f,  f = block_volume / bin_volume
-     * At the start (f = 0) the threshold is 0.99; at the end (f = 1) it
-     * relaxes to 0.95, accepting the small inevitable waste in a full bin.
-     */
-    inline bool volume_load_ok(const Node& node) const;
-
     mutable NodeId node_id_ = 0;
+
     mutable std::vector<Insertion> insertions_;
 
     /** Stack item used by remove_spaces_and_update_waste(). */
@@ -528,6 +587,14 @@ private:
     mutable std::vector<ItemPos> scratch_sorted_ids_;
     mutable std::vector<RemoveWasteStackItem> scratch_remove_stack_;
     mutable std::vector<ItemPos> scratch_unfillable_space_ids_;
+
+    /** Scratch buffers for update_node_max_reachable() 0-1 knapsack DP. */
+    mutable std::vector<uint8_t> scratch_reachable_x_;
+    mutable std::vector<uint8_t> scratch_reachable_y_;
+    mutable std::vector<uint8_t> scratch_reachable_z_;
+    mutable std::vector<uint8_t> scratch_temp_reachable_x_;
+    mutable std::vector<uint8_t> scratch_temp_reachable_y_;
+    mutable std::vector<uint8_t> scratch_temp_reachable_z_;
 
     /** True iff the block occupies any interior point of the space. */
     static bool overlaps(
@@ -560,90 +627,12 @@ private:
 /////////////////////////////// Inlined methods ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-inline double BranchingSchemeMaximalSpaces::volume_load(const Node& node) const
-{
-    Volume used_volume = node.block_volume + node.unable_volume;
-    if (used_volume == 0)
-        return 0;
-    return (double)node.item_volume / used_volume;
-}
-
-inline bool BranchingSchemeMaximalSpaces::volume_load_ok(const Node& node) const
-{
-    Volume used_volume = node.block_volume + node.unable_volume;
-    if (used_volume == 0)
-        return true;
-    double volume_load = (double)node.item_volume / used_volume;
-    double f = std::min(1.0, (double)used_volume / instance_.bin_volume());
-    double threshold = 0.99 - 0.04 * f;
-    return volume_load >= threshold;
-}
-
 inline bool BranchingSchemeMaximalSpaces::operator()(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
     if (node_1->volume_guide != node_2->volume_guide)
         return node_1->volume_guide > node_2->volume_guide;
-
-    //double mean_item_volume_1 = (double)(node_1->item_volume) / node_1->number_of_items;
-    //double mean_item_volume_2 = (double)(node_2->item_volume) / node_2->number_of_items;
-
-    //double alpha = 4.0;
-    //double beta = 1.0;
-    //double gamma = 5.0;
-    //double guide_1 = node_1->item_volume
-    //    * std::pow(node_1->contact_area, alpha)
-    //    * std::pow(volume_load(*node_1), beta)
-    //    * std::pow(mean_item_volume_1, gamma);
-    //double guide_2 = node_2->item_volume
-    //    * std::pow(node_2->contact_area, alpha)
-    //    * std::pow(volume_load(*node_2), beta)
-    //    * std::pow(mean_item_volume_2, gamma);
-    //if (guide_1 != guide_2)
-    //    return guide_1 < guide_2;
-
-    //if (volume_load(*node_1) != volume_load(*node_2))
-    //    return volume_load(*node_1) > volume_load(*node_2);
-
-    //bool ok_1 = volume_load_ok(*node_1);
-    //bool ok_2 = volume_load_ok(*node_2);
-    //if (ok_1 != ok_2)
-    //    return ok_1;
-
-    //double guide_1 = node_1->contact_area * mean_item_volume_1 * std::pow(volume_load(*node_1), 1);
-    //double guide_2 = node_2->contact_area * mean_item_volume_2 * std::pow(volume_load(*node_2), 1);
-    //if (guide_1 != guide_2)
-    //    return guide_1 > guide_2;
-
-    //if (node_1->contact_area != node_2->contact_area)
-    //    return node_1->contact_area > node_2->contact_area;
-
-    //if (mean_item_volume_1 != mean_item_volume_2)
-    //    return mean_item_volume_1 > mean_item_volume_2;
-
-    //if (node_1->corner_alignment != node_2->corner_alignment)
-    //    return node_1->corner_alignment > node_2->corner_alignment;
-
-    //if ((volume_load_1 >= 0.98) != (volume_load_2 >= 0.98))
-    //    return volume_load_1 > volume_load_2;
-
-    //if (node_1->item_volume != node_2->item_volume)
-    //    return node_1->item_volume > node_2->item_volume;
-
-    //if (volume_load_1 != volume_load_2)
-    //    return volume_load_1 > volume_load_2;
-
-    //if (node_1->empty_spaces.size() != node_2->empty_spaces.size())
-    //    return node_1->empty_spaces.size() < node_2->empty_spaces.size();
-
-    //double guide_1 = node_1->item_volume;
-    //double guide_2 = node_2->item_volume;
-    ////double guide_1 = waste_percentage_1 / mean_item_volume_1;
-    ////double guide_2 = waste_percentage_2 / mean_item_volume_2;
-    //if (guide_1 != guide_2)
-    //    return guide_1 > guide_2;
-
     return node_1->id > node_2->id;
 }
 

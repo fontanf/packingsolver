@@ -29,16 +29,16 @@ AnchorInfo compute_anchor_info(const EmptySpace& space, const Box& bin_box)
     Length dist_z_start = space.bl_corner.z;
     Length dist_z_end = bin_box.z - space.ze();
     AnchorInfo info;
-    //info.dir_x = dist_x_end < dist_x_start;
-    //info.dir_y = dist_y_end < dist_y_start;
-    //info.dir_z = dist_z_end < dist_z_start;
-    //info.distance = std::min(dist_x_start, dist_x_end)
-    //    + std::min(dist_y_start, dist_y_end)
-    //    + std::min(dist_z_start, dist_z_end);
-    info.dir_x = false;
-    info.dir_y = false;
-    info.dir_z = false;
-    info.distance = dist_x_start + dist_y_start + dist_z_start;
+    info.dir_x = dist_x_end < dist_x_start;
+    info.dir_y = dist_y_end < dist_y_start;
+    info.dir_z = dist_z_end < dist_z_start;
+    info.distance = std::min(dist_x_start, dist_x_end)
+        + std::min(dist_y_start, dist_y_end)
+        + std::min(dist_z_start, dist_z_end);
+    //info.dir_x = false;
+    //info.dir_y = false;
+    //info.dir_z = false;
+    //info.distance = dist_x_start + dist_y_start + dist_z_start;
     info.space_volume = space.box.volume();
     return info;
 }
@@ -107,46 +107,6 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
     max_reachable_x_ = max_reachable_lengths.x;
     max_reachable_y_ = max_reachable_lengths.y;
     max_reachable_z_ = max_reachable_lengths.z;
-    compute_pareto_fronts();
-}
-
-void BranchingSchemeMaximalSpaces::compute_pareto_fronts()
-{
-    pareto_front_block_ids_.resize(instance_.number_of_bin_types());
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance_.number_of_bin_types();
-            ++bin_type_id) {
-        const std::vector<Block>& blocks = blocks_[bin_type_id];
-        std::vector<ItemPos>& front = pareto_front_block_ids_[bin_type_id];
-        for (ItemPos block_id = 0;
-                block_id < (ItemPos)blocks.size();
-                ++block_id) {
-            const Box& box = blocks[block_id].box;
-            bool dominated = false;
-            for (ItemPos other_id = 0;
-                    other_id < (ItemPos)blocks.size() && !dominated;
-                    ++other_id) {
-                if (other_id == block_id)
-                    continue;
-                const Box& other_box = blocks[other_id].box;
-                // other dominates block if it is smaller or equal in every
-                // dimension, strictly smaller in at least one (or identical
-                // box with a lower id, to keep exactly one representative
-                // per distinct size).
-                if (other_box.x <= box.x
-                        && other_box.y <= box.y
-                        && other_box.z <= box.z
-                        && (other_box.x < box.x
-                            || other_box.y < box.y
-                            || other_box.z < box.z
-                            || other_id < block_id)) {
-                    dominated = true;
-                }
-            }
-            if (!dominated)
-                front.push_back(block_id);
-        }
-    }
 }
 
 void BranchingSchemeMaximalSpaces::remove_spaces_and_update_waste(
@@ -172,7 +132,7 @@ void BranchingSchemeMaximalSpaces::remove_spaces_and_update_waste(
     //     into the (up to 6) disjoint sub-boxes that cover remaining_box minus
     //     the intersection, and push each with next_surviving_idx + 1.
     //   - When all surviving spaces have been consumed, the box is fully
-    //     uncovered: add its volume to unable_volume.
+    //     uncovered: add its volume to waste.
     // This avoids the overcounting that arises from simply summing pairwise
     // intersection volumes when multiple surviving spaces overlap each other
     // within R.
@@ -184,7 +144,7 @@ void BranchingSchemeMaximalSpaces::remove_spaces_and_update_waste(
             scratch_remove_stack_.pop_back();
             const EmptySpace& rem = item.remaining;
             if (item.next_surviving_idx >= (ItemPos)scratch_surviving_ids_.size()) {
-                node.unable_volume += rem.box.volume();
+                node.waste += rem.box.volume();
                 continue;
             }
             const EmptySpace& other =
@@ -266,10 +226,13 @@ BranchingSchemeMaximalSpaces::BestSpaceResult BranchingSchemeMaximalSpaces::find
 {
     const BinType& bin_type = instance_.bin_type(bin_type_id);
     const std::vector<Block>& blocks = blocks_[bin_type_id];
-    // empty_spaces is sorted by ascending anchor distance (bl_corner sum),
-    // descending volume.  Scan from the front and return the first space that
-    // has at least one feasible block; that is already the best space.
+    // Select the space with minimum anchor distance (= sum of per-axis distance
+    // to the nearest bin wall).  Tie-break: largest volume, then smallest corner
+    // index.  Matches the reference EmptySpaceCollection::top() priority.
     BestSpaceResult result;
+    Length best_distance = std::numeric_limits<Length>::max();
+    Volume best_volume = 0;
+    int best_corner = std::numeric_limits<int>::max();
     for (ItemPos space_idx = 0;
             space_idx < (ItemPos)parent.empty_spaces.size();
             ++space_idx) {
@@ -294,18 +257,43 @@ BranchingSchemeMaximalSpaces::BestSpaceResult BranchingSchemeMaximalSpaces::find
             if (feasible)
                 has_fitting_block = true;
         }
-        if (has_fitting_block) {
+        if (!has_fitting_block)
+            continue;
+        AnchorInfo anchor = compute_anchor_info(space, bin_type.box);
+        Volume space_volume = space.box.volume();
+        int corner = (anchor.dir_x ? 4 : 0) | (anchor.dir_y ? 2 : 0) | (anchor.dir_z ? 1 : 0);
+        bool better = (anchor.distance < best_distance)
+            || (anchor.distance == best_distance && space_volume > best_volume)
+            || (anchor.distance == best_distance && space_volume == best_volume && corner < best_corner);
+        if (better) {
             result.space_idx = space_idx;
-            result.anchor = compute_anchor_info(space, bin_type.box);
-            return result;
+            result.anchor = anchor;
+            best_distance = anchor.distance;
+            best_volume = space_volume;
+            best_corner = corner;
         }
     }
     return result;
 }
 
+double BranchingSchemeMaximalSpaces::compute_volume_loss_factor(
+        const SpaceContactInfo& info,
+        const Block& block) const
+{
+    Length rx = info.space_bx - block.box.x;
+    Length ry = info.space_by - block.box.y;
+    Length rz = info.space_bz - block.box.z;
+    Volume usable_volume = (Volume)(block.box.x + max_reachable_x_[rx])
+        * (block.box.y + max_reachable_y_[ry])
+        * (block.box.z + max_reachable_z_[rz]);
+    Volume space_volume = (Volume)info.space_bx * info.space_by * info.space_bz;
+    return (double)usable_volume / space_volume;
+}
+
 double BranchingSchemeMaximalSpaces::compute_insertion_guide(
         const Node& parent,
-        const Insertion& insertion) const
+        const Insertion& insertion,
+        const SpaceContactInfo& info) const
 {
     BinPos bin_pos = insertion.new_bin?
         parent.number_of_bins:
@@ -313,24 +301,58 @@ double BranchingSchemeMaximalSpaces::compute_insertion_guide(
     BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
     const Block& block = blocks_[bin_type_id][insertion.block_id];
 
-    Volume new_contact_area = parent.contact_area
-        + block.contact_area
-        + compute_new_contact_area(
-                ((!insertion.new_bin)? parent.placed_blocks.back(): std::vector<Node::PlacedBlock>()),
-                bin_type_id,
-                insertion.bl_corner,
-                block);
-    Volume new_item_volume = parent.item_volume + block.item_volume;
-    ItemPos new_number_of_items = parent.number_of_items + block.number_of_items;
-    Volume new_block_volume = insertion.new_bin?
-        instance_.previous_bin_volume(parent.number_of_bins) + block.box.volume():
-        parent.block_volume + block.box.volume();
-    Volume used_volume = new_block_volume + parent.unable_volume;
-    double mean_item_volume = (double)new_item_volume / new_number_of_items;
-    double volume_load = used_volume > 0?
-        (double)new_item_volume / used_volume:
-        0.0;
-    return (double)new_contact_area * mean_item_volume * volume_load;
+    double v = (double)block.item_volume;
+    double c = compute_relative_contact_area(info, block, insertion.bl_corner);
+    double l = compute_volume_loss_factor(info, block);
+    double n = (double)block.number_of_items;
+
+    return v * std::pow(c, parameters_.alpha) * std::pow(l, parameters_.beta) * std::pow(n, -parameters_.gamma);
+}
+
+void BranchingSchemeMaximalSpaces::update_node_max_reachable(const Node& node) const
+{
+    Length max_x = (Length)max_reachable_x_.size() - 1;
+    Length max_y = (Length)max_reachable_y_.size() - 1;
+    Length max_z = (Length)max_reachable_z_.size() - 1;
+
+    scratch_reachable_x_.assign(max_x + 1, 0);
+    scratch_reachable_y_.assign(max_y + 1, 0);
+    scratch_reachable_z_.assign(max_z + 1, 0);
+    scratch_reachable_x_[0] = scratch_reachable_y_[0] = scratch_reachable_z_[0] = 1;
+
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance_.item_type(item_type_id);
+        ItemPos remaining_copies = item_type.copies - node.item_number_of_copies[item_type_id];
+        for (ItemPos copy_idx = 0; copy_idx < remaining_copies; ++copy_idx) {
+            scratch_temp_reachable_x_ = scratch_reachable_x_;
+            scratch_temp_reachable_y_ = scratch_reachable_y_;
+            scratch_temp_reachable_z_ = scratch_reachable_z_;
+            for (Rotation rotation: item_type.rotations) {
+                Box box = item_type.box.rotate(rotation);
+                if (box.x <= max_x)
+                    for (Length v = max_x; v >= box.x; --v)
+                        if (scratch_reachable_x_[v - box.x]) scratch_temp_reachable_x_[v] = 1;
+                if (box.y <= max_y)
+                    for (Length v = max_y; v >= box.y; --v)
+                        if (scratch_reachable_y_[v - box.y]) scratch_temp_reachable_y_[v] = 1;
+                if (box.z <= max_z)
+                    for (Length v = max_z; v >= box.z; --v)
+                        if (scratch_reachable_z_[v - box.z]) scratch_temp_reachable_z_[v] = 1;
+            }
+            scratch_reachable_x_ = scratch_temp_reachable_x_;
+            scratch_reachable_y_ = scratch_temp_reachable_y_;
+            scratch_reachable_z_ = scratch_temp_reachable_z_;
+        }
+    }
+
+    for (Length v = 1; v <= max_x; ++v)
+        max_reachable_x_[v] = scratch_reachable_x_[v] ? v : max_reachable_x_[v - 1];
+    for (Length v = 1; v <= max_y; ++v)
+        max_reachable_y_[v] = scratch_reachable_y_[v] ? v : max_reachable_y_[v - 1];
+    for (Length v = 1; v <= max_z; ++v)
+        max_reachable_z_[v] = scratch_reachable_z_[v] ? v : max_reachable_z_[v - 1];
 }
 
 const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaximalSpaces::insertions(
@@ -342,8 +364,8 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
     //    << " item_volume " << parent->item_volume
     //    << " profit " << parent->profit
     //    << " guide_volume " << parent->volume_guide
-    //    << " volume_load " << volume_load(*parent)
     //    << std::endl;
+    update_node_max_reachable(*parent);
     insertions_.clear();
 
     if (!parent->empty_spaces.empty()) {
@@ -354,6 +376,8 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
 
         if (best.space_idx != -1) {
             const EmptySpace& space = parent->empty_spaces[best.space_idx];
+            SpaceContactInfo contact_info = compute_space_contact_info(
+                    parent->placed_blocks.back(), bin_type_id, space);
             for (ItemPos block_id = 0;
                     block_id < (ItemPos)blocks_[bin_type_id].size();
                     ++block_id) {
@@ -377,7 +401,7 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
                 insertion.space_id = best.space_idx;
                 insertion.block_id = block_id;
                 insertion.bl_corner = compute_block_position(best.anchor, space, block.box);
-                insertion.guide = compute_insertion_guide(*parent, insertion);
+                insertion.guide = compute_insertion_guide(*parent, insertion, contact_info);
                 insertions_.push_back(insertion);
             }
         }
@@ -392,6 +416,8 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
         space.bl_corner = {0, 0, 0};
         space.box = bin_type.box;
         AnchorInfo anchor = compute_anchor_info(space, bin_type.box);
+        SpaceContactInfo contact_info = compute_space_contact_info(
+                {}, bin_type_id, space);
         for (ItemPos block_id = 0;
                 block_id < (ItemPos)blocks_[bin_type_id].size();
                 ++block_id) {
@@ -415,13 +441,13 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
             insertion.space_id = 0;
             insertion.block_id = block_id;
             insertion.bl_corner = compute_block_position(anchor, space, block.box);
-            insertion.guide = compute_insertion_guide(*parent, insertion);
+            insertion.guide = compute_insertion_guide(*parent, insertion, contact_info);
             insertions_.push_back(insertion);
         }
     }
     std::sort(insertions_.begin(), insertions_.end(),
-            [](const Insertion& ins_1, const Insertion& ins_2) {
-                return ins_1.guide > ins_2.guide;
+            [](const Insertion& insertion_1, const Insertion& insertion_2) {
+                return insertion_1.guide > insertion_2.guide;
             });
     return insertions_;
 }
@@ -429,6 +455,7 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
 BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_insertion(
         Node& parent) const
 {
+    update_node_max_reachable(parent);
     Insertion best;
     double best_score = -1;
 
@@ -440,6 +467,8 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
 
         if (best_space.space_idx != -1) {
             const EmptySpace& space = parent.empty_spaces[best_space.space_idx];
+            SpaceContactInfo contact_info = compute_space_contact_info(
+                    parent.placed_blocks.back(), bin_type_id, space);
             for (ItemPos block_id = 0;
                     block_id < (ItemPos)blocks_[bin_type_id].size();
                     ++block_id) {
@@ -458,21 +487,15 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
                 }
                 if (!feasible)
                     continue;
-                Volume new_item_volume = parent.item_volume + block.item_volume;
-                ItemPos new_number_of_items = parent.number_of_items + block.number_of_items;
-                Volume new_block_volume = parent.block_volume + block.box.volume();
-                Volume used_volume = new_block_volume + parent.unable_volume;
-                double mean_item_volume = (double)new_item_volume / new_number_of_items;
-                double volume_load = used_volume > 0?
-                    (double)new_item_volume / used_volume:
-                    0.0;
-                double score = (double)mean_item_volume * volume_load;
+                Insertion insertion;
+                insertion.new_bin = false;
+                insertion.space_id = best_space.space_idx;
+                insertion.block_id = block_id;
+                insertion.bl_corner = compute_block_position(best_space.anchor, space, block.box);
+                double score = compute_insertion_guide(parent, insertion, contact_info);
                 if (score > best_score) {
                     best_score = score;
-                    best.new_bin = false;
-                    best.space_id = best_space.space_idx;
-                    best.block_id = block_id;
-                    best.bl_corner = compute_block_position(best_space.anchor, space, block.box);
+                    best = insertion;
                 }
             }
         }
@@ -487,7 +510,8 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
         space.bl_corner = {0, 0, 0};
         space.box = bin_type.box;
         AnchorInfo anchor = compute_anchor_info(space, bin_type.box);
-        const std::vector<Node::PlacedBlock> empty_placed_blocks;
+        SpaceContactInfo contact_info = compute_space_contact_info(
+                {}, bin_type_id, space);
         for (ItemPos block_id = 0;
                 block_id < (ItemPos)blocks_[bin_type_id].size();
                 ++block_id) {
@@ -506,22 +530,15 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
             }
             if (!feasible)
                 continue;
-            Volume new_item_volume = parent.item_volume + block.item_volume;
-            ItemPos new_number_of_items = parent.number_of_items + block.number_of_items;
-            Volume new_block_volume = instance_.previous_bin_volume(parent.number_of_bins)
-                + block.box.volume();
-            Volume used_volume = new_block_volume + parent.unable_volume;
-            double mean_item_volume = (double)new_item_volume / new_number_of_items;
-            double volume_load = used_volume > 0?
-                (double)new_item_volume / used_volume:
-                0.0;
-            double score = (double)mean_item_volume * volume_load;
+            Insertion insertion;
+            insertion.new_bin = true;
+            insertion.space_id = 0;
+            insertion.block_id = block_id;
+            insertion.bl_corner = compute_block_position(anchor, space, block.box);
+            double score = compute_insertion_guide(parent, insertion, contact_info);
             if (score > best_score) {
                 best_score = score;
-                best.new_bin = true;
-                best.space_id = 0;
-                best.block_id = block_id;
-                best.bl_corner = compute_block_position(anchor, space, block.box);
+                best = insertion;
             }
         }
     }
@@ -529,36 +546,257 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
     return best;
 }
 
-Volume BranchingSchemeMaximalSpaces::compute_new_contact_area(
+BranchingSchemeMaximalSpaces::SpaceContactInfo
+BranchingSchemeMaximalSpaces::compute_space_contact_info(
         const std::vector<Node::PlacedBlock>& placed_blocks,
         BinTypeId bin_type_id,
-        Point bl_corner,
-        const Block& block) const
+        const EmptySpace& space) const
 {
     const BinType& bin_type = instance_.bin_type(bin_type_id);
-    Volume contact = 0;
-    if (bl_corner.x == 0)
-        contact += block.box.y * block.box.z;
-    if (bl_corner.x + block.box.x == bin_type.box.x)
-        contact += block.box.y * block.box.z;
-    if (bl_corner.y == 0)
-        contact += block.box.x * block.box.z;
-    if (bl_corner.y + block.box.y == bin_type.box.y)
-        contact += block.box.x * block.box.z;
-    if (bl_corner.z == 0)
-        contact += block.box.x * block.box.y;
-    if (bl_corner.z + block.box.z == bin_type.box.z)
-        contact += block.box.x * block.box.y;
-    for (ItemPos pb_idx = (ItemPos)placed_blocks.size() - 1;
-            pb_idx >= 0;
-            --pb_idx) {
-        const Node::PlacedBlock& prev_pb = placed_blocks[pb_idx];
-        const Block& prev_block = blocks_[bin_type_id][prev_pb.block_id];
-        contact += compute_contact_area(
-                bl_corner, block.box,
-                prev_pb.bl_corner, prev_block.box);
+    SpaceContactInfo info;
+    info.space_xs = space.bl_corner.x;
+    info.space_ys = space.bl_corner.y;
+    info.space_zs = space.bl_corner.z;
+    info.space_bx = space.box.x;
+    info.space_by = space.box.y;
+    info.space_bz = space.box.z;
+    info.tol_x = (Length)(parameters_.delta * space.box.x);
+    info.tol_y = (Length)(parameters_.delta * space.box.y);
+    info.tol_z = (Length)(parameters_.delta * space.box.z);
+
+    Length xl = space.bl_corner.x, xh = xl + space.box.x;
+    Length yl = space.bl_corner.y, yh = yl + space.box.y;
+    Length zl = space.bl_corner.z, zh = zl + space.box.z;
+    info.xl_wall = (xl <= info.tol_x);
+    info.yl_wall = (yl <= info.tol_y);
+    info.zl_wall = (zl <= info.tol_z);
+    info.xh_wall = (bin_type.box.x - xh <= info.tol_x);
+    info.yh_wall = (bin_type.box.y - yh <= info.tol_y);
+    info.zh_wall = (bin_type.box.z - zh <= info.tol_z);
+
+    for (const Node::PlacedBlock& pb: placed_blocks) {
+        const Block& pb_block = blocks_[bin_type_id][pb.block_id];
+        Length pb_xl = pb.bl_corner.x, pb_xh = pb_xl + pb_block.box.x;
+        Length pb_yl = pb.bl_corner.y, pb_yh = pb_yl + pb_block.box.y;
+        Length pb_zl = pb.bl_corner.z, pb_zh = pb_zl + pb_block.box.z;
+
+        if (std::abs(pb_xh - xl) <= info.tol_x) {
+            Length lo1 = std::max((Length)0, pb_yl - yl);
+            Length hi1 = std::min(space.box.y, pb_yh - yl);
+            Length lo2 = std::max((Length)0, pb_zl - zl);
+            Length hi2 = std::min(space.box.z, pb_zh - zl);
+            if (lo1 < hi1 && lo2 < hi2)
+                info.xl_neighbors.push_back({lo1, hi1, lo2, hi2, pb_xh});
+        }
+        if (std::abs(pb_xl - xh) <= info.tol_x) {
+            Length lo1 = std::max((Length)0, pb_yl - yl);
+            Length hi1 = std::min(space.box.y, pb_yh - yl);
+            Length lo2 = std::max((Length)0, pb_zl - zl);
+            Length hi2 = std::min(space.box.z, pb_zh - zl);
+            if (lo1 < hi1 && lo2 < hi2)
+                info.xh_neighbors.push_back({lo1, hi1, lo2, hi2, pb_xl});
+        }
+        if (std::abs(pb_yh - yl) <= info.tol_y) {
+            Length lo1 = std::max((Length)0, pb_xl - xl);
+            Length hi1 = std::min(space.box.x, pb_xh - xl);
+            Length lo2 = std::max((Length)0, pb_zl - zl);
+            Length hi2 = std::min(space.box.z, pb_zh - zl);
+            if (lo1 < hi1 && lo2 < hi2)
+                info.yl_neighbors.push_back({lo1, hi1, lo2, hi2, pb_yh});
+        }
+        if (std::abs(pb_yl - yh) <= info.tol_y) {
+            Length lo1 = std::max((Length)0, pb_xl - xl);
+            Length hi1 = std::min(space.box.x, pb_xh - xl);
+            Length lo2 = std::max((Length)0, pb_zl - zl);
+            Length hi2 = std::min(space.box.z, pb_zh - zl);
+            if (lo1 < hi1 && lo2 < hi2)
+                info.yh_neighbors.push_back({lo1, hi1, lo2, hi2, pb_yl});
+        }
+        if (std::abs(pb_zh - zl) <= info.tol_z) {
+            Length lo1 = std::max((Length)0, pb_xl - xl);
+            Length hi1 = std::min(space.box.x, pb_xh - xl);
+            Length lo2 = std::max((Length)0, pb_yl - yl);
+            Length hi2 = std::min(space.box.y, pb_yh - yl);
+            if (lo1 < hi1 && lo2 < hi2)
+                info.zl_neighbors.push_back({lo1, hi1, lo2, hi2, pb_zh});
+        }
+        if (std::abs(pb_zl - zh) <= info.tol_z) {
+            Length lo1 = std::max((Length)0, pb_xl - xl);
+            Length hi1 = std::min(space.box.x, pb_xh - xl);
+            Length lo2 = std::max((Length)0, pb_yl - yl);
+            Length hi2 = std::min(space.box.y, pb_yh - yl);
+            if (lo1 < hi1 && lo2 < hi2)
+                info.zh_neighbors.push_back({lo1, hi1, lo2, hi2, pb_zl});
+        }
     }
-    return contact;
+    return info;
+}
+
+double BranchingSchemeMaximalSpaces::compute_relative_contact_area(
+        const SpaceContactInfo& info,
+        const Block& block,
+        Point bl_corner) const
+{
+    // Block position relative to the space origin.
+    Length rel_x = bl_corner.x - info.space_xs;
+    Length rel_y = bl_corner.y - info.space_ys;
+    Length rel_z = bl_corner.z - info.space_zs;
+    // Second-filter tolerances based on block dimensions.
+    Length btol_x = (Length)(parameters_.delta * block.box.x);
+    Length btol_y = (Length)(parameters_.delta * block.box.y);
+    Length btol_z = (Length)(parameters_.delta * block.box.z);
+    // Absolute face positions of the block.
+    Length block_xl = bl_corner.x;
+    Length block_xh = bl_corner.x + block.box.x;
+    Length block_yl = bl_corner.y;
+    Length block_yh = bl_corner.y + block.box.y;
+    Length block_zl = bl_corner.z;
+    Length block_zh = bl_corner.z + block.box.z;
+
+    Volume contact = 0;
+
+    // XL face (block's -x face touching space's -x side)
+    if (info.xl_wall && std::abs(block_xl - info.space_xs) <= btol_x)
+        contact += block.box.y * block.box.z;
+    for (const SpaceContactInfo::Neighbor& nb: info.xl_neighbors) {
+        if (std::abs(block_xl - nb.orthogonal_pos) > btol_x)
+            continue;
+        Length ov1 = std::max((Length)0, std::min(rel_y + block.box.y, nb.hi1) - std::max(rel_y, nb.lo1));
+        Length ov2 = std::max((Length)0, std::min(rel_z + block.box.z, nb.hi2) - std::max(rel_z, nb.lo2));
+        contact += ov1 * ov2;
+    }
+    // XH face (block's +x face touching space's +x side)
+    if (info.xh_wall && std::abs(block_xh - (info.space_xs + info.space_bx)) <= btol_x)
+        contact += block.box.y * block.box.z;
+    for (const SpaceContactInfo::Neighbor& nb: info.xh_neighbors) {
+        if (std::abs(block_xh - nb.orthogonal_pos) > btol_x)
+            continue;
+        Length ov1 = std::max((Length)0, std::min(rel_y + block.box.y, nb.hi1) - std::max(rel_y, nb.lo1));
+        Length ov2 = std::max((Length)0, std::min(rel_z + block.box.z, nb.hi2) - std::max(rel_z, nb.lo2));
+        contact += ov1 * ov2;
+    }
+    // YL face
+    if (info.yl_wall && std::abs(block_yl - info.space_ys) <= btol_y)
+        contact += block.box.x * block.box.z;
+    for (const SpaceContactInfo::Neighbor& nb: info.yl_neighbors) {
+        if (std::abs(block_yl - nb.orthogonal_pos) > btol_y)
+            continue;
+        Length ov1 = std::max((Length)0, std::min(rel_x + block.box.x, nb.hi1) - std::max(rel_x, nb.lo1));
+        Length ov2 = std::max((Length)0, std::min(rel_z + block.box.z, nb.hi2) - std::max(rel_z, nb.lo2));
+        contact += ov1 * ov2;
+    }
+    // YH face
+    if (info.yh_wall && std::abs(block_yh - (info.space_ys + info.space_by)) <= btol_y)
+        contact += block.box.x * block.box.z;
+    for (const SpaceContactInfo::Neighbor& nb: info.yh_neighbors) {
+        if (std::abs(block_yh - nb.orthogonal_pos) > btol_y)
+            continue;
+        Length ov1 = std::max((Length)0, std::min(rel_x + block.box.x, nb.hi1) - std::max(rel_x, nb.lo1));
+        Length ov2 = std::max((Length)0, std::min(rel_z + block.box.z, nb.hi2) - std::max(rel_z, nb.lo2));
+        contact += ov1 * ov2;
+    }
+    // ZL face
+    if (info.zl_wall && std::abs(block_zl - info.space_zs) <= btol_z)
+        contact += block.box.x * block.box.y;
+    for (const SpaceContactInfo::Neighbor& nb: info.zl_neighbors) {
+        if (std::abs(block_zl - nb.orthogonal_pos) > btol_z)
+            continue;
+        Length ov1 = std::max((Length)0, std::min(rel_x + block.box.x, nb.hi1) - std::max(rel_x, nb.lo1));
+        Length ov2 = std::max((Length)0, std::min(rel_y + block.box.y, nb.hi2) - std::max(rel_y, nb.lo2));
+        contact += ov1 * ov2;
+    }
+    // ZH face
+    if (info.zh_wall && std::abs(block_zh - (info.space_zs + info.space_bz)) <= btol_z)
+        contact += block.box.x * block.box.y;
+    for (const SpaceContactInfo::Neighbor& nb: info.zh_neighbors) {
+        if (std::abs(block_zh - nb.orthogonal_pos) > btol_z)
+            continue;
+        Length ov1 = std::max((Length)0, std::min(rel_x + block.box.x, nb.hi1) - std::max(rel_x, nb.lo1));
+        Length ov2 = std::max((Length)0, std::min(rel_y + block.box.y, nb.hi2) - std::max(rel_y, nb.lo2));
+        contact += ov1 * ov2;
+    }
+    double block_surface_area = 2.0 * (
+        (double)block.box.x * block.box.y
+        + (double)block.box.x * block.box.z
+        + (double)block.box.y * block.box.z);
+    return (double)contact / block_surface_area;
+}
+
+BranchingSchemeMaximalSpaces::PositionedBox
+BranchingSchemeMaximalSpaces::compute_extended_placement(
+        const AnchorInfo& anchor,
+        const EmptySpace& space,
+        const BinType& bin_type,
+        const Block& block,
+        Point bl_corner) const
+{
+    // Zhu volume-loss reduction (Zhu and Lim, 2012):
+    //
+    // After placing the block, a residual gap remains between the block face
+    // and the far bin wall in each direction.  If no combination of remaining
+    // items can sum to exactly that gap length, a "lost" strip of width
+    //   lost = gap - max_reachable[gap]
+    // will be permanently unreachable regardless of future placements.  We
+    // claim it by extending the block's bounding box into that strip; the
+    // subsequent cut_spaces() call then removes it from all empty spaces.
+    //
+    // The anchor wall is the bin wall the block is pushed against.
+    // By the maximal-space property the space already touches something on
+    // the anchor side, so there is no gap to extend toward the anchor wall.
+    // The extension always goes toward the OPPOSITE bin wall.
+    //
+    // Crucially, the gap is measured from the block face all the way to the
+    // BIN wall (not just to the space boundary), because max_reachable_x_
+    // encodes achievable cumulative sums from the bin wall origin.
+    //
+    // dir_x = true  → block at high-x end: bl_corner.x = space.xe() - block.box.x
+    //   Gap toward bin low wall: [0, bl_corner.x]
+    //   remaining_length = space.xe() - block.box.x  (= bl_corner.x)
+    //   Extend block LEFT:  ep.bl_corner.x -= lost;  ep.box.x += lost.
+    //
+    // dir_x = false → block at low-x end: bl_corner.x = space.xs()
+    //   Gap toward bin high wall: [bl_corner.x + block.box.x, bin_type.box.x]
+    //   remaining_length = bin_type.box.x - (space.xs() + block.box.x)
+    //   Extend block RIGHT: ep.box.x += lost.
+    //
+    // Identical logic applies to y and z.
+
+    PositionedBox ep;
+    ep.box = block.box;
+    ep.bl_corner = bl_corner;
+
+    if (anchor.dir_x) {
+        Length remaining_length = space.xe() - block.box.x;
+        Length lost_length = remaining_length - max_reachable_x_[remaining_length];
+        ep.box.x += lost_length;
+        ep.bl_corner.x -= lost_length;
+    } else {
+        Length remaining_length = bin_type.box.x - (space.xs() + block.box.x);
+        Length lost_length = remaining_length - max_reachable_x_[remaining_length];
+        ep.box.x += lost_length;
+    }
+    if (anchor.dir_y) {
+        Length remaining_length = space.ye() - block.box.y;
+        Length lost_length = remaining_length - max_reachable_y_[remaining_length];
+        ep.box.y += lost_length;
+        ep.bl_corner.y -= lost_length;
+    } else {
+        Length remaining_length = bin_type.box.y - (space.ys() + block.box.y);
+        Length lost_length = remaining_length - max_reachable_y_[remaining_length];
+        ep.box.y += lost_length;
+    }
+    if (anchor.dir_z) {
+        Length remaining_length = space.ze() - block.box.z;
+        Length lost_length = remaining_length - max_reachable_z_[remaining_length];
+        ep.box.z += lost_length;
+        ep.bl_corner.z -= lost_length;
+    } else {
+        Length remaining_length = bin_type.box.z - (space.zs() + block.box.z);
+        Length lost_length = remaining_length - max_reachable_z_[remaining_length];
+        ep.box.z += lost_length;
+    }
+
+    return ep;
 }
 
 void BranchingSchemeMaximalSpaces::apply_insertion(
@@ -593,6 +831,7 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
         node.profit += instance_.item_type(item_copy.first).profit * item_copy.second;
     }
     node.item_volume += block.item_volume;
+    node.waste += block.box.volume() - block.item_volume;
     node.number_of_items += (ItemPos)block.items.size();
     node.number_of_blocks++;
 
@@ -628,64 +867,15 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     //    node.corner_alignment += 1.5 * volume_inside - 0.5 * block.box.volume();
     //}
 
-    node.contact_area += block.contact_area + compute_new_contact_area(
-            node.placed_blocks.back(),
-            bin_type_id,
-            insertion.bl_corner,
-            block);
-
-    // Extend the block's bounding box by the unreachable gap in each direction
-    // (Zhu volume-loss reduction).  The gap rx in each direction splits into a
-    // reachable part max_reachable[rx] (future items can fill it, left as a
-    // sub-space) and an unreachable part (rx - max_reachable[rx]) that no item
-    // combination can reach.  The extended box claims the block plus the
-    // unreachable parts; cut_spaces removes that region from future consideration.
-    Box extended_box = block.box;
-    Point extended_bl_corner = insertion.bl_corner;
-    if (anchor.dir_x) {
-        Length remaining_length = space.xe() - block.box.x;
-        Length lost_length = remaining_length - max_reachable_x_[remaining_length];
-        extended_box.x += lost_length;
-        extended_bl_corner.x -= lost_length;
-    } else {
-        Length remaining_length = bin_type.box.x - (space.xs() + block.box.x);
-        Length lost_length = remaining_length - max_reachable_x_[remaining_length];
-        extended_box.x += lost_length;
-    }
-    if (anchor.dir_y) {
-        Length remaining_length = space.ye() - block.box.y;
-        Length lost_length = remaining_length - max_reachable_y_[remaining_length];
-        extended_box.y += lost_length;
-        extended_bl_corner.y -= lost_length;
-    } else {
-        Length remaining_length = bin_type.box.y - (space.ys() + block.box.y);
-        Length lost_length = remaining_length - max_reachable_y_[remaining_length];
-        extended_box.y += lost_length;
-    }
-    if (anchor.dir_z) {
-        Length remaining_length = space.ze() - block.box.z;
-        Length lost_length = remaining_length - max_reachable_z_[remaining_length];
-        extended_box.z += lost_length;
-        extended_bl_corner.z -= lost_length;
-    } else {
-        Length remaining_length = bin_type.box.z - (space.zs() + block.box.z);
-        Length lost_length = remaining_length - max_reachable_z_[remaining_length];
-        extended_box.z += lost_length;
-    }
-    node.block_volume += extended_box.volume();
-
-    Length ux = max_reachable_x_[space.box.x - block.box.x];
-    Length uy = max_reachable_y_[space.box.y - block.box.y];
-    Length uz = max_reachable_z_[space.box.z - block.box.z];
-    Volume usable_volume = (Volume)(block.box.x + ux) * (block.box.y + uy) * (block.box.z + uz);
-    node.volume_loss_estimate += space.box.volume() - usable_volume;
+    PositionedBox extended_block = compute_extended_placement(
+            anchor, space, bin_type, block, insertion.bl_corner);
+    node.block_volume += extended_block.box.volume();
 
     //std::cout << "node " << node_id_
     //    << " # blocks " << node.number_of_blocks
     //    << " # items " << node.number_of_items
     //    << " item_volume " << node.item_volume
     //    << " block_volume " << node.block_volume
-    //    << " contact_area " << node.contact_area
     //    << " load " << (double)node.item_volume / node.block_volume
     //    << " space " << space.box
     //    << " block " << block.box
@@ -699,33 +889,8 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     Node::PlacedBlock current_pb;
     current_pb.block_id = insertion.block_id;
     current_pb.bl_corner = insertion.bl_corner;
-    //{
-    //    Length eff_xs = insertion.bl_corner.x;
-    //    Length eff_ys = insertion.bl_corner.y;
-    //    Length eff_zs = insertion.bl_corner.z;
-    //    Length eff_xe = insertion.bl_corner.x + block.box.x;
-    //    Length eff_ye = insertion.bl_corner.y + block.box.y;
-    //    Length eff_ze = insertion.bl_corner.z + block.box.z;
-    //    try_extend_block(node, bin_type_id, bin_type, insertion, current_pb.extra_items,
-    //            eff_xs, eff_ys, eff_zs, eff_xe, eff_ye, eff_ze, Direction::X);
-    //    try_extend_block(node, bin_type_id, bin_type, insertion, current_pb.extra_items,
-    //            eff_xs, eff_ys, eff_zs, eff_xe, eff_ye, eff_ze, Direction::Y);
-    //    try_extend_block(node, bin_type_id, bin_type, insertion, current_pb.extra_items,
-    //            eff_xs, eff_ys, eff_zs, eff_xe, eff_ye, eff_ze, Direction::Z);
-    //    // Widen extended_bl_corner / extended_box to cover all extra-items
-    //    // regions so the single cut_spaces call below removes them.
-    //    Length old_cut_xe = extended_bl_corner.x + extended_box.x;
-    //    Length old_cut_ye = extended_bl_corner.y + extended_box.y;
-    //    Length old_cut_ze = extended_bl_corner.z + extended_box.z;
-    //    extended_bl_corner.x = std::min(extended_bl_corner.x, eff_xs);
-    //    extended_bl_corner.y = std::min(extended_bl_corner.y, eff_ys);
-    //    extended_bl_corner.z = std::min(extended_bl_corner.z, eff_zs);
-    //    extended_box.x = std::max(old_cut_xe, eff_xe) - extended_bl_corner.x;
-    //    extended_box.y = std::max(old_cut_ye, eff_ye) - extended_bl_corner.y;
-    //    extended_box.z = std::max(old_cut_ze, eff_ze) - extended_bl_corner.z;
-    //}
 
-    cut_spaces(node.empty_spaces, extended_bl_corner, extended_box);
+    cut_spaces(node.empty_spaces, extended_block.bl_corner, extended_block.box);
 
     // Remove spaces too small for any remaining item.
     {
@@ -820,13 +985,6 @@ Solution BranchingSchemeMaximalSpaces::to_solution(const std::shared_ptr<Node>& 
                     item_bl_corner,
                     solution_item.rotation);
             }
-            for (const SolutionItem& extra_item: pb.extra_items) {
-                solution.add_item(
-                    bin_pos,
-                    extra_item.item_type_id,
-                    extra_item.bl_corner,
-                    extra_item.rotation);
-            }
         }
     }
 
@@ -867,260 +1025,6 @@ std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces
     apply_insertion(*node, insertion);
     node->volume_guide = compute_guide_greedy(*node);
     return node;
-}
-
-void BranchingSchemeMaximalSpaces::try_extend_block(
-        Node& node,
-        BinTypeId bin_type_id,
-        const BinType& bin_type,
-        const Insertion& insertion,
-        std::vector<SolutionItem>& extra_items,
-        Length eff_xs,
-        Length eff_ys,
-        Length eff_zs,
-        Length& eff_xe,
-        Length& eff_ye,
-        Length& eff_ze,
-        Direction direction) const
-{
-    Length gap_face, bin_wall, cross1_start, cross1_end, cross2_start, cross2_end;
-    if (direction == Direction::X) {
-        gap_face = eff_xe;
-        bin_wall = bin_type.box.x;
-        cross1_start = eff_ys;
-        cross1_end = eff_ye;
-        cross2_start = eff_zs;
-        cross2_end = eff_ze;
-    } else if (direction == Direction::Y) {
-        gap_face = eff_ye;
-        bin_wall = bin_type.box.y;
-        cross1_start = eff_xs;
-        cross1_end = eff_xe;
-        cross2_start = eff_zs;
-        cross2_end = eff_ze;
-    } else {
-        gap_face = eff_ze;
-        bin_wall = bin_type.box.z;
-        cross1_start = eff_xs;
-        cross1_end = eff_xe;
-        cross2_start = eff_ys;
-        cross2_end = eff_ye;
-    }
-    Length gap = bin_wall - gap_face;
-    if (gap <= 0)
-        return;
-
-    // Check: no packed block in the current bin intersects the gap region.
-    bool faces_wall = true;
-    {
-        const std::vector<Node::PlacedBlock>& bin_placed = node.placed_blocks.back();
-        for (ItemPos pb_idx = (ItemPos)bin_placed.size() - 1;
-                pb_idx >= 0;
-                --pb_idx) {
-            const Node::PlacedBlock& prev_pb = bin_placed[pb_idx];
-            const Block& prev_block = blocks_[bin_type_id][prev_pb.block_id];
-            Length prev_gap_start, prev_gap_end;
-            Length prev_c1_start, prev_c1_end;
-            Length prev_c2_start, prev_c2_end;
-            if (direction == Direction::X) {
-                prev_gap_start = prev_pb.bl_corner.x;
-                prev_gap_end = prev_pb.bl_corner.x + prev_block.box.x;
-                prev_c1_start = prev_pb.bl_corner.y;
-                prev_c1_end = prev_pb.bl_corner.y + prev_block.box.y;
-                prev_c2_start = prev_pb.bl_corner.z;
-                prev_c2_end = prev_pb.bl_corner.z + prev_block.box.z;
-            } else if (direction == Direction::Y) {
-                prev_gap_start = prev_pb.bl_corner.y;
-                prev_gap_end = prev_pb.bl_corner.y + prev_block.box.y;
-                prev_c1_start = prev_pb.bl_corner.x;
-                prev_c1_end = prev_pb.bl_corner.x + prev_block.box.x;
-                prev_c2_start = prev_pb.bl_corner.z;
-                prev_c2_end = prev_pb.bl_corner.z + prev_block.box.z;
-            } else {
-                prev_gap_start = prev_pb.bl_corner.z;
-                prev_gap_end = prev_pb.bl_corner.z + prev_block.box.z;
-                prev_c1_start = prev_pb.bl_corner.x;
-                prev_c1_end = prev_pb.bl_corner.x + prev_block.box.x;
-                prev_c2_start = prev_pb.bl_corner.y;
-                prev_c2_end = prev_pb.bl_corner.y + prev_block.box.y;
-            }
-            if (prev_gap_end > gap_face && prev_gap_start < bin_wall
-                    && prev_c1_end > cross1_start && prev_c1_start < cross1_end
-                    && prev_c2_end > cross2_start && prev_c2_start < cross2_end) {
-                faces_wall = false;
-                break;
-            }
-        }
-    }
-    if (!faces_wall)
-        return;
-
-    // For each remaining item type find the rotation that fits in the gap and
-    // maximises the gap-dimension extent.
-    struct FittingItemType {
-        ItemTypeId item_type_id;
-        Rotation rotation;
-        Length dim_gap;
-        Length dim_c1;
-        Length dim_c2;
-        ItemPos copies;
-    };
-    std::vector<FittingItemType> fitting_item_types;
-    Length c1_size = cross1_end - cross1_start;
-    Length c2_size = cross2_end - cross2_start;
-
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance_.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance_.item_type(item_type_id);
-        ItemPos remaining = item_type.copies - node.item_number_of_copies[item_type_id];
-        if (remaining <= 0)
-            continue;
-
-        bool found = false;
-        Rotation best_rotation = Rotation::XYZ;
-        Length best_dim_gap = 0;
-        Length best_dim_c1 = 0;
-        Length best_dim_c2 = 0;
-
-        for (Rotation r: item_type.rotations) {
-            Box rotated = item_type.box.rotate(r);
-            Length dim_gap, dim_c1, dim_c2;
-            if (direction == Direction::X) {
-                dim_gap = rotated.x;
-                dim_c1 = rotated.y;
-                dim_c2 = rotated.z;
-            } else if (direction == Direction::Y) {
-                dim_gap = rotated.y;
-                dim_c1 = rotated.x;
-                dim_c2 = rotated.z;
-            } else {
-                dim_gap = rotated.z;
-                dim_c1 = rotated.x;
-                dim_c2 = rotated.y;
-            }
-            if (dim_gap <= gap && dim_c1 <= c1_size && dim_c2 <= c2_size) {
-                if (!found || dim_gap > best_dim_gap) {
-                    best_rotation = r;
-                    best_dim_gap = dim_gap;
-                    best_dim_c1 = dim_c1;
-                    best_dim_c2 = dim_c2;
-                    found = true;
-                }
-            }
-        }
-
-        if (found) {
-            FittingItemType fi;
-            fi.item_type_id = item_type_id;
-            fi.rotation = best_rotation;
-            fi.dim_gap = best_dim_gap;
-            fi.dim_c1 = best_dim_c1;
-            fi.dim_c2 = best_dim_c2;
-            fi.copies = remaining;
-            fitting_item_types.push_back(fi);
-        }
-    }
-
-    if (fitting_item_types.empty())
-        return;
-
-    // First-fit 3D bottom-left packing into the gap region.
-    // pos_gap: cursor along the gap direction (offset from gap_face).
-    // pos_c1_curr/pos_c2_curr: cursor along the two cross axes.
-    // pos_c1_next: end of the tallest item in the current c2-layer (next shelf start).
-    // pos_c2_next: end of the deepest item placed so far (next layer start).
-    Length pos_gap = 0;
-    Length pos_c1_curr = 0;
-    Length pos_c2_curr = 0;
-    Length pos_c1_next = 0;
-    Length pos_c2_next = 0;
-
-    std::vector<SolutionItem> tentative_extra_items;
-
-    for (const FittingItemType& fi: fitting_item_types) {
-        for (ItemPos copy = 0; copy < fi.copies; ++copy) {
-            Length dim_gap = fi.dim_gap;
-            Length dim_c1 = fi.dim_c1;
-            Length dim_c2 = fi.dim_c2;
-            Length place_gap;
-            Length place_c1;
-            Length place_c2;
-
-            if (pos_gap + dim_gap <= gap
-                    && pos_c1_curr + dim_c1 <= c1_size
-                    && pos_c2_curr + dim_c2 <= c2_size) {
-                place_gap = pos_gap;
-                place_c1 = pos_c1_curr;
-                place_c2 = pos_c2_curr;
-                pos_gap += dim_gap;
-                pos_c1_next = std::max(pos_c1_next, pos_c1_curr + dim_c1);
-                pos_c2_next = std::max(pos_c2_next, pos_c2_curr + dim_c2);
-            } else if (dim_gap <= gap
-                    && pos_c1_next + dim_c1 <= c1_size
-                    && pos_c2_curr + dim_c2 <= c2_size) {
-                pos_c1_curr = pos_c1_next;
-                place_gap = 0;
-                place_c1 = pos_c1_curr;
-                place_c2 = pos_c2_curr;
-                pos_gap = dim_gap;
-                pos_c1_next = pos_c1_curr + dim_c1;
-                pos_c2_next = std::max(pos_c2_next, pos_c2_curr + dim_c2);
-            } else if (dim_gap <= gap
-                    && dim_c1 <= c1_size
-                    && pos_c2_next + dim_c2 <= c2_size) {
-                pos_c2_curr = pos_c2_next;
-                pos_c1_curr = 0;
-                place_gap = 0;
-                place_c1 = 0;
-                place_c2 = pos_c2_curr;
-                pos_gap = dim_gap;
-                pos_c1_next = dim_c1;
-                pos_c2_next = pos_c2_curr + dim_c2;
-            } else {
-                return;
-            }
-
-            SolutionItem extra_item;
-            extra_item.item_type_id = fi.item_type_id;
-            extra_item.rotation = fi.rotation;
-            if (direction == Direction::X) {
-                extra_item.bl_corner = {
-                    gap_face + place_gap,
-                    cross1_start + place_c1,
-                    cross2_start + place_c2};
-            } else if (direction == Direction::Y) {
-                extra_item.bl_corner = {
-                    cross1_start + place_c1,
-                    gap_face + place_gap,
-                    cross2_start + place_c2};
-            } else {
-                extra_item.bl_corner = {
-                    cross1_start + place_c1,
-                    cross2_start + place_c2,
-                    gap_face + place_gap};
-            }
-            tentative_extra_items.push_back(extra_item);
-        }
-    }
-
-    for (const SolutionItem& extra_item: tentative_extra_items) {
-        extra_items.push_back(extra_item);
-    }
-    for (const FittingItemType& fi: fitting_item_types) {
-        node.item_number_of_copies[fi.item_type_id] += fi.copies;
-        node.item_volume += instance_.item_type(fi.item_type_id).box.volume() * fi.copies;
-        node.number_of_items += fi.copies;
-        node.profit += instance_.item_type(fi.item_type_id).profit * fi.copies;
-    }
-    node.block_volume += (Volume)gap * c1_size * c2_size;
-
-    if (direction == Direction::X)
-        eff_xe = bin_wall;
-    else if (direction == Direction::Y)
-        eff_ye = bin_wall;
-    else
-        eff_ze = bin_wall;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
