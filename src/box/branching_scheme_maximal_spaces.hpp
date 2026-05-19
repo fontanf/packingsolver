@@ -147,12 +147,6 @@ public:
 
         NodeId id = -1;
 
-        /** Block placed at this node (index into blocks_). */
-        ItemPos block_id = -1;
-
-        /** Absolute position of the block placed at this node. */
-        Point bl_corner = {0, 0, 0};
-
         /** True if this node opened a new bin. */
         bool new_bin = false;
 
@@ -187,11 +181,21 @@ public:
         Volume waste = 0;
 
         /**
+         * IDs of blocks in blocks_[current bin type] that can still be placed:
+         * those whose item quantities are still available and that fit within
+         * at least one remaining empty space.  Empty before the first bin is
+         * opened.  Maintained by apply_insertion() so that insertions() /
+         * best_insertion() / find_best_space() can iterate a pre-filtered list
+         * instead of rescanning all blocks from scratch on every call.
+         */
+        std::vector<ItemPos> valid_block_ids;
+
+        /**
          * Item volume reached by running the greedy (best_insertion loop)
          * from this node to completion.  Set by child() and children();
          * not set by apply_insertion().
          */
-        Volume volume_guide = 0;
+        Volume greedy_value = 0;
 
         /**
          * Sorted insertion list populated on the first call to next_child()
@@ -205,38 +209,59 @@ public:
          * Incremented each time next_child() is called on this node.
          */
         NodeId next_child_pos = 0;
-
     };
 
+    /**
+     * Fitness-function parameters (K4).
+     *
+     * The fitness of a block placed in a space is:
+     *   V * C^alpha * L^beta * N^(-gamma)
+     * where V = item volume, C = relative contact area, L = volume-loss
+     * factor, N = number of items in the block.
+     *
+     * Two sets of parameters are supported.  The first set is used when the
+     * bin fill rate (block_volume / bin_volume) is below
+     * configuration_switch_threshold; the second set is used above it.
+     * Paper best values (da Silva 2025, Section 5.5.2):
+     *   first:   α1 = 3.7015, β1 = 2.6631, γ1 = 0.3968, δ1 = 0.0139
+     *   second:  α2 = 2.0934, β2 = 1.4609, γ2 = 0.4732, δ2 = 0.0366
+     *   switch threshold φ = 0.6740
+     */
     struct Parameters
     {
-        /**
-         * Exponent of the relative contact area C in the fitness formula
-         * V * C^alpha * L^beta * N^(-gamma).  Higher values reward blocks
-         * that are well-supported by walls and neighbours.  Reference default: 4.
-         */
-        double alpha = 4.0;
+        /** Exponent of the relative contact area C.  Paper best: 3.7015. */
+        double alpha = 3.7015;
+
+        /** Exponent of the volume-loss factor L.  Paper best: 2.6631. */
+        double beta = 2.6631;
+
+        /** Exponent of the item-count penalty N^(-gamma).  Paper best: 0.3968. */
+        double gamma = 0.3968;
+
+        /** Relative contact tolerance: pseudo-contact is detected when the
+         *  gap between a placed block and a space face is ≤ floor(delta *
+         *  space_dim); the scored block must also satisfy gap ≤ floor(delta *
+         *  block_dim).  Paper best: 0.0139. */
+        double delta = 0.0139;
+
+        /** Second-configuration alpha, active above the switch threshold.  Paper best: 2.0934. */
+        double alpha_2 = 2.0934;
+
+        /** Second-configuration beta.  Paper best: 1.4609. */
+        double beta_2 = 1.4609;
+
+        /** Second-configuration gamma.  Paper best: 0.4732. */
+        double gamma_2 = 0.4732;
+
+        /** Second-configuration delta.  Paper best: 0.0366. */
+        double delta_2 = 0.0366;
 
         /**
-         * Exponent of the volume-loss factor L in the fitness formula.
-         * L ∈ (0, 1] measures the fraction of the space volume that can still
-         * be reached after placing the block; higher values penalise wasteful
-         * placements more strongly.  Reference default: 1.
+         * Fill-rate threshold φ: when block_volume / bin_volume ≥ φ the
+         * second configuration (alpha_2, beta_2, gamma_2, delta_2) is used
+         * instead of the first.  Paper best: 0.6740.
          */
-        double beta = 1.0;
-
-        /**
-         * Exponent of the item-count penalty N^(-gamma) in the fitness formula.
-         * Blocks with many items are slightly discouraged to keep individual
-         * items manageable.  Reference default: 0.2.
-         */
-        double gamma = 0.2;
-
-        /** Relative contact tolerance delta: a placed block is considered in
-         *  pseudo-contact with a space face if the gap is ≤ floor(delta * space_dim).
-         *  Then the block being scored must also satisfy gap ≤ floor(delta * block_dim).
-         *  Reference default: 0.04. */
-        double delta = 0.04;
+        double configuration_switch_threshold = 0.6740;
     };
 
     /**
@@ -274,7 +299,7 @@ public:
     {
         auto node = std::make_shared<Node>(*parent);
         apply_insertion(*node, insertion);
-        node->volume_guide = compute_guide_greedy(*node);
+        node->greedy_value = compute_guide_greedy(*node);
         return node;
     }
 
@@ -299,7 +324,7 @@ public:
         for (NodeId i = 0; i < number_of_children; ++i) {
             nodes[i] = std::make_shared<Node>(*parent);
             apply_insertion(*nodes[i], insertions_[i]);
-            nodes[i]->volume_guide = compute_guide_greedy(*nodes[i]);
+            nodes[i]->greedy_value = compute_guide_greedy(*nodes[i]);
         }
         return nodes;
     }
@@ -367,18 +392,9 @@ public:
             return true;
         if (node_1->number_of_bins > node_2->number_of_bins)
             return false;
-        if (node_1->volume_guide >= node_2->volume_guide)
+        if (node_1->empty_spaces == node_2->empty_spaces)
             return true;
-        //if (node_1->empty_spaces == node_2->empty_spaces)
-        //    return true;
         return false;
-        //double volume_load_1 = (double)node_1->item_volume / node_1->block_volume;
-        //double volume_load_2 = (double)node_2->item_volume / node_2->block_volume;
-        //if ((volume_load_1 >= 0.98) != (volume_load_2 >= 0.98))
-        //    return volume_load_1 > volume_load_2;
-        //if (node_1->contact_area != node_2->contact_area)
-        //    return node_1->contact_area > node_2->contact_area;
-        //return true;
     }
 
     /*
@@ -400,21 +416,54 @@ public:
 
 private:
 
+    /** Stack item used by remove_spaces_and_update_waste(). */
+    struct RemoveWasteStackItem
+    {
+        EmptySpace remaining;
+        ItemPos next_surviving_idx;
+    };
+
+
     const Instance& instance_;
+
     const std::vector<std::vector<Block>>& blocks_;
+
     Parameters parameters_;
 
     /** max_reachable_x_[r] = largest length ≤ r achievable by stacking items along x. */
     mutable std::vector<Length> max_reachable_x_;
+
+    /** max_reachable_y_[r] = largest length ≤ r achievable by stacking items along y. */
     mutable std::vector<Length> max_reachable_y_;
+
+    /** max_reachable_z_[r] = largest length ≤ r achievable by stacking items along z. */
     mutable std::vector<Length> max_reachable_z_;
 
+    mutable NodeId node_id_ = 0;
+
+    mutable std::vector<Insertion> insertions_;
+
+    /** Scratch buffers reused across calls to avoid repeated heap allocations. */
+    mutable std::vector<bool> scratch_is_removed_;
+    mutable std::vector<ItemPos> scratch_surviving_ids_;
+    mutable std::vector<ItemPos> scratch_sorted_ids_;
+    mutable std::vector<RemoveWasteStackItem> scratch_remove_stack_;
+    mutable std::vector<ItemPos> scratch_unfillable_space_ids_;
+
+    /** Scratch buffers for update_node_max_reachable() 0-1 knapsack DP. */
+    mutable std::vector<uint8_t> scratch_reachable_x_;
+    mutable std::vector<uint8_t> scratch_reachable_y_;
+    mutable std::vector<uint8_t> scratch_reachable_z_;
+    mutable std::vector<uint8_t> scratch_temp_reachable_x_;
+    mutable std::vector<uint8_t> scratch_temp_reachable_y_;
+    mutable std::vector<uint8_t> scratch_temp_reachable_z_;
+
+
     /**
-     * For each bin type, the indices of Pareto-minimal blocks: those not
-     * dominated by any other block in all three box dimensions.  A space has
-     * no fitting block by size iff none of these blocks fits inside it.
+     * Recompute node_max_reachable_x/y/z_ for the given node using each item
+     * type's remaining copies (item_type.copies - node.item_number_of_copies).
      */
-    std::vector<std::vector<ItemPos>> pareto_front_block_ids_;
+    void update_node_max_reachable(const Node& node) const;
 
     /**
      * For each space ID in space_ids, compute the waste contribution
@@ -437,34 +486,6 @@ private:
             const Node& parent,
             BinTypeId bin_type_id) const;
 
-    void remove_spaces_and_update_waste(
-            Node& node,
-            const std::vector<ItemPos>& space_ids) const;
-
-    /**
-     * Recompute node_max_reachable_x/y/z_ for the given node using each item
-     * type's remaining copies (item_type.copies - node.item_number_of_copies).
-     */
-    void update_node_max_reachable(const Node& node) const;
-
-    /** A box together with the position of its bottom-left-back corner. */
-    struct PositionedBox {
-        Box box;
-        Point bl_corner;
-    };
-
-    /**
-     * Compute the extended bounding box used to cut empty spaces after placing
-     * block in space with the given anchor.  See the implementation for a full
-     * explanation of the Zhu formula.
-     */
-    PositionedBox compute_extended_placement(
-            const AnchorInfo& anchor,
-            const EmptySpace& space,
-            const BinType& bin_type,
-            const Block& block,
-            Point bl_corner) const;
-
     /**
      * Per-face neighbour information for a selected empty space.
      *
@@ -474,7 +495,8 @@ private:
      * NOTE: valid only when all anchor directions are false (bl_corner ==
      * space.bl_corner for every block), which is the current invariant.
      */
-    struct SpaceContactInfo {
+    struct SpaceContactInfo
+    {
         bool xl_wall = false;
         bool yl_wall = false;
         bool zl_wall = false;
@@ -505,20 +527,35 @@ private:
             Length hi2 = 0;
             Length orthogonal_pos = 0;
         };
+
         /** xe_pb == space.bl_corner.x; transverse axes: y, z. */
         std::vector<Neighbor> xl_neighbors;
-        /** xl_pb == space.bl_corner.x + space.box.x; transverse axes: y, z.
-         *  Only contributes when block.box.x == space_bx. */
+
+        /**
+         * xl_pb == space.bl_corner.x + space.box.x; transverse axes: y, z.
+         *
+         * Only contributes when block.box.x == space_bx.
+         *  */
         std::vector<Neighbor> xh_neighbors;
+
         /** ye_pb == space.bl_corner.y; transverse axes: x, z. */
         std::vector<Neighbor> yl_neighbors;
-        /** yl_pb == space.bl_corner.y + space.box.y; transverse axes: x, z.
-         *  Only contributes when block.box.y == space_by. */
+
+        /**
+         * yl_pb == space.bl_corner.y + space.box.y; transverse axes: x, z.
+         *
+         * Only contributes when block.box.y == space_by.
+         */
         std::vector<Neighbor> yh_neighbors;
+
         /** ze_pb == space.bl_corner.z; transverse axes: x, y. */
         std::vector<Neighbor> zl_neighbors;
-        /** zl_pb == space.bl_corner.z + space.box.z; transverse axes: x, y.
-         *  Only contributes when block.box.z == space_bz. */
+
+        /**
+         * zl_pb == space.bl_corner.z + space.box.z; transverse axes: x, y.
+         *
+         * Only contributes when block.box.z == space_bz.
+         */
         std::vector<Neighbor> zh_neighbors;
     };
 
@@ -526,7 +563,8 @@ private:
     SpaceContactInfo compute_space_contact_info(
             const std::vector<Node::PlacedBlock>& placed_blocks,
             BinTypeId bin_type_id,
-            const EmptySpace& space) const;
+            const EmptySpace& space,
+            double delta) const;
 
     /**
      * Pseudo-contact area C of block placed at bl_corner: total face area
@@ -540,7 +578,8 @@ private:
     double compute_relative_contact_area(
             const SpaceContactInfo& info,
             const Block& block,
-            Point bl_corner) const;
+            Point bl_corner,
+            double delta) const;
 
     /**
      * Fraction of space_volume that is usable after placing block: the block
@@ -565,37 +604,6 @@ private:
             const Insertion& insertion,
             const SpaceContactInfo& info) const;
 
-    /**
-     * Copy node, run best_insertion + apply_insertion until no insertion is
-     * possible, and return the item_volume of the resulting greedy solution.
-     */
-    Volume compute_guide_greedy(const Node& node) const;
-
-    mutable NodeId node_id_ = 0;
-
-    mutable std::vector<Insertion> insertions_;
-
-    /** Stack item used by remove_spaces_and_update_waste(). */
-    struct RemoveWasteStackItem {
-        EmptySpace remaining;
-        ItemPos next_surviving_idx;
-    };
-
-    /** Scratch buffers reused across calls to avoid repeated heap allocations. */
-    mutable std::vector<bool> scratch_is_removed_;
-    mutable std::vector<ItemPos> scratch_surviving_ids_;
-    mutable std::vector<ItemPos> scratch_sorted_ids_;
-    mutable std::vector<RemoveWasteStackItem> scratch_remove_stack_;
-    mutable std::vector<ItemPos> scratch_unfillable_space_ids_;
-
-    /** Scratch buffers for update_node_max_reachable() 0-1 knapsack DP. */
-    mutable std::vector<uint8_t> scratch_reachable_x_;
-    mutable std::vector<uint8_t> scratch_reachable_y_;
-    mutable std::vector<uint8_t> scratch_reachable_z_;
-    mutable std::vector<uint8_t> scratch_temp_reachable_x_;
-    mutable std::vector<uint8_t> scratch_temp_reachable_y_;
-    mutable std::vector<uint8_t> scratch_temp_reachable_z_;
-
     /** True iff the block occupies any interior point of the space. */
     static bool overlaps(
             const EmptySpace& space,
@@ -610,6 +618,10 @@ private:
             std::vector<EmptySpace>& spaces,
             const EmptySpace& new_space);
 
+    void remove_spaces_and_update_waste(
+            Node& node,
+            const std::vector<ItemPos>& space_ids) const;
+
     /**
      * Remove all spaces overlapping the placed block, generate their
      * sub-spaces via the 6-cut scheme, and add the maximal ones back.
@@ -621,6 +633,19 @@ private:
             std::vector<EmptySpace>& spaces,
             Point bl_corner,
             const Box& block_box);
+
+    /**
+     * Copy node, run best_insertion + apply_insertion until no insertion is
+     * possible, and return the item_volume of the resulting greedy solution.
+     */
+    Volume compute_guide_greedy(const Node& node) const;
+
+    /**
+     * Return the delta (pseudo-contact tolerance) appropriate for node:
+     * delta_2 if the bin fill rate has crossed configuration_switch_threshold,
+     * delta otherwise.
+     */
+    double active_delta(const Node& node) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -631,8 +656,8 @@ inline bool BranchingSchemeMaximalSpaces::operator()(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    if (node_1->volume_guide != node_2->volume_guide)
-        return node_1->volume_guide > node_2->volume_guide;
+    if (node_1->greedy_value != node_2->greedy_value)
+        return node_1->greedy_value > node_2->greedy_value;
     return node_1->id > node_2->id;
 }
 
