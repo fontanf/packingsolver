@@ -392,9 +392,7 @@ public:
             return true;
         if (node_1->number_of_bins > node_2->number_of_bins)
             return false;
-        if (node_1->empty_spaces == node_2->empty_spaces)
-            return true;
-        return false;
+        return node_1->greedy_value >= node_2->greedy_value;
     }
 
     /*

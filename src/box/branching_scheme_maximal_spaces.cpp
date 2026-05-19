@@ -457,7 +457,7 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
 {
     update_node_max_reachable(parent);
     Insertion best;
-    double best_score = -1;
+    double best_score = 0;
 
     double delta = active_delta(parent);
 
@@ -755,10 +755,6 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     node.number_of_items += (ItemPos)block.items.size();
     node.number_of_blocks++;
 
-    // Try to extend the placed block to the bin wall along each axis and pack
-    // all remaining fitting items in the gap.  The three axes are handled
-    // sequentially so that a successful x-extension widens the cross-section
-    // used for the y- and z-checks.
     Node::PlacedBlock current_pb;
     current_pb.block_id = insertion.block_id;
     current_pb.bl_corner = insertion.bl_corner;
@@ -812,7 +808,6 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
             }
         }
     }
-    std::sort(node.empty_spaces.begin(), node.empty_spaces.end());
 }
 
 bool BranchingSchemeMaximalSpaces::better(

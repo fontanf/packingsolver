@@ -9,7 +9,7 @@
 #include "algorithms/column_generation.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
-#include "treesearchsolver/anytime_column_search.hpp"
+#include "treesearchsolver/iterative_beam_search.hpp"
 
 #include <thread>
 
@@ -162,12 +162,12 @@ void optimize_tree_search_maximal_spaces(
     std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
 
     std::vector<BranchingSchemeMaximalSpaces> branching_schemes;
-    std::vector<treesearchsolver::AnytimeColumnSearchParameters<BranchingSchemeMaximalSpaces>> bfs_parameters_list;
+    std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces>> bfs_parameters_list;
     std::vector<box::Output> outputs;
     {
         BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
         branching_schemes.push_back(BranchingSchemeMaximalSpaces(instance, all_blocks, max_reachable_lengths, branching_scheme_parameters));
-        treesearchsolver::AnytimeColumnSearchParameters<BranchingSchemeMaximalSpaces> bfs_parameters;
+        treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> bfs_parameters;
         bfs_parameters.verbosity_level = 0;
         bfs_parameters.timer = parameters.timer;
         bfs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
@@ -183,12 +183,12 @@ void optimize_tree_search_maximal_spaces(
                 = [&algorithm_formatter, &branching_schemes, i](
                         const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
                 {
-                    const treesearchsolver::AnytimeColumnSearchOutput<BranchingSchemeMaximalSpaces>& tssbfs_output
-                        = static_cast<const treesearchsolver::AnytimeColumnSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
+                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssbfs_output
+                        = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
                     Solution solution = branching_schemes[i].to_solution(
                             tssbfs_output.solution_pool.best());
                     std::stringstream ss;
-                    ss << "TSMS n " << tssbfs_output.number_of_nodes;
+                    ss << "TSMS q " << tssbfs_output.maximum_size_of_the_queue;
                     algorithm_formatter.update_solution(solution, ss.str());
                 };
         } else {
@@ -196,8 +196,8 @@ void optimize_tree_search_maximal_spaces(
                 = [&outputs, &branching_schemes, i](
                         const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
                 {
-                    const treesearchsolver::AnytimeColumnSearchOutput<BranchingSchemeMaximalSpaces>& tssbfs_output
-                        = static_cast<const treesearchsolver::AnytimeColumnSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
+                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssbfs_output
+                        = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
                     Solution solution = branching_schemes[i].to_solution(
                             tssbfs_output.solution_pool.best());
                     outputs[i].solution_pool.add(solution);
@@ -206,12 +206,12 @@ void optimize_tree_search_maximal_spaces(
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
-                        wrapper<decltype(&treesearchsolver::anytime_column_search<BranchingSchemeMaximalSpaces>), treesearchsolver::anytime_column_search<BranchingSchemeMaximalSpaces>>,
+                        wrapper<decltype(&treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>), treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>>,
                         std::ref(exception_ptr_list.front()),
                         std::ref(branching_schemes[i]),
                         bfs_parameters_list[i]));
         } else {
-            treesearchsolver::anytime_column_search<BranchingSchemeMaximalSpaces>(
+            treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>(
                     branching_schemes[i],
                     bfs_parameters_list[i]);
         }
