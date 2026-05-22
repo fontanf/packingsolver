@@ -159,16 +159,6 @@ public:
         Profit profit = 0;
 
         /**
-         * Accumulated volume of empty spaces that were found to be permanently
-         * unfillable and removed.  For each removed space, the contribution is
-         * max(0, vol(space) - sum of intersection volumes with surviving spaces):
-         * the portion of the space's volume not covered by any fillable space,
-         * which can never be reached regardless of future placements.
-         * Lower is better.
-         */
-        Volume waste = 0;
-
-        /**
          * IDs of blocks that can still be placed: those whose item quantities
          * are still available and that fit within at least one remaining empty
          * space.  Initialized by root().  Maintained by apply_insertion() so
@@ -403,6 +393,13 @@ private:
     const std::vector<std::vector<Block>>& blocks_;
 
     Parameters parameters_;
+
+    /**
+     * Effective bin extents: largest length ≤ bin dimension achievable by
+     * stacking item copies along each axis.  Used everywhere instead of the
+     * raw bin box to avoid treating unreachable space as fillable.
+     */
+    Box lifted_bin_box_;
 
     /** max_reachable_x_[r] = largest length ≤ r achievable by stacking items along x. */
     mutable std::vector<Length> max_reachable_x_;

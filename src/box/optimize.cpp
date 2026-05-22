@@ -159,7 +159,7 @@ void optimize_tree_search_maximal_spaces(
         AlgorithmFormatter& algorithm_formatter)
 {
     MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
-    std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
+    std::vector<std::vector<Block>> all_blocks = compute_blocks(instance, max_reachable_lengths);
 
     std::vector<BranchingSchemeMaximalSpaces> branching_schemes;
     std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces>> ibs_parameters_list;
