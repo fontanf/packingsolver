@@ -654,8 +654,14 @@ inline bool BranchingSchemeMaximalSpaces::operator()(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
+    if (node_1->number_of_blocks == 0)
+        return true;
+    if (node_2->number_of_blocks == 0)
+        return false;
     if (node_1->greedy_value != node_2->greedy_value)
         return node_1->greedy_value > node_2->greedy_value;
+    if (node_1->item_volume != node_2->item_volume)
+        return node_1->item_volume > node_2->item_volume;
     return node_1->id > node_2->id;
 }
 

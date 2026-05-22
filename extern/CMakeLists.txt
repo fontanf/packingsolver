@@ -97,7 +97,7 @@ set(TREESEARCHSOLVER_BUILD_EXAMPLES OFF)
 FetchContent_Declare(
     treesearchsolver
     GIT_REPOSITORY https://github.com/fontanf/treesearchsolver.git
-    GIT_TAG 61ddb8cdd5a4b278e0bcbd327f098e015b682fa4
+    GIT_TAG b7254420989dd804144d16b898f323f1d606dda4
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../treesearchsolver/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(treesearchsolver)

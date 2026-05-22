@@ -3,8 +3,6 @@
 #include "optimizationtools/utils/utils.hpp"
 
 #include <algorithm>
-#include <ostream>
-#include <queue>
 #include <unordered_set>
 
 using namespace packingsolver;
@@ -13,19 +11,6 @@ using namespace packingsolver::box;
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Internals ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-
-std::ostream& packingsolver::box::operator<<(std::ostream& os, const Block& block)
-{
-    os << "x " << block.box.x
-       << " y " << block.box.y
-       << " z " << block.box.z
-       << " item_volume " << block.item_volume
-       << " fill_rate " << block.fill_rate()
-       << " item_copies";
-    for (const auto& item_copy: block.item_copies)
-        os << " " << item_copy.first << "*" << item_copy.second;
-    return os;
-}
 
 namespace
 {
@@ -54,12 +39,9 @@ struct BlockKeyHasher
 
 struct BlockKeyEqual
 {
-    bool operator()(
-            const BlockKey& block_1,
-            const BlockKey& block_2) const
+    bool operator()(const BlockKey& a, const BlockKey& b) const
     {
-        return block_1.box == block_2.box
-            && block_1.item_copies == block_2.item_copies;
+        return a.box == b.box && a.item_copies == b.item_copies;
     }
 };
 
@@ -130,58 +112,31 @@ std::vector<std::pair<ItemTypeId, ItemPos>> merge_item_copies(
     return result;
 }
 
-
 bool block_item_volume_greater(const Block& block_1, const Block& block_2)
 {
     return block_1.item_volume > block_2.item_volume;
 }
 
-struct BlockFillRateLess {
-    bool operator()(const Block& block_1, const Block& block_2) const
-    {
-        return block_1.fill_rate() < block_2.fill_rate();
-    }
-};
-
-inline Box lift_box(
-    const Instance& instance,
-    BinTypeId bin_type_id,
-    const Box& box)
-{
-    const BinType& bin_type = instance.bin_type(bin_type_id);
-    Box box_lifted;
-    box_lifted.x = (bin_type.box.x - box.x >= instance.smallest_item_x())? box.x: bin_type.box.x;
-    box_lifted.y = (bin_type.box.y - box.y >= instance.smallest_item_y())? box.y: bin_type.box.y;
-    box_lifted.z = (bin_type.box.z - box.z >= instance.smallest_item_z())? box.z: bin_type.box.z;
-    return box_lifted;
-}
-
+/** Generate blocks for a single bin type.
+ *
+ * Implements Algorithm 3.5 (GENERATE-GUILLOTINE-BLOCKS):
+ *   1. Generate singular blocks (one item in one rotation).
+ *   2. Iteratively combine the singular set P with all existing blocks B in
+ *      all three directions until N_B blocks are reached or no new block is
+ *      found.
+ */
 std::vector<Block> compute_blocks_for_bin(
     const Instance& instance,
     BinTypeId bin_type_id,
     const BlockParameters& parameters)
 {
+    double minimum_fill_rate = (instance.number_of_item_types() < 30)? 1.00: 0.98;
     const BinType& bin_type = instance.bin_type(bin_type_id);
 
-    // Sorted ascending by fill_rate: begin() is worst, prev(end()) is best.
-    // This allows O(log n) trimming of the worst block when the set exceeds
-    // maximum_number_of_blocks (those tail blocks will never be popped anyway).
-    std::multiset<Block, BlockFillRateLess> blocks_to_process;
-    std::vector<Block> returned_blocks;
+    std::vector<Block> blocks;
     BlockSet seen;
 
-    // Helper: insert a block into the multiset and trim the worst if over capacity.
-    auto enqueue = [&](Block block) {
-        blocks_to_process.insert(std::move(block));
-        if (parameters.maximum_number_of_blocks != -1
-                && (ItemPos)blocks_to_process.size() > parameters.maximum_number_of_blocks) {
-            BlockKey key = make_key(*blocks_to_process.begin());
-            seen.erase(key);
-            blocks_to_process.erase(blocks_to_process.begin());
-        }
-    };
-
-    // Generate singular blocks and enqueue.
+    // Algorithm 3.4: generate singular blocks
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -189,164 +144,147 @@ std::vector<Block> compute_blocks_for_bin(
         if (item_type.copies < 1)
             continue;
         for (Rotation rotation: item_type.rotations) {
-            Box rotated_box = item_type.box.rotate(rotation);
-            ItemPos copies_max_x = (std::min)(
-                    item_type.copies,
-                    (ItemPos)(bin_type.box.x / rotated_box.x));
-            for (ItemPos cx = 1; cx <= copies_max_x; ++cx) {
-                ItemPos copies_max_y = (std::min)(
-                        item_type.copies / cx,
-                        (ItemPos)(bin_type.box.y / rotated_box.y));
-                for (ItemPos cy = 1; cy <= copies_max_y; ++cy) {
-                    ItemPos copies_max_z = (std::min)(
-                            item_type.copies / (cx * cy),
-                            (ItemPos)(bin_type.box.z / rotated_box.z));
-                    for (ItemPos cz = 1; cz <= copies_max_z; ++cz) {
-                        Block block;
-                        block.is_simple = true;
-                        block.item_type_id = item_type_id;
-                        block.rotation = rotation;
-                        block.box = {cx * rotated_box.x, cy * rotated_box.y, cz * rotated_box.z};
-                        block.box = lift_box(instance, bin_type_id, block.box);
-                        block.item_volume = cx * cy * cz * item_type.volume();
-                        block.item_copies = {{item_type_id, cx * cy * cz}};
-                        block.number_of_items = cx * cy * cz;
-                        block.contact_area = (cx - 1) * cy * cz * rotated_box.y * rotated_box.z
-                            + (cy - 1) * cx * cz * rotated_box.x * rotated_box.z
-                            + (cz - 1) * cx * cy * rotated_box.x * rotated_box.y;
-                        block.items.reserve(cx * cy * cz);
-                        for (ItemPos ccx = 0; ccx < cx; ++ccx) {
-                            for (ItemPos ccy = 0; ccy < cy; ++ccy) {
-                                for (ItemPos ccz = 0; ccz < cz; ++ccz) {
-                                    SolutionItem solution_item;
-                                    solution_item.item_type_id = item_type_id;
-                                    solution_item.rotation = rotation;
-                                    solution_item.bl_corner = {
-                                        ccx * rotated_box.x,
-                                        ccy * rotated_box.y,
-                                        ccz * rotated_box.z};
-                                    block.items.push_back(solution_item);
-                                }
-                            }
-                        }
-                        BlockKey key = make_key(block);
-                        if (!seen.count(key)) {
-                            seen.insert(key);
-                            enqueue(std::move(block));
-                        }
-                    }
-                }
-            }
+            Block block;
+            block.box = item_type.box.rotate(rotation);
+            block.item_volume = item_type.volume();
+            block.number_of_items = 1;
+            block.item_copies = {{item_type_id, 1}};
+            SolutionItem solution_item;
+            solution_item.item_type_id = item_type_id;
+            solution_item.rotation = rotation;
+            solution_item.bl_corner = {0, 0, 0};
+            block.items.push_back(solution_item);
+            if (block.box.x > bin_type.box.x
+                    || block.box.y > bin_type.box.y
+                    || block.box.z > bin_type.box.z)
+                continue;
+            BlockKey key = make_key(block);
+            if (!seen.insert(key).second)
+                continue;
+            blocks.push_back(std::move(block));
         }
     }
 
-    // Process blocks in decreasing fill_rate order.  Each popped block is added
-    // to returned_blocks and combined with every already-returned block to
-    // generate candidate combined blocks for the queue.
-    while (!blocks_to_process.empty()) {
-        if (parameters.maximum_number_of_blocks != -1
-                && (ItemPos)returned_blocks.size() >= parameters.maximum_number_of_blocks)
-            break;
+    std::sort(blocks.begin(), blocks.end(), block_item_volume_greater);
 
-        auto it = std::prev(blocks_to_process.end());
-        Block block = *it;
-        blocks_to_process.erase(it);
+    // Algorithm 3.5: iterative combination
+    // P starts as singular blocks; after each iteration P ← N (newly generated blocks)
+    std::vector<Block> previous_blocks(blocks.begin(), blocks.end());
 
-        //std::cout << returned_blocks.size()
-        //    << " " << block.box
-        //    << " # items " << block.number_of_items
-        //    << " frate " << block.fill_rate()
-        //    << " \% bin " << (double)block.box.volume() / bin_type.box.volume()
-        //    << " " << blocks_to_process.size()
-        //    << std::endl;
+    while ((ItemPos)blocks.size() < parameters.maximum_number_of_blocks) {
+        std::vector<Block> new_blocks;
+        bool limit_reached = false;
 
-        // Combine with every already-returned block in all three directions.
-        for (const Block& existing_block: returned_blocks) {
-            if (block.is_simple && existing_block.is_simple
-                    && block.item_type_id == existing_block.item_type_id
-                    && block.rotation == existing_block.rotation)
-                continue;
-            for (Direction direction: {Direction::X, Direction::Y, Direction::Z}) {
-                Block combined;
-                combined.item_volume = block.item_volume + existing_block.item_volume;
-                switch (direction) {
-                case Direction::X:
-                    combined.box.x = block.box.x + existing_block.box.x;
-                    combined.box.y = std::max(block.box.y, existing_block.box.y);
-                    combined.box.z = std::max(block.box.z, existing_block.box.z);
+        for (const Block& previous_block: previous_blocks) {
+            if (limit_reached)
+                break;
+            for (const Block& existing_block: blocks) {
+                if (limit_reached)
                     break;
-                case Direction::Y:
-                    combined.box.x = std::max(block.box.x, existing_block.box.x);
-                    combined.box.y = block.box.y + existing_block.box.y;
-                    combined.box.z = std::max(block.box.z, existing_block.box.z);
-                    break;
-                case Direction::Z:
-                    combined.box.x = std::max(block.box.x, existing_block.box.x);
-                    combined.box.y = std::max(block.box.y, existing_block.box.y);
-                    combined.box.z = block.box.z + existing_block.box.z;
-                    break;
-                default: break;
-                }
-                if (combined.box.x > bin_type.box.x
-                        || combined.box.y > bin_type.box.y
-                        || combined.box.z > bin_type.box.z)
-                    continue;
-                combined.box = lift_box(instance, bin_type_id, combined.box);
-
-                if (parameters.maximum_number_of_blocks != -1
-                        && (ItemPos)blocks_to_process.size() >= parameters.maximum_number_of_blocks) {
-                    if (combined.fill_rate() <= blocks_to_process.begin()->fill_rate())
-                        continue;
-                }
-
-                if (!is_valid_item_copies(block.item_copies, existing_block.item_copies, instance))
-                    continue;
-
-                BlockKey key;
-                key.box = combined.box;
-                key.item_copies = merge_item_copies(
-                        block.item_copies,
-                        existing_block.item_copies,
-                        instance);
-                if (seen.count(key))
-                    continue;
-                combined.number_of_items = block.number_of_items + existing_block.number_of_items;
-                switch (direction) {
-                case Direction::X:
-                    combined.contact_area = block.contact_area + existing_block.contact_area + combined.box.y * combined.box.z;
-                    break;
-                case Direction::Y:
-                    combined.contact_area = block.contact_area + existing_block.contact_area + combined.box.x * combined.box.z;
-                    break;
-                case Direction::Z:
-                    combined.contact_area = block.contact_area + existing_block.contact_area + combined.box.x * combined.box.y;
-                    break;
-                default: break;
-                }
-                combined.item_copies = key.item_copies;
-                combined.items = block.items;
-                for (const SolutionItem& item: existing_block.items) {
-                    SolutionItem shifted = item;
+                for (Direction direction: {Direction::X, Direction::Y, Direction::Z}) {
+                    Block combined;
                     switch (direction) {
-                    case Direction::X: shifted.bl_corner.x += block.box.x; break;
-                    case Direction::Y: shifted.bl_corner.y += block.box.y; break;
-                    case Direction::Z: shifted.bl_corner.z += block.box.z; break;
+                    case Direction::X:
+                        combined.box.x = previous_block.box.x + existing_block.box.x;
+                        combined.box.y = std::max(previous_block.box.y, existing_block.box.y);
+                        combined.box.z = std::max(previous_block.box.z, existing_block.box.z);
+                        break;
+                    case Direction::Y:
+                        combined.box.x = std::max(previous_block.box.x, existing_block.box.x);
+                        combined.box.y = previous_block.box.y + existing_block.box.y;
+                        combined.box.z = std::max(previous_block.box.z, existing_block.box.z);
+                        break;
+                    case Direction::Z:
+                        combined.box.x = std::max(previous_block.box.x, existing_block.box.x);
+                        combined.box.y = std::max(previous_block.box.y, existing_block.box.y);
+                        combined.box.z = previous_block.box.z + existing_block.box.z;
+                        break;
                     default: break;
                     }
-                    combined.items.push_back(shifted);
+                    if (combined.box.x > bin_type.box.x
+                            || combined.box.y > bin_type.box.y
+                            || combined.box.z > bin_type.box.z) {
+                        continue;
+                    }
+                    combined.item_volume = previous_block.item_volume + existing_block.item_volume;
+                    if (combined.fill_rate() < minimum_fill_rate)
+                        continue;
+
+                    if (!is_valid_item_copies(previous_block.item_copies, existing_block.item_copies, instance))
+                        continue;
+
+                    BlockKey key = make_key(combined);
+                    key.box = combined.box;
+                    key.item_copies = merge_item_copies(
+                            previous_block.item_copies,
+                            existing_block.item_copies,
+                            instance);
+                    if (seen.count(key))
+                        continue;
+                    combined.number_of_items = previous_block.number_of_items + existing_block.number_of_items;
+                    combined.item_copies = key.item_copies;
+                    combined.items = previous_block.items;
+                    for (const SolutionItem& item: existing_block.items) {
+                        SolutionItem shifted = item;
+                        switch (direction) {
+                        case Direction::X: shifted.bl_corner.x += previous_block.box.x; break;
+                        case Direction::Y: shifted.bl_corner.y += previous_block.box.y; break;
+                        case Direction::Z: shifted.bl_corner.z += previous_block.box.z; break;
+                        default: break;
+                        }
+                        combined.items.push_back(shifted);
+                    }
+                    seen.insert(key);
+
+                    new_blocks.push_back(std::move(combined));
+                    if ((ItemPos)(blocks.size() + new_blocks.size())
+                            >= parameters.maximum_number_of_blocks) {
+                        limit_reached = true;
+                        break;
+                    }
                 }
-                seen.insert(key);
-                enqueue(std::move(combined));
             }
         }
 
-        returned_blocks.push_back(std::move(block));
+        if (new_blocks.empty())
+            break;
+
+        std::sort(new_blocks.begin(), new_blocks.end(), block_item_volume_greater);
+        previous_blocks = std::move(new_blocks);
+        const ItemPos old_blocks_size = (ItemPos)blocks.size();
+        for (const Block& block: previous_blocks)
+            blocks.push_back(block);
+        std::inplace_merge(
+            blocks.begin(),
+            blocks.begin() + old_blocks_size,
+            blocks.end(),
+            block_item_volume_greater);
     }
 
-    return returned_blocks;
+    return blocks;
 }
 
 } // anonymous namespace
+
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// compute_blocks /////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+std::vector<std::vector<Block>> packingsolver::box::compute_blocks(
+    const Instance& instance,
+    const BlockParameters& parameters)
+{
+    std::vector<std::vector<Block>> result(instance.number_of_bin_types());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        result[bin_type_id] = compute_blocks_for_bin(
+                instance,
+                bin_type_id,
+                parameters);
+    }
+    return result;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// compute_blocks /////////////////////////////////
@@ -411,21 +349,5 @@ MaxReachableLengths packingsolver::box::compute_max_reachable_lengths(
         result.y[v] = reachable_y[v] ? v : result.y[v - 1];
     for (Length v = 1; v <= max_z; ++v)
         result.z[v] = reachable_z[v] ? v : result.z[v - 1];
-    return result;
-}
-
-std::vector<std::vector<Block>> packingsolver::box::compute_blocks(
-    const Instance& instance,
-    const BlockParameters& parameters)
-{
-    std::vector<std::vector<Block>> result(instance.number_of_bin_types());
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
-            ++bin_type_id) {
-        result[bin_type_id] = compute_blocks_for_bin(
-                instance,
-                bin_type_id,
-                parameters);
-    }
     return result;
 }

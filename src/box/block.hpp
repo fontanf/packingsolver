@@ -18,7 +18,7 @@ namespace box
  */
 struct Block
 {
-    /** Envelope dimensions (lifted: extended by max_reachable in each direction). */
+    /** Envelope dimensions (bounding box of all items in the block). */
     Box box;
 
     /** Sum of volumes of all items inside the block. */
@@ -81,12 +81,6 @@ struct BlockParameters
 /**
  * Generate up to parameters.maximum_number_of_blocks guillotine blocks for
  * each bin type of the given instance.
- *
- * max_reachable_lengths is used to lift each returned block's declared box:
- *   block.box.x += max_reachable_lengths.x[bin.x - block.box.x]
- * and similarly for y and z.  This extends each block's footprint to the
- * maximum coverage achievable when the block is placed against the bin wall,
- * avoiding the creation of provably-unusable sub-spaces.
  *
  * Returns one vector of blocks per bin type (indexed by BinTypeId).
  */

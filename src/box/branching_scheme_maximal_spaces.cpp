@@ -234,18 +234,6 @@ BranchingSchemeMaximalSpaces::BestSpaceResult BranchingSchemeMaximalSpaces::find
             space_idx < (ItemPos)parent.empty_spaces.size();
             ++space_idx) {
         const EmptySpace& space = parent.empty_spaces[space_idx];
-        bool has_fitting_block = false;
-        for (ItemPos block_id: parent.valid_block_ids) {
-            const Block& block = bin_blocks[block_id];
-            if (block.box.x <= space.box.x
-                    && block.box.y <= space.box.y
-                    && block.box.z <= space.box.z) {
-                has_fitting_block = true;
-                break;
-            }
-        }
-        if (!has_fitting_block)
-            continue;
         AnchorInfo anchor = compute_anchor_info(space, bin_type.box);
         Volume space_volume = space.box.volume();
         int corner = (anchor.dir_x ? 4 : 0) | (anchor.dir_y ? 2 : 0) | (anchor.dir_z ? 1 : 0);
@@ -260,6 +248,7 @@ BranchingSchemeMaximalSpaces::BestSpaceResult BranchingSchemeMaximalSpaces::find
             best_corner = corner;
         }
     }
+    const EmptySpace& space = parent.empty_spaces[result.space_idx];
     return result;
 }
 
@@ -295,16 +284,34 @@ double BranchingSchemeMaximalSpaces::compute_insertion_guide(
     double n = (double)block.number_of_items;
     if (fill_rate < parameters_.configuration_switch_threshold) {
         double c = compute_relative_contact_area(info, block, insertion.bl_corner, parameters_.delta);
-        return v
+        double guide = v
             * std::pow(c, parameters_.alpha)
             * std::pow(l, parameters_.beta)
             * std::pow(n, -parameters_.gamma);
+        //if (verbose)
+        //    std::cout << "v " << v
+        //        << " c " << c
+        //        << " l " << l
+        //        << " n " << n
+        //        << " f " << fill_rate
+        //        << " = " << guide
+        //        << std::endl;
+        return guide;
     } else {
         double c = compute_relative_contact_area(info, block, insertion.bl_corner, parameters_.delta_2);
-        return v
+        double guide =  v
             * std::pow(c, parameters_.alpha_2)
             * std::pow(l, parameters_.beta_2)
             * std::pow(n, -parameters_.gamma_2);
+        //if (verbose)
+        //    std::cout << "v " << v
+        //        << " c " << c
+        //        << " l " << l
+        //        << " n " << n
+        //        << " f " << fill_rate
+        //        << " = " << guide
+        //        << std::endl;
+        return guide;
     }
 }
 
@@ -384,10 +391,25 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
         BinPos bin_pos = parent->number_of_bins - 1;
         BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
 
+        for (ItemPos space_idx = 0;
+                space_idx < (ItemPos)parent->empty_spaces.size();
+                ++space_idx) {
+            const EmptySpace& space = parent->empty_spaces[space_idx];
+            AnchorInfo anchor = compute_anchor_info(space, instance().bin_type(bin_type_id).box);
+            Volume space_volume = space.box.volume();
+            int corner = (anchor.dir_x? 4: 0) | (anchor.dir_y? 2: 0) | (anchor.dir_z? 1: 0);
+            //std::cout << "space_id " << space_idx
+            //    << " space " << space
+            //    << " distance " << anchor.distance
+            //    << " volume " << space_volume
+            //    << " corner " << corner
+            //    << std::endl;
+        }
         BestSpaceResult best = find_best_space(*parent, bin_type_id);
 
         if (best.space_idx != -1) {
             const EmptySpace& space = parent->empty_spaces[best.space_idx];
+            //std::cout << "best_space " << space << std::endl;
             SpaceContactInfo contact_info = compute_space_contact_info(
                     parent->placed_blocks.back(), bin_type_id, space, delta);
             for (ItemPos block_id: parent->valid_block_ids) {
@@ -449,13 +471,32 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
             [](const Insertion& insertion_1, const Insertion& insertion_2) {
                 return insertion_1.guide > insertion_2.guide;
             });
+
+    for (const Insertion& insertion: insertions_) {
+        EmptySpace space;
+        if (parent->number_of_blocks == 0) {
+            space.bl_corner = {0, 0, 0};
+            space.box = instance().bin_type(0).box;
+        } else {
+            space = parent->empty_spaces[insertion.space_id];
+        }
+        double delta = active_delta(*parent);
+        SpaceContactInfo contact_info;
+        if (parent->number_of_blocks == 0) {
+            contact_info = compute_space_contact_info(
+                    {}, 0, space, delta);
+        } else {
+            contact_info = compute_space_contact_info(
+                    parent->placed_blocks.back(), 0, space, delta);
+        }
+        compute_insertion_guide(*parent, insertion, contact_info);
+    }
     return insertions_;
 }
 
 BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_insertion(
         Node& parent) const
 {
-    update_node_max_reachable(parent);
     Insertion best;
     double best_score = 0;
 
@@ -914,6 +955,8 @@ std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces
     node->next_child_pos = 0;
     apply_insertion(*node, insertion);
     node->greedy_value = compute_guide_greedy(*node);
+    //std::cout << "greedy_value " << node->greedy_value << std::endl;
+
     return node;
 }
 

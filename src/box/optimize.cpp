@@ -162,16 +162,17 @@ void optimize_tree_search_maximal_spaces(
     std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
 
     std::vector<BranchingSchemeMaximalSpaces> branching_schemes;
-    std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces>> bfs_parameters_list;
+    std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces>> ibs_parameters_list;
     std::vector<box::Output> outputs;
     {
         BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
         branching_schemes.push_back(BranchingSchemeMaximalSpaces(instance, all_blocks, max_reachable_lengths, branching_scheme_parameters));
-        treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> bfs_parameters;
-        bfs_parameters.verbosity_level = 0;
-        bfs_parameters.timer = parameters.timer;
-        bfs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-        bfs_parameters_list.push_back(bfs_parameters);
+        treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> ibs_parameters;
+        ibs_parameters.verbosity_level = 0;
+        ibs_parameters.timer = parameters.timer;
+        ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        ibs_parameters.global_history = true;
+        ibs_parameters_list.push_back(ibs_parameters);
         outputs.push_back(box::Output(instance));
     }
 
@@ -179,27 +180,27 @@ void optimize_tree_search_maximal_spaces(
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
-            bfs_parameters_list[i].new_solution_callback
+            ibs_parameters_list[i].new_solution_callback
                 = [&algorithm_formatter, &branching_schemes, i](
                         const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
                 {
-                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssbfs_output
+                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
                         = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
                     Solution solution = branching_schemes[i].to_solution(
-                            tssbfs_output.solution_pool.best());
+                            tssibs_output.solution_pool.best());
                     std::stringstream ss;
-                    ss << "TSMS q " << tssbfs_output.maximum_size_of_the_queue;
+                    ss << "TSMS n " << tssibs_output.maximum_size_of_the_queue;
                     algorithm_formatter.update_solution(solution, ss.str());
                 };
         } else {
-            bfs_parameters_list[i].new_solution_callback
+            ibs_parameters_list[i].new_solution_callback
                 = [&outputs, &branching_schemes, i](
                         const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
                 {
-                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssbfs_output
+                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
                         = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
                     Solution solution = branching_schemes[i].to_solution(
-                            tssbfs_output.solution_pool.best());
+                            tssibs_output.solution_pool.best());
                     outputs[i].solution_pool.add(solution);
                 };
         }
@@ -209,11 +210,11 @@ void optimize_tree_search_maximal_spaces(
                         wrapper<decltype(&treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>), treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>>,
                         std::ref(exception_ptr_list.front()),
                         std::ref(branching_schemes[i]),
-                        bfs_parameters_list[i]));
+                        ibs_parameters_list[i]));
         } else {
             treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>(
                     branching_schemes[i],
-                    bfs_parameters_list[i]);
+                    ibs_parameters_list[i]);
         }
     }
     for (Counter i = 0; i < (Counter)threads.size(); ++i)
@@ -473,7 +474,8 @@ packingsolver::box::Output packingsolver::box::optimize(
         use_dichotomic_search = false;
         use_column_generation = false;
         // Automatic selection.
-        if (!use_tree_search && !use_tree_search_maximal_spaces) {
+        if (!use_tree_search
+                && !use_tree_search_maximal_spaces) {
             if (instance.objective() == Objective::Knapsack
                     && mean_number_of_items_in_bins
                     > parameters.many_items_in_bins_threshold_2) {
@@ -484,10 +486,10 @@ packingsolver::box::Output packingsolver::box::optimize(
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
+        use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
         // Automatic selection.
         if (!use_tree_search
-                && !use_tree_search_maximal_spaces
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -504,7 +506,7 @@ packingsolver::box::Output packingsolver::box::optimize(
             } else {
                 if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold_2) {
-                    use_tree_search_maximal_spaces = true;
+                    use_sequential_single_knapsack = true;
                 } else {
                     use_tree_search = true;
                     use_column_generation = true;
@@ -514,6 +516,7 @@ packingsolver::box::Output packingsolver::box::optimize(
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
+        use_tree_search_maximal_spaces = false;
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
@@ -536,7 +539,7 @@ packingsolver::box::Output packingsolver::box::optimize(
             } else {
                 if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold_2) {
-                    use_tree_search_maximal_spaces = true;
+                    use_sequential_single_knapsack = true;
                 } else if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
                     use_tree_search = true;
@@ -550,6 +553,7 @@ packingsolver::box::Output packingsolver::box::optimize(
         }
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
+        use_tree_search_maximal_spaces = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
@@ -576,6 +580,11 @@ packingsolver::box::Output packingsolver::box::optimize(
                 }
             } else {
                 if (mean_number_of_items_in_bins
+                        > parameters.many_items_in_bins_threshold_2) {
+                    use_sequential_single_knapsack = true;
+                    if (instance.number_of_bin_types() > 1)
+                        use_dichotomic_search = true;
+                } else if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
                     use_sequential_single_knapsack = true;
                     if (instance.number_of_bin_types() > 1) {
