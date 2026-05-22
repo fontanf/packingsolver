@@ -154,6 +154,7 @@ public:
 
         Volume item_volume = 0;
         Volume block_volume = 0;
+        Weight weight = 0;
         ItemPos number_of_items = 0;
         ItemPos number_of_blocks = 0;
         Profit profit = 0;

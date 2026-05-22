@@ -213,6 +213,7 @@ std::vector<Block> compute_blocks_for_bin(
                         block.box = {cx * rotated_box.x, cy * rotated_box.y, cz * rotated_box.z};
                         block.box = lift_box(instance, bin_box, block.box);
                         block.item_volume = cx * cy * cz * item_type.volume();
+                        block.weight = cx * cy * cz * item_type.weight;
                         block.item_copies = {{item_type_id, cx * cy * cz}};
                         block.number_of_items = cx * cy * cz;
                         block.items.reserve(cx * cy * cz);
@@ -275,6 +276,7 @@ std::vector<Block> compute_blocks_for_bin(
             for (Direction direction: {Direction::X, Direction::Y, Direction::Z}) {
                 Block combined;
                 combined.item_volume = block.item_volume + existing_block.item_volume;
+                combined.weight = block.weight + existing_block.weight;
                 switch (direction) {
                 case Direction::X:
                     combined.box.x = block.box.x + existing_block.box.x;

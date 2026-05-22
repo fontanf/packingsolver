@@ -24,6 +24,9 @@ struct Block
     /** Sum of volumes of all items inside the block. */
     Volume item_volume = 0;
 
+    /** Sum of weights of all items inside the block. */
+    Weight weight = 0;
+
     bool is_simple = false;
 
     ItemTypeId item_type_id = -1;

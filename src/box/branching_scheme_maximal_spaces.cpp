@@ -294,6 +294,7 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
 
     double delta = active_delta(*parent);
     BinTypeId bin_type_id = instance_.bin_type_id(0);
+    Weight maximum_weight = instance_.bin_type(bin_type_id).maximum_weight;
 
     if (!parent->empty_spaces.empty()) {
         BestSpaceResult best = find_best_space(*parent, bin_type_id);
@@ -307,6 +308,8 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
                 if (block.box.x > space.box.x
                         || block.box.y > space.box.y
                         || block.box.z > space.box.z)
+                    continue;
+                if (parent->weight + block.weight > maximum_weight)
                     continue;
                 Insertion insertion;
                 insertion.space_id = best.space_idx;
@@ -333,6 +336,7 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
 
     double delta = active_delta(parent);
     BinTypeId bin_type_id = instance_.bin_type_id(0);
+    Weight maximum_weight = instance_.bin_type(bin_type_id).maximum_weight;
 
     if (!parent.empty_spaces.empty()) {
         BestSpaceResult best_space = find_best_space(parent, bin_type_id);
@@ -346,6 +350,8 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
                 if (block.box.x > space.box.x
                         || block.box.y > space.box.y
                         || block.box.z > space.box.z)
+                    continue;
+                if (parent.weight + block.weight > maximum_weight)
                     continue;
                 Insertion insertion;
                 insertion.space_id = best_space.space_idx;
@@ -553,6 +559,7 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     }
     node.item_volume += block.item_volume;
     node.block_volume += block.box.volume();
+    node.weight += block.weight;
     node.number_of_items += (ItemPos)block.items.size();
     node.number_of_blocks++;
 
