@@ -101,9 +101,6 @@ public:
 
     struct Insertion
     {
-        /** True if this insertion opens a new bin before placing the block. */
-        bool new_bin = false;
-
         /** Index into the blocks array passed to the constructor. */
         ItemPos block_id = -1;
 
@@ -112,10 +109,10 @@ public:
 
         /**
          * Index of the space in parent->empty_spaces from which this insertion
-         * was generated.  -1 for new_bin insertions (the space is the full bin).
-         * Used in apply_insertion() to retrieve the anchor corner without re-searching.
-         * Not included in operator== since two insertions placing the same block
-         * at the same position are equivalent regardless of the originating space.
+         * was generated.  Used in apply_insertion() to retrieve the anchor
+         * corner without re-searching.  Not included in operator== since two
+         * insertions placing the same block at the same position are equivalent
+         * regardless of the originating space.
          */
         ItemPos space_id = -1;
 
@@ -124,8 +121,7 @@ public:
 
         bool operator==(const Insertion& other) const
         {
-            return this->new_bin == other.new_bin
-                && this->bl_corner == other.bl_corner
+            return this->bl_corner == other.bl_corner
                 && this->block_id == other.block_id;
         }
 
@@ -147,15 +143,8 @@ public:
 
         NodeId id = -1;
 
-        /** True if this node opened a new bin. */
-        bool new_bin = false;
-
-        /**
-         * All blocks placed so far, indexed by bin position.
-         * placed_blocks[bin_idx] contains all PlacedBlocks in that bin, in
-         * order of placement.
-         */
-        std::vector<std::vector<PlacedBlock>> placed_blocks;
+        /** All blocks placed so far, in order of placement. */
+        std::vector<PlacedBlock> placed_blocks;
 
         /** Maximal empty spaces remaining after all placements up to this node. */
         std::vector<EmptySpace> empty_spaces;
@@ -167,7 +156,6 @@ public:
         Volume block_volume = 0;
         ItemPos number_of_items = 0;
         ItemPos number_of_blocks = 0;
-        BinPos number_of_bins = 0;
         Profit profit = 0;
 
         /**
@@ -181,12 +169,12 @@ public:
         Volume waste = 0;
 
         /**
-         * IDs of blocks in blocks_[current bin type] that can still be placed:
-         * those whose item quantities are still available and that fit within
-         * at least one remaining empty space.  Empty before the first bin is
-         * opened.  Maintained by apply_insertion() so that insertions() /
-         * best_insertion() / find_best_space() can iterate a pre-filtered list
-         * instead of rescanning all blocks from scratch on every call.
+         * IDs of blocks that can still be placed: those whose item quantities
+         * are still available and that fit within at least one remaining empty
+         * space.  Initialized by root().  Maintained by apply_insertion() so
+         * that insertions() / best_insertion() / find_best_space() can iterate
+         * a pre-filtered list instead of rescanning all blocks from scratch on
+         * every call.
          */
         std::vector<ItemPos> valid_block_ids;
 
@@ -388,10 +376,6 @@ public:
             const std::shared_ptr<Node>& node_1,
             const std::shared_ptr<Node>& node_2) const
     {
-        if (node_1->number_of_bins < node_2->number_of_bins)
-            return true;
-        if (node_1->number_of_bins > node_2->number_of_bins)
-            return false;
         return node_1->greedy_value >= node_2->greedy_value;
     }
 
@@ -413,14 +397,6 @@ public:
             const std::shared_ptr<Node>& node_2) const;
 
 private:
-
-    /** Stack item used by remove_spaces_and_update_waste(). */
-    struct RemoveWasteStackItem
-    {
-        EmptySpace remaining;
-        ItemPos next_surviving_idx;
-    };
-
 
     const Instance& instance_;
 
@@ -445,7 +421,6 @@ private:
     mutable std::vector<bool> scratch_is_removed_;
     mutable std::vector<ItemPos> scratch_surviving_ids_;
     mutable std::vector<ItemPos> scratch_sorted_ids_;
-    mutable std::vector<RemoveWasteStackItem> scratch_remove_stack_;
     mutable std::vector<ItemPos> scratch_unfillable_space_ids_;
 
     /** Scratch buffers for update_node_max_reachable() 0-1 knapsack DP. */
@@ -615,10 +590,6 @@ private:
     static void add_empty_space(
             std::vector<EmptySpace>& spaces,
             const EmptySpace& new_space);
-
-    void remove_spaces_and_update_waste(
-            Node& node,
-            const std::vector<ItemPos>& space_ids) const;
 
     /**
      * Remove all spaces overlapping the placed block, generate their
