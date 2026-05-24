@@ -87,7 +87,6 @@ struct BlockParameters
  */
 std::vector<std::vector<Block>> compute_blocks(
     const Instance& instance,
-    const MaxReachableLengths& max_reachable_lengths,
     const BlockParameters& parameters = {});
 
 } // namespace box

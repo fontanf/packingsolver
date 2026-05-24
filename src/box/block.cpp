@@ -142,29 +142,13 @@ struct BlockFillRateLess {
     }
 };
 
-inline Box lift_box(
-        const Instance& instance,
-        const Box& bin_box,
-        const Box& box)
-{
-    Box box_lifted;
-    box_lifted.x = (bin_box.x - box.x >= instance.smallest_item_x())? box.x: bin_box.x;
-    box_lifted.y = (bin_box.y - box.y >= instance.smallest_item_y())? box.y: bin_box.y;
-    box_lifted.z = (bin_box.z - box.z >= instance.smallest_item_z())? box.z: bin_box.z;
-    return box_lifted;
-}
-
 std::vector<Block> compute_blocks_for_bin(
         const Instance& instance,
-        const MaxReachableLengths& max_reachable_lengths,
         BinTypeId bin_type_id,
         const BlockParameters& parameters)
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
-    Box bin_box;
-    bin_box.x = max_reachable_lengths.x[bin_type.box.x];
-    bin_box.y = max_reachable_lengths.y[bin_type.box.y];
-    bin_box.z = max_reachable_lengths.z[bin_type.box.z];
+    Box bin_box = bin_type.box;
 
 
     // Sorted ascending by fill_rate: begin() is worst, prev(end()) is best.
@@ -211,7 +195,6 @@ std::vector<Block> compute_blocks_for_bin(
                         block.item_type_id = item_type_id;
                         block.rotation = rotation;
                         block.box = {cx * rotated_box.x, cy * rotated_box.y, cz * rotated_box.z};
-                        block.box = lift_box(instance, bin_box, block.box);
                         block.item_volume = cx * cy * cz * item_type.volume();
                         block.weight = cx * cy * cz * item_type.weight;
                         block.item_copies = {{item_type_id, cx * cy * cz}};
@@ -299,7 +282,6 @@ std::vector<Block> compute_blocks_for_bin(
                         || combined.box.y > bin_box.y
                         || combined.box.z > bin_box.z)
                     continue;
-                combined.box = lift_box(instance, bin_box, combined.box);
 
                 if (parameters.maximum_number_of_blocks != -1
                         && (ItemPos)blocks_to_process.size() >= parameters.maximum_number_of_blocks) {
@@ -412,7 +394,6 @@ MaxReachableLengths packingsolver::box::compute_max_reachable_lengths(
 
 std::vector<std::vector<Block>> packingsolver::box::compute_blocks(
     const Instance& instance,
-    const MaxReachableLengths& max_reachable_lengths,
     const BlockParameters& parameters)
 {
     std::vector<std::vector<Block>> result(instance.number_of_bin_types());
@@ -421,7 +402,6 @@ std::vector<std::vector<Block>> packingsolver::box::compute_blocks(
             ++bin_type_id) {
         result[bin_type_id] = compute_blocks_for_bin(
                 instance,
-                max_reachable_lengths,
                 bin_type_id,
                 parameters);
     }

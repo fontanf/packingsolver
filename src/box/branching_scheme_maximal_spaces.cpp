@@ -111,9 +111,9 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
     max_reachable_z_ = max_reachable_lengths.z;
     BinTypeId bin_type_id = instance_.bin_type_id(0);
     const BinType& bin_type = instance_.bin_type(bin_type_id);
-    lifted_bin_box_.x = max_reachable_lengths.x[bin_type.box.x];
-    lifted_bin_box_.y = max_reachable_lengths.y[bin_type.box.y];
-    lifted_bin_box_.z = max_reachable_lengths.z[bin_type.box.z];
+    bin_box_.x = max_reachable_lengths.x[bin_type.box.x];
+    bin_box_.y = max_reachable_lengths.y[bin_type.box.y];
+    bin_box_.z = max_reachable_lengths.z[bin_type.box.z];
 }
 
 const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces::root() const
@@ -124,7 +124,7 @@ const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximal
     BinTypeId bin_type_id = instance_.bin_type_id(0);
     EmptySpace space;
     space.bl_corner = {0, 0, 0};
-    space.box = lifted_bin_box_;
+    space.box = bin_box_;
     node->empty_spaces.push_back(space);
     ItemPos number_of_blocks = (ItemPos)blocks_[bin_type_id].size();
     node->valid_block_ids.resize(number_of_blocks);
@@ -145,7 +145,7 @@ BranchingSchemeMaximalSpaces::BestSpaceResult BranchingSchemeMaximalSpaces::find
             space_idx < (ItemPos)parent.empty_spaces.size();
             ++space_idx) {
         const EmptySpace& space = parent.empty_spaces[space_idx];
-        AnchorInfo anchor = compute_anchor_info(space, lifted_bin_box_);
+        AnchorInfo anchor = compute_anchor_info(space, bin_box_);
         Volume space_volume = space.box.volume();
         int corner = (anchor.dir_x? 4: 0) | (anchor.dir_y? 2: 0) | (anchor.dir_z? 1: 0);
         bool is_better = (anchor.distance < best_distance)
@@ -173,7 +173,6 @@ double BranchingSchemeMaximalSpaces::compute_volume_loss_factor(
     Volume usable_volume = (Volume)(block.box.x + max_reachable_x_[rx])
         * (block.box.y + max_reachable_y_[ry])
         * (block.box.z + max_reachable_z_[rz]);
-    usable_volume -= (block.box.volume() - block.item_volume);
     Volume space_volume = (Volume)info.space_bx * info.space_by * info.space_bz;
     return (double)usable_volume / space_volume;
 }
@@ -186,7 +185,7 @@ double BranchingSchemeMaximalSpaces::compute_insertion_guide(
     BinTypeId bin_type_id = instance_.bin_type_id(0);
     const Block& block = blocks_[bin_type_id][insertion.block_id];
 
-    double fill_rate = (double)parent.item_volume / lifted_bin_box_.volume();
+    double fill_rate = (double)parent.item_volume / bin_box_.volume();
     double v = (double)block.item_volume;
     double l = compute_volume_loss_factor(info, block);
     double n = (double)block.number_of_items;
@@ -271,7 +270,7 @@ void BranchingSchemeMaximalSpaces::update_node_max_reachable(const Node& node) c
 
 double BranchingSchemeMaximalSpaces::active_delta(const Node& node) const
 {
-    double fill_rate = (double)node.item_volume / lifted_bin_box_.volume();
+    double fill_rate = (double)node.item_volume / bin_box_.volume();
     if (fill_rate < parameters_.configuration_switch_threshold) {
         return parameters_.delta;
     } else {
@@ -392,9 +391,9 @@ BranchingSchemeMaximalSpaces::SpaceContactInfo BranchingSchemeMaximalSpaces::com
     info.xl_wall = (xl <= info.tol_x);
     info.yl_wall = (yl <= info.tol_y);
     info.zl_wall = (zl <= info.tol_z);
-    info.xh_wall = (lifted_bin_box_.x - xh <= info.tol_x);
-    info.yh_wall = (lifted_bin_box_.y - yh <= info.tol_y);
-    info.zh_wall = (lifted_bin_box_.z - zh <= info.tol_z);
+    info.xh_wall = (bin_box_.x - xh <= info.tol_x);
+    info.yh_wall = (bin_box_.y - yh <= info.tol_y);
+    info.zh_wall = (bin_box_.z - zh <= info.tol_z);
 
     for (const Node::PlacedBlock& pb: placed_blocks) {
         const Block& pb_block = blocks_[bin_type_id][pb.block_id];

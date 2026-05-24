@@ -395,12 +395,8 @@ private:
 
     Parameters parameters_;
 
-    /**
-     * Effective bin extents: largest length ≤ bin dimension achievable by
-     * stacking item copies along each axis.  Used everywhere instead of the
-     * raw bin box to avoid treating unreachable space as fillable.
-     */
-    Box lifted_bin_box_;
+    /** Bin box. */
+    Box bin_box_;
 
     /** max_reachable_x_[r] = largest length ≤ r achievable by stacking items along x. */
     mutable std::vector<Length> max_reachable_x_;
