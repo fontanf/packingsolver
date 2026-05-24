@@ -30,6 +30,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use tree search algorithm. */
     bool use_tree_search = false;
 
+    /** Use tree search algorithm with maximal spaces. */
+    bool use_tree_search_maximal_spaces = false;
+
     /** Use sequential single knapsack algorithm. */
     bool use_sequential_single_knapsack = false;
 
@@ -47,6 +50,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 
     /** Threshold to consider that a bin contains "many" items. */
     Counter many_items_in_bins_threshold = 16;
+
+    /** Threshold to consider that a bin contains "many" items. */
+    Counter many_items_in_bins_threshold_2 = 64;
 
     /** Factor to consider that the number of copies of items is "high". */
     Counter many_item_type_copies_factor = 1;

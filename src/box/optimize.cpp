@@ -3,11 +3,13 @@
 #include "packingsolver/box/algorithm_formatter.hpp"
 #include "packingsolver/box/instance_builder.hpp"
 #include "box/branching_scheme.hpp"
+#include "box/branching_scheme_maximal_spaces.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
+#include "treesearchsolver/iterative_beam_search.hpp"
 
 #include <thread>
 
@@ -146,6 +148,84 @@ void optimize_tree_search(
             std::stringstream ss;
             ss << "TS g " << branching_schemes[i].parameters().guide_id
                 << " d " << branching_schemes[i].parameters().direction;
+            algorithm_formatter.update_solution(outputs[i].solution_pool.best(), ss.str());
+        }
+    }
+}
+
+void optimize_tree_search_maximal_spaces(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
+    std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
+
+    std::vector<BranchingSchemeMaximalSpaces> branching_schemes;
+    std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces>> ibs_parameters_list;
+    std::vector<box::Output> outputs;
+    {
+        BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
+        branching_schemes.push_back(BranchingSchemeMaximalSpaces(instance, all_blocks, max_reachable_lengths, branching_scheme_parameters));
+        treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> ibs_parameters;
+        ibs_parameters.verbosity_level = 0;
+        ibs_parameters.timer = parameters.timer;
+        ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        ibs_parameters.global_history = true;
+        ibs_parameters_list.push_back(ibs_parameters);
+        outputs.push_back(box::Output(instance));
+    }
+
+    std::vector<std::thread> threads;
+    std::forward_list<std::exception_ptr> exception_ptr_list;
+    for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
+            ibs_parameters_list[i].new_solution_callback
+                = [&algorithm_formatter, &branching_schemes, i](
+                        const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
+                {
+                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
+                        = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
+                    Solution solution = branching_schemes[i].to_solution(
+                            tssibs_output.solution_pool.best());
+                    std::stringstream ss;
+                    ss << "TSMS n " << tssibs_output.maximum_size_of_the_queue;
+                    algorithm_formatter.update_solution(solution, ss.str());
+                };
+        } else {
+            ibs_parameters_list[i].new_solution_callback
+                = [&outputs, &branching_schemes, i](
+                        const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
+                {
+                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
+                        = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
+                    Solution solution = branching_schemes[i].to_solution(
+                            tssibs_output.solution_pool.best());
+                    outputs[i].solution_pool.add(solution);
+                };
+        }
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+            exception_ptr_list.push_front(std::exception_ptr());
+            threads.push_back(std::thread(
+                        wrapper<decltype(&treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>), treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(branching_schemes[i]),
+                        ibs_parameters_list[i]));
+        } else {
+            treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>(
+                    branching_schemes[i],
+                    ibs_parameters_list[i]);
+        }
+    }
+    for (Counter i = 0; i < (Counter)threads.size(); ++i)
+        threads[i].join();
+    for (const std::exception_ptr& exception_ptr: exception_ptr_list)
+        if (exception_ptr)
+            std::rethrow_exception(exception_ptr);
+    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
+        for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
+            std::stringstream ss;
+            ss << "TSMS";
             algorithm_formatter.update_solution(outputs[i].solution_pool.best(), ss.str());
         }
     }
@@ -383,6 +463,7 @@ packingsolver::box::Output packingsolver::box::optimize(
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
     bool use_tree_search = parameters.use_tree_search;
+    bool use_tree_search_maximal_spaces = parameters.use_tree_search_maximal_spaces;
     bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
@@ -393,10 +474,19 @@ packingsolver::box::Output packingsolver::box::optimize(
         use_dichotomic_search = false;
         use_column_generation = false;
         // Automatic selection.
-        if (!use_tree_search)
-            use_tree_search = true;
+        if (!use_tree_search
+                && !use_tree_search_maximal_spaces) {
+            if (instance.objective() == Objective::Knapsack
+                    && mean_number_of_items_in_bins
+                    > parameters.many_items_in_bins_threshold_2) {
+                use_tree_search_maximal_spaces = true;
+            } else {
+                use_tree_search = true;
+            }
+        }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
+        use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
         // Automatic selection.
         if (!use_tree_search
@@ -414,13 +504,19 @@ packingsolver::box::Output packingsolver::box::optimize(
                     use_column_generation = true;
                 }
             } else {
-                use_tree_search = true;
-                use_column_generation = true;
+                if (mean_number_of_items_in_bins
+                        > parameters.many_items_in_bins_threshold_2) {
+                    use_sequential_single_knapsack = true;
+                } else {
+                    use_tree_search = true;
+                    use_column_generation = true;
+                }
             }
         }
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
+        use_tree_search_maximal_spaces = false;
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
@@ -441,11 +537,14 @@ packingsolver::box::Output packingsolver::box::optimize(
                         use_column_generation = true;
                 }
             } else {
-                use_tree_search = true;
                 if (mean_number_of_items_in_bins
-                        > parameters.many_items_in_bins_threshold) {
+                        > parameters.many_items_in_bins_threshold_2) {
                     use_sequential_single_knapsack = true;
+                } else if (mean_number_of_items_in_bins
+                        > parameters.many_items_in_bins_threshold) {
+                    use_tree_search = true;
                 } else {
+                    use_tree_search = true;
                     use_sequential_value_correction = true;
                     if (instance.number_of_bin_types() == 1)
                         use_column_generation = true;
@@ -454,6 +553,7 @@ packingsolver::box::Output packingsolver::box::optimize(
         }
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
+        use_tree_search_maximal_spaces = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
@@ -480,6 +580,11 @@ packingsolver::box::Output packingsolver::box::optimize(
                 }
             } else {
                 if (mean_number_of_items_in_bins
+                        > parameters.many_items_in_bins_threshold_2) {
+                    use_sequential_single_knapsack = true;
+                    if (instance.number_of_bin_types() > 1)
+                        use_dichotomic_search = true;
+                } else if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
                     use_sequential_single_knapsack = true;
                     if (instance.number_of_bin_types() > 1) {
@@ -505,10 +610,11 @@ packingsolver::box::Output packingsolver::box::optimize(
     }
 
     int last_algorithm =
-        (use_column_generation)? 4:
-        (use_dichotomic_search)? 3:
-        (use_sequential_value_correction)? 2:
-        (use_sequential_single_knapsack)? 1:
+        (use_column_generation)? 5:
+        (use_dichotomic_search)? 4:
+        (use_sequential_value_correction)? 3:
+        (use_sequential_single_knapsack)? 2:
+        (use_tree_search_maximal_spaces)? 1:
         (use_tree_search)? 0:
         -1;
 
@@ -533,10 +639,28 @@ packingsolver::box::Output packingsolver::box::optimize(
                     algorithm_formatter);
         }
     }
+    // Tree search with maximal spaces.
+    if (use_tree_search_maximal_spaces) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+                && last_algorithm != 1) {
+            exception_ptr_list.push_front(std::exception_ptr());
+            threads.push_back(std::thread(
+                        wrapper<decltype(&optimize_tree_search_maximal_spaces), optimize_tree_search_maximal_spaces>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        std::ref(algorithm_formatter)));
+        } else {
+            optimize_tree_search_maximal_spaces(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        }
+    }
     // Sequential single knapsack.
     if (use_sequential_single_knapsack) {
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 2) {
+                && last_algorithm != 3) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>,
@@ -554,7 +678,7 @@ packingsolver::box::Output packingsolver::box::optimize(
     // Sequential value correction.
     if (use_sequential_value_correction) {
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 3) {
+                && last_algorithm != 4) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>,
@@ -572,7 +696,7 @@ packingsolver::box::Output packingsolver::box::optimize(
     // Dichotomic search.
     if (use_dichotomic_search) {
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 4) {
+                && last_algorithm != 5) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>,
@@ -590,7 +714,7 @@ packingsolver::box::Output packingsolver::box::optimize(
     // Column generation.
     if (use_column_generation) {
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 5) {
+                && last_algorithm != 6) {
             exception_ptr_list.push_front(std::exception_ptr());
             threads.push_back(std::thread(
                         wrapper<decltype(&optimize_column_generation), optimize_column_generation>,
