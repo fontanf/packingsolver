@@ -217,7 +217,7 @@ Solution linear_programming_anchor(
         double x_weight,
         double y_weight,
         const LinearProgrammingAnchorParameters& parameters,
-        const InstanceConvexDecomposition& icd)
+        const InstanceBasicShapeDecomposition& icd)
 {
     // Check that the solution has a single bin.
     if (initial_solution.number_of_bins() != 1) {
@@ -247,7 +247,7 @@ Solution linear_programming_anchor(
     // Precompute rotated convex decompositions for each solution item.
     // item_rotated_decompositions[item_pos][item_shape_pos] = list of convex parts
     // with the item's angle and mirror already applied.
-    std::vector<std::vector<std::vector<Shape>>> item_rotated_decompositions(initial_solution.bin(bin_pos).items.size());
+    std::vector<std::vector<std::vector<BasicShape>>> item_rotated_decompositions(initial_solution.bin(bin_pos).items.size());
     for (ItemPos item_pos = 0;
             item_pos < (ItemPos)initial_solution.bin(bin_pos).items.size();
             ++item_pos) {
@@ -257,12 +257,9 @@ Solution linear_programming_anchor(
         for (ItemShapePos item_shape_pos = 0;
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
-            for (const Shape& convex_part: icd.item_types[solution_item.item_type_id][item_shape_pos]) {
-                Shape rotated = convex_part;
-                if (solution_item.mirror)
-                    rotated = rotated.axial_symmetry_y_axis();
-                rotated = rotated.rotate(solution_item.angle);
-                item_rotated_decompositions[item_pos][item_shape_pos].push_back(rotated);
+            for (const BasicShape& basic_shape: icd.item_types[solution_item.item_type_id][item_shape_pos]) {
+                item_rotated_decompositions[item_pos][item_shape_pos].push_back(
+                        apply_placement(basic_shape, solution_item.mirror, solution_item.angle));
             }
         }
     }
@@ -282,7 +279,7 @@ Solution linear_programming_anchor(
                 ++item_shape_pos) {
             const auto& parts = item_rotated_decompositions[item_pos][item_shape_pos];
             for (Counter part_pos = 0; part_pos < (Counter)parts.size(); ++part_pos) {
-                const AxisAlignedBoundingBox p = parts[part_pos].compute_min_max();
+                const AxisAlignedBoundingBox p = parts[part_pos].shape.compute_min_max();
                 AxisAlignedBoundingBox ps;
                 ps.x_min = cx + p.x_min;
                 ps.x_max = cx + p.x_max;
@@ -293,11 +290,11 @@ Solution linear_programming_anchor(
         }
     }
     std::vector<AxisAlignedBoundingBox> border_part_aabbs;
-    for (const Shape& part: icd.bin_types_borders[bin_type_id])
-        border_part_aabbs.push_back(part.compute_min_max());
+    for (const BasicShape& part: icd.bin_types_borders[bin_type_id])
+        border_part_aabbs.push_back(part.shape.compute_min_max());
     std::vector<AxisAlignedBoundingBox> defect_part_aabbs;
-    for (const Shape& part: icd.bin_types_defects[bin_type_id])
-        defect_part_aabbs.push_back(part.compute_min_max());
+    for (const BasicShape& part: icd.bin_types_defects[bin_type_id])
+        defect_part_aabbs.push_back(part.shape.compute_min_max());
 
     LengthDbl movement_box_half_size = 10;
 
@@ -406,10 +403,10 @@ Solution linear_programming_anchor(
             const SolutionItem& item_1 = solution_bin.items[item_1_pos];
             const SolutionItem& item_2 = solution_bin.items[item_2_pos];
             const EdgeSeparationConstraintParameters p = find_best_edge_separator(
-                    item_rotated_decompositions[item_1_pos][e.item_shape_1_pos][e.item_part_1_pos],
+                    item_rotated_decompositions[item_1_pos][e.item_shape_1_pos][e.item_part_1_pos].shape,
                     sv * item_1.bl_corner,
                     1.0,
-                    item_rotated_decompositions[item_2_pos][e.item_shape_2_pos][e.item_part_2_pos],
+                    item_rotated_decompositions[item_2_pos][e.item_shape_2_pos][e.item_part_2_pos].shape,
                     sv * item_2.bl_corner,
                     1.0);
             if (shape::equal(p.coef_x1, 0.0) && shape::equal(p.coef_y1, 0.0))
@@ -443,10 +440,10 @@ Solution linear_programming_anchor(
             ItemPos item_pos = unfixed_items[e.item_var_pos];
             const SolutionItem& item = solution_bin.items[item_pos];
             const EdgeSeparationConstraintParameters p = find_best_edge_separator(
-                    item_rotated_decompositions[item_pos][e.item_shape_pos][e.item_part_pos],
+                    item_rotated_decompositions[item_pos][e.item_shape_pos][e.item_part_pos].shape,
                     sv * item.bl_corner,
                     1.0,
-                    icd.bin_types_borders[bin_type_id][e.defect_pos],
+                    icd.bin_types_borders[bin_type_id][e.defect_pos].shape,
                     Point{0, 0},
                     1.0);
             if (shape::equal(p.coef_x1, 0.0) && shape::equal(p.coef_y1, 0.0))
@@ -474,10 +471,10 @@ Solution linear_programming_anchor(
             ItemPos item_pos = unfixed_items[e.item_var_pos];
             const SolutionItem& item = solution_bin.items[item_pos];
             const EdgeSeparationConstraintParameters p = find_best_edge_separator(
-                    item_rotated_decompositions[item_pos][e.item_shape_pos][e.item_part_pos],
+                    item_rotated_decompositions[item_pos][e.item_shape_pos][e.item_part_pos].shape,
                     sv * item.bl_corner,
                     1.0,
-                    icd.bin_types_defects[bin_type_id][e.defect_pos],
+                    icd.bin_types_defects[bin_type_id][e.defect_pos].shape,
                     Point{0, 0},
                     1.0);
             if (shape::equal(p.coef_x1, 0.0) && shape::equal(p.coef_y1, 0.0))
@@ -508,8 +505,8 @@ Solution linear_programming_anchor(
             ItemPos item_2_pos = unfixed_items[e.item_2_var_pos];
             const SolutionItem& item_1 = solution_bin.items[item_1_pos];
             const SolutionItem& item_2 = solution_bin.items[item_2_pos];
-            const Shape& convex_part_1 = item_rotated_decompositions[item_1_pos][e.item_shape_1_pos][e.item_part_1_pos];
-            const Shape& convex_part_2 = item_rotated_decompositions[item_2_pos][e.item_shape_2_pos][e.item_part_2_pos];
+            const Shape& convex_part_1 = item_rotated_decompositions[item_1_pos][e.item_shape_1_pos][e.item_part_1_pos].shape;
+            const Shape& convex_part_2 = item_rotated_decompositions[item_2_pos][e.item_shape_2_pos][e.item_part_2_pos].shape;
             const EdgeSeparationConstraintParameters p = find_best_edge_separator(
                     convex_part_1,
                     sv * item_1.bl_corner,
@@ -634,7 +631,7 @@ LinearProgrammingAnchorOutput packingsolver::irregular::linear_programming_ancho
     const Instance& instance = initial_solution.instance();
     LinearProgrammingAnchorOutput output(instance);
 
-    const InstanceConvexDecomposition icd = compute_instance_convex_decomposition(instance);
+    const InstanceBasicShapeDecomposition icd = compute_instance_basic_shape_decomposition(instance);
 
     Solution solution(instance);
     for (BinPos bin_pos = 0;
@@ -686,7 +683,7 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
     const BinTypeId bin_type_id = initial_solution.bin(bin_pos).bin_type_id;
     const BinType& bin_type = instance.bin_type(bin_type_id);
 
-    const InstanceConvexDecomposition icd = compute_instance_convex_decomposition(instance);
+    const InstanceBasicShapeDecomposition icd = compute_instance_basic_shape_decomposition(instance);
 
     // Compute fixed and unfixed items.
     std::vector<ItemPos> fixed_items;
@@ -703,7 +700,7 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
     }
 
     // Precompute rotated convex decompositions.
-    std::vector<std::vector<std::vector<Shape>>> item_rotated_decompositions(
+    std::vector<std::vector<std::vector<BasicShape>>> item_rotated_decompositions(
             initial_solution.bin(bin_pos).items.size());
     for (ItemPos item_pos = 0;
             item_pos < (ItemPos)initial_solution.bin(bin_pos).items.size();
@@ -714,12 +711,9 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
         for (ItemShapePos item_shape_pos = 0;
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
-            for (const Shape& convex_part: icd.item_types[solution_item.item_type_id][item_shape_pos]) {
-                Shape rotated = convex_part;
-                if (solution_item.mirror)
-                    rotated = rotated.axial_symmetry_y_axis();
-                rotated = rotated.rotate(solution_item.angle);
-                item_rotated_decompositions[item_pos][item_shape_pos].push_back(rotated);
+            for (const BasicShape& basic_shape: icd.item_types[solution_item.item_type_id][item_shape_pos]) {
+                item_rotated_decompositions[item_pos][item_shape_pos].push_back(
+                        apply_placement(basic_shape, solution_item.mirror, solution_item.angle));
             }
         }
     }
@@ -739,7 +733,7 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
                 ++item_shape_pos) {
             const auto& parts = item_rotated_decompositions[item_pos][item_shape_pos];
             for (Counter part_pos = 0; part_pos < (Counter)parts.size(); ++part_pos) {
-                const AxisAlignedBoundingBox p = parts[part_pos].compute_min_max();
+                const AxisAlignedBoundingBox p = parts[part_pos].shape.compute_min_max();
                 AxisAlignedBoundingBox ps;
                 ps.x_min = cx + p.x_min;
                 ps.x_max = cx + p.x_max;
@@ -750,11 +744,11 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
         }
     }
     std::vector<AxisAlignedBoundingBox> border_part_aabbs;
-    for (const Shape& part: icd.bin_types_borders[bin_type_id])
-        border_part_aabbs.push_back(part.compute_min_max());
+    for (const BasicShape& part: icd.bin_types_borders[bin_type_id])
+        border_part_aabbs.push_back(part.shape.compute_min_max());
     std::vector<AxisAlignedBoundingBox> defect_part_aabbs;
-    for (const Shape& part: icd.bin_types_defects[bin_type_id])
-        defect_part_aabbs.push_back(part.compute_min_max());
+    for (const BasicShape& part: icd.bin_types_defects[bin_type_id])
+        defect_part_aabbs.push_back(part.shape.compute_min_max());
 
     const LengthDbl sv = instance.parameters().scale_value;
     const LengthDbl movement_box_half_size = 10;
@@ -913,10 +907,10 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
             const SolutionItem& item_1 = solution_bin.items[item_1_pos];
             const SolutionItem& item_2 = solution_bin.items[item_2_pos];
             const EdgeSeparationConstraintParameters p = find_best_edge_separator(
-                    item_rotated_decompositions[item_1_pos][e.item_shape_1_pos][e.item_part_1_pos],
+                    item_rotated_decompositions[item_1_pos][e.item_shape_1_pos][e.item_part_1_pos].shape,
                     sv * item_1.bl_corner,
                     current_lambda[item_1_pos],
-                    item_rotated_decompositions[item_2_pos][e.item_shape_2_pos][e.item_part_2_pos],
+                    item_rotated_decompositions[item_2_pos][e.item_shape_2_pos][e.item_part_2_pos].shape,
                     sv * item_2.bl_corner,
                     current_lambda[item_2_pos]);
             lp_model.constraints_starts.push_back(lp_model.elements_variables.size());
@@ -951,10 +945,10 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
             ItemPos item_pos = unfixed_items[e.item_var_pos];
             const SolutionItem& item = solution_bin.items[item_pos];
             const EdgeSeparationConstraintParameters p = find_best_edge_separator(
-                    item_rotated_decompositions[item_pos][e.item_shape_pos][e.item_part_pos],
+                    item_rotated_decompositions[item_pos][e.item_shape_pos][e.item_part_pos].shape,
                     sv * item.bl_corner,
                     current_lambda[item_pos],
-                    icd.bin_types_borders[bin_type_id][e.defect_pos],
+                    icd.bin_types_borders[bin_type_id][e.defect_pos].shape,
                     {0, 0},
                     1.0);
             lp_model.constraints_starts.push_back(lp_model.elements_variables.size());
@@ -984,10 +978,10 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
             ItemPos item_pos = unfixed_items[e.item_var_pos];
             const SolutionItem& item = solution_bin.items[item_pos];
             const EdgeSeparationConstraintParameters p = find_best_edge_separator(
-                    item_rotated_decompositions[item_pos][e.item_shape_pos][e.item_part_pos],
+                    item_rotated_decompositions[item_pos][e.item_shape_pos][e.item_part_pos].shape,
                     sv * item.bl_corner,
                     current_lambda[item_pos],
-                    icd.bin_types_defects[bin_type_id][e.defect_pos],
+                    icd.bin_types_defects[bin_type_id][e.defect_pos].shape,
                     {0, 0},
                     1.0);
             lp_model.constraints_starts.push_back(lp_model.elements_variables.size());
@@ -1017,8 +1011,8 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
             ItemPos item_2_pos = unfixed_items[e.item_2_var_pos];
             const SolutionItem& item_1 = solution_bin.items[item_1_pos];
             const SolutionItem& item_2 = solution_bin.items[item_2_pos];
-            const Shape& convex_part_1 = item_rotated_decompositions[item_1_pos][e.item_shape_1_pos][e.item_part_1_pos];
-            const Shape& convex_part_2 = item_rotated_decompositions[item_2_pos][e.item_shape_2_pos][e.item_part_2_pos];
+            const Shape& convex_part_1 = item_rotated_decompositions[item_1_pos][e.item_shape_1_pos][e.item_part_1_pos].shape;
+            const Shape& convex_part_2 = item_rotated_decompositions[item_2_pos][e.item_shape_2_pos][e.item_part_2_pos].shape;
             std::string constraint_name
                 = "sep_i" + std::to_string(e.item_1_var_pos)
                 + "_s" + std::to_string(e.item_shape_1_pos)
@@ -1200,8 +1194,8 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
             const SolutionBin& bin_curr = new_solution.bin(bin_pos);
             ItemPos item_1_pos = unfixed_items[e.item_1_var_pos];
             ItemPos item_2_pos = unfixed_items[e.item_2_var_pos];
-            const Shape& convex_part_1 = item_rotated_decompositions[item_1_pos][e.item_shape_1_pos][e.item_part_1_pos];
-            const Shape& convex_part_2 = item_rotated_decompositions[item_2_pos][e.item_shape_2_pos][e.item_part_2_pos];
+            const Shape& convex_part_1 = item_rotated_decompositions[item_1_pos][e.item_shape_1_pos][e.item_part_1_pos].shape;
+            const Shape& convex_part_2 = item_rotated_decompositions[item_2_pos][e.item_shape_2_pos][e.item_part_2_pos].shape;
             Shape convex_part_1_prev = convex_part_1;
             Shape convex_part_2_prev = convex_part_2;
             Shape convex_part_1_curr = convex_part_1;

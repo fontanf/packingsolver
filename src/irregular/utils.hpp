@@ -14,43 +14,104 @@
 
 #include <vector>
 
+////////////////////////////////////////////////////////////////////////////////
+// Basic shapes decomposition
+////////////////////////////////////////////////////////////////////////////////
+
 namespace packingsolver
 {
 namespace irregular
 {
 
+enum class BasicShapeType
+{
+    ConvexPolygon,
+    CircularSegment,
+};
+
+/**
+ * A basic shape in the sense of Chernov et al. 2012:
+ * - ConvexPolygon: shape is the polygon K
+ * - CircularSegment: D = C ∩ T; shape is the CCW triangle T formed by the
+ *   chord and the two tangent lines at the arc endpoints; circle_center and
+ *   circle_radius define C.  Phi^KD = max{Phi^KC, Phi^KT}.
+ */
+struct BasicShape
+{
+    BasicShapeType type = BasicShapeType::ConvexPolygon;
+    Shape shape;
+    Point circle_center = {0, 0};
+    LengthDbl circle_radius = 0;
+};
+
+struct BasicShapesDecomposition
+{
+    std::vector<BasicShape> basic_shapes;
+};
+
+/**
+ * Decompose a shape whose boundary consists of line segments and convex
+ * circular arcs into basic objects: convex polygons and circular segments.
+ *
+ * Each convex arc is cut off as a circular segment (arc + chord), leaving a
+ * pure polygon which is then split into convex parts.  If a chord would cross
+ * another boundary element the arc is subdivided at its midpoint and the
+ * halves are retried.
+ */
+BasicShapesDecomposition decompose_into_basic_shapes(const Shape& shape);
+
+/** Apply mirror and rotation to a BasicShape (both the polygon and circle center). */
+inline BasicShape apply_placement(
+        const BasicShape& basic_shape,
+        bool mirror,
+        Angle angle)
+{
+    BasicShape result = basic_shape;
+    if (mirror) {
+        result.shape = result.shape.axial_symmetry_y_axis();
+        if (result.type == BasicShapeType::CircularSegment)
+            result.circle_center = result.circle_center.axial_symmetry_y_axis();
+    }
+    result.shape = result.shape.rotate(angle);
+    if (result.type == BasicShapeType::CircularSegment)
+        result.circle_center = result.circle_center.rotate(angle);
+    return result;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Convex decomposition of the instance
 ////////////////////////////////////////////////////////////////////////////////
 
-struct InstanceConvexDecomposition
+struct InstanceBasicShapeDecomposition
 {
-    std::vector<std::vector<std::vector<Shape>>> item_types;
-    std::vector<std::vector<Shape>> bin_types_borders;
-    std::vector<std::vector<Shape>> bin_types_defects;
+    std::vector<std::vector<std::vector<BasicShape>>> item_types;
+    std::vector<std::vector<BasicShape>> bin_types_borders;
+    std::vector<std::vector<BasicShape>> bin_types_defects;
 };
 
-inline InstanceConvexDecomposition compute_instance_convex_decomposition(
+inline InstanceBasicShapeDecomposition compute_instance_basic_shape_decomposition(
         const Instance& instance)
 {
-    InstanceConvexDecomposition icd;
+    InstanceBasicShapeDecomposition ibsd;
 
-    icd.item_types.resize(instance.number_of_item_types());
+    ibsd.item_types.resize(instance.number_of_item_types());
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        icd.item_types[item_type_id].resize(item_type.shapes.size());
+        ibsd.item_types[item_type_id].resize(item_type.shapes.size());
         for (ItemShapePos item_shape_pos = 0;
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
-            icd.item_types[item_type_id][item_shape_pos] = shape::compute_convex_partition(
-                    item_type.shapes[item_shape_pos].shape_scaled);
+            const BasicShapesDecomposition decomp = decompose_into_basic_shapes(
+                    item_type.shapes[item_shape_pos].shape_scaled.shape);
+            for (const BasicShape& basic_shape: decomp.basic_shapes)
+                ibsd.item_types[item_type_id][item_shape_pos].push_back(basic_shape);
         }
     }
 
-    icd.bin_types_borders.resize(instance.number_of_bin_types());
-    icd.bin_types_defects.resize(instance.number_of_bin_types());
+    ibsd.bin_types_borders.resize(instance.number_of_bin_types());
+    ibsd.bin_types_defects.resize(instance.number_of_bin_types());
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
@@ -59,19 +120,27 @@ inline InstanceConvexDecomposition compute_instance_convex_decomposition(
                 border_pos < (Counter)bin_type.borders.size();
                 ++border_pos) {
             for (const Shape& part: shape::compute_convex_partition(
-                    bin_type.borders[border_pos].shape_scaled))
-                icd.bin_types_borders[bin_type_id].push_back(part);
+                    bin_type.borders[border_pos].shape_scaled)) {
+                BasicShape basic_shape;
+                basic_shape.type = BasicShapeType::ConvexPolygon;
+                basic_shape.shape = part;
+                ibsd.bin_types_borders[bin_type_id].push_back(basic_shape);
+            }
         }
         for (Counter defect_pos = 0;
                 defect_pos < (Counter)bin_type.defects.size();
                 ++defect_pos) {
             for (const Shape& part: shape::compute_convex_partition(
-                    bin_type.defects[defect_pos].shape_scaled))
-                icd.bin_types_defects[bin_type_id].push_back(part);
+                    bin_type.defects[defect_pos].shape_scaled)) {
+                BasicShape basic_shape;
+                basic_shape.type = BasicShapeType::ConvexPolygon;
+                basic_shape.shape = part;
+                ibsd.bin_types_defects[bin_type_id].push_back(basic_shape);
+            }
         }
     }
 
-    return icd;
+    return ibsd;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -154,7 +223,7 @@ inline std::vector<ItemAxisAlignedBoundingBoxes> compute_unfixed_item_aabbs(
         const Instance& instance,
         const SolutionBin& solution_bin,
         LengthDbl movement_box_half_size,
-        const std::vector<std::vector<std::vector<Shape>>>& item_rotated_decompositions,
+        const std::vector<std::vector<std::vector<BasicShape>>>& item_rotated_decompositions,
         const std::vector<double>& current_lambda)
 {
     std::vector<ItemAxisAlignedBoundingBoxes> item_aabbs;
@@ -178,7 +247,7 @@ inline std::vector<ItemAxisAlignedBoundingBoxes> compute_unfixed_item_aabbs(
             aabbs.part_solution_aabbs[item_shape_pos].resize(parts.size());
             aabbs.part_movement_aabbs[item_shape_pos].resize(parts.size());
             for (Counter part_pos = 0; part_pos < (Counter)parts.size(); ++part_pos) {
-                const AxisAlignedBoundingBox p = parts[part_pos].compute_min_max();
+                const AxisAlignedBoundingBox p = parts[part_pos].shape.compute_min_max();
 
                 AxisAlignedBoundingBox ps;
                 ps.x_min = cx + lam * p.x_min;
