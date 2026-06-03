@@ -5,6 +5,8 @@
 #include "rectangleguillotine/solution_builder.hpp"
 #include "algorithms/thread_pool.hpp"
 
+#include "packingsolver/rectangleguillotine/instance_builder.hpp"
+
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
 
@@ -27,8 +29,10 @@ class ColumnGenerationPricingSolver: public columngenerationsolver::PricingSolve
 public:
 
     ColumnGenerationPricingSolver(
-            const Instance& instance):
+            const Instance& instance,
+            const ColumnGeneration2Parameters& parameters):
         instance_(instance),
+        parameters_(parameters),
         filled_demands_(instance.number_of_item_types())
     { }
 
@@ -74,6 +78,8 @@ private:
             Value& reduced_cost_bound);
 
     const Instance& instance_;
+
+    const ColumnGeneration2Parameters& parameters_;
 
     std::vector<ItemPos> filled_demands_;
 
@@ -387,7 +393,8 @@ struct GetModelOutput
 };
 
 GetModelOutput get_model(
-        const Instance& instance)
+        const Instance& instance,
+        const ColumnGeneration2Parameters& parameters)
 {
     const BinType& bin_type = instance.bin_type(0);
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
@@ -453,7 +460,7 @@ GetModelOutput get_model(
 
     // Pricing solver.
     model.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
-            new ColumnGenerationPricingSolver(instance));
+            new ColumnGenerationPricingSolver(instance, parameters));
 
     // Try to generate all columns.
 
@@ -602,6 +609,8 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             onedimensional::OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;
             auto kp_output = optimize(kp_instance, kp_parameters);
+            if (parameters_.timer.needs_to_end())
+                break;
 
             // Retrieve solution.
             SolutionBuilder extra_solution_builder(instance_);
@@ -749,6 +758,8 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
         onedimensional::OptimizeParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
         auto kp_output = optimize(kp_instance, kp_parameters);
+        if (parameters_.timer.needs_to_end())
+            break;
 
         // Retrieve width_max.
         Length width_max = 0;
@@ -983,6 +994,8 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         onedimensional::OptimizeParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
         auto kp_output = optimize(kp_instance, kp_parameters);
+        if (parameters_.timer.needs_to_end())
+            break;
 
         // Retrieve width_max.
         Length width_max = 0;
@@ -1204,6 +1217,8 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
         onedimensional::OptimizeParameters kp_parameters;
         kp_parameters.verbosity_level = 0;
         auto kp_output = optimize(kp_instance, kp_parameters);
+        if (parameters_.timer.needs_to_end())
+            break;
 
         // Retrieve width_max.
         Length width_max = 0;
@@ -1338,7 +1353,170 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         PricingOutput& output,
         Value& reduced_cost_bound)
 {
-    // TODO
+    //std::cout << "generate_lower_stage_patterns" << std::endl;
+    const BinType& bin_type = instance_.bin_type(0);
+    double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
+    double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
+    Length cut_thickness = instance_.parameters().cut_thickness;
+    Length available_width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+    Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
+
+    // Iterate over strip widths from largest to smallest.
+    Length width = available_width;
+    for (;;) {
+        //std::cout << "width " << width << std::endl;
+        // Build sub-instance: strip of 'width × height' with 'number_of_stages - 1' stages.
+        // The outer first stage is vertical, so the sub-problem's first stage is horizontal.
+        InstanceBuilder sub_instance_builder;
+        sub_instance_builder.set_objective(Objective::Knapsack);
+        rectangleguillotine::Parameters sub_parameters = instance_.parameters();
+        sub_parameters.number_of_stages = instance_.parameters().number_of_stages - 1;
+        sub_parameters.first_stage_orientation = CutOrientation::Horizontal;
+        sub_instance_builder.set_parameters(sub_parameters);
+        sub_instance_builder.add_bin_type(width, height, -1, 1, 0);
+
+        std::vector<ItemTypeId> sub2orig;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+
+            ItemPos copies = item_type.copies - filled_demands_[item_type_id];
+            if (copies <= 0)
+                continue;
+
+            Profit profit = 0;
+            if (instance_.objective() == Objective::OpenDimensionX) {
+                profit = duals[item_type_id];
+            } else if (instance_.objective() == Objective::Knapsack) {
+                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+            }
+            if (!strictly_greater(profit, 0.0))
+                continue;
+
+            // Check if item can fit in the strip (either orientation).
+            bool fits = (item_type.rect.w <= width && item_type.rect.h <= height)
+                || (!item_type.oriented && item_type.rect.h <= width && item_type.rect.w <= height);
+            if (!fits)
+                continue;
+
+            sub_instance_builder.add_item_type(instance_, item_type_id, profit, copies);
+            sub2orig.push_back(item_type_id);
+        }
+
+        if (sub2orig.empty())
+            break;
+
+        Instance sub_instance = sub_instance_builder.build();
+
+        ColumnGeneration2Parameters sub_params;
+        sub_params.verbosity_level = 0;
+        sub_params.automatic_stop = true;
+        auto sub_output = column_generation_2(sub_instance, sub_params);
+        if (parameters_.timer.needs_to_end())
+            break;
+
+        const Solution& sub_solution = sub_output.solution_pool.best();
+        if (sub_solution.number_of_items() == 0)
+            break;
+
+        const SolutionBin& sub_bin = sub_solution.bin(0);
+
+        // Compute the actual used width: max node.r over depth-2 non-waste nodes.
+        // Depth-2 is the first vertical-cut level in the horizontal-first-stage
+        // sub-solution, so node.r is the right edge of each vertical strip.
+        // Waste nodes (item_type_id == -1) are excluded because auto-created waste
+        // always spans to the parent's right edge (= sub-bin width), which would
+        // give actual_used_width = width regardless of actual item placement.
+        Length actual_used_width = 0;
+        for (const SolutionNode& sub_node: sub_bin.nodes) {
+            if (sub_node.d == 2 && sub_node.item_type_id != -1)
+                actual_used_width = std::max(actual_used_width, sub_node.r);
+        }
+        //std::cout << "sub_width " << sub_solution.width() << std::endl;
+        //sub_solution.write("solution_rectangleguillotine_" + std::to_string(sub_solution.width())
+        //        + "_" + std::to_string(width) + ".csv");
+
+        // Build column for the outer problem.
+        Column column;
+
+        // Item type elements.
+        for (ItemTypeId sub_item_type_id = 0;
+                sub_item_type_id < sub_instance.number_of_item_types();
+                ++sub_item_type_id) {
+            ItemPos copies = sub_solution.item_copies(sub_item_type_id);
+            if (copies == 0)
+                continue;
+
+            ItemTypeId item_type_id = sub2orig[sub_item_type_id];
+            const ItemType& item_type = instance_.item_type(item_type_id);
+
+            if (instance_.objective() == Objective::Knapsack) {
+                column.objective_coefficient += copies * item_type.profit / multiplier_profit;
+            }
+
+            columngenerationsolver::LinearTerm element;
+            element.row = item_type_id;
+            element.coefficient = copies;
+            column.elements.push_back(element);
+        }
+
+        // Width element: the strip claims 'actual_used_width' units of the outer bin.
+        if (instance_.objective() == Objective::OpenDimensionX) {
+            column.objective_coefficient =
+                (double)(actual_used_width + cut_thickness) / multiplier_length;
+        } else {
+            columngenerationsolver::LinearTerm element;
+            element.row = instance_.number_of_item_types();
+            element.coefficient =
+                (double)(actual_used_width + cut_thickness) / multiplier_length;
+            column.elements.push_back(element);
+        }
+
+        // Build extra solution for callback reconstruction.
+        //
+        // The outer first stage is vertical (depth-1 nodes are vertical cuts).
+        // The sub-solution has horizontal first stage, so:
+        //   - Sub odd depths (horizontal): add with depth+1 (outer even) using bottom_trim + t
+        //   - Sub even depths (vertical): add with depth+1 (outer odd) using left_trim + r
+        // The outer depth-1 node uses actual_used_width, not the full 'width'.
+        SolutionBuilder extra_solution_builder(instance_);
+        extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
+        extra_solution_builder.add_node(1, bin_type.left_trim + actual_used_width);
+        for (const SolutionNode& sub_node: sub_bin.nodes) {
+            if (sub_node.d <= 0)
+                continue;
+            if (sub_node.d % 2 == 1) {
+                // Horizontal cut in sub (odd depth) → outer even depth; t coordinate.
+                extra_solution_builder.add_node(
+                        sub_node.d + 1,
+                        bin_type.bottom_trim + sub_node.t);
+            } else {
+                // Vertical cut in sub (even depth) → outer odd depth; r coordinate.
+                // Cap at actual_used_width: waste nodes that auto-fill to the sub-bin
+                // width must be resized to fit the narrower outer strip.  Skip entirely
+                // when the node's l already meets or exceeds actual_used_width (capping
+                // would yield zero or negative width).
+                if (sub_node.l >= actual_used_width)
+                    continue;
+                extra_solution_builder.add_node(
+                        sub_node.d + 1,
+                        bin_type.left_trim + std::min(sub_node.r, actual_used_width));
+            }
+            if (sub_node.item_type_id >= 0) {
+                extra_solution_builder.set_last_node_item(sub2orig[sub_node.item_type_id]);
+            }
+        }
+        Solution extra_solution = extra_solution_builder.build();
+        column.extra = std::shared_ptr<void>(new Solution(extra_solution));
+
+        output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
+
+        if (actual_used_width == 0)
+            break;
+        width = actual_used_width - 1;
+    }
+    //std::cout << "generate_lower_stage_patterns end" << std::endl;
 }
 
 PricingOutput ColumnGenerationPricingSolver::solve_pricing(
@@ -1461,7 +1639,6 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         }
     }
 
-    //std::cout << "solve_pricing end" << std::endl;
     output.overcost = instance_.number_of_items() * reduced_cost_bound;
     //for (const auto& column: output.columns)
     //    std::cout << *column << std::endl;
@@ -1473,7 +1650,7 @@ void column_generation_2_vertical(
         const ColumnGeneration2Parameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    GetModelOutput cgs_model = get_model(instance);
+    GetModelOutput cgs_model = get_model(instance, parameters);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     for (const auto& column: cgs_model.column_pool)
         cgslds_parameters.column_pool.push_back(column);
