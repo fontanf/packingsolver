@@ -518,7 +518,6 @@ GetModelOutput get_model(
 std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initialize_pricing(
         const std::vector<std::pair<std::shared_ptr<const Column>, Value>>& fixed_columns)
 {
-    //std::cout << "initialize_pricing " << fixed_columns.size() << std::endl;
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
     std::fill(filled_demands_.begin(), filled_demands_.end(), 0);
@@ -1353,7 +1352,6 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         PricingOutput& output,
         Value& reduced_cost_bound)
 {
-    //std::cout << "generate_lower_stage_patterns" << std::endl;
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
@@ -1361,21 +1359,18 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
     Length available_width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
 
-    // Iterate over strip widths from largest to smallest.
+    // Hoist the width-constraint dual: constant across all iterations.
+    Value width_dual = 0.0;
+    if (instance_.objective() == Objective::Knapsack)
+        width_dual = duals[instance_.number_of_item_types()];
+
     Length width = available_width;
     for (;;) {
-        //std::cout << "width " << width << std::endl;
-        // Build sub-instance: strip of 'width × height' with 'number_of_stages - 1' stages.
-        // The outer first stage is vertical, so the sub-problem's first stage is horizontal.
-        InstanceBuilder sub_instance_builder;
-        sub_instance_builder.set_objective(Objective::Knapsack);
-        rectangleguillotine::Parameters sub_parameters = instance_.parameters();
-        sub_parameters.number_of_stages = instance_.parameters().number_of_stages - 1;
-        sub_parameters.first_stage_orientation = CutOrientation::Horizontal;
-        sub_instance_builder.set_parameters(sub_parameters);
-        sub_instance_builder.add_bin_type(width, height, -1, 1, 0);
-
+        // Phase 1 (cheap): identify eligible items and accumulate an upper bound
+        // on the achievable sum of reduced profits for a strip of this width.
+        // This avoids building the sub-instance and solving when the bound is too low.
         std::vector<ItemTypeId> sub2orig;
+        Value max_profit_sum = 0;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance_.number_of_item_types();
                 ++item_type_id) {
@@ -1394,24 +1389,64 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
             if (!strictly_greater(profit, 0.0))
                 continue;
 
-            // Check if item can fit in the strip (either orientation).
             bool fits = (item_type.rect.w <= width && item_type.rect.h <= height)
                 || (!item_type.oriented && item_type.rect.h <= width && item_type.rect.w <= height);
             if (!fits)
                 continue;
 
-            sub_instance_builder.add_item_type(instance_, item_type_id, profit, copies);
+            max_profit_sum += (Value)copies * profit / multiplier_profit;
             sub2orig.push_back(item_type_id);
         }
 
         if (sub2orig.empty())
             break;
 
+        // Pre-filter: if the upper bound on the sum of reduced profits does not
+        // exceed the width cost threshold, no packing in this strip can yield a
+        // positive reduced cost.  Jump directly to the highest width where positive
+        // reduced cost is still theoretically possible.
+        if (strictly_greater(width_dual, 0.0)) {
+            Value threshold = (Value)(width + cut_thickness) / multiplier_length * width_dual;
+            if (!strictly_greater(max_profit_sum, threshold)) {
+                double bound = max_profit_sum * multiplier_length / width_dual
+                    - cut_thickness
+                    - 1e-9;
+                if (bound < 1)
+                    break;
+                width = (Length)bound;
+                continue;
+            }
+        }
+
+        // Phase 2: build the sub-instance and solve.
+        // Sub-instance: strip of 'width × height' with 'number_of_stages - 1' stages.
+        // The outer first stage is vertical, so the sub-problem's first stage is horizontal.
+        InstanceBuilder sub_instance_builder;
+        sub_instance_builder.set_objective(Objective::Knapsack);
+        rectangleguillotine::Parameters sub_parameters = instance_.parameters();
+        sub_parameters.number_of_stages = instance_.parameters().number_of_stages - 1;
+        sub_parameters.first_stage_orientation = CutOrientation::Horizontal;
+        sub_instance_builder.set_parameters(sub_parameters);
+        sub_instance_builder.add_bin_type(width, height, -1, 1, 0);
+
+        for (ItemTypeId item_type_id: sub2orig) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+            ItemPos copies = item_type.copies - filled_demands_[item_type_id];
+            Profit profit = 0;
+            if (instance_.objective() == Objective::OpenDimensionX) {
+                profit = duals[item_type_id];
+            } else if (instance_.objective() == Objective::Knapsack) {
+                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+            }
+            sub_instance_builder.add_item_type(instance_, item_type_id, profit, copies);
+        }
+
         Instance sub_instance = sub_instance_builder.build();
 
         ColumnGeneration2Parameters sub_params;
         sub_params.verbosity_level = 0;
         sub_params.automatic_stop = true;
+        sub_params.timer = parameters_.timer;
         auto sub_output = column_generation_2(sub_instance, sub_params);
         if (parameters_.timer.needs_to_end())
             break;
@@ -1509,12 +1544,35 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         }
         Solution extra_solution = extra_solution_builder.build();
         column.extra = std::shared_ptr<void>(new Solution(extra_solution));
-
         output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
 
         if (actual_used_width == 0)
             break;
-        width = actual_used_width - 1;
+
+        // Compute the next width to try.
+        //
+        // Any strip of width w' ≤ actual_used_width can pack at most the same
+        // sum of reduced profits as the current column.  For a column at w' to
+        // have positive reduced cost we therefore need:
+        //
+        //   sum_reduced_profit > (w' + cut_t) / multiplier_length × width_dual
+        //   ⟺  w' < actual_used_width + rc × multiplier_length / width_dual
+        //
+        // When rc ≤ 0 this gives a tighter upper bound than actual_used_width - 1
+        // and lets us skip widths that provably cannot yield a positive reduced cost.
+        Length width_next = actual_used_width - 1;
+        if (strictly_greater(width_dual, 0.0)) {
+            Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
+            if (!strictly_greater(rc, 0.0)) {
+                double bound = actual_used_width
+                    + rc * multiplier_length / width_dual
+                    - 1e-9;
+                if (bound < 1)
+                    break;
+                width_next = std::min(width_next, (Length)bound);
+            }
+        }
+        width = width_next;
     }
     //std::cout << "generate_lower_stage_patterns end" << std::endl;
 }
