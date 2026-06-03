@@ -1545,6 +1545,9 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         Solution extra_solution = extra_solution_builder.build();
         column.extra = std::shared_ptr<void>(new Solution(extra_solution));
         output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
+        Value rc_bound = sub_output.knapsack_bound / multiplier_profit
+            - width_dual * actual_used_width / multiplier_length;
+        reduced_cost_bound = (std::max)(reduced_cost_bound, rc_bound);
 
         if (actual_used_width == 0)
             break;
@@ -1695,6 +1698,8 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                 || (instance_.parameters().number_of_stages >= 4)) {
             generate_lower_stage_patterns(duals, output, reduced_cost_bound);
         }
+    } else {
+        reduced_cost_bound = std::numeric_limits<Value>::infinity();
     }
 
     output.overcost = instance_.number_of_items() * reduced_cost_bound;
