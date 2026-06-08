@@ -956,25 +956,13 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         return output;
     }
 
-    int last_algorithm =
-        (use_sequential_feasibility)? 7:
-        (use_column_generation)? 6:
-        (use_dichotomic_search)? 5:
-        (use_sequential_value_correction)? 4:
-        (use_sequential_single_knapsack)? 3:
-        (use_milp_raster)? 2:
-        (use_local_search)? 1:
-        (use_tree_search)? 0:
-        -1;
-
     // Run selected algorithms.
     std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     // Tree search.
     if (use_tree_search) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 0) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_tree_search), optimize_tree_search>(
@@ -997,8 +985,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // MILP raster.
     if (use_milp_raster) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 1) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_milp_raster), optimize_milp_raster>(
@@ -1021,8 +1008,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // Local search.
     if (use_local_search) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 0) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_local_search), optimize_local_search>(
@@ -1045,8 +1031,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // Sequential single knapsack.
     if (use_sequential_single_knapsack) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 2) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>(
@@ -1070,8 +1055,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // Sequential value correction.
     if (use_sequential_value_correction) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 3) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>(
@@ -1094,8 +1078,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // Dichotomic search.
     if (use_dichotomic_search) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 4) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>(
@@ -1118,8 +1101,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // Column generation.
     if (use_column_generation) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 5) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
@@ -1142,8 +1124,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     // Sequential feasibility.
     if (use_sequential_feasibility) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 6) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_sequential_feasibility), optimize_sequential_feasibility>(

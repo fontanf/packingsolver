@@ -597,23 +597,13 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         return output;
     }
 
-    int last_algorithm =
-        (use_column_generation)? 5:
-        (use_dichotomic_search)? 4:
-        (use_sequential_value_correction)? 3:
-        (use_sequential_single_knapsack)? 2:
-        (use_benders_decomposition)? 1:
-        (use_tree_search)? 0:
-        -1;
-
     // Run selected algorithms.
     std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     // Tree search.
     if (use_tree_search) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 0) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_tree_search), optimize_tree_search>(
@@ -636,8 +626,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     // Bender's decomposition.
     if (use_benders_decomposition) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 1) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_benders_decomposition), optimize_benders_decomposition>(
@@ -660,8 +649,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     // Sequential single knapsack.
     if (use_sequential_single_knapsack) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 2) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>(
@@ -684,8 +672,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     // Sequential value correction.
     if (use_sequential_value_correction) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 3) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>(
@@ -708,8 +695,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     // Dichotomic search.
     if (use_dichotomic_search) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 4) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>(
@@ -732,8 +718,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     // Column generation.
     if (use_column_generation) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 5) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
                 wrapper<decltype(&optimize_column_generation), optimize_column_generation>(

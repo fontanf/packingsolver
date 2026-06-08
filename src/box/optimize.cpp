@@ -629,22 +629,12 @@ packingsolver::box::Output packingsolver::box::optimize(
         return output;
     }
 
-    int last_algorithm =
-        (use_column_generation)? 5:
-        (use_dichotomic_search)? 4:
-        (use_sequential_value_correction)? 3:
-        (use_sequential_single_knapsack)? 2:
-        (use_tree_search_maximal_spaces)? 1:
-        (use_tree_search)? 0:
-        -1;
-
     // Run selected algorithms.
     std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     // Tree search.
     if (use_tree_search) {
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 0) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
@@ -663,8 +653,7 @@ packingsolver::box::Output packingsolver::box::optimize(
     }
     // Tree search with maximal spaces.
     if (use_tree_search_maximal_spaces) {
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 1) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
@@ -683,8 +672,7 @@ packingsolver::box::Output packingsolver::box::optimize(
     }
     // Sequential single knapsack.
     if (use_sequential_single_knapsack) {
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 3) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
@@ -703,8 +691,7 @@ packingsolver::box::Output packingsolver::box::optimize(
     }
     // Sequential value correction.
     if (use_sequential_value_correction) {
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 4) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
@@ -723,8 +710,7 @@ packingsolver::box::Output packingsolver::box::optimize(
     }
     // Dichotomic search.
     if (use_dichotomic_search) {
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 5) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
@@ -743,8 +729,7 @@ packingsolver::box::Output packingsolver::box::optimize(
     }
     // Column generation.
     if (use_column_generation) {
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 6) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
             exception_ptr_list.push_front(std::exception_ptr());
             std::exception_ptr& exception_ptr = exception_ptr_list.front();
             tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {

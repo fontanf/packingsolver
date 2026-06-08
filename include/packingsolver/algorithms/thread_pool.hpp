@@ -85,6 +85,14 @@ inline void run_in_waves(
 }
 
 #if defined(_WIN32)
+// Prevent <windows.h> from defining the 'min'/'max' macros, which would clash
+// with the solver's heavy use of std::min/std::max, and trim the include.
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <psapi.h>
 #elif defined(__APPLE__)

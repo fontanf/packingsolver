@@ -170,6 +170,63 @@ before the search yields. This is the documented residual.
 4. Could not compile in this environment (no toolchain / submodules here), so the
    above is by-construction review, not a verified build.
 
+## Fix: deferred-task concurrency regression
+
+The thread-cap refactor (above) replaced the old per-algorithm `std::thread`
+spawn-during-loop with collecting lambdas into `tasks` and running them later via
+`run_in_waves`. To keep one algorithm on the main thread, each top-level
+`optimize(...)` algorithm-selection block had an extra guard
+`&& last_algorithm != N`, where `last_algorithm` was the highest-enabled
+algorithm index. That index was computed even in anytime modes, so in Anytime
+mode the highest-enabled algorithm took the `else` (inline) path and ran
+*before* `run_in_waves` — consuming the whole anytime time budget. The remaining
+algorithms were only collected into `tasks` and did not start until
+`run_in_waves` ran after the loop, by which point no time was left. Net effect:
+in Anytime mode only one algorithm effectively ran. (Originally the others were
+real `std::thread`s spawned during the loop, so they ran concurrently with the
+inline one — no regression.)
+
+Fix, applied consistently in all top-level `optimize(...)` selection blocks
+(`src/{box,irregular,onedimensional,rectangle,rectangleguillotine}/optimize.cpp`):
+each guard
+
+```cpp
+if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
+        && last_algorithm != N) {
+```
+
+became
+
+```cpp
+if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+```
+
+so EVERY enabled algorithm now goes through `tasks` in non-sequential modes and
+they all start together in `run_in_waves`. The `else`/inline path is taken only
+in `NotAnytimeSequential` mode, where everything correctly runs inline and
+sequentially. This made the `last_algorithm` variable unused, so its declaration
+was removed in each of those five files (verified by grep: no remaining
+references). `boxstacks/optimize.cpp` never had this pattern — its single
+guide×direction beam-search loop already collects every unit as a task with no
+inline-during-loop unit — so it was left unchanged.
+
+The per-strategy worker loops (e.g. the guide×direction loop in
+`optimize_tree_search`) were already correct: they push every unit into `tasks`
+and only run inline under `NotAnytimeSequential`. They were not touched. The
+`exception_ptr_list` rethrow after `run_in_waves` is unchanged.
+
+With `number_of_threads == 0` (default) `run_in_waves` spawns all tasks at once,
+so all enabled algorithms run concurrently for the full budget — identical
+results to the original; the only difference vs the original is that the
+previously-inline algorithm now runs in its own thread while the main thread
+waits inside `run_in_waves`. With `number_of_threads > 0` they run in joined
+waves of that size.
+
+Also included here: `include/packingsolver/algorithms/thread_pool.hpp` now
+defines `NOMINMAX` and `WIN32_LEAN_AND_MEAN` before `#include <windows.h>` on
+Windows, preventing the `min`/`max` macros from clashing with the solver's heavy
+`std::min`/`std::max` use (this resolves residual compile risk #2 above).
+
 ## Build + test steps
 
 From the worktree root
