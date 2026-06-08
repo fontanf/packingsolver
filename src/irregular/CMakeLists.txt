@@ -27,6 +27,12 @@ target_link_libraries(PackingSolver_irregular PUBLIC
     MathOptSolversCMake::mathopt
     Shape::shape
     Threads::Threads)
+# Resource limits: the portable RSS reader in
+# include/packingsolver/algorithms/thread_pool.hpp uses GetProcessMemoryInfo on
+# Windows, which lives in psapi.
+if (WIN32)
+    target_link_libraries(PackingSolver_irregular PUBLIC psapi)
+endif()
 if (PackingSolver_USE_KNITRO)
     target_link_libraries(PackingSolver_irregular PUBLIC
         KnitroCpp::knitrocpp)

@@ -9,9 +9,11 @@
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
+#include "packingsolver/algorithms/thread_pool.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
+#include <functional>
 #include <thread>
 
 using namespace packingsolver;
@@ -122,8 +124,7 @@ void optimize_tree_search(
         }
     }
 
-    std::vector<std::thread> threads;
-    ThreadJoinGuard thread_join_guard(threads);
+    std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
@@ -161,12 +162,16 @@ void optimize_tree_search(
                 };
         }
         exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(branching_schemes[i]),
-                        ibs_parameters_list[i]));
+            BranchingScheme& branching_scheme = branching_schemes[i];
+            treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters = ibs_parameters_list[i];
+            tasks.push_back([&exception_ptr, &branching_scheme, ibs_parameters]() {
+                wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>(
+                        exception_ptr,
+                        branching_scheme,
+                        ibs_parameters);
+            });
         } else {
             try {
                 treesearchsolver::iterative_beam_search_2<BranchingScheme>(
@@ -177,8 +182,7 @@ void optimize_tree_search(
             }
         }
     }
-    for (Counter i = 0; i < (Counter)threads.size(); ++i)
-        threads[i].join();
+    run_in_waves(tasks, parameters.number_of_threads);
     for (const std::exception_ptr& exception_ptr: exception_ptr_list)
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
@@ -266,6 +270,12 @@ void optimize_sequential_single_knapsack(
             break;
         if (parameters.timer.needs_to_end())
             break;
+        // Memory cap: if the resident set size has reached the configured
+        // limit, signal all cooperating threads to stop.
+        if (memory_limit_reached(parameters.memory_limit_megabytes)) {
+            algorithm_formatter.end_boolean() = true;
+            break;
+        }
 
         if (parameters.optimization_mode != OptimizationMode::Anytime)
             break;
@@ -367,6 +377,12 @@ void optimize_dichotomic_search(
             break;
         if (parameters.timer.needs_to_end())
             break;
+        // Memory cap: if the resident set size has reached the configured
+        // limit, signal all cooperating threads to stop.
+        if (memory_limit_reached(parameters.memory_limit_megabytes)) {
+            algorithm_formatter.end_boolean() = true;
+            break;
+        }
 
         if (parameters.optimization_mode != OptimizationMode::Anytime)
             break;
@@ -615,30 +631,21 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         return output;
     }
 
-    int last_algorithm =
-        (use_column_generation)? 5:
-        (use_dichotomic_search)? 4:
-        (use_sequential_value_correction)? 3:
-        (use_sequential_single_knapsack)? 2:
-        (use_column_generation_2)? 1:
-        (use_tree_search)? 0:
-        -1;
-
     // Run selected algorithms.
-    std::vector<std::thread> threads;
-    ThreadJoinGuard thread_join_guard(threads);
+    std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     // Tree search.
     if (use_tree_search) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 0) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_tree_search), optimize_tree_search>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_tree_search), optimize_tree_search>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_tree_search(
@@ -653,14 +660,15 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     // Column generation 2.
     if (use_column_generation_2) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 1) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_column_generation_2), optimize_column_generation_2>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_column_generation_2), optimize_column_generation_2>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_column_generation_2(
@@ -675,14 +683,15 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     // Sequential single knapsack.
     if (use_sequential_single_knapsack) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 2) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_sequential_single_knapsack(
@@ -697,14 +706,15 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     // Sequential value correction.
     if (use_sequential_value_correction) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 3) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_sequential_value_correction(
@@ -719,14 +729,15 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     // Dichotomic search.
     if (use_dichotomic_search) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 4) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_dichotomic_search(
@@ -741,14 +752,15 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     // Column generation.
     if (use_column_generation) {
         exception_ptr_list.push_front(std::exception_ptr());
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
-                && last_algorithm != 5) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_column_generation), optimize_column_generation>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_column_generation(
@@ -760,8 +772,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
             }
         }
     }
-    for (Counter i = 0; i < (Counter)threads.size(); ++i)
-        threads[i].join();
+    run_in_waves(tasks, parameters.number_of_threads);
     for (std::exception_ptr exception_ptr: exception_ptr_list)
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
