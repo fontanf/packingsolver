@@ -631,6 +631,18 @@ Instance InstanceBuilder::build()
         }
 
         // Update number_of_items_.
+        // Guard against ItemPos overflow before the running total of item
+        // copies is increased: an absurd 'copies' value (or the accumulation
+        // of many large values) would otherwise silently wrap around.
+        if (item_type.copies
+                > std::numeric_limits<ItemPos>::max() - instance_.number_of_items_) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "the total number of items would overflow 'ItemPos'; "
+                    "item_type_id: " + std::to_string(item_type_id) + "; "
+                    "copies: " + std::to_string(item_type.copies) + "; "
+                    "number_of_items: " + std::to_string(instance_.number_of_items_) + ".");
+        }
         instance_.number_of_items_ += item_type.copies;
         if (item_type.shape_type() == ShapeType::Square
                 || item_type.shape_type() == ShapeType::Rectangle) {
@@ -711,6 +723,24 @@ Instance InstanceBuilder::build()
         // Update bin_type.copies.
         if (bin_type.copies == -1)
             instance_.bin_types_[bin_type_id].copies = instance_.number_of_items();
+        // Guard against materializing an absurd number of bins before the
+        // dense 'bin_type_ids_' / 'previous_bins_area_' vectors are populated.
+        // The loop below allocates one entry per bin copy, so a pathological
+        // 'copies' value (or the accumulation across bin types) would exhaust
+        // memory or overflow 'BinPos'. The cap is far above any realistic
+        // instance and so does not affect valid inputs.
+        const BinPos number_of_bins_max = (BinPos)100000000;
+        if (bin_type.copies > number_of_bins_max
+                || (BinPos)instance_.bin_type_ids_.size()
+                > number_of_bins_max - bin_type.copies) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "the total number of bins to materialize is too large; "
+                    "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                    "copies: " + std::to_string(bin_type.copies) + "; "
+                    "number_of_bins_so_far: " + std::to_string(instance_.bin_type_ids_.size()) + "; "
+                    "number_of_bins_max: " + std::to_string(number_of_bins_max) + ".");
+        }
         // Update bins_area_sum_.
         instance_.bin_area_ += bin_type.copies * bin_type.area_orig;
         // Update previous_bins_area_ and bin_type_ids_.
