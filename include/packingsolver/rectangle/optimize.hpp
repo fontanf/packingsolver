@@ -20,6 +20,22 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Optimization mode. */
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
+    /**
+     * Maximum number of worker threads running concurrently.
+     *
+     * 0 (the default) means "unlimited": all worker threads are spawned at
+     * once, reproducing the historical behavior.
+     */
+    Counter number_of_threads = 0;
+
+    /**
+     * Memory limit in mebibytes.
+     *
+     * 0 (the default) means "unlimited": the optimization is never stopped
+     * because of memory usage.
+     */
+    Counter memory_limit_megabytes = 0;
+
     /** Fixed items. */
     Solution* fixed_items = nullptr;
 

@@ -10,6 +10,7 @@
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
+#include "packingsolver/algorithms/thread_pool.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
 
@@ -164,6 +165,12 @@ void optimize_tree_search_worker(
             break;
         if (parameters.timer.needs_to_end())
             break;
+        // Memory cap: if the resident set size has reached the configured
+        // limit, signal all cooperating threads to stop.
+        if (memory_limit_reached(parameters.memory_limit_megabytes)) {
+            algorithm_formatter.end_boolean() = true;
+            break;
+        }
 
         if (parameters.optimization_mode != OptimizationMode::Anytime)
             break;
@@ -339,7 +346,7 @@ void optimize_tree_search(
         }
     }
 
-    std::vector<std::thread> threads;
+    std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter i = 0; i < (Counter)branching_scheme_parameters_list.size(); ++i) {
         std::function<void(const Solution&, const std::string&)> new_solution_callback;
@@ -359,16 +366,22 @@ void optimize_tree_search(
             };
         }
         exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        BranchingScheme::Parameters bs_parameters = branching_scheme_parameters_list[i];
+        treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters = ibs_parameters_list[i];
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_tree_search_worker), optimize_tree_search_worker>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter),
-                        branching_scheme_parameters_list[i],
-                        ibs_parameters_list[i],
-                        new_solution_callback));
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter,
+                    bs_parameters, ibs_parameters, new_solution_callback]()
+            {
+                wrapper<decltype(&optimize_tree_search_worker), optimize_tree_search_worker>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter,
+                        bs_parameters,
+                        ibs_parameters,
+                        new_solution_callback);
+            });
         } else {
             try {
                 optimize_tree_search_worker(
@@ -383,8 +396,7 @@ void optimize_tree_search(
             }
         }
     }
-    for (Counter i = 0; i < (Counter)threads.size(); ++i)
-        threads[i].join();
+    run_in_waves(tasks, parameters.number_of_threads);
     for (const std::exception_ptr& exception_ptr: exception_ptr_list)
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
@@ -474,6 +486,12 @@ void optimize_sequential_single_knapsack(
             break;
         if (parameters.timer.needs_to_end())
             break;
+        // Memory cap: if the resident set size has reached the configured
+        // limit, signal all cooperating threads to stop.
+        if (memory_limit_reached(parameters.memory_limit_megabytes)) {
+            algorithm_formatter.end_boolean() = true;
+            break;
+        }
 
         if (parameters.optimization_mode != OptimizationMode::Anytime)
             break;
@@ -591,6 +609,12 @@ void optimize_dichotomic_search(
             break;
         if (parameters.timer.needs_to_end())
             break;
+        // Memory cap: if the resident set size has reached the configured
+        // limit, signal all cooperating threads to stop.
+        if (memory_limit_reached(parameters.memory_limit_megabytes)) {
+            algorithm_formatter.end_boolean() = true;
+            break;
+        }
 
         if (parameters.optimization_mode != OptimizationMode::Anytime)
             break;
@@ -944,19 +968,21 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         -1;
 
     // Run selected algorithms.
-    std::vector<std::thread> threads;
+    std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     // Tree search.
     if (use_tree_search) {
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 0) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_tree_search), optimize_tree_search>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_tree_search), optimize_tree_search>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_tree_search(
@@ -973,12 +999,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 1) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_milp_raster), optimize_milp_raster>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_milp_raster), optimize_milp_raster>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_milp_raster(
@@ -995,12 +1023,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 0) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_local_search), optimize_local_search>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_local_search), optimize_local_search>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_local_search(
@@ -1017,13 +1047,15 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 2) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter),
-                        -1));
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_sequential_single_knapsack), optimize_sequential_single_knapsack>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter,
+                        -1);
+            });
         } else {
             try {
                 optimize_sequential_single_knapsack(
@@ -1040,12 +1072,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 3) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_sequential_value_correction), optimize_sequential_value_correction>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_sequential_value_correction(
@@ -1062,12 +1096,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 4) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_dichotomic_search), optimize_dichotomic_search>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_dichotomic_search(
@@ -1084,12 +1120,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 5) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_column_generation), optimize_column_generation>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_column_generation(
@@ -1106,12 +1144,14 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         exception_ptr_list.push_front(std::exception_ptr());
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential
                 && last_algorithm != 6) {
-            threads.push_back(std::thread(
-                        wrapper<decltype(&optimize_sequential_feasibility), optimize_sequential_feasibility>,
-                        std::ref(exception_ptr_list.front()),
-                        std::ref(instance),
-                        std::ref(parameters),
-                        std::ref(algorithm_formatter)));
+            std::exception_ptr& exception_ptr = exception_ptr_list.front();
+            tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+                wrapper<decltype(&optimize_sequential_feasibility), optimize_sequential_feasibility>(
+                        exception_ptr,
+                        instance,
+                        parameters,
+                        algorithm_formatter);
+            });
         } else {
             try {
                 optimize_sequential_feasibility(
@@ -1123,8 +1163,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
             }
         }
     }
-    for (Counter i = 0; i < (Counter)threads.size(); ++i)
-        threads[i].join();
+    run_in_waves(tasks, parameters.number_of_threads);
     for (std::exception_ptr exception_ptr: exception_ptr_list)
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
