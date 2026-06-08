@@ -22,6 +22,12 @@ target_link_libraries(PackingSolver_rectangle PUBLIC
     Shape::shape
     MathOptSolversCMake::mathopt
     Threads::Threads)
+# Resource limits: the portable RSS reader in
+# include/packingsolver/algorithms/thread_pool.hpp uses GetProcessMemoryInfo on
+# Windows, which lives in psapi.
+if (WIN32)
+    target_link_libraries(PackingSolver_rectangle PUBLIC psapi)
+endif()
 add_library(PackingSolver::rectangle ALIAS PackingSolver_rectangle)
 
 if(PACKINGSOLVER_BUILD_MAIN)
