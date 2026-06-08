@@ -123,6 +123,7 @@ void optimize_tree_search(
     }
 
     std::vector<std::thread> threads;
+    ThreadJoinGuard thread_join_guard(threads);
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
         if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
@@ -625,6 +626,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
 
     // Run selected algorithms.
     std::vector<std::thread> threads;
+    ThreadJoinGuard thread_join_guard(threads);
     std::forward_list<std::exception_ptr> exception_ptr_list;
     // Tree search.
     if (use_tree_search) {

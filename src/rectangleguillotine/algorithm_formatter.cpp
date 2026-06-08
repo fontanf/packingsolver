@@ -235,13 +235,14 @@ void AlgorithmFormatter::update_solution(
         const Solution& solution,
         const std::string& s)
 {
-    mutex_.lock();
+    std::unique_lock<std::mutex> lock(mutex_);
     output_.time = parameters_.timer.elapsed_time();
     int new_best = output_.solution_pool.add(solution);
+    bool callback = false;
+    packingsolver::Output<Instance, Solution> output_snapshot(instance_);
     if (new_best == 1) {
         print(s);
         output_.json["IntermediaryOutputs"].push_back(output_.to_json());
-        parameters_.new_solution_callback(output_);
 
         // Check optimality.
         if (instance_.objective() == Objective::BinPacking) {
@@ -255,61 +256,91 @@ void AlgorithmFormatter::update_solution(
             }
         }
 
+        // Take a snapshot of the output so the (potentially heavy, file-I/O
+        // performing) callback can run outside the critical section.
+        output_snapshot = output_;
+        callback = true;
     }
-    mutex_.unlock();
+    lock.unlock();
+
+    // Invoke the callback outside the lock so that file I/O performed by it
+    // does not serialize the worker threads.
+    if (callback)
+        parameters_.new_solution_callback(output_snapshot);
 }
 
 void AlgorithmFormatter::update_knapsack_bound(
         Profit profit)
 {
-    mutex_.lock();
+    std::unique_lock<std::mutex> lock(mutex_);
+    bool callback = false;
+    packingsolver::Output<Instance, Solution> output_snapshot(instance_);
     if (profit < output_.knapsack_bound) {
         output_.knapsack_bound = profit;
         output_.json["IntermediaryOutputs"].push_back(output_.to_json());
-        parameters_.new_solution_callback(output_);
 
         // Check optimality.
         if (equal(output_.knapsack_bound, output_.solution_pool.best().profit())) {
             end_ = true;
         }
+
+        output_snapshot = output_;
+        callback = true;
     }
-    mutex_.unlock();
+    lock.unlock();
+
+    if (callback)
+        parameters_.new_solution_callback(output_snapshot);
 }
 
 void AlgorithmFormatter::update_bin_packing_bound(
         BinPos number_of_bins)
 {
-    mutex_.lock();
+    std::unique_lock<std::mutex> lock(mutex_);
+    bool callback = false;
+    packingsolver::Output<Instance, Solution> output_snapshot(instance_);
     if (number_of_bins > output_.bin_packing_bound) {
         output_.bin_packing_bound = number_of_bins;
         output_.json["IntermediaryOutputs"].push_back(output_.to_json());
-        parameters_.new_solution_callback(output_);
 
         // Check optimality.
         if (output_.solution_pool.best().full()
                 && output_.bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
             end_ = true;
         }
+
+        output_snapshot = output_;
+        callback = true;
     }
-    mutex_.unlock();
+    lock.unlock();
+
+    if (callback)
+        parameters_.new_solution_callback(output_snapshot);
 }
 
 void AlgorithmFormatter::update_variable_sized_bin_packing_bound(
         Profit cost)
 {
-    mutex_.lock();
+    std::unique_lock<std::mutex> lock(mutex_);
+    bool callback = false;
+    packingsolver::Output<Instance, Solution> output_snapshot(instance_);
     if (cost > output_.variable_sized_bin_packing_bound) {
         output_.variable_sized_bin_packing_bound = cost;
         output_.json["IntermediaryOutputs"].push_back(output_.to_json());
-        parameters_.new_solution_callback(output_);
 
         // Check optimality.
         if (output_.solution_pool.best().full()
                 && equal(output_.variable_sized_bin_packing_bound, output_.solution_pool.best().cost())) {
             end_ = true;
         }
+
+        output_snapshot = output_;
+        callback = true;
     }
-    mutex_.unlock();
+    lock.unlock();
+
+    if (callback)
+        parameters_.new_solution_callback(output_snapshot);
 }
 
 void AlgorithmFormatter::end()
