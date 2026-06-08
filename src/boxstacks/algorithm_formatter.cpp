@@ -233,14 +233,15 @@ void AlgorithmFormatter::update_solution(
         const Solution& solution,
         const std::string& s)
 {
-    mutex_.lock();
+    std::unique_lock<std::mutex> lock(mutex_);
     output_.time = parameters_.timer.elapsed_time();
     int new_best = output_.solution_pool.add(solution);
+    bool callback = false;
+    packingsolver::Output<Instance, Solution> output_snapshot(instance_);
     if (new_best == 1) {
         print(s);
         if (parameters_.write_json_output)
             output_.json["IntermediaryOutputs"].push_back(output_.to_json());
-        parameters_.new_solution_callback(output_);
 
         // Check optimality.
         if (instance_.objective() == Objective::BinPacking) {
@@ -254,8 +255,17 @@ void AlgorithmFormatter::update_solution(
             }
         }
 
+        // Take a snapshot of the output so the (potentially heavy, file-I/O
+        // performing) callback can run outside the critical section.
+        output_snapshot = output_;
+        callback = true;
     }
-    mutex_.unlock();
+    lock.unlock();
+
+    // Invoke the callback outside the lock so that file I/O performed by it
+    // does not serialize the worker threads.
+    if (callback)
+        parameters_.new_solution_callback(output_snapshot);
 }
 
 void AlgorithmFormatter::end()

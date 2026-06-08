@@ -12,11 +12,42 @@
 #include <cstdint>
 #include <set>
 #include <iomanip>
+#include <thread>
+#include <vector>
 
 namespace packingsolver
 {
 
 const double PSTOL = 1 + 1e-9;
+
+/**
+ * RAII guard that joins a vector of threads on scope exit.
+ *
+ * The 'optimize' functions create a set of worker threads and then join them
+ * explicitly in a loop.  If an exception is thrown (e.g. 'std::bad_alloc' from
+ * a container operation, or a failure while spawning a thread) after some
+ * threads have already been created but before the explicit join loop runs,
+ * the 'std::vector<std::thread>' would be destroyed while still holding
+ * joinable threads, which calls 'std::terminate()'.
+ *
+ * Declaring a 'ThreadJoinGuard' right after the thread vector guarantees that
+ * any still-joinable thread is joined during stack unwinding.  On the normal
+ * path the explicit join loop has already joined every thread, so the guard's
+ * destructor is a no-op and behavior is unchanged.
+ */
+struct ThreadJoinGuard
+{
+    std::vector<std::thread>& threads;
+
+    ThreadJoinGuard(std::vector<std::thread>& threads): threads(threads) { }
+
+    ~ThreadJoinGuard()
+    {
+        for (std::thread& thread: threads)
+            if (thread.joinable())
+                thread.join();
+    }
+};
 
 using Seed = int64_t;
 using Counter = int64_t;
