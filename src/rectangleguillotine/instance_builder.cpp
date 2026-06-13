@@ -784,35 +784,94 @@ void InstanceBuilder::read_item_types(
 //////////////////////////////////// Build /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+void InstanceBuilder::build_stacks()
+{
+    // Either ALL item types have a named stack_id (>= 0), or NONE do.
+    // Mixed assignments are not supported.
+    bool any_named = false;
+    bool any_unnamed = false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        if (instance_.item_type(item_type_id).stack_id >= 0) {
+            any_named = true;
+        } else {
+            any_unnamed = true;
+        }
+    }
+    if (any_named && any_unnamed) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "mixed named (stack_id >= 0) and unnamed (stack_id == -1) "
+                "item types are not supported.");
+    }
+
+    if (any_named) {
+        // Named stacks: determine number of stacks and per-stack sizes.
+        StackId n_stacks = 0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            n_stacks = std::max(n_stacks, instance_.item_type(item_type_id).stack_id + 1);
+        }
+        std::vector<ItemPos> stack_sizes(n_stacks, 0);
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+            stack_sizes[item_type.stack_id] += item_type.copies;
+        }
+        // Build prefix-sum offsets (size = n_stacks + 1).
+        instance_.stack_offsets_.resize(n_stacks + 1);
+        instance_.stack_offsets_[0] = 0;
+        for (StackId stack_id = 0; stack_id < n_stacks; ++stack_id) {
+            instance_.stack_offsets_[stack_id + 1] =
+                instance_.stack_offsets_[stack_id] + stack_sizes[stack_id];
+        }
+        instance_.item_type_ids_.resize(instance_.stack_offsets_[n_stacks]);
+        // Fill flat array and update stack_pos.
+        std::vector<ItemPos> write_pos(n_stacks, 0);
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance_.item_type(item_type_id);
+            StackId stack_id = item_type.stack_id;
+            instance_.item_types_[item_type_id].stack_pos = write_pos[stack_id];
+            ItemPos offset = instance_.stack_offsets_[stack_id] + write_pos[stack_id];
+            for (ItemPos c = 0; c < item_type.copies; ++c)
+                instance_.item_type_ids_[offset + c] = item_type_id;
+            write_pos[stack_id] += item_type.copies;
+        }
+    } else {
+        // Unnamed stacks: each item type gets its own stack.
+        StackId n_stacks = instance_.number_of_item_types();
+        instance_.stack_offsets_.resize(n_stacks + 1);
+        ItemPos total_copies = 0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            instance_.stack_offsets_[item_type_id] = total_copies;
+            instance_.item_types_[item_type_id].stack_id = item_type_id;
+            instance_.item_types_[item_type_id].stack_pos = 0;
+            total_copies += instance_.item_type(item_type_id).copies;
+        }
+        instance_.stack_offsets_[n_stacks] = total_copies;
+        instance_.item_type_ids_.resize(total_copies);
+        ItemPos offset = 0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            for (ItemPos c = 0; c < instance_.item_type(item_type_id).copies; ++c)
+                instance_.item_type_ids_[offset + c] = item_type_id;
+            offset += instance_.item_type(item_type_id).copies;
+        }
+    }
+}
+
 Instance InstanceBuilder::build()
 {
-    // Compute item_type_ids_.
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance_.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance_.item_type(item_type_id);
-        if (item_type.stack_id == -1)
-            continue;
-        while ((StackId)instance_.item_type_ids_.size()
-                <= item_type.stack_id) {
-            instance_.item_type_ids_.push_back({});
-        }
-        instance_.item_types_[item_type_id].stack_pos = instance_.item_type_ids_[item_type.stack_id].size();
-        for (ItemPos c = 0; c < item_type.copies; ++c)
-            instance_.item_type_ids_[item_type.stack_id].push_back(item_type_id);
-    }
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance_.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance_.item_type(item_type_id);
-        if (item_type.stack_id != -1)
-            continue;
-        instance_.item_types_[item_type_id].stack_id = instance_.item_type_ids_.size();
-        instance_.item_types_[item_type_id].stack_pos = 0;
-        instance_.item_type_ids_.push_back({});
-        for (ItemPos c = 0; c < item_type.copies; ++c)
-            instance_.item_type_ids_[item_type.stack_id].push_back(item_type_id);
-    }
+    // Compute item_type_ids_ and stack_offsets_.
+    build_stacks();
 
     // Compute item type attributes.
     Area bin_types_area_max = compute_bin_types_area_max();

@@ -204,6 +204,9 @@ private:
     /** Compute bin types area max. */
     Area compute_bin_types_area_max() const;
 
+    /** Build stack_offsets_ and item_type_ids_ in the instance. */
+    void build_stacks();
+
     /*
      * Private attributes
      */

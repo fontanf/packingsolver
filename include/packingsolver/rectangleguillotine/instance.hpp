@@ -338,13 +338,13 @@ public:
     inline ItemPos number_of_items() const { return number_of_items_; }
 
     /** Get the number of stacks. */
-    inline StackId number_of_stacks() const { return item_type_ids_.size(); }
+    inline StackId number_of_stacks() const { return (StackId)stack_offsets_.size() - 1; }
 
     /** Get the size of stack s. */
-    inline ItemPos stack_size(StackId s) const { return item_type_ids_[s].size(); }
+    inline ItemPos stack_size(StackId s) const { return stack_offsets_[s + 1] - stack_offsets_[s]; }
 
     /** Get the item_pos's item of stack s. */
-    inline ItemTypeId item(StackId s, ItemPos item_pos) const { return item_type_ids_[s][item_pos]; }
+    inline ItemTypeId item(StackId s, ItemPos item_pos) const { return item_type_ids_[stack_offsets_[s] + item_pos]; }
 
     /** Get the total area of the items. */
     inline Area item_area() const { return item_area_; }
@@ -497,8 +497,12 @@ private:
     /** Number of items. */
     ItemPos number_of_items_ = 0;
 
-    /** Convert item position to item type. */
-    std::vector<std::vector<ItemTypeId>> item_type_ids_;
+    /** Flat array of item type IDs (all stacks concatenated). */
+    std::vector<ItemTypeId> item_type_ids_;
+
+    /** stack_offsets_[s] = start of stack s in item_type_ids_;
+     *  stack_offsets_.size() = number_of_stacks() + 1 (sentinel at end). */
+    std::vector<ItemPos> stack_offsets_;
 
     /** Total item area. */
     Area item_area_ = 0;
