@@ -683,3 +683,34 @@ inline bool BranchingScheme::operator()(
 
 }
 }
+
+#include "packingsolver/rectangle/solution.hpp"
+
+namespace packingsolver
+{
+namespace rectangle
+{
+
+struct TreeSearchOutput: packingsolver::Output<Instance, Solution>
+{
+    TreeSearchOutput(const Instance& instance):
+        packingsolver::Output<Instance, Solution>(instance) { }
+};
+
+struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution>
+{
+    std::vector<GuideId> guides;
+
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
+
+    NodeId not_anytime_tree_search_queue_size = 1;
+
+    Solution* fixed_items = nullptr;
+};
+
+const TreeSearchOutput tree_search(
+        const Instance& instance,
+        const TreeSearchParameters& parameters = {});
+
+}
+}

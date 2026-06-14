@@ -1,7 +1,12 @@
-#include "irregular/branching_scheme.hpp"
+#include "irregular/tree_search.hpp"
 
+#include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "irregular/rotations.hpp"
 #include "irregular/shape_simplification.hpp"
+#include "treesearchsolver/iterative_beam_search_2.hpp"
+#include <functional>
+#include <thread>
+#include <sstream>
 
 #include "shape/convex_hull.hpp"
 #include "shape/clean.hpp"
@@ -2559,4 +2564,295 @@ std::ostream& packingsolver::irregular::operator<<(
     os << std::endl;
 
     return os;
+}
+
+static void tree_search_worker(
+        const Instance& instance,
+        const TreeSearchParameters& parameters,
+        BranchingScheme::Parameters branching_scheme_parameters,
+        treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters,
+        std::function<void(const Solution&, const std::string&, bool)> new_solution_callback)
+{
+    Counter queue_size = 1;
+    double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
+    std::shared_ptr<BranchingScheme::Node> cutoff = nullptr;
+    for (Counter iteration = 0;
+            ;
+            ++iteration) {
+
+        if (parameters.optimization_mode != OptimizationMode::Anytime) {
+            queue_size = parameters.not_anytime_tree_search_queue_size;
+            maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
+        }
+
+        branching_scheme_parameters.maximum_approximation_ratio = maximum_approximation_ratio;
+        ibs_parameters.cutoff = cutoff;
+        ibs_parameters.minimum_size_of_the_queue = queue_size;
+        ibs_parameters.maximum_size_of_the_queue = queue_size;
+        if (!parameters.json_search_tree_path.empty()) {
+            ibs_parameters.json_search_tree_path = parameters.json_search_tree_path
+                + "_guide_" + std::to_string(branching_scheme_parameters.guide_id)
+                + "_d_" + std::to_string((int)branching_scheme_parameters.direction);
+        }
+        BranchingScheme branching_scheme(instance, branching_scheme_parameters);
+        ibs_parameters.new_solution_callback =
+            [&branching_scheme, &branching_scheme_parameters, &new_solution_callback](
+                    const treesearchsolver::Output<BranchingScheme>& tss_output)
+            {
+                const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
+                    = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
+                Solution solution = branching_scheme.to_solution(
+                        tssibs_output.solution_pool.best());
+                std::stringstream ss;
+                ss << "TS g " << branching_scheme_parameters.guide_id
+                    << " d " << (int)branching_scheme_parameters.direction
+                    << " q " << tssibs_output.maximum_size_of_the_queue;
+                new_solution_callback(solution, ss.str(), tssibs_output.optimal);
+            };
+        auto ibs_output = treesearchsolver::iterative_beam_search_2<BranchingScheme>(
+                branching_scheme,
+                ibs_parameters);
+
+        if (ibs_output.optimal)
+            break;
+        if (parameters.timer.needs_to_end())
+            break;
+
+        if (parameters.optimization_mode != OptimizationMode::Anytime)
+            break;
+
+        if (cutoff != nullptr)
+            ibs_output.solution_pool.add(cutoff);
+        cutoff = ibs_output.solution_pool.best();
+
+        queue_size = std::max(
+                queue_size + 1,
+                (NodeId)(queue_size * 1.5));
+        maximum_approximation_ratio *= parameters.maximum_approximation_ratio_factor;
+    }
+}
+
+const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_search(
+        const Instance& instance,
+        const TreeSearchParameters& parameters)
+{
+    TreeSearchOutput output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
+
+    std::vector<GuideId> guides;
+    if (!parameters.guides.empty()) {
+        guides = parameters.guides;
+    } else if (instance.objective() == Objective::Knapsack) {
+        guides = {4, 5};
+    } else {
+        guides = {0, 1};
+    }
+
+    std::vector<BranchingScheme::Direction> directions;
+    if (instance.objective() == Objective::OpenDimensionX) {
+        directions = {
+            BranchingScheme::Direction::LeftToRightThenBottomToTop,
+            BranchingScheme::Direction::LeftToRightThenTopToBottom,
+        };
+    } else if (instance.objective() == Objective::OpenDimensionY) {
+        directions = {
+            BranchingScheme::Direction::BottomToTopThenLeftToRight,
+            BranchingScheme::Direction::BottomToTopThenRightToLeft,
+        };
+    } else if (instance.number_of_bins() == 1) {
+        if (instance.objective() == Objective::BinPackingWithLeftovers) {
+            switch (instance.parameters().leftover_corner) {
+            case Corner::BottomLeft: {
+                directions = {
+                    BranchingScheme::Direction::LeftToRightThenBottomToTop,
+                    BranchingScheme::Direction::BottomToTopThenLeftToRight,
+                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
+                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
+                };
+                break;
+            } case Corner::BottomRight: {
+                directions = {
+                    BranchingScheme::Direction::RightToLeftThenBottomToTop,
+                    BranchingScheme::Direction::BottomToTopThenLeftToRight,
+                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
+                };
+                break;
+            } case Corner::TopLeft: {
+                directions = {
+                    BranchingScheme::Direction::LeftToRightThenBottomToTop,
+                    BranchingScheme::Direction::TopToBottomThenLeftToRight,
+                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
+                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
+                };
+                break;
+            } case Corner::TopRight: {
+                directions = {
+                    BranchingScheme::Direction::RightToLeftThenBottomToTop,
+                    BranchingScheme::Direction::TopToBottomThenLeftToRight,
+                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
+                };
+                break;
+            }
+            }
+        } else {
+            directions = {
+                BranchingScheme::Direction::LeftToRightThenBottomToTop,
+                BranchingScheme::Direction::BottomToTopThenLeftToRight,
+                BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                BranchingScheme::Direction::TopToBottomThenRightToLeft,
+            };
+        }
+    } else {
+        switch (instance.parameters().leftover_corner) {
+        case Corner::BottomLeft: {
+            directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
+            break;
+        } case Corner::BottomRight: {
+            directions = {BranchingScheme::Direction::RightToLeftThenBottomToTop};
+            break;
+        } case Corner::TopLeft: {
+            directions = {BranchingScheme::Direction::LeftToRightThenTopToBottom,};
+            break;
+        } case Corner::TopRight: {
+            directions = {BranchingScheme::Direction::RightToLeftThenTopToBottom};
+            break;
+        }
+        }
+    }
+
+    bool all_items_full_rotation = true;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (!item_type.has_full_continuous_rotations()) {
+            all_items_full_rotation = false;
+            break;
+        }
+    }
+    bool all_bins_squared = true;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        if (!bin_type.shape_scaled.is_square()) {
+            all_bins_squared = false;
+            break;
+        }
+    }
+    if (all_items_full_rotation && all_bins_squared) {
+        directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
+    }
+
+    std::vector<double> growth_factors = {1.5};
+    if (guides.size() * directions.size() * 2 <= 4)
+        growth_factors = {1.33, 1.5};
+    if (parameters.optimization_mode != OptimizationMode::Anytime)
+        growth_factors = {1.5};
+
+    std::vector<BranchingScheme::Parameters> branching_scheme_parameters_list;
+    std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
+    std::vector<packingsolver::Output<Instance, Solution>> local_outputs;
+    for (double growth_factor: growth_factors) {
+        for (GuideId guide_id: guides) {
+            for (BranchingScheme::Direction direction: directions) {
+                BranchingScheme::Parameters branching_scheme_parameters;
+                branching_scheme_parameters.guide_id = guide_id;
+                branching_scheme_parameters.direction = direction;
+                if (parameters.optimization_mode == OptimizationMode::Anytime) {
+                    branching_scheme_parameters.maximum_approximation_ratio
+                        = parameters.initial_maximum_approximation_ratio;
+                } else {
+                    branching_scheme_parameters.maximum_approximation_ratio
+                        = parameters.not_anytime_maximum_approximation_ratio;
+                }
+                branching_scheme_parameters_list.push_back(branching_scheme_parameters);
+                treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
+                ibs_parameters.verbosity_level = 0;
+                ibs_parameters.timer = parameters.timer;
+                ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+                ibs_parameters.growth_factor = growth_factor;
+                if (parameters.optimization_mode != OptimizationMode::Anytime) {
+                    ibs_parameters.minimum_size_of_the_queue
+                        = parameters.not_anytime_tree_search_queue_size;
+                    ibs_parameters.maximum_size_of_the_queue
+                        = parameters.not_anytime_tree_search_queue_size;
+                }
+                ibs_parameters_list.push_back(ibs_parameters);
+                local_outputs.push_back(packingsolver::Output<Instance, Solution>(instance));
+            }
+        }
+    }
+
+    std::vector<std::thread> threads;
+    std::forward_list<std::exception_ptr> exception_ptr_list;
+    for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_scheme_parameters_list.size(); ++scheme_idx) {
+        std::function<void(const Solution&, const std::string&, bool)> new_solution_callback;
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
+            new_solution_callback = [&algorithm_formatter](
+                    const Solution& solution,
+                    const std::string& label,
+                    bool is_optimal)
+            {
+                algorithm_formatter.update_solution(solution, label);
+                if (is_optimal
+                        && solution.instance().objective() == packingsolver::Objective::BinPacking) {
+                    algorithm_formatter.update_bin_packing_bound(
+                            solution.number_of_bins());
+                }
+            };
+        } else {
+            new_solution_callback = [&local_outputs, scheme_idx](
+                    const Solution& solution,
+                    const std::string& /*label*/,
+                    bool /*is_optimal*/)
+            {
+                local_outputs[(size_t)scheme_idx].solution_pool.add(solution);
+            };
+        }
+        exception_ptr_list.push_front(std::exception_ptr());
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+            threads.push_back(std::thread(
+                        wrapper<decltype(&tree_search_worker), tree_search_worker>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(instance),
+                        std::ref(parameters),
+                        branching_scheme_parameters_list[scheme_idx],
+                        ibs_parameters_list[scheme_idx],
+                        new_solution_callback));
+        } else {
+            try {
+                tree_search_worker(
+                        instance,
+                        parameters,
+                        branching_scheme_parameters_list[scheme_idx],
+                        ibs_parameters_list[scheme_idx],
+                        new_solution_callback);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
+        }
+    }
+    for (Counter thread_idx = 0; thread_idx < (Counter)threads.size(); ++thread_idx)
+        threads[thread_idx].join();
+    for (const std::exception_ptr& exception_ptr: exception_ptr_list)
+        if (exception_ptr)
+            std::rethrow_exception(exception_ptr);
+    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
+        for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_scheme_parameters_list.size(); ++scheme_idx) {
+            std::stringstream ss;
+            ss << "TS g " << branching_scheme_parameters_list[scheme_idx].guide_id
+                << " d " << (int)branching_scheme_parameters_list[scheme_idx].direction;
+            algorithm_formatter.update_solution(
+                    local_outputs[(size_t)scheme_idx].solution_pool.best(),
+                    ss.str());
+        }
+    }
+
+    algorithm_formatter.end();
+    return output;
 }

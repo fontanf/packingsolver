@@ -9,7 +9,7 @@ target_sources(PackingSolver_rectangle PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     post_process.cpp
-    branching_scheme.cpp
+    tree_search.cpp
     benders_decomposition.cpp
     dual_feasible_functions.cpp)
 target_include_directories(PackingSolver_rectangle PUBLIC

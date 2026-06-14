@@ -9,7 +9,7 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     post_process.cpp
-    branching_scheme.cpp
+    tree_search.cpp
     column_generation_2.cpp)
 target_include_directories(PackingSolver_rectangleguillotine PUBLIC
     ${PROJECT_SOURCE_DIR}/include)

@@ -7,7 +7,7 @@ target_sources(PackingSolver_onedimensional PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     post_process.cpp
-    branching_scheme.cpp)
+    tree_search.cpp)
 target_include_directories(PackingSolver_onedimensional PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_onedimensional PRIVATE
