@@ -23,6 +23,8 @@ void read_args(
     if (vm.count("log"))
         parameters.log_path = vm["log"].as<std::string>();
     parameters.log_to_stderr = vm.count("log-to-stderr");
+    if (vm.count("output"))
+        parameters.write_json_output = true;
     bool only_write_at_the_end = vm.count("only-write-at-the-end");
     if (!only_write_at_the_end) {
 

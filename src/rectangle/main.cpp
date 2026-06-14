@@ -26,6 +26,8 @@ void read_args(
     if (vm.count("json-search-tree"))
         parameters.json_search_tree_path = vm["json-search-tree"].as<std::string>();
 
+    if (vm.count("output"))
+        parameters.write_json_output = true;
     bool only_write_at_the_end = vm.count("only-write-at-the-end");
     if (!only_write_at_the_end) {
 
