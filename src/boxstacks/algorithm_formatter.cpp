@@ -8,7 +8,8 @@ using namespace packingsolver::boxstacks;
 
 void AlgorithmFormatter::start()
 {
-    output_.json["Parameters"] = parameters_.to_json();
+    if (parameters_.write_json_output)
+        output_.json["Parameters"] = parameters_.to_json();
 
     if (parameters_.verbosity_level == 0)
         return;
@@ -237,7 +238,8 @@ void AlgorithmFormatter::update_solution(
     int new_best = output_.solution_pool.add(solution);
     if (new_best == 1) {
         print(s);
-        output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        if (parameters_.write_json_output)
+            output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
 
         // Check optimality.
@@ -259,7 +261,8 @@ void AlgorithmFormatter::update_solution(
 void AlgorithmFormatter::end()
 {
     output_.time = parameters_.timer.elapsed_time();
-    output_.json["Output"] = output_.to_json();
+    if (parameters_.write_json_output)
+        output_.json["Output"] = output_.to_json();
 
     if (parameters_.verbosity_level == 0)
         return;
