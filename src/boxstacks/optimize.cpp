@@ -10,8 +10,6 @@
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
-#include <functional>
-#include <thread>
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
@@ -191,26 +189,16 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     };
                 exception_ptr_list.push_front(std::exception_ptr());
                 std::exception_ptr& exception_ptr = exception_ptr_list.front();
-                if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
-                    BranchingScheme& branching_scheme = branching_schemes[i];
-                    treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters = ibs_parameters_list[i];
-                    tasks.push_back([&exception_ptr, &branching_scheme, ibs_parameters]() {
-                        wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>(
-                                exception_ptr,
-                                branching_scheme,
-                                ibs_parameters);
-                    });
-                } else {
-                    try {
-                        treesearchsolver::iterative_beam_search_2<BranchingScheme>(
-                                branching_schemes[i],
-                                ibs_parameters_list[i]);
-                    } catch (...) {
-                        exception_ptr_list.front() = std::current_exception();
-                    }
-                }
+                BranchingScheme& branching_scheme = branching_schemes[i];
+                treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters = ibs_parameters_list[i];
+                tasks.push_back([&exception_ptr, &branching_scheme, ibs_parameters]() {
+                    wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>(
+                            exception_ptr,
+                            branching_scheme,
+                            ibs_parameters);
+                });
             }
-            run_in_waves(tasks, parameters.number_of_threads);
+            run(tasks, algorithm_formatter, parameters);
             for (const std::exception_ptr& exception_ptr: exception_ptr_list)
                 if (exception_ptr)
                     std::rethrow_exception(exception_ptr);

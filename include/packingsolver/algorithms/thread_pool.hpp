@@ -1,18 +1,10 @@
 #pragma once
 
 /**
- * Plan B: resource limits.
- *
  * This header provides two small, portable, C++14-only helpers shared by all
  * problem types:
  *
- * 1. 'run_in_waves': a bounded-concurrency task executor used to CAP the number
- *    of worker threads spawned by the 'optimize' functions.  When the cap is 0
- *    (the default) it preserves the historical behavior exactly: every task is
- *    spawned in its own 'std::thread' at once and then joined.  When the cap is
- *    strictly positive it creates that many persistent worker threads, each
- *    pulling the next available task from a shared atomic index until the queue
- *    is empty — no idle waiting between tasks.
+ * 1. 'run': a task executor that runs tasks in parallel or sequentially.
  *
  * 2. 'current_memory_megabytes': a portable reader of the current resident set
  *    size (RSS) of the process, used to CAP memory usage at the existing
@@ -22,7 +14,7 @@
  * platform headers) so they can be included from every 'src/<type>/optimize.cpp'.
  */
 
-#include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <thread>
@@ -34,63 +26,32 @@ namespace packingsolver
 {
 
 /**
- * Run a set of independent tasks with a bounded number of concurrent workers.
- *
- * When 'number_of_threads' is 0 (unlimited), all tasks are spawned at once
- * (historical behavior).  Otherwise exactly min(number_of_threads, |tasks|)
- * worker threads are created; each worker pulls the next available task from a
- * shared atomic index until the queue is empty, so a fast-finishing thread
- * immediately picks up more work instead of waiting for a whole batch to drain.
+ * Run a set of independent tasks, spawning all of them concurrently.
  *
  * Each task MUST be self-contained and exception-safe: it must not let an
  * exception escape (the callers wrap their work with 'wrapper<>' which stores
  * any exception into a per-task 'std::exception_ptr', so this is already the
  * case).  The tasks are assumed to be independent; the only shared state they
  * touch (the solution pool) is mutex-guarded by the caller.
- *
- * @param tasks               The tasks to run.
- * @param number_of_threads   Maximum number of concurrent worker threads.
- *                            0 means "unlimited": spawn all tasks at once.
  */
-inline void run_in_waves(
+inline void run(
         const std::vector<std::function<void()>>& tasks,
-        Counter number_of_threads)
+        bool parallel)
 {
     if (tasks.empty())
         return;
 
-    // Unlimited (default): spawn everything at once and join, exactly like the
-    // previous 'std::vector<std::thread>' spawn/join loops.
-    if (number_of_threads <= 0) {
-        std::vector<std::thread> threads;
-        threads.reserve(tasks.size());
+    if (!parallel) {
         for (const std::function<void()>& task: tasks)
-            threads.push_back(std::thread(task));
-        for (std::thread& thread: threads)
-            thread.join();
+            task();
         return;
     }
 
-    // Capped: spin up exactly min(number_of_threads, tasks.size()) workers;
-    // each worker atomically claims the next task index until the queue is
-    // empty.  A thread that finishes early immediately picks up the next task
-    // rather than waiting for a whole "wave" to drain.
-    std::size_t num_workers = std::min(
-            (std::size_t)number_of_threads, tasks.size());
-    std::atomic<std::size_t> next(0);
-    auto worker = [&tasks, &next]() {
-        for (;;) {
-            std::size_t i = next.fetch_add(1, std::memory_order_relaxed);
-            if (i >= tasks.size())
-                break;
-            tasks[i]();
-        }
-    };
     std::vector<std::thread> threads;
-    threads.reserve(num_workers - 1);
-    for (std::size_t t = 0; t < num_workers - 1; ++t)
-        threads.push_back(std::thread(worker));
-    worker();
+    threads.reserve(tasks.size() - 1);
+    for (std::size_t i = 0; i < tasks.size() - 1; ++i)
+        threads.push_back(std::thread(tasks[i]));
+    tasks.back()();
     for (std::thread& thread: threads)
         thread.join();
 }
@@ -98,6 +59,7 @@ inline void run_in_waves(
 }
 
 #if defined(_WIN32)
+#define NOMINMAX
 #include <windows.h>
 #include <psapi.h>
 #elif defined(__APPLE__)
@@ -156,18 +118,59 @@ inline std::size_t current_memory_megabytes()
 }
 
 /**
- * Return true if a memory limit is set ('memory_limit_megabytes' > 0) and the
- * current resident set size has reached or exceeded it.
+ * Background task that monitors memory usage and signals the algorithms to
+ * stop when the memory limit is reached.
  *
- * When 'memory_limit_megabytes' is 0 (the default) this always returns false,
- * so the historical behavior is preserved.
+ * Exits when algorithm_formatter.end_boolean() or parameters.timer.needs_to_end()
+ * becomes true (either cooperative stop or time limit).  Sets end_boolean to
+ * true when current_memory_megabytes() >= parameters.memory_limit_megabytes.
  */
-inline bool memory_limit_reached(
-        Counter memory_limit_megabytes)
+template<typename AlgorithmFormatter, typename Parameters>
+inline void monitor_memory(
+        AlgorithmFormatter& algorithm_formatter,
+        const Parameters& parameters)
 {
-    if (memory_limit_megabytes <= 0)
-        return false;
-    return current_memory_megabytes() >= (std::size_t)memory_limit_megabytes;
+    while (!algorithm_formatter.end_boolean()
+            && !parameters.timer.needs_to_end()) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (algorithm_formatter.end_boolean()
+                || parameters.timer.needs_to_end())
+            break;
+        if (current_memory_megabytes()
+                >= (std::size_t)parameters.memory_limit_megabytes)
+            algorithm_formatter.end_boolean() = true;
+    }
+}
+
+/**
+ * Overload of 'run' that derives parallelism from 'parameters.optimization_mode'
+ * and manages a memory-monitor thread when 'parameters.memory_limit_megabytes > 0'.
+ *
+ * The monitor is started before the tasks and joined after all tasks finish.
+ * Setting 'end_boolean' to true after the tasks complete is safe because all
+ * algorithm threads have already returned at that point.
+ */
+template<typename AlgorithmFormatter, typename Parameters>
+inline void run(
+        const std::vector<std::function<void()>>& tasks,
+        AlgorithmFormatter& algorithm_formatter,
+        const Parameters& parameters)
+{
+    bool parallel = parameters.optimization_mode != OptimizationMode::NotAnytimeSequential;
+
+    std::thread monitor_thread;
+    if (parameters.memory_limit_megabytes > 0 && parallel) {
+        monitor_thread = std::thread([&algorithm_formatter, &parameters]() {
+            monitor_memory(algorithm_formatter, parameters);
+        });
+    }
+
+    run(tasks, parallel);
+
+    if (monitor_thread.joinable()) {
+        algorithm_formatter.end_boolean() = true;
+        monitor_thread.join();
+    }
 }
 
 }

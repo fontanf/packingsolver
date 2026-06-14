@@ -84,8 +84,7 @@ int main(int argc, char *argv[])
             ("verbosity-level,v", po::value<int>(), "Verbosity level")
             ("log-to-stderr,w", "Write log in stderr")
 
-            ("threads,", po::value<Counter>(), "Maximum number of threads (default: all cores)")
-            ("memory-limit-mb,", po::value<Counter>(), "Memory limit in mebibytes (default: unlimited)")
+            ("memory-limit,", po::value<Megabytes>(), "Memory limit in mebibytes (default: unlimited)")
 
             ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
@@ -184,10 +183,8 @@ int main(int argc, char *argv[])
             parameters.linear_programming_solver_name = vm["linear-programming-solver"].as<columngenerationsolver::SolverName>();
         if (vm.count("optimization-mode"))
             parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
-        if (vm.count("threads"))
-            parameters.number_of_threads = vm["threads"].as<Counter>();
-        if (vm.count("memory-limit-mb"))
-            parameters.memory_limit_megabytes = vm["memory-limit-mb"].as<Counter>();
+        if (vm.count("memory-limit"))
+            parameters.memory_limit_megabytes = vm["memory-limit"].as<Megabytes>();
 
         const boxstacks::Output output = optimize(instance, parameters);
 
