@@ -10,9 +10,9 @@
  *    of worker threads spawned by the 'optimize' functions.  When the cap is 0
  *    (the default) it preserves the historical behavior exactly: every task is
  *    spawned in its own 'std::thread' at once and then joined.  When the cap is
- *    strictly positive it executes the (independent) tasks in successive
- *    "waves" of at most 'number_of_threads' concurrent threads, joining each
- *    wave before starting the next.
+ *    strictly positive it creates that many persistent worker threads, each
+ *    pulling the next available task from a shared atomic index until the queue
+ *    is empty — no idle waiting between tasks.
  *
  * 2. 'current_memory_megabytes': a portable reader of the current resident set
  *    size (RSS) of the process, used to CAP memory usage at the existing
@@ -22,6 +22,7 @@
  * platform headers) so they can be included from every 'src/<type>/optimize.cpp'.
  */
 
+#include <atomic>
 #include <cstddef>
 #include <functional>
 #include <thread>
@@ -33,8 +34,13 @@ namespace packingsolver
 {
 
 /**
- * Run a set of independent tasks with a bounded number of them running
- * concurrently.
+ * Run a set of independent tasks with a bounded number of concurrent workers.
+ *
+ * When 'number_of_threads' is 0 (unlimited), all tasks are spawned at once
+ * (historical behavior).  Otherwise exactly min(number_of_threads, |tasks|)
+ * worker threads are created; each worker pulls the next available task from a
+ * shared atomic index until the queue is empty, so a fast-finishing thread
+ * immediately picks up more work instead of waiting for a whole batch to drain.
  *
  * Each task MUST be self-contained and exception-safe: it must not let an
  * exception escape (the callers wrap their work with 'wrapper<>' which stores
@@ -43,10 +49,8 @@ namespace packingsolver
  * touch (the solution pool) is mutex-guarded by the caller.
  *
  * @param tasks               The tasks to run.
- * @param number_of_threads   Maximum number of tasks running concurrently.
- *                            0 (the default) means "unlimited": spawn all tasks
- *                            at once, which reproduces the historical behavior
- *                            byte-for-byte.
+ * @param number_of_threads   Maximum number of concurrent worker threads.
+ *                            0 means "unlimited": spawn all tasks at once.
  */
 inline void run_in_waves(
         const std::vector<std::function<void()>>& tasks,
@@ -67,19 +71,28 @@ inline void run_in_waves(
         return;
     }
 
-    // Capped: run the tasks in waves of at most 'number_of_threads' threads.
-    Counter wave_size = number_of_threads;
-    for (std::size_t begin = 0; begin < tasks.size(); begin += (std::size_t)wave_size) {
-        std::size_t end = begin + (std::size_t)wave_size;
-        if (end > tasks.size())
-            end = tasks.size();
-        std::vector<std::thread> threads;
-        threads.reserve(end - begin);
-        for (std::size_t i = begin; i < end; ++i)
-            threads.push_back(std::thread(tasks[i]));
-        for (std::thread& thread: threads)
-            thread.join();
-    }
+    // Capped: spin up exactly min(number_of_threads, tasks.size()) workers;
+    // each worker atomically claims the next task index until the queue is
+    // empty.  A thread that finishes early immediately picks up the next task
+    // rather than waiting for a whole "wave" to drain.
+    std::size_t num_workers = std::min(
+            (std::size_t)number_of_threads, tasks.size());
+    std::atomic<std::size_t> next(0);
+    auto worker = [&tasks, &next]() {
+        for (;;) {
+            std::size_t i = next.fetch_add(1, std::memory_order_relaxed);
+            if (i >= tasks.size())
+                break;
+            tasks[i]();
+        }
+    };
+    std::vector<std::thread> threads;
+    threads.reserve(num_workers - 1);
+    for (std::size_t t = 0; t < num_workers - 1; ++t)
+        threads.push_back(std::thread(worker));
+    worker();
+    for (std::thread& thread: threads)
+        thread.join();
 }
 
 }
