@@ -340,6 +340,7 @@ void optimize_tree_search(
     }
 
     std::vector<std::thread> threads;
+    ThreadJoinGuard thread_join_guard(threads);
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter i = 0; i < (Counter)branching_scheme_parameters_list.size(); ++i) {
         std::function<void(const Solution&, const std::string&)> new_solution_callback;
@@ -945,6 +946,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
 
     // Run selected algorithms.
     std::vector<std::thread> threads;
+    ThreadJoinGuard thread_join_guard(threads);
     std::forward_list<std::exception_ptr> exception_ptr_list;
     // Tree search.
     if (use_tree_search) {

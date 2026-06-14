@@ -171,6 +171,7 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
             }
 
             std::vector<std::thread> threads;
+            ThreadJoinGuard thread_join_guard(threads);
             std::forward_list<std::exception_ptr> exception_ptr_list;
             for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
                 ibs_parameters_list[i].new_solution_callback
