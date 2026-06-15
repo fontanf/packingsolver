@@ -80,6 +80,8 @@ int main(int argc, char *argv[])
             ("verbosity-level,v", po::value<int>(), "Verbosity level")
             ("log2stderr,w", "Write log in stderr")
 
+            ("memory-limit,", po::value<Megabytes>(), "Memory limit in mebibytes (default: unlimited)")
+
             ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
             ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
@@ -166,6 +168,8 @@ int main(int argc, char *argv[])
             parameters.linear_programming_solver_name = vm["linear-programming-solver"].as<columngenerationsolver::SolverName>();
         if (vm.count("optimization-mode"))
             parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
+        if (vm.count("memory-limit"))
+            parameters.memory_limit_megabytes = vm["memory-limit"].as<Megabytes>();
 
         if (vm.count("use-tree-search"))
             parameters.use_tree_search = vm["use-tree-search"].as<bool>();

@@ -6,10 +6,10 @@
 #include "boxstacks/sequential_onedimensional_rectangle.hpp"
 
 #include "algorithms/sequential_value_correction.hpp"
+#include "packingsolver/algorithms/thread_pool.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
-#include <thread>
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
@@ -170,7 +170,7 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                 }
             }
 
-            std::vector<std::thread> threads;
+            std::vector<std::function<void()>> tasks;
             std::forward_list<std::exception_ptr> exception_ptr_list;
             for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
                 ibs_parameters_list[i].new_solution_callback
@@ -188,24 +188,17 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                         algorithm_formatter.update_solution(solution, ss.str());
                     };
                 exception_ptr_list.push_front(std::exception_ptr());
-                if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
-                    threads.push_back(std::thread(
-                                wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>,
-                                std::ref(exception_ptr_list.front()),
-                                std::ref(branching_schemes[i]),
-                                ibs_parameters_list[i]));
-                } else {
-                    try {
-                        treesearchsolver::iterative_beam_search_2<BranchingScheme>(
-                                branching_schemes[i],
-                                ibs_parameters_list[i]);
-                    } catch (...) {
-                        exception_ptr_list.front() = std::current_exception();
-                    }
-                }
+                std::exception_ptr& exception_ptr = exception_ptr_list.front();
+                BranchingScheme& branching_scheme = branching_schemes[i];
+                treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters = ibs_parameters_list[i];
+                tasks.push_back([&exception_ptr, &branching_scheme, ibs_parameters]() {
+                    wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>(
+                            exception_ptr,
+                            branching_scheme,
+                            ibs_parameters);
+                });
             }
-            for (Counter i = 0; i < (Counter)threads.size(); ++i)
-                threads[i].join();
+            run(tasks, algorithm_formatter, parameters);
             for (const std::exception_ptr& exception_ptr: exception_ptr_list)
                 if (exception_ptr)
                     std::rethrow_exception(exception_ptr);

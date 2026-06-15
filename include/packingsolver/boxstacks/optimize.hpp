@@ -83,6 +83,14 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Optimization mode. */
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
+    /**
+     * Memory limit in mebibytes.
+     *
+     * 0 (the default) means "unlimited": the optimization is never stopped
+     * because of memory usage.
+     */
+    Megabytes memory_limit_megabytes = 0;
+
     /** Linear programming solver. */
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;

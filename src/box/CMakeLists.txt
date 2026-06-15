@@ -21,6 +21,12 @@ target_link_libraries(PackingSolver_box PUBLIC
     PackingSolver_onedimensional
     MultipleChoiceSubsetSumSolver::dynamic_programming_bellman
     Threads::Threads)
+# Resource limits: the portable RSS reader in
+# include/packingsolver/algorithms/thread_pool.hpp uses GetProcessMemoryInfo on
+# Windows, which lives in psapi.
+if (WIN32)
+    target_link_libraries(PackingSolver_box PUBLIC psapi)
+endif()
 add_library(PackingSolver::box ALIAS PackingSolver_box)
 
 if(PACKINGSOLVER_BUILD_MAIN)

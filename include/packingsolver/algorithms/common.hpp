@@ -20,6 +20,7 @@ const double PSTOL = 1 + 1e-9;
 
 using Seed = int64_t;
 using Counter = int64_t;
+using Megabytes = int64_t;
 
 using ItemTypeId = int32_t;
 using ItemPos = int32_t;
