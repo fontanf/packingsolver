@@ -10,7 +10,7 @@
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
-#include "packingsolver/algorithms/thread_pool.hpp"
+#include "algorithms/thread_pool.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
 

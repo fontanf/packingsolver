@@ -6,7 +6,7 @@
 #include "boxstacks/sequential_onedimensional_rectangle.hpp"
 
 #include "algorithms/sequential_value_correction.hpp"
-#include "packingsolver/algorithms/thread_pool.hpp"
+#include "algorithms/thread_pool.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
