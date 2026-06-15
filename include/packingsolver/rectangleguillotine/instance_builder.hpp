@@ -43,6 +43,17 @@ public:
 
     void set_number_of_stages(Counter number_of_stages) { instance_.parameters_.number_of_stages = number_of_stages; }
 
+    /**
+     * Set the number of stages to an unlimited value.
+     *
+     * The bound used is max(bin_width + bin_height) over all bin types: each
+     * guillotine cut reduces at least one dimension by at least 1 unit, so no
+     * cut tree can ever be deeper than this.  At least one bin type must have
+     * been added before calling this method.
+     */
+    void set_number_of_stages_unlimited();
+
+
     void set_cut_type(CutType cut_type) { instance_.parameters_.cut_type = cut_type; }
 
     void set_first_stage_orientation(CutOrientation first_stage_orientation) { instance_.parameters_.first_stage_orientation = first_stage_orientation; }

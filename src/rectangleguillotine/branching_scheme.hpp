@@ -451,7 +451,7 @@ private:
         CutOrientation o = node.first_stage_orientation;
         BinTypeId bin_type_id = instance.bin_type_id(i);
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        return (instance_.parameters().number_of_stages == 3)?
+        return (instance_.parameters().number_of_stages >= 3)?
             (node.x1_curr - node.x1_prev)
             * (bin_type.rect.h - bin_type.top_trim - node.y2_curr):
             (node.y2_curr - node.y2_prev)

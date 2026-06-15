@@ -18,7 +18,7 @@ BranchingScheme::BranchingScheme(
     CutOrientation first_stage_orientation = (instance.parameters().first_stage_orientation != CutOrientation::Any)?
         instance.parameters().first_stage_orientation:
         parameters.first_stage_orientation;
-    if (instance.parameters().number_of_stages == 3) {
+    if (instance.parameters().number_of_stages >= 3) {
         first_stage_orientation_ = first_stage_orientation;
     } else if (instance.parameters().number_of_stages == 2) {
         if (first_stage_orientation == CutOrientation::Horizontal) {
@@ -443,7 +443,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     // Update current_area_ and waste_
     node.current_area = instance.previous_bin_area(i);
     if (full(node)) {
-        node.current_area += (instance.parameters().number_of_stages == 3)?
+        node.current_area += (instance.parameters().number_of_stages >= 3)?
             (node.x1_curr - bin_type.left_trim) * h:
             (node.y2_curr - bin_type.bottom_trim) * w;
     } else {
@@ -1621,7 +1621,7 @@ Solution BranchingScheme::to_solution(
         // Create a new bin
         while (number_of_bins < current_node->number_of_bins) {
             CutOrientation cut_orientation = (
-                    (instance().parameters().number_of_stages == 3 && current_node->first_stage_orientation == CutOrientation::Vertical)
+                    (instance().parameters().number_of_stages >= 3 && current_node->first_stage_orientation == CutOrientation::Vertical)
                     || (instance().parameters().number_of_stages == 2 && current_node->first_stage_orientation == CutOrientation::Horizontal))?
                     CutOrientation::Vertical: CutOrientation::Horizontal;
             if (!only_last_bin) {
@@ -1646,7 +1646,7 @@ Solution BranchingScheme::to_solution(
         if ((df_next <= -1) && (!has_item))
             continue;
         if (current_node->df < 1) {
-            if (instance().parameters().number_of_stages == 3) {
+            if (instance().parameters().number_of_stages >= 3) {
                 subplate1_curr_x1 = current_node->x1_curr;
                 for (SolutionNodeId node_pos_2 = node_pos + 1;
                         node_pos_2 < (SolutionNodeId)descendents.size()
@@ -1689,12 +1689,10 @@ Solution BranchingScheme::to_solution(
         // Create a new fourth-level sub-plate.
         if (!has_item)
             continue;
-        //std::cout << *current_node << std::endl;
         d = (instance().parameters().number_of_stages != 2)? 4: 3;
         Length cut_position = -1;
         Length w_tmp = current_node->x3_curr - x3_prev(*current_node->parent, current_node->df);
         if (current_node->item_type_id_1 != -1) {
-            //std::cout << instance().item_type(current_node->item_type_id_1) << std::endl;
             cut_position = current_node->y2_prev + (
                     (w_tmp == instance().item_type(current_node->item_type_id_1).rect.w)?
                     instance().item_type(current_node->item_type_id_1).rect.h:
@@ -1706,15 +1704,18 @@ Solution BranchingScheme::to_solution(
                     instance().item_type(current_node->item_type_id_2).rect.w)
                 - instance().parameters().cut_thickness;
         }
-        solution_builder.add_node(d, cut_position);
-        if (current_node->item_type_id_1 != -1)
+        if (current_node->item_type_id_1 != -1
+                && current_node->item_type_id_2 == -1
+                && cut_position == subplate2_curr_y2) {
             solution_builder.set_last_node_item(current_node->item_type_id_1);
-
-        // Add an additional fourth-level sub-plate if necessary.
-        if (current_node->item_type_id_2 != -1) {
-            //std::cout << "subplate2_curr_y2 " << subplate2_curr_y2 << std::endl;
-            solution_builder.add_node(d, subplate2_curr_y2);
-            solution_builder.set_last_node_item(current_node->item_type_id_2);
+        } else {
+            solution_builder.add_node(d, cut_position);
+            if (current_node->item_type_id_1 != -1)
+                solution_builder.set_last_node_item(current_node->item_type_id_1);
+            if (current_node->item_type_id_2 != -1) {
+                solution_builder.add_node(d, subplate2_curr_y2);
+                solution_builder.set_last_node_item(current_node->item_type_id_2);
+            }
         }
     }
 

@@ -45,7 +45,7 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
 void Solution::update_indicators(
         BinPos bin_pos)
 {
-    const SolutionBin& bin = bins_[bin_pos];
+    SolutionBin& bin = bins_[bin_pos];
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
 
     number_of_bins_ += bin.copies;
@@ -65,6 +65,11 @@ void Solution::update_indicators(
             item_area_ += bin.copies * instance().item_type(node.item_type_id).area();
             profit_ += bin.copies * instance().item_type(node.item_type_id).profit;
             item_copies_[node.item_type_id] += bin.copies;
+            if (item_copies_[node.item_type_id]
+                    > instance().item_type(node.item_type_id).copies) {
+                item_copies_feasible_ = false;
+                feasible_ = false;
+            }
         }
 
         // Subtract residual area.
@@ -244,6 +249,92 @@ void Solution::update_indicators(
             }
         }
     }
+    // Staging analysis.
+    //
+    // First pass: compute the maximum depth of any CUT node in this bin.
+    // This is the "real" staged count as if all cuts were Exact.
+    for (const SolutionNode& node: bin.nodes) {
+        if (node.f != -1) {
+            const SolutionNode& parent = bin.nodes[node.f];
+            if (node.l == parent.l && node.r == parent.r && node.b == parent.b && node.t == parent.t)
+                continue;
+        }
+        bin.number_of_stages_real = std::max(
+                bin.number_of_stages_real, (Counter)node.d);
+    }
+
+    // Second pass: classify the deepest-level CUT nodes.
+    //
+    // A pattern is non-exact if ALL depth-k CUT nodes (where k =
+    // number_of_stages_real) contain no cuts or a single cut separating one
+    // item from one waste (i.e. ≤ 2 non-residual children, exactly 1 item).
+    // A pattern is Roadef2018-style if ALL depth-k CUT nodes are valid
+    // Roadef2018 extra cuts (≥ 2 item children, ≤ 3 non-residual children
+    // total).  If any depth-k CUT node is a regular intermediate stage the
+    // flags remain false.
+    if (bin.number_of_stages_real > 0) {
+        bool all_non_exact = true;
+        bool all_roadef2018_compatible = true;
+        bool any_roadef2018_style = false;
+        bool found = false;
+
+        for (SolutionNodeId node_id = 0;
+                node_id < (SolutionNodeId)bin.nodes.size();
+                ++node_id) {
+            const SolutionNode& node = bin.nodes[node_id];
+            if (node.item_type_id != -2 || node.d != bin.number_of_stages_real - 1)
+                continue;
+            found = true;
+            Counter item_children = 0;
+            Counter total_children = 0;
+            for (SolutionNodeId child_id: node.children) {
+                const SolutionNode& child = bin.nodes[child_id];
+                if (child.item_type_id == -3)  // residual — ignore
+                    continue;
+                ++total_children;
+                if (child.item_type_id >= 0)
+                    ++item_children;
+            }
+            if (item_children == 1 && total_children <= 2) {
+                // Non-exact style: one item + at most one waste.
+            } else if (item_children >= 2 && total_children <= 3) {
+                // Roadef2018 style: two items + at most one waste.
+                any_roadef2018_style = true;
+                all_non_exact = false;
+            } else {
+                // Regular intermediate stage: too many children or no items.
+                all_non_exact = false;
+                all_roadef2018_compatible = false;
+            }
+        }
+
+        if (found) {
+            bin.cut_type_is_non_exact = all_non_exact;
+            bin.cut_type_is_roadef2018 = all_roadef2018_compatible && any_roadef2018_style;
+        }
+    }
+
+    // Compute the effective number of stages for this bin.
+    // If the deepest CUT level consists entirely of valid non-exact or
+    // Roadef2018 extra cuts, that level does not count as a full stage.
+    bool extra_cut_applies
+        = (instance().parameters().cut_type == CutType::NonExact
+                && bin.cut_type_is_non_exact)
+        || (instance().parameters().cut_type == CutType::Roadef2018
+                && (bin.cut_type_is_non_exact || bin.cut_type_is_roadef2018));
+    bin.number_of_stages = extra_cut_applies?
+        bin.number_of_stages_real - 1:
+        bin.number_of_stages_real;
+
+    // Aggregate staging information to the solution level.
+    this->number_of_stages_ = std::max(this->number_of_stages_, bin.number_of_stages);
+
+    // Number-of-stages feasibility check.
+    if (this->number_of_stages_ > instance().parameters().number_of_stages) {
+        this->number_of_stages_feasible_ = false;
+        this->feasible_ = false;
+    }
+
     if (!minimum_waste_length_feasible()) {
         for (const SolutionNode& node: bin.nodes) {
             std::cout << node << std::endl;
@@ -432,6 +523,20 @@ nlohmann::json Solution::to_json() const
         {"Width", width()},
         {"Height", height()},
         {"SecondLeftoverValue", second_leftover_value()},
+        {"NumberOfStages", number_of_stages()},
+        {"Feasible", {
+            {"Feasible", feasible()},
+            {"NumberOfStages", number_of_stages_feasible()},
+            {"MinimumWasteLength", minimum_waste_length_feasible()},
+            {"MinimumDistance1Cuts", minimum_distance_1_cuts_feasible()},
+            {"MaximumDistance1Cuts", maximum_distance_1_cuts_feasible()},
+            {"MinimumDistance2Cuts", minimum_distance_2_cuts_feasible()},
+            {"MaximumNumber2Cuts", maximum_number_2_cuts_feasible()},
+            {"Stacks", stacks_feasible()},
+            {"Defects", defects_feasible()},
+            {"CutThroughDefects", cut_through_defects_feasible()},
+            {"ItemCopies", item_copies_feasible()},
+        }},
     };
 }
 
@@ -453,6 +558,18 @@ void Solution::format(
             << "Width:                     " << width() << std::endl
             << "Height:                    " << height() << std::endl
             << "Second leftover value:     " << second_leftover_value() << std::endl
+            << "Number of stages:          " << number_of_stages() << std::endl
+            << "Feasible:                  " << feasible() << std::endl
+            << "    Number of stages:      " << number_of_stages_feasible() << std::endl
+            << "    Min. waste length:     " << minimum_waste_length_feasible() << std::endl
+            << "    Min. dist. 1-cuts:     " << minimum_distance_1_cuts_feasible() << std::endl
+            << "    Max. dist. 1-cuts:     " << maximum_distance_1_cuts_feasible() << std::endl
+            << "    Min. dist. 2-cuts:     " << minimum_distance_2_cuts_feasible() << std::endl
+            << "    Max. no. 2-cuts:       " << maximum_number_2_cuts_feasible() << std::endl
+            << "    Stacks:                " << stacks_feasible() << std::endl
+            << "    Defects:               " << defects_feasible() << std::endl
+            << "    Cut through defects:   " << cut_through_defects_feasible() << std::endl
+            << "    Item copies:           " << item_copies_feasible() << std::endl
             ;
     }
 
