@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
             ("predefined,p", po::value<std::string>(), "")
 
             ("number-of-stages,", po::value<Counter>(), "")
+            ("number-of-stages-unlimited,", "")
             ("cut-type,", po::value<rectangleguillotine::CutType>(), "")
             ("first-stage-orientation,", po::value<rectangleguillotine::CutOrientation>(), "")
             ("min1cut,", po::value<Length>(), "")
@@ -197,6 +198,8 @@ int main(int argc, char *argv[])
 
         if (vm.count("number-of-stages"))
             instance_builder.set_number_of_stages(vm["number-of-stages"].as<Counter>());
+        if (vm.count("number-of-stages-unlimited"))
+            instance_builder.set_number_of_stages_unlimited();
         if (vm.count("cut-type"))
             instance_builder.set_cut_type(vm["cut-type"].as<CutType>());
         if (vm.count("first-stage-orientation"))

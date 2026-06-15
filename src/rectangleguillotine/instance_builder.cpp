@@ -16,6 +16,26 @@ void InstanceBuilder::set_predefined(std::string str)
         return;
     }
 
+    if (str[0] == 'U') {
+        this->set_number_of_stages_unlimited();
+
+        switch (str[1]) {
+        case 'R': {
+            set_item_types_oriented(false);
+            break;
+        } case 'O': {
+            set_item_types_oriented(true);
+            break;
+        } default: {
+            // TODO
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "predefined branching scheme parameter 4th character");
+        }
+        }
+        return;
+    }
+
     if (str.length() != 4) {
         // TODO
         throw std::invalid_argument(FUNC_SIGNATURE);
@@ -82,6 +102,20 @@ void InstanceBuilder::set_predefined(std::string str)
                 "predefined branching scheme parameter 4th character");
     }
     }
+}
+
+void InstanceBuilder::set_number_of_stages_unlimited()
+{
+    Counter max_stages = 0;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance_.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance_.bin_type(bin_type_id);
+        max_stages = std::max(max_stages, bin_type.rect.w + bin_type.rect.h);
+    }
+    instance_.parameters_.number_of_stages = max_stages;
+    instance_.parameters_.cut_type = CutType::Exact;
+    instance_.parameters_.first_stage_orientation = CutOrientation::Any;
 }
 
 void InstanceBuilder::set_roadef2018()
@@ -507,7 +541,13 @@ void InstanceBuilder::read_parameters(
             ss >> objective;
             set_objective(objective);
         } else if (name == "number_of_stages") {
-            set_number_of_stages(std::stol(value));
+            if (value == "u"
+                    || value == "U"
+                    || value == "unlimited") {
+                set_number_of_stages_unlimited();
+            } else {
+                set_number_of_stages(std::stol(value));
+            }
         } else if (name == "cut_type") {
             CutType cut_type;
             std::stringstream ss(value);

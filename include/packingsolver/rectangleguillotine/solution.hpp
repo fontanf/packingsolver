@@ -48,6 +48,25 @@ struct SolutionBin
 
     /** Nodes. */
     std::vector<SolutionNode> nodes;
+
+    /** Allowed number of stages (from instance parameters). */
+    Counter number_of_stages = 0;
+
+    /** Actual number of stages used: maximum depth of any cut node. */
+    Counter number_of_stages_real = 0;
+
+    /**
+     * True if this bin contains at least one non-exact cut: a cut node at
+     * depth >= number_of_stages whose children are exactly one item and at
+     * most one waste node.
+     */
+    bool cut_type_is_non_exact = false;
+
+    /**
+     * True if this bin contains at least one Roadef2018-style cut: a cut
+     * node at depth >= number_of_stages with two or more item children.
+     */
+    bool cut_type_is_roadef2018 = false;
 };
 
 bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
@@ -95,6 +114,8 @@ public:
      * Getters: feasibilty
      */
 
+    bool number_of_stages_feasible() const { return number_of_stages_feasible_; }
+
     bool minimum_waste_length_feasible() const { return minimum_waste_length_feasible_; }
 
     bool minimum_distance_1_cuts_feasible() const { return minimum_distance_1_cuts_feasible_; }
@@ -111,7 +132,16 @@ public:
 
     bool cut_through_defects_feasible() const { return cut_through_defects_feasible_; }
 
+    bool item_copies_feasible() const { return item_copies_feasible_; }
+
     bool feasible() const { return feasible_; }
+
+    /*
+     * Getters: staging analysis
+     */
+
+    /** Allowed number of stages (from instance parameters). */
+    Counter number_of_stages() const { return this->number_of_stages_; }
 
     /*
      * Getters: bins
@@ -227,6 +257,9 @@ private:
      * Private attributes: feasiblity
      */
 
+    /** Feasibility for the number of stages. */
+    bool number_of_stages_feasible_ = true;
+
     /** Feasibility for the minimum waste length. */
     bool minimum_waste_length_feasible_ = true;
 
@@ -250,6 +283,9 @@ private:
 
     /** Feasibility for the cut through defects. */
     bool cut_through_defects_feasible_ = true;
+
+    /** Feasibility for item copy limits. */
+    bool item_copies_feasible_ = true;
 
     /** Overall feasibility. */
     bool feasible_ = true;
@@ -289,6 +325,9 @@ private:
     /*
      * Private attributes: others
      */
+
+    /** Number of stages. */
+    Counter number_of_stages_ = 0;
 
     /** Total area of the solution. */
     Area area_ = 0;
