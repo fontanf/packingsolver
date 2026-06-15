@@ -1,16 +1,20 @@
 #pragma once
 
 /**
- * This header provides two small, portable, C++14-only helpers shared by all
+ * This header provides three small, portable, C++14-only helpers shared by all
  * problem types:
  *
- * 1. 'run': a task executor that runs tasks in parallel or sequentially.
+ * 1. 'wrapper'/'wrapper_impl': a template that wraps a plain function so that
+ *    any exception it throws is caught and stored in a caller-supplied
+ *    'std::exception_ptr' instead of propagating.
  *
- * 2. 'current_memory_megabytes': a portable reader of the current resident set
+ * 2. 'run': a task executor that runs tasks in parallel or sequentially.
+ *
+ * 3. 'current_memory_megabytes': a portable reader of the current resident set
  *    size (RSS) of the process, used to CAP memory usage at the existing
  *    cooperative stop checkpoints.
  *
- * Both helpers are intentionally dependency-free (only the standard library and
+ * All helpers are intentionally dependency-free (only the standard library and
  * platform headers) so they can be included from every 'src/<type>/optimize.cpp'.
  */
 
@@ -24,6 +28,25 @@
 
 namespace packingsolver
 {
+
+template<class F, F f> struct wrapper_impl;
+template<class R, class... Args, R(*f)(Args...)>
+struct wrapper_impl<R(*)(Args...), f>
+{
+    static void wrap(
+            std::exception_ptr& exception_ptr,
+            Args... args)
+    {
+        try {
+            f(args...);
+        } catch (...) {
+            exception_ptr = std::current_exception();
+        }
+    }
+};
+
+template<class F, F f>
+constexpr auto wrapper = wrapper_impl<F, f>::wrap;
 
 /**
  * Run a set of independent tasks, spawning all of them concurrently.
@@ -159,7 +182,7 @@ inline void run(
     bool parallel = parameters.optimization_mode != OptimizationMode::NotAnytimeSequential;
 
     std::thread monitor_thread;
-    if (parameters.memory_limit_megabytes > 0 && parallel) {
+    if (parameters.memory_limit_megabytes > 0) {
         monitor_thread = std::thread([&algorithm_formatter, &parameters]() {
             monitor_memory(algorithm_formatter, parameters);
         });

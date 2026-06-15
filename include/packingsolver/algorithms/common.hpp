@@ -323,25 +323,6 @@ double largest_bin_space(const Instance& instance)
     return space_max;
 }
 
-template<class F, F f> struct wrapper_impl;
-template<class R, class... Args, R(*f)(Args...)>
-struct wrapper_impl<R(*)(Args...), f>
-{
-    static void wrap(
-            std::exception_ptr& exception_ptr,
-            Args... args)
-    {
-        try {
-            f(args...);
-        } catch (...) {
-            exception_ptr = std::current_exception();
-        }
-    }
-};
-
-template<class F, F f>
-constexpr auto wrapper = wrapper_impl<F, f>::wrap;
-
 /**
  * Return a copy of the solution with identical bins grouped together.
  *

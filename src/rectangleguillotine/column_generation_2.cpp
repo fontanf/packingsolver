@@ -3,13 +3,13 @@
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "rectangleguillotine/instance_flipper.hpp"
 #include "rectangleguillotine/solution_builder.hpp"
+#include "algorithms/thread_pool.hpp"
 
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
 
 #include "columngenerationsolver/algorithms/limited_discrepancy_search.hpp"
 
-#include <thread>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
@@ -1600,24 +1600,28 @@ const ColumnGeneration2Output packingsolver::rectangleguillotine::column_generat
                 parameters,
                 algorithm_formatter);
     } else {
-        std::vector<std::thread> threads;
+        std::vector<std::function<void()>> tasks;
         std::forward_list<std::exception_ptr> exception_ptr_list;
         exception_ptr_list.push_front(std::exception_ptr());
-        threads.push_back(std::thread(
-                    wrapper<decltype(&column_generation_2_vertical), column_generation_2_vertical>,
-                    std::ref(exception_ptr_list.front()),
-                    std::ref(instance),
-                    std::ref(parameters),
-                    std::ref(algorithm_formatter)));
-        threads.push_back(std::thread(
-                    wrapper<decltype(&column_generation_2_horizontal), column_generation_2_horizontal>,
-                    std::ref(exception_ptr_list.front()),
-                    std::ref(instance),
-                    std::ref(parameters),
-                    std::ref(algorithm_formatter)));
-        for (Counter i = 0; i < (Counter)threads.size(); ++i)
-            threads[i].join();
-        for (std::exception_ptr exception_ptr: exception_ptr_list)
+        std::exception_ptr& exception_ptr_1 = exception_ptr_list.front();
+        tasks.push_back([&exception_ptr_1, &instance, &parameters, &algorithm_formatter]() {
+            wrapper<decltype(&column_generation_2_vertical), column_generation_2_vertical>(
+                    exception_ptr_1,
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        });
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr_2 = exception_ptr_list.front();
+        tasks.push_back([&exception_ptr_2, &instance, &parameters, &algorithm_formatter]() {
+            wrapper<decltype(&column_generation_2_horizontal), column_generation_2_horizontal>(
+                    exception_ptr_2,
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        });
+        run(tasks, true);
+        for (const std::exception_ptr& exception_ptr: exception_ptr_list)
             if (exception_ptr)
                 std::rethrow_exception(exception_ptr);
     }
