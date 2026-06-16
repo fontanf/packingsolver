@@ -108,6 +108,7 @@ int main(int argc, char *argv[])
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
             ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
             ("use-column-generation-2,", po::value<bool>(), "enable column generation 2 algorithm")
+            ("use-dynamic-programming-infinite-copies-array,", po::value<bool>(), "enable dynamic programming (infinite copies, array) algorithm")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
             ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
@@ -119,6 +120,7 @@ int main(int argc, char *argv[])
             ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
             ("not-anytime-dichotomic-search-subproblem-queue-size,", po::value<Counter>(), "")
 
+            ("minimize-number-of-stages,", po::value<bool>(), "")
             ("group-identical-bins,", po::value<bool>(), "")
             ;
         po::variables_map vm;
@@ -244,6 +246,8 @@ int main(int argc, char *argv[])
             parameters.use_tree_search = vm["use-tree-search"].as<bool>();
         if (vm.count("use-column-generation-2"))
             parameters.use_column_generation_2 = vm["use-column-generation-2"].as<bool>();
+        if (vm.count("use-dynamic-programming-infinite-copies-array"))
+            parameters.use_dynamic_programming_infinite_copies_array = vm["use-dynamic-programming-infinite-copies-array"].as<bool>();
         if (vm.count("use-sequential-single-knapsack"))
             parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
         if (vm.count("use-sequential-value-correction"))
@@ -271,7 +275,12 @@ int main(int argc, char *argv[])
             output.write_json_output(vm["output"].as<std::string>());
 
         Solution solution = output.solution_pool.best();
-        if (vm.count("group-identical-bins")) {
+        if (vm.count("minimize-number-of-stages")
+                && vm["minimize-number-of-stages"].as<bool>()) {
+            solution = minimize_number_of_stages(solution);
+        }
+        if (vm.count("group-identical-bins")
+                && vm["group-identical-bins"].as<bool>()) {
             GroupIdenticalBinsOutput gib_output = group_identical_bins(solution);
             solution = gib_output.solution_pool.best();
         }

@@ -38,6 +38,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use column generation 2 algorithm. */
     bool use_column_generation_2 = false;
 
+    /** Use dynamic programming (infinite copies, array) algorithm. */
+    bool use_dynamic_programming_infinite_copies_array = false;
+
     /** Use sequential single knapsack algorithm. */
     bool use_sequential_single_knapsack = false;
 
