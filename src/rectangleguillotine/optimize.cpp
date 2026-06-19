@@ -5,6 +5,7 @@
 #include "rectangleguillotine/branching_scheme.hpp"
 #include "rectangleguillotine/column_generation_2.hpp"
 #include "rectangleguillotine/dynamic_programming_infinite_copies_array.hpp"
+#include "rectangleguillotine/labeling.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "algorithms/dichotomic_search.hpp"
@@ -201,6 +202,24 @@ void optimize_dynamic_programming_infinite_copies_array(
                 "DP");
     };
     dynamic_programming_infinite_copies_array(instance, dp_parameters);
+}
+
+void optimize_labeling(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    LabelingParameters labeling_parameters;
+    labeling_parameters.verbosity_level = 0;
+    labeling_parameters.timer = parameters.timer;
+    labeling_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& ps_output)
+    {
+        algorithm_formatter.update_solution(
+                ps_output.solution_pool.best(),
+                "L");
+    };
+    labeling(instance, labeling_parameters);
 }
 
 void optimize_column_generation_2(
@@ -483,6 +502,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     bool use_column_generation_2 = parameters.use_column_generation_2;
     bool use_dynamic_programming_infinite_copies_array
         = parameters.use_dynamic_programming_infinite_copies_array;
+    bool use_labeling = parameters.use_labeling;
     bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
@@ -496,7 +516,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         // Automatic selection.
         if (!use_tree_search
                 && !use_column_generation_2
-                && !use_dynamic_programming_infinite_copies_array) {
+                && !use_dynamic_programming_infinite_copies_array
+                && !use_labeling) {
             use_tree_search = true;
             //if (instance.number_of_stacks() != instance.number_of_item_types()
             //        && instance.number_of_defects() == 0) {
@@ -650,6 +671,18 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
             wrapper<decltype(&optimize_dynamic_programming_infinite_copies_array), optimize_dynamic_programming_infinite_copies_array>(
+                    exception_ptr,
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        });
+    }
+    // Labeling.
+    if (use_labeling) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+            wrapper<decltype(&optimize_labeling), optimize_labeling>(
                     exception_ptr,
                     instance,
                     parameters,
