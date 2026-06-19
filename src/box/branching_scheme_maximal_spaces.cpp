@@ -186,7 +186,7 @@ double BranchingSchemeMaximalSpaces::compute_insertion_guide(
     const Block& block = blocks_[bin_type_id][insertion.block_id];
 
     double fill_rate = (double)parent.item_volume / bin_box_.volume();
-    double v = (double)block.item_volume;
+    double v = block.item_profit;
     double l = compute_volume_loss_factor(info, block);
     double n = (double)block.number_of_items;
     if (fill_rate < parameters_.configuration_switch_threshold) {
@@ -675,7 +675,7 @@ Solution BranchingSchemeMaximalSpaces::to_solution(const std::shared_ptr<Node>& 
     return solution;
 }
 
-Volume BranchingSchemeMaximalSpaces::compute_guide_greedy(const Node& node) const
+Profit BranchingSchemeMaximalSpaces::compute_guide_greedy(const Node& node) const
 {
     Node greedy_node = node;
     while (true) {
@@ -684,8 +684,7 @@ Volume BranchingSchemeMaximalSpaces::compute_guide_greedy(const Node& node) cons
             break;
         apply_insertion(greedy_node, insertion);
     }
-    //std::cout << greedy_node.item_volume << std::endl;
-    return greedy_node.item_volume;
+    return greedy_node.profit;
 }
 
 std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces::next_child(
