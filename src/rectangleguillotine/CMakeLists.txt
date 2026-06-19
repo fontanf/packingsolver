@@ -11,7 +11,8 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     post_process.cpp
     branching_scheme.cpp
     column_generation_2.cpp
-    dynamic_programming_infinite_copies_array.cpp)
+    dynamic_programming_infinite_copies_array.cpp
+    labeling.cpp)
 target_include_directories(PackingSolver_rectangleguillotine PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_rectangleguillotine PRIVATE
