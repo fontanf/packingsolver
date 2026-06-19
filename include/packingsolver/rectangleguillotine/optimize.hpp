@@ -41,6 +41,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use dynamic programming (infinite copies, array) algorithm. */
     bool use_dynamic_programming_infinite_copies_array = false;
 
+    /** Use labeling algorithm. */
+    bool use_labeling = false;
+
     /** Use sequential single knapsack algorithm. */
     bool use_sequential_single_knapsack = false;
 
