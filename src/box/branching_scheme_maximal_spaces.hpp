@@ -116,7 +116,7 @@ public:
          */
         ItemPos space_id = -1;
 
-        /** contact_area * mean_item_volume * volume_load estimated for the child node. */
+        /** Fitness score (item_profit * C^α * L^β * N^-γ) for this insertion. */
         double guide = 0.0;
 
         bool operator==(const Insertion& other) const
@@ -170,11 +170,11 @@ public:
         std::vector<ItemPos> valid_block_ids;
 
         /**
-         * Item volume reached by running the greedy (best_insertion loop)
-         * from this node to completion.  Set by child() and children();
-         * not set by apply_insertion().
+         * Profit reached by running the greedy (best_insertion loop) from
+         * this node to completion.  Set by child() and children(); not set
+         * by apply_insertion().
          */
-        Volume greedy_value = 0;
+        Profit greedy_value = 0;
 
         /**
          * Sorted insertion list populated on the first call to next_child()
@@ -599,9 +599,9 @@ private:
 
     /**
      * Copy node, run best_insertion + apply_insertion until no insertion is
-     * possible, and return the item_volume of the resulting greedy solution.
+     * possible, and return the profit of the resulting greedy solution.
      */
-    Volume compute_guide_greedy(const Node& node) const;
+    Profit compute_guide_greedy(const Node& node) const;
 
     /**
      * Return the delta (pseudo-contact tolerance) appropriate for node:
@@ -625,8 +625,8 @@ inline bool BranchingSchemeMaximalSpaces::operator()(
         return false;
     if (node_1->greedy_value != node_2->greedy_value)
         return node_1->greedy_value > node_2->greedy_value;
-    if (node_1->item_volume != node_2->item_volume)
-        return node_1->item_volume > node_2->item_volume;
+    if (node_1->profit != node_2->profit)
+        return node_1->profit > node_2->profit;
     return node_1->id > node_2->id;
 }
 
