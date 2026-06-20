@@ -138,7 +138,9 @@ bool block_item_volume_greater(const Block& block_1, const Block& block_2)
 struct BlockFillRateLess {
     bool operator()(const Block& block_1, const Block& block_2) const
     {
-        return block_1.fill_rate() < block_2.fill_rate();
+        if (block_1.fill_rate() != block_2.fill_rate())
+            return block_1.fill_rate() < block_2.fill_rate();
+        return block_1.number_of_items > block_2.number_of_items;
     }
 };
 
