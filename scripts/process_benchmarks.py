@@ -1487,6 +1487,178 @@ elif benchmark == "rectangleguillotine_knapsack_2nho_2nvo_hifi2012":
         show_datafram(styler)
 
 
+elif benchmark in ("rectangle_knapsack_oriented",
+                   "rectangle_knapsack_rotation"):
+
+    if benchmark == "rectangle_knapsack_oriented":
+        datacsv_path = os.path.join(
+                "data", "rectangle", "data_knapsack_oriented.csv")
+    else:
+        datacsv_path = os.path.join(
+                "data", "rectangle", "data_knapsack_rotation.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = list(reader.fieldnames)
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
+        out_rows = []
+
+        # Initialize extra rows.
+        extra_rows = [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["ItemProfit"])
+
+            # Update extra rows.
+            extra_rows[0][bksv_field] += row[bksv_field]
+            for result_column in result_columns:
+                profit = int(row[result_column])
+                row[result_column] = profit
+                extra_rows[0][result_column] += profit
+
+                gap = (row[bksv_field] - profit) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+                extra_rows[0][gap_column] += gap
+
+            out_rows.append(row)
+
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        styler = df.style
+        for result_column in result_columns:
+            styler = styler.apply(_style_higher_better, bksv_series=df[bksv_field], subset=[result_column])
+        show_datafram(styler)
+
+
+elif benchmark in ("rectangle_knapsack_oriented_egeblad2009",
+                   "rectangle_knapsack_rotation_egeblad2009"):
+
+    if benchmark == "rectangle_knapsack_oriented_egeblad2009":
+        datacsv_path = os.path.join(
+                "data", "rectangle", "data_knapsack_oriented_egeblad2009.csv")
+    else:
+        datacsv_path = os.path.join(
+                "data", "rectangle", "data_knapsack_rotation_egeblad2009.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = list(reader.fieldnames)
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
+        out_rows = []
+
+        # Initialize extra rows: one per N value plus Total.
+        n_values = [30, 50, 100, 200]
+        extra_rows = [
+                {"Path": "n=" + str(n_val), bksv_field: 0}
+                for n_val in n_values
+                ] + [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["ItemProfit"])
+
+            # Determine which extra rows to update.
+            n_val = int(row["Path"].split("/")[1].split("-")[1])
+            n_row_id = n_values.index(n_val)
+            extra_rows_to_update = [n_row_id, -1]
+
+            for row_id in extra_rows_to_update:
+                extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            for result_column in result_columns:
+                profit = int(row[result_column])
+                row[result_column] = profit
+
+                gap = (row[bksv_field] - profit) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+
+                for row_id in extra_rows_to_update:
+                    extra_rows[row_id][result_column] += profit
+                    extra_rows[row_id][gap_column] += gap
+
+            out_rows.append(row)
+
+        for row in extra_rows:
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        styler = df.style
+        for result_column in result_columns:
+            styler = styler.apply(_style_higher_better, bksv_series=df[bksv_field], subset=[result_column])
+        show_datafram(styler)
+
+
 elif benchmark == "rectangle_bin_packing_oriented":
 
     datacsv_path = os.path.join(
@@ -1954,6 +2126,95 @@ elif benchmark == "box_knapsack_bischoff1995_davies1999":
                 row[output_directory + " / Solution value"] /= n
                 row[output_directory + " / Volume load"] /= n
                 row[output_directory + " / Gap"] /= n
+            out_rows.append(row)
+
+        df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
+
+        styler = df.style
+        for result_column in result_columns:
+            styler = styler.apply(_style_higher_better, bksv_series=df[bksv_field], subset=[result_column])
+        show_datafram(styler)
+
+
+elif benchmark == "box_knapsack_egeblad2009":
+
+    datacsv_path = os.path.join(
+            "data",
+            "box",
+            "data_knapsack_egeblad2009.csv")
+
+    data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+    with open(datacsv_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        # Get fieldnames of CSV output file.
+        out_fieldnames = list(reader.fieldnames)
+        for output_directory in output_directories:
+            out_fieldnames.append(output_directory + " / Solution value")
+
+        result_columns = [fieldname for fieldname in out_fieldnames
+                          if "Solution value" in fieldname]
+
+        # Add gap columns.
+        out_fieldnames_tmp = []
+        for fieldname in out_fieldnames:
+            out_fieldnames_tmp.append(fieldname)
+            if "Solution value" in fieldname:
+                out_fieldnames_tmp.append(
+                        fieldname.replace("Solution value", "Gap"))
+        out_fieldnames = out_fieldnames_tmp
+
+        out_rows = []
+
+        # Initialize extra rows: one per N value plus Total.
+        n_values = [20, 40, 60]
+        extra_rows = [
+                {"Path": "n=" + str(n_val), bksv_field: 0}
+                for n_val in n_values
+                ] + [{"Path": "Total", bksv_field: 0}]
+        for fieldname in [bksv_field] + result_columns:
+            for row in extra_rows:
+                row[fieldname] = 0
+                row[fieldname.replace("Solution value", "Gap")] = 0
+
+        for row in reader:
+
+            row[bksv_field] = int(row[bksv_field])
+
+            # Fill current row.
+            for output_directory in output_directories:
+                json_output_path = os.path.join(
+                        benchmark_directory,
+                        output_directory,
+                        row["Path"] + "_output.json")
+                json_output_file = open(json_output_path, "r")
+                json_data = json.load(json_output_file)
+                row[output_directory + " / Solution value"] = (
+                        json_data["Output"]["Solution"]["ItemProfit"])
+
+            # Determine which extra rows to update.
+            n_val = int(row["Path"].split("/")[1].split("-")[1])
+            n_row_id = n_values.index(n_val)
+            extra_rows_to_update = [n_row_id, -1]
+
+            for row_id in extra_rows_to_update:
+                extra_rows[row_id][bksv_field] += row[bksv_field]
+
+            for result_column in result_columns:
+                profit = int(row[result_column])
+                row[result_column] = profit
+
+                gap = (row[bksv_field] - profit) / row[bksv_field] * 100
+                gap_column = result_column.replace("Solution value", "Gap")
+                row[gap_column] = gap
+
+                for row_id in extra_rows_to_update:
+                    extra_rows[row_id][result_column] += profit
+                    extra_rows[row_id][gap_column] += gap
+
+            out_rows.append(row)
+
+        for row in extra_rows:
             out_rows.append(row)
 
         df = pd.DataFrame.from_records(out_rows, columns=out_fieldnames)
