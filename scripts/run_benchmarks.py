@@ -797,6 +797,164 @@ if __name__ == "__main__":
                 run_command(command)
 
 
+    elif benchmark == "rectangle_knapsack_oriented":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_oriented.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangle_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + " --no-item-rotation"
+                        + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangle_knapsack_rotation":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_rotation.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangle_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangle_knapsack_oriented_egeblad2009":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_oriented_egeblad2009.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangle_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + " --no-item-rotation"
+                        + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "rectangle_knapsack_rotation_egeblad2009":
+
+        datacsv_path = os.path.join(
+                "data",
+                "rectangle",
+                "data_knapsack_rotation_egeblad2009.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        rectangle_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + "  --time-limit 60"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
     elif benchmark == "rectangle_bin_packing_oriented":
 
         datacsv_path = os.path.join(
@@ -1004,6 +1162,45 @@ if __name__ == "__main__":
                         + "  --items \"" + instance_path + "\""
                         + " --objective knapsack"
                         + "  --time-limit 10"
+                        + "  --output \"" + json_output_path + "\""
+                        + " --certificate \"" + certificate_path + "\"")
+                run_command(command)
+
+
+    elif benchmark == "box_knapsack_egeblad2009":
+
+        datacsv_path = os.path.join(
+                "data",
+                "box",
+                "data_knapsack_egeblad2009.csv")
+
+        data_dir = os.path.dirname(os.path.realpath(datacsv_path))
+        with open(datacsv_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+
+                instance_path = os.path.join(
+                        data_dir,
+                        row["Path"])
+
+                json_output_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_output.json")
+                if not os.path.exists(os.path.dirname(json_output_path)):
+                    os.makedirs(os.path.dirname(json_output_path))
+
+                certificate_path = os.path.join(
+                        output_directory,
+                        row["Path"] + "_solution.csv")
+                if not os.path.exists(os.path.dirname(certificate_path)):
+                    os.makedirs(os.path.dirname(certificate_path))
+
+                command = (
+                        box_main
+                        + "  --verbosity-level 1"
+                        + "  --items \"" + instance_path + "\""
+                        + " --objective knapsack"
+                        + "  --time-limit 60"
                         + "  --output \"" + json_output_path + "\""
                         + " --certificate \"" + certificate_path + "\"")
                 run_command(command)
