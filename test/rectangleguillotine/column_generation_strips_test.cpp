@@ -8,7 +8,7 @@
 using namespace packingsolver::rectangleguillotine;
 namespace fs = boost::filesystem;
 
-struct RectangleGuillotineColumnGeneration2TestParams
+struct RectangleGuillotineColumnGenerationStripsTestParams
 {
     fs::path items_path;
     fs::path bins_path;
@@ -17,17 +17,17 @@ struct RectangleGuillotineColumnGeneration2TestParams
     fs::path certificate_path;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const RectangleGuillotineColumnGeneration2TestParams& test_params)
+inline std::ostream& operator<<(std::ostream& os, const RectangleGuillotineColumnGenerationStripsTestParams& test_params)
 {
     os << test_params.items_path;
     return os;
 }
 
-class RectangleGuillotineColumnGeneration2Test: public testing::TestWithParam<RectangleGuillotineColumnGeneration2TestParams> { };
+class RectangleGuillotineColumnGenerationStripsTest: public testing::TestWithParam<RectangleGuillotineColumnGenerationStripsTestParams> { };
 
-TEST_P(RectangleGuillotineColumnGeneration2Test, RectangleGuillotineColumnGeneration2)
+TEST_P(RectangleGuillotineColumnGenerationStripsTest, RectangleGuillotineColumnGenerationStrips)
 {
-    RectangleGuillotineColumnGeneration2TestParams test_params = GetParam();
+    RectangleGuillotineColumnGenerationStripsTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
     instance_builder.read_item_types(test_params.items_path.string());
     instance_builder.read_bin_types(test_params.bins_path.string());
@@ -37,7 +37,7 @@ TEST_P(RectangleGuillotineColumnGeneration2Test, RectangleGuillotineColumnGenera
 
     OptimizeParameters optimize_parameters;
     //optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
-    optimize_parameters.use_column_generation_2 = true;
+    optimize_parameters.use_column_generation_strips = true;
     Output output = optimize(instance, optimize_parameters);
 
     SolutionBuilder solution_builder(instance);
@@ -53,9 +53,9 @@ TEST_P(RectangleGuillotineColumnGeneration2Test, RectangleGuillotineColumnGenera
 }
 
 INSTANTIATE_TEST_SUITE_P(
-        RectangleGuillotineColumnGeneration2,
-        RectangleGuillotineColumnGeneration2Test,
-        testing::ValuesIn(std::vector<RectangleGuillotineColumnGeneration2TestParams>{
+        RectangleGuillotineColumnGenerationStrips,
+        RectangleGuillotineColumnGenerationStripsTest,
+        testing::ValuesIn(std::vector<RectangleGuillotineColumnGenerationStripsTestParams>{
             {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_vertical" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_vertical" / "bins.csv",

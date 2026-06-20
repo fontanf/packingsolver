@@ -10,7 +10,7 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     optimize.cpp
     post_process.cpp
     branching_scheme.cpp
-    column_generation_2.cpp
+    column_generation_strips.cpp
     dynamic_programming_infinite_copies_array.cpp
     labeling.cpp)
 target_include_directories(PackingSolver_rectangleguillotine PUBLIC

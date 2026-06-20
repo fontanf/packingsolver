@@ -3,7 +3,7 @@
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
 #include "rectangleguillotine/branching_scheme.hpp"
-#include "rectangleguillotine/column_generation_2.hpp"
+#include "rectangleguillotine/column_generation_strips.hpp"
 #include "rectangleguillotine/dynamic_programming_infinite_copies_array.hpp"
 #include "rectangleguillotine/labeling.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
@@ -222,12 +222,12 @@ void optimize_labeling(
     labeling(instance, ls_parameters);
 }
 
-void optimize_column_generation_2(
+void optimize_column_generation_strips(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    ColumnGeneration2Parameters cg_parameters;
+    ColumnGenerationStripsParameters cg_parameters;
     cg_parameters.verbosity_level = 0;
     cg_parameters.timer = parameters.timer;
     cg_parameters.linear_programming_solver_name
@@ -245,7 +245,7 @@ void optimize_column_generation_2(
         algorithm_formatter.update_solution(pscg_output.solution_pool.best(), ss.str());
         algorithm_formatter.update_knapsack_bound(pscg_output.knapsack_bound);
     };
-    column_generation_2(instance, cg_parameters);
+    column_generation_strips(instance, cg_parameters);
 }
 
 void optimize_sequential_single_knapsack(
@@ -499,7 +499,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
     bool use_tree_search = parameters.use_tree_search;
-    bool use_column_generation_2 = parameters.use_column_generation_2;
+    bool use_column_generation_strips = parameters.use_column_generation_strips;
     bool use_dynamic_programming_infinite_copies_array
         = parameters.use_dynamic_programming_infinite_copies_array;
     bool use_labeling = parameters.use_labeling;
@@ -515,19 +515,19 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         use_column_generation = false;
         // Automatic selection.
         if (!use_tree_search
-                && !use_column_generation_2
+                && !use_column_generation_strips
                 && !use_dynamic_programming_infinite_copies_array
                 && !use_labeling) {
             use_tree_search = true;
             //if (instance.number_of_stacks() != instance.number_of_item_types()
             //        && instance.number_of_defects() == 0) {
-            //    use_column_generation_2 = true;
+            //    use_column_generation_strips = true;
             //}
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
-        use_column_generation_2 = false;
+        use_column_generation_strips = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -551,7 +551,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
-        use_column_generation_2 = false;
+        use_column_generation_strips = false;
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
@@ -589,7 +589,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         }
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
-        use_column_generation_2 = false;
+        use_column_generation_strips = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
@@ -690,11 +690,11 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         });
     }
     // Column generation 2.
-    if (use_column_generation_2) {
+    if (use_column_generation_strips) {
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
-            wrapper<decltype(&optimize_column_generation_2), optimize_column_generation_2>(
+            wrapper<decltype(&optimize_column_generation_strips), optimize_column_generation_strips>(
                     exception_ptr,
                     instance,
                     parameters,
