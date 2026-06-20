@@ -11,7 +11,9 @@ target_sources(PackingSolver_rectangle PRIVATE
     post_process.cpp
     branching_scheme.cpp
     benders_decomposition.cpp
-    dual_feasible_functions.cpp)
+    dual_feasible_functions.cpp
+    block.cpp
+    branching_scheme_maximal_spaces.cpp)
 target_include_directories(PackingSolver_rectangle PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_rectangle PRIVATE
