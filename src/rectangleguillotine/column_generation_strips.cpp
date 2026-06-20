@@ -1,4 +1,4 @@
-#include "rectangleguillotine/column_generation_2.hpp"
+#include "rectangleguillotine/column_generation_strips.hpp"
 
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "rectangleguillotine/instance_flipper.hpp"
@@ -30,7 +30,7 @@ public:
 
     ColumnGenerationPricingSolver(
             const Instance& instance,
-            const ColumnGeneration2Parameters& parameters):
+            const ColumnGenerationStripsParameters& parameters):
         instance_(instance),
         parameters_(parameters),
         filled_demands_(instance.number_of_item_types())
@@ -79,7 +79,7 @@ private:
 
     const Instance& instance_;
 
-    const ColumnGeneration2Parameters& parameters_;
+    const ColumnGenerationStripsParameters& parameters_;
 
     std::vector<ItemPos> filled_demands_;
 
@@ -394,7 +394,7 @@ struct GetModelOutput
 
 GetModelOutput get_model(
         const Instance& instance,
-        const ColumnGeneration2Parameters& parameters)
+        const ColumnGenerationStripsParameters& parameters)
 {
     const BinType& bin_type = instance.bin_type(0);
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
@@ -1443,11 +1443,11 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
 
         Instance sub_instance = sub_instance_builder.build();
 
-        ColumnGeneration2Parameters sub_params;
+        ColumnGenerationStripsParameters sub_params;
         sub_params.verbosity_level = 0;
         sub_params.automatic_stop = true;
         sub_params.timer = parameters_.timer;
-        auto sub_output = column_generation_2(sub_instance, sub_params);
+        auto sub_output = column_generation_strips(sub_instance, sub_params);
         if (parameters_.timer.needs_to_end())
             break;
 
@@ -1708,9 +1708,9 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
     return output;
 }
 
-void column_generation_2_vertical(
+void column_generation_strips_vertical(
         const Instance& instance,
-        const ColumnGeneration2Parameters& parameters,
+        const ColumnGenerationStripsParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
     GetModelOutput cgs_model = get_model(instance, parameters);
@@ -1785,22 +1785,22 @@ void column_generation_2_vertical(
     columngenerationsolver::limited_discrepancy_search(cgs_model.model, cgslds_parameters);
 }
 
-void column_generation_2_horizontal(
+void column_generation_strips_horizontal(
         const Instance& instance,
-        const ColumnGeneration2Parameters& parameters,
+        const ColumnGenerationStripsParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
     // Build flipped instance.
     InstanceFlipper instance_flippper(instance);
     const Instance& flipped_instance = instance_flippper.flipped_instance();
 
-    ColumnGeneration2Parameters flipped_parameters = parameters;
+    ColumnGenerationStripsParameters flipped_parameters = parameters;
     flipped_parameters.new_solution_callback = [
         &instance, &algorithm_formatter, &instance_flippper](
                 const packingsolver::Output<Instance, Solution>& ps_output)
         {
-            const ColumnGeneration2Output& flipped_output
-                = static_cast<const ColumnGeneration2Output&>(ps_output);
+            const ColumnGenerationStripsOutput& flipped_output
+                = static_cast<const ColumnGenerationStripsOutput&>(ps_output);
             std::stringstream ss;
             ss << "CGH n ";
             //std::cout << "callback flipped" << std::endl;
@@ -1812,30 +1812,30 @@ void column_generation_2_horizontal(
             algorithm_formatter.update_knapsack_bound(
                     flipped_output.knapsack_bound);
         };
-    column_generation_2(
+    column_generation_strips(
             flipped_instance,
             flipped_parameters);
 }
 
 }
 
-const ColumnGeneration2Output packingsolver::rectangleguillotine::column_generation_2(
+const ColumnGenerationStripsOutput packingsolver::rectangleguillotine::column_generation_strips(
         const Instance& instance,
-        const ColumnGeneration2Parameters& parameters)
+        const ColumnGenerationStripsParameters& parameters)
 {
-    ColumnGeneration2Output output(instance);
+    ColumnGenerationStripsOutput output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
     // Reduction.
     if (instance.parameters().first_stage_orientation == CutOrientation::Vertical) {
-        column_generation_2_vertical(
+        column_generation_strips_vertical(
                 instance,
                 parameters,
                 algorithm_formatter);
     } else if (instance.parameters().first_stage_orientation == CutOrientation::Horizontal) {
-        column_generation_2_horizontal(
+        column_generation_strips_horizontal(
                 instance,
                 parameters,
                 algorithm_formatter);
@@ -1845,7 +1845,7 @@ const ColumnGeneration2Output packingsolver::rectangleguillotine::column_generat
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr_1 = exception_ptr_list.front();
         tasks.push_back([&exception_ptr_1, &instance, &parameters, &algorithm_formatter]() {
-            wrapper<decltype(&column_generation_2_vertical), column_generation_2_vertical>(
+            wrapper<decltype(&column_generation_strips_vertical), column_generation_strips_vertical>(
                     exception_ptr_1,
                     instance,
                     parameters,
@@ -1854,7 +1854,7 @@ const ColumnGeneration2Output packingsolver::rectangleguillotine::column_generat
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr_2 = exception_ptr_list.front();
         tasks.push_back([&exception_ptr_2, &instance, &parameters, &algorithm_formatter]() {
-            wrapper<decltype(&column_generation_2_horizontal), column_generation_2_horizontal>(
+            wrapper<decltype(&column_generation_strips_horizontal), column_generation_strips_horizontal>(
                     exception_ptr_2,
                     instance,
                     parameters,

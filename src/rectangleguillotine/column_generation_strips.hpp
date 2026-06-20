@@ -60,10 +60,10 @@ namespace packingsolver
 namespace rectangleguillotine
 {
 
-struct ColumnGeneration2Output: packingsolver::Output<Instance, Solution>
+struct ColumnGenerationStripsOutput: packingsolver::Output<Instance, Solution>
 {
     /** Constructor. */
-    ColumnGeneration2Output(const Instance& instance):
+    ColumnGenerationStripsOutput(const Instance& instance):
         packingsolver::Output<Instance, Solution>(instance) { }
 
     CutOrientation best_solution_first_stage_orientation;
@@ -71,7 +71,7 @@ struct ColumnGeneration2Output: packingsolver::Output<Instance, Solution>
     NodeId best_solution_number_of_nodes;
 };
 
-struct ColumnGeneration2Parameters: packingsolver::Parameters<Instance, Solution>
+struct ColumnGenerationStripsParameters: packingsolver::Parameters<Instance, Solution>
 {
     bool automatic_stop = false;
 
@@ -80,9 +80,9 @@ struct ColumnGeneration2Parameters: packingsolver::Parameters<Instance, Solution
         = columngenerationsolver::SolverName::CLP;
 };
 
-const ColumnGeneration2Output column_generation_2(
+const ColumnGenerationStripsOutput column_generation_strips(
         const Instance& instance,
-        const ColumnGeneration2Parameters& parameters = {});
+        const ColumnGenerationStripsParameters& parameters = {});
 
 }
 }

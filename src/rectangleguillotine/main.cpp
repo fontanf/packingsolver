@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
             ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
             ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
-            ("use-column-generation-2,", po::value<bool>(), "enable column generation 2 algorithm")
+            ("use-column-generation-strips,", po::value<bool>(), "enable column generation strips algorithm")
             ("use-dynamic-programming-infinite-copies-array,", po::value<bool>(), "enable dynamic programming (infinite copies, array) algorithm")
             ("use-labeling,", po::value<bool>(), "enable labeling algorithm")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
@@ -245,8 +245,8 @@ int main(int argc, char *argv[])
 
         if (vm.count("use-tree-search"))
             parameters.use_tree_search = vm["use-tree-search"].as<bool>();
-        if (vm.count("use-column-generation-2"))
-            parameters.use_column_generation_2 = vm["use-column-generation-2"].as<bool>();
+        if (vm.count("use-column-generation-strips"))
+            parameters.use_column_generation_strips = vm["use-column-generation-strips"].as<bool>();
         if (vm.count("use-dynamic-programming-infinite-copies-array"))
             parameters.use_dynamic_programming_infinite_copies_array = vm["use-dynamic-programming-infinite-copies-array"].as<bool>();
         if (vm.count("use-labeling"))

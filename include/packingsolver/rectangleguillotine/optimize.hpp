@@ -35,8 +35,8 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use tree search algorithm. */
     bool use_tree_search = false;
 
-    /** Use column generation 2 algorithm. */
-    bool use_column_generation_2 = false;
+    /** Use column generation strips algorithm. */
+    bool use_column_generation_strips = false;
 
     /** Use dynamic programming (infinite copies, array) algorithm. */
     bool use_dynamic_programming_infinite_copies_array = false;
