@@ -3,6 +3,7 @@
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "rectangle/branching_scheme.hpp"
+#include "rectangle/branching_scheme_maximal_spaces.hpp"
 #include "rectangle/benders_decomposition.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
 #include "algorithms/dichotomic_search.hpp"
@@ -11,6 +12,7 @@
 #include "algorithms/thread_pool.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"
+#include "treesearchsolver/iterative_beam_search.hpp"
 
 
 using namespace packingsolver;
@@ -388,6 +390,81 @@ void optimize_column_generation(
     columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
 }
 
+void optimize_tree_search_maximal_spaces(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
+    std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
+
+    std::vector<BranchingSchemeMaximalSpaces> branching_schemes;
+    std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces>> ibs_parameters_list;
+    std::vector<rectangle::Output> outputs;
+    {
+        BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
+        branching_schemes.push_back(BranchingSchemeMaximalSpaces(instance, all_blocks, max_reachable_lengths, branching_scheme_parameters));
+        treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> ibs_parameters;
+        ibs_parameters.verbosity_level = 0;
+        ibs_parameters.timer = parameters.timer;
+        ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        ibs_parameters.global_history = true;
+        ibs_parameters_list.push_back(ibs_parameters);
+        outputs.push_back(rectangle::Output(instance));
+    }
+
+    std::vector<std::function<void()>> tasks;
+    std::forward_list<std::exception_ptr> exception_ptr_list;
+    for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
+            ibs_parameters_list[i].new_solution_callback
+                = [&algorithm_formatter, &branching_schemes, i](
+                        const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
+                {
+                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
+                        = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
+                    Solution solution = branching_schemes[i].to_solution(
+                            tssibs_output.solution_pool.best());
+                    std::stringstream ss;
+                    ss << "TSMS n " << tssibs_output.maximum_size_of_the_queue;
+                    algorithm_formatter.update_solution(solution, ss.str());
+                };
+        } else {
+            ibs_parameters_list[i].new_solution_callback
+                = [&outputs, &branching_schemes, i](
+                        const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
+                {
+                    const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
+                        = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
+                    Solution solution = branching_schemes[i].to_solution(
+                            tssibs_output.solution_pool.best());
+                    outputs[i].solution_pool.add(solution);
+                };
+        }
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        BranchingSchemeMaximalSpaces& branching_scheme = branching_schemes[i];
+        treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> ibs_parameters = ibs_parameters_list[i];
+        tasks.push_back([&exception_ptr, &branching_scheme, ibs_parameters]() {
+            wrapper<decltype(&treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>), treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>>(
+                    exception_ptr,
+                    branching_scheme,
+                    ibs_parameters);
+        });
+    }
+    run(tasks, parameters.optimization_mode != OptimizationMode::NotAnytimeSequential);
+    for (const std::exception_ptr& exception_ptr: exception_ptr_list)
+        if (exception_ptr)
+            std::rethrow_exception(exception_ptr);
+    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
+        for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
+            std::stringstream ss;
+            ss << "TSMS";
+            algorithm_formatter.update_solution(outputs[i].solution_pool.best(), ss.str());
+        }
+    }
+}
+
 void optimize_benders_decomposition(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -426,6 +503,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
     bool use_tree_search = parameters.use_tree_search;
+    bool use_tree_search_maximal_spaces = parameters.use_tree_search_maximal_spaces;
     bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
@@ -437,19 +515,20 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         use_dichotomic_search = false;
         use_column_generation = false;
         // Automatic selection.
-        if (instance.objective() == Objective::Knapsack) {
-            if (!use_tree_search
-                    && !use_benders_decomposition) {
-                use_tree_search = true;
-                //use_benders_decomposition = true;
-            }
-        } else {
-            if (!use_tree_search) {
+        if (!use_tree_search
+                && !use_tree_search_maximal_spaces
+                && !use_benders_decomposition) {
+            if (instance.objective() == Objective::Knapsack
+                    && mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2
+                    && instance.parameters().unloading_constraint == UnloadingConstraint::None) {
+                use_tree_search_maximal_spaces = true;
+            } else {
                 use_tree_search = true;
             }
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
+        use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
         use_benders_decomposition = false;
         // Automatic selection.
@@ -475,6 +554,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
+        use_tree_search_maximal_spaces = false;
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
@@ -509,6 +589,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         }
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
+        use_tree_search_maximal_spaces = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
@@ -582,6 +663,18 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
             wrapper<decltype(&optimize_tree_search), optimize_tree_search>(
+                    exception_ptr,
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        });
+    }
+    // Tree search maximal spaces.
+    if (use_tree_search_maximal_spaces) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+            wrapper<decltype(&optimize_tree_search_maximal_spaces), optimize_tree_search_maximal_spaces>(
                     exception_ptr,
                     instance,
                     parameters,
