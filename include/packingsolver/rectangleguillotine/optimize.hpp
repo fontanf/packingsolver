@@ -69,13 +69,13 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
      * Size of the queue for the pricing knapsack subproblem of the sequential
      * value correction algorithm.
      */
-    NodeId sequential_value_correction_subproblem_queue_size = 128;
+    NodeId sequential_value_correction_subproblem_tree_search_queue_size = 128;
 
     /**
      * Size of the queue for the pricing knapsack subproblem of the column
      * generation algorithm.
      */
-    NodeId column_generation_subproblem_queue_size = 128;
+    NodeId column_generation_subproblem_tree_search_queue_size = 128;
 
     /*
      * Parameters for non-anytime mode
@@ -88,7 +88,7 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
      * Size of the queue in the single knapsack subproblem of the sequential
      * single knapsack algorithm.
      */
-    NodeId not_anytime_sequential_single_knapsack_subproblem_queue_size = 2048;
+    NodeId not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size = 2048;
 
     /** Number of iterations of the sequential value correction algorithm. */
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
@@ -97,7 +97,7 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
      * Size of the queue in the bin packing subproblem of the dichotomic search
      * algorithm.
      */
-    NodeId not_anytime_dichotomic_search_subproblem_queue_size = 128;
+    NodeId not_anytime_dichotomic_search_subproblem_tree_search_queue_size = 128;
 };
 
 Output optimize(

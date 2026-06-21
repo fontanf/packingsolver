@@ -182,7 +182,7 @@ if args.tests is None or "rectangleguillotine-bin-packing-sequential-single-knap
                 + " --objective bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-single-knapsack 1"
-                + " --not-anytime-sequential-single-knapsack-subproblem-queue-size 256"
+                + " --not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
@@ -225,7 +225,7 @@ if args.tests is None or "rectangleguillotine-bin-packing-sequential-value-corre
                 + " --objective bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-value-correction 1"
-                + " --sequential-value-correction-subproblem-queue-size 256"
+                + " --sequential-value-correction-subproblem-tree-search-queue-size 256"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
@@ -322,7 +322,7 @@ if args.tests is None or "rectangleguillotine-bin-packing-column-generation" in 
                 + " --objective bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-column-generation 1"
-                + " --column-generation-subproblem-queue-size 256"
+                + " --column-generation-subproblem-tree-search-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
@@ -364,7 +364,7 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-column-
                 + " --objective variable-sized-bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-column-generation 1"
-                + " --column-generation-subproblem-queue-size 256"
+                + " --column-generation-subproblem-tree-search-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
@@ -402,7 +402,7 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-dichoto
                 + " --objective variable-sized-bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-dichotomic-search 1"
-                + " --not-anytime-dichotomic-search-subproblem-queue-size 256"
+                + " --not-anytime-dichotomic-search-subproblem-tree-search-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
@@ -441,7 +441,7 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-sequent
                 + " --objective variable-sized-bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-single-knapsack 1"
-                + " --not-anytime-sequential-single-knapsack-subproblem-queue-size 256"
+                + " --not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size 256"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
@@ -483,7 +483,7 @@ if args.tests is None or "rectangleguillotine-variable-sized-bin-packing-sequent
                 + " --objective variable-sized-bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-value-correction 1"
-                + " --sequential-value-correction-subproblem-queue-size 256"
+                + " --sequential-value-correction-subproblem-tree-search-queue-size 256"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
@@ -664,7 +664,8 @@ if args.tests is None or "rectangle-bin-packing-sequential-single-knapsack" in a
                 + " --objective bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-single-knapsack 1"
-                + " --not-anytime-sequential-single-knapsack-subproblem-queue-size 512"
+                + " --not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size 512"
+                + " --not-anytime-sequential-single-knapsack-subproblem-tree-search-maximal-spaces-queue-size 16"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
@@ -707,7 +708,8 @@ if args.tests is None or "rectangle-bin-packing-sequential-value-correction" in 
                 + " --objective bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-value-correction 1"
-                + " --sequential-value-correction-subproblem-queue-size 512"
+                + " --sequential-value-correction-subproblem-tree-search-queue-size 512"
+                + " --sequential-value-correction-subproblem-tree-search-maximal-spaces-queue-size 16"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
@@ -804,7 +806,8 @@ if args.tests is None or "rectangle-bin-packing-column-generation" in args.tests
                 + " --objective bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-column-generation 1"
-                + " --column-generation-subproblem-queue-size 512"
+                + " --column-generation-subproblem-tree-search-queue-size 512"
+                + " --column-generation-subproblem-tree-search-maximal-spaces-queue-size 16"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
@@ -846,7 +849,8 @@ if args.tests is None or "rectangle-variable-sized-bin-packing-column-generation
                 + " --objective variable-sized-bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-column-generation 1"
-                + " --column-generation-subproblem-queue-size 512"
+                + " --column-generation-subproblem-tree-search-queue-size 512"
+                + " --column-generation-subproblem-tree-search-maximal-spaces-queue-size 16"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
@@ -884,7 +888,7 @@ if args.tests is None or "rectangle-variable-sized-bin-packing-dichotomic-search
                 + " --objective variable-sized-bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-dichotomic-search 1"
-                + " --not-anytime-dichotomic-search-subproblem-queue-size 512"
+                + " --not-anytime-dichotomic-search-subproblem-tree-search-queue-size 512"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
@@ -923,7 +927,8 @@ if args.tests is None or "rectangle-variable-sized-bin-packing-sequential-single
                 + " --objective variable-sized-bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-single-knapsack 1"
-                + " --not-anytime-sequential-single-knapsack-subproblem-queue-size 512"
+                + " --not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size 512"
+                + " --not-anytime-sequential-single-knapsack-subproblem-tree-search-maximal-spaces-queue-size 16"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
@@ -965,7 +970,8 @@ if args.tests is None or "rectangle-variable-sized-bin-packing-sequential-value-
                 + " --objective variable-sized-bin-packing"
                 + "  --optimization-mode not-anytime-deterministic"
                 + " --use-sequential-value-correction 1"
-                + " --sequential-value-correction-subproblem-queue-size 512"
+                + " --sequential-value-correction-subproblem-tree-search-queue-size 512"
+                + " --sequential-value-correction-subproblem-tree-search-maximal-spaces-queue-size 16"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"
                 + "  --output \"" + json_output_path + "\"")
         print(command)

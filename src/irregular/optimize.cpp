@@ -416,7 +416,7 @@ void optimize_sequential_single_knapsack(
     for (Counter queue_size = 1;;) {
 
         if (parameters.optimization_mode != OptimizationMode::Anytime) {
-            queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_queue_size;
+            queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size;
             maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         }
 
@@ -487,7 +487,7 @@ void optimize_sequential_value_correction(
                 instance,
                 parameters,
                 algorithm_formatter,
-                parameters.sequential_value_correction_subproblem_queue_size - 1);
+                parameters.sequential_value_correction_subproblem_tree_search_queue_size - 1);
     }
 
     SequentialValueCorrectionFunction<Instance, Solution> kp_solve
@@ -503,7 +503,7 @@ void optimize_sequential_value_correction(
                 OptimizationMode::NotAnytimeDeterministic;
             kp_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
             kp_parameters.not_anytime_tree_search_queue_size
-                = parameters.sequential_value_correction_subproblem_queue_size;
+                = parameters.sequential_value_correction_subproblem_tree_search_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             auto kp_output = optimize(kp_instance, kp_parameters);
             return kp_output.solution_pool;
@@ -536,7 +536,7 @@ void optimize_dichotomic_search(
     for (Counter queue_size = 1;;) {
 
         if (parameters.optimization_mode != OptimizationMode::Anytime) {
-            queue_size = parameters.not_anytime_dichotomic_search_subproblem_queue_size;
+            queue_size = parameters.not_anytime_dichotomic_search_subproblem_tree_search_queue_size;
             maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
         }
 
@@ -614,7 +614,7 @@ void optimize_column_generation(
                 OptimizationMode::NotAnytimeDeterministic;
             kp_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
             kp_parameters.not_anytime_tree_search_queue_size
-                = parameters.column_generation_subproblem_queue_size;
+                = parameters.column_generation_subproblem_tree_search_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             return optimize(kp_instance, kp_parameters);
         };

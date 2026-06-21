@@ -237,7 +237,7 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     OptimizationMode::NotAnytimeDeterministic;
                 kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
                 kp_parameters.not_anytime_tree_search_queue_size
-                    = parameters.sequential_value_correction_subproblem_queue_size;
+                    = parameters.sequential_value_correction_subproblem_tree_search_queue_size;
                 //kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;
                 auto kp_output = optimize(kp_instance, kp_parameters);
 

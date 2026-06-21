@@ -205,7 +205,7 @@ void optimize_sequential_single_knapsack(
     for (Counter queue_size = 1;;) {
 
         if (parameters.optimization_mode != OptimizationMode::Anytime)
-            queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_queue_size;
+            queue_size = parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size;
 
         SequentialValueCorrectionFunction<Instance, Solution> kp_solve
             = [&algorithm_formatter, &parameters, &queue_size](const Instance& kp_instance)
@@ -272,7 +272,7 @@ void optimize_sequential_value_correction(
                 OptimizationMode::NotAnytimeSequential:
                 OptimizationMode::NotAnytimeDeterministic;
             kp_parameters.not_anytime_tree_search_queue_size
-                = parameters.sequential_value_correction_subproblem_queue_size;
+                = parameters.sequential_value_correction_subproblem_tree_search_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             auto kp_output = optimize(kp_instance, kp_parameters);
             return kp_output.solution_pool;
@@ -304,7 +304,7 @@ void optimize_dichotomic_search(
     for (Counter queue_size = 1;;) {
 
         if (parameters.optimization_mode != OptimizationMode::Anytime)
-            queue_size = parameters.not_anytime_dichotomic_search_subproblem_queue_size;
+            queue_size = parameters.not_anytime_dichotomic_search_subproblem_tree_search_queue_size;
 
         DichotomicSearchFunction<Instance, Solution> bpp_solve
             = [&algorithm_formatter, &parameters, &queue_size](const Instance& bpp_instance)
@@ -373,7 +373,7 @@ void optimize_column_generation(
                 OptimizationMode::NotAnytimeSequential:
                 OptimizationMode::NotAnytimeDeterministic;
             kp_parameters.not_anytime_tree_search_queue_size
-                = parameters.column_generation_subproblem_queue_size;
+                = parameters.column_generation_subproblem_tree_search_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             return optimize(kp_instance, kp_parameters);
         };
