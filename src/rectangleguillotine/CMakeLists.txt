@@ -1,6 +1,7 @@
 find_package(Threads)
 add_library(PackingSolver_rectangleguillotine)
 target_sources(PackingSolver_rectangleguillotine PRIVATE
+    block.cpp
     instance.cpp
     instance_builder.cpp
     solution.cpp
@@ -10,6 +11,7 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     optimize.cpp
     post_process.cpp
     branching_scheme.cpp
+    branching_scheme_maximal_spaces.cpp
     column_generation_strips.cpp
     dynamic_programming_infinite_copies_array.cpp
     labeling.cpp)

@@ -296,6 +296,19 @@ public:
 
     inline const Parameters& parameters() const { return parameters_; }
 
+    /** Return true iff the number of stages is unlimited. */
+    bool number_of_stages_unlimited() const
+    {
+        Counter max_stages = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = this->bin_type(bin_type_id);
+            max_stages = std::max(max_stages, bin_type.rect.w + bin_type.rect.h);
+        }
+        return parameters_.number_of_stages >= max_stages;
+    }
+
     /*
      * Getters: bin types
      */
