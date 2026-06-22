@@ -398,8 +398,8 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
         const ItemType& item_type = instance_.item_type(block.item_type_id);
         Length bw = item_type.width(block.rotate);
         Length bh = item_type.height(block.rotate);
-        ItemPos cx = (bw > 0)? block.rect.w / bw: 1;
-        ItemPos cy = (bh > 0)? block.rect.h / bh: 1;
+        ItemPos cx = (bw > 0) ? (block.rect.w + cut_thickness_) / (bw + cut_thickness_) : 1;
+        ItemPos cy = (bh > 0) ? (block.rect.h + cut_thickness_) / (bh + cut_thickness_) : 1;
 
         if (cx == 1 && cy == 1) {
             cut_nodes[parent_idx].item_type_id = block.item_type_id;
@@ -412,14 +412,15 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
             // Only horizontal cuts; inject wrapper if parity requires vertical.
             if (required_vertical) {
                 ItemPos wrap_idx = (ItemPos)cut_nodes.size();
-                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+bw; cn.b=by0; cn.t=by0+cy*bh; cut_nodes.push_back(cn); }
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+bw; cn.b=by0; cn.t=by0+block.rect.h; cut_nodes.push_back(cn); }
                 cut_nodes[parent_idx].children.push_back(wrap_idx);
                 place_simple_block(wrap_idx, block, d_parent+1, bx0, by0);
                 return;
             }
             for (ItemPos ccy = 0; ccy < cy; ++ccy) {
+                Length cell_b = by0 + ccy * (bh + cut_thickness_);
                 ItemPos child_idx = (ItemPos)cut_nodes.size();
-                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+bw; cn.b=by0+ccy*bh; cn.t=by0+(ccy+1)*bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+bw; cn.b=cell_b; cn.t=cell_b+bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
                 cut_nodes[parent_idx].children.push_back(child_idx);
             }
             return;
@@ -429,14 +430,15 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
             // Only vertical cuts; inject wrapper if parity requires horizontal.
             if (!required_vertical) {
                 ItemPos wrap_idx = (ItemPos)cut_nodes.size();
-                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+cx*bw; cn.b=by0; cn.t=by0+bh; cut_nodes.push_back(cn); }
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=by0; cn.t=by0+bh; cut_nodes.push_back(cn); }
                 cut_nodes[parent_idx].children.push_back(wrap_idx);
                 place_simple_block(wrap_idx, block, d_parent+1, bx0, by0);
                 return;
             }
             for (ItemPos ccx = 0; ccx < cx; ++ccx) {
+                Length cell_l = bx0 + ccx * (bw + cut_thickness_);
                 ItemPos child_idx = (ItemPos)cut_nodes.size();
-                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0+ccx*bw; cn.r=bx0+(ccx+1)*bw; cn.b=by0; cn.t=by0+bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
+                { CutNode cn; cn.depth=d_parent+1; cn.l=cell_l; cn.r=cell_l+bw; cn.b=by0; cn.t=by0+bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
                 cut_nodes[parent_idx].children.push_back(child_idx);
             }
             return;
@@ -445,23 +447,27 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
         // Both cx > 1 and cy > 1: outer cut matches required_vertical.
         if (required_vertical) {
             for (ItemPos ccx = 0; ccx < cx; ++ccx) {
+                Length col_l = bx0 + ccx * (bw + cut_thickness_);
                 ItemPos col_idx = (ItemPos)cut_nodes.size();
-                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0+ccx*bw; cn.r=bx0+(ccx+1)*bw; cn.b=by0; cn.t=by0+cy*bh; cut_nodes.push_back(cn); }
+                { CutNode cn; cn.depth=d_parent+1; cn.l=col_l; cn.r=col_l+bw; cn.b=by0; cn.t=by0+block.rect.h; cut_nodes.push_back(cn); }
                 cut_nodes[parent_idx].children.push_back(col_idx);
                 for (ItemPos ccy = 0; ccy < cy; ++ccy) {
+                    Length cell_b = by0 + ccy * (bh + cut_thickness_);
                     ItemPos cell_idx = (ItemPos)cut_nodes.size();
-                    { CutNode cn; cn.depth=d_parent+2; cn.l=bx0+ccx*bw; cn.r=bx0+(ccx+1)*bw; cn.b=by0+ccy*bh; cn.t=by0+(ccy+1)*bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
+                    { CutNode cn; cn.depth=d_parent+2; cn.l=col_l; cn.r=col_l+bw; cn.b=cell_b; cn.t=cell_b+bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
                     cut_nodes[col_idx].children.push_back(cell_idx);
                 }
             }
         } else {
             for (ItemPos ccy = 0; ccy < cy; ++ccy) {
+                Length row_b = by0 + ccy * (bh + cut_thickness_);
                 ItemPos row_idx = (ItemPos)cut_nodes.size();
-                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+cx*bw; cn.b=by0+ccy*bh; cn.t=by0+(ccy+1)*bh; cut_nodes.push_back(cn); }
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=row_b; cn.t=row_b+bh; cut_nodes.push_back(cn); }
                 cut_nodes[parent_idx].children.push_back(row_idx);
                 for (ItemPos ccx = 0; ccx < cx; ++ccx) {
+                    Length cell_l = bx0 + ccx * (bw + cut_thickness_);
                     ItemPos cell_idx = (ItemPos)cut_nodes.size();
-                    { CutNode cn; cn.depth=d_parent+2; cn.l=bx0+ccx*bw; cn.r=bx0+(ccx+1)*bw; cn.b=by0+ccy*bh; cn.t=by0+(ccy+1)*bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
+                    { CutNode cn; cn.depth=d_parent+2; cn.l=cell_l; cn.r=cell_l+bw; cn.b=row_b; cn.t=row_b+bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
                     cut_nodes[row_idx].children.push_back(cell_idx);
                 }
             }
@@ -482,7 +488,9 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
         const Block& block = blocks_[bin_type_id][block_id];
 
         // Excess width: emit a vertical cut, block on the left, waste on the right.
-        if (avail_w > block.rect.w) {
+        // Only create a waste node when the gap exceeds cut_thickness (otherwise
+        // the solution_builder cannot fit a valid sibling after the cut).
+        if (avail_w > block.rect.w + cut_thickness_) {
             bool required_vertical = cut_is_vertical(d_parent, fco);
             if (!required_vertical) {
                 ItemPos wrap_idx = (ItemPos)cut_nodes.size();
@@ -501,7 +509,9 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
         }
 
         // Excess height: emit a horizontal cut, block below, waste above.
-        if (avail_h > block.rect.h) {
+        // Only create a waste node when the gap exceeds cut_thickness (otherwise
+        // the solution_builder cannot fit a valid sibling after the cut).
+        if (avail_h > block.rect.h + cut_thickness_) {
             bool required_vertical = cut_is_vertical(d_parent, fco);
             if (required_vertical) {
                 ItemPos wrap_idx = (ItemPos)cut_nodes.size();
@@ -540,24 +550,26 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
 
         if (block.cut_is_vertical) {
             Length cut_x = bx0 + child_1.rect.w;
+            Length right_x = cut_x + cut_thickness_;
             ItemPos left_idx = (ItemPos)cut_nodes.size();
             { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=cut_x; cn.b=by0; cn.t=by0+block.rect.h; cut_nodes.push_back(cn); }
             cut_nodes[parent_idx].children.push_back(left_idx);
             ItemPos right_idx = (ItemPos)cut_nodes.size();
-            { CutNode cn; cn.depth=d_parent+1; cn.l=cut_x; cn.r=bx0+block.rect.w; cn.b=by0; cn.t=by0+block.rect.h; cut_nodes.push_back(cn); }
+            { CutNode cn; cn.depth=d_parent+1; cn.l=right_x; cn.r=bx0+block.rect.w; cn.b=by0; cn.t=by0+block.rect.h; cut_nodes.push_back(cn); }
             cut_nodes[parent_idx].children.push_back(right_idx);
-            place_block(left_idx,  block.child_1_id, d_parent+1, bx0,   by0, child_1.rect.w, block.rect.h);
-            place_block(right_idx, block.child_2_id, d_parent+1, cut_x, by0, child_2.rect.w, block.rect.h);
+            place_block(left_idx,  block.child_1_id, d_parent+1, bx0,     by0, child_1.rect.w, block.rect.h);
+            place_block(right_idx, block.child_2_id, d_parent+1, right_x, by0, child_2.rect.w, block.rect.h);
         } else {
             Length cut_y = by0 + child_1.rect.h;
+            Length top_y = cut_y + cut_thickness_;
             ItemPos bottom_idx = (ItemPos)cut_nodes.size();
-            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=by0;    cn.t=cut_y;              cut_nodes.push_back(cn); }
+            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=by0;   cn.t=cut_y;              cut_nodes.push_back(cn); }
             cut_nodes[parent_idx].children.push_back(bottom_idx);
             ItemPos top_idx = (ItemPos)cut_nodes.size();
-            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=cut_y;  cn.t=by0+block.rect.h;  cut_nodes.push_back(cn); }
+            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=top_y; cn.t=by0+block.rect.h;  cut_nodes.push_back(cn); }
             cut_nodes[parent_idx].children.push_back(top_idx);
             place_block(bottom_idx, block.child_1_id, d_parent+1, bx0, by0,   block.rect.w, child_1.rect.h);
-            place_block(top_idx,    block.child_2_id, d_parent+1, bx0, cut_y, block.rect.w, child_2.rect.h);
+            place_block(top_idx,    block.child_2_id, d_parent+1, bx0, top_y, block.rect.w, child_2.rect.h);
         }
     };
 

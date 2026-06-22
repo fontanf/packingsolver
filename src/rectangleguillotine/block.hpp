@@ -32,7 +32,8 @@ struct Block
 
     /**
      * Leaf block (is_simple = true): a cx×cy grid of one item type.
-     * cx = rect.w / item_type.width(rotate), cy = rect.h / item_type.height(rotate).
+     * rect.w = cx * item_type.width(rotate) + (cx-1) * cut_thickness
+     * rect.h = cy * item_type.height(rotate) + (cy-1) * cut_thickness
      */
     bool is_simple = false;
     ItemTypeId item_type_id = -1;
