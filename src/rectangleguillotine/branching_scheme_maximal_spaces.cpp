@@ -96,7 +96,7 @@ BranchingSchemeMaximalSpaces::insertions(
     BinTypeId bin_type_id = instance_.bin_type_id(0);
     for (ItemPos block_id: parent->valid_block_ids) {
         const Block& block = blocks_[bin_type_id][block_id];
-        if (block.rect.x > space.width || block.rect.y > space.height)
+        if (block.rect.w > space.width || block.rect.h > space.height)
             continue;
         double guide = (space.area() > 0)?
             (double)block.item_profit / space.area():
@@ -156,7 +156,7 @@ BranchingSchemeMaximalSpaces::best_insertion(Node& node) const
 
     for (ItemPos block_id: node.valid_block_ids) {
         const Block& block = blocks_[bin_type_id][block_id];
-        if (block.rect.x > space.width || block.rect.y > space.height)
+        if (block.rect.w > space.width || block.rect.h > space.height)
             continue;
         double guide = (space.area() > 0)?
             (double)block.item_profit / space.area():
@@ -179,8 +179,8 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     BinTypeId bin_type_id = instance_.bin_type_id(0);
     const EmptySpace space = node.empty_spaces[insertion.space_id];
     const Block& block = blocks_[bin_type_id][insertion.block_id];
-    Length w_b = block.rect.x;
-    Length h_b = block.rect.y;
+    Length w_b = block.rect.w;
+    Length h_b = block.rect.h;
     Coord bl = space.bl_corner;
     Depth d = space.depth;
     CutOrientation co = insertion.cut_orientation;
@@ -276,8 +276,8 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
         bool has_fitting_block = false;
         for (ItemPos block_id: node.valid_block_ids) {
             const Block& candidate = blocks_[bin_type_id][block_id];
-            if (candidate.rect.x <= node.empty_spaces[space_idx].width
-                    && candidate.rect.y <= node.empty_spaces[space_idx].height) {
+            if (candidate.rect.w <= node.empty_spaces[space_idx].width
+                    && candidate.rect.h <= node.empty_spaces[space_idx].height) {
                 has_fitting_block = true;
                 break;
             }
@@ -386,73 +386,178 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
         cut_nodes.push_back(root);
     }
 
-    // Recursive lambda: place block.nodes[bn_idx] as the content of
-    // cut_nodes[parent_idx] (at depth d_parent).  The block's cut tree is
-    // walked; when a block cut direction does not match the direction required
-    // by the SolutionBuilder at that depth, a trivial wrapper node is injected
-    // to shift the depth parity by one before recursing.
-    //
+    // place_simple_block: emit cut nodes for a cx×cy grid of one item type.
     // (bx0, by0): absolute bin coordinates of the block's BL corner.
-    std::function<void(ItemPos, const Block&, int, Depth, Length, Length)> place_block_node;
-    place_block_node = [&](
+    std::function<void(ItemPos, const Block&, Depth, Length, Length)> place_simple_block;
+    place_simple_block = [&](
             ItemPos parent_idx,
             const Block& block,
-            int bn_idx,
             Depth d_parent,
             Length bx0, Length by0)
     {
-        const Block::Node& bn = block.nodes[bn_idx];
+        const ItemType& item_type = instance_.item_type(block.item_type_id);
+        Length bw = item_type.width(block.rotate);
+        Length bh = item_type.height(block.rotate);
+        ItemPos cx = (bw > 0)? block.rect.w / bw: 1;
+        ItemPos cy = (bh > 0)? block.rect.h / bh: 1;
 
-        if (bn.first_child < 0) {
-            if (bn.item_type_id >= 0)
-                cut_nodes[parent_idx].item_type_id = bn.item_type_id;
+        if (cx == 1 && cy == 1) {
+            cut_nodes[parent_idx].item_type_id = block.item_type_id;
             return;
         }
 
         bool required_vertical = cut_is_vertical(d_parent, fco);
 
-        if (bn.cut_is_vertical != required_vertical) {
-            // Direction mismatch: inject a trivial wrapper that spans the full
-            // block node extent in the required direction, then recurse into it
-            // where the parity now matches the block's cut direction.
-            ItemPos wrap_idx = (ItemPos)cut_nodes.size();
-            {
-                CutNode cn;
-                cn.depth = d_parent + 1;
-                cn.l = bx0 + bn.x0; cn.r = bx0 + bn.x0 + bn.width;
-                cn.b = by0 + bn.y0; cn.t = by0 + bn.y0 + bn.height;
-                cut_nodes.push_back(cn);
+        if (cx == 1) {
+            // Only horizontal cuts; inject wrapper if parity requires vertical.
+            if (required_vertical) {
+                ItemPos wrap_idx = (ItemPos)cut_nodes.size();
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+bw; cn.b=by0; cn.t=by0+cy*bh; cut_nodes.push_back(cn); }
+                cut_nodes[parent_idx].children.push_back(wrap_idx);
+                place_simple_block(wrap_idx, block, d_parent+1, bx0, by0);
+                return;
             }
-            cut_nodes[parent_idx].children.push_back(wrap_idx);
-            place_block_node(wrap_idx, block, bn_idx, d_parent + 1, bx0, by0);
+            for (ItemPos ccy = 0; ccy < cy; ++ccy) {
+                ItemPos child_idx = (ItemPos)cut_nodes.size();
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+bw; cn.b=by0+ccy*bh; cn.t=by0+(ccy+1)*bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
+                cut_nodes[parent_idx].children.push_back(child_idx);
+            }
             return;
         }
 
-        // Directions match: add first and second children.
-        const Block::Node& fc = block.nodes[bn.first_child];
-        ItemPos first_idx = (ItemPos)cut_nodes.size();
-        {
-            CutNode cn;
-            cn.depth = d_parent + 1;
-            cn.l = bx0 + fc.x0; cn.r = bx0 + fc.x0 + fc.width;
-            cn.b = by0 + fc.y0; cn.t = by0 + fc.y0 + fc.height;
-            cut_nodes.push_back(cn);
-        }
-        cut_nodes[parent_idx].children.push_back(first_idx);
-        place_block_node(first_idx, block, bn.first_child, d_parent + 1, bx0, by0);
-
-        if (bn.second_child >= 0) {
-            const Block::Node& sc = block.nodes[bn.second_child];
-            ItemPos second_idx = (ItemPos)cut_nodes.size();
-            {
-                CutNode cn;
-                cn.depth = d_parent + 1;
-                cn.l = bx0 + sc.x0; cn.r = bx0 + sc.x0 + sc.width;
-                cn.b = by0 + sc.y0; cn.t = by0 + sc.y0 + sc.height;
-                cut_nodes.push_back(cn);
+        if (cy == 1) {
+            // Only vertical cuts; inject wrapper if parity requires horizontal.
+            if (!required_vertical) {
+                ItemPos wrap_idx = (ItemPos)cut_nodes.size();
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+cx*bw; cn.b=by0; cn.t=by0+bh; cut_nodes.push_back(cn); }
+                cut_nodes[parent_idx].children.push_back(wrap_idx);
+                place_simple_block(wrap_idx, block, d_parent+1, bx0, by0);
+                return;
             }
-            cut_nodes[parent_idx].children.push_back(second_idx);
-            place_block_node(second_idx, block, bn.second_child, d_parent + 1, bx0, by0);
+            for (ItemPos ccx = 0; ccx < cx; ++ccx) {
+                ItemPos child_idx = (ItemPos)cut_nodes.size();
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0+ccx*bw; cn.r=bx0+(ccx+1)*bw; cn.b=by0; cn.t=by0+bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
+                cut_nodes[parent_idx].children.push_back(child_idx);
+            }
+            return;
+        }
+
+        // Both cx > 1 and cy > 1: outer cut matches required_vertical.
+        if (required_vertical) {
+            for (ItemPos ccx = 0; ccx < cx; ++ccx) {
+                ItemPos col_idx = (ItemPos)cut_nodes.size();
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0+ccx*bw; cn.r=bx0+(ccx+1)*bw; cn.b=by0; cn.t=by0+cy*bh; cut_nodes.push_back(cn); }
+                cut_nodes[parent_idx].children.push_back(col_idx);
+                for (ItemPos ccy = 0; ccy < cy; ++ccy) {
+                    ItemPos cell_idx = (ItemPos)cut_nodes.size();
+                    { CutNode cn; cn.depth=d_parent+2; cn.l=bx0+ccx*bw; cn.r=bx0+(ccx+1)*bw; cn.b=by0+ccy*bh; cn.t=by0+(ccy+1)*bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
+                    cut_nodes[col_idx].children.push_back(cell_idx);
+                }
+            }
+        } else {
+            for (ItemPos ccy = 0; ccy < cy; ++ccy) {
+                ItemPos row_idx = (ItemPos)cut_nodes.size();
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+cx*bw; cn.b=by0+ccy*bh; cn.t=by0+(ccy+1)*bh; cut_nodes.push_back(cn); }
+                cut_nodes[parent_idx].children.push_back(row_idx);
+                for (ItemPos ccx = 0; ccx < cx; ++ccx) {
+                    ItemPos cell_idx = (ItemPos)cut_nodes.size();
+                    { CutNode cn; cn.depth=d_parent+2; cn.l=bx0+ccx*bw; cn.r=bx0+(ccx+1)*bw; cn.b=by0+ccy*bh; cn.t=by0+(ccy+1)*bh; cn.item_type_id=block.item_type_id; cut_nodes.push_back(cn); }
+                    cut_nodes[row_idx].children.push_back(cell_idx);
+                }
+            }
+        }
+    };
+
+    // place_block: recursively expand a block into cut_nodes.
+    // avail_w/avail_h is the region assigned to this block at parent_idx;
+    // block.rect.w/h is the block's actual footprint (avail >= rect).
+    std::function<void(ItemPos, ItemPos, Depth, Length, Length, Length, Length)> place_block;
+    place_block = [&](
+            ItemPos parent_idx,
+            ItemPos block_id,
+            Depth d_parent,
+            Length bx0, Length by0,
+            Length avail_w, Length avail_h)
+    {
+        const Block& block = blocks_[bin_type_id][block_id];
+
+        // Excess width: emit a vertical cut, block on the left, waste on the right.
+        if (avail_w > block.rect.w) {
+            bool required_vertical = cut_is_vertical(d_parent, fco);
+            if (!required_vertical) {
+                ItemPos wrap_idx = (ItemPos)cut_nodes.size();
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+avail_w; cn.b=by0; cn.t=by0+avail_h; cut_nodes.push_back(cn); }
+                cut_nodes[parent_idx].children.push_back(wrap_idx);
+                place_block(wrap_idx, block_id, d_parent+1, bx0, by0, avail_w, avail_h);
+                return;
+            }
+            ItemPos left_idx = (ItemPos)cut_nodes.size();
+            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=by0; cn.t=by0+avail_h; cut_nodes.push_back(cn); }
+            cut_nodes[parent_idx].children.push_back(left_idx);
+            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0+block.rect.w; cn.r=bx0+avail_w; cn.b=by0; cn.t=by0+avail_h; cut_nodes.push_back(cn); }
+            cut_nodes[parent_idx].children.push_back((ItemPos)cut_nodes.size() - 1);
+            place_block(left_idx, block_id, d_parent+1, bx0, by0, block.rect.w, avail_h);
+            return;
+        }
+
+        // Excess height: emit a horizontal cut, block below, waste above.
+        if (avail_h > block.rect.h) {
+            bool required_vertical = cut_is_vertical(d_parent, fco);
+            if (required_vertical) {
+                ItemPos wrap_idx = (ItemPos)cut_nodes.size();
+                { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+avail_w; cn.b=by0; cn.t=by0+avail_h; cut_nodes.push_back(cn); }
+                cut_nodes[parent_idx].children.push_back(wrap_idx);
+                place_block(wrap_idx, block_id, d_parent+1, bx0, by0, avail_w, avail_h);
+                return;
+            }
+            ItemPos bottom_idx = (ItemPos)cut_nodes.size();
+            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+avail_w; cn.b=by0; cn.t=by0+block.rect.h; cut_nodes.push_back(cn); }
+            cut_nodes[parent_idx].children.push_back(bottom_idx);
+            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+avail_w; cn.b=by0+block.rect.h; cn.t=by0+avail_h; cut_nodes.push_back(cn); }
+            cut_nodes[parent_idx].children.push_back((ItemPos)cut_nodes.size() - 1);
+            place_block(bottom_idx, block_id, d_parent+1, bx0, by0, avail_w, block.rect.h);
+            return;
+        }
+
+        // No excess: avail == rect.
+        if (block.is_simple) {
+            place_simple_block(parent_idx, block, d_parent, bx0, by0);
+            return;
+        }
+
+        // Combined block: split into child_1 and child_2.
+        const Block& child_1 = blocks_[bin_type_id][block.child_1_id];
+        const Block& child_2 = blocks_[bin_type_id][block.child_2_id];
+        bool required_vertical = cut_is_vertical(d_parent, fco);
+
+        if (block.cut_is_vertical != required_vertical) {
+            ItemPos wrap_idx = (ItemPos)cut_nodes.size();
+            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=by0; cn.t=by0+block.rect.h; cut_nodes.push_back(cn); }
+            cut_nodes[parent_idx].children.push_back(wrap_idx);
+            place_block(wrap_idx, block_id, d_parent+1, bx0, by0, block.rect.w, block.rect.h);
+            return;
+        }
+
+        if (block.cut_is_vertical) {
+            Length cut_x = bx0 + child_1.rect.w;
+            ItemPos left_idx = (ItemPos)cut_nodes.size();
+            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=cut_x; cn.b=by0; cn.t=by0+block.rect.h; cut_nodes.push_back(cn); }
+            cut_nodes[parent_idx].children.push_back(left_idx);
+            ItemPos right_idx = (ItemPos)cut_nodes.size();
+            { CutNode cn; cn.depth=d_parent+1; cn.l=cut_x; cn.r=bx0+block.rect.w; cn.b=by0; cn.t=by0+block.rect.h; cut_nodes.push_back(cn); }
+            cut_nodes[parent_idx].children.push_back(right_idx);
+            place_block(left_idx,  block.child_1_id, d_parent+1, bx0,   by0, child_1.rect.w, block.rect.h);
+            place_block(right_idx, block.child_2_id, d_parent+1, cut_x, by0, child_2.rect.w, block.rect.h);
+        } else {
+            Length cut_y = by0 + child_1.rect.h;
+            ItemPos bottom_idx = (ItemPos)cut_nodes.size();
+            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=by0;    cn.t=cut_y;              cut_nodes.push_back(cn); }
+            cut_nodes[parent_idx].children.push_back(bottom_idx);
+            ItemPos top_idx = (ItemPos)cut_nodes.size();
+            { CutNode cn; cn.depth=d_parent+1; cn.l=bx0; cn.r=bx0+block.rect.w; cn.b=cut_y;  cn.t=by0+block.rect.h;  cut_nodes.push_back(cn); }
+            cut_nodes[parent_idx].children.push_back(top_idx);
+            place_block(bottom_idx, block.child_1_id, d_parent+1, bx0, by0,   block.rect.w, child_1.rect.h);
+            place_block(top_idx,    block.child_2_id, d_parent+1, bx0, cut_y, block.rect.w, child_2.rect.h);
         }
     };
 
@@ -499,8 +604,8 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
         ItemPos urs_node_idx  = urs_list[best_idx].node_idx;
 
         const Block& block = blocks_[bin_type_id][pb.block_id];
-        Length w_b = block.rect.x;
-        Length h_b = block.rect.y;
+        Length w_b = block.rect.w;
+        Length h_b = block.rect.h;
         Depth d    = urs.depth;
         CutOrientation co = pb.cut_orientation;
         bool vertical_first = cut_is_vertical(d, co);
@@ -570,8 +675,8 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
             }
         }
 
-        // Walk the block's stored cut tree into cut_nodes.
-        place_block_node(block_area_idx, block, 0, d + 2, pb.bl_corner.x, pb.bl_corner.y);
+        // Expand the block's cut tree into cut_nodes.
+        place_block(block_area_idx, pb.block_id, d + 2, pb.bl_corner.x, pb.bl_corner.y, block.rect.w, block.rect.h);
 
         urs_list.erase(urs_list.begin() + best_idx);
         for (UrsEntry& new_entry: new_urs)
@@ -602,8 +707,8 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
             bool has_fitting_block = false;
             for (ItemPos block_id: replay_valid_block_ids) {
                 const Block& candidate = blocks_[bin_type_id][block_id];
-                if (candidate.rect.x <= urs_list[prune_idx].space.width
-                        && candidate.rect.y <= urs_list[prune_idx].space.height) {
+                if (candidate.rect.w <= urs_list[prune_idx].space.width
+                        && candidate.rect.h <= urs_list[prune_idx].space.height) {
                     has_fitting_block = true;
                     break;
                 }

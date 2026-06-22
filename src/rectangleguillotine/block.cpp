@@ -1,7 +1,10 @@
 #include "rectangleguillotine/block.hpp"
 
-#include "packingsolver/rectangle/instance_builder.hpp"
-#include "rectangle/block.hpp"
+#include "optimizationtools/utils/utils.hpp"
+
+#include <algorithm>
+#include <ostream>
+#include <unordered_set>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
@@ -9,222 +12,240 @@ using namespace packingsolver::rectangleguillotine;
 namespace
 {
 
-/** Absolute item bounds in block-local coordinates. */
-struct AbsItem {
-    ItemTypeId item_type_id = -1;
-    bool rotate = false;
-    Length l = 0, r = 0, b = 0, t = 0;
+struct BlockKey
+{
+    Length width;
+    Length height;
+    std::vector<std::pair<ItemTypeId, ItemPos>> item_copies;
 };
 
-/**
- * Recursively build a guillotine cut sub-tree for the region
- * [x0, x0+width] x [y0, y0+height] that contains exactly the given items.
- *
- * Tries vertical cuts first (collecting item.r values as candidate cut
- * positions), then horizontal cuts.  For a single-item region, trim-waste
- * children are appended when the item does not fill the full extent.
- *
- * Returns the index of the newly created root node in block.nodes.
- */
-int build_node(
-        Block& block,
-        Length x0, Length y0, Length width, Length height,
-        const std::vector<AbsItem>& items)
+struct BlockKeyHasher
 {
-    int idx = (int)block.nodes.size();
+    std::size_t operator()(const BlockKey& key) const
     {
-        Block::Node node;
-        node.x0 = x0; node.y0 = y0;
-        node.width = width; node.height = height;
-        block.nodes.push_back(node);
-    }
-
-    if (items.size() == 1) {
-        const AbsItem& item = items[0];
-
-        if (item.l > x0) {
-            // Left gap: vertical cut at item.l, waste on the left.
-            block.nodes[idx].cut_is_vertical = true;
-            block.nodes[idx].cut_pos = item.l;
-
-            int left_idx = (int)block.nodes.size();
-            {
-                Block::Node waste;
-                waste.x0 = x0; waste.y0 = y0;
-                waste.width = item.l - x0; waste.height = height;
-                block.nodes.push_back(waste);
-            }
-            int right_idx = build_node(block, item.l, y0, x0 + width - item.l, height, items);
-            block.nodes[idx].first_child = left_idx;
-            block.nodes[idx].second_child = right_idx;
-        } else if (item.b > y0) {
-            // Bottom gap: horizontal cut at item.b, waste at the bottom.
-            block.nodes[idx].cut_is_vertical = false;
-            block.nodes[idx].cut_pos = item.b;
-
-            int bottom_idx = (int)block.nodes.size();
-            {
-                Block::Node waste;
-                waste.x0 = x0; waste.y0 = y0;
-                waste.width = width; waste.height = item.b - y0;
-                block.nodes.push_back(waste);
-            }
-            int top_idx = build_node(block, x0, item.b, width, y0 + height - item.b, items);
-            block.nodes[idx].first_child = bottom_idx;
-            block.nodes[idx].second_child = top_idx;
-        } else if (item.r < x0 + width) {
-            // Right trim: item.l == x0; vertical cut at item.r, waste to the right.
-            block.nodes[idx].cut_is_vertical = true;
-            block.nodes[idx].cut_pos = item.r;
-
-            int left_idx = build_node(block, x0, y0, item.r - x0, height, items);
-            int right_idx = (int)block.nodes.size();
-            {
-                Block::Node waste;
-                waste.x0 = item.r; waste.y0 = y0;
-                waste.width = x0 + width - item.r; waste.height = height;
-                block.nodes.push_back(waste);
-            }
-            block.nodes[idx].first_child = left_idx;
-            block.nodes[idx].second_child = right_idx;
-        } else if (item.t < y0 + height) {
-            // Top trim: item.l==x0, item.b==y0, item.r==x0+width; horizontal cut at item.t.
-            block.nodes[idx].cut_is_vertical = false;
-            block.nodes[idx].cut_pos = item.t;
-
-            int bottom_idx = (int)block.nodes.size();
-            {
-                Block::Node leaf;
-                leaf.x0 = x0; leaf.y0 = y0;
-                leaf.width = width; leaf.height = item.t - y0;
-                leaf.item_type_id = item.item_type_id;
-                leaf.rotate = item.rotate;
-                block.nodes.push_back(leaf);
-            }
-            int top_idx = (int)block.nodes.size();
-            {
-                Block::Node waste;
-                waste.x0 = x0; waste.y0 = item.t;
-                waste.width = width; waste.height = y0 + height - item.t;
-                block.nodes.push_back(waste);
-            }
-            block.nodes[idx].first_child = bottom_idx;
-            block.nodes[idx].second_child = top_idx;
-        } else {
-            // Perfect fit.
-            block.nodes[idx].item_type_id = item.item_type_id;
-            block.nodes[idx].rotate = item.rotate;
+        std::size_t hash = 0;
+        optimizationtools::hash_combine(hash, std::hash<Length>{}(key.width));
+        optimizationtools::hash_combine(hash, std::hash<Length>{}(key.height));
+        for (const auto& item_copy: key.item_copies) {
+            optimizationtools::hash_combine(hash, std::hash<ItemTypeId>{}(item_copy.first));
+            optimizationtools::hash_combine(hash, std::hash<ItemPos>{}(item_copy.second));
         }
-        return idx;
+        return hash;
     }
+};
 
-    // Try vertical cuts (candidate positions: right edges of items).
+struct BlockKeyEqual
+{
+    bool operator()(
+            const BlockKey& block_key_1,
+            const BlockKey& block_key_2) const
     {
-        std::vector<Length> cut_xs;
-        for (const AbsItem& item: items)
-            cut_xs.push_back(item.r);
-        std::sort(cut_xs.begin(), cut_xs.end());
-        cut_xs.erase(std::unique(cut_xs.begin(), cut_xs.end()), cut_xs.end());
-
-        for (Length cut_x: cut_xs) {
-            if (cut_x <= x0 || cut_x >= x0 + width)
-                continue;
-            std::vector<AbsItem> left_items, right_items;
-            bool valid = true;
-            for (const AbsItem& item: items) {
-                if (item.r <= cut_x)
-                    left_items.push_back(item);
-                else if (item.l >= cut_x)
-                    right_items.push_back(item);
-                else { valid = false; break; }
-            }
-            if (!valid || left_items.empty() || right_items.empty())
-                continue;
-
-            block.nodes[idx].cut_is_vertical = true;
-            block.nodes[idx].cut_pos = cut_x;
-
-            int left_idx = build_node(block, x0, y0, cut_x - x0, height, left_items);
-            int right_idx = build_node(block, cut_x, y0, x0 + width - cut_x, height, right_items);
-
-            block.nodes[idx].first_child = left_idx;
-            block.nodes[idx].second_child = right_idx;
-            return idx;
-        }
+        return block_key_1.width == block_key_2.width
+            && block_key_1.height == block_key_2.height
+            && block_key_1.item_copies == block_key_2.item_copies;
     }
+};
 
-    // Try horizontal cuts (candidate positions: top edges of items).
-    {
-        std::vector<Length> cut_ys;
-        for (const AbsItem& item: items)
-            cut_ys.push_back(item.t);
-        std::sort(cut_ys.begin(), cut_ys.end());
-        cut_ys.erase(std::unique(cut_ys.begin(), cut_ys.end()), cut_ys.end());
+using BlockSet = std::unordered_set<BlockKey, BlockKeyHasher, BlockKeyEqual>;
 
-        for (Length cut_y: cut_ys) {
-            if (cut_y <= y0 || cut_y >= y0 + height)
-                continue;
-            std::vector<AbsItem> bottom_items, top_items;
-            bool valid = true;
-            for (const AbsItem& item: items) {
-                if (item.t <= cut_y)
-                    bottom_items.push_back(item);
-                else if (item.b >= cut_y)
-                    top_items.push_back(item);
-                else { valid = false; break; }
-            }
-            if (!valid || bottom_items.empty() || top_items.empty())
-                continue;
-
-            block.nodes[idx].cut_is_vertical = false;
-            block.nodes[idx].cut_pos = cut_y;
-
-            int bottom_idx = build_node(block, x0, y0, width, cut_y - y0, bottom_items);
-            int top_idx = build_node(block, x0, cut_y, width, y0 + height - cut_y, top_items);
-
-            block.nodes[idx].first_child = bottom_idx;
-            block.nodes[idx].second_child = top_idx;
-            return idx;
-        }
-    }
-
-    // Should never be reached for valid guillotine blocks.
-    return idx;
+BlockKey make_key(const Block& block)
+{
+    return {block.rect.w, block.rect.h, block.item_copies};
 }
 
-Block build_block(
-        const Instance& instance,
-        const rectangle::Block& rb)
+bool is_valid_item_copies(
+    const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies_1,
+    const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies_2,
+    const Instance& instance)
 {
-    Block block;
-    block.rect = rb.rect;
-    block.item_area = rb.item_area;
-    block.item_profit = rb.item_profit;
-    block.weight = rb.weight;
-    block.number_of_items = rb.number_of_items;
-    block.item_copies = rb.item_copies;
+    auto it1 = item_copies_1.begin();
+    auto it2 = item_copies_2.begin();
+    while (it1 != item_copies_1.end() || it2 != item_copies_2.end()) {
+        ItemTypeId item_type_id;
+        ItemPos copies;
+        if (it1 == item_copies_1.end()) {
+            item_type_id = it2->first; copies = it2->second; ++it2;
+        } else if (it2 == item_copies_2.end()) {
+            item_type_id = it1->first; copies = it1->second; ++it1;
+        } else if (it1->first < it2->first) {
+            item_type_id = it1->first; copies = it1->second; ++it1;
+        } else if (it1->first > it2->first) {
+            item_type_id = it2->first; copies = it2->second; ++it2;
+        } else {
+            item_type_id = it1->first; copies = it1->second + it2->second; ++it1; ++it2;
+        }
+        if (copies > instance.item_type(item_type_id).copies)
+            return false;
+    }
+    return true;
+}
 
-    if (rb.items.empty())
-        return block;
+std::vector<std::pair<ItemTypeId, ItemPos>> merge_item_copies(
+    const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies_1,
+    const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies_2)
+{
+    std::vector<std::pair<ItemTypeId, ItemPos>> result;
+    auto it1 = item_copies_1.begin();
+    auto it2 = item_copies_2.begin();
+    while (it1 != item_copies_1.end() || it2 != item_copies_2.end()) {
+        ItemTypeId item_type_id;
+        ItemPos copies;
+        if (it1 == item_copies_1.end()) {
+            item_type_id = it2->first; copies = it2->second; ++it2;
+        } else if (it2 == item_copies_2.end()) {
+            item_type_id = it1->first; copies = it1->second; ++it1;
+        } else if (it1->first < it2->first) {
+            item_type_id = it1->first; copies = it1->second; ++it1;
+        } else if (it1->first > it2->first) {
+            item_type_id = it2->first; copies = it2->second; ++it2;
+        } else {
+            item_type_id = it1->first; copies = it1->second + it2->second; ++it1; ++it2;
+        }
+        result.push_back({item_type_id, copies});
+    }
+    return result;
+}
 
-    // Build absolute item bounds in block-local coordinates.
-    std::vector<AbsItem> abs_items;
-    abs_items.reserve(rb.items.size());
-    for (const rectangle::SolutionItem& si: rb.items) {
-        const ItemType& item_type = instance.item_type(si.item_type_id);
-        AbsItem ai;
-        ai.item_type_id = si.item_type_id;
-        ai.rotate = si.rotate;
-        ai.l = si.bl_corner.x;
-        ai.b = si.bl_corner.y;
-        ai.r = ai.l + item_type.width(si.rotate);
-        ai.t = ai.b + item_type.height(si.rotate);
-        abs_items.push_back(ai);
+struct BlockFillRateLess {
+    bool operator()(const Block& block_1, const Block& block_2) const
+    {
+        if (block_1.fill_rate() != block_2.fill_rate())
+            return block_1.fill_rate() < block_2.fill_rate();
+        return block_1.number_of_items > block_2.number_of_items;
+    }
+};
+
+std::vector<Block> compute_blocks_for_bin(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const BlockParameters& parameters)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    Length bin_w = bin_type.rect.w;
+    Length bin_h = bin_type.rect.h;
+
+    std::multiset<Block, BlockFillRateLess> blocks_to_process;
+    std::vector<Block> returned_blocks;
+    BlockSet seen;
+
+    auto enqueue = [&](Block block) {
+        blocks_to_process.insert(std::move(block));
+        if (parameters.maximum_number_of_blocks != -1
+                && (ItemPos)blocks_to_process.size() > parameters.maximum_number_of_blocks) {
+            BlockKey key = make_key(*blocks_to_process.begin());
+            seen.erase(key);
+            blocks_to_process.erase(blocks_to_process.begin());
+        }
+    };
+
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (item_type.copies < 1)
+            continue;
+        int number_of_rotations = item_type.oriented ? 1 : 2;
+        for (int rot_idx = 0; rot_idx < number_of_rotations; ++rot_idx) {
+            bool rotate = (rot_idx == 1);
+            Length bw = item_type.width(rotate);
+            Length bh = item_type.height(rotate);
+            ItemPos copies_max_x = (std::min)(
+                    item_type.copies,
+                    (ItemPos)(bin_w / bw));
+            for (ItemPos cx = 1; cx <= copies_max_x; ++cx) {
+                ItemPos copies_max_y = (std::min)(
+                        item_type.copies / cx,
+                        (ItemPos)(bin_h / bh));
+                for (ItemPos cy = 1; cy <= copies_max_y; ++cy) {
+                    Block block;
+                    block.is_simple = true;
+                    block.item_type_id = item_type_id;
+                    block.rotate = rotate;
+                    block.rect = {cx * bw, cy * bh};
+                    block.item_area = cx * cy * item_type.area();
+                    block.item_profit = (double)(cx * cy) * item_type.profit;
+                    block.item_copies = {{item_type_id, cx * cy}};
+                    block.number_of_items = cx * cy;
+                    BlockKey key = make_key(block);
+                    if (!seen.count(key)) {
+                        seen.insert(key);
+                        enqueue(std::move(block));
+                    }
+                }
+            }
+        }
     }
 
-    block.nodes.reserve(2 * (int)rb.items.size() + 1);
-    build_node(block, 0, 0, rb.rect.x, rb.rect.y, abs_items);
-    return block;
+    while (!blocks_to_process.empty()) {
+        if (parameters.maximum_number_of_blocks != -1
+                && (ItemPos)returned_blocks.size() >= parameters.maximum_number_of_blocks)
+            break;
+
+        auto it = std::prev(blocks_to_process.end());
+        Block block = *it;
+        blocks_to_process.erase(it);
+
+        if (instance.number_of_item_types() <= 3
+                && block.fill_rate() != 1.0) {
+            break;
+        }
+
+        // Index that block will occupy once pushed to returned_blocks.
+        ItemPos current_block_id = (ItemPos)returned_blocks.size();
+
+        for (ItemPos existing_idx = 0;
+                existing_idx < (ItemPos)returned_blocks.size();
+                ++existing_idx) {
+            const Block& existing_block = returned_blocks[existing_idx];
+            if (block.is_simple && existing_block.is_simple
+                    && block.item_type_id == existing_block.item_type_id
+                    && block.rotate == existing_block.rotate)
+                continue;
+            // direction 0 = X (vertical cut), direction 1 = Y (horizontal cut)
+            for (int direction = 0; direction <= 1; ++direction) {
+                Block combined;
+                combined.item_area = block.item_area + existing_block.item_area;
+                combined.item_profit = block.item_profit + existing_block.item_profit;
+                if (direction == 0) {
+                    combined.rect.w = block.rect.w + existing_block.rect.w;
+                    combined.rect.h = std::max(block.rect.h, existing_block.rect.h);
+                } else {
+                    combined.rect.w = std::max(block.rect.w, existing_block.rect.w);
+                    combined.rect.h = block.rect.h + existing_block.rect.h;
+                }
+                if (combined.rect.w > bin_w || combined.rect.h > bin_h)
+                    continue;
+
+                if (parameters.maximum_number_of_blocks != -1
+                        && (ItemPos)blocks_to_process.size() >= parameters.maximum_number_of_blocks) {
+                    if (combined.fill_rate() <= blocks_to_process.begin()->fill_rate())
+                        continue;
+                }
+
+                if (!is_valid_item_copies(block.item_copies, existing_block.item_copies, instance))
+                    continue;
+
+                BlockKey key;
+                key.width = combined.rect.w;
+                key.height = combined.rect.h;
+                key.item_copies = merge_item_copies(block.item_copies, existing_block.item_copies);
+                if (seen.count(key))
+                    continue;
+
+                combined.number_of_items = block.number_of_items + existing_block.number_of_items;
+                combined.item_copies = key.item_copies;
+                combined.cut_is_vertical = (direction == 0);
+                combined.child_1_id = current_block_id;
+                combined.child_2_id = existing_idx;
+                seen.insert(key);
+                enqueue(std::move(combined));
+            }
+        }
+
+        returned_blocks.push_back(std::move(block));
+    }
+
+    return returned_blocks;
 }
 
 } // anonymous namespace
@@ -233,55 +254,20 @@ std::ostream& packingsolver::rectangleguillotine::operator<<(
         std::ostream& os,
         const Block& block)
 {
-    os << "Block rect=(" << block.rect.x << "x" << block.rect.y << ")"
-       << " items=" << block.number_of_items
-       << " nodes=" << block.nodes.size();
+    os << "Block rect=(" << block.rect.w << "x" << block.rect.h << ")"
+       << " items=" << block.number_of_items;
     return os;
 }
 
 std::vector<std::vector<Block>> packingsolver::rectangleguillotine::compute_blocks(
         const Instance& instance,
-        const rectangle::BlockParameters& parameters)
+        const BlockParameters& parameters)
 {
-    // Build a rectangle::Instance mirroring this guillotine instance so that
-    // rectangle::compute_blocks can generate the block shapes.
-    rectangle::InstanceBuilder rb;
-    rb.set_objective(instance.objective());
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
-            ++bin_type_id) {
-        const BinType& bin_type = instance.bin_type(bin_type_id);
-        rb.add_bin_type(
-                bin_type.rect.w,
-                bin_type.rect.h,
-                bin_type.cost,
-                bin_type.copies);
-    }
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        rb.add_item_type(
-                item_type.rect.w,
-                item_type.rect.h,
-                item_type.profit,
-                item_type.copies,
-                item_type.oriented);
-    }
-    rectangle::Instance rectangle_instance = rb.build();
-
-    std::vector<std::vector<rectangle::Block>> all_rect_blocks
-        = rectangle::compute_blocks(rectangle_instance, parameters);
-
     std::vector<std::vector<Block>> result(instance.number_of_bin_types());
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
-        if (bin_type_id >= (BinTypeId)all_rect_blocks.size())
-            break;
-        result[bin_type_id].reserve(all_rect_blocks[bin_type_id].size());
-        for (const rectangle::Block& rb_block: all_rect_blocks[bin_type_id])
-            result[bin_type_id].push_back(build_block(instance, rb_block));
+        result[bin_type_id] = compute_blocks_for_bin(instance, bin_type_id, parameters);
     }
     return result;
 }
