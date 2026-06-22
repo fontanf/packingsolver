@@ -123,6 +123,7 @@ std::vector<Block> compute_blocks_for_bin(
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Length bin_w = bin_type.rect.w;
     Length bin_h = bin_type.rect.h;
+    Length cut_thickness = instance.parameters().cut_thickness;
 
     std::multiset<Block, BlockFillRateLess> blocks_to_process;
     std::vector<Block> returned_blocks;
@@ -151,17 +152,19 @@ std::vector<Block> compute_blocks_for_bin(
             Length bh = item_type.height(rotate);
             ItemPos copies_max_x = (std::min)(
                     item_type.copies,
-                    (ItemPos)(bin_w / bw));
+                    (ItemPos)((bin_w + cut_thickness) / (bw + cut_thickness)));
             for (ItemPos cx = 1; cx <= copies_max_x; ++cx) {
                 ItemPos copies_max_y = (std::min)(
                         item_type.copies / cx,
-                        (ItemPos)(bin_h / bh));
+                        (ItemPos)((bin_h + cut_thickness) / (bh + cut_thickness)));
                 for (ItemPos cy = 1; cy <= copies_max_y; ++cy) {
                     Block block;
                     block.is_simple = true;
                     block.item_type_id = item_type_id;
                     block.rotate = rotate;
-                    block.rect = {cx * bw, cy * bh};
+                    block.rect = {
+                        cx * bw + (cx - 1) * cut_thickness,
+                        cy * bh + (cy - 1) * cut_thickness};
                     block.item_area = cx * cy * item_type.area();
                     block.item_profit = (double)(cx * cy) * item_type.profit;
                     block.item_copies = {{item_type_id, cx * cy}};
@@ -207,11 +210,11 @@ std::vector<Block> compute_blocks_for_bin(
                 combined.item_area = block.item_area + existing_block.item_area;
                 combined.item_profit = block.item_profit + existing_block.item_profit;
                 if (direction == 0) {
-                    combined.rect.w = block.rect.w + existing_block.rect.w;
+                    combined.rect.w = block.rect.w + existing_block.rect.w + cut_thickness;
                     combined.rect.h = std::max(block.rect.h, existing_block.rect.h);
                 } else {
                     combined.rect.w = std::max(block.rect.w, existing_block.rect.w);
-                    combined.rect.h = block.rect.h + existing_block.rect.h;
+                    combined.rect.h = block.rect.h + existing_block.rect.h + cut_thickness;
                 }
                 if (combined.rect.w > bin_w || combined.rect.h > bin_h)
                     continue;
