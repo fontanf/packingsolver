@@ -57,6 +57,13 @@ struct Block
             (double)item_area / ((Area)rect.w * rect.h):
             0.0;
     }
+
+    double efficiency() const
+    {
+        return (rect.w > 0 && rect.h > 0)?
+            (double)item_profit / ((Area)rect.w * rect.h):
+            0.0;
+    }
 };
 
 std::ostream& operator<<(std::ostream& os, const Block& block);

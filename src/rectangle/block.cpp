@@ -125,8 +125,14 @@ std::vector<std::pair<ItemTypeId, ItemPos>> merge_item_copies(
 struct BlockFillRateLess {
     bool operator()(const Block& block_1, const Block& block_2) const
     {
-        if (block_1.fill_rate() != block_2.fill_rate())
-            return block_1.fill_rate() < block_2.fill_rate();
+        if (block_1.number_of_items == 1) {
+            if (block_2.number_of_items != 1)
+                return false;
+        } else if (block_2.number_of_items == 1) {
+            return true;
+        }
+        if (block_1.efficiency() != block_2.efficiency())
+            return block_1.efficiency() < block_2.efficiency();
         return block_1.number_of_items > block_2.number_of_items;
     }
 };
@@ -213,7 +219,7 @@ std::vector<Block> compute_blocks_for_bin(
 
         if (instance.number_of_item_types() <= 3
                 && block.fill_rate() != 1.0) {
-            break;
+            continue;
         }
 
         for (const Block& existing_block: returned_blocks) {
@@ -241,9 +247,10 @@ std::vector<Block> compute_blocks_for_bin(
                         || combined.rect.y > bin_rect.y)
                     continue;
 
+                combined.number_of_items = block.number_of_items + existing_block.number_of_items;
                 if (parameters.maximum_number_of_blocks != -1
                         && (ItemPos)blocks_to_process.size() >= parameters.maximum_number_of_blocks) {
-                    if (combined.fill_rate() <= blocks_to_process.begin()->fill_rate())
+                    if (!BlockFillRateLess{}(*blocks_to_process.begin(), combined))
                         continue;
                 }
 
@@ -258,7 +265,6 @@ std::vector<Block> compute_blocks_for_bin(
                         instance);
                 if (seen.count(key))
                     continue;
-                combined.number_of_items = block.number_of_items + existing_block.number_of_items;
                 combined.item_copies = key.item_copies;
                 combined.items = block.items;
                 for (const SolutionItem& item: existing_block.items) {

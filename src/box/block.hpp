@@ -52,6 +52,8 @@ struct Block
     ItemPos number_of_items = 0;
 
     double fill_rate() const { return (double)item_volume / box.volume(); }
+
+    double efficiency() const { return (double)item_profit / box.volume(); }
 };
 
 std::ostream& operator<<(std::ostream& os, const Block& block);
