@@ -61,6 +61,59 @@ if args.tests is None or "rectangleguillotine-single-knapsack-tree-search" in ar
     print()
     print()
 
+if args.tests is None or "rectangleguillotine-single-knapsack-tree-search-maximal-spaces" in args.tests:
+    print("rectangleguillotine, single knapsack, tree search maximal spaces")
+    print("----------------------------------------------------------------")
+    print()
+
+    data = [
+            (os.path.join("velasco2019", "P1_100_200_25_1.txt"), ""),
+            (os.path.join("velasco2019", "P1_100_200_50_1.txt"), ""),
+            (os.path.join("velasco2019", "P1_100_400_25_1.txt"), ""),
+            (os.path.join("velasco2019", "P1_100_400_50_1.txt"), ""),
+            (os.path.join("velasco2019", "P2_200_100_25_1.txt"), ""),
+            (os.path.join("velasco2019", "P2_200_100_50_1.txt"), ""),
+            (os.path.join("velasco2019", "P2_400_100_25_1.txt"), ""),
+            (os.path.join("velasco2019", "P2_400_100_50_1.txt"), ""),
+            (os.path.join("velasco2019", "P3_150_150_25_1.txt"), ""),
+            (os.path.join("velasco2019", "P3_150_150_50_1.txt"), ""),
+            (os.path.join("velasco2019", "P3_250_250_25_1.txt"), ""),
+            (os.path.join("velasco2019", "P3_250_250_50_1.txt"), ""),
+            (os.path.join("velasco2019", "P4_150_150_25_1.txt"), ""),
+            (os.path.join("velasco2019", "P4_150_150_50_1.txt"), ""),
+            (os.path.join("velasco2019", "P4_250_250_25_1.txt"), ""),
+            (os.path.join("velasco2019", "P4_250_250_50_1.txt"), "")]
+    for instance, options in data:
+        instance_path = os.path.join(
+                "data",
+                "rectangle",
+                instance)
+        json_output_path = os.path.join(
+                args.directory,
+                "rectangleguillotine",
+                "single_knapsack_tree_search_maximal_spaces",
+                instance + ".json")
+        if not os.path.exists(os.path.dirname(json_output_path)):
+            os.makedirs(os.path.dirname(json_output_path))
+        command = (
+                rectangleguillotine_main
+                + "  --verbosity-level 1"
+                + "  --items \"" + instance_path + "\""
+                + options
+                + " --objective knapsack"
+                + " --predefined UO"
+                + "  --optimization-mode not-anytime-deterministic"
+                + " --use-tree-search-maximal-spaces 1"
+                + " --not-anytime-tree-search-maximal-spaces-queue-size 16"
+                + "  --output \"" + json_output_path + "\"")
+        print(command)
+        status = os.system(command)
+        if status != 0:
+            sys.exit(1)
+        print()
+    print()
+    print()
+
 if args.tests is None or "rectangleguillotine-strip-packing-tree-search" in args.tests:
     print("rectangleguillotine, strip packing, tree search")
     print("-----------------------------------------------")
@@ -543,6 +596,62 @@ if args.tests is None or "rectangle-single-knapsack-tree-search" in args.tests:
     print()
     print()
 
+if args.tests is None or "rectangle-single-knapsack-tree-search-maximal-spaces" in args.tests:
+    print("rectangle, single knapsack, tree search maximal spaces")
+    print("-------------------------------------------------------")
+    print()
+
+    data = [
+            (os.path.join("egeblad2009", "ep2-100-D-C-25.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-D-C-75.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-D-R-25.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-D-R-75.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-S-C-25.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-S-C-75.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-S-R-25.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-S-R-75.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-T-C-25.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-T-C-75.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-T-R-25.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-T-R-75.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-U-C-25.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-U-C-75.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-U-R-25.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-U-R-75.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-W-C-25.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-W-C-75.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-W-R-25.2kp"), ""),
+            (os.path.join("egeblad2009", "ep2-100-W-R-75.2kp"), "")]
+    for instance, options in data:
+        instance_path = os.path.join(
+                "data",
+                "rectangle",
+                instance)
+        json_output_path = os.path.join(
+                args.directory,
+                "rectangle",
+                "single_knapsack_tree_search_maximal_spaces",
+                instance + ".json")
+        if not os.path.exists(os.path.dirname(json_output_path)):
+            os.makedirs(os.path.dirname(json_output_path))
+        command = (
+                rectangle_main
+                + "  --verbosity-level 1"
+                + "  --items \"" + instance_path + "\""
+                + options
+                + " --objective knapsack"
+                + "  --optimization-mode not-anytime-deterministic"
+                + " --use-tree-search-maximal-spaces 1"
+                + " --not-anytime-tree-search-maximal-spaces-queue-size 16"
+                + "  --output \"" + json_output_path + "\"")
+        print(command)
+        status = os.system(command)
+        if status != 0:
+            sys.exit(1)
+        print()
+    print()
+    print()
+
 if args.tests is None or "rectangle-strip-packing-tree-search" in args.tests:
     print("rectangle, strip packing, tree search")
     print("-------------------------------------")
@@ -973,6 +1082,67 @@ if args.tests is None or "rectangle-variable-sized-bin-packing-sequential-value-
                 + " --sequential-value-correction-subproblem-tree-search-queue-size 512"
                 + " --sequential-value-correction-subproblem-tree-search-maximal-spaces-queue-size 16"
                 + " --not-anytime-sequential-value-correction-number-of-iterations 4"
+                + "  --output \"" + json_output_path + "\"")
+        print(command)
+        status = os.system(command)
+        if status != 0:
+            sys.exit(1)
+        print()
+    print()
+    print()
+
+#######
+# box #
+#######
+
+box_main = os.path.join(
+        "install",
+        "bin",
+        "packingsolver_box")
+
+if args.tests is None or "box-single-knapsack-tree-search-maximal-spaces" in args.tests:
+    print("box, single knapsack, tree search maximal spaces")
+    print("-------------------------------------------------")
+    print()
+
+    data = [
+            (os.path.join("bischoff1995", "BR1.txt_1"), ""),
+            (os.path.join("bischoff1995", "BR2.txt_1"), ""),
+            (os.path.join("bischoff1995", "BR3.txt_1"), ""),
+            (os.path.join("bischoff1995", "BR4.txt_1"), ""),
+            (os.path.join("bischoff1995", "BR5.txt_1"), ""),
+            (os.path.join("bischoff1995", "BR6.txt_1"), ""),
+            (os.path.join("bischoff1995", "BR7.txt_1"), ""),
+            (os.path.join("davies1999", "BR0.txt_1"), ""),
+            (os.path.join("davies1999", "BR8.txt_1"), ""),
+            (os.path.join("davies1999", "BR9.txt_1"), ""),
+            (os.path.join("davies1999", "BR10.txt_1"), ""),
+            (os.path.join("davies1999", "BR11.txt_1"), ""),
+            (os.path.join("davies1999", "BR12.txt_1"), ""),
+            (os.path.join("davies1999", "BR13.txt_1"), ""),
+            (os.path.join("davies1999", "BR14.txt_1"), ""),
+            (os.path.join("davies1999", "BR15.txt_1"), "")]
+    for instance, options in data:
+        instance_path = os.path.join(
+                "data",
+                "box",
+                instance)
+        json_output_path = os.path.join(
+                args.directory,
+                "box",
+                "single_knapsack_tree_search_maximal_spaces",
+                instance + ".json")
+        if not os.path.exists(os.path.dirname(json_output_path)):
+            os.makedirs(os.path.dirname(json_output_path))
+        command = (
+                box_main
+                + "  --verbosity-level 1"
+                + "  --items \"" + instance_path + "\""
+                + options
+                + " --objective knapsack"
+                + "  --optimization-mode not-anytime-deterministic"
+                + " --use-tree-search-maximal-spaces 1"
+                + " --not-anytime-tree-search-maximal-spaces-queue-size 16"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
         status = os.system(command)
