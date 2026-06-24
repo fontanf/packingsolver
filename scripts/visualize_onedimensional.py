@@ -10,6 +10,7 @@ parser.add_argument('itemcolor', nargs='?', default='ID', help='color palette us
 parser.add_argument('-o', '--output', help='save image to file instead of opening browser (e.g. output.png)')
 parser.add_argument('--width', type=int, default=None, help='image width in pixels for PNG export')
 parser.add_argument('--height', type=int, default=None, help='image height in pixels for PNG export')
+parser.add_argument('--scale', type=float, default=1.0, help='scale factor for cell dimensions')
 args = parser.parse_args()
 
 if args.itemcolor not in ["SAME", "ID"]:
@@ -22,6 +23,7 @@ items_y = []
 item_ids_x = []
 item_ids_y = []
 item_ids = []
+max_bin_lx = 0
 
 with open(args.csvpath, newline='') as csvfile:
     csvreader = csv.DictReader(csvfile, delimiter=',')
@@ -37,6 +39,7 @@ with open(args.csvpath, newline='') as csvfile:
         y2 = y1 + h
 
         if type_ == "BIN":
+            max_bin_lx = max(max_bin_lx, w)
             bins_x.append([])
             bins_y.append([])
             items_x.append([])
@@ -129,6 +132,8 @@ fig.update_xaxes(
         rangeslider=dict(visible=False))
 fig.update_yaxes(visible=False)
 if args.output:
-    fig.write_image(args.output, width=args.width, height=args.height)
+    export_width = args.width if args.width is not None else int(max_bin_lx * args.scale) + 80
+    export_height = args.height if args.height is not None else int(m * 80 * args.scale) + 170
+    fig.write_image(args.output, width=export_width, height=export_height)
 else:
     fig.show()
