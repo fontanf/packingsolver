@@ -11,6 +11,7 @@ parser.add_argument('itemcolor', nargs='?', default='ID', help='color palette us
 parser.add_argument('-o', '--output', help='save image to file instead of opening browser (e.g. output.png)')
 parser.add_argument('--width', type=int, default=None, help='image width in pixels for PNG export')
 parser.add_argument('--height', type=int, default=None, help='image height in pixels for PNG export')
+parser.add_argument('--columns', type=int, default=None, help='number of columns in the subplot grid')
 args = parser.parse_args()
 
 if args.itemcolor not in ["SAME", "ID"]:
@@ -137,17 +138,18 @@ with open(args.csvpath, newline='') as csvfile:
 
 m = len(bins_x)
 colors = px.colors.qualitative.Pastel
-number_of_rows = math.ceil(math.sqrt(m))
+number_of_cols = args.columns if args.columns is not None else math.ceil(math.sqrt(m))
+number_of_rows = math.ceil(m / number_of_cols)
 fig = plotly.subplots.make_subplots(
         rows=number_of_rows,
-        cols=number_of_rows,
+        cols=number_of_cols,
         shared_xaxes=True,
-        specs=[[{'type': 'mesh3d'} for _ in range(number_of_rows)] for _ in range(number_of_rows)],
+        specs=[[{'type': 'mesh3d'} for _ in range(number_of_cols)] for _ in range(number_of_rows)],
         vertical_spacing=0.001)
 
 for i in range(0, m):
-    row = (i // number_of_rows) + 1
-    col = (i % number_of_rows) + 1
+    row = (i // number_of_cols) + 1
+    col = (i % number_of_cols) + 1
 
     fig.add_trace(go.Mesh3d(
         x=bins_x[i],

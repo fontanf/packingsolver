@@ -11,6 +11,8 @@ parser.add_argument('itemcolor', nargs='?', default='ID', help='color palette us
 parser.add_argument('-o', '--output', help='save image to file instead of opening browser (e.g. output.png)')
 parser.add_argument('--width', type=int, default=None, help='image width in pixels for PNG export')
 parser.add_argument('--height', type=int, default=None, help='image height in pixels for PNG export')
+parser.add_argument('--columns', type=int, default=None, help='number of columns in the subplot grid')
+parser.add_argument('--scale', type=float, default=1.0, help='scale factor for cell dimensions')
 args = parser.parse_args()
 
 if args.itemcolor not in ["SAME", "ID", "GROUP_ID", "DENSITY"]:
@@ -34,6 +36,8 @@ items_left = []
 items_right = []
 items_bottom = []
 items_top = []
+max_bin_lx = 0
+max_bin_ly = 0
 
 with open(args.csvpath, newline='') as csvfile:
     csvreader = csv.DictReader(csvfile, delimiter=',')
@@ -50,6 +54,8 @@ with open(args.csvpath, newline='') as csvfile:
         y2 = y1 + h
 
         if type_ == "BIN":
+            max_bin_lx = max(max_bin_lx, w)
+            max_bin_ly = max(max_bin_ly, h)
             bins_x.append([])
             bins_y.append([])
             bins_gravity_centers_x.append([])
@@ -135,16 +141,17 @@ for i in range(0, m):
 
 # colors = px.colors.qualitative.Plotly
 colors = px.colors.qualitative.Pastel
-number_of_rows = math.ceil(math.sqrt(m))
+number_of_cols = args.columns if args.columns is not None else math.ceil(math.sqrt(m))
+number_of_rows = math.ceil(m / number_of_cols)
 fig = plotly.subplots.make_subplots(
         rows=number_of_rows,
-        cols=number_of_rows,
+        cols=number_of_cols,
         shared_xaxes=True,
         vertical_spacing=0.001)
 
 for i in range(0, m):
-    row = (i // number_of_rows) + 1
-    col = (i % number_of_rows) + 1
+    row = (i // number_of_cols) + 1
+    col = (i % number_of_cols) + 1
 
     fig.add_trace(go.Scatter(
         x=bins_x[i],
@@ -288,6 +295,10 @@ fig.update_yaxes(
         scaleanchor="x",
         scaleratio=1)
 if args.output:
-    fig.write_image(args.output, width=args.width, height=args.height)
+    cell_width = int(max_bin_lx * args.scale)
+    cell_height = int(max_bin_ly * args.scale)
+    export_width = args.width if args.width is not None else number_of_cols * cell_width + 80
+    export_height = args.height if args.height is not None else number_of_rows * cell_height + 170
+    fig.write_image(args.output, width=export_width, height=export_height)
 else:
     fig.show()
