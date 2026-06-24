@@ -1,0 +1,60 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             VariableSizedBinPacking
+Number of item types:  3
+Number of items:       34
+Number of bin types:   2
+Number of bins:        20
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item area:       772500
+Total item width:      7000
+Total item height:     3600
+Smallest item width:   75
+Smallest item height:  75
+Total item profit:     772500
+Largest item profit:   37500
+Total item weight:     0
+Largest item copies:   12
+Total bin area:        7800000
+Total bin weight:      inf
+Largest bin cost:      500000
+
+        Time          Cost  # bins  Full waste (%)                         Comment
+        ----          ----  ------  --------------                         -------
+       0.001         1e+06       2           22.75                    DS q 1 w 0.1
+       0.004        840000       3            8.04              DS q 4 w 0.0436893
+       0.055        780000       2            0.96                        SSK q 64
+
+Final statistics
+----------------
+Time (s):  5.00299
+
+Solution
+--------
+Number of items:  34 / 34 (100%)
+Item area:        772500 / 772500 (100%)
+Item weight:      0 / 0 (-nan%)
+Item profit:      772500 / 772500 (100%)
+Number of bins:   2 / 20 (10%)
+Bin area:         780000 / 7800000 (10%)
+Bin weight:       inf / inf (-nan%)
+Bin cost:         780000
+Waste:            7500
+Waste (%):        0.961538
+Full waste:       7500
+Full waste (%):   0.961538
+Area load:        0.0990385
+Weight load:      0
+X max:            700
+Y max:            400
+Leftover value:   0

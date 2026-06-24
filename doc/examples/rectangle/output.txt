@@ -32,14 +32,16 @@ Largest bin cost:      500000
         Time      # bins    Leftover                         Comment
         ----      ------    --------                         -------
        0.000           3      162500                  TS g 0 d X q 1
+       0.001           3      200000                  TS g 1 d Y q 1
        0.001           3      207500                  TS g 0 d X q 1
-       0.007           3      275000                  TS g 0 d X q 1
-       0.008           3      462500                  TS g 0 d X q 2
-       0.009           2           0                  TS g 0 d X q 9
+       0.001           3      350000                  TS g 1 d Y q 2
+       0.001           3      387500                  TS g 1 d Y q 2
+       0.002           3      462500                  TS g 1 d Y q 4
+       0.006           2           0                  TS g 0 d X q 9
 
 Final statistics
 ----------------
-Time (s):  5.00721
+Time (s):  5.00728
 
 Solution
 --------
@@ -49,7 +51,7 @@ Item weight:      0 / 0 (-nan%)
 Item profit:      975000 / 975000 (100%)
 Number of bins:   2 / 10 (20%)
 Bin area:         1000000 / 5000000 (20%)
-Bin weight:       -9.22337e+18 / inf (-0%)
+Bin weight:       inf / inf (-nan%)
 Bin cost:         1e+06
 Waste:            25000
 Waste (%):        2.5

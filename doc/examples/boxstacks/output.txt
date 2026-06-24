@@ -28,7 +28,7 @@ Total bin weight:      inf
 
 Final statistics
 ----------------
-Time (s):  0.000868594
+Time (s):  0.000780463
 
 Solution
 --------

@@ -21,11 +21,11 @@ Largest bin cost:      500
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       1          -12.00                        SVC it 0
+       0.001       1          -12.00                          CG n 1
 
 Final statistics
 ----------------
-Time (s):  0.000623604
+Time (s):  0.000693147
 
 Solution
 --------

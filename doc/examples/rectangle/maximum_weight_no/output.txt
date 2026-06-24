@@ -31,11 +31,11 @@ Largest bin cost:      240000
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.001       1            0.00                  TS g 0 d X q 1
+       0.000       1            0.00                  TS g 0 d X q 1
 
 Final statistics
 ----------------
-Time (s):  0.00192123
+Time (s):  0.000939655
 
 Solution
 --------
@@ -45,7 +45,7 @@ Item weight:      400 / 400 (100%)
 Item profit:      240000 / 240000 (100%)
 Number of bins:   1 / 10 (10%)
 Bin area:         240000 / 2400000 (10%)
-Bin weight:       -9.22337e+18 / inf (-0%)
+Bin weight:       inf / inf (-nan%)
 Bin cost:         240000
 Waste:            0
 Waste (%):        0

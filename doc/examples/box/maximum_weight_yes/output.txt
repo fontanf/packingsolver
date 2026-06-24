@@ -19,17 +19,20 @@ Total item profit:     4000
 Largest item profit:   1000
 Total item weight:     400
 Largest item copies:   4
+Smallest item x:       10
+Smallest item y:       10
+Smallest item z:       10
 Total bin volume:      40000
 Total bin weight:      2000
 Largest bin cost:      400
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       2           50.00                  TS g 0 d Y q 1
+       0.000       2           50.00                  TS g 1 d Z q 1
 
 Final statistics
 ----------------
-Time (s):  0.00335056
+Time (s):  0.00167721
 
 Solution
 --------
@@ -51,6 +54,6 @@ Full waste (%):    50
 Volume load:       0.1
 Area load:         0
 Weight load:       0.2
-X max:             10
-Y max:             20
+X max:             20
+Y max:             10
 Z max:             10

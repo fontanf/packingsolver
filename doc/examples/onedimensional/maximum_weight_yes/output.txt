@@ -25,7 +25,7 @@ Largest bin cost:      800
 
 Final statistics
 ----------------
-Time (s):  0.000894471
+Time (s):  0.0011244
 
 Solution
 --------
