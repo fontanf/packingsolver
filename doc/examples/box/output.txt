@@ -19,6 +19,9 @@ Total item profit:     45000
 Largest item profit:   3000
 Total item weight:     0
 Largest item copies:   15
+Smallest item x:       20
+Smallest item y:       15
+Smallest item z:       10
 Total bin volume:      60000
 Total bin weight:      inf
 Largest bin cost:      3000
@@ -29,7 +32,7 @@ Largest bin cost:      3000
 
 Final statistics
 ----------------
-Time (s):  0.000736984
+Time (s):  0.000862872
 
 Solution
 --------

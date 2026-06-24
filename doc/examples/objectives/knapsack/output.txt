@@ -1,0 +1,67 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             Knapsack
+Number of item types:  3
+Number of items:       34
+Number of bin types:   1
+Number of bins:        2
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item area:       772500
+Total item width:      7000
+Total item height:     3600
+Smallest item width:   75
+Smallest item height:  75
+Total item profit:     772500
+Largest item profit:   37500
+Total item weight:     0
+Largest item copies:   12
+Total bin area:        560000
+Total bin weight:      inf
+Largest bin cost:      280000
+
+        Time        Profit   # items                         Comment
+        ----        ------   -------                         -------
+       0.000         37500         1                  TS g 5 d Y q 1
+       0.000         75000         2                  TS g 5 d Y q 1
+       0.001        112500         3                  TS g 4 d Y q 1
+       0.001        150000         4                  TS g 4 d Y q 1
+       0.001        187500         5                  TS g 4 d Y q 1
+       0.001        207500         6                  TS g 4 d Y q 1
+       0.001        227500         7                  TS g 4 d Y q 1
+       0.001        247500         8                  TS g 4 d Y q 1
+       0.001        285000         9                  TS g 4 d Y q 1
+       0.064        560000        22                          CG n 1
+
+Final statistics
+----------------
+Time (s):  0.0639555
+
+Solution
+--------
+Number of items:  22 / 34 (64.7059%)
+Item area:        560000 / 772500 (72.4919%)
+Item weight:      0 / 0 (-nan%)
+Item profit:      560000 / 772500 (72.4919%)
+Number of bins:   2 / 2 (100%)
+Bin area:         560000 / 560000 (100%)
+Bin weight:       inf / inf (-nan%)
+Bin cost:         560000
+Waste:            0
+Waste (%):        0
+Full waste:       0
+Full waste (%):   0
+Area load:        1
+Weight load:      0
+X max:            700
+Y max:            400
+Leftover value:   0

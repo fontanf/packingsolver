@@ -31,11 +31,11 @@ Largest bin cost:      240000
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.001       2           50.00                  TS g 0 d X q 1
+       0.000       2           50.00                  TS g 0 d X q 1
 
 Final statistics
 ----------------
-Time (s):  0.00134693
+Time (s):  0.00180791
 
 Solution
 --------

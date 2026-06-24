@@ -33,26 +33,14 @@ PackingSolver supports two variants of this type of objective:
 
 In this example, there are two bin types. The first bin type has 10 copies. To use bins of the second bin type, the solution should already contain the first 10 copies of the first bin type. The solver only needs to use 2 copies of the first bin type to pack all items. Therefore, only the first bin type is used. Since the objective is bin packing with leftovers, the solver optmizes the leftover of the last bin of the solution.
 
-.. code-block:: none
+.. literalinclude:: examples/objectives/bin_packing_with_leftovers/items.csv
    :caption: items.csv
 
-   WIDTH,HEIGHT,COPIES
-   250,150,10
-   200,100,12
-   175,75,12
-
-.. code-block:: none
+.. literalinclude:: examples/objectives/bin_packing_with_leftovers/bins.csv
    :caption: bins.csv
 
-   WIDTH,HEIGHT,COPIES
-   1000,500,10
-   700,400,10
-
-.. code-block:: none
+.. literalinclude:: examples/objectives/bin_packing_with_leftovers/parameters.csv
    :caption: parameters.csv
-
-   NAME,VALUE
-   objective,bin-packing-with-leftovers
 
 .. code-block:: shell
 
@@ -62,12 +50,7 @@ In this example, there are two bin types. The first bin type has 10 copies. To u
             --parameters parameters.csv \
             --certificate solution_rectangle.csv
 
-.. code-block:: shell
-
-    python3 scripts/visualize_rectangle.py solution_rectangle.csv
-
 .. image:: img/objective_bin_packing_with_leftovers_solution.png
-   :width: 250pt
    :align: center
 
 Variable-sized bin packing
@@ -82,27 +65,14 @@ Each bin has an associated cost. If no cost is provided, then the cost of a bin 
 
 The input is the same as the previous one. With the variable-sized bin packing objective, the solver can use the second bin type to minimize the overall waste.
 
-.. code-block:: none
+.. literalinclude:: examples/objectives/variable_sized_bin_packing/items.csv
    :caption: items.csv
 
-   WIDTH,HEIGHT,COPIES
-   250,150,10
-   200,100,12
-   175,75,12
-
-.. code-block:: none
+.. literalinclude:: examples/objectives/variable_sized_bin_packing/bins.csv
    :caption: bins.csv
 
-   WIDTH,HEIGHT,COPIES
-   1000,500,10
-   700,400,10
-
-.. code-block:: none
+.. literalinclude:: examples/objectives/variable_sized_bin_packing/parameters.csv
    :caption: parameters.csv
-
-   NAME,VALUE
-   objective,variable-sized-bin-packing
-
 
 .. code-block:: shell
 
@@ -112,12 +82,7 @@ The input is the same as the previous one. With the variable-sized bin packing o
             --parameters parameters.csv \
             --certificate solution_rectangle.csv
 
-.. code-block:: shell
-
-    python3 scripts/visualize_rectangle.py solution_rectangle.csv
-
 .. image:: img/objective_variable_sized_bin_packing_solution.png
-   :width: 250pt
    :align: center
 
 Open-dimension
@@ -137,25 +102,14 @@ PackingSolver currently supports the objectives:
 
 **Example**
 
-.. code-block:: none
+.. literalinclude:: examples/objectives/open_dimension_x/items.csv
    :caption: items.csv
 
-   WIDTH,HEIGHT,COPIES
-   250,150,10
-   200,100,12
-   175,75,12
-
-.. code-block:: none
+.. literalinclude:: examples/objectives/open_dimension_x/bins.csv
    :caption: bins.csv
 
-   WIDTH,HEIGHT,COPIES
-   2000,500,1
-
-.. code-block:: none
+.. literalinclude:: examples/objectives/open_dimension_x/parameters.csv
    :caption: parameters.csv
-
-   NAME,VALUE
-   objective,open-dimension-x
 
 .. code-block:: shell
 
@@ -165,12 +119,7 @@ PackingSolver currently supports the objectives:
             --parameters parameters.csv \
             --certificate solution_rectangle.csv
 
-.. code-block:: shell
-
-    python3 scripts/visualize_rectangle.py solution_rectangle.csv
-
 .. image:: img/objective_open_dimension_x_solution.png
-   :width: 500pt
    :align: center
 
 Knapsack
@@ -184,25 +133,14 @@ Each item has an associated profit. If no profit is provided, then the profit of
 
 The items are the same as in the previous examples. Only 2 copies of the small bin type are available. This is not enough to pack all the items.
 
-.. code-block:: none
+.. literalinclude:: examples/objectives/knapsack/items.csv
    :caption: items.csv
 
-   WIDTH,HEIGHT,COPIES
-   250,150,10
-   200,100,12
-   175,75,12
-
-.. code-block:: none
+.. literalinclude:: examples/objectives/knapsack/bins.csv
    :caption: bins.csv
 
-   WIDTH,HEIGHT,COPIES
-   700,400,2
-
-.. code-block:: none
+.. literalinclude:: examples/objectives/knapsack/parameters.csv
    :caption: parameters.csv
-
-   NAME,VALUE
-   objective,knapsack
 
 .. code-block:: shell
 
@@ -212,12 +150,7 @@ The items are the same as in the previous examples. Only 2 copies of the small b
             --parameters parameters.csv \
             --certificate solution_rectangle.csv
 
-.. code-block:: shell
-
-    python3 scripts/visualize_rectangle.py solution_rectangle.csv
-
 .. image:: img/objective_knapsack_solution.png
-   :width: 200pt
    :align: center
 
 Feasibility
