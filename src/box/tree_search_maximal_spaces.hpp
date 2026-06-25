@@ -632,3 +632,30 @@ inline bool BranchingSchemeMaximalSpaces::operator()(
 
 } // namespace box
 } // namespace packingsolver
+
+#include "packingsolver/box/solution.hpp"
+
+namespace packingsolver
+{
+namespace box
+{
+
+struct TreeSearchMaximalSpacesOutput: packingsolver::Output<Instance, Solution>
+{
+    TreeSearchMaximalSpacesOutput(const Instance& instance):
+        packingsolver::Output<Instance, Solution>(instance) { }
+};
+
+struct TreeSearchMaximalSpacesParameters: packingsolver::Parameters<Instance, Solution>
+{
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
+
+    NodeId not_anytime_tree_search_queue_size = 1;
+};
+
+const TreeSearchMaximalSpacesOutput tree_search_maximal_spaces(
+        const Instance& instance,
+        const TreeSearchMaximalSpacesParameters& parameters = {});
+
+}
+}
