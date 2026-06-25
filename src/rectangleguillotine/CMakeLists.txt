@@ -10,8 +10,8 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     post_process.cpp
-    branching_scheme.cpp
-    branching_scheme_maximal_spaces.cpp
+    tree_search.cpp
+    tree_search_maximal_spaces.cpp
     column_generation_strips.cpp
     dynamic_programming_infinite_copies_array.cpp
     labeling.cpp)

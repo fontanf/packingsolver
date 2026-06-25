@@ -1,5 +1,5 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
-#include "rectangle/branching_scheme.hpp"
+#include "rectangle/tree_search.hpp"
 
 #include <gtest/gtest.h>
 

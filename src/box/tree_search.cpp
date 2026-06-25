@@ -1,4 +1,4 @@
-#include "box/branching_scheme.hpp"
+#include "box/tree_search.hpp"
 
 #include <string>
 

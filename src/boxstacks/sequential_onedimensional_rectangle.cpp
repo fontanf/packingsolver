@@ -5,7 +5,7 @@
 #include "packingsolver/onedimensional/instance_builder.hpp"
 
 #include "packingsolver/rectangle/instance_builder.hpp"
-#include "rectangle/branching_scheme.hpp"
+#include "rectangle/tree_search.hpp"
 #include "rectangle/solution_builder.hpp"
 
 #include "treesearchsolver/iterative_beam_search_2.hpp"

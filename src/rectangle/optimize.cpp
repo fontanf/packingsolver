@@ -2,8 +2,8 @@
 
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
-#include "rectangle/branching_scheme.hpp"
-#include "rectangle/branching_scheme_maximal_spaces.hpp"
+#include "rectangle/tree_search.hpp"
+#include "rectangle/tree_search_maximal_spaces.hpp"
 #include "rectangle/benders_decomposition.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
 #include "algorithms/dichotomic_search.hpp"

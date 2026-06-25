@@ -2,7 +2,7 @@
 
 #include "packingsolver/boxstacks/algorithm_formatter.hpp"
 #include "packingsolver/boxstacks/instance_builder.hpp"
-#include "boxstacks/branching_scheme.hpp"
+#include "boxstacks/tree_search.hpp"
 #include "boxstacks/sequential_onedimensional_rectangle.hpp"
 
 #include "algorithms/sequential_value_correction.hpp"

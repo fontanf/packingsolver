@@ -2,8 +2,8 @@
 
 #include "packingsolver/box/algorithm_formatter.hpp"
 #include "packingsolver/box/instance_builder.hpp"
-#include "box/branching_scheme.hpp"
-#include "box/branching_scheme_maximal_spaces.hpp"
+#include "box/tree_search.hpp"
+#include "box/tree_search_maximal_spaces.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"

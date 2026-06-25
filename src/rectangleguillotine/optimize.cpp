@@ -2,8 +2,8 @@
 
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
-#include "rectangleguillotine/branching_scheme.hpp"
-#include "rectangleguillotine/branching_scheme_maximal_spaces.hpp"
+#include "rectangleguillotine/tree_search.hpp"
+#include "rectangleguillotine/tree_search_maximal_spaces.hpp"
 #include "rectangleguillotine/column_generation_strips.hpp"
 #include "rectangleguillotine/block.hpp"
 #include "rectangleguillotine/dynamic_programming_infinite_copies_array.hpp"
