@@ -667,3 +667,32 @@ inline bool BranchingScheme::operator()(
 
 }
 }
+
+namespace packingsolver
+{
+namespace boxstacks
+{
+
+struct TreeSearchOutput: packingsolver::Output<Instance, Solution>
+{
+    TreeSearchOutput(const Instance& instance):
+        packingsolver::Output<Instance, Solution>(instance) { }
+};
+
+struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution>
+{
+    std::vector<GuideId> guides;
+
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
+
+    NodeId not_anytime_tree_search_queue_size = 1;
+
+    ItemPos maximum_number_of_selected_items = -1;
+};
+
+const TreeSearchOutput tree_search(
+        const Instance& instance,
+        const TreeSearchParameters& parameters = {});
+
+}
+}

@@ -8,9 +8,6 @@
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/thread_pool.hpp"
 
-#include "treesearchsolver/iterative_beam_search_2.hpp"
-
-
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 
@@ -116,92 +113,19 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         if (run_boxstacks_branching_scheme) {
             auto bs_begin = std::chrono::steady_clock::now();
 
-            std::vector<GuideId> guides;
-            if (!parameters.tree_search_guides.empty()) {
-                guides = parameters.tree_search_guides;
-            } else if (instance.objective() == Objective::Knapsack) {
-                guides = {4, 5};
-            } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-                guides = {0, 1};
-            } else {
-                guides = {0, 2};
-            }
-            guides = {4};
-
-            std::vector<Direction> directions;
-            if (instance.objective() == Objective::OpenDimensionX) {
-                directions = {Direction::X};
-            } else if (instance.objective() == Objective::OpenDimensionY) {
-                directions = {Direction::Y};
-            } else if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingX
-                    || instance.unloading_constraint() == rectangle::UnloadingConstraint::OnlyXMovements) {
-                directions = {Direction::X};
-            } else if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingY
-                    || instance.unloading_constraint() == rectangle::UnloadingConstraint::OnlyYMovements) {
-                directions = {Direction::Y};
-            } else if (instance.number_of_bin_types() == 1) {
-                directions = {Direction::X, Direction::Y};
-            } else {
-                directions = {Direction::Any};
-            }
-
-            std::vector<BranchingScheme> branching_schemes;
-            std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
-            for (GuideId guide_id: guides) {
-                for (Direction direction: directions) {
-                    //std::cout << growth_factor << " " << guide_id << " " << direction << std::endl;
-                    BranchingScheme::Parameters branching_scheme_parameters;
-                    branching_scheme_parameters.guide_id = guide_id;
-                    branching_scheme_parameters.direction = direction;
-                    branching_scheme_parameters.maximum_number_of_selected_items = output.sequential_onedimensional_rectangle_number_of_items;
-                    branching_schemes.push_back(BranchingScheme(instance, branching_scheme_parameters));
-                    treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
-                    ibs_parameters.verbosity_level = 0;
-                    ibs_parameters.timer = parameters.timer;
-                    if (parameters.optimization_mode != OptimizationMode::Anytime) {
-                        ibs_parameters.minimum_size_of_the_queue = 1;
-                        ibs_parameters.growth_factor
-                            = parameters.not_anytime_tree_search_queue_size;
-                        ibs_parameters.maximum_size_of_the_queue
-                            = parameters.not_anytime_tree_search_queue_size;
-                    }
-                    //ibs_parameters.info.set_verbosity_level(1);
-                    ibs_parameters_list.push_back(ibs_parameters);
-                }
-            }
-
-            std::vector<std::function<void()>> tasks;
-            std::forward_list<std::exception_ptr> exception_ptr_list;
-            for (Counter i = 0; i < (Counter)branching_schemes.size(); ++i) {
-                ibs_parameters_list[i].new_solution_callback
-                    = [&algorithm_formatter, &branching_schemes, i](
-                            const treesearchsolver::Output<BranchingScheme>& tss_output)
-                    {
-                        const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
-                            = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
-                        Solution solution = branching_schemes[i].to_solution(
-                                tssibs_output.solution_pool.best());
-                        std::stringstream ss;
-                        ss << branching_schemes[i].parameters().guide_id
-                            << " " << branching_schemes[i].parameters().direction
-                            << " " << tssibs_output.maximum_size_of_the_queue;
-                        algorithm_formatter.update_solution(solution, ss.str());
-                    };
-                exception_ptr_list.push_front(std::exception_ptr());
-                std::exception_ptr& exception_ptr = exception_ptr_list.front();
-                BranchingScheme& branching_scheme = branching_schemes[i];
-                treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters = ibs_parameters_list[i];
-                tasks.push_back([&exception_ptr, &branching_scheme, ibs_parameters]() {
-                    wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>(
-                            exception_ptr,
-                            branching_scheme,
-                            ibs_parameters);
-                });
-            }
-            run(tasks, algorithm_formatter, parameters);
-            for (const std::exception_ptr& exception_ptr: exception_ptr_list)
-                if (exception_ptr)
-                    std::rethrow_exception(exception_ptr);
+            TreeSearchParameters ts_parameters;
+            ts_parameters.verbosity_level = 0;
+            ts_parameters.timer = parameters.timer;
+            ts_parameters.optimization_mode = parameters.optimization_mode;
+            ts_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
+            ts_parameters.guides = parameters.tree_search_guides;
+            ts_parameters.maximum_number_of_selected_items = output.sequential_onedimensional_rectangle_number_of_items;
+            ts_parameters.new_solution_callback = [&algorithm_formatter](
+                    const packingsolver::Output<Instance, Solution>& ts_output)
+            {
+                algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS");
+            };
+            tree_search(instance, ts_parameters);
 
             auto bs_end = std::chrono::steady_clock::now();
             std::chrono::duration<double> bs_time_span
