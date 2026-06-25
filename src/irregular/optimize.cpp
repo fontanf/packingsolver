@@ -14,9 +14,6 @@
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
 
-#include "treesearchsolver/iterative_beam_search_2.hpp"
-
-
 using namespace packingsolver;
 using namespace packingsolver::irregular;
 
@@ -105,287 +102,28 @@ void optimize_trivial_single_item(
     trivial_single_item(instance, trivial_single_item_parameters);
 }
 
-void optimize_tree_search_worker(
-        const Instance& instance,
-        const OptimizeParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter,
-        BranchingScheme::Parameters branching_scheme_parameters,
-        treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters,
-        std::function<void(const Solution&, const std::string&)> new_solution_callback)
-{
-    Counter queue_size = 1;
-    double maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
-    std::shared_ptr<BranchingScheme::Node> cutoff = nullptr;
-    for (Counter iteration = 0;
-            ;
-            ++iteration) {
-
-        if (parameters.optimization_mode != OptimizationMode::Anytime) {
-            queue_size = parameters.not_anytime_tree_search_queue_size;
-            maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
-        }
-
-        // Run tree search.
-        branching_scheme_parameters.maximum_approximation_ratio = maximum_approximation_ratio;
-        ibs_parameters.cutoff = cutoff;
-        ibs_parameters.minimum_size_of_the_queue = queue_size;
-        ibs_parameters.maximum_size_of_the_queue = queue_size;
-        if (!parameters.json_search_tree_path.empty()) {
-            ibs_parameters.json_search_tree_path = parameters.json_search_tree_path
-                + "_guide_" + std::to_string(branching_scheme_parameters.guide_id)
-                + "_d_" + std::to_string((int)branching_scheme_parameters.direction);
-        }
-        BranchingScheme branching_scheme(instance, branching_scheme_parameters);
-        // Set the IBS callback here, after the BranchingScheme is created, so that
-        // to_solution is always called on the same scheme that built the nodes.
-        ibs_parameters.new_solution_callback =
-            [&branching_scheme, &branching_scheme_parameters, &new_solution_callback](
-                    const treesearchsolver::Output<BranchingScheme>& tss_output)
-            {
-                const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
-                    = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
-                Solution solution = branching_scheme.to_solution(
-                        tssibs_output.solution_pool.best());
-                std::stringstream ss;
-                ss << "TS g " << branching_scheme_parameters.guide_id
-                    << " d " << (int)branching_scheme_parameters.direction
-                    << " q " << tssibs_output.maximum_size_of_the_queue;
-                new_solution_callback(solution, ss.str());
-            };
-        auto ibs_output = treesearchsolver::iterative_beam_search_2<BranchingScheme>(
-                branching_scheme,
-                ibs_parameters);
-
-        // Check end.
-        if (ibs_output.optimal)
-            break;
-        if (algorithm_formatter.end_boolean())
-            break;
-        if (parameters.timer.needs_to_end())
-            break;
-
-        if (parameters.optimization_mode != OptimizationMode::Anytime)
-            break;
-
-        if (cutoff != nullptr)
-            ibs_output.solution_pool.add(cutoff);
-        cutoff = ibs_output.solution_pool.best();
-
-        // Update beam size.
-        queue_size = std::max(
-                queue_size + 1,
-                (NodeId)(queue_size * 1.5));
-        // Update maximum approximation ratio.
-        maximum_approximation_ratio *= parameters.maximum_approximation_ratio_factor;
-    }
-}
-
 void optimize_tree_search(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    std::vector<GuideId> guides;
-    if (!parameters.tree_search_guides.empty()) {
-        guides = parameters.tree_search_guides;
-    } else if (instance.objective() == Objective::Knapsack) {
-        guides = {4, 5};
-    } else {
-        guides = {0, 1};
-    }
-    //guides = {0};
-
-    std::vector<BranchingScheme::Direction> directions;
-    if (instance.objective() == Objective::OpenDimensionX) {
-        directions = {
-            BranchingScheme::Direction::LeftToRightThenBottomToTop,
-            BranchingScheme::Direction::LeftToRightThenTopToBottom,
-        };
-    } else if (instance.objective() == Objective::OpenDimensionY) {
-        directions = {
-            BranchingScheme::Direction::BottomToTopThenLeftToRight,
-            BranchingScheme::Direction::BottomToTopThenRightToLeft,
-        };
-    } else if (instance.number_of_bins() == 1) {
-        if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            switch (instance.parameters().leftover_corner) {
-            case Corner::BottomLeft: {
-                directions = {
-                    BranchingScheme::Direction::LeftToRightThenBottomToTop,
-                    BranchingScheme::Direction::BottomToTopThenLeftToRight,
-                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
-                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
-                };
-                break;
-            } case Corner::BottomRight: {
-                directions = {
-                    BranchingScheme::Direction::RightToLeftThenBottomToTop,
-                    BranchingScheme::Direction::BottomToTopThenLeftToRight,
-                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
-                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
-                };
-                break;
-            } case Corner::TopLeft: {
-                directions = {
-                    BranchingScheme::Direction::LeftToRightThenBottomToTop,
-                    BranchingScheme::Direction::TopToBottomThenLeftToRight,
-                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
-                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
-                };
-                break;
-            } case Corner::TopRight: {
-                directions = {
-                    BranchingScheme::Direction::RightToLeftThenBottomToTop,
-                    BranchingScheme::Direction::TopToBottomThenLeftToRight,
-                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
-                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
-                };
-                break;
-            }
-            }
-        } else {
-            directions = {
-                BranchingScheme::Direction::LeftToRightThenBottomToTop,
-                BranchingScheme::Direction::BottomToTopThenLeftToRight,
-                BranchingScheme::Direction::RightToLeftThenTopToBottom,
-                BranchingScheme::Direction::TopToBottomThenRightToLeft,
-            };
-        }
-    } else {
-        switch (instance.parameters().leftover_corner) {
-        case Corner::BottomLeft: {
-            directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
-            break;
-        } case Corner::BottomRight: {
-            directions = {BranchingScheme::Direction::RightToLeftThenBottomToTop};
-            break;
-        } case Corner::TopLeft: {
-            directions = {BranchingScheme::Direction::LeftToRightThenTopToBottom,};
-            break;
-        } case Corner::TopRight: {
-            directions = {BranchingScheme::Direction::RightToLeftThenTopToBottom};
-            break;
-        }
-        }
-    }
-
-    // If all items have free rotations and all bins are squared, we consdier
-    // a single direction.
-    bool all_items_full_rotation = true;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        if (!item_type.has_full_continuous_rotations()) {
-            all_items_full_rotation = false;
-            break;
-        }
-    }
-    bool all_bins_squared = true;
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
-            ++bin_type_id) {
-        const BinType& bin_type = instance.bin_type(bin_type_id);
-        if (!bin_type.shape_scaled.is_square()) {
-            all_bins_squared = false;
-            break;
-        }
-    }
-    if (all_items_full_rotation && all_bins_squared) {
-        directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
-    }
-    //directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
-
-    std::vector<double> growth_factors = {1.5};
-    if (guides.size() * directions.size() * 2 <= 4)
-        growth_factors = {1.33, 1.5};
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
-        growth_factors = {1.5};
-    //growth_factors = {1.5};
-
-    std::vector<BranchingScheme::Parameters> branching_scheme_parameters_list;
-    std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
-    std::vector<irregular::Output> outputs;
-    for (double growth_factor: growth_factors) {
-        for (GuideId guide_id: guides) {
-            for (BranchingScheme::Direction direction: directions) {
-                //std::cout << growth_factor << " " << guide_id << " " << direction << std::endl;
-                BranchingScheme::Parameters branching_scheme_parameters;
-                branching_scheme_parameters.guide_id = guide_id;
-                branching_scheme_parameters.direction = direction;
-                if (parameters.optimization_mode == OptimizationMode::Anytime) {
-                    branching_scheme_parameters.maximum_approximation_ratio
-                        = parameters.initial_maximum_approximation_ratio;
-                } else {
-                    branching_scheme_parameters.maximum_approximation_ratio
-                        = parameters.not_anytime_maximum_approximation_ratio;
-                }
-                branching_scheme_parameters_list.push_back(branching_scheme_parameters);
-                treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
-                ibs_parameters.verbosity_level = 0;
-                ibs_parameters.timer = parameters.timer;
-                ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-                ibs_parameters.growth_factor = growth_factor;
-                if (parameters.optimization_mode != OptimizationMode::Anytime) {
-                    ibs_parameters.minimum_size_of_the_queue
-                        = parameters.not_anytime_tree_search_queue_size;
-                    ibs_parameters.maximum_size_of_the_queue
-                        = parameters.not_anytime_tree_search_queue_size;
-                }
-                ibs_parameters_list.push_back(ibs_parameters);
-                outputs.push_back(irregular::Output(instance));
-            }
-        }
-    }
-
-    std::vector<std::function<void()>> tasks;
-    std::forward_list<std::exception_ptr> exception_ptr_list;
-    for (Counter i = 0; i < (Counter)branching_scheme_parameters_list.size(); ++i) {
-        std::function<void(const Solution&, const std::string&)> new_solution_callback;
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
-            new_solution_callback = [&algorithm_formatter](
-                    const Solution& solution,
-                    const std::string& label)
-            {
-                algorithm_formatter.update_solution(solution, label);
-            };
-        } else {
-            new_solution_callback = [&outputs, i](
-                    const Solution& solution,
-                    const std::string& /*label*/)
-            {
-                outputs[i].solution_pool.add(solution);
-            };
-        }
-        exception_ptr_list.push_front(std::exception_ptr());
-        std::exception_ptr& exception_ptr = exception_ptr_list.front();
-        BranchingScheme::Parameters bs_parameters = branching_scheme_parameters_list[i];
-        treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters = ibs_parameters_list[i];
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter,
-                bs_parameters, ibs_parameters, new_solution_callback]()
-        {
-            wrapper<decltype(&optimize_tree_search_worker), optimize_tree_search_worker>(
-                    exception_ptr,
-                    instance,
-                    parameters,
-                    algorithm_formatter,
-                    bs_parameters,
-                    ibs_parameters,
-                    new_solution_callback);
-        });
-    }
-    run(tasks, parameters.optimization_mode != OptimizationMode::NotAnytimeSequential);
-    for (const std::exception_ptr& exception_ptr: exception_ptr_list)
-        if (exception_ptr)
-            std::rethrow_exception(exception_ptr);
-    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
-        for (Counter i = 0; i < (Counter)branching_scheme_parameters_list.size(); ++i) {
-            std::stringstream ss;
-            ss << "TS g " << branching_scheme_parameters_list[i].guide_id
-                << " d " << (int)branching_scheme_parameters_list[i].direction;
-            algorithm_formatter.update_solution(outputs[i].solution_pool.best(), ss.str());
-        }
-    }
+    TreeSearchParameters ts_parameters;
+    ts_parameters.verbosity_level = 0;
+    ts_parameters.timer = parameters.timer;
+    ts_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    ts_parameters.optimization_mode = parameters.optimization_mode;
+    ts_parameters.guides = parameters.tree_search_guides;
+    ts_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
+    ts_parameters.initial_maximum_approximation_ratio = parameters.initial_maximum_approximation_ratio;
+    ts_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
+    ts_parameters.maximum_approximation_ratio_factor = parameters.maximum_approximation_ratio_factor;
+    ts_parameters.json_search_tree_path = parameters.json_search_tree_path;
+    ts_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& ts_output)
+    {
+        algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS");
+    };
+    tree_search(instance, ts_parameters);
 }
 
 void optimize_local_search(
