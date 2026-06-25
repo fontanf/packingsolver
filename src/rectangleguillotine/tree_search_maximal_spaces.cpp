@@ -1,6 +1,11 @@
 #include "rectangleguillotine/tree_search_maximal_spaces.hpp"
 
 #include "rectangleguillotine/solution_builder.hpp"
+#include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
+#include "algorithms/thread_pool.hpp"
+#include "treesearchsolver/iterative_beam_search.hpp"
+
+#include <thread>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
@@ -759,4 +764,93 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
     dfs(0);
 
     return solution_builder.build();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////// tree_search_maximal_spaces ///////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packingsolver::rectangleguillotine::tree_search_maximal_spaces(
+        const Instance& instance,
+        const TreeSearchMaximalSpacesParameters& parameters)
+{
+    TreeSearchMaximalSpacesOutput output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
+
+    std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);
+
+    BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
+    branching_scheme_parameters.first_cut_orientation
+        = instance.parameters().first_stage_orientation;
+    BranchingSchemeMaximalSpaces branching_scheme(
+            instance,
+            all_blocks,
+            branching_scheme_parameters);
+
+    treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces> ibs_parameters;
+    ibs_parameters.verbosity_level = 0;
+    ibs_parameters.timer = parameters.timer;
+    ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    ibs_parameters.global_history = true;
+    if (parameters.optimization_mode != OptimizationMode::Anytime) {
+        ibs_parameters.minimum_size_of_the_queue = 1;
+        ibs_parameters.growth_factor = parameters.not_anytime_tree_search_queue_size;
+        ibs_parameters.maximum_size_of_the_queue = parameters.not_anytime_tree_search_queue_size;
+    }
+
+    packingsolver::Output<Instance, Solution> local_output(instance);
+
+    if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
+        ibs_parameters.new_solution_callback
+            = [&algorithm_formatter, &branching_scheme](
+                    const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
+            {
+                const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
+                    = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
+                Solution solution = branching_scheme.to_solution(
+                        tssibs_output.solution_pool.best());
+                std::stringstream ss;
+                ss << "TSMS n " << tssibs_output.maximum_size_of_the_queue;
+                algorithm_formatter.update_solution(solution, ss.str());
+            };
+    } else {
+        ibs_parameters.new_solution_callback
+            = [&local_output, &branching_scheme](
+                    const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
+            {
+                const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
+                    = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
+                Solution solution = branching_scheme.to_solution(
+                        tssibs_output.solution_pool.best());
+                local_output.solution_pool.add(solution);
+            };
+    }
+
+    std::exception_ptr exception_ptr;
+    if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+        std::thread thread(
+                wrapper<decltype(&treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>),
+                        treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>>,
+                std::ref(exception_ptr),
+                std::ref(branching_scheme),
+                ibs_parameters);
+        thread.join();
+    } else {
+        try {
+            treesearchsolver::iterative_beam_search<BranchingSchemeMaximalSpaces>(
+                    branching_scheme,
+                    ibs_parameters);
+        } catch (...) {
+            exception_ptr = std::current_exception();
+        }
+    }
+    if (exception_ptr)
+        std::rethrow_exception(exception_ptr);
+    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic)
+        algorithm_formatter.update_solution(local_output.solution_pool.best(), "TSMS");
+
+    algorithm_formatter.end();
+    return output;
 }
