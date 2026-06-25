@@ -719,3 +719,36 @@ inline bool BranchingScheme::operator()(
 
 }
 }
+
+namespace packingsolver
+{
+namespace irregular
+{
+
+struct TreeSearchOutput: packingsolver::Output<Instance, Solution>
+{
+    TreeSearchOutput(const Instance& instance):
+        packingsolver::Output<Instance, Solution>(instance) { }
+};
+
+struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution>
+{
+    std::vector<GuideId> guides;
+
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
+
+    NodeId not_anytime_tree_search_queue_size = 1;
+
+    double initial_maximum_approximation_ratio = std::numeric_limits<double>::infinity();
+
+    double not_anytime_maximum_approximation_ratio = std::numeric_limits<double>::infinity();
+
+    double maximum_approximation_ratio_factor = 1.0;
+};
+
+const TreeSearchOutput tree_search(
+        const Instance& instance,
+        const TreeSearchParameters& parameters = {});
+
+}
+}
