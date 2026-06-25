@@ -1,4 +1,4 @@
-#include "rectangleguillotine/branching_scheme_maximal_spaces.hpp"
+#include "rectangleguillotine/tree_search_maximal_spaces.hpp"
 
 #include "rectangleguillotine/solution_builder.hpp"
 

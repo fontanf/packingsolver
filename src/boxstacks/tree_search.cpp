@@ -1,4 +1,4 @@
-#include "boxstacks/branching_scheme.hpp"
+#include "boxstacks/tree_search.hpp"
 
 #include "multiplechoicesubsetsumsolver/instance_builder.hpp"
 #include "multiplechoicesubsetsumsolver/algorithms/dynamic_programming_bellman.hpp"

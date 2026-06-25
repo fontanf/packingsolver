@@ -1,4 +1,4 @@
-#include "rectangleguillotine/branching_scheme.hpp"
+#include "rectangleguillotine/tree_search.hpp"
 
 #include "rectangleguillotine/solution_builder.hpp"
 

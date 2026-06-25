@@ -3,7 +3,7 @@
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "irregular/trivial.hpp"
-#include "irregular/branching_scheme.hpp"
+#include "irregular/tree_search.hpp"
 #include "irregular/milp_raster.hpp"
 #include "irregular/local_search.hpp"
 #include "irregular/sequential_feasibility.hpp"

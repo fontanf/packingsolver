@@ -2,7 +2,7 @@
 
 #include "packingsolver/onedimensional/algorithm_formatter.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
-#include "onedimensional/branching_scheme.hpp"
+#include "onedimensional/tree_search.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"

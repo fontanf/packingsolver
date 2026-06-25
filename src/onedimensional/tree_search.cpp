@@ -1,4 +1,4 @@
-#include "onedimensional/branching_scheme.hpp"
+#include "onedimensional/tree_search.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::onedimensional;

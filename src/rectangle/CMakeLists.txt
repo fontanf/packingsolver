@@ -9,11 +9,11 @@ target_sources(PackingSolver_rectangle PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     post_process.cpp
-    branching_scheme.cpp
+    tree_search.cpp
     benders_decomposition.cpp
     dual_feasible_functions.cpp
     block.cpp
-    branching_scheme_maximal_spaces.cpp)
+    tree_search_maximal_spaces.cpp)
 target_include_directories(PackingSolver_rectangle PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_rectangle PRIVATE

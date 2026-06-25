@@ -1,4 +1,4 @@
-#include "irregular/branching_scheme.hpp"
+#include "irregular/tree_search.hpp"
 
 #include "irregular/rotations.hpp"
 #include "irregular/shape_simplification.hpp"

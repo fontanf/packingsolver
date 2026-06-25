@@ -1,4 +1,4 @@
-#include "rectangle/branching_scheme.hpp"
+#include "rectangle/tree_search.hpp"
 
 #include "rectangle/solution_builder.hpp"
 

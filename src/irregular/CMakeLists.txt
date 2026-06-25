@@ -10,7 +10,7 @@ target_sources(PackingSolver_irregular PRIVATE
     shape_simplification.cpp
     rotations.cpp
     periodic_packing.cpp
-    branching_scheme.cpp
+    tree_search.cpp
     linear_programming.cpp
     milp_raster.cpp
     trivial.cpp
