@@ -1,7 +1,13 @@
 #include "boxstacks/tree_search.hpp"
 
+#include "packingsolver/boxstacks/algorithm_formatter.hpp"
+#include "algorithms/thread_pool.hpp"
+#include "treesearchsolver/iterative_beam_search_2.hpp"
+
 #include "multiplechoicesubsetsumsolver/instance_builder.hpp"
 #include "multiplechoicesubsetsumsolver/algorithms/dynamic_programming_bellman.hpp"
+
+#include <thread>
 
 #include <string>
 #include <cmath>
@@ -1634,4 +1640,112 @@ std::ostream& packingsolver::boxstacks::operator<<(
     os << std::endl;
 
     return os;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// tree_search //////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+const packingsolver::boxstacks::TreeSearchOutput packingsolver::boxstacks::tree_search(
+        const Instance& instance,
+        const TreeSearchParameters& parameters)
+{
+    TreeSearchOutput output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
+
+    std::vector<GuideId> guides = parameters.guides;
+    if (guides.empty()) {
+        if (instance.objective() == Objective::Knapsack) {
+            guides = {4, 5};
+        } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
+            guides = {0, 1};
+        } else {
+            guides = {0, 2};
+        }
+    }
+    guides = {4};
+
+    std::vector<Direction> directions;
+    if (instance.objective() == Objective::OpenDimensionX) {
+        directions = {Direction::X};
+    } else if (instance.objective() == Objective::OpenDimensionY) {
+        directions = {Direction::Y};
+    } else if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingX
+            || instance.unloading_constraint() == rectangle::UnloadingConstraint::OnlyXMovements) {
+        directions = {Direction::X};
+    } else if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingY
+            || instance.unloading_constraint() == rectangle::UnloadingConstraint::OnlyYMovements) {
+        directions = {Direction::Y};
+    } else if (instance.number_of_bin_types() == 1) {
+        directions = {Direction::X, Direction::Y};
+    } else {
+        directions = {Direction::Any};
+    }
+
+    std::vector<BranchingScheme> branching_schemes;
+    std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
+    for (GuideId guide_id: guides) {
+        for (Direction direction: directions) {
+            BranchingScheme::Parameters branching_scheme_parameters;
+            branching_scheme_parameters.guide_id = guide_id;
+            branching_scheme_parameters.direction = direction;
+            branching_scheme_parameters.maximum_number_of_selected_items = parameters.maximum_number_of_selected_items;
+            branching_schemes.push_back(BranchingScheme(instance, branching_scheme_parameters));
+            treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters;
+            ibs_parameters.verbosity_level = 0;
+            ibs_parameters.timer = parameters.timer;
+            ibs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            if (parameters.optimization_mode != OptimizationMode::Anytime) {
+                ibs_parameters.minimum_size_of_the_queue = 1;
+                ibs_parameters.growth_factor = parameters.not_anytime_tree_search_queue_size;
+                ibs_parameters.maximum_size_of_the_queue = parameters.not_anytime_tree_search_queue_size;
+            }
+            ibs_parameters_list.push_back(ibs_parameters);
+        }
+    }
+
+    std::vector<std::thread> threads;
+    std::forward_list<std::exception_ptr> exception_ptr_list;
+    for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
+        ibs_parameters_list[scheme_idx].new_solution_callback
+            = [&algorithm_formatter, &branching_schemes, scheme_idx](
+                    const treesearchsolver::Output<BranchingScheme>& tss_output)
+            {
+                const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
+                    = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
+                Solution solution = branching_schemes[scheme_idx].to_solution(
+                        tssibs_output.solution_pool.best());
+                std::stringstream ss;
+                ss << branching_schemes[scheme_idx].parameters().guide_id
+                    << " " << branching_schemes[scheme_idx].parameters().direction
+                    << " " << tssibs_output.maximum_size_of_the_queue;
+                algorithm_formatter.update_solution(solution, ss.str());
+            };
+        exception_ptr_list.push_front(std::exception_ptr());
+        if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
+            threads.push_back(std::thread(
+                        wrapper<decltype(&treesearchsolver::iterative_beam_search_2<BranchingScheme>), treesearchsolver::iterative_beam_search_2<BranchingScheme>>,
+                        std::ref(exception_ptr_list.front()),
+                        std::ref(branching_schemes[scheme_idx]),
+                        ibs_parameters_list[scheme_idx]));
+        } else {
+            try {
+                treesearchsolver::iterative_beam_search_2<BranchingScheme>(
+                        branching_schemes[scheme_idx],
+                        ibs_parameters_list[scheme_idx]);
+            } catch (...) {
+                exception_ptr_list.front() = std::current_exception();
+            }
+        }
+    }
+    for (Counter thread_idx = 0; thread_idx < (Counter)threads.size(); ++thread_idx)
+        threads[thread_idx].join();
+    for (const std::exception_ptr& exception_ptr: exception_ptr_list)
+        if (exception_ptr)
+            std::rethrow_exception(exception_ptr);
+
+    algorithm_formatter.end();
+    return output;
 }
