@@ -330,13 +330,15 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
-        if (instance.objective() != Objective::Knapsack)
+        if (instance.objective() != Objective::Knapsack
+                && instance.objective() != Objective::Feasibility)
             use_tree_search_maximal_spaces = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_tree_search_maximal_spaces
                 && !use_benders_decomposition) {
-            if (instance.objective() == Objective::Knapsack
+            if ((instance.objective() == Objective::Knapsack
+                        || instance.objective() == Objective::Feasibility)
                     && mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2
                     && instance.parameters().unloading_constraint == UnloadingConstraint::None) {
                 use_tree_search_maximal_spaces = true;
