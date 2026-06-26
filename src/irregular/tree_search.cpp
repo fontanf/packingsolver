@@ -1,4 +1,5 @@
 #include "irregular/tree_search.hpp"
+#include "irregular/sequential_feasibility.hpp"
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "algorithms/thread_pool.hpp"
@@ -2650,6 +2651,50 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         const Instance& instance,
         const TreeSearchParameters& parameters)
 {
+    if (instance.objective() == Objective::OpenDimensionXY) {
+        TreeSearchOutput output(instance);
+        AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+        algorithm_formatter.start();
+        algorithm_formatter.print_header();
+
+        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter](
+                const Instance& sub_instance)
+        {
+            TreeSearchParameters inner_parameters;
+            inner_parameters.verbosity_level = 0;
+            inner_parameters.timer = parameters.timer;
+            inner_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            inner_parameters.guides = parameters.guides;
+            inner_parameters.optimization_mode = parameters.optimization_mode;
+            inner_parameters.not_anytime_tree_search_queue_size
+                = parameters.not_anytime_tree_search_queue_size;
+            inner_parameters.initial_maximum_approximation_ratio
+                = parameters.initial_maximum_approximation_ratio;
+            inner_parameters.not_anytime_maximum_approximation_ratio
+                = parameters.not_anytime_maximum_approximation_ratio;
+            inner_parameters.maximum_approximation_ratio_factor
+                = parameters.maximum_approximation_ratio_factor;
+            return tree_search(sub_instance, inner_parameters).solution_pool;
+        };
+
+        SequentialFeasibilityParameters sf_parameters;
+        sf_parameters.verbosity_level = 0;
+        sf_parameters.timer = parameters.timer;
+        sf_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        sf_parameters.new_solution_callback = [&algorithm_formatter](
+                const packingsolver::Output<Instance, Solution>& sf_output)
+        {
+            algorithm_formatter.update_solution(
+                    sf_output.solution_pool.best(),
+                    sf_output.solution_pool.best_label());
+        };
+
+        sequential_feasibility(instance, solver, sf_parameters);
+
+        algorithm_formatter.end();
+        return output;
+    }
+
     TreeSearchOutput output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();

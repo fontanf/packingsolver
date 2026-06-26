@@ -53,9 +53,6 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use column generation algorithm. */
     bool use_column_generation = false;
 
-    /** Use sequential feasibility algorithm. */
-    bool use_sequential_feasibility = false;
-
     /** Initial maximum approximation ratio. */
     double initial_maximum_approximation_ratio = 0.20;
 
@@ -70,15 +67,6 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
 
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
-
-    /** Use tree search in sequential feasibility sub-problems. */
-    bool sequential_feasibility_use_tree_search = false;
-
-    /** Use local search in sequential feasibility sub-problems. */
-    bool sequential_feasibility_use_local_search = false;
-
-    /** Use MILP raster in sequential feasibility sub-problems. */
-    bool sequential_feasibility_use_milp_raster = false;
 
     /**
      * Size of the queue for the pricing knapsack subproblem of the sequential

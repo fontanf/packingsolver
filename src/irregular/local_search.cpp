@@ -1,4 +1,5 @@
 #include "irregular/local_search.hpp"
+#include "irregular/sequential_feasibility.hpp"
 #include "irregular/linear_programming.hpp"
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
@@ -221,6 +222,41 @@ LocalSearchOutput packingsolver::irregular::local_search(
         const Instance& instance,
         const LocalSearchParameters& parameters)
 {
+    if (instance.objective() != Objective::Feasibility) {
+        LocalSearchOutput output(instance);
+        AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+        algorithm_formatter.start();
+        algorithm_formatter.print_header();
+
+        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter](
+                const Instance& sub_instance)
+        {
+            LocalSearchParameters inner_parameters;
+            inner_parameters.verbosity_level = 0;
+            inner_parameters.timer = parameters.timer;
+            inner_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            inner_parameters.seed = parameters.seed;
+            return local_search(sub_instance, inner_parameters).solution_pool;
+        };
+
+        SequentialFeasibilityParameters sf_parameters;
+        sf_parameters.verbosity_level = 0;
+        sf_parameters.timer = parameters.timer;
+        sf_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        sf_parameters.new_solution_callback = [&algorithm_formatter](
+                const packingsolver::Output<Instance, Solution>& sf_output)
+        {
+            algorithm_formatter.update_solution(
+                    sf_output.solution_pool.best(),
+                    sf_output.solution_pool.best_label());
+        };
+
+        sequential_feasibility(instance, solver, sf_parameters);
+
+        algorithm_formatter.end();
+        return output;
+    }
+
     LocalSearchOutput output(instance);
 
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
