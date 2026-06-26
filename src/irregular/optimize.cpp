@@ -6,7 +6,6 @@
 #include "irregular/tree_search.hpp"
 #include "irregular/milp_raster.hpp"
 #include "irregular/local_search.hpp"
-#include "irregular/sequential_feasibility.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -373,33 +372,6 @@ void optimize_column_generation(
     column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, pricing_function, cg_parameters);
 }
 
-void optimize_sequential_feasibility(
-        const Instance& instance,
-        const OptimizeParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter)
-{
-    SequentialFeasibilityParameters sf_parameters;
-    sf_parameters.verbosity_level = 0;
-    sf_parameters.timer = parameters.timer;
-    sf_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    sf_parameters.optimization_mode = parameters.optimization_mode;
-    sf_parameters.not_anytime_maximum_approximation_ratio
-        = parameters.not_anytime_maximum_approximation_ratio;
-    sf_parameters.not_anytime_tree_search_queue_size
-        = parameters.not_anytime_tree_search_queue_size;
-    sf_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-    sf_parameters.use_tree_search = parameters.sequential_feasibility_use_tree_search;
-    sf_parameters.use_local_search = parameters.sequential_feasibility_use_local_search;
-    sf_parameters.use_milp_raster = parameters.sequential_feasibility_use_milp_raster;
-    sf_parameters.new_solution_callback = [&algorithm_formatter](
-            const packingsolver::Output<Instance, Solution>& output) {
-        algorithm_formatter.update_solution(
-                output.solution_pool.best(),
-                "Sequential feasibility");
-    };
-    sequential_feasibility(instance, sf_parameters);
-}
-
 void optimize_milp_raster(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -438,7 +410,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
-    bool use_sequential_feasibility = parameters.use_sequential_feasibility;
     bool use_milp_raster = parameters.use_milp_raster;
     if (instance.number_of_bins() <= 1) {
         // Disable algorithms which are not available for this objective.
@@ -446,33 +417,23 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
-        if (instance.objective() == Objective::OpenDimensionXY)
-            use_tree_search = false;
-        if (instance.objective() == Objective::Knapsack)
-            use_sequential_feasibility = false;
         if (instance.objective() != Objective::Knapsack
                 && instance.objective() != Objective::Feasibility) {
             use_milp_raster = false;
         }
-        if (instance.objective() != Objective::Feasibility) {
+        if (instance.objective() == Objective::Knapsack) {
             use_local_search = false;
         }
         // Automatic selection.
         if (!use_tree_search
                 && !use_local_search
-                && !use_milp_raster
-                && !use_sequential_feasibility) {
-            if (instance.objective() == Objective::OpenDimensionXY) {
-                use_sequential_feasibility = true;
-            } else {
-                use_tree_search = true;
-            }
+                && !use_milp_raster) {
+            use_tree_search = true;
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
         use_local_search = false;
         use_dichotomic_search = false;
-        use_sequential_feasibility = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster
@@ -497,7 +458,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
-        use_sequential_feasibility = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster
@@ -531,12 +491,10 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
-        use_local_search = false;
         use_milp_raster = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_milp_raster
-                && !use_sequential_feasibility
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -573,7 +531,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 use_tree_search = true;
             }
         }
-        use_sequential_feasibility = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_local_search
@@ -722,18 +679,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
             wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
-                    exception_ptr,
-                    instance,
-                    parameters,
-                    algorithm_formatter);
-        });
-    }
-    // Sequential feasibility.
-    if (use_sequential_feasibility) {
-        exception_ptr_list.push_front(std::exception_ptr());
-        std::exception_ptr& exception_ptr = exception_ptr_list.front();
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
-            wrapper<decltype(&optimize_sequential_feasibility), optimize_sequential_feasibility>(
                     exception_ptr,
                     instance,
                     parameters,

@@ -2,7 +2,6 @@
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "packingsolver/irregular/instance_builder.hpp"
-#include "packingsolver/irregular/optimize.hpp"
 
 #include "shape/shape.hpp"
 #include "shape/boolean_operations.hpp"
@@ -15,6 +14,7 @@ using namespace packingsolver::irregular;
 
 SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         const Instance& instance,
+        const SequentialFeasibilitySolver& solver,
         const SequentialFeasibilityParameters& parameters)
 {
     SequentialFeasibilityOutput output(instance);
@@ -67,9 +67,6 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             break;
         if (parameters.timer.needs_to_end())
             break;
-        //std::cout << "current_number_of_bins " << current_number_of_bins
-        //    << " x " << x
-        //    << " y " << y << std::endl;
 
         // Build the Feasibility sub-instance.
         InstanceBuilder sub_instance_builder;
@@ -138,23 +135,10 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         Instance sub_instance = sub_instance_builder.build();
 
         // Solve the sub-instance.
-        OptimizeParameters sub_parameters;
-        sub_parameters.verbosity_level = 0;
-        sub_parameters.timer = parameters.timer;
-        sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-        sub_parameters.optimization_mode = parameters.optimization_mode;
-        sub_parameters.not_anytime_maximum_approximation_ratio
-            = parameters.not_anytime_maximum_approximation_ratio;
-        sub_parameters.not_anytime_tree_search_queue_size
-            = parameters.not_anytime_tree_search_queue_size;
-        sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-        sub_parameters.use_tree_search = parameters.use_tree_search;
-        sub_parameters.use_local_search = parameters.use_local_search;
-        sub_parameters.use_milp_raster = parameters.use_milp_raster;
-        auto sub_output = optimize(sub_instance, sub_parameters);
+        SolutionPool<Instance, Solution> sub_solution_pool = solver(sub_instance);
 
         // If no feasible solution found, stop.
-        if (!sub_output.solution_pool.best().full())
+        if (!sub_solution_pool.best().full())
             break;
 
         // Transfer the sub-solution to the main instance.
@@ -162,18 +146,18 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         if (instance.objective() == Objective::BinPacking
                 || instance.objective() == Objective::BinPackingWithLeftovers) {
             solution.append(
-                    sub_output.solution_pool.best(),
+                    sub_solution_pool.best(),
                     sub_to_orig_bin_type_ids,
                     {});
         } else {
             solution.append(
-                    sub_output.solution_pool.best(),
+                    sub_solution_pool.best(),
                     0,  // bin_pos
                     1,  // copies
                     {0});  // bin_type_ids
         }
         std::stringstream ss;
-        ss << "SF it " << it;
+        ss << "SF it " << it << " " << sub_solution_pool.best_label();
         algorithm_formatter.update_solution(solution, ss.str());
 
         // Update for the next iteration.
@@ -182,22 +166,22 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             if (current_number_of_bins == 0)
                 break;
         } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            BinTypeId bin_type_id = instance.bin_type_id(solution.number_of_bins() - 1);
-            const BinType& bin_type = instance.bin_type(bin_type_id);
-            x = 0.99 * (solution.x_max() - bin_type.aabb_scaled.x_min)
-                + bin_type.item_bin_minimum_spacing;
+            BinTypeId bin_type_id_last = instance.bin_type_id(solution.number_of_bins() - 1);
+            const BinType& bin_type_last = instance.bin_type(bin_type_id_last);
+            x = 0.99 * (solution.x_max() - bin_type_last.aabb_scaled.x_min)
+                + bin_type_last.item_bin_minimum_spacing;
             if (solution.number_of_bins() < current_number_of_bins) {
                 current_number_of_bins = solution.number_of_bins();
-                BinTypeId bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
-                const BinType& bin_type = instance.bin_type(bin_type_id);
-                x = bin_type.aabb_scaled.x_max;
-            } else if (!strictly_greater(x, bin_type.aabb_scaled.x_min + bin_type.item_bin_minimum_spacing)) {
+                BinTypeId bin_type_id_new = instance.bin_type_id(current_number_of_bins - 1);
+                const BinType& bin_type_new = instance.bin_type(bin_type_id_new);
+                x = bin_type_new.aabb_scaled.x_max;
+            } else if (!strictly_greater(x, bin_type_last.aabb_scaled.x_min + bin_type_last.item_bin_minimum_spacing)) {
                 current_number_of_bins = solution.number_of_bins() - 1;
                 if (current_number_of_bins == 0)
                     break;
-                BinTypeId bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
-                const BinType& bin_type = instance.bin_type(bin_type_id);
-                x = bin_type.aabb_scaled.x_max;
+                BinTypeId bin_type_id_new = instance.bin_type_id(current_number_of_bins - 1);
+                const BinType& bin_type_new = instance.bin_type(bin_type_id_new);
+                x = bin_type_new.aabb_scaled.x_max;
             }
         } else if (instance.objective() == Objective::OpenDimensionX) {
             const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
