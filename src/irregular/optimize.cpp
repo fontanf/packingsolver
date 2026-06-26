@@ -121,7 +121,7 @@ void optimize_tree_search(
     ts_parameters.new_solution_callback = [&algorithm_formatter](
             const packingsolver::Output<Instance, Solution>& ts_output)
     {
-        algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS");
+        algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS " + ts_output.solution_pool.best_label());
     };
     tree_search(instance, ts_parameters);
 }
@@ -367,7 +367,7 @@ void optimize_column_generation(
     cg_parameters.new_solution_callback = [&algorithm_formatter](
             const packingsolver::Output<Instance, Solution>& ps_output)
     {
-        algorithm_formatter.update_solution(ps_output.solution_pool.best(), "CG");
+        algorithm_formatter.update_solution(ps_output.solution_pool.best(), "CG " + ps_output.solution_pool.best_label());
         algorithm_formatter.update_bounds(ps_output);
     };
     column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, pricing_function, cg_parameters);

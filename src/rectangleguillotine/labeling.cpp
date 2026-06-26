@@ -494,7 +494,7 @@ const LabelingOutput packingsolver::rectangleguillotine::labeling(
                 Solution solution = reconstruct_solution(
                         instance, returned_blocks, block,
                         eff_width, eff_height, cut_thickness);
-                algorithm_formatter.update_solution(solution, "LS");
+                algorithm_formatter.update_solution(solution, "b " + std::to_string(returned_blocks.size()));
             }
 
             if (block.priority > best_solution_profit) {
@@ -580,7 +580,7 @@ const LabelingOutput packingsolver::rectangleguillotine::labeling(
                         Solution solution = reconstruct_solution(
                                 instance, returned_blocks, combined,
                                 eff_width, eff_height, cut_thickness);
-                        algorithm_formatter.update_solution(solution, "LS");
+                        algorithm_formatter.update_solution(solution, "b " + std::to_string(returned_blocks.size()));
                     }
                     blocks_to_process[bucket_index(combined.priority)].push_back(
                             std::move(combined));
@@ -601,7 +601,7 @@ const LabelingOutput packingsolver::rectangleguillotine::labeling(
                         Solution solution = reconstruct_solution(
                                 instance, returned_blocks, combined,
                                 eff_width, eff_height, cut_thickness);
-                        algorithm_formatter.update_solution(solution, "LS");
+                        algorithm_formatter.update_solution(solution, "n " + std::to_string(returned_blocks.size()));
                     }
                     blocks_to_process[bucket_index(combined.priority)].push_back(
                             std::move(combined));

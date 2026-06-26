@@ -881,7 +881,7 @@ const packingsolver::box::TreeSearchMaximalSpacesOutput packingsolver::box::tree
                     Solution solution = branching_schemes[scheme_idx].to_solution(
                             tssibs_output.solution_pool.best());
                     std::stringstream ss;
-                    ss << "TSMS n " << tssibs_output.maximum_size_of_the_queue;
+                    ss << "n " << tssibs_output.maximum_size_of_the_queue;
                     algorithm_formatter.update_solution(solution, ss.str());
                 };
         } else {
@@ -893,7 +893,9 @@ const packingsolver::box::TreeSearchMaximalSpacesOutput packingsolver::box::tree
                         = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
                     Solution solution = branching_schemes[scheme_idx].to_solution(
                             tssibs_output.solution_pool.best());
-                    local_outputs[(size_t)scheme_idx].solution_pool.add(solution);
+                    std::stringstream ss;
+                    ss << "n " << tssibs_output.maximum_size_of_the_queue;
+                    local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
                 };
         }
         exception_ptr_list.push_front(std::exception_ptr());
@@ -920,11 +922,9 @@ const packingsolver::box::TreeSearchMaximalSpacesOutput packingsolver::box::tree
             std::rethrow_exception(exception_ptr);
     if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
         for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
-            std::stringstream ss;
-            ss << "TSMS";
             algorithm_formatter.update_solution(
                     local_outputs[(size_t)scheme_idx].solution_pool.best(),
-                    ss.str());
+                    local_outputs[(size_t)scheme_idx].solution_pool.best_label());
         }
     }
 

@@ -294,15 +294,15 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
         //std::cout << "pricing_function end" << std::endl;
 
         // Retrieve column.
-        for (const Solution& kp_solution: kp_output.solution_pool.solutions()) {
-            if (kp_solution.number_of_bins() == 0)
+        for (const auto& kp_entry: kp_output.solution_pool.solutions()) {
+            if (kp_entry.solution.number_of_bins() == 0)
                 continue;
 
             Column column;
 
             Solution extra_solution(instance_);
             extra_solution.append(
-                    kp_solution,
+                    kp_entry.solution,
                     0,
                     1,
                     {bin_type_id},
@@ -325,10 +325,10 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
             for (ItemTypeId kp_item_type_id = 0;
                     kp_item_type_id < kp_instance.number_of_item_types();
                     ++kp_item_type_id) {
-                if (kp_solution.item_copies(kp_item_type_id) > 0) {
+                if (kp_entry.solution.item_copies(kp_item_type_id) > 0) {
                     columngenerationsolver::LinearTerm element;
                     element.row = instance_.number_of_bin_types() + kp2vbpp[kp_item_type_id];
-                    element.coefficient = kp_solution.item_copies(kp_item_type_id);
+                    element.coefficient = kp_entry.solution.item_copies(kp_item_type_id);
                     column.elements.push_back(element);
                     //std::cout << duals[m + extra->kp2vbpp[kp_j]] << std::endl;
                 }
@@ -415,7 +415,7 @@ ColumnGenerationOutput<Instance, Solution> column_generation(
                         value);
             }
             std::stringstream ss;
-            ss << "CG n " << cgslds_output.number_of_nodes;
+            ss << "n " << cgslds_output.number_of_nodes;
             algorithm_formatter.update_solution(solution, ss.str());
         }
     };

@@ -157,47 +157,53 @@ struct AbstractBinType
     BinPos copies;
 };
 
-template <typename Solution>
-struct SolutionPoolComparator
-{
-    bool operator()(
-            const Solution& solution_1,
-            const Solution& solution_2) const {
-        if (solution_1 < solution_2)
-            return false;
-        if (solution_2 < solution_1)
-            return true;
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < solution_1.instance().number_of_item_types();
-                ++item_type_id)
-            if (solution_1.item_copies(item_type_id)
-                    != solution_2.item_copies(item_type_id))
-                return solution_1.item_copies(item_type_id)
-                    < solution_2.item_copies(item_type_id);
-        return false;
-    }
-};
-
 template <typename Instance, typename Solution>
 class SolutionPool
 {
 
 public:
 
+    struct Entry {
+        Solution solution;
+        std::string label;
+    };
+
+private:
+
+    struct EntryComparator {
+        bool operator()(const Entry& e1, const Entry& e2) const {
+            if (e1.solution < e2.solution)
+                return false;
+            if (e2.solution < e1.solution)
+                return true;
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < e1.solution.instance().number_of_item_types();
+                    ++item_type_id)
+                if (e1.solution.item_copies(item_type_id)
+                        != e2.solution.item_copies(item_type_id))
+                    return e1.solution.item_copies(item_type_id)
+                        < e2.solution.item_copies(item_type_id);
+            return false;
+        }
+    };
+
+public:
+
     SolutionPool(const Instance& instance, Counter size_max):
         size_max_(size_max),
-        best_(instance),
-        worst_(instance)
+        best_{Solution(instance), ""},
+        worst_{Solution(instance), ""}
     {
-        solutions_.insert(Solution(instance));
+        solutions_.insert({Solution(instance), ""});
     }
 
     virtual ~SolutionPool() { }
 
-    const std::set<Solution, SolutionPoolComparator<Solution>>& solutions() const { return solutions_; };
+    const std::set<Entry, EntryComparator>& solutions() const { return solutions_; };
 
-    const Solution& best() const { return best_; }
-    const Solution& worst() const { return worst_; }
+    const Solution& best() const { return best_.solution; }
+    const std::string& best_label() const { return best_.label; }
+    const Solution& worst() const { return worst_.solution; }
 
     /**
      * Add a solution to the solution pool.
@@ -207,22 +213,23 @@ public:
      *         0 if the solution is added but is not the new best solution.
      */
     int add(
-            const Solution& solution)
+            const Solution& solution,
+            const std::string& label = "")
     {
         // If the solution is worse than the worst solution of the pool, stop.
         if ((Counter)solutions_.size() >= size_max_)
-            if (!(worst_ < solution))
+            if (!(worst_.solution < solution))
                 return -1;
 
         // Check again after mutex lock.
         if ((Counter)solutions_.size() >= size_max_) {
-            if (!(worst_ < solution)) {
+            if (!(worst_.solution < solution)) {
                 return -1;
             }
         }
 
         // Add new solution to solution pool.
-        auto res = solutions_.insert(solution);
+        auto res = solutions_.insert({solution, label});
         if (!res.second)
             return -1;
 
@@ -243,10 +250,9 @@ public:
 private:
 
     Counter size_max_;
-    SolutionPoolComparator<Solution> solution_pool_comparator_;
-    std::set<Solution, SolutionPoolComparator<Solution>> solutions_;
-    Solution best_;
-    Solution worst_;
+    std::set<Entry, EntryComparator> solutions_;
+    Entry best_;
+    Entry worst_;
 
 };
 

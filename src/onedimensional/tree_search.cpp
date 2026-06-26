@@ -421,7 +421,7 @@ const packingsolver::onedimensional::TreeSearchOutput packingsolver::onedimensio
                     Solution solution = branching_schemes[scheme_idx].to_solution(
                             tssibs_output.solution_pool.best());
                     std::stringstream ss;
-                    ss << "TS g " << branching_schemes[scheme_idx].parameters().guide_id
+                    ss << "g " << branching_schemes[scheme_idx].parameters().guide_id
                         << " q " << tssibs_output.maximum_size_of_the_queue;
                     algorithm_formatter.update_solution(solution, ss.str());
                     if (tssibs_output.optimal
@@ -439,7 +439,10 @@ const packingsolver::onedimensional::TreeSearchOutput packingsolver::onedimensio
                         = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
                     Solution solution = branching_schemes[scheme_idx].to_solution(
                             tssibs_output.solution_pool.best());
-                    local_outputs[(size_t)scheme_idx].solution_pool.add(solution);
+                    std::stringstream ss;
+                    ss << "g " << branching_schemes[scheme_idx].parameters().guide_id
+                        << " q " << tssibs_output.maximum_size_of_the_queue;
+                    local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
                 };
         }
         exception_ptr_list.push_front(std::exception_ptr());
@@ -466,11 +469,9 @@ const packingsolver::onedimensional::TreeSearchOutput packingsolver::onedimensio
             std::rethrow_exception(exception_ptr);
     if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
         for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
-            std::stringstream ss;
-            ss << "TS g " << branching_schemes[scheme_idx].parameters().guide_id;
             algorithm_formatter.update_solution(
                     local_outputs[(size_t)scheme_idx].solution_pool.best(),
-                    ss.str());
+                    local_outputs[(size_t)scheme_idx].solution_pool.best_label());
         }
     }
 

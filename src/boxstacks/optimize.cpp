@@ -123,7 +123,7 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
             ts_parameters.new_solution_callback = [&algorithm_formatter](
                     const packingsolver::Output<Instance, Solution>& ts_output)
             {
-                algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS");
+                algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS " + ts_output.solution_pool.best_label());
             };
             tree_search(instance, ts_parameters);
 

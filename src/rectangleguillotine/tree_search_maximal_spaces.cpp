@@ -812,7 +812,7 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
                 Solution solution = branching_scheme.to_solution(
                         tssibs_output.solution_pool.best());
                 std::stringstream ss;
-                ss << "TSMS n " << tssibs_output.maximum_size_of_the_queue;
+                ss << "n " << tssibs_output.maximum_size_of_the_queue;
                 algorithm_formatter.update_solution(solution, ss.str());
             };
     } else {
@@ -824,7 +824,9 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
                     = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
                 Solution solution = branching_scheme.to_solution(
                         tssibs_output.solution_pool.best());
-                local_output.solution_pool.add(solution);
+                std::stringstream ss;
+                ss << "n " << tssibs_output.maximum_size_of_the_queue;
+                local_output.solution_pool.add(solution, ss.str());
             };
     }
 
@@ -849,7 +851,7 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
     if (exception_ptr)
         std::rethrow_exception(exception_ptr);
     if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic)
-        algorithm_formatter.update_solution(local_output.solution_pool.best(), "TSMS");
+        algorithm_formatter.update_solution(local_output.solution_pool.best(), local_output.solution_pool.best_label());
 
     algorithm_formatter.end();
     return output;
