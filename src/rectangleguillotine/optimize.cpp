@@ -401,7 +401,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
-        if (instance.objective() != Objective::Knapsack)
+        if (instance.objective() != Objective::Knapsack
+                && instance.objective() != Objective::Feasibility)
             use_tree_search_maximal_spaces = false;
         // Automatic selection.
         if (!use_tree_search
@@ -409,7 +410,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                 && !use_column_generation_strips
                 && !use_dynamic_programming_infinite_copies_array
                 && !use_labeling) {
-            if (instance.objective() == Objective::Knapsack
+            if ((instance.objective() == Objective::Knapsack
+                        || instance.objective() == Objective::Feasibility)
                     //&& mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2
                     && instance.number_of_stages_unlimited()
                     && instance.number_of_defects() == 0

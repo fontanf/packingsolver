@@ -337,14 +337,44 @@ bool BranchingSchemeMaximalSpaces::better(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    return node_1->profit > node_2->profit;
+    switch (instance_.objective()) {
+    case Objective::Knapsack: {
+        return node_1->profit > node_2->profit;
+    } case Objective::Feasibility: {
+        return node_1->profit > node_2->profit;
+    } default: {
+        std::stringstream ss;
+        ss << FUNC_SIGNATURE << ": "
+            << "Branching scheme 'rectangleguillotine::BranchingSchemeMaximalSpaces' "
+            << "does not support objective '" << instance_.objective() << "'.";
+        throw std::logic_error(ss.str());
+        return false;
+    }
+    }
 }
 
 bool BranchingSchemeMaximalSpaces::bound(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    return false;
+    switch (instance_.objective()) {
+    case Objective::Knapsack: {
+        if (leaf(node_2))
+            return true;
+        return false;
+    } case Objective::Feasibility: {
+        if (leaf(node_2))
+            return true;
+        return false;
+    } default: {
+        std::stringstream ss;
+        ss << FUNC_SIGNATURE << ": "
+            << "Branching scheme 'rectangleguillotine::BranchingSchemeMaximalSpaces' "
+            << "does not support objective '" << instance_.objective() << "'.";
+        throw std::logic_error(ss.str());
+        return false;
+    }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

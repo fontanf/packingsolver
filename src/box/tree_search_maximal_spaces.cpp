@@ -646,7 +646,24 @@ bool BranchingSchemeMaximalSpaces::bound(
         const std::shared_ptr<Node>& node_1,
         const std::shared_ptr<Node>& node_2) const
 {
-    return false;
+    switch (instance().objective()) {
+    case Objective::Knapsack: {
+        if (leaf(node_2))
+            return true;
+        return false;
+    } case Objective::Feasibility: {
+        if (leaf(node_2))
+            return true;
+        return false;
+    } default: {
+        std::stringstream ss;
+        ss << FUNC_SIGNATURE << ": "
+            << "Branching scheme 'box::BranchingSchemeMaximalSpaces' "
+            << "does not support objective '" << instance().objective() << "'.";
+        throw std::logic_error(ss.str());
+        return false;
+    }
+    }
 }
 
 Solution BranchingSchemeMaximalSpaces::to_solution(const std::shared_ptr<Node>& node_orig) const
