@@ -299,6 +299,21 @@ void AlgorithmFormatter::update_bin_packing_bound(
     mutex_.unlock();
 }
 
+void AlgorithmFormatter::update_bounds(
+        const packingsolver::Output<Instance, Solution>& output)
+{
+    switch (instance_.objective()) {
+    case Objective::Knapsack:
+        update_knapsack_bound(output.knapsack_bound);
+        break;
+    case Objective::BinPacking:
+        update_bin_packing_bound(output.bin_packing_bound);
+        break;
+    default:
+        break;
+    }
+}
+
 void AlgorithmFormatter::end()
 {
     output_.time = parameters_.timer.elapsed_time();

@@ -350,47 +350,27 @@ void optimize_column_generation(
                 = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                 OptimizationMode::NotAnytimeSequential:
                 OptimizationMode::NotAnytimeDeterministic;
-            kp_parameters.not_anytime_maximum_approximation_ratio = parameters.not_anytime_maximum_approximation_ratio;
+            kp_parameters.not_anytime_maximum_approximation_ratio
+                = parameters.not_anytime_maximum_approximation_ratio;
             kp_parameters.not_anytime_tree_search_queue_size
                 = parameters.column_generation_subproblem_tree_search_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             return optimize(kp_instance, kp_parameters);
         };
 
-    columngenerationsolver::Model cgs_model = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
-    columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
-    cgslds_parameters.verbosity_level = 0;
-    cgslds_parameters.timer = parameters.timer;
-    cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    cgslds_parameters.internal_diving = 1;
-    cgslds_parameters.dummy_column_objective_coefficient = 2 * (double)instance.largest_item_copies();
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
-        cgslds_parameters.automatic_stop = true;
-    cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
-            const columngenerationsolver::Output& cgs_output)
+    ColumnGenerationParameters<Instance, Solution> cg_parameters;
+    cg_parameters.verbosity_level = 0;
+    cg_parameters.timer = parameters.timer;
+    cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    cg_parameters.optimization_mode = parameters.optimization_mode;
+    cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    cg_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& ps_output)
     {
-        const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
-            = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
-        if (cgslds_output.solution.feasible()) {
-            Solution solution(instance);
-            for (const auto& pair: cgslds_output.solution.columns()) {
-                const Column& column = *(pair.first);
-                BinPos value = std::round(pair.second);
-                if (value < 0.5)
-                    continue;
-                solution.append(
-                        *std::static_pointer_cast<Solution>(column.extra),
-                        0,
-                        value);
-            }
-            std::stringstream ss;
-            ss << "CG n " << cgslds_output.number_of_nodes;
-            algorithm_formatter.update_solution(solution, ss.str());
-        }
+        algorithm_formatter.update_solution(ps_output.solution_pool.best(), "CG");
+        algorithm_formatter.update_bounds(ps_output);
     };
-    cgslds_parameters.column_generation_parameters.solver_name
-        = parameters.linear_programming_solver_name;
-    columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
+    column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, pricing_function, cg_parameters);
 }
 
 void optimize_sequential_feasibility(
