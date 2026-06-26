@@ -48,6 +48,8 @@
 #include "columngenerationsolver/algorithms/heuristic_tree_search.hpp"
 #include "columngenerationsolver/algorithms/limited_discrepancy_search.hpp"
 
+#include <sstream>
+
 namespace packingsolver
 {
 
@@ -354,6 +356,93 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
         * reduced_cost_bound;
 
     //std::cout << "solve_pricing end" << std::endl;
+    return output;
+}
+
+template <typename Instance, typename Solution>
+struct ColumnGenerationOutput: packingsolver::Output<Instance, Solution>
+{
+    ColumnGenerationOutput(const Instance& instance):
+        packingsolver::Output<Instance, Solution>(instance) { }
+};
+
+template <typename Instance, typename Solution>
+struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution>
+{
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
+    int internal_diving = 1;
+    columngenerationsolver::SolverName linear_programming_solver_name
+        = columngenerationsolver::SolverName::CLP;
+};
+
+template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter>
+ColumnGenerationOutput<Instance, Solution> column_generation(
+        const Instance& instance,
+        const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution>& pricing_function,
+        const ColumnGenerationParameters<Instance, Solution>& parameters = {})
+{
+    ColumnGenerationOutput<Instance, Solution> output(instance);
+    AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+    algorithm_formatter.start();
+    algorithm_formatter.print_header();
+
+    columngenerationsolver::Model cgs_model
+        = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
+    columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
+    cgslds_parameters.verbosity_level = 0;
+    cgslds_parameters.timer = parameters.timer;
+    cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    cgslds_parameters.internal_diving = parameters.internal_diving;
+    cgslds_parameters.dummy_column_objective_coefficient
+        = 2 * (double)instance.largest_item_copies();
+    if (parameters.optimization_mode != OptimizationMode::Anytime)
+        cgslds_parameters.automatic_stop = true;
+    cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
+            const columngenerationsolver::Output& cgs_output)
+    {
+        const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
+            = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
+        if (cgslds_output.solution.feasible()) {
+            Solution solution(instance);
+            for (const auto& pair: cgslds_output.solution.columns()) {
+                const Column& column = *(pair.first);
+                BinPos value = std::round(pair.second);
+                if (value < 0.5)
+                    continue;
+                solution.append(
+                        *std::static_pointer_cast<Solution>(column.extra),
+                        0,
+                        value);
+            }
+            std::stringstream ss;
+            ss << "CG n " << cgslds_output.number_of_nodes;
+            algorithm_formatter.update_solution(solution, ss.str());
+        }
+    };
+    cgslds_parameters.new_bound_callback = [&instance, &output, &parameters](
+            const columngenerationsolver::Output& cgs_output)
+    {
+        const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
+            = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
+        if (instance.objective() == Objective::VariableSizedBinPacking) {
+            double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
+            output.variable_sized_bin_packing_bound = cgslds_output.bound * multiplier_cost;
+        } else if (instance.objective() == Objective::Knapsack) {
+            double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
+            output.knapsack_bound = cgslds_output.bound * multiplier_profit;
+        } else if (instance.objective() == Objective::BinPacking) {
+            double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
+            output.bin_packing_bound = std::ceil(
+                    cgslds_output.bound * multiplier_cost / instance.bin_type(0).space() - 0.001);
+        }
+        if (parameters.new_solution_callback)
+            parameters.new_solution_callback(output);
+    };
+    cgslds_parameters.column_generation_parameters.solver_name
+        = parameters.linear_programming_solver_name;
+    columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
+
+    algorithm_formatter.end();
     return output;
 }
 

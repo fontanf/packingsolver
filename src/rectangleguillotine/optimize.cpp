@@ -356,58 +356,19 @@ void optimize_column_generation(
             return optimize(kp_instance, kp_parameters);
         };
 
-    columngenerationsolver::Model cgs_model = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
-    columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
-    cgslds_parameters.verbosity_level = 0;
-    cgslds_parameters.timer = parameters.timer;
-    cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    cgslds_parameters.internal_diving = 1;
-    cgslds_parameters.dummy_column_objective_coefficient = 2 * (double)instance.largest_item_copies();
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
-        cgslds_parameters.automatic_stop = true;
-    cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
-            const columngenerationsolver::Output& cgs_output)
+    ColumnGenerationParameters<Instance, Solution> cg_parameters;
+    cg_parameters.verbosity_level = 0;
+    cg_parameters.timer = parameters.timer;
+    cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    cg_parameters.optimization_mode = parameters.optimization_mode;
+    cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    cg_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& ps_output)
     {
-        const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
-            = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
-        if (cgslds_output.solution.feasible()) {
-            Solution solution(instance);
-            for (const auto& pair: cgslds_output.solution.columns()) {
-                const Column& column = *(pair.first);
-                BinPos value = std::round(pair.second);
-                if (value < 0.5)
-                    continue;
-                solution.append(
-                        *std::static_pointer_cast<Solution>(column.extra),
-                        0,
-                        value);
-            }
-            std::stringstream ss;
-            ss << "CG n " << cgslds_output.number_of_nodes;
-            algorithm_formatter.update_solution(solution, ss.str());
-        }
+        algorithm_formatter.update_solution(ps_output.solution_pool.best(), "CG");
+        algorithm_formatter.update_bounds(ps_output);
     };
-    cgslds_parameters.new_bound_callback = [&instance, &algorithm_formatter](
-            const columngenerationsolver::Output& cgs_output)
-    {
-        const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
-            = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
-        if (instance.objective() == Objective::VariableSizedBinPacking) {
-            double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
-            algorithm_formatter.update_variable_sized_bin_packing_bound(cgslds_output.bound * multiplier_cost);
-        } else if (instance.objective() == Objective::Knapsack) {
-            double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
-            algorithm_formatter.update_knapsack_bound(cgslds_output.bound * multiplier_profit);
-        } else if (instance.objective() == Objective::BinPacking) {
-            double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
-            BinPos bin_packing_bound = std::ceil(cgslds_output.bound * multiplier_cost / instance.bin_type(0).space() - 0.001);
-            std::cout << "bin_packing_bound " << bin_packing_bound << std::endl;
-            algorithm_formatter.update_bin_packing_bound(bin_packing_bound);
-        }
-    };
-    cgslds_parameters.column_generation_parameters.solver_name
-        = parameters.linear_programming_solver_name;
-    columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
+    column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, pricing_function, cg_parameters);
 }
 
 }
