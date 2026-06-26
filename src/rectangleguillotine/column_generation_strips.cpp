@@ -1767,7 +1767,7 @@ void column_generation_strips_vertical(
             }
             Solution solution = solution_builder.build();
             std::stringstream ss;
-            ss << "CGV n " << cgslds_output.number_of_nodes;
+            ss << "V n " << cgslds_output.number_of_nodes;
             algorithm_formatter.update_solution(solution, ss.str());
             //std::cout << "callback end" << std::endl;
         }
@@ -1802,7 +1802,7 @@ void column_generation_strips_horizontal(
             const ColumnGenerationStripsOutput& flipped_output
                 = static_cast<const ColumnGenerationStripsOutput&>(ps_output);
             std::stringstream ss;
-            ss << "CGH n ";
+            ss << "H n ";
             //std::cout << "callback flipped" << std::endl;
             Solution solution = instance_flippper.unflip_solution(
                     flipped_output.solution_pool.best());

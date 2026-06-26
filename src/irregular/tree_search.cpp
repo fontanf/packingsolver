@@ -2614,7 +2614,7 @@ void tree_search_worker(
                 Solution solution = branching_scheme.to_solution(
                         tssibs_output.solution_pool.best());
                 std::stringstream ss;
-                ss << "TS g " << branching_scheme_parameters.guide_id
+                ss << "g " << branching_scheme_parameters.guide_id
                     << " d " << (int)branching_scheme_parameters.direction
                     << " q " << tssibs_output.maximum_size_of_the_queue;
                 new_solution_callback(solution, ss.str());
@@ -2817,9 +2817,9 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         } else {
             new_solution_callback = [&local_outputs, scheme_idx](
                     const Solution& solution,
-                    const std::string& /*label*/)
+                    const std::string& label)
             {
-                local_outputs[(size_t)scheme_idx].solution_pool.add(solution);
+                local_outputs[(size_t)scheme_idx].solution_pool.add(solution, label);
             };
         }
         exception_ptr_list.push_front(std::exception_ptr());
@@ -2847,12 +2847,9 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         for (Counter scheme_idx = 0;
                 scheme_idx < (Counter)branching_scheme_parameters_list.size();
                 ++scheme_idx) {
-            std::stringstream ss;
-            ss << "TS g " << branching_scheme_parameters_list[scheme_idx].guide_id
-                << " d " << (int)branching_scheme_parameters_list[scheme_idx].direction;
             algorithm_formatter.update_solution(
                     local_outputs[(size_t)scheme_idx].solution_pool.best(),
-                    ss.str());
+                    local_outputs[(size_t)scheme_idx].solution_pool.best_label());
         }
     }
 

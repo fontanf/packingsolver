@@ -250,7 +250,7 @@ void AlgorithmFormatter::update_solution(
 {
     mutex_.lock();
     output_.time = parameters_.timer.elapsed_time();
-    int new_best = output_.solution_pool.add(solution);
+    int new_best = output_.solution_pool.add(solution, s);
     if (new_best == 1) {
         print(s);
         if (parameters_.write_json_output)
