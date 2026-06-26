@@ -32,6 +32,7 @@ void optimize_tree_search(
             const packingsolver::Output<Instance, Solution>& ts_output)
     {
         algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS");
+        algorithm_formatter.update_bounds(ts_output);
     };
     tree_search(instance, ts_parameters);
 }
