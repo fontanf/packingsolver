@@ -56,6 +56,10 @@ public:
     void update_bin_packing_bound(
             BinPos number_of_bins);
 
+    /** Update all applicable bounds from another output. */
+    void update_bounds(
+            const packingsolver::Output<Instance, Solution>& output);
+
     /** Method to call at the end of the algorithm. */
     void end();
 
