@@ -10,6 +10,7 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     post_process.cpp
+    sequential_feasibility.cpp
     tree_search.cpp
     tree_search_maximal_spaces.cpp
     column_generation_strips.cpp

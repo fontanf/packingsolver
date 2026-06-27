@@ -370,6 +370,9 @@ void Solution::append(
         if (node.t == -4) {
         } else if (node.f == -1) {
             node.item_type_id = bin_type_id;
+            const BinType& new_bin_type = instance().bin_type(bin_type_id);
+            node.r = new_bin_type.rect.w;
+            node.t = new_bin_type.rect.h;
         } else if (node.item_type_id >= 0) {
             node.item_type_id = (item_type_ids.empty())?
                 node.item_type_id:
