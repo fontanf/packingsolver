@@ -39,16 +39,42 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
     LengthDbl x = 0;
     LengthDbl y = 0;
     if (instance.objective() == Objective::BinPacking) {
-        current_number_of_bins = std::min(
-                (BinPos)instance.number_of_items(),
-                instance.number_of_bins());
+        AreaDbl total_bin_aabb_area = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            LengthDbl bx = bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min;
+            LengthDbl by = bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min;
+            AreaDbl bin_aabb_area = bx * by;
+            AreaDbl remaining = 2.0 * total_item_aabb_area - total_bin_aabb_area;
+            BinPos copies_needed = (BinPos)std::ceil(remaining / bin_aabb_area);
+            BinPos copies_used = std::min(copies_needed, bin_type.copies);
+            total_bin_aabb_area += copies_used * bin_aabb_area;
+            current_number_of_bins += copies_used;
+            if (total_bin_aabb_area >= 2.0 * total_item_aabb_area)
+                break;
+        }
     } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
-        current_number_of_bins = std::min(
-                (BinPos)instance.number_of_items(),
-                instance.number_of_bins());
-        BinTypeId bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
-        const BinType& bin_type = instance.bin_type(bin_type_id);
-        x = bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min;
+        AreaDbl total_bin_aabb_area = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            LengthDbl bx = bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min;
+            LengthDbl by = bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min;
+            AreaDbl bin_aabb_area = bx * by;
+            AreaDbl remaining = 2.0 * total_item_aabb_area - total_bin_aabb_area;
+            BinPos copies_needed = (BinPos)std::ceil(remaining / bin_aabb_area);
+            BinPos copies_used = std::min(copies_needed, bin_type.copies);
+            total_bin_aabb_area += copies_used * bin_aabb_area;
+            current_number_of_bins += copies_used;
+            if (total_bin_aabb_area >= 2.0 * total_item_aabb_area)
+                break;
+        }
+        BinTypeId last_bin_type_id = instance.bin_type_id(current_number_of_bins - 1);
+        const BinType& last_bin_type = instance.bin_type(last_bin_type_id);
+        x = last_bin_type.aabb_scaled.x_max - last_bin_type.aabb_scaled.x_min;
     } else if (instance.objective() == Objective::OpenDimensionX) {
         const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
         y = bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min;

@@ -1,5 +1,6 @@
 #include "rectangleguillotine/tree_search_maximal_spaces.hpp"
 
+#include "rectangleguillotine/sequential_feasibility.hpp"
 #include "rectangleguillotine/solution_builder.hpp"
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "algorithms/thread_pool.hpp"
@@ -804,6 +805,60 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
         const Instance& instance,
         const TreeSearchMaximalSpacesParameters& parameters)
 {
+    if (instance.number_of_bins() > 1) {
+        std::stringstream ss;
+        ss << FUNC_SIGNATURE << ": "
+            << "algorithm 'rectangleguillotine::tree_search_maximal_spaces' "
+            << "does not support instances with more than one bin.";
+        throw std::logic_error(ss.str());
+    }
+    if (instance.objective() == Objective::VariableSizedBinPacking) {
+        std::stringstream ss;
+        ss << FUNC_SIGNATURE << ": "
+            << "algorithm 'rectangleguillotine::tree_search_maximal_spaces' "
+            << "does not support objective '" << instance.objective() << "'.";
+        throw std::logic_error(ss.str());
+    }
+
+    if (instance.objective() == Objective::OpenDimensionX
+            || instance.objective() == Objective::OpenDimensionY
+            || instance.objective() == Objective::BinPackingWithLeftovers
+            || instance.objective() == Objective::BinPacking) {
+        TreeSearchMaximalSpacesOutput output(instance);
+        AlgorithmFormatter algorithm_formatter(instance, parameters, output);
+        algorithm_formatter.start();
+        algorithm_formatter.print_header();
+
+        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter](
+                const Instance& sub_instance)
+        {
+            TreeSearchMaximalSpacesParameters inner_parameters;
+            inner_parameters.verbosity_level = 0;
+            inner_parameters.timer = parameters.timer;
+            inner_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            inner_parameters.optimization_mode = parameters.optimization_mode;
+            inner_parameters.not_anytime_tree_search_queue_size
+                = parameters.not_anytime_tree_search_queue_size;
+            return tree_search_maximal_spaces(sub_instance, inner_parameters).solution_pool;
+        };
+
+        SequentialFeasibilityParameters sf_parameters;
+        sf_parameters.verbosity_level = 0;
+        sf_parameters.timer = parameters.timer;
+        sf_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        sf_parameters.new_solution_callback = [&algorithm_formatter](
+                const packingsolver::Output<Instance, Solution>& sf_output)
+        {
+            algorithm_formatter.update_solution(
+                    sf_output.solution_pool.best(),
+                    sf_output.solution_pool.best_label());
+        };
+
+        sequential_feasibility(instance, solver, sf_parameters);
+        algorithm_formatter.end();
+        return output;
+    }
+
     TreeSearchMaximalSpacesOutput output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
