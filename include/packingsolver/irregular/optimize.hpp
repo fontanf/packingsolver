@@ -37,7 +37,7 @@ struct Output: packingsolver::Output<Instance, Solution>
     {
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
-            return equal(knapsack_bound, solution_pool.best().profit());
+            return (knapsack_bound - solution_pool.best().profit()) / knapsack_bound < 1e-6;
         case Objective::BinPacking:
             return solution_pool.best().full()
                 && bin_packing_bound == solution_pool.best().number_of_bins();
@@ -161,6 +161,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Use tree search algorithm. */
     bool use_tree_search = false;
 
+    /** Use tree search periodic packing algorithm. */
+    bool use_tree_search_periodic_packing = false;
+
     /** Use local search algorithm. */
     bool use_local_search = false;
 
@@ -191,6 +194,19 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Factor to consider that the number of copies of items is "high". */
     Counter many_item_type_copies_factor = 1;
 
+    /**
+     * Minimum number of copies (strictly) for an item type to be counted
+     * towards whether tree_search_periodic_packing looks worth running.
+     */
+    Counter periodic_packing_copies_threshold = 16;
+
+    /**
+     * If the estimated maximum number of items fitting in a bin (by area
+     * alone) is (strictly) below this threshold, also run the tree search
+     * algorithm alongside tree_search_periodic_packing.
+     */
+    ItemPos periodic_packing_max_items_threshold = 64;
+
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 
@@ -215,6 +231,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 
     /** Size of the queue in the tree search algorithm. */
     NodeId not_anytime_tree_search_queue_size = 512;
+
+    /** Size of the queue in the tree search periodic packing algorithm. */
+    NodeId not_anytime_tree_search_periodic_packing_queue_size = 16;
 
     /**
      * Size of the queue in the single knapsack subproblem of the sequential

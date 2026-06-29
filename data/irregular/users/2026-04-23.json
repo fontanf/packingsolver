@@ -1,0 +1,1666 @@
+{
+  "objective": "bin-packing-with-leftovers",
+  "parameters": {
+    "item_item_minimum_spacing": 0.1,
+    "leftover_mode": "bottom-left"
+  },
+  "bin_types": [
+    {
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": -0.0
+        },
+        {
+          "x": 0.0,
+          "y": -3000.0
+        },
+        {
+          "x": 15000.0,
+          "y": -3000.0
+        },
+        {
+          "x": 15000.0,
+          "y": -0.0
+        }
+      ],
+      "copies": 10,
+      "item_bin_minimum_spacing": 2.0
+    }
+  ],
+  "item_types": [
+    {
+      "copies": 300,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 380.0,
+          "y": 0.0
+        },
+        {
+          "x": 400.0,
+          "y": 20.0
+        },
+        {
+          "x": 400.0,
+          "y": 355.0
+        },
+        {
+          "x": 310.0,
+          "y": 355.0
+        },
+        {
+          "x": 0.0,
+          "y": 125.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 198,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 250.0,
+          "y": 0.0
+        },
+        {
+          "x": 270.0,
+          "y": 20.0
+        },
+        {
+          "x": 270.0,
+          "y": 220.0
+        },
+        {
+          "x": 180.0,
+          "y": 220.0
+        },
+        {
+          "x": 0.0,
+          "y": 80.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 132,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 250.0,
+          "y": 0.0
+        },
+        {
+          "x": 270.0,
+          "y": 20.0
+        },
+        {
+          "x": 270.0,
+          "y": 230.0
+        },
+        {
+          "x": 180.0,
+          "y": 230.0
+        },
+        {
+          "x": 0.0,
+          "y": 80.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 84,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 207.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 205.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 137,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 180.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 120.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 68,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 195.33,
+          "y": 0.0
+        },
+        {
+          "x": 150.61,
+          "y": 78.1
+        },
+        {
+          "x": 124.12,
+          "y": 84.23
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 225,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 170.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 110.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 92,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 197.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 195.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 356,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 187.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 185.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 100,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 205.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 205.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 147,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 220.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 220.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 40,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 201.0,
+          "y": 0.0
+        },
+        {
+          "x": 221.0,
+          "y": 20.0
+        },
+        {
+          "x": 221.0,
+          "y": 195.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 64,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 195.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 195.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 420,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 166.0,
+          "y": 0.0
+        },
+        {
+          "x": 186.0,
+          "y": 20.0
+        },
+        {
+          "x": 186.0,
+          "y": 185.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 163,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 165.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 110.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 84,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 221.8,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 220.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 80,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 215.0,
+          "y": 0.0
+        },
+        {
+          "x": 235.0,
+          "y": 20.0
+        },
+        {
+          "x": 235.0,
+          "y": 220.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 48,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 245.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 221.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 44,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 175.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 120.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 94,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 146.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 145.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 462,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 250.0,
+          "y": 0.0
+        },
+        {
+          "x": 270.0,
+          "y": 20.0
+        },
+        {
+          "x": 270.0,
+          "y": 200.0
+        },
+        {
+          "x": 180.0,
+          "y": 200.0
+        },
+        {
+          "x": 0.0,
+          "y": 70.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 462,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 250.0,
+          "y": 0.0
+        },
+        {
+          "x": 270.0,
+          "y": 20.0
+        },
+        {
+          "x": 270.0,
+          "y": 215.0
+        },
+        {
+          "x": 180.0,
+          "y": 215.0
+        },
+        {
+          "x": 0.0,
+          "y": 70.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 42,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 420.0,
+          "y": 0.0
+        },
+        {
+          "x": 420.0,
+          "y": 100.0
+        },
+        {
+          "x": 360.0,
+          "y": 500.0
+        },
+        {
+          "x": 60.0,
+          "y": 500.0
+        },
+        {
+          "x": 0.0,
+          "y": 100.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 42,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "x": 380.0,
+          "y": 0.0
+        },
+        {
+          "x": 380.0,
+          "y": 100.0
+        },
+        {
+          "x": 330.0,
+          "y": 500.0
+        },
+        {
+          "x": 50.0,
+          "y": 500.0
+        },
+        {
+          "x": 0.0,
+          "y": 100.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 128,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 147.0,
+          "y": 0.0
+        },
+        {
+          "x": 0.0,
+          "y": 145.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 262,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 20.0
+        },
+        {
+          "x": 20.0,
+          "y": 0.0
+        },
+        {
+          "x": 552.72,
+          "y": 0.0
+        },
+        {
+          "x": 572.72,
+          "y": 20.0
+        },
+        {
+          "x": 572.72,
+          "y": 137.0
+        },
+        {
+          "x": 300.74,
+          "y": 137.0
+        },
+        {
+          "x": 298.129476155599,
+          "y": 137.1711027725238
+        },
+        {
+          "x": 295.5636190979496,
+          "y": 137.68148347421862
+        },
+        {
+          "x": 293.0863313526982,
+          "y": 138.52240934977428
+        },
+        {
+          "x": 290.74,
+          "y": 139.67949192431124
+        },
+        {
+          "x": 288.5647714198256,
+          "y": 141.1329331941753
+        },
+        {
+          "x": 286.59786437626906,
+          "y": 142.85786437626905
+        },
+        {
+          "x": 284.8729331941753,
+          "y": 144.8247714198256
+        },
+        {
+          "x": 283.4194919243112,
+          "y": 147.0
+        },
+        {
+          "x": 282.26240934977426,
+          "y": 149.3463313526982
+        },
+        {
+          "x": 281.42148347421863,
+          "y": 151.8236190979496
+        },
+        {
+          "x": 280.9111027725238,
+          "y": 154.38947615559897
+        },
+        {
+          "x": 280.74,
+          "y": 157.0
+        },
+        {
+          "x": 280.74,
+          "y": 327.0
+        },
+        {
+          "x": 90.74,
+          "y": 327.0
+        },
+        {
+          "x": 90.74,
+          "y": 157.0
+        },
+        {
+          "x": 90.5688972274762,
+          "y": 154.38947615559897
+        },
+        {
+          "x": 90.05851652578136,
+          "y": 151.82361909794957
+        },
+        {
+          "x": 89.21759065022573,
+          "y": 149.3463313526982
+        },
+        {
+          "x": 88.06050807568877,
+          "y": 147.0
+        },
+        {
+          "x": 86.6070668058247,
+          "y": 144.8247714198256
+        },
+        {
+          "x": 84.88213562373095,
+          "y": 142.85786437626905
+        },
+        {
+          "x": 82.91522858017441,
+          "y": 141.1329331941753
+        },
+        {
+          "x": 80.74,
+          "y": 139.67949192431124
+        },
+        {
+          "x": 78.3936686473018,
+          "y": 138.52240934977425
+        },
+        {
+          "x": 75.9163809020504,
+          "y": 137.68148347421862
+        },
+        {
+          "x": 73.35052384440102,
+          "y": 137.1711027725238
+        },
+        {
+          "x": 70.74,
+          "y": 137.0
+        },
+        {
+          "x": 0.0,
+          "y": 137.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 55,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 150.0
+        },
+        {
+          "x": 300.0,
+          "y": 150.0
+        },
+        {
+          "x": 300.0,
+          "y": 62.5
+        },
+        {
+          "x": 550.0,
+          "y": 0.0
+        },
+        {
+          "x": 600.0,
+          "y": 0.0
+        },
+        {
+          "x": 600.0,
+          "y": 600.0
+        },
+        {
+          "x": 550.0,
+          "y": 600.0
+        },
+        {
+          "x": 300.0,
+          "y": 537.5
+        },
+        {
+          "x": 300.0,
+          "y": 450.0
+        },
+        {
+          "x": 0.0,
+          "y": 450.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 62,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 203.0
+        },
+        {
+          "x": 54.0,
+          "y": 0.0
+        },
+        {
+          "x": 271.0,
+          "y": 0.0
+        },
+        {
+          "x": 458.0,
+          "y": 108.0
+        },
+        {
+          "x": 403.0,
+          "y": 311.0
+        },
+        {
+          "x": 187.0,
+          "y": 311.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 557,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 67.3099169015742,
+          "y": 138.46
+        },
+        {
+          "x": 14.499916901574203,
+          "y": 85.21000000000001
+        },
+        {
+          "x": 8.322355242705022,
+          "y": 77.62198268555152
+        },
+        {
+          "x": 3.7408852488929867,
+          "y": 68.97615088581699
+        },
+        {
+          "x": 0.9309593986410576,
+          "y": 59.6036063257956
+        },
+        {
+          "x": 0.00018692119269303475,
+          "y": 49.86328100223863
+        },
+        {
+          "x": 0.9842127816598065,
+          "y": 40.12819148444617
+        },
+        {
+          "x": 3.845352617520497,
+          "y": 30.77115383072522
+        },
+        {
+          "x": 8.474035903108714,
+          "y": 22.15050618363878
+        },
+        {
+          "x": 14.693002074509707,
+          "y": 14.596385813107823
+        },
+        {
+          "x": 22.264088919601164,
+          "y": 8.398086143231893
+        },
+        {
+          "x": 30.897353264308673,
+          "y": 3.7929779395191616
+        },
+        {
+          "x": 40.2621746682723,
+          "y": 0.9574189319573563
+        },
+        {
+          "x": 49.999916901574196,
+          "y": 0.0
+        },
+        {
+          "x": 124.9999169015742,
+          "y": 0.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    },
+    {
+      "copies": 60,
+      "type": "polygon",
+      "vertices": [
+        {
+          "x": 0.0,
+          "y": 85.0
+        },
+        {
+          "x": 16.0,
+          "y": 0.0
+        },
+        {
+          "x": 244.0,
+          "y": 0.0
+        },
+        {
+          "x": 214.0,
+          "y": 166.0
+        }
+      ],
+      "holes": [],
+      "allowed_rotations": [
+        {
+          "start": 0.0,
+          "end": 0.0,
+          "mirror": false
+        },
+        {
+          "start": 90.0,
+          "end": 90.0,
+          "mirror": false
+        },
+        {
+          "start": 180.0,
+          "end": 180.0,
+          "mirror": false
+        },
+        {
+          "start": 270.0,
+          "end": 270.0,
+          "mirror": false
+        }
+      ],
+      "priority": 50
+    }
+  ]
+}

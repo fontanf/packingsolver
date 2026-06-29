@@ -12,6 +12,7 @@ target_sources(PackingSolver_irregular PRIVATE
     rotations.cpp
     periodic_packing.cpp
     tree_search.cpp
+    tree_search_periodic_packing.cpp
     linear_programming.cpp
     milp_raster.cpp
     trivial.cpp

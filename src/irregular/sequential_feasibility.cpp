@@ -124,11 +124,18 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                 AxisAlignedBoundingBox restricting_aabb = bin_type.aabb_scaled;
                 restricting_aabb.x_max = restricting_aabb.x_min + x;
                 const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
+                // Intersect in scaled coordinates (both operands scaled), then
+                // convert the result back to original (unscaled) units: the
+                // sub-instance builder re-applies scale_value to shape_orig
+                // during build(), so passing an already-scaled shape here
+                // would scale it down twice.
                 const shape::MultiShapeWithHoles intersection = shape::compute_intersection(
-                        {{bin_type.shape_orig},
+                        {{bin_type.shape_scaled},
                         {restricting_rect}});
+                Shape sub_bin_shape_orig = (1.0 / instance.parameters().scale_value)
+                    * intersection.shapes_with_holes[0].shape;
                 BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
-                        intersection.shapes_with_holes[0].shape);
+                        sub_bin_shape_orig);
                 sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type.cost);
                 sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
                 sub_instance_builder.set_item_bin_minimum_spacing(
@@ -144,10 +151,15 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             restricting_aabb.x_max = restricting_aabb.x_min + x;
             restricting_aabb.y_max = restricting_aabb.y_min + y;
             const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
+            // Intersect in scaled coordinates, then convert back to original
+            // (unscaled) units before handing off to the sub-instance builder,
+            // which re-applies scale_value during build().
             const shape::MultiShapeWithHoles intersection = shape::compute_intersection(
-                    {{original_bin_type.shape_orig},
+                    {{original_bin_type.shape_scaled},
                     {restricting_rect}});
-            sub_instance_builder.add_bin_type(intersection.shapes_with_holes[0].shape);
+            Shape sub_bin_shape_orig = (1.0 / instance.parameters().scale_value)
+                * intersection.shapes_with_holes[0].shape;
+            sub_instance_builder.add_bin_type(sub_bin_shape_orig);
             sub_instance_builder.set_item_bin_minimum_spacing(
                     0,
                     instance.bin_type(0).item_bin_minimum_spacing);
@@ -193,14 +205,15 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         } else if (instance.objective() == Objective::BinPackingWithLeftovers) {
             BinTypeId bin_type_id_last = instance.bin_type_id(solution.number_of_bins() - 1);
             const BinType& bin_type_last = instance.bin_type(bin_type_id_last);
-            x = 0.99 * (solution.x_max() - bin_type_last.aabb_scaled.x_min)
-                + bin_type_last.item_bin_minimum_spacing;
+            LengthDbl scale_value = instance.parameters().scale_value;
+            x = 0.99 * (scale_value * solution.x_max() - bin_type_last.aabb_scaled.x_min)
+                + scale_value * bin_type_last.item_bin_minimum_spacing;
             if (solution.number_of_bins() < current_number_of_bins) {
                 current_number_of_bins = solution.number_of_bins();
                 BinTypeId bin_type_id_new = instance.bin_type_id(current_number_of_bins - 1);
                 const BinType& bin_type_new = instance.bin_type(bin_type_id_new);
                 x = bin_type_new.aabb_scaled.x_max;
-            } else if (!strictly_greater(x, bin_type_last.aabb_scaled.x_min + bin_type_last.item_bin_minimum_spacing)) {
+            } else if (!strictly_greater(x, bin_type_last.aabb_scaled.x_min + scale_value * bin_type_last.item_bin_minimum_spacing)) {
                 current_number_of_bins = solution.number_of_bins() - 1;
                 if (current_number_of_bins == 0)
                     break;
@@ -210,20 +223,23 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             }
         } else if (instance.objective() == Objective::OpenDimensionX) {
             const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
-            x = 0.99 * (solution.x_max() - bin_type.aabb_scaled.x_min)
-                + bin_type.item_bin_minimum_spacing;
+            LengthDbl scale_value = instance.parameters().scale_value;
+            x = 0.99 * (scale_value * solution.x_max() - bin_type.aabb_scaled.x_min)
+                + scale_value * bin_type.item_bin_minimum_spacing;
         } else if (instance.objective() == Objective::OpenDimensionY) {
             const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
-            y = 0.99 * (solution.y_max() - bin_type.aabb_scaled.y_min)
-                + bin_type.item_bin_minimum_spacing;
+            LengthDbl scale_value = instance.parameters().scale_value;
+            y = 0.99 * (scale_value * solution.y_max() - bin_type.aabb_scaled.y_min)
+                + scale_value * bin_type.item_bin_minimum_spacing;
         } else {  // OpenDimensionXY
             const BinType& bin_type = instance.bin_type(instance.bin_type_id(0));
+            LengthDbl scale_value = instance.parameters().scale_value;
             x = 0.99 * (std::max)(
-                    solution.x_max() - bin_type.aabb_scaled.x_min,
-                    solution.y_max() - bin_type.aabb_scaled.y_min)
-                + bin_type.item_bin_minimum_spacing;
+                    scale_value * solution.x_max() - bin_type.aabb_scaled.x_min,
+                    scale_value * solution.y_max() - bin_type.aabb_scaled.y_min)
+                + scale_value * bin_type.item_bin_minimum_spacing;
             AreaDbl a_cur = (solution.x_max() - solution.x_min()) * (solution.y_max() - solution.y_min());
-            LengthDbl x_cur = std::sqrt(a_cur / instance.parameters().open_dimension_xy_aspect_ratio);
+            LengthDbl x_cur = scale_value * std::sqrt(a_cur / instance.parameters().open_dimension_xy_aspect_ratio);
             if (x > x_cur)
                 x = x_cur;
             y = x * instance.parameters().open_dimension_xy_aspect_ratio;

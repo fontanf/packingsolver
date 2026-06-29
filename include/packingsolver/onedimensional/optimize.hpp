@@ -31,7 +31,7 @@ struct Output: packingsolver::Output<Instance, Solution>
     {
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
-            return equal(knapsack_bound, solution_pool.best().profit());
+            return (double)(knapsack_bound - solution_pool.best().profit()) / knapsack_bound < 1e-6;
         case Objective::BinPacking:
             return solution_pool.best().full()
                 && bin_packing_bound == solution_pool.best().number_of_bins();

@@ -1,5 +1,8 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 
+#include "irregular/periodic_packing.hpp"
+#include "irregular/rotations.hpp"
+
 #include "shape/offset.hpp"
 #include "shape/extract_borders.hpp"
 #include "shape/clean.hpp"
@@ -291,6 +294,24 @@ ItemTypeId InstanceBuilder::add_item_type(
                 rotation.end_angle,
                 rotation.mirror);
     }
+
+    // Carry over already-computed periodic packings instead of recomputing
+    // them from scratch for this sub-instance's item type: they only depend
+    // on the item type's own shape/rotations, not on anything else about the
+    // instance. Each packing only ever pairs the item type against itself,
+    // so every embedded item_type_id equals 'original_item_type_id'; remap
+    // it to this sub-instance's (possibly different) 'item_type_id', since
+    // callers match blocks/packings to item types by that id.
+    ItemType& new_item_type = instance_.item_types_[item_type_id];
+    new_item_type.periodic_packings = item_type.periodic_packings;
+    new_item_type.periodic_packings_computed = item_type.periodic_packings_computed;
+    if (item_type_id != original_item_type_id) {
+        for (PeriodicItemPacking& packing: new_item_type.periodic_packings) {
+            for (SolutionItem& solution_item: packing.items)
+                solution_item.item_type_id = item_type_id;
+        }
+    }
+
     if ((ItemTypeId)orig_to_sub_item_type_ids_.size() <= original_item_type_id)
         orig_to_sub_item_type_ids_.resize(original_item_type_id + 1, -1);
     orig_to_sub_item_type_ids_[original_item_type_id] = item_type_id;
@@ -827,6 +848,43 @@ Instance InstanceBuilder::build()
             instance_.largest_bin_cost_ = bin_type.cost;
         // Update number_of_defects_.
         instance_.number_of_defects_ += bin_type.defects.size();
+    }
+
+    // Compute periodic packings per item type, for the periodic-packing tree
+    // search, unless already computed (e.g. copied from a source instance by
+    // add_item_type(instance, item_type_id)). Periodic blocks (tilings of
+    // these packings' unit cells, additionally bounded by a bin's
+    // dimensions) are not cached here: they are recomputed fresh wherever
+    // the periodic-packing tree search is invoked (see
+    // tree_search_periodic_packing.cpp), since they also depend on the
+    // item type's available copies, which can differ across sub-instances
+    // built from the same source item type.
+    if (instance_.number_of_bin_types() > 0) {
+        // The NFP-based self-pairing search periodic_packings relies on can
+        // be expensive (worst case close to quadratic in the shape's vertex
+        // count for highly concave shapes), so it is only worth paying for
+        // item types that will actually be tiled many times over. Below
+        // this threshold, periodic_packings is left empty; the item type
+        // still gets plain AABB-grid blocks (cheap regardless of shape
+        // complexity, just no periodic-interlocking ones) when
+        // compute_periodic_blocks_for_item_type is later called on it.
+        const ItemPos periodic_packings_copies_threshold = 16;
+
+        auto all_item_type_rotations = compute_item_type_rotations(instance_);
+        const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations
+            = all_item_type_rotations[instance_.bin_type_id(0)];
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance_.number_of_item_types();
+                ++item_type_id) {
+            ItemType& item_type = instance_.item_types_[item_type_id];
+            if (!item_type.periodic_packings_computed) {
+                if (item_type.copies > periodic_packings_copies_threshold) {
+                    item_type.periodic_packings = compute_periodic_packings_for_item_type(
+                            instance_, item_type_id, item_type_rotations[item_type_id]);
+                }
+                item_type.periodic_packings_computed = true;
+            }
+        }
     }
 
     // Remap fixed item type IDs if a sub-instance mapping is present.
