@@ -70,5 +70,22 @@ Solution build_guillotine_solution(
  */
 Solution minimize_number_of_stages(const Solution& solution);
 
+/**
+ * Sort the children of each subplate in the cut tree by item-content size.
+ *
+ * At each level, subplates (siblings in the guillotine cut tree) are
+ * reordered so that the largest comes first.  Waste and residual children are
+ * dropped; the logical structure of each content subplate is preserved.
+ *
+ * length_1 is the item-content dimension in the cut direction; length_2 is
+ * the item-content dimension in the perpendicular direction.
+ *
+ * mode 0: sort by decreasing length_2, breaking ties by decreasing length_1.
+ * mode 1: sort by decreasing length_1, breaking ties by decreasing length_2.
+ */
+Solution sort_subplates(
+        const Solution& solution,
+        int mode = 0);
+
 }
 }
