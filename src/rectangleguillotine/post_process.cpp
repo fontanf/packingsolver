@@ -301,3 +301,237 @@ std::vector<Solution> packingsolver::rectangleguillotine::build_guillotine_solut
 
     return solutions;
 }
+
+namespace
+{
+
+/**
+ * Lengths of the item content of a node, computed bottom-up from leaf items.
+ *
+ * length_1 is the dimension in the direction of the cut that produced this
+ * node (the varying dimension among siblings).  length_2 is the perpendicular
+ * dimension.
+ *
+ * For a leaf item, both dimensions equal the item's geometric extent.
+ * For a waste/residual leaf, both are zero.
+ * For an internal cut node, the dimension along which its children are
+ * arranged equals the sum of the children's extents in that direction; the
+ * perpendicular dimension equals the maximum.
+ */
+struct NodeLengths
+{
+    Length length_1 = 0;
+    Length length_2 = 0;
+};
+
+/**
+ * Compute length_1 and length_2 for every node in a bin, bottom-up.
+ *
+ * Traverses nodes from last to first (children before parents in DFS
+ * pre-order) and accumulates item-content extents into each parent:
+ *   - in the cut direction: sum
+ *   - perpendicular: max
+ *
+ * Returns a vector indexed by node_id within the bin.
+ */
+std::vector<NodeLengths> compute_node_lengths(
+        const Solution& solution,
+        BinPos bin_pos)
+{
+    const SolutionBin& bin = solution.bin(bin_pos);
+    const std::vector<SolutionNode>& nodes = bin.nodes;
+    std::vector<NodeLengths> result(nodes.size());
+    CutOrientation first_cut_orientation = bin.first_cut_orientation;
+
+    for (int node_id = (int)nodes.size() - 1; node_id >= 0; --node_id) {
+        const SolutionNode& node = nodes[node_id];
+
+        bool is_vertical = (first_cut_orientation == CutOrientation::Vertical)?
+            (node.d % 2 == 1):
+            (node.d % 2 == 0);
+
+        if (node.item_type_id >= 0) {
+            if (is_vertical) {
+                result[node_id].length_1 = node.r - node.l;
+                result[node_id].length_2 = node.t - node.b;
+            } else {
+                result[node_id].length_1 = node.t - node.b;
+                result[node_id].length_2 = node.r - node.l;
+            }
+        } else if (!node.children.empty()) {
+            for (NodeId child_id: node.children) {
+                result[node_id].length_1 = std::max(
+                        result[node_id].length_1,
+                        result[child_id].length_2);
+                result[node_id].length_2 += result[child_id].length_1;
+            }
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Sort the children of each node by item-content lengths (descending).
+ *
+ * Only reorders the children lists — no coordinate updates.  Waste and
+ * residual children (item_type_id == -1 or -3) are dropped; build() will
+ * re-add trailing waste automatically.
+ */
+static void sort_node_subtrees(
+        NodeId node_id,
+        const std::vector<SolutionNode>& nodes,
+        std::vector<std::vector<NodeId>>& children,
+        const std::vector<NodeLengths>& node_lengths,
+        bool mode)
+{
+    std::vector<NodeId>& kids = children[node_id];
+
+    std::vector<NodeId> content_kids;
+    for (NodeId kid: kids) {
+        ItemTypeId item_type_id = nodes[kid].item_type_id;
+        if (item_type_id != -1 && item_type_id != -3)
+            content_kids.push_back(kid);
+    }
+
+    if ((int)content_kids.size() >= 2) {
+        std::stable_sort(content_kids.begin(), content_kids.end(),
+                [&](NodeId a, NodeId b) {
+                    const NodeLengths& la = node_lengths[a];
+                    const NodeLengths& lb = node_lengths[b];
+                    if (mode) {
+                        if (la.length_1 != lb.length_1)
+                            return la.length_1 > lb.length_1;
+                        return la.length_2 > lb.length_2;
+                    } else {
+                        if (la.length_2 != lb.length_2)
+                            return la.length_2 > lb.length_2;
+                        return la.length_1 > lb.length_1;
+                    }
+                });
+    }
+
+    kids = content_kids;
+
+    for (NodeId kid: kids)
+        sort_node_subtrees(kid, nodes, children, node_lengths, mode);
+}
+
+/**
+ * Replay sorted children into SolutionBuilder, computing absolute cut
+ * positions from the original node spans without touching node coordinates.
+ *
+ * cut_start   — absolute start of the current group in the cut direction.
+ * perp_start  — absolute start in the perpendicular direction (inherited by
+ *               all siblings in this group from their common parent).
+ *
+ * For each sibling, cut_pos = cut_start + span (using the original node
+ * width or height).  Children of that sibling are replayed with
+ *   new cut_start  = perp_start  (the current group's perp start)
+ *   new perp_start = current cut position before this sibling was placed.
+ */
+static void replay_group(
+        const std::vector<NodeId>& siblings,
+        Depth depth,
+        Length cut_start,
+        Length perp_start,
+        const std::vector<SolutionNode>& nodes,
+        const std::vector<std::vector<NodeId>>& children,
+        CutOrientation first_cut_orientation,
+        Length cut_thickness,
+        SolutionBuilder& solution_builder)
+{
+    bool is_vertical_cut = (first_cut_orientation == CutOrientation::Vertical)?
+        (depth % 2 == 1):
+        (depth % 2 == 0);
+
+    Length current = cut_start;
+    for (NodeId kid: siblings) {
+        const SolutionNode& node = nodes[kid];
+        Length span = is_vertical_cut?
+            (node.r - node.l):
+            (node.t - node.b);
+        Length cut_pos = current + span;
+        solution_builder.add_node(depth, cut_pos);
+        if (node.item_type_id >= 0)
+            solution_builder.set_last_node_item(node.item_type_id);
+        // Children are at depth+1 in the perpendicular direction.
+        // Their cut_start = this group's perp_start.
+        // Their perp_start = current (where this sibling began in cut dir).
+        replay_group(
+                children[kid],
+                depth + 1,
+                perp_start,
+                current,
+                nodes,
+                children,
+                first_cut_orientation,
+                cut_thickness,
+                solution_builder);
+        current = cut_pos + cut_thickness;
+    }
+}
+
+}
+
+Solution packingsolver::rectangleguillotine::sort_subplates(
+        const Solution& solution,
+        int mode)
+{
+    const Instance& instance = solution.instance();
+    const Length cut_thickness = instance.parameters().cut_thickness;
+    Solution result(instance);
+
+    for (BinPos bin_pos = 0;
+            bin_pos < solution.number_of_different_bins();
+            ++bin_pos) {
+        const SolutionBin& bin = solution.bin(bin_pos);
+
+        // Use original nodes read-only; reconstruct children lists from f.
+        const std::vector<SolutionNode>& nodes = bin.nodes;
+        std::vector<std::vector<NodeId>> children(nodes.size());
+        for (NodeId node_id = 0;
+                node_id < (NodeId)nodes.size();
+                ++node_id) {
+            if (nodes[node_id].f >= 0)
+                children[nodes[node_id].f].push_back(node_id);
+        }
+
+        // Compute item-content lengths and sort children lists (no coord updates).
+        std::vector<NodeLengths> node_lengths = compute_node_lengths(solution, bin_pos);
+        sort_node_subtrees(0, nodes, children, node_lengths, mode);
+
+        // Find effective root: if trims exist it is the inner d=0 node (f>=0),
+        // otherwise it is node 0.  Its l/b give the initial cut/perp starts.
+        NodeId effective_root_id = 0;
+        for (NodeId node_id = 0;
+                node_id < (NodeId)nodes.size();
+                ++node_id) {
+            if (nodes[node_id].d == 0 && nodes[node_id].f >= 0) {
+                effective_root_id = node_id;
+                break;
+            }
+        }
+        const SolutionNode& eff_root = nodes[effective_root_id];
+        bool first_is_vertical = (bin.first_cut_orientation == CutOrientation::Vertical);
+        Length cut_start  = first_is_vertical? eff_root.l: eff_root.b;
+        Length perp_start = first_is_vertical? eff_root.b: eff_root.l;
+
+        // Replay sorted children into a new solution, computing absolute
+        // cut positions from the original node spans on the fly.
+        SolutionBuilder solution_builder(instance);
+        solution_builder.add_bin(bin.bin_type_id, 1, bin.first_cut_orientation);
+        replay_group(
+                children[effective_root_id],
+                1,
+                cut_start, perp_start,
+                nodes,
+                children,
+                bin.first_cut_orientation,
+                cut_thickness,
+                solution_builder);
+        result.append(solution_builder.build(), 0, bin.copies);
+    }
+
+    return result;
+}
