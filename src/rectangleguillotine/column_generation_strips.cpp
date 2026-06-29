@@ -1801,14 +1801,12 @@ void column_generation_strips_horizontal(
         {
             const ColumnGenerationStripsOutput& flipped_output
                 = static_cast<const ColumnGenerationStripsOutput&>(ps_output);
-            std::stringstream ss;
-            ss << "H n ";
-            //std::cout << "callback flipped" << std::endl;
+            std::string label = flipped_output.solution_pool.best_label();
+            if (!label.empty() && label[0] == 'V')
+                label[0] = 'H';
             Solution solution = instance_flippper.unflip_solution(
                     flipped_output.solution_pool.best());
-            algorithm_formatter.update_solution(
-                    solution,
-                    ss.str());
+            algorithm_formatter.update_solution(solution, label);
             algorithm_formatter.update_knapsack_bound(
                     flipped_output.knapsack_bound);
         };
