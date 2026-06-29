@@ -306,31 +306,34 @@ namespace
 {
 
 /**
- * Lengths of the item content of a node, computed bottom-up from leaf items.
+ * Metrics of a node used for sorting, computed bottom-up from leaf nodes.
  *
- * length_1 is the dimension in the direction of the cut that produced this
- * node (the varying dimension among siblings).  length_2 is the perpendicular
- * dimension.
+ * length_1: item-content dimension in the cut direction (varying among
+ *   siblings); length_2: item-content dimension perpendicular to the cut.
+ *   For a leaf item both equal the item's geometric extent; for a cut node
+ *   length_1 = max of children's length_2, length_2 = sum of children's
+ *   length_1; for waste/residual leaves both are zero.
  *
- * For a leaf item, both dimensions equal the item's geometric extent.
- * For a waste/residual leaf, both are zero.
- * For an internal cut node, the dimension along which its children are
- * arranged equals the sum of the children's extents in that direction; the
- * perpendicular dimension equals the maximum.
+ * area: geometric area of the node, (r-l)*(t-b), set for every node type.
+ *
+ * waste: sum of geometric areas of waste and residual leaf nodes in the
+ *   subtree.  For a leaf item it is zero; for a cut node it is the sum of
+ *   children's waste; for waste/residual leaves it equals their area.
  */
 struct NodeLengths
 {
     Length length_1 = 0;
     Length length_2 = 0;
+    Area waste = 0;
+    Area area = 0;
 };
 
 /**
- * Compute length_1 and length_2 for every node in a bin, bottom-up.
+ * Compute NodeLengths for every node in a bin, bottom-up.
  *
  * Traverses nodes from last to first (children before parents in DFS
- * pre-order) and accumulates item-content extents into each parent:
- *   - in the cut direction: sum
- *   - perpendicular: max
+ * pre-order).  area is set from the node's coordinates for every node.
+ * length_1/length_2 and waste are accumulated from children for cut nodes.
  *
  * Returns a vector indexed by node_id within the bin.
  */
@@ -345,6 +348,7 @@ std::vector<NodeLengths> compute_node_lengths(
 
     for (int node_id = (int)nodes.size() - 1; node_id >= 0; --node_id) {
         const SolutionNode& node = nodes[node_id];
+        result[node_id].area = (node.r - node.l) * (node.t - node.b);
 
         bool is_vertical = (first_cut_orientation == CutOrientation::Vertical)?
             (node.d % 2 == 1):
@@ -358,17 +362,49 @@ std::vector<NodeLengths> compute_node_lengths(
                 result[node_id].length_1 = node.t - node.b;
                 result[node_id].length_2 = node.r - node.l;
             }
-        } else if (!node.children.empty()) {
+        } else if (node.item_type_id == -2) {
             for (NodeId child_id: node.children) {
                 result[node_id].length_1 = std::max(
                         result[node_id].length_1,
                         result[child_id].length_2);
                 result[node_id].length_2 += result[child_id].length_1;
+                result[node_id].waste += result[child_id].waste;
             }
+        } else {
+            result[node_id].waste = (node.r - node.l) * (Area)(node.t - node.b);
         }
     }
 
     return result;
+}
+
+/**
+ * Compare a * b < c * d for non-negative int64_t values exactly, without
+ * overflow and without __int128 (MSVC-compatible).
+ *
+ * Each 64-bit operand is split into two 32-bit halves; four 64-bit partial
+ * products are combined into a 128-bit result stored as (hi, lo).
+ */
+static bool mul_less(int64_t a, int64_t b, int64_t c, int64_t d)
+{
+    auto lo32 = [](uint64_t x) { return x & 0xFFFFFFFFu; };
+    auto hi32 = [](uint64_t x) { return x >> 32; };
+
+    auto mul128 = [&](uint64_t x, uint64_t y,
+                      uint64_t& hi, uint64_t& lo) {
+        uint64_t p00 = lo32(x) * lo32(y);
+        uint64_t p01 = lo32(x) * hi32(y);
+        uint64_t p10 = hi32(x) * lo32(y);
+        uint64_t p11 = hi32(x) * hi32(y);
+        uint64_t mid = hi32(p00) + lo32(p01) + lo32(p10);
+        lo = lo32(p00) | (mid << 32);
+        hi = p11 + hi32(p01) + hi32(p10) + hi32(mid);
+    };
+
+    uint64_t lhs_hi, lhs_lo, rhs_hi, rhs_lo;
+    mul128((uint64_t)a, (uint64_t)b, lhs_hi, lhs_lo);
+    mul128((uint64_t)c, (uint64_t)d, rhs_hi, rhs_lo);
+    return lhs_hi < rhs_hi || (lhs_hi == rhs_hi && lhs_lo < rhs_lo);
 }
 
 /**
@@ -383,7 +419,7 @@ static void sort_node_subtrees(
         const std::vector<SolutionNode>& nodes,
         std::vector<std::vector<NodeId>>& children,
         const std::vector<NodeLengths>& node_lengths,
-        bool mode)
+        const std::vector<SortSubplatesCriterion>& criteria)
 {
     std::vector<NodeId>& kids = children[node_id];
 
@@ -399,22 +435,37 @@ static void sort_node_subtrees(
                 [&](NodeId a, NodeId b) {
                     const NodeLengths& la = node_lengths[a];
                     const NodeLengths& lb = node_lengths[b];
-                    if (mode) {
-                        if (la.length_1 != lb.length_1)
-                            return la.length_1 > lb.length_1;
-                        return la.length_2 > lb.length_2;
-                    } else {
-                        if (la.length_2 != lb.length_2)
-                            return la.length_2 > lb.length_2;
-                        return la.length_1 > lb.length_1;
+                    for (SortSubplatesCriterion crit: criteria) {
+                        switch (crit) {
+                        case SortSubplatesCriterion::Length1:
+                            if (la.length_1 != lb.length_1)
+                                return la.length_1 > lb.length_1;
+                            break;
+                        case SortSubplatesCriterion::Length2:
+                            if (la.length_2 != lb.length_2)
+                                return la.length_2 > lb.length_2;
+                            break;
+                        case SortSubplatesCriterion::Waste:
+                            if (la.waste != lb.waste)
+                                return la.waste < lb.waste;
+                            break;
+                        case SortSubplatesCriterion::Density:
+                            // higher density = lower waste/area ratio
+                            if (mul_less(la.waste, lb.area, lb.waste, la.area))
+                                return true;
+                            if (mul_less(lb.waste, la.area, la.waste, lb.area))
+                                return false;
+                            break;
+                        }
                     }
+                    return false;
                 });
     }
 
     kids = content_kids;
 
     for (NodeId kid: kids)
-        sort_node_subtrees(kid, nodes, children, node_lengths, mode);
+        sort_node_subtrees(kid, nodes, children, node_lengths, criteria);
 }
 
 /**
@@ -476,7 +527,7 @@ static void replay_group(
 
 Solution packingsolver::rectangleguillotine::sort_subplates(
         const Solution& solution,
-        int mode)
+        const std::vector<SortSubplatesCriterion>& criteria)
 {
     const Instance& instance = solution.instance();
     const Length cut_thickness = instance.parameters().cut_thickness;
@@ -499,7 +550,7 @@ Solution packingsolver::rectangleguillotine::sort_subplates(
 
         // Compute item-content lengths and sort children lists (no coord updates).
         std::vector<NodeLengths> node_lengths = compute_node_lengths(solution, bin_pos);
-        sort_node_subtrees(0, nodes, children, node_lengths, mode);
+        sort_node_subtrees(0, nodes, children, node_lengths, criteria);
 
         // Find effective root: if trims exist it is the inner d=0 node (f>=0),
         // otherwise it is node 0.  Its l/b give the initial cut/perp starts.

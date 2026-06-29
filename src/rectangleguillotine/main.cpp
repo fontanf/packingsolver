@@ -128,8 +128,7 @@ int main(int argc, char *argv[])
 
             ("minimize-number-of-stages,", po::value<bool>(), "")
             ("group-identical-bins,", po::value<bool>(), "")
-            ("sort-subplates-0,", po::value<bool>(), "")
-            ("sort-subplates-1,", po::value<bool>(), "")
+            ("sort-subplates,", po::value<bool>(), "")
             ;
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -304,13 +303,9 @@ int main(int argc, char *argv[])
             GroupIdenticalBinsOutput gib_output = group_identical_bins(solution);
             solution = gib_output.solution_pool.best();
         }
-        if (vm.count("sort-subplates-0")
-                && vm["sort-subplates-0"].as<bool>()) {
-            solution = sort_subplates(solution, 0);
-        }
-        if (vm.count("sort-subplates-1")
-                && vm["sort-subplates-1"].as<bool>()) {
-            solution = sort_subplates(solution, 1);
+        if (vm.count("sort-subplates")
+                && vm["sort-subplates"].as<bool>()) {
+            solution = sort_subplates(solution);
         }
 
         if (vm.count("certificate"))

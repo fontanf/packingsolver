@@ -2,6 +2,8 @@
 
 #include "packingsolver/rectangleguillotine/solution.hpp"
 
+#include <vector>
+
 namespace packingsolver
 {
 namespace rectangleguillotine
@@ -70,6 +72,23 @@ Solution build_guillotine_solution(
  */
 Solution minimize_number_of_stages(const Solution& solution);
 
+/** Criterion used to compare two subplates when sorting. */
+enum class SortSubplatesCriterion {
+    /** Item-content dimension in the cut direction (varying among siblings). */
+    Length1,
+    /** Item-content dimension perpendicular to the cut. */
+    Length2,
+    /** Total area of waste and residual nodes in the subtree (ascending). */
+    Waste,
+    /**
+     * Fraction of the subplate's geometric area that is not wasted:
+     * (area - waste) / area, where area = (r-l)*(t-b) for the node.
+     * Higher density comes first.  Compared exactly via cross-multiplication
+     * (waste_a * area_b < waste_b * area_a), with no division.
+     */
+    Density,
+};
+
 /**
  * Sort the children of each subplate in the cut tree by item-content size.
  *
@@ -77,15 +96,19 @@ Solution minimize_number_of_stages(const Solution& solution);
  * reordered so that the largest comes first.  Waste and residual children are
  * dropped; the logical structure of each content subplate is preserved.
  *
- * length_1 is the item-content dimension in the cut direction; length_2 is
- * the item-content dimension in the perpendicular direction.
- *
- * mode 0: sort by decreasing length_2, breaking ties by decreasing length_1.
- * mode 1: sort by decreasing length_1, breaking ties by decreasing length_2.
+ * criteria lists the attributes compared in lexicographic order.  For each
+ * criterion, subplates with a larger value come first (descending).  The
+ * default {Density, Length2, Length1} places the densest subplates first,
+ * then breaks ties by perpendicular item-content extent and finally by the
+ * cut-direction extent.
  */
 Solution sort_subplates(
         const Solution& solution,
-        int mode = 0);
+        const std::vector<SortSubplatesCriterion>& criteria = {
+            SortSubplatesCriterion::Density,
+            SortSubplatesCriterion::Length2,
+            SortSubplatesCriterion::Length1,
+        });
 
 }
 }
