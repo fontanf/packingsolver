@@ -39,25 +39,32 @@ std::vector<PeriodicPacking> compute_periodic_packings(
         const ShapeWithHoles& shape_r);
 
 /**
- * Fully resolved periodic packing with item metadata (item type, angle,
- * mirror) and a scaled bounding box. This is the type stored in item columns
- * and returned by compute_periodic_packings.
+ * Compute periodic packings for a single item type (self-pairing and, when
+ * allowed, pairing a rotation with its r + 180 counterpart).
+ *
+ * Only depends on the item type's own shape and allowed rotations, not on
+ * any other item type or on bin dimensions, so its result is cacheable on
+ * ItemType (see ItemType::periodic_packings in instance.hpp).
  */
-struct PeriodicItemPacking
-{
-    std::vector<SolutionItem> items;
-
-    Point vector_1 = {0, 0};
-
-    Point vector_2 = {0, 0};
-
-    /** Axis-aligned bounding box of all items in one cell (scaled coordinates). */
-    AxisAlignedBoundingBox aabb_scaled;
-};
+std::vector<PeriodicItemPacking> compute_periodic_packings_for_item_type(
+        const Instance& instance,
+        ItemTypeId item_type_id,
+        const std::vector<ItemTypeRotation>& rotations);
 
 std::vector<PeriodicItemPacking> compute_periodic_packings(
         const Instance& instance,
         const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations);
+
+/**
+ * Get the combined shape of an item type for a given rotation.
+ *
+ * Applies mirror (if requested) then rotation angle to each sub-shape, then
+ * returns their union. If the item has a single sub-shape, returns it directly.
+ */
+ShapeWithHoles get_item_combined_shape(
+        const Instance& instance,
+        ItemTypeId item_type_id,
+        const ItemTypeRotation& rotation);
 
 }
 }

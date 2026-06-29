@@ -5,6 +5,8 @@
 #include "shape/shapes_intersections.hpp"
 
 #include <limits>
+#include <algorithm>
+#include <cmath>
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -42,16 +44,7 @@ bool packingsolver::irregular::equal(
     return true;
 }
 
-namespace
-{
-
-/**
- * Get the combined shape of an item type for a given rotation.
- *
- * Applies mirror (if requested) then rotation angle to each sub-shape, then
- * returns their union. If the item has a single sub-shape, returns it directly.
- */
-ShapeWithHoles get_item_combined_shape(
+ShapeWithHoles packingsolver::irregular::get_item_combined_shape(
         const Instance& instance,
         ItemTypeId item_type_id,
         const ItemTypeRotation& rotation)
@@ -71,6 +64,9 @@ ShapeWithHoles get_item_combined_shape(
         return shapes[0];
     return union_result.shapes_with_holes[0];
 }
+
+namespace
+{
 
 /**
  * Collect candidate points (with y = 0) from boundary elements of a set of
@@ -351,12 +347,15 @@ bool check_periodic_packing(
 {
     int n_items = (int)item_shapes.size();
 
-    // Build the base items (each shape shifted by its position in the cell).
+    // Build the base items (each shape shifted by its position in the cell)
+    // and their bounding boxes.
     std::vector<ShapeWithHoles> base_items;
+    std::vector<AxisAlignedBoundingBox> base_aabbs;
     for (int item_idx = 0; item_idx < n_items; ++item_idx) {
         ShapeWithHoles s = item_shapes[item_idx];
         s.shift(item_positions[item_idx].x, item_positions[item_idx].y);
-        base_items.push_back(s);
+        base_aabbs.push_back(s.compute_min_max());
+        base_items.push_back(std::move(s));
     }
 
     // Check items within the same cell.
@@ -367,7 +366,26 @@ bool check_periodic_packing(
         }
     }
 
+    // Natural (unshifted) bounding boxes: a copy's bounding box at any offset
+    // is then just a translation of these, avoiding a compute_min_max() call
+    // on the actual (potentially complex) shifted shape for every offset.
+    std::vector<AxisAlignedBoundingBox> natural_aabbs;
+    for (int item_idx = 0; item_idx < n_items; ++item_idx)
+        natural_aabbs.push_back(item_shapes[item_idx].compute_min_max());
+
+    auto aabb_overlap = [](const AxisAlignedBoundingBox& a, const AxisAlignedBoundingBox& b)
+    {
+        return !shape::strictly_greater(a.x_min, b.x_max)
+            && !shape::strictly_greater(b.x_min, a.x_max)
+            && !shape::strictly_greater(a.y_min, b.y_max)
+            && !shape::strictly_greater(b.y_min, a.y_max);
+    };
+
     // For each non-zero offset within the neighbourhood, check against base.
+    // Most of this check_range neighbourhood is far enough away that a cheap
+    // bounding-box test alone rules out overlap, without ever needing the
+    // exact (and, for complex item shapes, expensive) polygon intersection
+    // test below.
     for (int n = -check_range; n <= check_range; ++n) {
         for (int m = -check_range; m <= check_range; ++m) {
             if (n == 0 && m == 0)
@@ -377,12 +395,30 @@ bool check_periodic_packing(
                 n * vector_1.y + m * vector_2.y,
             };
             for (int item_idx = 0; item_idx < n_items; ++item_idx) {
-                ShapeWithHoles copy = item_shapes[item_idx];
-                copy.shift(
+                Point shift = {
                     offset.x + item_positions[item_idx].x,
-                    offset.y + item_positions[item_idx].y);
+                    offset.y + item_positions[item_idx].y};
+                AxisAlignedBoundingBox copy_aabb = natural_aabbs[item_idx];
+                copy_aabb.x_min += shift.x;
+                copy_aabb.x_max += shift.x;
+                copy_aabb.y_min += shift.y;
+                copy_aabb.y_max += shift.y;
+
+                bool any_aabb_overlap = false;
                 for (int base_idx = 0; base_idx < n_items; ++base_idx) {
-                    if (shape::intersect(base_items[base_idx], copy, true))
+                    if (aabb_overlap(base_aabbs[base_idx], copy_aabb)) {
+                        any_aabb_overlap = true;
+                        break;
+                    }
+                }
+                if (!any_aabb_overlap)
+                    continue;
+
+                ShapeWithHoles copy = item_shapes[item_idx];
+                copy.shift(shift.x, shift.y);
+                for (int base_idx = 0; base_idx < n_items; ++base_idx) {
+                    if (aabb_overlap(base_aabbs[base_idx], copy_aabb)
+                            && shape::intersect(base_items[base_idx], copy, true))
                         return false;
                 }
             }
@@ -405,23 +441,21 @@ bool check_periodic_packing(
  * Returns up to two PeriodicPackings (horizontal then vertical). On success
  * each carries positions = n × {0,0} (shapes are already at their positions)
  * and the computed lattice vectors.
+ *
+ * This is the second half of the computation: given the combined forbidden
+ * region already assembled by the caller (either find_periodic_packing_lattice
+ * below, which computes it from scratch, or
+ * find_periodic_packing_lattice_two_shapes_cached, which derives it cheaply
+ * from precomputed NFPs), search the two strategies and validate each
+ * candidate against the actual shapes.
  */
-std::vector<PeriodicPacking> find_periodic_packing_lattice(
-        const std::vector<ShapeWithHoles>& shapes)
+std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
+        const std::vector<ShapeWithHoles>& shapes,
+        const std::vector<ShapeWithHoles>& combined_nfp)
 {
     int n = (int)shapes.size();
     std::vector<Point> zero_positions(n, {0.0, 0.0});
 
-    std::vector<ShapeWithHoles> combined_nfp;
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            MultiShapeWithHoles nfp_ij = shape::no_fit_polygon(shapes[i], shapes[j]);
-            if (nfp_ij.shapes_with_holes.empty())
-                continue;
-            for (const ShapeWithHoles& swh: shape::compute_union(nfp_ij.shapes_with_holes).shapes_with_holes)
-                combined_nfp.push_back(swh);
-        }
-    }
     if (combined_nfp.empty())
         return {};
     MultiShapeWithHoles combined_nfp_union = shape::compute_union(combined_nfp);
@@ -467,6 +501,74 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice(
     }
 
     return result;
+}
+
+std::vector<PeriodicPacking> find_periodic_packing_lattice(
+        const std::vector<ShapeWithHoles>& shapes)
+{
+    int n = (int)shapes.size();
+    std::vector<ShapeWithHoles> combined_nfp;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            MultiShapeWithHoles nfp_ij = shape::no_fit_polygon(shapes[i], shapes[j]);
+            if (nfp_ij.shapes_with_holes.empty())
+                continue;
+            for (const ShapeWithHoles& swh: shape::compute_union(nfp_ij.shapes_with_holes).shapes_with_holes)
+                combined_nfp.push_back(swh);
+        }
+    }
+    return find_periodic_packing_lattice_from_combined_nfp(shapes, combined_nfp);
+}
+
+/**
+ * Same as find_periodic_packing_lattice, specialized for exactly two shapes,
+ * given the four pairwise NFPs already computed in each shape's own natural
+ * (position-independent) frame, plus the two shapes' current positions.
+ *
+ * NFP(A + a, B + b) = NFP(A, B) + (a - b): translating either operand only
+ * translates the NFP by the same amount, it does not change its shape. So
+ * when a caller invokes this for many different relative offsets between the
+ * same two shapes (e.g. once per placement candidate in
+ * compute_periodic_packings(shape_0, shape_r), which can have hundreds of
+ * candidates for a complex shape), the four NFPs need only be computed once
+ * by the caller and reused here via cheap shifts, instead of recomputing
+ * shape::no_fit_polygon (the dominant cost) on every call.
+ */
+std::vector<PeriodicPacking> find_periodic_packing_lattice_two_shapes_cached(
+        const ShapeWithHoles& shape_0,
+        const ShapeWithHoles& shape_1,
+        Point position_0,
+        Point position_1,
+        const std::vector<ShapeWithHoles>& nfp_00_union,
+        const std::vector<ShapeWithHoles>& nfp_01_union,
+        const std::vector<ShapeWithHoles>& nfp_10_union,
+        const std::vector<ShapeWithHoles>& nfp_11_union)
+{
+    std::vector<ShapeWithHoles> combined_nfp;
+    combined_nfp.reserve(
+            nfp_00_union.size() + nfp_01_union.size()
+            + nfp_10_union.size() + nfp_11_union.size());
+
+    for (const ShapeWithHoles& swh: nfp_00_union)
+        combined_nfp.push_back(swh);
+    for (ShapeWithHoles swh: nfp_01_union) {
+        swh.shift(position_0.x - position_1.x, position_0.y - position_1.y);
+        combined_nfp.push_back(std::move(swh));
+    }
+    for (ShapeWithHoles swh: nfp_10_union) {
+        swh.shift(position_1.x - position_0.x, position_1.y - position_0.y);
+        combined_nfp.push_back(std::move(swh));
+    }
+    for (const ShapeWithHoles& swh: nfp_11_union)
+        combined_nfp.push_back(swh);
+
+    ShapeWithHoles placed_0 = shape_0;
+    placed_0.shift(position_0.x, position_0.y);
+    ShapeWithHoles placed_1 = shape_1;
+    placed_1.shift(position_1.x, position_1.y);
+
+    return find_periodic_packing_lattice_from_combined_nfp(
+            {placed_0, placed_1}, combined_nfp);
 }
 
 void add_if_unique(
@@ -515,19 +617,33 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
 {
     AxisAlignedBoundingBox aabb_0 = shape_0.compute_min_max();
     Point position_0 = {-aabb_0.x_min, -aabb_0.y_min};
-    ShapeWithHoles shifted_shape_0 = shape_0;
-    shifted_shape_0.shift(position_0.x, position_0.y);
 
     AxisAlignedBoundingBox aabb_r = shape_r.compute_min_max();
     Point min_position_r = {-aabb_r.x_min, -aabb_r.y_min};
 
     // NFP(shape_0, shape_r) shifted by position_0 gives translations t_r such
-    // that (shape_r + t_r) just touches shifted_shape_0.
+    // that (shape_r + t_r) just touches (shape_0 shifted by position_0).
     MultiShapeWithHoles nfp_0r = shape::no_fit_polygon(shape_0, shape_r);
     if (nfp_0r.shapes_with_holes.empty())
         return {};
-    std::vector<ShapeWithHoles> nfp_0r_union = shape::compute_union(nfp_0r.shapes_with_holes).shapes_with_holes;
+    // Natural (position-independent) frame, reused below for every candidate
+    // instead of recomputing no_fit_polygon(shape_0, shape_r) once per
+    // candidate: NFP(A + a, B + b) = NFP(A, B) + (a - b), so only the
+    // relative offset changes, never the NFP shape itself.
+    std::vector<ShapeWithHoles> nfp_0r_union_natural =
+        shape::compute_union(nfp_0r.shapes_with_holes).shapes_with_holes;
+    std::vector<ShapeWithHoles> nfp_0r_union = nfp_0r_union_natural;
     for (ShapeWithHoles& swh: nfp_0r_union) swh.shift(position_0.x, position_0.y);
+
+    // The other three pairwise NFPs needed by find_periodic_packing_lattice
+    // for a two-shape placement are likewise position-independent, so
+    // compute each once here rather than once per candidate below.
+    std::vector<ShapeWithHoles> nfp_00_union = shape::compute_union(
+            shape::no_fit_polygon(shape_0, shape_0).shapes_with_holes).shapes_with_holes;
+    std::vector<ShapeWithHoles> nfp_r0_union = shape::compute_union(
+            shape::no_fit_polygon(shape_r, shape_0).shapes_with_holes).shapes_with_holes;
+    std::vector<ShapeWithHoles> nfp_rr_union = shape::compute_union(
+            shape::no_fit_polygon(shape_r, shape_r).shapes_with_holes).shapes_with_holes;
 
     // Collect all boundary vertices as candidate placements for shape_r.
     std::vector<Point> candidates;
@@ -586,24 +702,155 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
             unique_candidates.push_back(p);
     }
 
-    std::vector<PeriodicPacking> result;
-
+    // Running the expensive lattice search (NFP unions + check_periodic_packing)
+    // on every candidate dominates this function's cost. As a cheap proxy for
+    // how compact the resulting periodic cell is likely to be, use the
+    // combined AABB of shape_0 (at position_0) and shape_r (at t_r), and only
+    // run the expensive search on the (up to 3) candidates that minimize its
+    // width, height, and area respectively.
+    struct Candidate
+    {
+        Point t_r;
+        double dx;
+        double dy;
+        double area;
+    };
+    std::vector<Candidate> valid_candidates;
     for (const Point& t_r: unique_candidates) {
         // Skip placements where shape_r's AABB goes below x=0 or y=0.
         if (shape::strictly_lesser(t_r.x, min_position_r.x)
                 || shape::strictly_lesser(t_r.y, min_position_r.y))
             continue;
 
-        ShapeWithHoles placed_shape_r = shape_r;
-        placed_shape_r.shift(t_r.x, t_r.y);
+        AxisAlignedBoundingBox aabb_r_here = aabb_r;
+        aabb_r_here.shift(t_r.x, t_r.y);
+        AxisAlignedBoundingBox combined = merge(aabb_0, aabb_r_here);
+        double dx = combined.x_max - combined.x_min;
+        double dy = combined.y_max - combined.y_min;
+        valid_candidates.push_back({t_r, dx, dy, dx * dy});
+    }
 
-        for (PeriodicPacking pp: find_periodic_packing_lattice({shifted_shape_0, placed_shape_r})) {
+    std::vector<int> selected_candidates;
+    if (!valid_candidates.empty()) {
+        auto add_argmin = [&](auto metric) {
+            int best = 0;
+            for (int i = 1; i < (int)valid_candidates.size(); ++i)
+                if (metric(valid_candidates[i]) < metric(valid_candidates[best]))
+                    best = i;
+            if (std::find(selected_candidates.begin(), selected_candidates.end(), best)
+                    == selected_candidates.end())
+                selected_candidates.push_back(best);
+        };
+        add_argmin([](const Candidate& c) { return c.dx; });
+        add_argmin([](const Candidate& c) { return c.dy; });
+        add_argmin([](const Candidate& c) { return c.area; });
+    }
+
+    std::vector<PeriodicPacking> result;
+    for (int candidate_idx: selected_candidates) {
+        const Point& t_r = valid_candidates[candidate_idx].t_r;
+        for (PeriodicPacking pp: find_periodic_packing_lattice_two_shapes_cached(
+                shape_0, shape_r, position_0, t_r,
+                nfp_00_union, nfp_0r_union_natural, nfp_r0_union, nfp_rr_union)) {
             pp.positions = {position_0, t_r};
             add_if_unique(result, std::move(pp));
         }
     }
 
     return result;
+}
+
+std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_packings_for_item_type(
+        const Instance& instance,
+        ItemTypeId item_type_id,
+        const std::vector<ItemTypeRotation>& rotations)
+{
+    std::vector<PeriodicItemPacking> output;
+
+    for (int rot_0_pos = 0;
+            rot_0_pos < (int)rotations.size();
+            ++rot_0_pos) {
+        const ItemTypeRotation& rot_0 = rotations[rot_0_pos];
+        ShapeWithHoles shape_0 = get_item_combined_shape(instance, item_type_id, rot_0);
+
+        for (const PeriodicPacking& pp_same: compute_periodic_packings(shape_0)) {
+            PeriodicItemPacking item_packing;
+            item_packing.vector_1 = pp_same.vector_1;
+            item_packing.vector_2 = pp_same.vector_2;
+            SolutionItem item;
+            item.item_type_id = item_type_id;
+            item.bl_corner = pp_same.positions[0];
+            item.angle = rot_0.angle;
+            item.mirror = rot_0.mirror;
+            item_packing.items.push_back(item);
+            AxisAlignedBoundingBox bb_0 = shape_0.compute_min_max();
+            bb_0.shift(pp_same.positions[0]);
+            item_packing.aabb_scaled = merge(item_packing.aabb_scaled, bb_0);
+            output.push_back(item_packing);
+        }
+
+        // Only pair a rotation r < 180° with its r + 180° counterpart (if
+        // allowed), rather than every combination of rotations: pairing a
+        // shape with its own half-turn is what enables interlocking and,
+        // in practice, is the only pairing that ever wins over the
+        // single-shape packing, while the two-shape search dominates the
+        // overall running time. Rotations with angle >= 180° are only
+        // ever considered as the r + 180 partner here, never as rot_0,
+        // so each (r, r + 180) pair is still only considered once for
+        // *which two rotations* get paired.
+        //
+        // However, compute_periodic_packings(shape_a, shape_b) is not
+        // symmetric in its two arguments: the NFP-based candidate search
+        // is anchored on shape_a, so swapping the argument order can (and
+        // in practice does) turn up a tighter nesting that the other
+        // order misses entirely -- e.g. a perfectly-interlocking,
+        // zero-overhang pairing found only via (shape_r, shape_0), never
+        // via (shape_0, shape_r). So both orders are tried here.
+        if (shape::strictly_lesser(rot_0.angle, 180.0)
+                && instance.item_type(item_type_id).is_rotation_allowed(
+                    rot_0.angle + 180.0, rot_0.mirror)) {
+            ItemTypeRotation rot_r{rot_0.angle + 180.0, rot_0.mirror};
+            ShapeWithHoles shape_r = get_item_combined_shape(instance, item_type_id, rot_r);
+
+            auto add_two_shape_packings = [&](
+                    const ItemTypeRotation& rotation_first,
+                    const ShapeWithHoles& shape_first,
+                    const ItemTypeRotation& rotation_second,
+                    const ShapeWithHoles& shape_second)
+            {
+                for (const PeriodicPacking& pp_two:
+                        compute_periodic_packings(shape_first, shape_second)) {
+                    PeriodicItemPacking item_packing;
+                    item_packing.vector_1 = pp_two.vector_1;
+                    item_packing.vector_2 = pp_two.vector_2;
+                    SolutionItem item_first;
+                    item_first.item_type_id = item_type_id;
+                    item_first.bl_corner = pp_two.positions[0];
+                    item_first.angle = rotation_first.angle;
+                    item_first.mirror = rotation_first.mirror;
+                    item_packing.items.push_back(item_first);
+                    AxisAlignedBoundingBox bb_first = shape_first.compute_min_max();
+                    bb_first.shift(pp_two.positions[0]);
+                    item_packing.aabb_scaled = merge(item_packing.aabb_scaled, bb_first);
+                    SolutionItem item_second;
+                    item_second.item_type_id = item_type_id;
+                    item_second.bl_corner = pp_two.positions[1];
+                    item_second.angle = rotation_second.angle;
+                    item_second.mirror = rotation_second.mirror;
+                    item_packing.items.push_back(item_second);
+                    AxisAlignedBoundingBox bb_second = shape_second.compute_min_max();
+                    bb_second.shift(pp_two.positions[1]);
+                    item_packing.aabb_scaled = merge(item_packing.aabb_scaled, bb_second);
+                    output.push_back(item_packing);
+                }
+            };
+
+            add_two_shape_packings(rot_0, shape_0, rot_r, shape_r);
+            add_two_shape_packings(rot_r, shape_r, rot_0, shape_0);
+        }
+    }
+
+    return output;
 }
 
 std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_packings(
@@ -615,60 +862,13 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
-        const std::vector<ItemTypeRotation>& rotations = item_type_rotations[item_type_id];
-
-        for (int rot_0_pos = 0;
-                rot_0_pos < (int)rotations.size();
-                ++rot_0_pos) {
-            const ItemTypeRotation& rot_0 = rotations[rot_0_pos];
-            ShapeWithHoles shape_0 = get_item_combined_shape(instance, item_type_id, rot_0);
-
-            for (const PeriodicPacking& pp_same: compute_periodic_packings(shape_0)) {
-                PeriodicItemPacking item_packing;
-                item_packing.vector_1 = pp_same.vector_1;
-                item_packing.vector_2 = pp_same.vector_2;
-                SolutionItem item;
-                item.item_type_id = item_type_id;
-                item.bl_corner = pp_same.positions[0];
-                item.angle = rot_0.angle;
-                item.mirror = rot_0.mirror;
-                item_packing.items.push_back(item);
-                item_packing.aabb_scaled = merge(
-                    item_packing.aabb_scaled, shape_0.compute_min_max());
-                output.push_back(item_packing);
-            }
-
-            for (int rot_r_pos = rot_0_pos + 1;
-                    rot_r_pos < (int)rotations.size();
-                    ++rot_r_pos) {
-                const ItemTypeRotation& rot_r = rotations[rot_r_pos];
-                ShapeWithHoles shape_r = get_item_combined_shape(instance, item_type_id, rot_r);
-
-                for (const PeriodicPacking& pp_two: compute_periodic_packings(shape_0, shape_r)) {
-                    PeriodicItemPacking item_packing;
-                    item_packing.vector_1 = pp_two.vector_1;
-                    item_packing.vector_2 = pp_two.vector_2;
-                    SolutionItem item_0;
-                    item_0.item_type_id = item_type_id;
-                    item_0.bl_corner = pp_two.positions[0];
-                    item_0.angle = rot_0.angle;
-                    item_0.mirror = rot_0.mirror;
-                    item_packing.items.push_back(item_0);
-                    item_packing.aabb_scaled = merge(
-                        item_packing.aabb_scaled, shape_0.compute_min_max());
-                    SolutionItem item_r;
-                    item_r.item_type_id = item_type_id;
-                    item_r.bl_corner = pp_two.positions[1];
-                    item_r.angle = rot_r.angle;
-                    item_r.mirror = rot_r.mirror;
-                    item_packing.items.push_back(item_r);
-                    AxisAlignedBoundingBox bb_r = shape_r.compute_min_max();
-                    bb_r.shift(pp_two.positions[1]);
-                    item_packing.aabb_scaled = merge(item_packing.aabb_scaled, bb_r);
-                    output.push_back(item_packing);
-                }
-            }
-        }
+        std::vector<PeriodicItemPacking> item_type_output
+            = compute_periodic_packings_for_item_type(
+                    instance, item_type_id, item_type_rotations[item_type_id]);
+        output.insert(
+                output.end(),
+                std::make_move_iterator(item_type_output.begin()),
+                std::make_move_iterator(item_type_output.end()));
     }
 
     return output;

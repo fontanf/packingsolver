@@ -209,6 +209,53 @@ struct AllowedRotation
 };
 
 /**
+ * Placement of a single item copy: item type, position and orientation.
+ */
+struct SolutionItem
+{
+    /** Item type. */
+    ItemTypeId item_type_id;
+
+    /** Position of the bottom-left corner of the item. */
+    Point bl_corner;
+
+    /** Rotation angle of the item. */
+    Angle angle;
+
+    /** Mirror the item. */
+    bool mirror;
+
+    /** True if this item is a fixed item of the instance. */
+    bool is_fixed = false;
+};
+
+bool operator==(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
+bool operator!=(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
+
+std::ostream& operator<<(std::ostream &os, const SolutionItem& item);
+
+/**
+ * Fully resolved periodic packing with item metadata (item type, angle,
+ * mirror) and a scaled bounding box.
+ *
+ * Only depends on the item type's own shape and rotations, so it is
+ * cacheable directly on ItemType (see ItemType::periodic_packings below);
+ * the Instance-dependent computation lives in
+ * src/irregular/periodic_packing.hpp/.cpp.
+ */
+struct PeriodicItemPacking
+{
+    std::vector<SolutionItem> items;
+
+    Point vector_1 = {0, 0};
+
+    Point vector_2 = {0, 0};
+
+    /** Axis-aligned bounding box of all items in one cell (scaled coordinates). */
+    AxisAlignedBoundingBox aabb_scaled;
+};
+
+/**
  * Item type structure for a problem of type 'irregular'.
  */
 struct ItemType
@@ -250,6 +297,20 @@ struct ItemType
     /** Area of the item type. */
     AreaDbl area_scaled = 0;
 
+    /**
+     * Periodic packings of this item type against itself (self-NFP-derived
+     * lattice tilings), used by the periodic-packing tree search.
+     *
+     * Only depends on the item type's own shape and rotations (not on bin
+     * dimensions), so it is computed once, cached here, and copied along
+     * with the item type by InstanceBuilder::add_item_type(instance, id)
+     * instead of being recomputed for every sub-instance built from this
+     * item type (e.g. successive sequential_feasibility iterations).
+     */
+    std::vector<PeriodicItemPacking> periodic_packings;
+
+    /** True iff periodic_packings has already been computed for this item type. */
+    bool periodic_packings_computed = false;
 
     AreaDbl space() const { return area_orig; }
 

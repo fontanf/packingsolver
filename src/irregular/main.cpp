@@ -61,8 +61,8 @@ int main(int argc, char *argv[])
 
             ("objective,f", po::value<Objective>(), "Objective")
 
-            ("item-bin-minimum-spacing,f", po::value<LengthDbl>(), "Item-bin minimum spacing")
-            ("item-item-minimum-spacing,f", po::value<LengthDbl>(), "Item-item minimum spacing")
+            ("item-bin-minimum-spacing", po::value<LengthDbl>(), "Item-bin minimum spacing")
+            ("item-item-minimum-spacing", po::value<LengthDbl>(), "Item-item minimum spacing")
             ("leftover-mode", po::value<LeftoverMode>(), "set leftover mode")
             ("bin-unweighted", "")
             ("unweighted", "")
@@ -83,6 +83,7 @@ int main(int argc, char *argv[])
             ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
             ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
+            ("use-tree-search-periodic-packing,", po::value<bool>(), "enable tree search periodic packing algorithm")
             ("use-milp-raster,", po::value<bool>(), "enable MILP raster algorithm")
             ("use-local-search,", po::value<bool>(), "enable local search algorithm")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
@@ -95,6 +96,7 @@ int main(int argc, char *argv[])
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
             ("not-anytime-maximum-approximation-ratio,", po::value<double>(), "")
             ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
+            ("not-anytime-tree-search-periodic-packing-queue-size,", po::value<Counter>(), "")
             ("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size,", po::value<Counter>(), "")
             ("not-anytime-sequential-value-correction-number-of-iterations,", po::value<Counter>(), "")
             ("not-anytime-dichotomic-search-subproblem-tree-search-queue-size,", po::value<Counter>(), "")
@@ -155,6 +157,8 @@ int main(int argc, char *argv[])
 
         if (vm.count("use-tree-search"))
             parameters.use_tree_search = vm["use-tree-search"].as<bool>();
+        if (vm.count("use-tree-search-periodic-packing"))
+            parameters.use_tree_search_periodic_packing = vm["use-tree-search-periodic-packing"].as<bool>();
         if (vm.count("use-milp-raster"))
             parameters.use_milp_raster = vm["use-milp-raster"].as<bool>();
         if (vm.count("use-local-search"))
@@ -180,6 +184,8 @@ int main(int argc, char *argv[])
             parameters.not_anytime_maximum_approximation_ratio = vm["not-anytime-maximum-approximation-ratio"].as<double>();
         if (vm.count("not-anytime-tree-search-queue-size"))
             parameters.not_anytime_tree_search_queue_size = vm["not-anytime-tree-search-queue-size"].as<Counter>();
+        if (vm.count("not-anytime-tree-search-periodic-packing-queue-size"))
+            parameters.not_anytime_tree_search_periodic_packing_queue_size = vm["not-anytime-tree-search-periodic-packing-queue-size"].as<Counter>();
         if (vm.count("not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size"))
             parameters.not_anytime_sequential_single_knapsack_subproblem_tree_search_queue_size = vm["not-anytime-sequential-single-knapsack-subproblem-tree-search-queue-size"].as<Counter>();
         if (vm.count("not-anytime-sequential-value-correction-number-of-iterations"))

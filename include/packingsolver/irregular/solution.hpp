@@ -7,27 +7,6 @@ namespace packingsolver
 namespace irregular
 {
 
-struct SolutionItem
-{
-    /** Item type. */
-    ItemTypeId item_type_id;
-
-    /** Position of the bottom-left corner of the item. */
-    Point bl_corner;
-
-    /** Rotation angle of the item. */
-    Angle angle;
-
-    /** Mirror the item. */
-    bool mirror;
-
-    /** True if this item is a fixed item of the instance. */
-    bool is_fixed = false;
-};
-
-bool operator==(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
-bool operator!=(const SolutionItem& solution_item_1, const SolutionItem& solution_item_2);
-
 struct SolutionBin
 {
     /** Bin type. */
@@ -306,7 +285,6 @@ private:
 
 };
 
-std::ostream& operator<<(std::ostream &os, const SolutionItem& item);
 std::ostream& operator<<(std::ostream &os, const Solution& solution);
 
 }
