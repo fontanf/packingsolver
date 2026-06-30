@@ -81,4 +81,22 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing" / "parameters.csv",
                 fs::path("data") / "rectangle" / "tests" / "variable_sized_bin_packing" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_area" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_area" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_area" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_area" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_x" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_x" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_x" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_x" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_y" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_y" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_y" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_y" / "solution.csv",
             }}));

@@ -82,23 +82,31 @@ BranchingScheme::Direction default_direction(
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
     bool lengthwise = (bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min) >= (bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min);
-    switch (instance.parameters().leftover_corner) {
-    case Corner::BottomLeft: {
+    switch (instance.parameters().leftover_mode) {
+    case LeftoverMode::BottomLeft: {
         return (lengthwise)?
             BranchingScheme::Direction::LeftToRightThenBottomToTop:
             BranchingScheme::Direction::BottomToTopThenLeftToRight;
-    } case Corner::BottomRight: {
+    } case LeftoverMode::BottomRight: {
         return (lengthwise)?
             BranchingScheme::Direction::RightToLeftThenBottomToTop:
             BranchingScheme::Direction::BottomToTopThenRightToLeft;
-    } case Corner::TopLeft: {
+    } case LeftoverMode::TopLeft: {
         return (lengthwise)?
             BranchingScheme::Direction::LeftToRightThenTopToBottom:
             BranchingScheme::Direction::TopToBottomThenLeftToRight;
-    } case Corner::TopRight: {
+    } case LeftoverMode::TopRight: {
         return (lengthwise)?
             BranchingScheme::Direction::RightToLeftThenTopToBottom:
             BranchingScheme::Direction::TopToBottomThenRightToLeft;
+    } case LeftoverMode::Left: {
+        return BranchingScheme::Direction::LeftToRightThenBottomToTop;
+    } case LeftoverMode::Right: {
+        return BranchingScheme::Direction::RightToLeftThenBottomToTop;
+    } case LeftoverMode::Bottom: {
+        return BranchingScheme::Direction::BottomToTopThenLeftToRight;
+    } case LeftoverMode::Top: {
+        return BranchingScheme::Direction::TopToBottomThenLeftToRight;
     }
     }
     return BranchingScheme::Direction::LeftToRightThenBottomToTop;
@@ -1261,22 +1269,38 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.y_max = xy.y + aabb.y_max;
     }
 
-    switch (instance().parameters().leftover_corner) {
-    case Corner::BottomLeft: {
+    switch (instance().parameters().leftover_mode) {
+    case LeftoverMode::BottomLeft: {
         node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
             - (node.x_max - bin_type.aabb_orig.x_min) * (node.y_max - bin_type.aabb_orig.y_min);
         break;
-    } case Corner::BottomRight: {
+    } case LeftoverMode::BottomRight: {
         node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
             - (bin_type.aabb_orig.x_max - node.x_min) * (node.y_max - bin_type.aabb_orig.y_min);
         break;
-    } case Corner::TopLeft: {
+    } case LeftoverMode::TopLeft: {
         node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
             - (node.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - node.y_min);
         break;
-    } case Corner::TopRight: {
+    } case LeftoverMode::TopRight: {
         node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
             - (bin_type.aabb_orig.x_max - node.x_min) * (bin_type.aabb_orig.y_max - node.y_min);
+        break;
+    } case LeftoverMode::Left: {
+        node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            - (node.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
+        break;
+    } case LeftoverMode::Right: {
+        node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            - (bin_type.aabb_orig.x_max - node.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
+        break;
+    } case LeftoverMode::Bottom: {
+        node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            - (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (node.y_max - bin_type.aabb_orig.y_min);
+        break;
+    } case LeftoverMode::Top: {
+        node.leftover_value = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+            - (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - node.y_min);
         break;
     }
     }
@@ -2722,8 +2746,8 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         };
     } else if (instance.number_of_bins() == 1) {
         if (instance.objective() == Objective::BinPackingWithLeftovers) {
-            switch (instance.parameters().leftover_corner) {
-            case Corner::BottomLeft: {
+            switch (instance.parameters().leftover_mode) {
+            case LeftoverMode::BottomLeft: {
                 directions = {
                     BranchingScheme::Direction::LeftToRightThenBottomToTop,
                     BranchingScheme::Direction::BottomToTopThenLeftToRight,
@@ -2731,7 +2755,7 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                     BranchingScheme::Direction::BottomToTopThenRightToLeft,
                 };
                 break;
-            } case Corner::BottomRight: {
+            } case LeftoverMode::BottomRight: {
                 directions = {
                     BranchingScheme::Direction::RightToLeftThenBottomToTop,
                     BranchingScheme::Direction::BottomToTopThenLeftToRight,
@@ -2739,7 +2763,7 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                     BranchingScheme::Direction::BottomToTopThenRightToLeft,
                 };
                 break;
-            } case Corner::TopLeft: {
+            } case LeftoverMode::TopLeft: {
                 directions = {
                     BranchingScheme::Direction::LeftToRightThenBottomToTop,
                     BranchingScheme::Direction::TopToBottomThenLeftToRight,
@@ -2747,11 +2771,35 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                     BranchingScheme::Direction::TopToBottomThenRightToLeft,
                 };
                 break;
-            } case Corner::TopRight: {
+            } case LeftoverMode::TopRight: {
                 directions = {
                     BranchingScheme::Direction::RightToLeftThenBottomToTop,
                     BranchingScheme::Direction::TopToBottomThenLeftToRight,
                     BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                    BranchingScheme::Direction::TopToBottomThenRightToLeft,
+                };
+                break;
+            } case LeftoverMode::Left: {
+                directions = {
+                    BranchingScheme::Direction::LeftToRightThenBottomToTop,
+                    BranchingScheme::Direction::LeftToRightThenTopToBottom,
+                };
+                break;
+            } case LeftoverMode::Right: {
+                directions = {
+                    BranchingScheme::Direction::RightToLeftThenBottomToTop,
+                    BranchingScheme::Direction::RightToLeftThenTopToBottom,
+                };
+                break;
+            } case LeftoverMode::Bottom: {
+                directions = {
+                    BranchingScheme::Direction::BottomToTopThenLeftToRight,
+                    BranchingScheme::Direction::BottomToTopThenRightToLeft,
+                };
+                break;
+            } case LeftoverMode::Top: {
+                directions = {
+                    BranchingScheme::Direction::TopToBottomThenLeftToRight,
                     BranchingScheme::Direction::TopToBottomThenRightToLeft,
                 };
                 break;
@@ -2766,18 +2814,30 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
             };
         }
     } else {
-        switch (instance.parameters().leftover_corner) {
-        case Corner::BottomLeft: {
+        switch (instance.parameters().leftover_mode) {
+        case LeftoverMode::BottomLeft: {
             directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
             break;
-        } case Corner::BottomRight: {
+        } case LeftoverMode::BottomRight: {
             directions = {BranchingScheme::Direction::RightToLeftThenBottomToTop};
             break;
-        } case Corner::TopLeft: {
+        } case LeftoverMode::TopLeft: {
             directions = {BranchingScheme::Direction::LeftToRightThenTopToBottom,};
             break;
-        } case Corner::TopRight: {
+        } case LeftoverMode::TopRight: {
             directions = {BranchingScheme::Direction::RightToLeftThenTopToBottom};
+            break;
+        } case LeftoverMode::Left: {
+            directions = {BranchingScheme::Direction::LeftToRightThenBottomToTop};
+            break;
+        } case LeftoverMode::Right: {
+            directions = {BranchingScheme::Direction::RightToLeftThenBottomToTop};
+            break;
+        } case LeftoverMode::Bottom: {
+            directions = {BranchingScheme::Direction::BottomToTopThenLeftToRight};
+            break;
+        } case LeftoverMode::Top: {
+            directions = {BranchingScheme::Direction::TopToBottomThenLeftToRight};
             break;
         }
         }

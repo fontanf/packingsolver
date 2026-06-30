@@ -8,26 +8,42 @@ using namespace packingsolver::irregular;
 
 std::istream& packingsolver::irregular::operator>>(
         std::istream& in,
-        Corner& corner)
+        LeftoverMode& leftover_mode)
 {
     std::string token;
     in >> token;
     if (token == "bottom-left"
             || token == "BottomLeft"
             || token == "bl") {
-        corner = Corner::BottomLeft;
+        leftover_mode = LeftoverMode::BottomLeft;
     } else if (token == "bottom-right"
             || token == "BottomRight"
             || token == "br") {
-        corner = Corner::BottomRight;
+        leftover_mode = LeftoverMode::BottomRight;
     } else if (token == "top-left"
             || token == "TopLeft"
             || token == "tl") {
-        corner = Corner::TopLeft;
+        leftover_mode = LeftoverMode::TopLeft;
     } else if (token == "top-right"
             || token == "TopRight"
             || token == "tr") {
-        corner = Corner::TopRight;
+        leftover_mode = LeftoverMode::TopRight;
+    } else if (token == "left"
+            || token == "Left"
+            || token == "l") {
+        leftover_mode = LeftoverMode::Left;
+    } else if (token == "right"
+            || token == "Right"
+            || token == "r") {
+        leftover_mode = LeftoverMode::Right;
+    } else if (token == "bottom"
+            || token == "Bottom"
+            || token == "b") {
+        leftover_mode = LeftoverMode::Bottom;
+    } else if (token == "top"
+            || token == "Top"
+            || token == "t") {
+        leftover_mode = LeftoverMode::Top;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -36,20 +52,32 @@ std::istream& packingsolver::irregular::operator>>(
 
 std::ostream& packingsolver::irregular::operator<<(
         std::ostream& os,
-        Corner corner)
+        LeftoverMode leftover_mode)
 {
-    switch (corner) {
-    case Corner::BottomLeft: {
+    switch (leftover_mode) {
+    case LeftoverMode::BottomLeft: {
         os << "BottomLeft";
         break;
-    } case Corner::BottomRight: {
+    } case LeftoverMode::BottomRight: {
         os << "BottomRight";
         break;
-    } case Corner::TopLeft: {
+    } case LeftoverMode::TopLeft: {
         os << "TopLeft";
         break;
-    } case Corner::TopRight: {
+    } case LeftoverMode::TopRight: {
         os << "TopRight";
+        break;
+    } case LeftoverMode::Left: {
+        os << "Left";
+        break;
+    } case LeftoverMode::Right: {
+        os << "Right";
+        break;
+    } case LeftoverMode::Bottom: {
+        os << "Bottom";
+        break;
+    } case LeftoverMode::Top: {
+        os << "Top";
         break;
     }
     }
@@ -359,7 +387,7 @@ std::ostream& Instance::format(
             << "Number of rectangular items:  " << number_of_rectangular_items_ << std::endl
             << "Number of circular items:     " << number_of_circular_items_ << std::endl
             << "Item-item minimum spacing:    " << parameters().item_item_minimum_spacing << std::endl
-            << "Leftover corner:              " << parameters().leftover_corner << std::endl
+            << "Leftover mode:                " << parameters().leftover_mode << std::endl
             << "Open dim. XY aspect ratio:    " << parameters().open_dimension_xy_aspect_ratio << std::endl
             << "Total item area:              " << item_area() << std::endl
             << "Smallest item area:           " << smallest_item_area() << std::endl
@@ -787,9 +815,9 @@ void Instance::write(
     // Export parameters.
     json["parameters"]["item_item_minimum_spacing"] = parameters().item_item_minimum_spacing;
     json["parameters"]["open_dimension_xy_aspect_ratio"] = parameters().open_dimension_xy_aspect_ratio;
-    std::stringstream leftover_corner_ss;
-    leftover_corner_ss << parameters().leftover_corner;
-    json["parameters"]["leftover_corner"] = leftover_corner_ss.str();
+    std::stringstream leftover_mode_ss;
+    leftover_mode_ss << parameters().leftover_mode;
+    json["parameters"]["leftover_mode"] = leftover_mode_ss.str();
 
     file << std::setw(4) << json << std::endl;
 }

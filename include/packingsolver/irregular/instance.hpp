@@ -15,21 +15,25 @@ using namespace shape;
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-enum class Corner
+enum class LeftoverMode
 {
     BottomLeft,
     BottomRight,
     TopLeft,
     TopRight,
+    Left,
+    Right,
+    Bottom,
+    Top,
 };
 
 std::istream& operator>>(
         std::istream& in,
-        Corner& corner);
+        LeftoverMode& leftover_mode);
 
 std::ostream& operator<<(
         std::ostream& os,
-        Corner corner);
+        LeftoverMode leftover_mode);
 
 struct Parameters
 {
@@ -44,8 +48,8 @@ struct Parameters
     /** Minimum distance between two items. */
     LengthDbl item_item_minimum_spacing = 0.0;
 
-    /** Reference corner to compute the leftover value. */
-    Corner leftover_corner = Corner::BottomLeft;
+    /** Reference corner/edge to compute the leftover value. */
+    LeftoverMode leftover_mode = LeftoverMode::BottomLeft;
 
     /** Scale value. */
     LengthDbl scale_value = std::numeric_limits<LengthDbl>::infinity();

@@ -321,12 +321,12 @@ void InstanceBuilder::read(
             set_item_item_minimum_spacing(json_parameters["item_item_minimum_spacing"]);
         if (json_parameters.contains("open_dimension_xy_aspect_ratio"))
             set_open_dimension_xy_aspect_ratio(json_parameters["open_dimension_xy_aspect_ratio"]);
-        if (json_parameters.contains("leftover_corner")) {
-            std::stringstream leftover_corner_ss;
-            leftover_corner_ss << std::string(json_parameters["leftover_corner"]);
-            Corner leftover_corner;
-            leftover_corner_ss >> leftover_corner;
-            set_leftover_corner(leftover_corner);
+        if (json_parameters.contains("leftover_mode")) {
+            std::stringstream leftover_mode_ss;
+            leftover_mode_ss << std::string(json_parameters["leftover_mode"]);
+            LeftoverMode leftover_mode;
+            leftover_mode_ss >> leftover_mode;
+            set_leftover_mode(leftover_mode);
         }
     }
 

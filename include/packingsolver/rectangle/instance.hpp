@@ -18,6 +18,24 @@ std::ostream& operator<<(
         std::ostream& os,
         Direction o);
 
+enum class LeftoverMode
+{
+    /** Leftover value is bin_area - x_max * y_max (default). */
+    Area,
+    /** Leftover value is bin_width - x_max; forces Direction::X. */
+    X,
+    /** Leftover value is bin_height - y_max; forces Direction::Y. */
+    Y,
+};
+
+std::istream& operator>>(
+        std::istream& in,
+        LeftoverMode& leftover_mode);
+
+std::ostream& operator<<(
+        std::ostream& os,
+        LeftoverMode leftover_mode);
+
 
 enum class UnloadingConstraint
 {
@@ -253,6 +271,9 @@ struct Parameters
 {
     /** Unloading constraint. */
     UnloadingConstraint unloading_constraint = UnloadingConstraint::None;
+
+    /** How the leftover value is defined for BinPackingWithLeftovers. */
+    LeftoverMode leftover_mode = LeftoverMode::Area;
 
     /**
      * 'true' iff weight constraints must be satisfied for all items belonging
