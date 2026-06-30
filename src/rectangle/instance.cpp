@@ -47,6 +47,46 @@ std::ostream& rectangle::operator<<(
 
 std::istream& rectangle::operator>>(
         std::istream& in,
+        LeftoverMode& leftover_mode)
+{
+    std::string token;
+    in >> token;
+    if (token == "area"
+            || token == "Area") {
+        leftover_mode = LeftoverMode::Area;
+    } else if (token == "x"
+            || token == "X") {
+        leftover_mode = LeftoverMode::X;
+    } else if (token == "y"
+            || token == "Y") {
+        leftover_mode = LeftoverMode::Y;
+    } else {
+        in.setstate(std::ios_base::failbit);
+    }
+    return in;
+}
+
+std::ostream& rectangle::operator<<(
+        std::ostream& os,
+        LeftoverMode leftover_mode)
+{
+    switch (leftover_mode) {
+    case LeftoverMode::Area: {
+        os << "Area";
+        break;
+    } case LeftoverMode::X: {
+        os << "X";
+        break;
+    } case LeftoverMode::Y: {
+        os << "Y";
+        break;
+    }
+    }
+    return os;
+}
+
+std::istream& rectangle::operator>>(
+        std::istream& in,
         UnloadingConstraint& unloading_constraint)
 {
     std::string token;
@@ -449,6 +489,7 @@ void Instance::write(
     }
     f_parameters << "NAME,VALUE" << std::endl
         << "objective," << objective() << std::endl
-        << "unloading_constraint," << unloading_constraint() << std::endl;
+        << "unloading_constraint," << unloading_constraint() << std::endl
+        << "leftover_mode," << parameters().leftover_mode << std::endl;
 
 }

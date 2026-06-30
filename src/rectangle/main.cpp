@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
             ("objective,f", po::value<Objective>(), "Objective")
 
             ("unloading-constraint,", po::value<rectangle::UnloadingConstraint>(), "")
+            ("leftover-mode,", po::value<rectangle::LeftoverMode>(), "")
 
             ("output,o", po::value<std::string>(), "Output path")
             ("certificate,c", po::value<std::string>(), "Certificate path")
@@ -187,6 +188,8 @@ int main(int argc, char *argv[])
             instance_builder.set_objective(vm["objective"].as<Objective>());
         if (vm.count("unloading-constraint"))
             instance_builder.set_unloading_constraint(vm["unloading-constraint"].as<UnloadingConstraint>());
+        if (vm.count("leftover-mode"))
+            instance_builder.set_leftover_mode(vm["leftover-mode"].as<LeftoverMode>());
 
         Instance instance = instance_builder.build();
 

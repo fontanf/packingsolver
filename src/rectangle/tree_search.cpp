@@ -456,7 +456,15 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 "node.waste: " + std::to_string(node.waste) + ".");
     }
 
-    node.leftover_value = bin_type.area() - node.xe_max * node.ye_max;
+    switch (instance.parameters().leftover_mode) {
+    case LeftoverMode::Area: {
+        node.leftover_value = bin_type.area() - node.xe_max * node.ye_max;
+        break;
+    } case LeftoverMode::X: case LeftoverMode::Y: {
+        node.leftover_value = bin_type.rect.x - node.xe_max;
+        break;
+    }
+    }
 
     if (instance.unloading_constraint() == rectangle::UnloadingConstraint::IncreasingX) {
         if (node.groups[item_type.group_id].x_min > insertion.x)
@@ -1433,6 +1441,12 @@ const packingsolver::rectangle::TreeSearchOutput packingsolver::rectangle::tree_
     if (instance.objective() == Objective::OpenDimensionX) {
         directions = {Direction::X};
     } else if (instance.objective() == Objective::OpenDimensionY) {
+        directions = {Direction::Y};
+    } else if (instance.objective() == Objective::BinPackingWithLeftovers
+            && instance.parameters().leftover_mode == LeftoverMode::X) {
+        directions = {Direction::X};
+    } else if (instance.objective() == Objective::BinPackingWithLeftovers
+            && instance.parameters().leftover_mode == LeftoverMode::Y) {
         directions = {Direction::Y};
     } else if (instance.unloading_constraint() == UnloadingConstraint::IncreasingX
             || instance.unloading_constraint() == UnloadingConstraint::OnlyXMovements) {

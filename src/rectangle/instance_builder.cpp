@@ -450,6 +450,11 @@ void InstanceBuilder::read_parameters(
             std::stringstream ss(value);
             ss >> unloading_constraint;
             set_unloading_constraint(unloading_constraint);
+        } else if (name == "leftover_mode") {
+            rectangle::LeftoverMode leftover_mode;
+            std::stringstream ss(value);
+            ss >> leftover_mode;
+            set_leftover_mode(leftover_mode);
         }
     }
 }

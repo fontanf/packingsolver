@@ -48,6 +48,8 @@ public:
 
     void set_unloading_constraint(UnloadingConstraint unloading_constraint) { instance_.parameters_.unloading_constraint = unloading_constraint; }
 
+    void set_leftover_mode(LeftoverMode leftover_mode) { instance_.parameters_.leftover_mode = leftover_mode; }
+
     /*
      * Set bin types
      */

@@ -104,22 +104,38 @@ void Solution::add_item(
         y_min_ = bin.y_min;
         x_max_ = bin.x_max;
         y_max_ = bin.y_max;
-        switch (instance().parameters().leftover_corner) {
-        case Corner::BottomLeft: {
+        switch (instance().parameters().leftover_mode) {
+        case LeftoverMode::BottomLeft: {
             leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
                 - (x_max_ - bin_type.aabb_orig.x_min) * (y_max_ - bin_type.aabb_orig.y_min);
             break;
-        } case Corner::BottomRight: {
+        } case LeftoverMode::BottomRight: {
             leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
                 - (bin_type.aabb_orig.x_max - x_min_) * (y_max_ - bin_type.aabb_orig.y_min);
             break;
-        } case Corner::TopLeft: {
+        } case LeftoverMode::TopLeft: {
             leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
                 - (x_max_ - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - y_min_);
             break;
-        } case Corner::TopRight: {
+        } case LeftoverMode::TopRight: {
             leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
                 - (bin_type.aabb_orig.x_max - x_min_) * (bin_type.aabb_orig.y_max - y_min_);
+            break;
+        } case LeftoverMode::Left: {
+            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                - (x_max_ - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
+            break;
+        } case LeftoverMode::Right: {
+            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                - (bin_type.aabb_orig.x_max - x_min_) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
+            break;
+        } case LeftoverMode::Bottom: {
+            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                - (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (y_max_ - bin_type.aabb_orig.y_min);
+            break;
+        } case LeftoverMode::Top: {
+            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                - (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - y_min_);
             break;
         }
         }
