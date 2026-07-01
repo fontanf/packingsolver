@@ -173,10 +173,20 @@ public:
     struct Insertion
     {
         /**
-         * - -1: the item is inserted in the last bin
-         * - Otherwise, direction
+         * - Direction::Any: the item is inserted in the last bin
+         * - Otherwise, direction of the new bin the item is inserted in
          */
         Direction new_bin_direction = Direction::Any;
+
+        /**
+         * Position of the new bin the item is inserted in, only meaningful
+         * when 'new_bin_direction != Direction::Any'.
+         *
+         * Not necessarily equal to the parent node's 'number_of_bins': bins
+         * that can't fit any item are skipped so that the next available
+         * bin can be tried instead.
+         */
+        BinPos new_bin_pos = -1;
 
         /** Id of the inserted rectangle set. */
         TrapezoidSetId trapezoid_set_id = -1;
@@ -607,7 +617,8 @@ private:
             LengthDbl supporting_part_x,
             LengthDbl supporting_part_y,
             ShapePos supported_part_pos,
-            Direction new_bin_direction) const;
+            Direction new_bin_direction,
+            BinPos new_bin_pos = -1) const;
 
     void json_export_setup() const;
 
