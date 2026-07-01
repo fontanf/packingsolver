@@ -9,7 +9,7 @@ using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
 namespace fs = boost::filesystem;
 
-struct RectanlgeGuillotineBranchingSchemeTestParams
+struct RectangleGuillotineTreeSearchTestParams
 {
     fs::path bins_path;
     fs::path defects_path;
@@ -18,17 +18,17 @@ struct RectanlgeGuillotineBranchingSchemeTestParams
     fs::path certificate_path;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const RectanlgeGuillotineBranchingSchemeTestParams& test_params)
+inline std::ostream& operator<<(std::ostream& os, const RectangleGuillotineTreeSearchTestParams& test_params)
 {
     os << test_params.items_path;
     return os;
 }
 
-class RectangleGuillotineBranchingSchemeTest: public testing::TestWithParam<RectanlgeGuillotineBranchingSchemeTestParams> { };
+class RectangleGuillotineTreeSearchTest: public testing::TestWithParam<RectangleGuillotineTreeSearchTestParams> { };
 
-TEST_P(RectangleGuillotineBranchingSchemeTest, RectangleGuillotineBranchingScheme)
+TEST_P(RectangleGuillotineTreeSearchTest, RectangleGuillotineTreeSearch)
 {
-    RectanlgeGuillotineBranchingSchemeTestParams test_params = GetParam();
+    RectangleGuillotineTreeSearchTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
     instance_builder.read_bin_types(test_params.bins_path.string());
     instance_builder.read_defects(test_params.defects_path.string());
@@ -55,8 +55,8 @@ TEST_P(RectangleGuillotineBranchingSchemeTest, RectangleGuillotineBranchingSchem
 
 INSTANTIATE_TEST_SUITE_P(
         RectangleGuillotine,
-        RectangleGuillotineBranchingSchemeTest,
-        testing::ValuesIn(std::vector<RectanlgeGuillotineBranchingSchemeTestParams>{
+        RectangleGuillotineTreeSearchTest,
+        testing::ValuesIn(std::vector<RectangleGuillotineTreeSearchTestParams>{
             {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evo_defects_1" / "bins.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evo_defects_1" / "defects.csv",
@@ -133,9 +133,9 @@ INSTANTIATE_TEST_SUITE_P(
 
 
 
-class RectangleGuillotineBranchingSchemeRoadef2018FixedStackTest: public testing::TestWithParam<std::string> { };
+class RectangleGuillotineTreeSearchRoadef2018FixedStackTest: public testing::TestWithParam<std::string> { };
 
-TEST_P(RectangleGuillotineBranchingSchemeRoadef2018FixedStackTest, RectangleGuillotineBranchingSchemeRoadef2018FixedStack)
+TEST_P(RectangleGuillotineTreeSearchRoadef2018FixedStackTest, RectangleGuillotineTreeSearchRoadef2018FixedStack)
 {
     std::string name = GetParam();
     InstanceBuilder instance_0_builder;
@@ -228,7 +228,7 @@ TEST_P(RectangleGuillotineBranchingSchemeRoadef2018FixedStackTest, RectangleGuil
 
 INSTANTIATE_TEST_SUITE_P(
         RectangleGuillotine,
-        RectangleGuillotineBranchingSchemeRoadef2018FixedStackTest,
+        RectangleGuillotineTreeSearchRoadef2018FixedStackTest,
         testing::ValuesIn(std::vector<std::string>{
             "A1",
             "A2",
