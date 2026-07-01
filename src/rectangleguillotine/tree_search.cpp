@@ -33,6 +33,15 @@ BranchingScheme::BranchingScheme(
         }
     }
 
+    // Compute minimum_distance_1_cuts_ and minimum_distance_2_cuts_.
+    if (instance.parameters().number_of_stages == 2) {
+        minimum_distance_1_cuts_ = 0;
+        minimum_distance_2_cuts_ = instance.parameters().minimum_distance_1_cuts;
+    } else {
+        minimum_distance_1_cuts_ = instance.parameters().minimum_distance_1_cuts;
+        minimum_distance_2_cuts_ = instance.parameters().minimum_distance_2_cuts;
+    }
+
     // Compute no_oriented_items_;
     no_oriented_items_ = true;
     for (ItemTypeId item_type_id = 0;
@@ -1074,28 +1083,28 @@ void BranchingScheme::update(
     // Update insertion.x1 and insertion.z1 with respect to min1cut()
     //std::cout << "- update min1cut  " << insertion << std::endl;
     if ((insertion.item_type_id_1 != -1 || insertion.item_type_id_2 != -1)
-            && insertion.x1 - x1_prev(parent, insertion.df) < instance.parameters().minimum_distance_1_cuts) {
+            && insertion.x1 - x1_prev(parent, insertion.df) < minimum_distance_1_cuts_) {
         if (insertion.z1 == 0) {
             insertion.x1 = std::max(
                     insertion.x1 + cut_thickness + min_waste,
-                    x1_prev(parent, insertion.df) + instance.parameters().minimum_distance_1_cuts);
+                    x1_prev(parent, insertion.df) + minimum_distance_1_cuts_);
             insertion.z1 = 1;
         } else { // insertion.z1 = 1
-            insertion.x1 = x1_prev(parent, insertion.df) + instance.parameters().minimum_distance_1_cuts;
+            insertion.x1 = x1_prev(parent, insertion.df) + minimum_distance_1_cuts_;
         }
     }
 
     // Update insertion.y2 and insertion.z2 with respect to min2cut()
     //std::cout << "- update min2cut  " << insertion << std::endl;
     if ((insertion.item_type_id_1 != -1 || insertion.item_type_id_2 != -1)
-            && insertion.y2 - y2_prev(parent, insertion.df) < instance.parameters().minimum_distance_2_cuts) {
+            && insertion.y2 - y2_prev(parent, insertion.df) < minimum_distance_2_cuts_) {
         if (insertion.z2 == 0) {
             insertion.y2 = std::max(
                     insertion.y2 + cut_thickness + min_waste,
-                    y2_prev(parent, insertion.df) + instance.parameters().minimum_distance_2_cuts);
+                    y2_prev(parent, insertion.df) + minimum_distance_2_cuts_);
             insertion.z2 = 1;
         } else if (insertion.z2 == 1) {
-            insertion.y2 = y2_prev(parent, insertion.df) + instance.parameters().minimum_distance_2_cuts;
+            insertion.y2 = y2_prev(parent, insertion.df) + minimum_distance_2_cuts_;
         } else { // insertion.z2 == 2
             return;
         }

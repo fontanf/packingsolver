@@ -381,6 +381,27 @@ private:
     /** First stage orientation. */
     CutOrientation first_stage_orientation_ = CutOrientation::Any;
 
+    /**
+     * Effective minimum distance between two consecutive 1-cuts.
+     *
+     * For 2-staged instances, insertion.x1 does not correspond to a real
+     * 1-cut (it is overwritten by the 2-staged collapse), so this is set to
+     * 0 in that case; minimum_distance_1_cuts is enforced instead through
+     * minimum_distance_2_cuts_, see below.
+     */
+    Length minimum_distance_1_cuts_ = 0;
+
+    /**
+     * Effective minimum distance between two consecutive 2-cuts.
+     *
+     * For 2-staged instances, depth-2 cuts are the only cuts left once the
+     * (possibly flipped) first-stage decision is made, so they are the ones
+     * effectively bounded by minimum_distance_1_cuts; minimum_distance_2_cuts
+     * has no independent meaning there (there is no 3rd stage for it to
+     * separate).
+     */
+    Length minimum_distance_2_cuts_ = 0;
+
     bool no_oriented_items_;
 
     /**
