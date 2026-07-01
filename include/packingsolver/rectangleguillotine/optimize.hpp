@@ -38,6 +38,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use column generation strips algorithm. */
     bool use_column_generation_strips = false;
 
+    /** Use sequential strips onedimensional algorithm. */
+    bool use_sequential_strips_onedimensional = false;
+
     /** Use dynamic programming (infinite copies, array) algorithm. */
     bool use_dynamic_programming_infinite_copies_array = false;
 

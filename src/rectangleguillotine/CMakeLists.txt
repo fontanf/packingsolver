@@ -14,6 +14,7 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     tree_search.cpp
     tree_search_maximal_spaces.cpp
     column_generation_strips.cpp
+    sequential_strips_onedimensional.cpp
     dynamic_programming_infinite_copies_array.cpp
     labeling.cpp)
 target_include_directories(PackingSolver_rectangleguillotine PUBLIC

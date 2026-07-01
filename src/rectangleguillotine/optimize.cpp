@@ -5,6 +5,7 @@
 #include "rectangleguillotine/tree_search.hpp"
 #include "rectangleguillotine/tree_search_maximal_spaces.hpp"
 #include "rectangleguillotine/column_generation_strips.hpp"
+#include "rectangleguillotine/sequential_strips_onedimensional.hpp"
 #include "rectangleguillotine/block.hpp"
 #include "rectangleguillotine/dynamic_programming_infinite_copies_array.hpp"
 #include "rectangleguillotine/labeling.hpp"
@@ -171,6 +172,28 @@ void optimize_column_generation_strips(
         }
     };
     column_generation_strips(instance, cg_parameters);
+}
+
+void optimize_sequential_strips_onedimensional(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    SequentialStripsOnedimensionalParameters sso_parameters;
+    sso_parameters.verbosity_level = 0;
+    sso_parameters.timer = parameters.timer;
+    sso_parameters.linear_programming_solver_name
+        = parameters.linear_programming_solver_name;
+    sso_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    sso_parameters.optimization_mode = parameters.optimization_mode;
+    sso_parameters.new_solution_callback = [&algorithm_formatter](
+            const packingsolver::Output<Instance, Solution>& ps_output)
+    {
+        algorithm_formatter.update_solution(
+                ps_output.solution_pool.best(),
+                "SSO " + ps_output.solution_pool.best_label());
+    };
+    sequential_strips_onedimensional(instance, sso_parameters);
 }
 
 void optimize_sequential_single_knapsack(
@@ -394,6 +417,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     bool use_tree_search = parameters.use_tree_search;
     bool use_tree_search_maximal_spaces = parameters.use_tree_search_maximal_spaces;
     bool use_column_generation_strips = parameters.use_column_generation_strips;
+    bool use_sequential_strips_onedimensional = parameters.use_sequential_strips_onedimensional;
     bool use_dynamic_programming_infinite_copies_array = parameters.use_dynamic_programming_infinite_copies_array;
     bool use_labeling = parameters.use_labeling;
     bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
@@ -406,6 +430,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
+        use_sequential_strips_onedimensional = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_tree_search_maximal_spaces
@@ -445,6 +470,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
         use_column_generation_strips = false;
+        use_sequential_strips_onedimensional = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -469,13 +495,16 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
         use_column_generation_strips = false;
-        if (instance.number_of_bin_types() > 1)
+        if (instance.number_of_bin_types() > 1) {
             use_column_generation = false;
+            use_sequential_strips_onedimensional = false;
+        }
         use_dichotomic_search = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
+                && !use_sequential_strips_onedimensional
                 && !use_column_generation) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
@@ -507,6 +536,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
         use_column_generation_strips = false;
+        use_sequential_strips_onedimensional = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
@@ -624,6 +654,18 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
             wrapper<decltype(&optimize_column_generation_strips), optimize_column_generation_strips>(
+                    exception_ptr,
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        });
+    }
+    // Sequential strips onedimensional.
+    if (use_sequential_strips_onedimensional) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter]() {
+            wrapper<decltype(&optimize_sequential_strips_onedimensional), optimize_sequential_strips_onedimensional>(
                     exception_ptr,
                     instance,
                     parameters,

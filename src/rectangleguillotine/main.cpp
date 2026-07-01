@@ -112,6 +112,7 @@ int main(int argc, char *argv[])
             ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
             ("use-tree-search-maximal-spaces,", po::value<bool>(), "enable tree search maximal spaces algorithm")
             ("use-column-generation-strips,", po::value<bool>(), "enable column generation strips algorithm")
+            ("use-sequential-strips-onedimensional,", po::value<bool>(), "enable sequential strips onedimensional algorithm")
             ("use-dynamic-programming-infinite-copies-array,", po::value<bool>(), "enable dynamic programming (infinite copies, array) algorithm")
             ("use-labeling,", po::value<bool>(), "enable labeling algorithm")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
@@ -264,6 +265,8 @@ int main(int argc, char *argv[])
             parameters.use_tree_search_maximal_spaces = vm["use-tree-search-maximal-spaces"].as<bool>();
         if (vm.count("use-column-generation-strips"))
             parameters.use_column_generation_strips = vm["use-column-generation-strips"].as<bool>();
+        if (vm.count("use-sequential-strips-onedimensional"))
+            parameters.use_sequential_strips_onedimensional = vm["use-sequential-strips-onedimensional"].as<bool>();
         if (vm.count("use-dynamic-programming-infinite-copies-array"))
             parameters.use_dynamic_programming_infinite_copies_array = vm["use-dynamic-programming-infinite-copies-array"].as<bool>();
         if (vm.count("use-labeling"))
