@@ -245,6 +245,52 @@ if args.tests is None or "rectangleguillotine-bin-packing-sequential-single-knap
     print()
     print()
 
+if args.tests is None or "rectangleguillotine-bin-packing-sequential-strips-onedimensional" in args.tests:
+    print("rectangleguillotine, bin packing, sequential strips onedimensional")
+    print("--------------------------------------------------------------------")
+    print()
+
+    data = [
+            (os.path.join("berkey1987", "Class_01.2bp_100_1"), " --bin-infinite-copies"),
+            (os.path.join("berkey1987", "Class_02.2bp_100_1"), " --bin-infinite-copies"),
+            (os.path.join("berkey1987", "Class_03.2bp_100_1"), " --bin-infinite-copies"),
+            (os.path.join("berkey1987", "Class_04.2bp_100_1"), " --bin-infinite-copies"),
+            (os.path.join("berkey1987", "Class_05.2bp_100_1"), " --bin-infinite-copies"),
+            (os.path.join("berkey1987", "Class_06.2bp_100_1"), " --bin-infinite-copies"),
+            (os.path.join("martello1998", "Class_07.2bp_100_1"), " --bin-infinite-copies"),
+            (os.path.join("martello1998", "Class_08.2bp_100_1"), " --bin-infinite-copies"),
+            (os.path.join("martello1998", "Class_09.2bp_100_1"), " --bin-infinite-copies"),
+            (os.path.join("martello1998", "Class_10.2bp_100_1"), " --bin-infinite-copies")]
+    for instance, options in data:
+        instance_path = os.path.join(
+                "data",
+                "rectangle",
+                instance)
+        json_output_path = os.path.join(
+                args.directory,
+                "rectangleguillotine",
+                "bin_packing_sequential_strips_onedimensional",
+                instance + ".json")
+        if not os.path.exists(os.path.dirname(json_output_path)):
+            os.makedirs(os.path.dirname(json_output_path))
+        command = (
+                rectangleguillotine_main
+                + "  --verbosity-level 1"
+                + "  --items \"" + instance_path + "\""
+                + options
+                + " --objective bin-packing"
+                + " --predefined 2NHO"
+                + "  --optimization-mode not-anytime-deterministic"
+                + " --use-sequential-strips-onedimensional 1"
+                + "  --output \"" + json_output_path + "\"")
+        print(command)
+        status = os.system(command)
+        if status != 0:
+            sys.exit(1)
+        print()
+    print()
+    print()
+
 if args.tests is None or "rectangleguillotine-bin-packing-sequential-value-correction" in args.tests:
     print("rectangleguillotine, bin packing, sequential value correction")
     print("-------------------------------------------------------------")
