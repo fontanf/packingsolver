@@ -1,15 +1,15 @@
 add_executable(PackingSolver_rectangleguillotine_test)
 target_sources(PackingSolver_rectangleguillotine_test PRIVATE
     rectangleguillotine_test.cpp
-    branching_scheme/waste_test.cpp
-    branching_scheme/add_test.cpp
-    branching_scheme/insertion_test.cpp
-    branching_scheme/defect_test.cpp
-    branching_scheme/cut_through_defect_test.cpp
-    branching_scheme/trim_test.cpp
-    branching_scheme/cut_thickness_test.cpp
-    branching_scheme/integration_test.cpp
-    branching_scheme/branching_scheme_test.cpp
+    tree_search/waste_test.cpp
+    tree_search/add_test.cpp
+    tree_search/insertion_test.cpp
+    tree_search/defect_test.cpp
+    tree_search/cut_through_defect_test.cpp
+    tree_search/trim_test.cpp
+    tree_search/cut_thickness_test.cpp
+    tree_search/integration_test.cpp
+    tree_search/tree_search_test.cpp
     column_generation_strips_test.cpp
     dynamic_programming_infinite_copies_array_test.cpp
     labeling_test.cpp
