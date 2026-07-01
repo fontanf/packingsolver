@@ -30,9 +30,11 @@ public:
 
     ColumnGenerationPricingSolver(
             const Instance& instance,
-            const ColumnGenerationStripsParameters& parameters):
+            const ColumnGenerationStripsParameters& parameters,
+            AlgorithmFormatter& algorithm_formatter):
         instance_(instance),
         parameters_(parameters),
+        algorithm_formatter_(algorithm_formatter),
         filled_demands_(instance.number_of_item_types())
     { }
 
@@ -77,9 +79,24 @@ private:
             PricingOutput& output,
             Value& reduced_cost_bound);
 
+    /**
+     * Generate columns with all duals set to zero, i.e. using real profit
+     * instead of reduced profit. This guarantees that the best real-profit
+     * column for the current branch (in particular a single-strip solution,
+     * since every generated strip is also considered as a candidate
+     * solution) is found regardless of where the master problem's dual
+     * values happen to be, since a real-profit-optimal column does not
+     * always become reduced-cost-optimal at the dual values actually
+     * visited by the search.
+     */
+    void generate_duals_zero(
+            PricingOutput& output);
+
     const Instance& instance_;
 
     const ColumnGenerationStripsParameters& parameters_;
+
+    AlgorithmFormatter& algorithm_formatter_;
 
     std::vector<ItemPos> filled_demands_;
 
@@ -93,7 +110,49 @@ private:
 
     bool all_columns_3h_patterns_generated_ = false;
 
+    /**
+     * True from 'initialize_pricing' until the first 'solve_pricing' call has
+     * generated columns using zero duals (i.e. real profit instead of
+     * reduced profit). This guarantees that, for every diving branch, the
+     * best real-profit column (in particular a single-strip solution, since
+     * every generated strip is also considered as a candidate solution) is
+     * always found regardless of where the master problem's dual values
+     * happen to be, since real-profit-optimal columns do not always become
+     * reduced-cost-optimal at the dual values actually visited by the
+     * search.
+     */
+    bool first_pricing_ = true;
+
 };
+
+/**
+ * Maximum width available for a single first-stage (1-cut) segment: the bin's
+ * own width, further capped by 'maximum_distance_1_cuts' if set.
+ */
+Length first_stage_available_width(
+        const Instance& instance,
+        const BinType& bin_type)
+{
+    Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim;
+    Length maximum_distance_1_cuts = instance.parameters().maximum_distance_1_cuts;
+    if (maximum_distance_1_cuts != -1 && maximum_distance_1_cuts < width)
+        width = maximum_distance_1_cuts;
+    return width;
+}
+
+/**
+ * Width of a first-stage (1-cut) segment whose content only requires
+ * 'width', padded with waste up to 'minimum_distance_1_cuts' if set (the
+ * segment's own boundary is free to sit further out than its content, same
+ * as how tree_search pushes 1-cut positions outward to satisfy the
+ * constraint instead of rejecting narrower placements).
+ */
+Length first_stage_padded_width(
+        const Instance& instance,
+        Length width)
+{
+    return (std::max)(width, instance.parameters().minimum_distance_1_cuts);
+}
 
 Column solution_to_column(
         const Solution& solution)
@@ -194,6 +253,13 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_1r_patterns(
 
         if (height_1 > bin_type.rect.h)
             continue;
+        if (width_1 > bin_type.rect.w)
+            continue;
+        // No depth-3 narrowing cut is used here (the item is expected to
+        // span the segment exactly), so a segment narrower than
+        // 'minimum_distance_1_cuts' can't be padded: skip it entirely.
+        if (width_1 < instance.parameters().minimum_distance_1_cuts)
+            continue;
 
         // Retrieve strip.
         SolutionBuilder extra_solution_builder(instance);
@@ -284,31 +350,39 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_2h_patterns(
         //    << "bin_type.h " << bin_type.rect.h
         //    << " copies_max " << copies_max
         //    << std::endl;
-        for (ItemPos copies = 1; copies <= copies_max; ++copies) {
+        // No depth-3 narrowing cut is used here (each item is expected to
+        // span the segment exactly), so a segment narrower than
+        // 'minimum_distance_1_cuts' can't be padded: skip it entirely.
+        if (item_type.rect.w <= bin_type.rect.w
+                && item_type.rect.w >= instance.parameters().minimum_distance_1_cuts) {
+            for (ItemPos copies = 1; copies <= copies_max; ++copies) {
 
-            // Build strip.
-            //std::cout << "build strip no rotation..." << std::endl;
-            //std::cout << "copies " << copies << std::endl;
-            SolutionBuilder extra_solution_builder(instance);
-            extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
-            //std::cout << "add_node 1 " << bin_type.left_trim + item_type.rect.w << std::endl;
-            extra_solution_builder.add_node(1, bin_type.left_trim + item_type.rect.w);
-            Length cut_position = bin_type.bottom_trim;
-            for (ItemPos copy = 0; copy < copies; ++copy) {
-                cut_position += item_type.rect.h;
-                //std::cout << "add_node 2 " << cut_position << std::endl;
-                extra_solution_builder.add_node(2, cut_position);
-                extra_solution_builder.set_last_node_item(item_type_id);
-                cut_position += instance.parameters().cut_thickness;
+                // Build strip.
+                //std::cout << "build strip no rotation..." << std::endl;
+                //std::cout << "copies " << copies << std::endl;
+                SolutionBuilder extra_solution_builder(instance);
+                extra_solution_builder.add_bin(0, 1, CutOrientation::Vertical);
+                //std::cout << "add_node 1 " << bin_type.left_trim + item_type.rect.w << std::endl;
+                extra_solution_builder.add_node(1, bin_type.left_trim + item_type.rect.w);
+                Length cut_position = bin_type.bottom_trim;
+                for (ItemPos copy = 0; copy < copies; ++copy) {
+                    cut_position += item_type.rect.h;
+                    //std::cout << "add_node 2 " << cut_position << std::endl;
+                    extra_solution_builder.add_node(2, cut_position);
+                    extra_solution_builder.set_last_node_item(item_type_id);
+                    cut_position += instance.parameters().cut_thickness;
+                }
+                Solution extra_solution = extra_solution_builder.build();
+
+                // Build column.
+                Column column = solution_to_column(extra_solution);
+                columns.push_back(std::shared_ptr<const Column>(new Column(column)));
             }
-            Solution extra_solution = extra_solution_builder.build();
-
-            // Build column.
-            Column column = solution_to_column(extra_solution);
-            columns.push_back(std::shared_ptr<const Column>(new Column(column)));
         }
 
-        if (!item_type.oriented) {
+        if (!item_type.oriented
+                && item_type.rect.h <= bin_type.rect.w
+                && item_type.rect.h >= instance.parameters().minimum_distance_1_cuts) {
             ItemPos copies_max = (bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim + instance.parameters().cut_thickness)
                 / (item_type.rect.w + instance.parameters().cut_thickness);
             for (ItemPos copies = 1; copies <= copies_max; ++copies) {
@@ -394,7 +468,8 @@ struct GetModelOutput
 
 GetModelOutput get_model(
         const Instance& instance,
-        const ColumnGenerationStripsParameters& parameters)
+        const ColumnGenerationStripsParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
 {
     const BinType& bin_type = instance.bin_type(0);
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
@@ -460,7 +535,7 @@ GetModelOutput get_model(
 
     // Pricing solver.
     model.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
-            new ColumnGenerationPricingSolver(instance, parameters));
+            new ColumnGenerationPricingSolver(instance, parameters, algorithm_formatter));
 
     // Try to generate all columns.
 
@@ -512,6 +587,17 @@ GetModelOutput get_model(
         }
     }
 
+    // Every generated strip is, on its own, already a complete single-bin
+    // solution (the rest of the bin auto-fills as waste): consider each one
+    // directly as a candidate solution, so the algorithm finds the optimum
+    // when it consists of a single strip.
+    if (instance.objective() == Objective::Knapsack) {
+        for (const std::shared_ptr<const Column>& column: column_pool) {
+            const Solution& solution = *std::static_pointer_cast<Solution>(column->extra);
+            algorithm_formatter.update_solution(solution, "V strip");
+        }
+    }
+
     return output;
 }
 
@@ -522,6 +608,7 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initia
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
     std::fill(filled_demands_.begin(), filled_demands_.end(), 0);
     filled_width_ = 0;
+    first_pricing_ = true;
     for (auto p: fixed_columns) {
         const Column& column = *(p.first);
         Value value = p.second;
@@ -555,9 +642,13 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
-    Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+    Length width = first_stage_available_width(instance_, bin_type) - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
     for (;;) {
+        // Any pattern found below this point would be padded back up to
+        // 'minimum_distance_1_cuts' anyway, so it's not worth searching.
+        if (width < instance_.parameters().minimum_distance_1_cuts)
+            break;
         //std::cout << "1E width " << width << std::endl;
 
         // Build one-dimensional knapsack instance.
@@ -698,9 +789,13 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
-    Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+    Length width = first_stage_available_width(instance_, bin_type) - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
     for (;;) {
+        // Any pattern found below this point would be padded back up to
+        // 'minimum_distance_1_cuts' anyway, so it's not worth searching.
+        if (width < instance_.parameters().minimum_distance_1_cuts)
+            break;
         //std::cout << "1N width " << width << std::endl;
 
         // Build one-dimensional knapsack instance.
@@ -775,6 +870,11 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             if (width_max < kp2orig[kp_item_type_id].second)
                 width_max = kp2orig[kp_item_type_id].second;
         }
+        // Pad up to 'minimum_distance_1_cuts' *before* it is used below to
+        // decide which items need a depth-3 narrowing cut: otherwise an item
+        // exactly as wide as the original (unpadded) width_max would wrongly
+        // be considered to span the (now wider) segment exactly.
+        width_max = (std::max)(width_max, instance_.parameters().minimum_distance_1_cuts);
 
         // Retrieve solution.
         //std::cout << "build extra solution width_max " << width_max << std::endl;
@@ -864,7 +964,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
-    Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+    Length width = first_stage_available_width(instance_, bin_type) - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
 
     // Sort items by height and then by profit.
@@ -905,6 +1005,10 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
     //    std::cout << "item_type_id " << p.first << " profit " << p.second << std::endl;
 
     for (;;) {
+        // Any pattern found below this point would be padded back up to
+        // 'minimum_distance_1_cuts' anyway, so it's not worth searching.
+        if (width < instance_.parameters().minimum_distance_1_cuts)
+            break;
         //std::cout << "2RO width " << width << std::endl;
 
         std::vector<ItemPos> remaining_copies(instance_.number_of_item_types(), 0);
@@ -1023,6 +1127,11 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
             if (width_max < width_cur)
                 width_max = width_cur;
         }
+        // Pad up to 'minimum_distance_1_cuts' *before* it is used below to
+        // decide which items need a depth-3 narrowing cut: otherwise an item
+        // exactly as wide as the original (unpadded) width_max would wrongly
+        // be considered to span the (now wider) segment exactly.
+        width_max = (std::max)(width_max, instance_.parameters().minimum_distance_1_cuts);
 
         // Build extra solution.
         //std::cout << "build extra solution width_max " << width_max << std::endl;
@@ -1144,9 +1253,13 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
-    Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+    Length width = first_stage_available_width(instance_, bin_type) - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
     for (;;) {
+        // Any pattern found below this point would be padded back up to
+        // 'minimum_distance_1_cuts' anyway, so it's not worth searching.
+        if (width < instance_.parameters().minimum_distance_1_cuts)
+            break;
         //std::cout << "2HO width " << width << std::endl;
 
         // Build one-dimensional knapsack instance.
@@ -1237,6 +1350,11 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             if (width_max < width)
                 width_max = width;
         }
+        // Pad up to 'minimum_distance_1_cuts' *before* it is used below to
+        // decide which items need a depth-3 narrowing cut: otherwise an item
+        // exactly as wide as the original (unpadded) width_max would wrongly
+        // be considered to span the (now wider) segment exactly.
+        width_max = (std::max)(width_max, instance_.parameters().minimum_distance_1_cuts);
 
         // Build extra solution.
         //std::cout << "build extra solution width_max " << width_max << std::endl;
@@ -1356,7 +1474,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
-    Length available_width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width_;
+    Length available_width = first_stage_available_width(instance_, bin_type) - filled_width_;
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
 
     // Hoist the width-constraint dual: constant across all iterations.
@@ -1366,6 +1484,10 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
 
     Length width = available_width;
     for (;;) {
+        // Any pattern found below this point would be padded back up to
+        // 'minimum_distance_1_cuts' anyway, so it's not worth searching.
+        if (width < instance_.parameters().minimum_distance_1_cuts)
+            break;
         // Phase 1 (cheap): identify eligible items and accumulate an upper bound
         // on the achievable sum of reduced profits for a strip of this width.
         // This avoids building the sub-instance and solving when the bound is too low.
@@ -1426,6 +1548,18 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         rectangleguillotine::Parameters sub_parameters = instance_.parameters();
         sub_parameters.number_of_stages = instance_.parameters().number_of_stages - 1;
         sub_parameters.first_stage_orientation = CutOrientation::Horizontal;
+        // The sub-instance's own 1-cuts are the outer instance's 2-cuts (row
+        // divisions), so they inherit the outer's 2-cuts distance constraint;
+        // its own 2-cuts are the outer's 3-cuts, which have no distance
+        // constraint at the outer level, so that constraint is not inherited.
+        sub_parameters.minimum_distance_1_cuts = instance_.parameters().minimum_distance_2_cuts;
+        sub_parameters.maximum_distance_1_cuts = -1;
+        sub_parameters.minimum_distance_2_cuts = 0;
+        // Similarly, 'maximum_number_2_cuts' bounds the number of the outer
+        // instance's 2-cuts (rows) per column; the sub-instance's own 2-cuts
+        // are the outer's 3-cuts, which have no such count constraint at the
+        // outer level, so it is not inherited either.
+        sub_parameters.maximum_number_2_cuts = -1;
         sub_instance_builder.set_parameters(sub_parameters);
         sub_instance_builder.add_bin_type(width, height, -1, 1, 0);
 
@@ -1468,6 +1602,13 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
             if (sub_node.d == 2 && sub_node.item_type_id != -1)
                 actual_used_width = std::max(actual_used_width, sub_node.r);
         }
+        if (actual_used_width == 0)
+            break;
+        // Pad up to 'minimum_distance_1_cuts' so that the LP-facing width
+        // cost below matches the depth-1 node built for reconstruction;
+        // otherwise the LP underestimates the strip's true width and the
+        // merge callback can concatenate strips past the outer bin's edge.
+        actual_used_width = first_stage_padded_width(instance_, actual_used_width);
         //std::cout << "sub_width " << sub_solution.width() << std::endl;
         //sub_solution.write("solution_rectangleguillotine_" + std::to_string(sub_solution.width())
         //        + "_" + std::to_string(width) + ".csv");
@@ -1549,9 +1690,6 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
             - width_dual * actual_used_width / multiplier_length;
         reduced_cost_bound = (std::max)(reduced_cost_bound, rc_bound);
 
-        if (actual_used_width == 0)
-            break;
-
         // Compute the next width to try.
         //
         // Any strip of width w' ≤ actual_used_width can pack at most the same
@@ -1578,6 +1716,33 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         width = width_next;
     }
     //std::cout << "generate_lower_stage_patterns end" << std::endl;
+}
+
+void ColumnGenerationPricingSolver::generate_duals_zero(
+        PricingOutput& output)
+{
+    std::vector<Value> duals(
+            instance_.objective() == Objective::Knapsack?
+            instance_.number_of_item_types() + 1:
+            instance_.number_of_item_types(),
+            0.0);
+    Value reduced_cost_bound = 0.0;
+
+    if (instance_.parameters().number_of_stages == 2
+            && instance_.parameters().cut_type == CutType::Exact) {
+        generate_1e_patterns(duals, output, reduced_cost_bound);
+    } else if (instance_.parameters().number_of_stages == 2
+            && instance_.parameters().cut_type == CutType::NonExact) {
+        generate_1n_patterns(duals, output, reduced_cost_bound);
+    } else if (instance_.parameters().number_of_stages == 2
+            && instance_.parameters().cut_type == CutType::Roadef2018
+            && instance_.all_item_types_oriented()) {
+        generate_1ro_patterns(duals, output, reduced_cost_bound);
+    } else if (instance_.parameters().cut_type == CutType::Homogenous) {
+        generate_2ho_patterns(duals, output, reduced_cost_bound);
+    } else {
+        generate_lower_stage_patterns(duals, output, reduced_cost_bound);
+    }
 }
 
 PricingOutput ColumnGenerationPricingSolver::solve_pricing(
@@ -1624,6 +1789,11 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
             && instance_.parameters().number_of_stages == 3
             && instance_.parameters().cut_type == CutType::Homogenous) {
         return output;
+    }
+
+    if (first_pricing_) {
+        generate_duals_zero(output);
+        first_pricing_ = false;
     }
 
     // Otherwise, solve the pricing sub-problems.
@@ -1702,6 +1872,13 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         reduced_cost_bound = std::numeric_limits<Value>::infinity();
     }
 
+    if (instance_.objective() == Objective::Knapsack) {
+        for (const std::shared_ptr<const Column>& column: output.columns) {
+            const Solution& solution = *std::static_pointer_cast<Solution>(column->extra);
+            algorithm_formatter_.update_solution(solution, "V strip");
+        }
+    }
+
     output.overcost = instance_.number_of_items() * reduced_cost_bound;
     //for (const auto& column: output.columns)
     //    std::cout << *column << std::endl;
@@ -1713,7 +1890,7 @@ void column_generation_strips_vertical(
         const ColumnGenerationStripsParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    GetModelOutput cgs_model = get_model(instance, parameters);
+    GetModelOutput cgs_model = get_model(instance, parameters, algorithm_formatter);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     for (const auto& column: cgs_model.column_pool)
         cgslds_parameters.column_pool.push_back(column);
