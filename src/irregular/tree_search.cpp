@@ -1043,7 +1043,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Update number_of_bins and last_bin_direction.
     if (insertion.new_bin_direction != Direction::Any) {  // New bin.
-        node.number_of_bins = parent.number_of_bins + 1;
+        node.number_of_bins = insertion.new_bin_pos + 1;
         node.last_bin_direction = (Direction)insertion.new_bin_direction;
     } else {  // Same bin.
         node.number_of_bins = parent.number_of_bins;
@@ -1516,9 +1516,14 @@ void BranchingScheme::insertions(
     }
 
     // Insert in a new bin.
-    if (parent->children_insertions.empty() && parent->number_of_bins < instance().number_of_bins()) {
-        //std::cout << "insert in a new bin" << std::endl;
-        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins);
+    // Bins that can't fit any item are skipped: if a bin position doesn't
+    // yield any insertion, the next bin position is tried instead.
+    for (BinPos new_bin_pos = parent->number_of_bins;
+            parent->children_insertions.empty()
+            && new_bin_pos < instance().number_of_bins();
+            ++new_bin_pos) {
+        //std::cout << "insert in a new bin " << new_bin_pos << std::endl;
+        BinTypeId bin_type_id = instance().bin_type_id(new_bin_pos);
         const BinType& bin_type = instance().bin_type(bin_type_id);
 
         Direction new_bin_direction = parameters_.direction;
@@ -1576,7 +1581,8 @@ void BranchingScheme::insertions(
                             0.0,
                             0.0,
                             supported_part_pos,
-                            new_bin_direction);
+                            new_bin_direction,
+                            new_bin_pos);
                 }
             }
         }
@@ -1830,7 +1836,8 @@ void BranchingScheme::insertion_trapezoid_set(
         LengthDbl supporting_part_x,
         LengthDbl supporting_part_y,
         ShapePos supported_part_pos,
-        Direction new_bin_direction) const
+        Direction new_bin_direction,
+        BinPos new_bin_pos) const
 {
     //std::cout << "insertion_trapezoid_set " << trapezoid_set_id
     //    << " new_bin_direction " << (int)new_bin_direction
@@ -1842,7 +1849,7 @@ void BranchingScheme::insertion_trapezoid_set(
 
     BinTypeId bin_type_id = (new_bin_direction == Direction::Any)?
         instance().bin_type_id(parent->number_of_bins - 1):
-        instance().bin_type_id(parent->number_of_bins);
+        instance().bin_type_id(new_bin_pos);
     const BinType& bin_type = instance().bin_type(bin_type_id);
     Direction direction = (new_bin_direction == Direction::Any)?
         parent->last_bin_direction:
@@ -1878,6 +1885,7 @@ void BranchingScheme::insertion_trapezoid_set(
     insertion.x = supporting_shape.elements.front().start.x - supported_shape.elements.front().start.x;
     insertion.y = supporting_shape.elements.front().start.y - supported_shape.elements.front().start.y;
     insertion.new_bin_direction = new_bin_direction;
+    insertion.new_bin_pos = new_bin_pos;
 
     //if (parent->parent != nullptr
     //        && new_bin_direction == Direction::Any) {
@@ -2198,8 +2206,13 @@ Solution BranchingScheme::to_solution(
     Solution solution(instance());
     BinPos bin_pos = -1;
     for (auto current_node: descendents) {
-        if (current_node->number_of_bins > solution.number_of_bins())
-            bin_pos = solution.add_bin(instance().bin_type_id(current_node->number_of_bins - 1), 1);
+        // Bins that were skipped because no item fit in them are still
+        // added to the solution, as empty bins.
+        while (solution.number_of_bins() < current_node->number_of_bins) {
+            bin_pos = solution.add_bin(
+                    instance().bin_type_id(solution.number_of_bins()),
+                    1);
+        }
 
         BinTypeId bin_type_id_cur = instance().bin_type_id(current_node->number_of_bins - 1);
         const DirectionData& direction_data = directions_data_[(int)current_node->last_bin_direction];
@@ -2546,6 +2559,7 @@ bool BranchingScheme::Insertion::operator==(
             && (supported_part_pos == insertion.supported_part_pos)
             && (supported_part_element_pos == insertion.supported_part_element_pos)
             && (new_bin_direction == insertion.new_bin_direction)
+            && (new_bin_pos == insertion.new_bin_pos)
             && (equal(x, insertion.x))
             && (equal(y, insertion.y))
             );
@@ -2563,6 +2577,7 @@ std::ostream& packingsolver::irregular::operator<<(
         << " spted " << insertion.supported_part_pos
         << " pos " << insertion.supported_part_element_pos
         << " new_bin_direction " << (int)insertion.new_bin_direction
+        << " new_bin_pos " << insertion.new_bin_pos
         << " x " << insertion.x
         << " y " << insertion.y
         << " ys " << insertion.ys
