@@ -34,8 +34,11 @@ Features:
 * Stacks (precedence constraints on the order in which items are extracted)
 * Bins may contain defects
   * Allow or forbid cutting through a defect
-* Two- and three-staged, exact, non-exact, roadef2018 and homogenous patterns
-* First cut vertical, horizontal or any
+* Number of stages
+  * Two- and three-staged patterns
+    * Exact, non-exact, roadef2018 and homogenous
+    * First cut vertical, horizontal or any
+  * Unlimited-staged patterns
 * Trims
 * Cut thickness
 * Minimum distance between consecutive 1-cuts
