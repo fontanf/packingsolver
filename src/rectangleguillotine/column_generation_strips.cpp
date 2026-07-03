@@ -684,8 +684,14 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             if (profit <= 0)
                 continue;
 
+            // A row's height (the distance between the 2-cuts bounding it)
+            // is the item's own height in that orientation and can't be
+            // shrunk, so an item taller than 'maximum_distance_2_cuts' must
+            // be excluded outright.
             if (item_type.rect.w == width
-                    && item_type.rect.h <= height) {
+                    && item_type.rect.h <= height
+                    && (instance_.parameters().maximum_distance_2_cuts == -1
+                        || item_type.rect.h <= instance_.parameters().maximum_distance_2_cuts)) {
                 kp_instance_builder.add_item_type(
                         item_type.rect.h + cut_thickness,
                         profit,
@@ -693,7 +699,9 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
                 kp2orig.push_back(item_type_id);
             } else if (!item_type.oriented
                     && item_type.rect.h == width
-                    && item_type.rect.w <= height) {
+                    && item_type.rect.w <= height
+                    && (instance_.parameters().maximum_distance_2_cuts == -1
+                        || item_type.rect.w <= instance_.parameters().maximum_distance_2_cuts)) {
                 kp_instance_builder.add_item_type(
                         item_type.rect.w + cut_thickness,
                         profit,
@@ -846,7 +854,13 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
                 item_height = item_type.rect.w;
             }
 
-            if (item_width <= width) {
+            // A row's height (the distance between the 2-cuts bounding it)
+            // is 'item_height' in the chosen orientation and can't be
+            // shrunk, so an item taller than 'maximum_distance_2_cuts' must
+            // be excluded outright.
+            if (item_width <= width
+                    && (instance_.parameters().maximum_distance_2_cuts == -1
+                        || item_height <= instance_.parameters().maximum_distance_2_cuts)) {
                 kp_instance_builder.add_item_type(
                         item_height + cut_thickness,
                         profit,
@@ -1301,6 +1315,13 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
                 continue;
             if (item_type.rect.h > height)
                 continue;
+            // Each row is homogeneous in a single item type, so its height
+            // (the distance between the 2-cuts bounding it) can't be shrunk
+            // below the item's own height: an item taller than
+            // 'maximum_distance_2_cuts' can never appear in a 2ho pattern.
+            if (instance_.parameters().maximum_distance_2_cuts != -1
+                    && item_type.rect.h > instance_.parameters().maximum_distance_2_cuts)
+                continue;
             ItemPos number_of_full_strips = copies / number_of_copies_in_full_strip;
             ItemPos number_of_copies_in_last_strip = copies % number_of_copies_in_full_strip;
             Length width_cur = (number_of_full_strips > 0)?
@@ -1450,6 +1471,9 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
                 continue;
             if (item_type.rect.h > height)
                 continue;
+            if (instance_.parameters().maximum_distance_2_cuts != -1
+                    && item_type.rect.h > instance_.parameters().maximum_distance_2_cuts)
+                continue;
             ItemPos number_of_full_strips = copies / number_of_copies_in_full_strip;
             ItemPos number_of_copies_in_last_strip = copies % number_of_copies_in_full_strip;
             Length width_cur = (number_of_full_strips > 0)?
@@ -1563,8 +1587,9 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         // its own 2-cuts are the outer's 3-cuts, which have no distance
         // constraint at the outer level, so that constraint is not inherited.
         sub_parameters.minimum_distance_1_cuts = instance_.parameters().minimum_distance_2_cuts;
-        sub_parameters.maximum_distance_1_cuts = -1;
+        sub_parameters.maximum_distance_1_cuts = instance_.parameters().maximum_distance_2_cuts;
         sub_parameters.minimum_distance_2_cuts = 0;
+        sub_parameters.maximum_distance_2_cuts = -1;
         // Similarly, 'maximum_number_2_cuts' bounds the number of the outer
         // instance's 2-cuts (rows) per column; the sub-instance's own 2-cuts
         // are the outer's 3-cuts, which have no such count constraint at the
