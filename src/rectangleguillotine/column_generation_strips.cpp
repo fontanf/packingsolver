@@ -127,13 +127,21 @@ private:
 
 /**
  * Maximum width available for a single first-stage (1-cut) segment: the bin's
- * own width, further capped by 'maximum_distance_1_cuts' if set.
+ * own remaining width (after 'filled_width' already used by other, fixed,
+ * segments), further capped by 'maximum_distance_1_cuts' if set.
+ *
+ * 'maximum_distance_1_cuts' bounds the width of a single segment, not the
+ * bin's total width budget, so it must be applied *after* subtracting
+ * 'filled_width', not folded into a value that 'filled_width' is later
+ * subtracted from (that would incorrectly shrink as more segments get
+ * fixed, eventually going negative).
  */
 Length first_stage_available_width(
         const Instance& instance,
-        const BinType& bin_type)
+        const BinType& bin_type,
+        Length filled_width = 0)
 {
-    Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim;
+    Length width = bin_type.rect.w - bin_type.left_trim - bin_type.right_trim - filled_width;
     Length maximum_distance_1_cuts = instance.parameters().maximum_distance_1_cuts;
     if (maximum_distance_1_cuts != -1 && maximum_distance_1_cuts < width)
         width = maximum_distance_1_cuts;
@@ -211,6 +219,7 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_1r_patterns(
         const Instance& instance)
 {
     const BinType& bin_type = instance.bin_type(0);
+    Length available_width = first_stage_available_width(instance, bin_type);
 
     std::vector<std::shared_ptr<const Column>> columns;
 
@@ -253,7 +262,7 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_1r_patterns(
 
         if (height_1 > bin_type.rect.h)
             continue;
-        if (width_1 > bin_type.rect.w)
+        if (width_1 > available_width)
             continue;
         // No depth-3 narrowing cut is used here (the item is expected to
         // span the segment exactly), so a segment narrower than
@@ -333,6 +342,7 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_2h_patterns(
 {
     //std::cout << "generate_2hr_patterns..." << std::endl;
     const BinType& bin_type = instance.bin_type(0);
+    Length available_width = first_stage_available_width(instance, bin_type);
 
     std::vector<std::shared_ptr<const Column>> columns;
 
@@ -353,7 +363,7 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_2h_patterns(
         // No depth-3 narrowing cut is used here (each item is expected to
         // span the segment exactly), so a segment narrower than
         // 'minimum_distance_1_cuts' can't be padded: skip it entirely.
-        if (item_type.rect.w <= bin_type.rect.w
+        if (item_type.rect.w <= available_width
                 && item_type.rect.w >= instance.parameters().minimum_distance_1_cuts) {
             for (ItemPos copies = 1; copies <= copies_max; ++copies) {
 
@@ -381,7 +391,7 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_2h_patterns(
         }
 
         if (!item_type.oriented
-                && item_type.rect.h <= bin_type.rect.w
+                && item_type.rect.h <= available_width
                 && item_type.rect.h >= instance.parameters().minimum_distance_1_cuts) {
             ItemPos copies_max = (bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim + instance.parameters().cut_thickness)
                 / (item_type.rect.w + instance.parameters().cut_thickness);
@@ -642,7 +652,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
-    Length width = first_stage_available_width(instance_, bin_type) - filled_width_;
+    Length width = first_stage_available_width(instance_, bin_type, filled_width_);
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
     for (;;) {
         // Any pattern found below this point would be padded back up to
@@ -789,7 +799,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
-    Length width = first_stage_available_width(instance_, bin_type) - filled_width_;
+    Length width = first_stage_available_width(instance_, bin_type, filled_width_);
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
     for (;;) {
         // Any pattern found below this point would be padded back up to
@@ -964,7 +974,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
-    Length width = first_stage_available_width(instance_, bin_type) - filled_width_;
+    Length width = first_stage_available_width(instance_, bin_type, filled_width_);
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
 
     // Sort items by height and then by profit.
@@ -1253,7 +1263,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
-    Length width = first_stage_available_width(instance_, bin_type) - filled_width_;
+    Length width = first_stage_available_width(instance_, bin_type, filled_width_);
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
     for (;;) {
         // Any pattern found below this point would be padded back up to
@@ -1474,7 +1484,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
     Length cut_thickness = instance_.parameters().cut_thickness;
-    Length available_width = first_stage_available_width(instance_, bin_type) - filled_width_;
+    Length available_width = first_stage_available_width(instance_, bin_type, filled_width_);
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
 
     // Hoist the width-constraint dual: constant across all iterations.

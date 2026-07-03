@@ -135,6 +135,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evo_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evo_min1cut" / "solution.csv",
             }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evo_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evo_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evo_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evo_max1cut" / "solution.csv",
+            }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evr" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evr" / "bins.csv",
                 fs::path(""),
@@ -146,6 +152,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evr_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evr_min1cut" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evr_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evr_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evr_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2evr_max1cut" / "solution.csv",
             }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvo" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvo" / "bins.csv",
@@ -159,6 +171,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvo_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvo_min1cut" / "solution.csv",
             }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvo_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvo_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvo_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvo_max1cut" / "solution.csv",
+            }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvr" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvr" / "bins.csv",
                 fs::path(""),
@@ -170,6 +188,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvr_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvr_min1cut" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvr_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvr_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvr_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2hvr_max1cut" / "solution.csv",
             }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvo" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvo" / "bins.csv",
@@ -183,6 +207,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvo_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvo_min1cut" / "solution.csv",
             }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvo_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvo_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvo_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvo_max1cut" / "solution.csv",
+            }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvr" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvr" / "bins.csv",
                 fs::path(""),
@@ -194,6 +224,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvr_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvr_min1cut" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvr_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvr_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvr_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nvr_max1cut" / "solution.csv",
             }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvo" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvo" / "bins.csv",
@@ -207,6 +243,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvo_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvo_min1cut" / "solution.csv",
             }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvo_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvo_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvo_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvo_max1cut" / "solution.csv",
+            }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvr" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvr" / "bins.csv",
                 fs::path(""),
@@ -218,6 +260,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvr_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvr_min1cut" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvr_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvr_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvr_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2rvr_max1cut" / "solution.csv",
             }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evo" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evo" / "bins.csv",
@@ -231,6 +279,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evo_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evo_min1cut" / "solution.csv",
             }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evo_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evo_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evo_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evo_max1cut" / "solution.csv",
+            }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evr" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evr" / "bins.csv",
                 fs::path(""),
@@ -242,6 +296,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evr_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evr_min1cut" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evr_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evr_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evr_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3evr_max1cut" / "solution.csv",
             }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvo" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvo" / "bins.csv",
@@ -255,6 +315,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvo_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvo_min1cut" / "solution.csv",
             }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvo_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvo_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvo_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvo_max1cut" / "solution.csv",
+            }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvr" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvr" / "bins.csv",
                 fs::path(""),
@@ -266,6 +332,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvr_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvr_min1cut" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvr_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvr_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvr_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3hvr_max1cut" / "solution.csv",
             }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvo" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvo" / "bins.csv",
@@ -279,6 +351,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvo_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvo_min1cut" / "solution.csv",
             }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvo_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvo_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvo_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvo_max1cut" / "solution.csv",
+            }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvr" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvr" / "bins.csv",
                 fs::path(""),
@@ -290,6 +368,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvr_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvr_min1cut" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvr_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvr_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvr_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3nvr_max1cut" / "solution.csv",
             }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvo" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvo" / "bins.csv",
@@ -303,6 +387,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvo_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvo_min1cut" / "solution.csv",
             }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvo_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvo_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvo_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvo_max1cut" / "solution.csv",
+            }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr" / "bins.csv",
                 fs::path(""),
@@ -314,6 +404,12 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr_min1cut" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr_min1cut" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr_max1cut" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr_max1cut" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr_max1cut" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr_max1cut" / "solution.csv",
             }, {
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nho_2" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_2nho_2" / "bins.csv",
