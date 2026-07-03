@@ -64,6 +64,8 @@ public:
 
     void set_minimum_distance_2_cuts(Length minimum_distance_2_cuts) { instance_.parameters_.minimum_distance_2_cuts = minimum_distance_2_cuts; }
 
+    void set_maximum_distance_2_cuts(Length maximum_distance_2_cuts) { instance_.parameters_.maximum_distance_2_cuts = maximum_distance_2_cuts; }
+
     void set_minimum_waste_length(Length minimum_waste_length) { instance_.parameters_.minimum_waste_length = minimum_waste_length; }
 
     void set_maximum_number_2_cuts(Counter maximum_number_2_cuts) { instance_.parameters_.maximum_number_2_cuts = maximum_number_2_cuts; }

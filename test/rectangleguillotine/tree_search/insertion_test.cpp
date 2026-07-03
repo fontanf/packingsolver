@@ -1360,6 +1360,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteI)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
     instance_builder.set_number_of_stages(2);
+    instance_builder.set_minimum_distance_2_cuts(0);
     instance_builder.add_item_type(500, 3200, -1, 1, false, 0);
     instance_builder.add_item_type(500, 3200, -1, 1, false, 0);
     instance_builder.add_bin_type(6000, 3210);
@@ -1369,7 +1370,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteI)
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
-        {0, -1, -2, 3210, 3200, 500, 3210, 6000, 0, 0},
+        {0, -1, -2, 3210, 3200, 500, 3210, 3500, 0, 0},
     };
 
     EXPECT_EQ(branching_scheme.insertions(branching_scheme.children(root)), is);
@@ -1404,6 +1405,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteII)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
     instance_builder.set_number_of_stages(2);
+    instance_builder.set_minimum_distance_2_cuts(0);
     instance_builder.add_item_type(250, 3200, -1, 1, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_defect(0, 240, 3190, 10, 10);
@@ -1413,7 +1415,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteII)
     auto root = branching_scheme.root();
 
     std::vector<BranchingScheme::Insertion> is {
-        {0, -1, -2, 3210, 3200, 250, 3210, 6000, 0, 0},
+        {0, -1, -2, 3210, 3200, 250, 3210, 3500, 0, 0},
         //{-1, -1, -2, 3210, 250, 3200, 3210, 6000, 1, 1},
     };
 

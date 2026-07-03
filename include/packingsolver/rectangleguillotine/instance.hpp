@@ -105,14 +105,27 @@ struct Parameters
     /** Maximum distance between two consecutive 1-cuts. */
     Length maximum_distance_1_cuts = -1;
 
-    /** Minimum distance between two consecutive 2-cuts. */
+    /**
+     * Minimum distance between two consecutive 2-cuts.
+     *
+     * Not allowed if number_of_stages == 2.
+     */
     Length minimum_distance_2_cuts = 0;
+
+    /**
+     * Maximum distance between two consecutive 2-cuts.
+     *
+     * Not allowed if number_of_stages == 2.
+     */
+    Length maximum_distance_2_cuts = -1;
 
     /** Minimum distance between two cuts. */
     Length minimum_waste_length = 0;
 
     /**
      * Maximum number of 2-cuts in a first-level sub-plate.
+     *
+     * Not allowed if number_of_stages == 2.
      */
     Counter maximum_number_2_cuts = -1;
 

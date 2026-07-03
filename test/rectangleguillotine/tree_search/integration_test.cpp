@@ -35,6 +35,7 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
     instance_builder.set_number_of_stages(2);
+    instance_builder.set_minimum_distance_2_cuts(0);
     instance_builder.add_item_type(3000, 3210, -1, 1, false, 0);
     instance_builder.add_item_type(3000, 500, -1, 1, false, 1);
     instance_builder.add_bin_type(6000, 3210);
@@ -45,7 +46,7 @@ TEST(RectangleGuillotineBranchingScheme, ConvertionDefect)
     BranchingScheme branching_scheme(instance, branching_scheme_parameters);
     auto root = branching_scheme.root();
 
-    BranchingScheme::Insertion i0 = {0, -1, -2, 3210, 3000, 3210, 3210, 6000, 0, 0};
+    BranchingScheme::Insertion i0 = {0, -1, -2, 3210, 3000, 3210, 3210, 3500, 0, 0};
     std::vector<BranchingScheme::Insertion> is0 = branching_scheme.insertions(branching_scheme.children(root));
     EXPECT_NE(std::find(is0.begin(), is0.end(), i0), is0.end());
     auto node_1 = branching_scheme.child(root, i0);

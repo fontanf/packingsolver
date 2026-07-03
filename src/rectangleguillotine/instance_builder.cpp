@@ -570,6 +570,10 @@ void InstanceBuilder::read_parameters(
                 || name == "min2Cut"
                 || name == "minimum_distance_2_cuts") {
             set_minimum_distance_2_cuts(std::stol(value));
+        } else if (name == "max2cut"
+                || name == "max2Cut"
+                || name == "maximum_distance_2_cuts") {
+            set_maximum_distance_2_cuts(std::stol(value));
         } else if (name == "min_waste"
                 || name == "minwaste"
                 || name == "minWaste"
@@ -910,6 +914,26 @@ void InstanceBuilder::build_stacks()
 
 Instance InstanceBuilder::build()
 {
+    // minimum_distance_2_cuts, maximum_distance_2_cuts and
+    // maximum_number_2_cuts are not allowed for 2-staged instances.
+    if (instance_.parameters().number_of_stages == 2) {
+        if (instance_.parameters().minimum_distance_2_cuts != 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "minimum_distance_2_cuts is not allowed if number_of_stages == 2.");
+        }
+        if (instance_.parameters().maximum_distance_2_cuts != -1) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "maximum_distance_2_cuts is not allowed if number_of_stages == 2.");
+        }
+        if (instance_.parameters().maximum_number_2_cuts != -1) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "maximum_number_2_cuts is not allowed if number_of_stages == 2.");
+        }
+    }
+
     // Compute item_type_ids_ and stack_offsets_.
     build_stacks();
 
