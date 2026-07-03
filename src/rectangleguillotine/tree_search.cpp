@@ -42,6 +42,15 @@ BranchingScheme::BranchingScheme(
         minimum_distance_2_cuts_ = instance.parameters().minimum_distance_2_cuts;
     }
 
+    // Compute maximum_distance_1_cuts_ and maximum_distance_2_cuts_.
+    if (instance.parameters().number_of_stages == 2) {
+        maximum_distance_1_cuts_ = -1;
+        maximum_distance_2_cuts_ = instance.parameters().maximum_distance_1_cuts;
+    } else {
+        maximum_distance_1_cuts_ = instance.parameters().maximum_distance_1_cuts;
+        maximum_distance_2_cuts_ = instance.parameters().maximum_distance_2_cuts;
+    }
+
     // Compute no_oriented_items_;
     no_oriented_items_ = true;
     for (ItemTypeId item_type_id = 0;
@@ -804,9 +813,9 @@ Length BranchingScheme::x1_max(const Node& node, Depth df) const
         Length x = (bin_type.right_trim_type == TrimType::Hard)?
             bin_type.rect.w - bin_type.right_trim:
             bin_type.rect.w;
-        if (instance.parameters().maximum_distance_1_cuts != -1)
-            if (x > x1_prev(node, df) + instance.parameters().maximum_distance_1_cuts)
-                x = x1_prev(node, df) + instance.parameters().maximum_distance_1_cuts;
+        if (maximum_distance_1_cuts_ != -1)
+            if (x > x1_prev(node, df) + maximum_distance_1_cuts_)
+                x = x1_prev(node, df) + maximum_distance_1_cuts_;
         return x;
     } case 1: {
         BinPos i = node.number_of_bins - 1;
@@ -833,9 +842,9 @@ Length BranchingScheme::x1_max(const Node& node, Depth df) const
         Length x = (bin_type.right_trim_type == TrimType::Hard)?
             bin_type.rect.w - bin_type.right_trim:
             bin_type.rect.w;
-        if (instance.parameters().maximum_distance_1_cuts != -1)
-            if (x > x1_prev(node, df) + instance.parameters().maximum_distance_1_cuts)
-                x = x1_prev(node, df) + instance.parameters().maximum_distance_1_cuts;
+        if (maximum_distance_1_cuts_ != -1)
+            if (x > x1_prev(node, df) + maximum_distance_1_cuts_)
+                x = x1_prev(node, df) + maximum_distance_1_cuts_;
         return x;
     }
     }
@@ -863,6 +872,9 @@ Length BranchingScheme::y2_max(
                 if (defect.bottom() >= y2_prev(node, df))
                     if (y > defect.bottom() - instance.parameters().cut_thickness)
                         y = defect.bottom() - instance.parameters().cut_thickness;
+    if (maximum_distance_2_cuts_ != -1)
+        if (y > y2_prev(node, df) + maximum_distance_2_cuts_)
+            y = y2_prev(node, df) + maximum_distance_2_cuts_;
     return y;
 }
 

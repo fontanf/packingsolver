@@ -402,6 +402,27 @@ private:
      */
     Length minimum_distance_2_cuts_ = 0;
 
+    /**
+     * Effective maximum distance between two consecutive 1-cuts.
+     *
+     * For 2-staged instances, insertion.x1 does not correspond to a real
+     * 1-cut (see minimum_distance_1_cuts_ above), so this is set to -1
+     * (unconstrained) in that case; maximum_distance_1_cuts is enforced
+     * instead through maximum_distance_2_cuts_, see below.
+     */
+    Length maximum_distance_1_cuts_ = -1;
+
+    /**
+     * Effective maximum distance between two consecutive 2-cuts.
+     *
+     * For 2-staged instances, depth-2 cuts are the only cuts left once the
+     * (possibly flipped) first-stage decision is made, so they are the ones
+     * effectively bounded by maximum_distance_1_cuts; maximum_distance_2_cuts
+     * has no independent meaning there (there is no 3rd stage for it to
+     * separate).
+     */
+    Length maximum_distance_2_cuts_ = -1;
+
     bool no_oriented_items_;
 
     /**

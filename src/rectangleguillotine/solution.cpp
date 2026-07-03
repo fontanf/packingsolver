@@ -153,6 +153,23 @@ void Solution::update_indicators(
             }
         }
 
+        // Check maximum distance between 2-cuts.
+        if (instance().parameters().maximum_distance_2_cuts >= 0) {
+            if (node.d == 2
+                    && node.item_type_id == -2) {
+                if ((bin.first_cut_orientation == CutOrientation::Vertical
+                            && node.t - node.b
+                            > instance().parameters().maximum_distance_2_cuts)
+                        || (bin.first_cut_orientation == CutOrientation::Horizontal
+                            && node.r - node.l
+                            > instance().parameters().maximum_distance_2_cuts)) {
+                    //std::cout << "maximum_distance_2_cuts = false" << std::endl;
+                    maximum_distance_2_cuts_feasible_ = false;
+                    feasible_ = false;
+                }
+            }
+        }
+
         // Check maximum number of 2-cuts.
         if (instance().parameters().maximum_number_2_cuts >= 0) {
             if (node.d == 1) {
@@ -534,6 +551,7 @@ nlohmann::json Solution::to_json() const
             {"MinimumDistance1Cuts", minimum_distance_1_cuts_feasible()},
             {"MaximumDistance1Cuts", maximum_distance_1_cuts_feasible()},
             {"MinimumDistance2Cuts", minimum_distance_2_cuts_feasible()},
+            {"MaximumDistance2Cuts", maximum_distance_2_cuts_feasible()},
             {"MaximumNumber2Cuts", maximum_number_2_cuts_feasible()},
             {"Stacks", stacks_feasible()},
             {"Defects", defects_feasible()},
@@ -568,6 +586,7 @@ void Solution::format(
             << "    Min. dist. 1-cuts:     " << minimum_distance_1_cuts_feasible() << std::endl
             << "    Max. dist. 1-cuts:     " << maximum_distance_1_cuts_feasible() << std::endl
             << "    Min. dist. 2-cuts:     " << minimum_distance_2_cuts_feasible() << std::endl
+            << "    Max. dist. 2-cuts:     " << maximum_distance_2_cuts_feasible() << std::endl
             << "    Max. no. 2-cuts:       " << maximum_number_2_cuts_feasible() << std::endl
             << "    Stacks:                " << stacks_feasible() << std::endl
             << "    Defects:               " << defects_feasible() << std::endl
