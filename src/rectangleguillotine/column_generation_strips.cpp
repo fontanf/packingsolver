@@ -2092,8 +2092,23 @@ void column_generation_strips_vertical(
     {
         const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
             = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
-        double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
-        algorithm_formatter.update_knapsack_bound(cgslds_output.bound * multiplier_profit);
+        // 'cgslds_output.bound' is scaled differently depending on the
+        // objective: by multiplier_profit for Knapsack (a profit upper
+        // bound, matching the objective_coefficient scaling in
+        // 'solution_to_column'), by multiplier_length for OpenDimensionX (a
+        // width lower bound, matching its own objective_coefficient
+        // scaling). Note that as seen by this function, a flipped
+        // OpenDimensionY instance (see 'column_generation_strips_horizontal'
+        // below) has objective OpenDimensionX too.
+        if (instance.objective() == Objective::Knapsack) {
+            double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
+            algorithm_formatter.update_knapsack_bound(cgslds_output.bound * multiplier_profit);
+        } else if (instance.objective() == Objective::OpenDimensionX) {
+            const BinType& bin_type = instance.bin_type(0);
+            double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
+            algorithm_formatter.update_open_dimension_x_bound(
+                    (Length)(cgslds_output.bound * multiplier_length));
+        }
     };
     cgslds_parameters.column_generation_parameters.solver_name
         = parameters.linear_programming_solver_name;
@@ -2123,8 +2138,20 @@ void column_generation_strips_horizontal(
                     flipped_output.solution_pool.best());
             check_feasibility(solution, FUNC_SIGNATURE);
             algorithm_formatter.update_solution(solution, label);
-            algorithm_formatter.update_knapsack_bound(
-                    flipped_output.knapsack_bound);
+            // 'InstanceFlipper' turns OpenDimensionY into OpenDimensionX
+            // (and leaves every other objective untouched), so
+            // 'flipped_output''s bound must be routed back according to the
+            // true (unflipped) 'instance' objective, not the flipped one.
+            if (instance.objective() == Objective::Knapsack) {
+                algorithm_formatter.update_knapsack_bound(
+                        flipped_output.knapsack_bound);
+            } else if (instance.objective() == Objective::OpenDimensionX) {
+                algorithm_formatter.update_open_dimension_x_bound(
+                        flipped_output.open_dimension_x_bound);
+            } else if (instance.objective() == Objective::OpenDimensionY) {
+                algorithm_formatter.update_open_dimension_y_bound(
+                        flipped_output.open_dimension_x_bound);
+            }
         };
     column_generation_strips(
             flipped_instance,

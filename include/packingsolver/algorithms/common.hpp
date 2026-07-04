@@ -278,6 +278,12 @@ struct Output: optimizationtools::Output
     /** Bin packing bound. */
     Profit variable_sized_bin_packing_bound = 0;
 
+    /** Open dimension X bound. */
+    Length open_dimension_x_bound = 0;
+
+    /** Open dimension Y bound. */
+    Length open_dimension_y_bound = 0;
+
     /** Elapsed time. */
     double time = 0.0;
 

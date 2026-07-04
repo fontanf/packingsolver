@@ -154,7 +154,7 @@ void optimize_column_generation_strips(
         = parameters.linear_programming_solver_name;
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cg_parameters.optimization_mode = parameters.optimization_mode;
-    cg_parameters.new_solution_callback = [&algorithm_formatter](
+    cg_parameters.new_solution_callback = [&instance, &algorithm_formatter](
             const packingsolver::Output<Instance, Solution>& ps_output)
     {
         const SequentialValueCorrectionOutput<Instance, Solution>& pscg_output
@@ -162,7 +162,13 @@ void optimize_column_generation_strips(
         algorithm_formatter.update_solution(
                 pscg_output.solution_pool.best(),
                 "CGS " + pscg_output.solution_pool.best_label());
-        algorithm_formatter.update_knapsack_bound(pscg_output.knapsack_bound);
+        if (instance.objective() == Objective::Knapsack) {
+            algorithm_formatter.update_knapsack_bound(ps_output.knapsack_bound);
+        } else if (instance.objective() == Objective::OpenDimensionX) {
+            algorithm_formatter.update_open_dimension_x_bound(ps_output.open_dimension_x_bound);
+        } else if (instance.objective() == Objective::OpenDimensionY) {
+            algorithm_formatter.update_open_dimension_y_bound(ps_output.open_dimension_y_bound);
+        }
     };
     column_generation_strips(instance, cg_parameters);
 }
