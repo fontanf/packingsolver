@@ -792,9 +792,17 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
             if (instance_.parameters().number_of_stages == 3
                     && instance_.parameters().cut_type == CutType::Homogenous) {
-                reduced_cost_bound = (std::max)(
-                        reduced_cost_bound,
-                        columngenerationsolver::compute_reduced_cost(column, duals));
+                // An improving column has rc > 0 for a Maximize model
+                // (Knapsack) but rc < 0 for a Minimize model
+                // (OpenDimensionX); accumulate 'reduced_cost_bound' via max
+                // for the former, min for the latter, so it always tracks
+                // the most improving reduced cost found so far.
+                Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
+                if (instance_.objective() == Objective::Knapsack) {
+                    reduced_cost_bound = (std::max)(reduced_cost_bound, rc);
+                } else if (instance_.objective() == Objective::OpenDimensionX) {
+                    reduced_cost_bound = (std::min)(reduced_cost_bound, rc);
+                }
             }
 
         }
@@ -975,9 +983,17 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
         output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
         if (instance_.parameters().number_of_stages == 2
                 && instance_.parameters().cut_type == CutType::Exact) {
-            reduced_cost_bound = (std::max)(
-                    reduced_cost_bound,
-                    columngenerationsolver::compute_reduced_cost(column, duals));
+            // An improving column has rc > 0 for a Maximize model
+            // (Knapsack) but rc < 0 for a Minimize model (OpenDimensionX);
+            // accumulate 'reduced_cost_bound' via max for the former, min
+            // for the latter, so it always tracks the most improving
+            // reduced cost found so far.
+            Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
+            if (instance_.objective() == Objective::Knapsack) {
+                reduced_cost_bound = (std::max)(reduced_cost_bound, rc);
+            } else if (instance_.objective() == Objective::OpenDimensionX) {
+                reduced_cost_bound = (std::min)(reduced_cost_bound, rc);
+            }
         }
 
         // Find the largest width strictly smaller than the largest width
@@ -1248,9 +1264,17 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         if (instance_.parameters().number_of_stages == 3
                 && instance_.parameters().cut_type == CutType::Homogenous
                 && instance_.all_item_types_oriented()) {
-            reduced_cost_bound = (std::max)(
-                    reduced_cost_bound,
-                    columngenerationsolver::compute_reduced_cost(column, duals));
+            // An improving column has rc > 0 for a Maximize model
+            // (Knapsack) but rc < 0 for a Minimize model (OpenDimensionX);
+            // accumulate 'reduced_cost_bound' via max for the former, min
+            // for the latter, so it always tracks the most improving
+            // reduced cost found so far.
+            Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
+            if (instance_.objective() == Objective::Knapsack) {
+                reduced_cost_bound = (std::max)(reduced_cost_bound, rc);
+            } else if (instance_.objective() == Objective::OpenDimensionX) {
+                reduced_cost_bound = (std::min)(reduced_cost_bound, rc);
+            }
         }
 
         // Find the largest width strictly smaller than the largest width
@@ -1480,9 +1504,17 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
         if (instance_.parameters().number_of_stages == 3
                 && instance_.parameters().cut_type == CutType::Homogenous
                 && instance_.all_item_types_oriented()) {
-            reduced_cost_bound = (std::max)(
-                    reduced_cost_bound,
-                    columngenerationsolver::compute_reduced_cost(column, duals));
+            // An improving column has rc > 0 for a Maximize model
+            // (Knapsack) but rc < 0 for a Minimize model (OpenDimensionX);
+            // accumulate 'reduced_cost_bound' via max for the former, min
+            // for the latter, so it always tracks the most improving
+            // reduced cost found so far.
+            Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
+            if (instance_.objective() == Objective::Knapsack) {
+                reduced_cost_bound = (std::max)(reduced_cost_bound, rc);
+            } else if (instance_.objective() == Objective::OpenDimensionX) {
+                reduced_cost_bound = (std::min)(reduced_cost_bound, rc);
+            }
         }
 
         // Find the largest width strictly smaller than the largest width
@@ -1762,9 +1794,26 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         Solution extra_solution = extra_solution_builder.build();
         column.extra = std::shared_ptr<void>(new Solution(extra_solution));
         output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
-        Value rc_bound = sub_output.knapsack_bound / multiplier_profit
-            - width_dual * actual_used_width / multiplier_length;
-        reduced_cost_bound = (std::max)(reduced_cost_bound, rc_bound);
+        // As above: rc > 0 is improving for Knapsack (Maximize), rc < 0 is
+        // improving for OpenDimensionX (Minimize). Unlike the other sites,
+        // this bound is derived from 'sub_output.knapsack_bound' rather than
+        // 'compute_reduced_cost' directly: for Knapsack, the item profits
+        // fed into the sub-instance were pre-scaled by multiplier_profit
+        // (see 'profit = item_type.profit - duals[...] * multiplier_profit'
+        // above), so the bound needs the matching '/ multiplier_profit' to
+        // stay in the same units as the width term; for OpenDimensionX, the
+        // sub-instance's item profits are the raw duals, unscaled, so
+        // 'sub_output.knapsack_bound' is already in the same (unscaled)
+        // units as the width term below.
+        if (instance_.objective() == Objective::Knapsack) {
+            Value rc_bound = sub_output.knapsack_bound / multiplier_profit
+                - width_dual * actual_used_width / multiplier_length;
+            reduced_cost_bound = (std::max)(reduced_cost_bound, rc_bound);
+        } else if (instance_.objective() == Objective::OpenDimensionX) {
+            Value rc_bound = (double)(actual_used_width + cut_thickness) / multiplier_length
+                - sub_output.knapsack_bound;
+            reduced_cost_bound = (std::min)(reduced_cost_bound, rc_bound);
+        }
 
         // Compute the next width to try.
         //
@@ -1916,12 +1965,23 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         }
     }
 
+    // An improving column has rc > 0 for a Maximize model (Knapsack) but
+    // rc < 0 for a Minimize model (OpenDimensionX), matching how
+    // 'columngenerationsolver::column_generation' itself decides whether to
+    // accept a generated column.
     bool has_good_column = false;
     for (const auto& column: output.columns) {
         Value rc = columngenerationsolver::compute_reduced_cost(*column, duals);
-        if (strictly_greater(rc, 0)) {
-            has_good_column = true;
-            break;
+        if (instance_.objective() == Objective::Knapsack) {
+            if (strictly_greater(rc, 0)) {
+                has_good_column = true;
+                break;
+            }
+        } else if (instance_.objective() == Objective::OpenDimensionX) {
+            if (strictly_lesser(rc, 0)) {
+                has_good_column = true;
+                break;
+            }
         }
     }
 
