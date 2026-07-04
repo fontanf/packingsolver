@@ -403,7 +403,18 @@ Solution reconstruct_solution(
                 2, x_offset, y_offset, eff_width, eff_height);
     }
 
-    return builder.build();
+    Solution solution = builder.build();
+
+    // Check feasibility.
+    // Defects, stacks, minimum waste, minimum/maximum distance between cuts
+    // and the number of stages are not supported by this algorithm (see
+    // labeling.hpp), so only item copies are checked here.
+    if (!solution.item_copies_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy item copies.");
+    }
+
+    return solution;
 }
 
 }  // namespace

@@ -794,7 +794,15 @@ Solution BranchingSchemeMaximalSpaces::to_solution(
     };
     dfs(0);
 
-    return solution_builder.build();
+    Solution solution = solution_builder.build();
+
+    // Check feasibility.
+    if (!solution.item_copies_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy item copies.");
+    }
+
+    return solution;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

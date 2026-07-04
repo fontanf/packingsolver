@@ -155,6 +155,12 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
                     1,  // copies
                     {0});  // bin_type_ids
         }
+        // Check feasibility.
+        if (!solution.item_copies_feasible()) {
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": solution doesn't satisfy item copies.");
+        }
+
         std::stringstream ss;
         ss << "SF it " << it << " " << sub_solution_pool.best_label();
         algorithm_formatter.update_solution(solution, ss.str());

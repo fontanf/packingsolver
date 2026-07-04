@@ -1762,6 +1762,10 @@ Solution BranchingScheme::to_solution(
     }
 
     // Check feasibility.
+    if (!solution.number_of_stages_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy number of stages.");
+    }
     if (!solution.minimum_waste_length_feasible()) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": solution doesn't satisfy minimum waste length.");
@@ -1778,6 +1782,10 @@ Solution BranchingScheme::to_solution(
         throw std::logic_error(
                 FUNC_SIGNATURE + ": solution doesn't satisfy minimum distance between 2-cuts.");
     }
+    if (!solution.maximum_distance_2_cuts_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy maximum distance between 2-cuts.");
+    }
     if (!solution.maximum_number_2_cuts_feasible()) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": solution doesn't satisfy maximum number of 2-cuts.");
@@ -1793,6 +1801,10 @@ Solution BranchingScheme::to_solution(
     if (!solution.cut_through_defects_feasible()) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": solution doesn't satisfy cut through defects.");
+    }
+    if (!solution.item_copies_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy item copies.");
     }
 
     return solution;
