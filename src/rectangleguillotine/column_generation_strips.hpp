@@ -73,7 +73,7 @@ struct ColumnGenerationStripsOutput: packingsolver::Output<Instance, Solution>
 
 struct ColumnGenerationStripsParameters: packingsolver::Parameters<Instance, Solution>
 {
-    bool automatic_stop = false;
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
     /** Linear programming solver. */
     columngenerationsolver::SolverName linear_programming_solver_name

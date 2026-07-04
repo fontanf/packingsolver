@@ -1655,7 +1655,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
 
         ColumnGenerationStripsParameters sub_params;
         sub_params.verbosity_level = 0;
-        sub_params.automatic_stop = true;
+        sub_params.optimization_mode = OptimizationMode::NotAnytimeSequential;
         sub_params.timer = parameters_.timer;
         auto sub_output = column_generation_strips(sub_instance, sub_params);
         if (parameters_.timer.needs_to_end())
@@ -1976,7 +1976,7 @@ void column_generation_strips_vertical(
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = 0;
     cgslds_parameters.dummy_column_objective_coefficient = 2;
-    cgslds_parameters.automatic_stop = parameters.automatic_stop;
+    cgslds_parameters.automatic_stop = (parameters.optimization_mode != OptimizationMode::Anytime);
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
             const columngenerationsolver::Output& cgs_output)
     {
