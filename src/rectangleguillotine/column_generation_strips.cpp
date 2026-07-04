@@ -1585,9 +1585,20 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
     Length height = bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim;
 
     // Hoist the width-constraint dual: constant across all iterations.
+    //
+    // For Knapsack, this is the dual of the shared width-capacity row.
+    // OpenDimensionX has no such row (width is minimized directly as the
+    // objective, not shared out via a row/dual), but the pre-filter below
+    // only needs "the cost of one unit of width", which for OpenDimensionX
+    // is a fixed, unscaled 1 (see the objective_coefficient assignment
+    // further down, which uses '(width + cut_thickness) / multiplier_length'
+    // directly, with no dual scaling).
     Value width_dual = 0.0;
-    if (instance_.objective() == Objective::Knapsack)
+    if (instance_.objective() == Objective::Knapsack) {
         width_dual = duals[instance_.number_of_item_types()];
+    } else if (instance_.objective() == Objective::OpenDimensionX) {
+        width_dual = 1.0;
+    }
 
     Length width = available_width;
     for (;;) {
@@ -1623,7 +1634,17 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
             if (!fits)
                 continue;
 
-            max_profit_sum += (Value)copies * profit / multiplier_profit;
+            // For Knapsack, 'profit' above was already scaled by
+            // multiplier_profit (it's a reduced profit: item_type.profit -
+            // duals * multiplier_profit), so dividing by multiplier_profit
+            // here keeps it in the same units as the width term compared
+            // against it below. For OpenDimensionX, 'profit' is the raw dual
+            // (unscaled), so no such division applies.
+            if (instance_.objective() == Objective::Knapsack) {
+                max_profit_sum += (Value)copies * profit / multiplier_profit;
+            } else if (instance_.objective() == Objective::OpenDimensionX) {
+                max_profit_sum += (Value)copies * profit;
+            }
             sub2orig.push_back(item_type_id);
         }
 
@@ -1826,8 +1847,17 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         //
         // When rc ≤ 0 this gives a tighter upper bound than actual_used_width - 1
         // and lets us skip widths that provably cannot yield a positive reduced cost.
+        //
+        // Restricted to Knapsack: 'compute_reduced_cost' returns a
+        // maximization-style value (positive = improving), and this
+        // refinement's polarity ('rc > 0' is "still promising") and bound
+        // formula are both built around that convention. Reusing it as-is
+        // for OpenDimensionX (rc < 0 is improving there) would apply the
+        // wrong direction, so it's left at the safe 'actual_used_width - 1'
+        // fallback for that objective instead of re-deriving it here too.
         Length width_next = actual_used_width - 1;
-        if (strictly_greater(width_dual, 0.0)) {
+        if (instance_.objective() == Objective::Knapsack
+                && strictly_greater(width_dual, 0.0)) {
             Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
             if (!strictly_greater(rc, 0.0)) {
                 double bound = actual_used_width
