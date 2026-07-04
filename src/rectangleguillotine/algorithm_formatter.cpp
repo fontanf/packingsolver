@@ -83,7 +83,7 @@ void AlgorithmFormatter::print_header()
                 << std::setw(32) << "Comment"
                 << std::endl
                 << std::setw(12) << "----"
-                << std::setw(12) << "-----"
+                << std::setw(12) << "-"
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
@@ -94,7 +94,7 @@ void AlgorithmFormatter::print_header()
                 << std::setw(32) << "Comment"
                 << std::endl
                 << std::setw(12) << "----"
-                << std::setw(12) << "-----"
+                << std::setw(12) << "-"
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
