@@ -86,6 +86,8 @@ int main(int argc, char *argv[])
             ("maximum-distance-1-cuts,", po::value<Length>(), "")
             ("min2cut,", po::value<Length>(), "")
             ("minimum-distance-2-cuts,", po::value<Length>(), "")
+            ("max2cut,", po::value<Length>(), "")
+            ("maximum-distance-2-cuts,", po::value<Length>(), "")
             ("min-waste,", po::value<Length>(), "")
             ("minimum-waste-length,", po::value<Length>(), "")
             ("maximum-number-2-cuts,", po::value<Counter>(), "")
@@ -225,6 +227,10 @@ int main(int argc, char *argv[])
             instance_builder.set_minimum_distance_2_cuts(vm["min2cut"].as<Length>());
         if (vm.count("minimum-distance-2-cuts"))
             instance_builder.set_minimum_distance_2_cuts(vm["minimum-distance-2-cuts"].as<Length>());
+        if (vm.count("max2cut"))
+            instance_builder.set_maximum_distance_2_cuts(vm["max2cut"].as<Length>());
+        if (vm.count("maximum-distance-2-cuts"))
+            instance_builder.set_maximum_distance_2_cuts(vm["maximum-distance-2-cuts"].as<Length>());
         if (vm.count("min-waste"))
             instance_builder.set_minimum_waste_length(vm["min-waste"].as<Length>());
         if (vm.count("minimum-waste-length"))
