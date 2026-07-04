@@ -157,8 +157,8 @@ void optimize_column_generation_strips(
     cg_parameters.new_solution_callback = [&instance, &algorithm_formatter](
             const packingsolver::Output<Instance, Solution>& ps_output)
     {
-        const SequentialValueCorrectionOutput<Instance, Solution>& pscg_output
-            = static_cast<const SequentialValueCorrectionOutput<Instance, Solution>&>(ps_output);
+        const ColumnGenerationStripsOutput& pscg_output
+            = static_cast<const ColumnGenerationStripsOutput&>(ps_output);
         algorithm_formatter.update_solution(
                 pscg_output.solution_pool.best(),
                 "CGS " + pscg_output.solution_pool.best_label());
