@@ -153,8 +153,7 @@ void optimize_column_generation_strips(
     cg_parameters.linear_programming_solver_name
         = parameters.linear_programming_solver_name;
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
-        cg_parameters.automatic_stop = true;
+    cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.new_solution_callback = [&algorithm_formatter](
             const packingsolver::Output<Instance, Solution>& ps_output)
     {
