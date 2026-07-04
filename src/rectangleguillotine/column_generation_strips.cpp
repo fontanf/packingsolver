@@ -162,6 +162,44 @@ Length first_stage_padded_width(
     return (std::max)(width, instance.parameters().minimum_distance_1_cuts);
 }
 
+/**
+ * Check that a solution satisfies the constraints supported by
+ * 'column_generation_strips': minimum/maximum distance between 1-cuts and
+ * 2-cuts, number of stages and item copies. Minimum waste length, maximum
+ * number of 2-cuts, stacks and defects are not supported (the auto algorithm
+ * selection in optimize() only enables this algorithm when they are
+ * trivial), so they are not checked here.
+ */
+void check_feasibility(
+        const Solution& solution,
+        const std::string& func_signature)
+{
+    if (!solution.number_of_stages_feasible()) {
+        throw std::logic_error(
+                func_signature + ": solution doesn't satisfy number of stages.");
+    }
+    if (!solution.minimum_distance_1_cuts_feasible()) {
+        throw std::logic_error(
+                func_signature + ": solution doesn't satisfy minimum distance between 1-cuts.");
+    }
+    if (!solution.maximum_distance_1_cuts_feasible()) {
+        throw std::logic_error(
+                func_signature + ": solution doesn't satisfy maximum distance between 1-cuts.");
+    }
+    if (!solution.minimum_distance_2_cuts_feasible()) {
+        throw std::logic_error(
+                func_signature + ": solution doesn't satisfy minimum distance between 2-cuts.");
+    }
+    if (!solution.maximum_distance_2_cuts_feasible()) {
+        throw std::logic_error(
+                func_signature + ": solution doesn't satisfy maximum distance between 2-cuts.");
+    }
+    if (!solution.item_copies_feasible()) {
+        throw std::logic_error(
+                func_signature + ": solution doesn't satisfy item copies.");
+    }
+}
+
 Column solution_to_column(
         const Solution& solution)
 {
@@ -356,6 +394,7 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_2h_patterns(
 
         ItemPos copies_max = (bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim + instance.parameters().cut_thickness)
             / (item_type.rect.h + instance.parameters().cut_thickness);
+        copies_max = std::min(copies_max, item_type.copies);
         //std::cout
         //    << "bin_type.h " << bin_type.rect.h
         //    << " copies_max " << copies_max
@@ -395,6 +434,7 @@ std::vector<std::shared_ptr<const Column>> generate_all_columns_2h_patterns(
                 && item_type.rect.h >= instance.parameters().minimum_distance_1_cuts) {
             ItemPos copies_max = (bin_type.rect.h - bin_type.bottom_trim - bin_type.top_trim + instance.parameters().cut_thickness)
                 / (item_type.rect.w + instance.parameters().cut_thickness);
+            copies_max = std::min(copies_max, item_type.copies);
             for (ItemPos copies = 1; copies <= copies_max; ++copies) {
 
                 // Build strip.
@@ -604,6 +644,7 @@ GetModelOutput get_model(
     if (instance.objective() == Objective::Knapsack) {
         for (const std::shared_ptr<const Column>& column: column_pool) {
             const Solution& solution = *std::static_pointer_cast<Solution>(column->extra);
+            check_feasibility(solution, FUNC_SIGNATURE);
             algorithm_formatter.update_solution(solution, "V strip");
         }
     }
@@ -1910,6 +1951,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
     if (instance_.objective() == Objective::Knapsack) {
         for (const std::shared_ptr<const Column>& column: output.columns) {
             const Solution& solution = *std::static_pointer_cast<Solution>(column->extra);
+            check_feasibility(solution, FUNC_SIGNATURE);
             algorithm_formatter_.update_solution(solution, "V strip");
         }
     }
@@ -1978,6 +2020,7 @@ void column_generation_strips_vertical(
                 }
             }
             Solution solution = solution_builder.build();
+            check_feasibility(solution, FUNC_SIGNATURE);
             std::stringstream ss;
             ss << "V n " << cgslds_output.number_of_nodes;
             algorithm_formatter.update_solution(solution, ss.str());
@@ -2018,6 +2061,7 @@ void column_generation_strips_horizontal(
                 label[0] = 'H';
             Solution solution = instance_flippper.unflip_solution(
                     flipped_output.solution_pool.best());
+            check_feasibility(solution, FUNC_SIGNATURE);
             algorithm_formatter.update_solution(solution, label);
             algorithm_formatter.update_knapsack_bound(
                     flipped_output.knapsack_bound);
