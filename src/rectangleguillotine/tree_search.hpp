@@ -9,6 +9,8 @@
 
 #include "treesearchsolver/common.hpp"
 
+#include <array>
+
 namespace packingsolver
 {
 namespace rectangleguillotine
@@ -214,6 +216,30 @@ public:
 
         /** Number of 2-cuts in the current 1-level sub-plate. */
         Counter subplate1curr_number_of_2_cuts = 0;
+
+        /**
+         * Cumulated cutting cost of the partial solution, for the
+         * 'BinPackingCuttingCost' objective (bins + confirmed 1/2/3/4-cuts).
+         */
+        Profit cutting_cost = 0;
+
+        /**
+         * Cost of the potential 3-cuts of the current 1-level sub-plate (not
+         * yet confirmed, see 'cutting_cost' above).
+         */
+        Profit subplate1curr_potential_cost_of_3_cuts = 0;
+
+        /**
+         * Number of 3-cuts in the current 2-level sub-plate, used to scale
+         * their cost when the 2-level sub-plate's height increases.
+         */
+        Counter subplate2curr_number_of_3_cuts = 0;
+
+        /**
+         * Cost of the potential 4-cuts of the current 2-level sub-plate (not
+         * yet confirmed, see 'cutting_cost' above).
+         */
+        Profit subplate2curr_potential_cost_of_4_cuts = 0;
 
         /**
          * Contains the list of items (id, rotate, left cut position) inserted
@@ -436,6 +462,18 @@ private:
      * separate) and is not allowed.
      */
     Counter maximum_number_2_cuts_ = -1;
+
+    /**
+     * Effective cutting costs, for the 'BinPackingCuttingCost' objective:
+     * cutting_costs_[0] is the cost of the bin, cutting_costs_[1..4] are the
+     * costs of the 1/2/3/4-cuts, matching the depths actually used by this
+     * branching scheme (which never exceed depth 4). For 2-staged instances,
+     * depth 1 (x1) does not correspond to a real cut (see
+     * maximum_distance_1_cuts_ above), so cutting_costs_[1] is left at
+     * {0, 0} and instance().parameters().cutting_costs[1..3] (stages 1 to 3)
+     * are shifted into cutting_costs_[2..4] instead.
+     */
+    std::array<CutCost, 5> cutting_costs_;
 
     bool no_oriented_items_;
 

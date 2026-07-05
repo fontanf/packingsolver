@@ -10,6 +10,7 @@ target_sources(PackingSolver_rectangleguillotine_test PRIVATE
     tree_search/cut_thickness_test.cpp
     tree_search/integration_test.cpp
     tree_search/tree_search_test.cpp
+    tree_search/cutting_cost_test.cpp
     column_generation_strips_test.cpp
     sequential_strips_onedimensional_test.cpp
     dynamic_programming_infinite_copies_array_test.cpp

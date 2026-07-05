@@ -139,6 +139,7 @@ enum class Objective
     VariableSizedBinPacking,
     SequentialOneDimensionalRectangleSubproblem,
     Feasibility,
+    BinPackingCuttingCost,
 };
 
 std::istream& operator>>(

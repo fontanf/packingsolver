@@ -314,6 +314,13 @@ void Instance::write(
         << "maximum_number_1_cuts," << parameters().maximum_number_1_cuts << std::endl
         << "maximum_number_2_cuts," << parameters().maximum_number_2_cuts << std::endl
         << "cut_thickness," << parameters().cut_thickness << std::endl;
+    for (Counter stage_id = 0;
+            stage_id < (Counter)parameters().cutting_costs.size();
+            ++stage_id) {
+        f_parameters
+            << "cuts_fixed_cost_" << stage_id << "," << parameters().cutting_costs[stage_id].fixed << std::endl
+            << "cuts_variable_cost_" << stage_id << "," << parameters().cutting_costs[stage_id].variable << std::endl;
+    }
 }
 
 std::ostream& Instance::format(

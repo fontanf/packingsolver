@@ -88,6 +88,25 @@ std::ostream& operator<<(
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Cost of a cutting stage, for the 'BinPackingCuttingCost' objective.
+ *
+ * 'fixed' and 'variable' are set to -1 by default to mark them as unset; both
+ * must be set to a value >= 0 for every required stage, or
+ * 'InstanceBuilder::build' throws.
+ */
+struct CutCost
+{
+    /** Fixed cost, paid once per cut (or per bin, for stage 0). */
+    Profit fixed = -1;
+
+    /**
+     * Variable cost, paid per unit of cut length (or per unit of bin area,
+     * for stage 0).
+     */
+    Profit variable = -1;
+};
+
 struct Parameters
 {
     /** Number of stages. */
@@ -137,6 +156,17 @@ struct Parameters
 
     /** Cut thickness. */
     Length cut_thickness = 0;
+
+    /**
+     * Costs for the 'BinPackingCuttingCost' objective, indexed by stage
+     * number: index 0 is the cost of a bin (fixed cost per bin, variable
+     * cost per unit of bin area); index s (1 <= s <= number_of_stages) is
+     * the cost of an s-cut (fixed cost per cut, variable cost per unit of
+     * cut length). If cut_type is NonExact or Roadef2018, one extra index
+     * (number_of_stages + 1) is required, for the optional extra cut some
+     * patterns of this cut type may need at their deepest level.
+     */
+    std::vector<CutCost> cutting_costs;
 };
 
 /**

@@ -166,6 +166,12 @@ public:
     /** Get the cost of the solution. */
     inline Profit cost() const { return cost_; }
 
+    /**
+     * Get the cutting cost of the solution, for the
+     * 'BinPackingCuttingCost' objective (bins + 1/2/3/4-cuts).
+     */
+    inline Profit cutting_cost() const { return cutting_cost_; }
+
     /*
      * Getters: items
      */
@@ -315,6 +321,9 @@ private:
 
     /** Cost of the solution. */
     Profit cost_ = 0;
+
+    /** Cutting cost of the solution, for the 'BinPackingCuttingCost' objective. */
+    Profit cutting_cost_ = 0;
 
     /*
      * Private attributes: items

@@ -104,6 +104,55 @@ void InstanceBuilder::set_predefined(std::string str)
     }
 }
 
+void InstanceBuilder::set_number_of_stages(Counter number_of_stages)
+{
+    instance_.parameters_.number_of_stages = number_of_stages;
+    resize_cutting_costs();
+}
+
+void InstanceBuilder::set_cut_type(CutType cut_type)
+{
+    instance_.parameters_.cut_type = cut_type;
+    resize_cutting_costs();
+}
+
+void InstanceBuilder::resize_cutting_costs()
+{
+    Counter number_of_required_cutting_costs = 1 + instance_.parameters_.number_of_stages
+        + ((instance_.parameters_.cut_type == CutType::NonExact
+                    || instance_.parameters_.cut_type == CutType::Roadef2018)? 1: 0);
+    if ((Counter)instance_.parameters_.cutting_costs.size() < number_of_required_cutting_costs)
+        instance_.parameters_.cutting_costs.resize(number_of_required_cutting_costs);
+}
+
+void InstanceBuilder::set_fixed_cutting_cost(
+        Counter stage_id,
+        Profit fixed_cost)
+{
+    if (stage_id < 0 || stage_id >= (Counter)instance_.parameters_.cutting_costs.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'stage_id'; "
+                "stage_id: " + std::to_string(stage_id) + "; "
+                "cutting_costs.size(): " + std::to_string(instance_.parameters_.cutting_costs.size()) + ".");
+    }
+    instance_.parameters_.cutting_costs[stage_id].fixed = fixed_cost;
+}
+
+void InstanceBuilder::set_variable_cutting_cost(
+        Counter stage_id,
+        Profit variable_cost)
+{
+    if (stage_id < 0 || stage_id >= (Counter)instance_.parameters_.cutting_costs.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'stage_id'; "
+                "stage_id: " + std::to_string(stage_id) + "; "
+                "cutting_costs.size(): " + std::to_string(instance_.parameters_.cutting_costs.size()) + ".");
+    }
+    instance_.parameters_.cutting_costs[stage_id].variable = variable_cost;
+}
+
 void InstanceBuilder::set_number_of_stages_unlimited()
 {
     Counter max_stages = 0;
@@ -116,6 +165,7 @@ void InstanceBuilder::set_number_of_stages_unlimited()
     instance_.parameters_.number_of_stages = max_stages;
     instance_.parameters_.cut_type = CutType::Exact;
     instance_.parameters_.first_stage_orientation = CutOrientation::Any;
+    resize_cutting_costs();
 }
 
 void InstanceBuilder::set_roadef2018()
@@ -128,6 +178,7 @@ void InstanceBuilder::set_roadef2018()
     instance_.parameters_.minimum_distance_2_cuts = 100;
     instance_.parameters_.minimum_waste_length = 20;
     instance_.parameters_.cut_through_defects = false;
+    resize_cutting_costs();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -587,6 +638,12 @@ void InstanceBuilder::read_parameters(
             set_cut_through_defects(std::stol(value));
         } else if (name == "cut_thickness") {
             set_cut_thickness(std::stol(value));
+        } else if (name.rfind("cuts_fixed_cost_", 0) == 0) {
+            Counter stage_id = std::stol(name.substr(16));
+            set_fixed_cutting_cost(stage_id, std::stod(value));
+        } else if (name.rfind("cuts_variable_cost_", 0) == 0) {
+            Counter stage_id = std::stol(name.substr(19));
+            set_variable_cutting_cost(stage_id, std::stod(value));
         }
     }
 }
@@ -946,6 +1003,33 @@ Instance InstanceBuilder::build()
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "maximum_number_2_cuts must not be 0.");
+    }
+
+    // For the 'BinPackingCuttingCost' objective, 'cutting_costs' must contain
+    // a valid (fixed >= 0, variable >= 0) entry for stage 0 (the bin) and for
+    // stages 1 to number_of_stages, plus one extra stage if cut_type is
+    // NonExact or Roadef2018.
+    if (instance_.objective() == Objective::BinPackingCuttingCost) {
+        Counter number_of_required_cutting_costs = 1 + instance_.parameters().number_of_stages
+            + ((instance_.parameters().cut_type == CutType::NonExact
+                        || instance_.parameters().cut_type == CutType::Roadef2018)? 1: 0);
+        if ((Counter)instance_.parameters().cutting_costs.size() < number_of_required_cutting_costs) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "missing cutting costs; "
+                    "cutting_costs.size(): " + std::to_string(instance_.parameters().cutting_costs.size()) + "; "
+                    "number_of_required_cutting_costs: " + std::to_string(number_of_required_cutting_costs) + ".");
+        }
+        for (Counter stage_id = 0;
+                stage_id < number_of_required_cutting_costs;
+                ++stage_id) {
+            const CutCost& cutting_cost = instance_.parameters().cutting_costs[stage_id];
+            if (cutting_cost.fixed == -1 || cutting_cost.variable == -1) {
+                throw std::invalid_argument(
+                        FUNC_SIGNATURE + ": "
+                        "missing cutting cost for stage " + std::to_string(stage_id) + ".");
+            }
+        }
     }
 
     // Compute item_type_ids_ and stack_offsets_.

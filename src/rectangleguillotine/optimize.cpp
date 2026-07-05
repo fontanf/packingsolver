@@ -576,6 +576,18 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                 }
             }
         }
+    } else if (instance.objective() == Objective::BinPackingCuttingCost) {
+        // Only tree_search supports this objective.
+        use_tree_search = true;
+        use_tree_search_maximal_spaces = false;
+        use_column_generation_strips = false;
+        use_sequential_strips_onedimensional = false;
+        use_dynamic_programming_infinite_copies_array = false;
+        use_labeling = false;
+        use_sequential_single_knapsack = false;
+        use_sequential_value_correction = false;
+        use_dichotomic_search = false;
+        use_column_generation = false;
     }
 
     if (instance.objective() == Objective::BinPacking) {

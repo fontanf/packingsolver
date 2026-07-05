@@ -41,7 +41,7 @@ public:
     /** Set parameters. */
     void set_parameters(const Parameters& parameters) { instance_.parameters_ = parameters; }
 
-    void set_number_of_stages(Counter number_of_stages) { instance_.parameters_.number_of_stages = number_of_stages; }
+    void set_number_of_stages(Counter number_of_stages);
 
     /**
      * Set the number of stages to an unlimited value.
@@ -54,7 +54,7 @@ public:
     void set_number_of_stages_unlimited();
 
 
-    void set_cut_type(CutType cut_type) { instance_.parameters_.cut_type = cut_type; }
+    void set_cut_type(CutType cut_type);
 
     void set_first_stage_orientation(CutOrientation first_stage_orientation) { instance_.parameters_.first_stage_orientation = first_stage_orientation; }
 
@@ -76,6 +76,24 @@ public:
 
     /** Set cut thickness. */
     void set_cut_thickness(Length cut_thickness) { instance_.parameters_.cut_thickness = cut_thickness; }
+
+    /**
+     * Set the fixed cost of stage 'stage_id' (0 for the bin, 1 to
+     * number_of_stages + 1 for cuts), for the 'BinPackingCuttingCost'
+     * objective. Grows 'cutting_costs' if needed.
+     */
+    void set_fixed_cutting_cost(
+            Counter stage_id,
+            Profit fixed_cost);
+
+    /**
+     * Set the variable cost of stage 'stage_id' (0 for the bin, 1 to
+     * number_of_stages + 1 for cuts), for the 'BinPackingCuttingCost'
+     * objective. Grows 'cutting_costs' if needed.
+     */
+    void set_variable_cutting_cost(
+            Counter stage_id,
+            Profit variable_cost);
 
     void set_predefined(std::string str);
 
@@ -221,6 +239,13 @@ private:
 
     /** Build stack_offsets_ and item_type_ids_ in the instance. */
     void build_stacks();
+
+    /**
+     * Resize 'cutting_costs' to match the current 'number_of_stages' and
+     * 'cut_type' (called whenever either is set), preserving already-set
+     * values.
+     */
+    void resize_cutting_costs();
 
     /*
      * Private attributes

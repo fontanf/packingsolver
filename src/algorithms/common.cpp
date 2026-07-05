@@ -161,6 +161,10 @@ std::istream& packingsolver::operator>>(
             || token == "SequentialOneDimensionalRectangleSubproblem"
             || token == "BDRS") {
         objective = Objective::SequentialOneDimensionalRectangleSubproblem;
+    } else if (token == "bin-packing-cutting-cost"
+            || token == "BinPackingCuttingCost"
+            || token == "BPPCC") {
+        objective = Objective::BinPackingCuttingCost;
     } else  {
         in.setstate(std::ios_base::failbit);
     }
@@ -204,6 +208,9 @@ std::ostream& packingsolver::operator<<(
         break;
     } case Objective::SequentialOneDimensionalRectangleSubproblem: {
         os << "SequentialOneDimensionalRectangleSubproblem";
+        break;
+    } case Objective::BinPackingCuttingCost: {
+        os << "BinPackingCuttingCost";
         break;
     }
     }

@@ -58,6 +58,28 @@ BranchingScheme::BranchingScheme(
         maximum_number_2_cuts_ = instance.parameters().maximum_number_2_cuts;
     }
 
+    // Compute cutting_costs_.
+    if (instance.objective() == Objective::BinPackingCuttingCost) {
+        const auto& cutting_costs = instance.parameters().cutting_costs;
+        auto cutting_cost = [&cutting_costs](Counter stage_id) {
+            return (stage_id >= 0 && stage_id < (Counter)cutting_costs.size())?
+                cutting_costs[stage_id]:
+                CutCost();
+        };
+        cutting_costs_[0] = cutting_cost(0);
+        if (instance.parameters().number_of_stages == 2) {
+            cutting_costs_[1] = CutCost();
+            cutting_costs_[2] = cutting_cost(1);
+            cutting_costs_[3] = cutting_cost(2);
+            cutting_costs_[4] = cutting_cost(3);
+        } else {
+            cutting_costs_[1] = cutting_cost(1);
+            cutting_costs_[2] = cutting_cost(2);
+            cutting_costs_[3] = cutting_cost(3);
+            cutting_costs_[4] = cutting_cost(4);
+        }
+    }
+
     // Compute no_oriented_items_;
     no_oriented_items_ = true;
     for (ItemTypeId item_type_id = 0;
@@ -167,6 +189,10 @@ bool BranchingScheme::bound(
                 (node_1->waste + instance().item_area() - 1)
                 / instance().bin_type(0).rect.w + 1)
             >= height(*node_2);
+    } case Objective::BinPackingCuttingCost: {
+        if (!leaf(node_2))
+            return false;
+        return node_1->cutting_cost >= node_2->cutting_cost;
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
@@ -219,6 +245,12 @@ bool BranchingScheme::better(
         return node_2->profit < node_1->profit;
     } case Objective::Feasibility: {
         return node_2->profit < node_1->profit;
+    } case Objective::BinPackingCuttingCost: {
+        if (!leaf(node_1))
+            return false;
+        if (!leaf(node_2))
+            return true;
+        return node_2->cutting_cost > node_1->cutting_cost;
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
@@ -406,12 +438,15 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     }
 
     Length w_j = node.x3_curr - x3_prev(parent, node.df);
-    //bool rotate_j1 = (insertion.item_type_id_1 == -1)? false: (instance().width(instance().item(insertion.item_type_id_1), true, o) == w_j);
+    bool rotate_j1 = (node.item_type_id_1 == -1)?
+        false:
+        (instance.item_type(node.item_type_id_1).rect.h == w_j);
     bool rotate_j2 = (node.item_type_id_2 == -1)?
         false:
         (instance.item_type(node.item_type_id_2).rect.h == w_j);
-    //Length h_j1 = (insertion.item_type_id_1 == -1)? -1: instance().height(instance().item_type(insertion.item_type_id_1), rotate_j1, o);
-    //Length h_j2 = (insertion.item_type_id_2 == -1)? -1: instance().height(instance().item_type(insertion.item_type_id_2), rotate_j2, o);
+    Length h_j1 = (node.item_type_id_1 == -1)?
+        -1:
+        instance.item_type(node.item_type_id_1).height(rotate_j1);
 
     // Compute subplate2curr_items_above_defect.
     if (node.df == 2)
@@ -492,6 +527,100 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             }
         } else {
             node.subplate1curr_number_of_2_cuts = parent.subplate1curr_number_of_2_cuts;
+        }
+    }
+
+    // Update cutting_cost (for the 'BinPackingCuttingCost' objective).
+    // Mirrors the bincurr_number_of_1_cuts / subplate1curr_number_of_2_cuts
+    // cascades above, extended down to depths 3 and 4, and combining each
+    // cut's fixed and variable cost into a single running total (rather
+    // than tracking count and length separately) since the per-depth rates
+    // are constant throughout the search.
+    if (instance.objective() == Objective::BinPackingCuttingCost) {
+        node.cutting_cost = parent.cutting_cost;
+
+        // 4-cut cost. A potential 4-cut (single item not reaching the
+        // 2-level sub-plate's target height) only becomes chargeable once
+        // another 3-level sub-plate is added above it (df == 2 and y2
+        // increases); until then it stays in subplate2curr_potential_cost_of_4_cuts.
+        node.subplate2curr_potential_cost_of_4_cuts = (node.df != 2)?
+            0: parent.subplate2curr_potential_cost_of_4_cuts;
+        if (node.df == 2 && node.y2_curr > parent.y2_curr) {
+            node.cutting_cost += node.subplate2curr_potential_cost_of_4_cuts;
+            node.subplate2curr_potential_cost_of_4_cuts = 0;
+        }
+        if (node.item_type_id_1 != -1 && node.item_type_id_2 == -1) { // 1 item.
+            if (node.y2_curr != node.y2_prev + h_j1) {
+                node.cutting_cost += cutting_costs_[4].fixed + cutting_costs_[4].variable * w_j;
+            } else {
+                node.subplate2curr_potential_cost_of_4_cuts += cutting_costs_[4].fixed + cutting_costs_[4].variable * w_j;
+            }
+        } else if (node.item_type_id_1 == -1 && node.item_type_id_2 != -1) { // 1 item above a defect.
+            node.cutting_cost += cutting_costs_[4].fixed + cutting_costs_[4].variable * w_j;
+        } else if (node.item_type_id_1 != -1 && node.item_type_id_2 != -1) { // 2 items.
+            node.cutting_cost += cutting_costs_[4].fixed + cutting_costs_[4].variable * w_j;
+        }
+
+        // 3-cut cost. Same principle as 2-cut below, one level deeper: a
+        // potential 3-cut (when the current 2-cut coincides with the
+        // current 1-cut) only becomes chargeable once the 1-cut's position
+        // actually moves further.
+        if (node.df == 2) {
+            node.cutting_cost += (node.y2_curr - parent.y2_curr) * parent.subplate2curr_number_of_3_cuts * cutting_costs_[3].variable;
+            node.subplate2curr_number_of_3_cuts = parent.subplate2curr_number_of_3_cuts;
+        } else {
+            node.subplate2curr_number_of_3_cuts = 0;
+        }
+        node.subplate1curr_potential_cost_of_3_cuts = parent.subplate1curr_potential_cost_of_3_cuts;
+        if (node.df == 1 && parent.x3_curr == parent.x1_curr) {
+            node.subplate1curr_potential_cost_of_3_cuts
+                += cutting_costs_[3].fixed + cutting_costs_[3].variable * (parent.y2_curr - parent.y2_prev);
+        }
+        if (node.df <= 0) {
+            node.subplate1curr_potential_cost_of_3_cuts = 0;
+        }
+        if (node.df >= 1 && node.x1_curr > parent.x1_curr) {
+            node.cutting_cost += node.subplate1curr_potential_cost_of_3_cuts;
+            node.subplate1curr_potential_cost_of_3_cuts = 0;
+        }
+        if ((node.df == 2 && parent.x3_curr == parent.x1_curr) || (node.x3_curr != node.x1_curr)) {
+            node.subplate2curr_number_of_3_cuts++;
+            node.cutting_cost
+                += cutting_costs_[3].fixed + cutting_costs_[3].variable * (node.y2_curr - node.y2_prev);
+        }
+
+        // 2-cut cost. If the current 1-level sub-plate widens, every 2-cut
+        // already placed in it grows accordingly (its length is the
+        // sub-plate's width), hence the scaling by
+        // parent.subplate1curr_number_of_2_cuts.
+        if (node.df >= 1) {
+            node.cutting_cost
+                += (node.x1_curr - parent.x1_curr) * parent.subplate1curr_number_of_2_cuts * cutting_costs_[2].variable;
+        }
+        if (node.df <= 1) { // New 2-level sub-plate.
+            if (node.y2_curr != h) {
+                node.cutting_cost += cutting_costs_[2].fixed + cutting_costs_[2].variable * (node.x1_curr - node.x1_prev);
+            }
+        } else { // Same 2-level sub-plate.
+            if (parent.y2_curr != h && node.y2_curr == h) {
+                node.cutting_cost -= cutting_costs_[2].fixed + cutting_costs_[2].variable * (node.x1_curr - node.x1_prev);
+            }
+        }
+
+        // 1-cut cost.
+        if (node.df <= 0) { // New 1-level sub-plate.
+            if (node.x1_curr != w) {
+                node.cutting_cost += cutting_costs_[1].fixed + cutting_costs_[1].variable * h;
+            }
+        } else { // Same 1-level sub-plate.
+            if (parent.x1_curr != w && node.x1_curr == w) {
+                node.cutting_cost -= cutting_costs_[1].fixed + cutting_costs_[1].variable * h;
+            }
+        }
+
+        // Bin cost (stage 0), charged once per new bin.
+        if (node.df < 0) {
+            node.cutting_cost += cutting_costs_[0].fixed + cutting_costs_[0].variable * bin_type.area();
         }
     }
 
