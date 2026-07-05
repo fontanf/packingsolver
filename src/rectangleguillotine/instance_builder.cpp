@@ -579,6 +579,8 @@ void InstanceBuilder::read_parameters(
                 || name == "minWaste"
                 || name == "minimum_waste_length") {
             set_minimum_waste_length(std::stol(value));
+        } else if (name == "maximum_number_1_cuts") {
+            set_maximum_number_1_cuts(std::stol(value));
         } else if (name == "maximum_number_2_cuts") {
             set_maximum_number_2_cuts(std::stol(value));
         } else if (name == "cut_through_defects") {
@@ -932,6 +934,18 @@ Instance InstanceBuilder::build()
                     FUNC_SIGNATURE + ": "
                     "maximum_number_2_cuts is not allowed if number_of_stages == 2.");
         }
+    }
+
+    // maximum_number_1_cuts and maximum_number_2_cuts must not be 0.
+    if (instance_.parameters().maximum_number_1_cuts == 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "maximum_number_1_cuts must not be 0.");
+    }
+    if (instance_.parameters().maximum_number_2_cuts == 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "maximum_number_2_cuts must not be 0.");
     }
 
     // Compute item_type_ids_ and stack_offsets_.

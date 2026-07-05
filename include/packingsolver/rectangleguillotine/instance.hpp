@@ -122,6 +122,9 @@ struct Parameters
     /** Minimum distance between two cuts. */
     Length minimum_waste_length = 0;
 
+    /** Maximum number of 1-cuts in a bin. */
+    Counter maximum_number_1_cuts = -1;
+
     /**
      * Maximum number of 2-cuts in a first-level sub-plate.
      *

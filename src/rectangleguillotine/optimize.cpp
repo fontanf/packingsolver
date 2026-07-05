@@ -421,6 +421,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     && instance.parameters().maximum_distance_1_cuts == -1
                     && instance.parameters().minimum_distance_2_cuts == 0
                     && instance.parameters().maximum_distance_2_cuts == -1
+                    && instance.parameters().maximum_number_1_cuts == -1
                     && instance.parameters().maximum_number_2_cuts == -1
                     ) {
                 use_tree_search_maximal_spaces = true;
@@ -432,6 +433,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     && instance.number_of_defects() == 0
                     && instance.number_of_stacks() == instance.number_of_item_types()
                     && instance.parameters().minimum_waste_length == 0
+                    && instance.parameters().maximum_number_1_cuts == -1
                     && instance.parameters().maximum_number_2_cuts == -1
                     ) {
                 use_column_generation_strips = true;
