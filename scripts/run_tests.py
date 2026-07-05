@@ -280,7 +280,7 @@ if args.tests is None or "rectangleguillotine-bin-packing-sequential-strips-oned
                 + options
                 + " --objective bin-packing"
                 + " --predefined 2NHO"
-                + "  --optimization-mode not-anytime-deterministic"
+                + "  --optimization-mode not-anytime-sequential"
                 + " --use-sequential-strips-onedimensional 1"
                 + "  --output \"" + json_output_path + "\"")
         print(command)
