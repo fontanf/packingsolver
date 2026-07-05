@@ -51,6 +51,13 @@ BranchingScheme::BranchingScheme(
         maximum_distance_2_cuts_ = instance.parameters().maximum_distance_2_cuts;
     }
 
+    // Compute maximum_number_2_cuts_.
+    if (instance.parameters().number_of_stages == 2) {
+        maximum_number_2_cuts_ = instance.parameters().maximum_number_1_cuts;
+    } else {
+        maximum_number_2_cuts_ = instance.parameters().maximum_number_2_cuts;
+    }
+
     // Compute no_oriented_items_;
     no_oriented_items_ = true;
     for (ItemTypeId item_type_id = 0;
@@ -437,6 +444,31 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.profit += item_type.profit;
     }
     assert(node.item_area <= instance.bin_area());
+
+    // Compute bincurr_number_of_1_cuts.
+    if (node.df < 0) {
+        if (node.x1_curr == w) {
+            node.bincurr_number_of_1_cuts = 0;
+        } else {
+            node.bincurr_number_of_1_cuts = 1;
+        }
+    } else if (node.df == 0) {
+        if (node.x1_curr == w) {
+            node.bincurr_number_of_1_cuts = parent.bincurr_number_of_1_cuts;
+        } else {
+            node.bincurr_number_of_1_cuts = parent.bincurr_number_of_1_cuts + 1;
+        }
+    } else { // node.df > 0
+        if (node.x1_curr == w) {
+            if (parent.x1_curr == w) {
+                node.bincurr_number_of_1_cuts = parent.bincurr_number_of_1_cuts;
+            } else {
+                node.bincurr_number_of_1_cuts = parent.bincurr_number_of_1_cuts - 1;
+            }
+        } else {
+            node.bincurr_number_of_1_cuts = parent.bincurr_number_of_1_cuts;
+        }
+    }
 
     // Compute subplate1curr_number_of_2_cuts.
     if (node.df < 1) {
@@ -1122,11 +1154,26 @@ void BranchingScheme::update(
         }
     }
 
+    // Update insertion.x1 and insertion.z1 with respect to one1cut()
+    //std::cout << "- update maximum_number_1_cuts  " << insertion << std::endl;
+    if (instance.parameters().maximum_number_1_cuts != -1
+            && insertion.df == 0
+            && parent.bincurr_number_of_1_cuts == instance.parameters().maximum_number_1_cuts
+            && insertion.x1 != w) {
+        if (insertion.z1 == 0) {
+            if (insertion.x1 + cut_thickness + min_waste > w_physical)
+                return;
+            insertion.x1 = w_physical;
+        } else { // insertion.z1 == 1
+            insertion.x1 = w_physical;
+        }
+    }
+
     // Update insertion.y2 and insertion.z2 with respect to one2cut()
     //std::cout << "- update maximum_number_2_cuts  " << insertion << std::endl;
-    if (instance.parameters().maximum_number_2_cuts != -1
+    if (maximum_number_2_cuts_ != -1
             && insertion.df == 1
-            && parent.subplate1curr_number_of_2_cuts == instance.parameters().maximum_number_2_cuts
+            && parent.subplate1curr_number_of_2_cuts == maximum_number_2_cuts_
             && insertion.y2 != h) {
         if (insertion.z2 == 0) {
             if (insertion.y2 + cut_thickness + min_waste > h_physical)

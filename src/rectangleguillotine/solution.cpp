@@ -57,6 +57,14 @@ void Solution::update_indicators(
 
     width_ = 0;
     height_ = 0;
+    Counter bincurr_number_of_1_cuts = 0;
+    Length bincurr_end = (bin.first_cut_orientation == CutOrientation::Vertical)?
+        ((bin_type.right_trim_type == TrimType::Soft)?
+            bin_type.rect.w:
+            bin_type.rect.w - bin_type.right_trim):
+        ((bin_type.top_trim_type == TrimType::Soft)?
+            bin_type.rect.h:
+            bin_type.rect.h - bin_type.top_trim);
     Counter subplate1curr_number_of_2_cuts = 0;
     Length subpalte1curr_end = -1;
     for (const SolutionNode& node: bin.nodes) {
@@ -166,6 +174,24 @@ void Solution::update_indicators(
                     //std::cout << "maximum_distance_2_cuts = false" << std::endl;
                     maximum_distance_2_cuts_feasible_ = false;
                     feasible_ = false;
+                }
+            }
+        }
+
+        // Check maximum number of 1-cuts.
+        if (instance().parameters().maximum_number_1_cuts >= 0) {
+            if (node.d == 1) {
+                if ((bin.first_cut_orientation == CutOrientation::Vertical
+                            && node.r != bincurr_end)
+                        || (bin.first_cut_orientation == CutOrientation::Horizontal
+                            && node.t != bincurr_end)) {
+                    bincurr_number_of_1_cuts++;
+                    if (bincurr_number_of_1_cuts
+                            > instance().parameters().maximum_number_1_cuts) {
+                        //std::cout << "maximum_number_1_cuts = false" << std::endl;
+                        maximum_number_1_cuts_feasible_ = false;
+                        feasible_ = false;
+                    }
                 }
             }
         }
@@ -552,6 +578,7 @@ nlohmann::json Solution::to_json() const
             {"MaximumDistance1Cuts", maximum_distance_1_cuts_feasible()},
             {"MinimumDistance2Cuts", minimum_distance_2_cuts_feasible()},
             {"MaximumDistance2Cuts", maximum_distance_2_cuts_feasible()},
+            {"MaximumNumber1Cuts", maximum_number_1_cuts_feasible()},
             {"MaximumNumber2Cuts", maximum_number_2_cuts_feasible()},
             {"Stacks", stacks_feasible()},
             {"Defects", defects_feasible()},
@@ -587,6 +614,7 @@ void Solution::format(
             << "    Max. dist. 1-cuts:     " << maximum_distance_1_cuts_feasible() << std::endl
             << "    Min. dist. 2-cuts:     " << minimum_distance_2_cuts_feasible() << std::endl
             << "    Max. dist. 2-cuts:     " << maximum_distance_2_cuts_feasible() << std::endl
+            << "    Max. no. 1-cuts:       " << maximum_number_1_cuts_feasible() << std::endl
             << "    Max. no. 2-cuts:       " << maximum_number_2_cuts_feasible() << std::endl
             << "    Stacks:                " << stacks_feasible() << std::endl
             << "    Defects:               " << defects_feasible() << std::endl

@@ -209,6 +209,9 @@ public:
         /** Profit of the partial solution. */
         Profit profit = 0;
 
+        /** Number of 1-cuts in the current bin. */
+        Counter bincurr_number_of_1_cuts = 0;
+
         /** Number of 2-cuts in the current 1-level sub-plate. */
         Counter subplate1curr_number_of_2_cuts = 0;
 
@@ -422,6 +425,17 @@ private:
      * separate).
      */
     Length maximum_distance_2_cuts_ = -1;
+
+    /**
+     * Effective maximum number of 2-cuts in a first-level sub-plate.
+     *
+     * For 2-staged instances, depth-2 cuts are the only cuts left once the
+     * (possibly flipped) first-stage decision is made, so they are the ones
+     * effectively bounded by maximum_number_1_cuts; maximum_number_2_cuts
+     * has no independent meaning there (there is no 3rd stage for it to
+     * separate) and is not allowed.
+     */
+    Counter maximum_number_2_cuts_ = -1;
 
     bool no_oriented_items_;
 

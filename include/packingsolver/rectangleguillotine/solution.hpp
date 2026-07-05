@@ -126,6 +126,8 @@ public:
 
     bool maximum_distance_2_cuts_feasible() const { return maximum_distance_2_cuts_feasible_; }
 
+    bool maximum_number_1_cuts_feasible() const { return maximum_number_1_cuts_feasible_; }
+
     bool maximum_number_2_cuts_feasible() const { return maximum_number_2_cuts_feasible_; }
 
     bool stacks_feasible() const { return stacks_feasible_; }
@@ -276,6 +278,9 @@ private:
 
     /** Feasibility for the maximum distance between two consecutive 2-cuts. */
     bool maximum_distance_2_cuts_feasible_ = true;
+
+    /** Feasibility for the maximum number of 1-cuts in a bin. */
+    bool maximum_number_1_cuts_feasible_ = true;
 
     /** Feasibility for the maximum number of 2-cuts in a first-level sub-plate. */
     bool maximum_number_2_cuts_feasible_ = true;
