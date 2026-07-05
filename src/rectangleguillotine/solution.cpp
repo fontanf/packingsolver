@@ -51,6 +51,10 @@ void Solution::update_indicators(
     number_of_bins_ += bin.copies;
     bin_copies_[bin.bin_type_id] += bin.copies;
     cost_ += bin.copies * bin_type.cost;
+    if (instance().objective() == Objective::BinPackingCuttingCost) {
+        const CutCost& bin_cutting_cost = instance().parameters().cutting_costs[0];
+        cutting_cost_ += bin.copies * (bin_cutting_cost.fixed + bin_cutting_cost.variable * bin_type.area());
+    }
     full_area_ += bin.copies * bin_type.area();
     area_ = full_area_;
     second_leftover_value_ = 0;
@@ -217,6 +221,28 @@ void Solution::update_indicators(
                         feasible_ = false;
                     }
                 }
+            }
+        }
+
+        // Update cutting_cost_ for the 'BinPackingCuttingCost' objective.
+        // Odd depths (1, 3) are cuts along the width axis (checked/measured
+        // like 1-cuts); even depths (2, 4) are cuts along the height axis
+        // (checked/measured like 2-cuts). A cut is only real (chargeable)
+        // if it doesn't just extend to its parent's own boundary.
+        if (instance().objective() == Objective::BinPackingCuttingCost
+                && node.d >= 1 && node.d <= 4) {
+            const CutCost& node_cutting_cost = (node.d < (Counter)instance().parameters().cutting_costs.size())?
+                instance().parameters().cutting_costs[node.d]:
+                CutCost();
+            bool is_odd_depth = (node.d % 2 == 1);
+            bool is_real_cut = (is_odd_depth)?
+                (node.r != bin.nodes[node.f].r):
+                (node.t != bin.nodes[node.f].t);
+            if (is_real_cut) {
+                Length length = (is_odd_depth)?
+                    (node.t - node.b):
+                    (node.r - node.l);
+                cutting_cost_ += bin.copies * (node_cutting_cost.fixed + node_cutting_cost.variable * length);
             }
         }
 
@@ -477,6 +503,12 @@ bool Solution::operator<(const Solution& solution) const
         if (!full())
             return true;
         return solution.height() < height();
+    } case Objective::BinPackingCuttingCost: {
+        if (!solution.full())
+            return false;
+        if (!full())
+            return true;
+        return solution.cutting_cost() < cutting_cost();
     } case Objective::Knapsack: {
         return strictly_greater(solution.profit(), profit());
     } case Objective::Feasibility: {
@@ -562,6 +594,7 @@ nlohmann::json Solution::to_json() const
         {"NumberOfDifferentBins", number_of_different_bins()},
         {"BinArea", full_area()},
         {"BinCost", cost()},
+        {"CuttingCost", cutting_cost()},
         {"Waste", waste()},
         {"WastePercentage", waste_percentage()},
         {"FullWaste", full_waste()},
@@ -601,6 +634,7 @@ void Solution::format(
             << "Number of different bins:  " << number_of_different_bins() << std::endl
             << "Bin area:                  " << optimizationtools::Ratio<BinPos>(full_area(), instance().bin_area()) << std::endl
             << "Bin cost:                  " << cost() << std::endl
+            << "Cutting cost:              " << cutting_cost() << std::endl
             << "Waste:                     " << waste() << " (" << 100 * waste_percentage() << "%)" << std::endl
             << "Full waste:                " << full_waste() << " (" << 100 * full_waste_percentage() << "%)" << std::endl
             << "Width:                     " << width() << std::endl

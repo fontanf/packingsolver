@@ -76,6 +76,19 @@ void AlgorithmFormatter::print_header()
                 << std::setw(32) << "-------"
                 << std::endl;
         break;
+    } case Objective::BinPackingCuttingCost: {
+        *os_
+                << std::setw(12) << "Time"
+                << std::setw(8) << "Bins"
+                << std::setw(14) << "Cutting cost"
+                << std::setw(32) << "Comment"
+                << std::endl
+                << std::setw(12) << "----"
+                << std::setw(8) << "----"
+                << std::setw(14) << "------------"
+                << std::setw(32) << "-------"
+                << std::endl;
+        break;
     } case Objective::OpenDimensionX: {
         *os_
                 << std::setw(12) << "Time"
@@ -180,6 +193,14 @@ void AlgorithmFormatter::print(
                 << std::setw(12) << output_.solution_pool.best().number_of_bins()
                 << std::setw(12) << output_.solution_pool.best().waste()
                 << std::setw(12) << std::fixed << std::setprecision(2) << 100 * output_.solution_pool.best().waste_percentage() << std::defaultfloat << std::setprecision(precision)
+                << std::setw(32) << s
+                << std::endl;
+        break;
+    } case Objective::BinPackingCuttingCost: {
+        *os_
+                << std::setw(12) << std::fixed << std::setprecision(3) << output_.time << std::defaultfloat << std::setprecision(precision)
+                << std::setw(8) << output_.solution_pool.best().number_of_bins()
+                << std::setw(14) << output_.solution_pool.best().cutting_cost()
                 << std::setw(32) << s
                 << std::endl;
         break;
