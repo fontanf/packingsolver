@@ -195,7 +195,9 @@ void run_phase2_and_reconstruct(
     od_parameters.timer = parameters.timer;
     od_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     od_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-    od_parameters.optimization_mode = OptimizationMode::NotAnytimeDeterministic;
+    od_parameters.optimization_mode = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytimeDeterministic;
     auto phase2_output = onedimensional::optimize(phase2_instance, od_parameters);
 
     const onedimensional::Solution& phase2_solution = phase2_output.solution_pool.best();
