@@ -84,7 +84,7 @@ public:
      */
     void set_fixed_cutting_cost(
             Counter stage_id,
-            Profit fixed_cost);
+            CuttingCost fixed_cost);
 
     /**
      * Set the variable cost of stage 'stage_id' (0 for the bin, 1 to
@@ -93,7 +93,7 @@ public:
      */
     void set_variable_cutting_cost(
             Counter stage_id,
-            Profit variable_cost);
+            CuttingCost variable_cost);
 
     void set_predefined(std::string str);
 

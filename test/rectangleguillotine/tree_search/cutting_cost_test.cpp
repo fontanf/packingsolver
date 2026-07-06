@@ -35,7 +35,7 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostSingleItem)
 
     EXPECT_TRUE(solution.full());
     // Bin cost only: fixed + variable * area = 10 + 1 * (100 * 100).
-    EXPECT_DOUBLE_EQ(solution.cutting_cost(), 10 + 1 * 100 * 100);
+    EXPECT_EQ(solution.cutting_cost(), 10 + 1 * 100 * 100);
 }
 
 TEST(RectangleGuillotineBranchingScheme, CuttingCostTwoColumns)
@@ -59,12 +59,12 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostTwoColumns)
     instance_builder.add_item_type(100, 100, -1, 2, false, 0);
     instance_builder.add_bin_type(200, 100, 1, -1, 0);
     instance_builder.set_fixed_cutting_cost(0, 10);
-    instance_builder.set_variable_cutting_cost(0, 0.001);
+    instance_builder.set_variable_cutting_cost(0, 1);
     instance_builder.set_fixed_cutting_cost(1, 5);
-    instance_builder.set_variable_cutting_cost(1, 0.01);
+    instance_builder.set_variable_cutting_cost(1, 1);
     for (Counter stage_id = 2; stage_id <= 4; ++stage_id) {
         instance_builder.set_fixed_cutting_cost(stage_id, 5);
-        instance_builder.set_variable_cutting_cost(stage_id, 0.01);
+        instance_builder.set_variable_cutting_cost(stage_id, 1);
     }
     Instance instance = instance_builder.build();
 
@@ -74,8 +74,8 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostTwoColumns)
     Solution solution = branching_scheme.to_solution(output.solution_pool.best());
 
     EXPECT_TRUE(solution.full());
-    // Bin cost: 10 + 0.001 * (200 * 100) = 30.
-    // One real 1-cut: 5 + 0.01 * 100 (bin height) = 6.
+    // Bin cost: 10 + 1 * (200 * 100) = 20010.
+    // One real 1-cut: 5 + 1 * 100 (bin height) = 105.
     // No 2-cut/3-cut: each item exactly fills its column.
-    EXPECT_DOUBLE_EQ(solution.cutting_cost(), 30 + 6);
+    EXPECT_EQ(solution.cutting_cost(), 20010 + 105);
 }

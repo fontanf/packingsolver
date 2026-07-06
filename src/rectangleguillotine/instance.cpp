@@ -488,6 +488,29 @@ std::ostream& Instance::format(
                 << std::setw(12) << item_type.stack_id
                 << std::endl;
         }
+
+        if (objective() == Objective::BinPackingCuttingCost) {
+            os
+                << std::endl
+                << std::setw(12) << "Stage"
+                << std::setw(12) << "Fixed cost"
+                << std::setw(16) << "Variable cost"
+                << std::endl
+                << std::setw(12) << "-----"
+                << std::setw(12) << "----------"
+                << std::setw(16) << "-------------"
+                << std::endl;
+            for (Counter stage_id = 0;
+                    stage_id < (Counter)parameters().cutting_costs.size();
+                    ++stage_id) {
+                const CutCost& cutting_cost = parameters().cutting_costs[stage_id];
+                os
+                    << std::setw(12) << stage_id
+                    << std::setw(12) << cutting_cost.fixed
+                    << std::setw(16) << cutting_cost.variable
+                    << std::endl;
+            }
+        }
     }
 
     return os;

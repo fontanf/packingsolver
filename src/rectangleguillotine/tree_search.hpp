@@ -221,13 +221,13 @@ public:
          * Cumulated cutting cost of the partial solution, for the
          * 'BinPackingCuttingCost' objective (bins + confirmed 1/2/3/4-cuts).
          */
-        Profit cutting_cost = 0;
+        CuttingCost cutting_cost = 0;
 
         /**
          * Cost of the potential 3-cuts of the current 1-level sub-plate (not
          * yet confirmed, see 'cutting_cost' above).
          */
-        Profit subplate1curr_potential_cost_of_3_cuts = 0;
+        CuttingCost subplate1curr_potential_cost_of_3_cuts = 0;
 
         /**
          * Number of 3-cuts in the current 2-level sub-plate, used to scale
@@ -239,7 +239,7 @@ public:
          * Cost of the potential 4-cuts of the current 2-level sub-plate (not
          * yet confirmed, see 'cutting_cost' above).
          */
-        Profit subplate2curr_potential_cost_of_4_cuts = 0;
+        CuttingCost subplate2curr_potential_cost_of_4_cuts = 0;
 
         /**
          * Contains the list of items (id, rotate, left cut position) inserted
@@ -368,6 +368,9 @@ public:
             const std::shared_ptr<Node>& node_1,
             const std::shared_ptr<Node>& node_2) const
     {
+        if (instance().objective() == Objective::BinPackingCuttingCost)
+            if (node_1->cutting_cost > node_2->cutting_cost)
+                return false;
         return dominates(front(*node_1), front(*node_2));
     }
 
@@ -800,6 +803,20 @@ bool BranchingScheme::operator()(
             return ubkp(*node_1) < ubkp(*node_2);
         if (node_1->waste != node_2->waste)
             return node_1->waste < node_2->waste;
+        break;
+    } case 9: {
+        double guide_1 = (double)node_1->cutting_cost / node_1->item_area;
+        double guide_2 = (double)node_2->cutting_cost / node_2->item_area;
+        if (guide_1 != guide_2)
+            return guide_1 < guide_2;
+        break;
+    } case 10: {
+        double cost_rate_1 = (double)node_1->cutting_cost / node_1->item_area;
+        double cost_rate_2 = (double)node_2->cutting_cost / node_2->item_area;
+        double guide_1 = cost_rate_1 / node_1->item_area * node_1->number_of_items;
+        double guide_2 = cost_rate_2 / node_2->item_area * node_2->number_of_items;
+        if (guide_1 != guide_2)
+            return guide_1 < guide_2;
         break;
     }
     }
