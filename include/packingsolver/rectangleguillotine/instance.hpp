@@ -98,13 +98,13 @@ std::ostream& operator<<(
 struct CutCost
 {
     /** Fixed cost, paid once per cut (or per bin, for stage 0). */
-    Profit fixed = -1;
+    CuttingCost fixed = -1;
 
     /**
      * Variable cost, paid per unit of cut length (or per unit of bin area,
      * for stage 0).
      */
-    Profit variable = -1;
+    CuttingCost variable = -1;
 };
 
 struct Parameters

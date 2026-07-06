@@ -94,8 +94,8 @@ int main(int argc, char *argv[])
             ("maximum-number-2-cuts,", po::value<Counter>(), "")
             ("cut-through-defects", po::value<bool>(), "")
             ("cut-thickness", po::value<Length>(), "")
-            ("fixed-cutting-costs", po::value<std::vector<Profit>>()->multitoken(), "")
-            ("variable-cutting-costs", po::value<std::vector<Profit>>()->multitoken(), "")
+            ("fixed-cutting-costs", po::value<std::vector<CuttingCost>>()->multitoken(), "")
+            ("variable-cutting-costs", po::value<std::vector<CuttingCost>>()->multitoken(), "")
 
             ("output,o", po::value<std::string>(), "Output path")
             ("certificate,c", po::value<std::string>(), "Certificate path")
@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
         if (vm.count("cut-thickness"))
             instance_builder.set_cut_thickness(vm["cut-thickness"].as<Length>());
         if (vm.count("fixed-cutting-costs")) {
-            const auto& fixed_cutting_costs = vm["fixed-cutting-costs"].as<std::vector<Profit>>();
+            const auto& fixed_cutting_costs = vm["fixed-cutting-costs"].as<std::vector<CuttingCost>>();
             for (Counter stage_id = 0;
                     stage_id < (Counter)fixed_cutting_costs.size();
                     ++stage_id) {
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
             }
         }
         if (vm.count("variable-cutting-costs")) {
-            const auto& variable_cutting_costs = vm["variable-cutting-costs"].as<std::vector<Profit>>();
+            const auto& variable_cutting_costs = vm["variable-cutting-costs"].as<std::vector<CuttingCost>>();
             for (Counter stage_id = 0;
                     stage_id < (Counter)variable_cutting_costs.size();
                     ++stage_id) {

@@ -2313,6 +2313,8 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
     if (guides.empty()) {
         if (instance.objective() == Objective::Knapsack) {
             guides = {4, 5};
+        } else if (instance.objective() == Objective::BinPackingCuttingCost) {
+            guides = {9, 10};
         } else {
             guides = {0, 1};
         }

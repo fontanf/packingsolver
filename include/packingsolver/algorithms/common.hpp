@@ -34,6 +34,7 @@ using Weight = double;
 using Angle = double;
 using AnglePos = int64_t;
 using Profit = double;
+using CuttingCost = int64_t;
 using BinTypeId = int32_t;
 using BinPos = int64_t;
 using DefectId = int32_t;

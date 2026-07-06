@@ -127,7 +127,7 @@ void InstanceBuilder::resize_cutting_costs()
 
 void InstanceBuilder::set_fixed_cutting_cost(
         Counter stage_id,
-        Profit fixed_cost)
+        CuttingCost fixed_cost)
 {
     if (stage_id < 0 || stage_id >= (Counter)instance_.parameters_.cutting_costs.size()) {
         throw std::invalid_argument(
@@ -141,7 +141,7 @@ void InstanceBuilder::set_fixed_cutting_cost(
 
 void InstanceBuilder::set_variable_cutting_cost(
         Counter stage_id,
-        Profit variable_cost)
+        CuttingCost variable_cost)
 {
     if (stage_id < 0 || stage_id >= (Counter)instance_.parameters_.cutting_costs.size()) {
         throw std::invalid_argument(
@@ -640,10 +640,10 @@ void InstanceBuilder::read_parameters(
             set_cut_thickness(std::stol(value));
         } else if (name.rfind("cuts_fixed_cost_", 0) == 0) {
             Counter stage_id = std::stol(name.substr(16));
-            set_fixed_cutting_cost(stage_id, std::stod(value));
+            set_fixed_cutting_cost(stage_id, std::stoll(value));
         } else if (name.rfind("cuts_variable_cost_", 0) == 0) {
             Counter stage_id = std::stol(name.substr(19));
-            set_variable_cutting_cost(stage_id, std::stod(value));
+            set_variable_cutting_cost(stage_id, std::stoll(value));
         }
     }
 }
