@@ -6,7 +6,6 @@
 #include "rectangleguillotine/tree_search_maximal_spaces.hpp"
 #include "rectangleguillotine/column_generation_strips.hpp"
 #include "rectangleguillotine/sequential_strips_onedimensional.hpp"
-#include "rectangleguillotine/block.hpp"
 #include "rectangleguillotine/dynamic_programming_infinite_copies_array.hpp"
 #include "rectangleguillotine/labeling.hpp"
 #include "rectangle/dual_feasible_functions.hpp"

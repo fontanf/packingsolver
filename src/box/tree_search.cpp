@@ -5,7 +5,6 @@
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
 #include <string>
-#include <thread>
 
 using namespace packingsolver;
 using namespace packingsolver::box;

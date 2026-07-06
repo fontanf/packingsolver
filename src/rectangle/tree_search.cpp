@@ -7,7 +7,6 @@
 #include "rectangle/solution_builder.hpp"
 
 #include <iostream>
-#include <thread>
 #include <string>
 
 #include "shape/shape.hpp"

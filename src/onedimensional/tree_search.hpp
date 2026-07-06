@@ -385,8 +385,6 @@ inline bool BranchingScheme::operator()(
 }
 }
 
-#include "packingsolver/onedimensional/solution.hpp"
-
 namespace packingsolver
 {
 namespace onedimensional

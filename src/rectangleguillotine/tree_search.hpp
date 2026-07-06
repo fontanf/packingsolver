@@ -5,8 +5,6 @@
 
 #include "optimizationtools/utils/utils.hpp"
 
-#include "shape/shape.hpp"
-
 #include "treesearchsolver/common.hpp"
 
 #include <array>

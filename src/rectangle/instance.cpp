@@ -1,7 +1,5 @@
 #include "packingsolver/rectangle/instance.hpp"
 
-#include <iostream>
-
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
 

@@ -1,6 +1,5 @@
 #include "packingsolver/onedimensional/instance.hpp"
 
-#include <iostream>
 #include <iomanip>
 
 using namespace packingsolver;

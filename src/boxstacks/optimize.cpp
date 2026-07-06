@@ -6,7 +6,6 @@
 #include "boxstacks/sequential_onedimensional_rectangle.hpp"
 
 #include "algorithms/sequential_value_correction.hpp"
-#include "algorithms/thread_pool.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
