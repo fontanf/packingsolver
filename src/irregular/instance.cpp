@@ -386,8 +386,14 @@ std::ostream& Instance::format(
             << "Number of rectangular items:  " << number_of_rectangular_items_ << std::endl
             << "Number of circular items:     " << number_of_circular_items_ << std::endl
             << "Item-item minimum spacing:    " << parameters().item_item_minimum_spacing << std::endl
-            << "Leftover mode:                " << parameters().leftover_mode << std::endl
             << "Open dim. XY aspect ratio:    " << parameters().open_dimension_xy_aspect_ratio << std::endl
+            ;
+        if (objective() == Objective::BinPackingWithLeftovers) {
+            os
+                << "Leftover mode:                " << parameters().leftover_mode << std::endl
+                ;
+        }
+        os
             << "Total item area:              " << item_area() << std::endl
             << "Smallest item area:           " << smallest_item_area() << std::endl
             << "Largest item area:            " << largest_item_area() << std::endl
