@@ -91,20 +91,19 @@ std::ostream& operator<<(
 /**
  * Cost of a cutting stage, for the 'BinPackingCuttingCost' objective.
  *
- * 'fixed' and 'variable' are set to -1 by default to mark them as unset; both
- * must be set to a value >= 0 for every required stage, or
- * 'InstanceBuilder::build' throws.
+ * 'fixed' and 'variable' default to 0, so a stage that is never configured
+ * simply contributes no cost.
  */
 struct CutCost
 {
     /** Fixed cost, paid once per cut (or per bin, for stage 0). */
-    CuttingCost fixed = -1;
+    CuttingCost fixed = 0;
 
     /**
      * Variable cost, paid per unit of cut length (or per unit of bin area,
      * for stage 0).
      */
-    CuttingCost variable = -1;
+    CuttingCost variable = 0;
 };
 
 struct Parameters
@@ -167,6 +166,12 @@ struct Parameters
      * patterns of this cut type may need at their deepest level.
      */
     std::vector<CutCost> cutting_costs;
+
+    /**
+     * Cost per unit of waste area, for the 'BinPackingCuttingCost'
+     * objective. Defaults to 0, so waste is not charged unless configured.
+     */
+    CuttingCost waste_cost = 0;
 };
 
 /**

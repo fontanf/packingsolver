@@ -47,6 +47,7 @@ void Solution::update_indicators(
 {
     SolutionBin& bin = bins_[bin_pos];
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
+    Area waste_before_bin = waste();
 
     number_of_bins_ += bin.copies;
     bin_copies_[bin.bin_type_id] += bin.copies;
@@ -411,6 +412,8 @@ void Solution::update_indicators(
         write("solution_rectangleguillotine.csv");
         exit(1);
     }
+
+    cutting_cost_ += instance().parameters().waste_cost * (waste() - waste_before_bin);
 }
 
 void Solution::append(

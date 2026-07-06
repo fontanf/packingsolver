@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
             ("cut-thickness", po::value<Length>(), "")
             ("fixed-cutting-costs", po::value<std::vector<CuttingCost>>()->multitoken(), "")
             ("variable-cutting-costs", po::value<std::vector<CuttingCost>>()->multitoken(), "")
+            ("waste-cost", po::value<CuttingCost>(), "")
 
             ("output,o", po::value<std::string>(), "Output path")
             ("certificate,c", po::value<std::string>(), "Certificate path")
@@ -263,6 +264,8 @@ int main(int argc, char *argv[])
                 instance_builder.set_variable_cutting_cost(stage_id, variable_cutting_costs[stage_id]);
             }
         }
+        if (vm.count("waste-cost"))
+            instance_builder.set_waste_cost(vm["waste-cost"].as<CuttingCost>());
 
         Instance instance = instance_builder.build();
 

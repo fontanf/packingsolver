@@ -644,6 +644,8 @@ void InstanceBuilder::read_parameters(
         } else if (name.rfind("cuts_variable_cost_", 0) == 0) {
             Counter stage_id = std::stol(name.substr(19));
             set_variable_cutting_cost(stage_id, std::stoll(value));
+        } else if (name == "waste_cost") {
+            set_waste_cost(std::stoll(value));
         }
     }
 }
@@ -1003,33 +1005,6 @@ Instance InstanceBuilder::build()
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "maximum_number_2_cuts must not be 0.");
-    }
-
-    // For the 'BinPackingCuttingCost' objective, 'cutting_costs' must contain
-    // a valid (fixed >= 0, variable >= 0) entry for stage 0 (the bin) and for
-    // stages 1 to number_of_stages, plus one extra stage if cut_type is
-    // NonExact or Roadef2018.
-    if (instance_.objective() == Objective::BinPackingCuttingCost) {
-        Counter number_of_required_cutting_costs = 1 + instance_.parameters().number_of_stages
-            + ((instance_.parameters().cut_type == CutType::NonExact
-                        || instance_.parameters().cut_type == CutType::Roadef2018)? 1: 0);
-        if ((Counter)instance_.parameters().cutting_costs.size() < number_of_required_cutting_costs) {
-            throw std::invalid_argument(
-                    FUNC_SIGNATURE + ": "
-                    "missing cutting costs; "
-                    "cutting_costs.size(): " + std::to_string(instance_.parameters().cutting_costs.size()) + "; "
-                    "number_of_required_cutting_costs: " + std::to_string(number_of_required_cutting_costs) + ".");
-        }
-        for (Counter stage_id = 0;
-                stage_id < number_of_required_cutting_costs;
-                ++stage_id) {
-            const CutCost& cutting_cost = instance_.parameters().cutting_costs[stage_id];
-            if (cutting_cost.fixed == -1 || cutting_cost.variable == -1) {
-                throw std::invalid_argument(
-                        FUNC_SIGNATURE + ": "
-                        "missing cutting cost for stage " + std::to_string(stage_id) + ".");
-            }
-        }
     }
 
     // Compute item_type_ids_ and stack_offsets_.
