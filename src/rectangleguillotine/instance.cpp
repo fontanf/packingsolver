@@ -321,6 +321,10 @@ void Instance::write(
             << "cuts_fixed_cost_" << stage_id << "," << parameters().cutting_costs[stage_id].fixed << std::endl
             << "cuts_variable_cost_" << stage_id << "," << parameters().cutting_costs[stage_id].variable << std::endl;
     }
+    if (objective() == Objective::BinPackingCuttingCost) {
+        f_parameters
+            << "waste_cost," << parameters().waste_cost << std::endl;
+    }
 }
 
 std::ostream& Instance::format(
@@ -510,6 +514,10 @@ std::ostream& Instance::format(
                     << std::setw(16) << cutting_cost.variable
                     << std::endl;
             }
+            os
+                << std::endl
+                << "Waste cost:            " << parameters().waste_cost << std::endl
+                ;
         }
     }
 

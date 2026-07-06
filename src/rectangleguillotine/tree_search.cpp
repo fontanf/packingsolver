@@ -655,6 +655,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 "node.y2_curr: " + std::to_string(node.y2_curr) + "; "
                 "node.x3_curr: " + std::to_string(node.x3_curr) + ".");
     }
+    node.cutting_cost += instance.parameters().waste_cost * (node.waste - parent.waste);
+
     return node;
 }
 

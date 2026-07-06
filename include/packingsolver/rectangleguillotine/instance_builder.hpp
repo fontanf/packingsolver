@@ -95,6 +95,12 @@ public:
             Counter stage_id,
             CuttingCost variable_cost);
 
+    /**
+     * Set the cost per unit of waste area, for the 'BinPackingCuttingCost'
+     * objective.
+     */
+    void set_waste_cost(CuttingCost waste_cost) { instance_.parameters_.waste_cost = waste_cost; }
+
     void set_predefined(std::string str);
 
     void set_roadef2018();
