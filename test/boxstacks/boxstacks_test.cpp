@@ -1,5 +1,5 @@
 #include "packingsolver/boxstacks/instance_builder.hpp"
-#include "packingsolver/boxstacks/optimize.hpp"
+#include "packingsolver/boxstacks/solution.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>

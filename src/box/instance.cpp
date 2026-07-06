@@ -1,6 +1,5 @@
 #include "packingsolver/box/instance.hpp"
 
-#include <iostream>
 #include <fstream>
 
 using namespace packingsolver;

@@ -8,8 +8,6 @@
 #include "irregular/rotations.hpp"
 #include "irregular/shape_simplification.hpp"
 
-#include <thread>
-
 #include "shape/convex_hull.hpp"
 #include "shape/clean.hpp"
 #include "shape/trapezoidation.hpp"

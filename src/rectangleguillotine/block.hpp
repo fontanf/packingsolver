@@ -1,6 +1,6 @@
 #pragma once
 
-#include "packingsolver/rectangleguillotine/solution.hpp"
+#include "packingsolver/rectangleguillotine/instance.hpp"
 
 namespace packingsolver
 {

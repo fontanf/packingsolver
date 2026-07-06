@@ -1,7 +1,6 @@
 #include "irregular/rotations.hpp"
 
 #include "shape/shape.hpp"
-#include "shape/writer.hpp"
 
 #include <gtest/gtest.h>
 

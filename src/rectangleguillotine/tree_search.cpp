@@ -6,8 +6,9 @@
 
 #include "rectangleguillotine/solution_builder.hpp"
 
+#include "shape/shape.hpp"
+
 #include <sstream>
-#include <thread>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangleguillotine;
