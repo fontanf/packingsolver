@@ -202,9 +202,14 @@ fig.update_layout(
         autosize=True)
 fig.update_xaxes(
         rangeslider=dict(visible=False))
-fig.update_yaxes(
-        scaleanchor="x",
-        scaleratio=1)
+for i in range(0, m):
+    row = (i // number_of_cols) + 1
+    col = (i % number_of_cols) + 1
+    fig.update_yaxes(
+            scaleanchor="x" if i == 0 else f"x{i + 1}",
+            scaleratio=1,
+            row=row,
+            col=col)
 if args.output:
     cell_width = int(max_bin_lx * args.scale)
     cell_height = int(max_bin_ly * args.scale)

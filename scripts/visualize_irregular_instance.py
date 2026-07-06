@@ -172,9 +172,12 @@ fig.update_layout(
         height=(m + n)*1000)
 fig.update_xaxes(
         rangeslider=dict(visible=False))
-fig.update_yaxes(
-        scaleanchor="x",
-        scaleratio=1)
+for i in range(0, m + n):
+    fig.update_yaxes(
+            scaleanchor="x" if i == 0 else f"x{i + 1}",
+            scaleratio=1,
+            row=i + 1,
+            col=1)
 if args.output:
     fig.write_image(args.output, width=args.width, height=args.height)
 else:
