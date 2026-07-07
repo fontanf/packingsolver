@@ -1,9 +1,9 @@
 .. _onedimensional:
 
-OneDimensional solver
-=====================
+:code:`one-dimensional` solver
+==============================
 
-The OneDimensional solver solves problems with one-dimensional items and bins.
+The :code:`one-dimensional` solver solves problems with one-dimensional items and bins.
 
 .. image:: ../img/onedimensional.png
    :width: 512pt
@@ -35,7 +35,7 @@ Features:
 Usage
 -----
 
-The OneDimensional solver takes as input:
+The :code:`one-dimensional` solver takes as input:
 
 * an item CSV file; option: ``--items items.csv`` 
 * a bin CSV file; option: ``--bins bins.csv``

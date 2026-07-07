@@ -1,9 +1,9 @@
 .. _rectangle:
 
-Rectangle solver
-================
+:code:`rectangle` solver
+========================
 
-The Rectangle solver solves problems where items are two-dimensional rectangles that must be packed into rectangular bins without overlapping. Unlike the :ref:`RectangleGuillotine<rectangleguillotine>` solver, items can be placed in any position (guillotine cuts are not required).
+The :code:`rectangle` solver solves problems where items are two-dimensional rectangles that must be packed into rectangular bins without overlapping. Unlike the :ref:`rectangle-guillotine<rectangleguillotine>` solver, items can be placed in any position (guillotine cuts are not required).
 
 .. image:: ../img/rectangle.png
    :width: 512pt
@@ -33,7 +33,7 @@ Features:
 Usage
 -----
 
-The Rectangle solver takes as input:
+The :code:`rectangle` solver takes as input:
 
 * an item CSV file; option: ``--items items.csv``
 * a bin CSV file; option: ``--bins bins.csv``

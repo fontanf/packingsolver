@@ -1,0 +1,22 @@
+<mxfile host="Electron" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/14.5.1 Chrome/89.0.4389.82 Electron/12.0.1 Safari/537.36">
+  <diagram name="Page-1" id="02KkKBvZYiK5bZEBiGTV">
+    <mxGraphModel dx="3761" dy="2405" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bIdFU6kN4nmyQjjKajAd-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="10x6" vertex="1">
+          <mxGeometry height="240" width="400" x="-120" y="-720" as="geometry" />
+        </mxCell>
+        <mxCell id="3aMbxEoT-m6p9UZ_HWN3-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="1&lt;div&gt;6x4&lt;/div&gt;&lt;div&gt;x2&lt;/div&gt;" vertex="1">
+          <mxGeometry height="160" width="240" x="-120" y="-360" as="geometry" />
+        </mxCell>
+        <mxCell id="3aMbxEoT-m6p9UZ_HWN3-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="2&lt;div&gt;4x6&lt;/div&gt;&lt;div&gt;x2&lt;/div&gt;" vertex="1">
+          <mxGeometry height="240" width="160" x="160" y="-440" as="geometry" />
+        </mxCell>
+        <mxCell id="jCwblQLFfRxC1Vh-LDUw-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="3&lt;div&gt;4x3&lt;br&gt;&lt;div&gt;x2&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="160" x="360" y="-320" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
