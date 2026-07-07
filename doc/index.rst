@@ -14,6 +14,7 @@ PackingSolver's documentation
    box
    boxstacks
    irregular
+   internals/overview
 
 
 Introduction
@@ -49,29 +50,29 @@ PackingSolver solves multiple problem types:
    :widths: 1, 1
    :align: center
 
-   * - :ref:`RectangleGuillotine<rectangleguillotine>`
+   * - :ref:`rectangle-guillotine<rectangleguillotine>`
 
        * Items: two-dimensional rectangles
        * Only edge-to-edge cuts are allowed
      - |rectangleguillotine|
-   * - :ref:`Rectangle<rectangle>`
+   * - :ref:`rectangle<rectangle>`
 
        * Items: two-dimensional rectangles
      - |rectangle|
-   * - :ref:`Box<box>`
+   * - :ref:`box<box>`
 
        * Items: three-dimensional rectangular parallelepipeds
      - |box|
-   * - :ref:`BoxStacks<boxstacks>`
+   * - :ref:`box-stacks<boxstacks>`
 
        * Items: three-dimensional rectangular parallelepipeds
        * Items are stacked; a stack contains items with the same width and length
      - |boxstacks|
-   * - :ref:`OneDimensional<onedimensional>`
+   * - :ref:`one-dimensional<onedimensional>`
 
        * Items: one-dimensional items
      - |onedimensional|
-   * - :ref:`Irregular<irregular>`
+   * - :ref:`irregular<irregular>`
 
        * Items: two-dimensional polygons
      - |irregular|
@@ -134,7 +135,7 @@ The loading plans are written in the :code:`solution_rectangle.csv` file. A scri
 
 The script opens a page in a browser where the loading plans are displayed:
 
-.. image:: img/getting_started_solution.png
+.. image:: img/rectangle_example_solution.png
    :width: 256pt
    :align: center
 

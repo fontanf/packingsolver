@@ -1,9 +1,9 @@
 .. _rectangleguillotine:
 
-RectangleGuillotine solver
-==========================
+:code:`rectangle-guillotine` solver
+===================================
 
-The RectangleGuillotine solver solves problems where items are two-dimensional rectangles that must be cut from rectangular bins using **guillotine cuts** — cuts that go all the way from one side of the current plate to the other.
+The :code:`rectangle-guillotine` solver solves problems where items are two-dimensional rectangles that must be cut from rectangular bins using **guillotine cuts** — cuts that go all the way from one side of the current plate to the other.
 
 .. image:: ../img/rectangleguillotine.png
    :width: 512pt
@@ -45,7 +45,7 @@ Features:
 Usage
 -----
 
-The RectangleGuillotine solver takes as input:
+The :code:`rectangle-guillotine` solver takes as input:
 
 * an item CSV file; option: ``--items items.csv``
 * a bin CSV file; option: ``--bins bins.csv``
@@ -127,7 +127,7 @@ The **bin file** contains:
   * ``Hard``: the trim is physically cut; the strip is waste
   * ``Soft``: the trim is reserved but not cut; default for top and right trims
 
-The **defect file** contains the same columns as for the :ref:`Rectangle<rectangle>` solver: ``BIN``, ``X``, ``Y``, ``WIDTH``, ``HEIGHT``.
+The **defect file** contains the same columns as for the :ref:`rectangle<rectangle>` solver: ``BIN``, ``X``, ``Y``, ``WIDTH``, ``HEIGHT``.
 
 The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible entries are:
 

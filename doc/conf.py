@@ -15,7 +15,7 @@ release = '0.1'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['myst_parser']
+extensions = ['myst_parser', 'sphinx.ext.mathjax']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
@@ -28,5 +28,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # html_theme = 'alabaster'
 # html_theme = 'sphinx_book_theme'
 html_theme = 'classic'
-html_static_path = ['_static']
 html_sidebars = { '**': ['searchbox.html', 'globaltoc.html'] }
+html_theme_options = {
+    'sidebarwidth': '350',
+    # 'body_max_width': 'none',
+}

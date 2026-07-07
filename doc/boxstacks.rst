@@ -1,9 +1,9 @@
 .. _boxstacks:
 
-BoxStacks solver
-================
+:code:`box-stacks` solver
+=========================
 
-The BoxStacks solver solves three-dimensional bin packing problems where items are rectangular parallelepipeds (boxes) that must be packed into rectangular bins. Items can be stacked vertically: a **stack** is a column of items that all have the same footprint (X and Y dimensions) and the same stackability identifier.
+The :code:`box-stacks` solver solves three-dimensional bin packing problems where items are rectangular parallelepipeds (boxes) that must be packed into rectangular bins. Items can be stacked vertically: a **stack** is a column of items that all have the same footprint (X and Y dimensions) and the same stackability identifier.
 
 .. image:: ../img/boxstacks.png
    :width: 512pt
@@ -41,12 +41,12 @@ Features:
   * Maximum weight
   * Maximum stack density (weight per unit floor area)
 
-* Unloading constraints (same as the :ref:`Rectangle<rectangle>` solver)
+* Unloading constraints (same as the :ref:`rectangle<rectangle>` solver)
 
 Usage
 -----
 
-The BoxStacks solver takes as input:
+The :code:`box-stacks` solver takes as input:
 
 * an item CSV file; option: ``--items items.csv``
 * a bin CSV file; option: ``--bins bins.csv``
@@ -273,4 +273,4 @@ Stacking constraints per item type:
 Groups
 ------
 
-Items can be assigned to delivery groups via the ``GROUP_ID`` column. Groups work the same way as in the :ref:`Rectangle<rectangle>` solver: group 0 is unloaded first (placed last / nearest the door), group 1 next, etc.
+Items can be assigned to delivery groups via the ``GROUP_ID`` column. Groups work the same way as in the :ref:`rectangle<rectangle>` solver: group 0 is unloaded first (placed last / nearest the door), group 1 next, etc.

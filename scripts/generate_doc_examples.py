@@ -4,7 +4,23 @@ import sys
 
 ex = os.path.join("doc", "examples")
 img = os.path.join("doc", "img")
+internals = os.path.join("doc", "internals")
 bin_dir = os.path.join("install", "bin")
+
+####################
+# Internals diagrams
+####################
+
+for filename in sorted(os.listdir(internals)):
+    if not filename.endswith(".drawio"):
+        continue
+    name = filename[:-len(".drawio")]
+    print(name)
+    subprocess.run([
+        "drawio", "-x", "-f", "png",
+        "-o", os.path.join(img, name + ".png"),
+        os.path.join(internals, filename),
+    ])
 
 ############
 # Objectives

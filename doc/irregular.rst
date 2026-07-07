@@ -1,9 +1,9 @@
 .. _irregular:
 
-Irregular solver
-================
+:code:`irregular` solver
+========================
 
-The Irregular solver solves problems where items are arbitrary two-dimensional polygons that must be placed inside polygonal bins without overlapping.
+The :code:`irregular` solver solves problems where items are arbitrary two-dimensional polygons that must be placed inside polygonal bins without overlapping.
 
 .. image:: ../img/irregular.png
    :width: 512pt
@@ -48,7 +48,7 @@ Features:
 Usage
 -----
 
-The Irregular solver takes as input a single JSON file and outputs:
+The :code:`irregular` solver takes as input a single JSON file and outputs:
 
 * a solution JSON file; option: ``--certificate solution.json``
 

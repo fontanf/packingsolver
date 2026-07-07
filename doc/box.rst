@@ -1,9 +1,9 @@
 .. _box:
 
-Box solver
-==========
+:code:`box` solver
+==================
 
-The Box solver solves three-dimensional bin packing problems where items are rectangular parallelepipeds (boxes) that must be packed into rectangular bins without overlapping. Unlike the :ref:`BoxStacks<boxstacks>` solver, items are placed freely in 3D space — they are not restricted to vertical stacks and do not need to share a footprint.
+The :code:`box` solver solves three-dimensional bin packing problems where items are rectangular parallelepipeds (boxes) that must be packed into rectangular bins without overlapping. Unlike the :ref:`box-stacks<boxstacks>` solver, items are placed freely in 3D space — they are not restricted to vertical stacks and do not need to share a footprint.
 
 .. image:: ../img/box.png
    :width: 512pt
@@ -29,7 +29,7 @@ Features:
 Usage
 -----
 
-The Box solver takes as input:
+The :code:`box` solver takes as input:
 
 * an item CSV file; option: ``--items items.csv``
 * a bin CSV file; option: ``--bins bins.csv``
