@@ -1,0 +1,52 @@
+<mxfile host="Electron" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/14.5.1 Chrome/89.0.4389.82 Electron/12.0.1 Safari/537.36">
+  <diagram name="Page-1" id="02KkKBvZYiK5bZEBiGTV">
+    <mxGraphModel dx="2934" dy="1236" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bIdFU6kN4nmyQjjKajAd-44" edge="1" parent="1" style="shape=flexArrow;endArrow=classic;html=1;rounded=0;strokeColor=#000000;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="260.58" y="230" as="sourcePoint" />
+            <mxPoint x="260.5" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="VI_kox4RmkHHqkVzvXz_-11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="80" width="120" x="200.5" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="fCLk-sz07Vlb9qMNI79g-20" parent="1" style="shape=mxgraph.basic.polygon;polyCoords=[[0.67,0.67],[1,1],[0.33,1],[0,1],[0,0],[0.33,0.33],[0.67,0.67]];polyCurves=[[],[],[],[],[],[],[]];polyline=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="60" width="60" x="200" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="fCLk-sz07Vlb9qMNI79g-21" parent="1" style="shape=mxgraph.basic.polygon;polyCoords=[[0.5,0.67],[1,0.67],[1,0.33],[0.5,0.33],[0.5,0],[0,0],[0,1],[0.5,1]];polyCurves=[[],[],[],[],[],[],[],[]];polyline=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#000000;rotation=-90;" value="" vertex="1">
+          <mxGeometry height="60" width="40" x="271.5" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="fCLk-sz07Vlb9qMNI79g-23" parent="1" style="shape=mxgraph.basic.polygon;polyCoords=[[1,0.67],[0.67,0.67],[0.67,1],[0.33,1],[0.33,0.67],[0,0.67],[0,0.33],[0.33,0.33],[0.33,0],[0.67,0],[0.67,0.33],[1,0.33]];polyCurves=[[],[],[],[],[],[],[],[],[],[],[]];polyline=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="60" width="60" x="240.5" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="Dhe2DUwO1LGI0n1Gr_lh-1" parent="1" style="shape=mxgraph.basic.polygon;polyCoords=[[0.5,0.67],[1,0.67],[1,0.33],[0.5,0.33],[0.5,0],[0,0],[0,1],[0.5,1]];polyCurves=[[],[],[],[],[],[],[],[]];polyline=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#000000;rotation=90;" value="" vertex="1">
+          <mxGeometry height="60" width="40" x="210" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="Dhe2DUwO1LGI0n1Gr_lh-2" parent="1" style="shape=mxgraph.basic.polygon;polyCoords=[[0,1],[1,1],[1,0.67],[0.5,0.67],[0.5,0],[0,0]];polyCurves=[[],[],[],[],[]];polyline=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#000000;rotation=-180;" value="" vertex="1">
+          <mxGeometry height="60" width="40" x="280.5" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="Dhe2DUwO1LGI0n1Gr_lh-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="80" width="120" x="200" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Dhe2DUwO1LGI0n1Gr_lh-4" parent="1" style="shape=mxgraph.basic.polygon;polyCoords=[[0.67,0.67],[1,1],[0.33,1],[0,1],[0,0],[0.33,0.33],[0.67,0.67]];polyCurves=[[],[],[],[],[],[],[]];polyline=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="60" width="60" x="199.5" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="Dhe2DUwO1LGI0n1Gr_lh-5" parent="1" style="shape=mxgraph.basic.polygon;polyCoords=[[0.5,0.67],[1,0.67],[1,0.33],[0.5,0.33],[0.5,0],[0,0],[0,1],[0.5,1]];polyCurves=[[],[],[],[],[],[],[],[]];polyline=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#000000;rotation=-90;opacity=50;" value="" vertex="1">
+          <mxGeometry height="60" width="40" x="250.5" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="Dhe2DUwO1LGI0n1Gr_lh-6" parent="1" style="shape=mxgraph.basic.polygon;polyCoords=[[1,0.67],[0.67,0.67],[0.67,1],[0.33,1],[0.33,0.67],[0,0.67],[0,0.33],[0.33,0.33],[0.33,0],[0.67,0],[0.67,0.33],[1,0.33]];polyCurves=[[],[],[],[],[],[],[],[],[],[],[]];polyline=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#000000;opacity=50;" value="" vertex="1">
+          <mxGeometry height="60" width="60" x="240.5" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="Dhe2DUwO1LGI0n1Gr_lh-7" parent="1" style="shape=mxgraph.basic.polygon;polyCoords=[[0.5,0.67],[1,0.67],[1,0.33],[0.5,0.33],[0.5,0],[0,0],[0,1],[0.5,1]];polyCurves=[[],[],[],[],[],[],[],[]];polyline=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#000000;rotation=90;" value="" vertex="1">
+          <mxGeometry height="60" width="40" x="209.5" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="Dhe2DUwO1LGI0n1Gr_lh-8" parent="1" style="shape=mxgraph.basic.polygon;polyCoords=[[0,1],[1,1],[1,0.67],[0.5,0.67],[0.5,0],[0,0]];polyCurves=[[],[],[],[],[]];polyline=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#000000;rotation=-180;" value="" vertex="1">
+          <mxGeometry height="60" width="40" x="280" y="120" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -8,16 +8,21 @@ See :ref:`box<box>` for the input/output format and CLI usage of this solver.
 Tree search
 ------------
 
-This algorithm solves the :code:`feasibility`, :code:`knapsack`, :code:`open-dimension-x`, :code:`open-dimension-y`, :code:`open-dimension-z`, :code:`bin-packing`, :code:`bin-packing-with-leftovers` and :code:`variable-sized-bin-packing` objectives.
+This algorithm solves the :code:`feasibility`, :code:`knapsack`, :code:`open-dimension-x`, :code:`open-dimension-y`, :code:`bin-packing` and :code:`bin-packing-with-leftovers` objectives.
 
-Branch-and-bound style search over partial packings (option ``--use-tree-search``). Places boxes one at a time in three dimensions, guided by one or more configurable guides. Can run as an anytime improvement process, or with a fixed exploration budget in non-anytime modes.
+This is a direct generalization of the algorithm for :code:`rectangle` problems.
+
+See :ref:`rectangle <internals_rectangle_tree_search>`
 
 Tree search with maximal spaces
 ----------------------------------
 
-This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives.
+This algorithm solves the :code:`feasibility` and :code:`knapsack` objectives with a single bin.
+It doesn't support unloading constraints.
 
-Alternative branching scheme (option ``--use-tree-search-maximal-spaces``), selected automatically when many items fit per bin. Tracks the maximal empty rectangular parallelepipeds (boxes) still available, rather than reasoning about item placement directly.
+This is a direct generalization of the algorithm for :code:`rectangle` problems.
+
+See :ref:`rectangle <internals_rectangle_tree_search_maximal_spaces>`
 
 References:
 
