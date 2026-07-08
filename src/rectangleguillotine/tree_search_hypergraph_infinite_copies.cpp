@@ -1,4 +1,4 @@
-#include "rectangleguillotine/dynamic_programming_infinite_copies_array.hpp"
+#include "rectangleguillotine/tree_search_hypergraph_infinite_copies.hpp"
 
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "packingsolver/rectangleguillotine/post_process.hpp"
@@ -210,12 +210,12 @@ Solution reconstruct_solution(
 /////////////////////////////// Main function ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-const DynamicProgrammingInfiniteCopiesArrayOutput
-packingsolver::rectangleguillotine::dynamic_programming_infinite_copies_array(
+const TreeSearchHypergraphInfiniteCopiesOutput
+packingsolver::rectangleguillotine::tree_search_hypergraph_infinite_copies(
         const Instance& instance,
-        const DynamicProgrammingInfiniteCopiesArrayParameters& parameters)
+        const TreeSearchHypergraphInfiniteCopiesParameters& parameters)
 {
-    DynamicProgrammingInfiniteCopiesArrayOutput output(instance);
+    TreeSearchHypergraphInfiniteCopiesOutput output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();

@@ -1,5 +1,5 @@
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
-#include "rectangleguillotine/labeling.hpp"
+#include "rectangleguillotine/tree_search_hypergraph.hpp"
 #include "rectangleguillotine/solution_builder.hpp"
 
 #include <gtest/gtest.h>
@@ -8,7 +8,7 @@
 using namespace packingsolver::rectangleguillotine;
 namespace fs = boost::filesystem;
 
-struct RectangleGuillotineLabelingTestParams
+struct RectangleGuillotineTreeSearchHypergraphTestParams
 {
     fs::path items_path;
     fs::path bins_path;
@@ -18,28 +18,28 @@ struct RectangleGuillotineLabelingTestParams
 
 inline std::ostream& operator<<(
         std::ostream& os,
-        const RectangleGuillotineLabelingTestParams& test_params)
+        const RectangleGuillotineTreeSearchHypergraphTestParams& test_params)
 {
     os << test_params.items_path;
     return os;
 }
 
-class RectangleGuillotineLabelingTest:
-    public testing::TestWithParam<RectangleGuillotineLabelingTestParams> { };
+class RectangleGuillotineTreeSearchHypergraphTest:
+    public testing::TestWithParam<RectangleGuillotineTreeSearchHypergraphTestParams> { };
 
 TEST_P(
-        RectangleGuillotineLabelingTest,
-        RectangleGuillotineLabeling)
+        RectangleGuillotineTreeSearchHypergraphTest,
+        RectangleGuillotineTreeSearchHypergraph)
 {
-    RectangleGuillotineLabelingTestParams test_params = GetParam();
+    RectangleGuillotineTreeSearchHypergraphTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
     instance_builder.read_item_types(test_params.items_path.string());
     instance_builder.read_bin_types(test_params.bins_path.string());
     instance_builder.read_parameters(test_params.parameters_path.string());
     Instance instance = instance_builder.build();
 
-    LabelingParameters labeling_parameters;
-    LabelingOutput output = labeling(instance, labeling_parameters);
+    TreeSearchHypergraphParameters tree_search_hypergraph_parameters;
+    TreeSearchHypergraphOutput output = tree_search_hypergraph(instance, tree_search_hypergraph_parameters);
 
     SolutionBuilder solution_builder(instance);
     solution_builder.read(test_params.certificate_path.string());
@@ -54,9 +54,9 @@ TEST_P(
 }
 
 INSTANTIATE_TEST_SUITE_P(
-        RectangleGuillotineLabeling,
-        RectangleGuillotineLabelingTest,
-        testing::ValuesIn(std::vector<RectangleGuillotineLabelingTestParams>{
+        RectangleGuillotineTreeSearchHypergraph,
+        RectangleGuillotineTreeSearchHypergraphTest,
+        testing::ValuesIn(std::vector<RectangleGuillotineTreeSearchHypergraphTestParams>{
             // Unlimited stages, oriented items.
             // Single item that exactly fills the bin (no cuts needed).
             {

@@ -15,8 +15,8 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     tree_search_maximal_spaces.cpp
     column_generation_strips.cpp
     sequential_strips_onedimensional.cpp
-    dynamic_programming_infinite_copies_array.cpp
-    labeling.cpp)
+    tree_search_hypergraph_infinite_copies.cpp
+    tree_search_hypergraph.cpp)
 target_include_directories(PackingSolver_rectangleguillotine PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_rectangleguillotine PRIVATE
