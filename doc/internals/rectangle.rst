@@ -5,6 +5,8 @@
 
 See :ref:`rectangle<rectangle>` for the input/output format and CLI usage of this solver.
 
+.. _internals_rectangle_tree_search:
+
 Tree search
 ------------
 
@@ -17,6 +19,8 @@ The possible insertions for an unpacked item are the ones where the new item is 
 .. image:: ../img/rectangle_tree_search.png
    :scale: 100%
    :align: center
+
+.. _internals_rectangle_tree_search_maximal_spaces:
 
 Tree search with maximal spaces
 ----------------------------------
