@@ -143,8 +143,8 @@ Contrary to the tree search maximal spaces algorithm and the column generation s
    :scale: 100%
    :align: center
 
-Labeling algorithm
----------------------
+Tree search hypergraph
+-------------------------
 
 This algorithm solves the :code:`knapsack` objective.
 
@@ -156,12 +156,12 @@ This is similar to the block generation step of the tree search maximal spaces a
    :scale: 100%
    :align: center
 
-Dynamic programming with infinite copies
------------------------------------------
+Tree search hypergraph with infinite copies
+-------------------------------------------
 
 This algorithm solves the :code:`knapsack` objective.
 
-This algorithm works the same way as the labeling algorithm, except that the item type quantities are not taken into account. This means that the domination rule is cheaper to compute and prunes many more nodes. Therefore, it is very fast, but the generated solution might be infeasible regarding the available number of item copies.
+This algorithm works the same way as the tree search hypergraph algorithm, except that the item type quantities are not taken into account. This means that the domination rule is cheaper to compute and prunes many more nodes. Therefore, it is very fast, but the generated solution might be infeasible regarding the available number of item copies.
 
 .. image:: ../img/rectangleguillotine_dynamic_programming_infinite_copies.png
    :scale: 100%
