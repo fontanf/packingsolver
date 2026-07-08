@@ -116,8 +116,8 @@ int main(int argc, char *argv[])
             ("use-tree-search-maximal-spaces,", po::value<bool>(), "enable tree search maximal spaces algorithm")
             ("use-column-generation-strips,", po::value<bool>(), "enable column generation strips algorithm")
             ("use-sequential-strips-onedimensional,", po::value<bool>(), "enable sequential strips onedimensional algorithm")
-            ("use-dynamic-programming-infinite-copies-array,", po::value<bool>(), "enable dynamic programming (infinite copies, array) algorithm")
-            ("use-labeling,", po::value<bool>(), "enable labeling algorithm")
+            ("use-tree-search-hypergraph-infinite-copies,", po::value<bool>(), "enable tree search hypergraph (infinite copies) algorithm")
+            ("use-tree-search-hypergraph,", po::value<bool>(), "enable tree search hypergraph algorithm")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
             ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
@@ -288,10 +288,10 @@ int main(int argc, char *argv[])
             parameters.use_column_generation_strips = vm["use-column-generation-strips"].as<bool>();
         if (vm.count("use-sequential-strips-onedimensional"))
             parameters.use_sequential_strips_onedimensional = vm["use-sequential-strips-onedimensional"].as<bool>();
-        if (vm.count("use-dynamic-programming-infinite-copies-array"))
-            parameters.use_dynamic_programming_infinite_copies_array = vm["use-dynamic-programming-infinite-copies-array"].as<bool>();
-        if (vm.count("use-labeling"))
-            parameters.use_labeling = vm["use-labeling"].as<bool>();
+        if (vm.count("use-tree-search-hypergraph-infinite-copies"))
+            parameters.use_tree_search_hypergraph_infinite_copies = vm["use-tree-search-hypergraph-infinite-copies"].as<bool>();
+        if (vm.count("use-tree-search-hypergraph"))
+            parameters.use_tree_search_hypergraph = vm["use-tree-search-hypergraph"].as<bool>();
         if (vm.count("use-sequential-single-knapsack"))
             parameters.use_sequential_single_knapsack = vm["use-sequential-single-knapsack"].as<bool>();
         if (vm.count("use-sequential-value-correction"))

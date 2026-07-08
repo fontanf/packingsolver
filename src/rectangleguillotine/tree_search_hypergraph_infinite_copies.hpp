@@ -7,9 +7,9 @@ namespace packingsolver
 namespace rectangleguillotine
 {
 
-struct DynamicProgrammingInfiniteCopiesArrayOutput: packingsolver::Output<Instance, Solution>
+struct TreeSearchHypergraphInfiniteCopiesOutput: packingsolver::Output<Instance, Solution>
 {
-    DynamicProgrammingInfiniteCopiesArrayOutput(const Instance& instance):
+    TreeSearchHypergraphInfiniteCopiesOutput(const Instance& instance):
         packingsolver::Output<Instance, Solution>(instance) { }
 
     /**
@@ -23,13 +23,13 @@ struct DynamicProgrammingInfiniteCopiesArrayOutput: packingsolver::Output<Instan
     std::vector<Profit> dp_values;
 };
 
-struct DynamicProgrammingInfiniteCopiesArrayParameters: packingsolver::Parameters<Instance, Solution>
+struct TreeSearchHypergraphInfiniteCopiesParameters: packingsolver::Parameters<Instance, Solution>
 {
 };
 
-const DynamicProgrammingInfiniteCopiesArrayOutput dynamic_programming_infinite_copies_array(
+const TreeSearchHypergraphInfiniteCopiesOutput tree_search_hypergraph_infinite_copies(
         const Instance& instance,
-        const DynamicProgrammingInfiniteCopiesArrayParameters& parameters = {});
+        const TreeSearchHypergraphInfiniteCopiesParameters& parameters = {});
 
 }
 }

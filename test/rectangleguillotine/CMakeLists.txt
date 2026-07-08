@@ -13,8 +13,8 @@ target_sources(PackingSolver_rectangleguillotine_test PRIVATE
     tree_search/cutting_cost_test.cpp
     column_generation_strips_test.cpp
     sequential_strips_onedimensional_test.cpp
-    dynamic_programming_infinite_copies_array_test.cpp
-    labeling_test.cpp
+    tree_search_hypergraph_infinite_copies_test.cpp
+    tree_search_hypergraph_test.cpp
     post_process_test.cpp)
 target_include_directories(PackingSolver_rectangleguillotine_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)

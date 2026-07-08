@@ -1,5 +1,5 @@
 #include "packingsolver/rectangleguillotine/instance_builder.hpp"
-#include "rectangleguillotine/dynamic_programming_infinite_copies_array.hpp"
+#include "rectangleguillotine/tree_search_hypergraph_infinite_copies.hpp"
 #include "rectangleguillotine/solution_builder.hpp"
 
 #include <gtest/gtest.h>
@@ -8,7 +8,7 @@
 using namespace packingsolver::rectangleguillotine;
 namespace fs = boost::filesystem;
 
-struct RectangleGuillotineDynamicProgrammingInfiniteCopiesArrayTestParams
+struct RectangleGuillotineTreeSearchHypergraphInfiniteCopiesTestParams
 {
     fs::path items_path;
     fs::path bins_path;
@@ -18,29 +18,29 @@ struct RectangleGuillotineDynamicProgrammingInfiniteCopiesArrayTestParams
 
 inline std::ostream& operator<<(
         std::ostream& os,
-        const RectangleGuillotineDynamicProgrammingInfiniteCopiesArrayTestParams& test_params)
+        const RectangleGuillotineTreeSearchHypergraphInfiniteCopiesTestParams& test_params)
 {
     os << test_params.items_path;
     return os;
 }
 
-class RectangleGuillotineDynamicProgrammingInfiniteCopiesArrayTest:
-    public testing::TestWithParam<RectangleGuillotineDynamicProgrammingInfiniteCopiesArrayTestParams> { };
+class RectangleGuillotineTreeSearchHypergraphInfiniteCopiesTest:
+    public testing::TestWithParam<RectangleGuillotineTreeSearchHypergraphInfiniteCopiesTestParams> { };
 
 TEST_P(
-        RectangleGuillotineDynamicProgrammingInfiniteCopiesArrayTest,
-        RectangleGuillotineDynamicProgrammingInfiniteCopiesArray)
+        RectangleGuillotineTreeSearchHypergraphInfiniteCopiesTest,
+        RectangleGuillotineTreeSearchHypergraphInfiniteCopies)
 {
-    RectangleGuillotineDynamicProgrammingInfiniteCopiesArrayTestParams test_params = GetParam();
+    RectangleGuillotineTreeSearchHypergraphInfiniteCopiesTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
     instance_builder.read_item_types(test_params.items_path.string());
     instance_builder.read_bin_types(test_params.bins_path.string());
     instance_builder.read_parameters(test_params.parameters_path.string());
     Instance instance = instance_builder.build();
 
-    DynamicProgrammingInfiniteCopiesArrayParameters dp_parameters;
-    DynamicProgrammingInfiniteCopiesArrayOutput output
-        = dynamic_programming_infinite_copies_array(instance, dp_parameters);
+    TreeSearchHypergraphInfiniteCopiesParameters dp_parameters;
+    TreeSearchHypergraphInfiniteCopiesOutput output
+        = tree_search_hypergraph_infinite_copies(instance, dp_parameters);
 
     SolutionBuilder solution_builder(instance);
     solution_builder.read(test_params.certificate_path.string());
@@ -55,9 +55,9 @@ TEST_P(
 }
 
 INSTANTIATE_TEST_SUITE_P(
-        RectangleGuillotineDynamicProgrammingInfiniteCopiesArray,
-        RectangleGuillotineDynamicProgrammingInfiniteCopiesArrayTest,
-        testing::ValuesIn(std::vector<RectangleGuillotineDynamicProgrammingInfiniteCopiesArrayTestParams>{
+        RectangleGuillotineTreeSearchHypergraphInfiniteCopies,
+        RectangleGuillotineTreeSearchHypergraphInfiniteCopiesTest,
+        testing::ValuesIn(std::vector<RectangleGuillotineTreeSearchHypergraphInfiniteCopiesTestParams>{
             // Unlimited stages, infinite copies, oriented items.
             // Single item that exactly fills the bin (no cuts needed).
             {

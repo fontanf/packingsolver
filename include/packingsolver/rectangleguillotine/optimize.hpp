@@ -41,14 +41,14 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
     /** Use sequential strips onedimensional algorithm. */
     bool use_sequential_strips_onedimensional = false;
 
-    /** Use dynamic programming (infinite copies, array) algorithm. */
-    bool use_dynamic_programming_infinite_copies_array = false;
+    /** Use tree search hypergraph (infinite copies) algorithm. */
+    bool use_tree_search_hypergraph_infinite_copies = false;
 
     /** Use tree search maximal spaces algorithm. */
     bool use_tree_search_maximal_spaces = false;
 
-    /** Use labeling algorithm. */
-    bool use_labeling = false;
+    /** Use tree search hypergraph algorithm. */
+    bool use_tree_search_hypergraph = false;
 
     /** Use sequential single knapsack algorithm. */
     bool use_sequential_single_knapsack = false;

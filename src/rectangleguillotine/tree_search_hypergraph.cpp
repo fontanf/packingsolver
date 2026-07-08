@@ -1,4 +1,4 @@
-#include "rectangleguillotine/labeling.hpp"
+#include "rectangleguillotine/tree_search_hypergraph.hpp"
 
 #include "packingsolver/rectangleguillotine/algorithm_formatter.hpp"
 #include "rectangleguillotine/solution_builder.hpp"
@@ -278,7 +278,7 @@ std::vector<std::pair<ItemTypeId, ItemPos>> merge_item_copies(
  *
  * When available_w > block.rect.w or available_h > block.rect.h, a
  * normalization cut is emitted to trim the excess before descending into
- * the block's content, mirroring the NormX / NormY labels in labeling.cpp.
+ * the block's content, mirroring the NormX / NormY labels in tree_search_hypergraph.cpp.
  */
 void reconstruct_block(
         SolutionBuilder& builder,
@@ -408,7 +408,7 @@ Solution reconstruct_solution(
     // Check feasibility.
     // Defects, stacks, minimum waste, minimum/maximum distance between cuts
     // and the number of stages are not supported by this algorithm (see
-    // labeling.hpp), so only item copies are checked here.
+    // tree_search_hypergraph.hpp), so only item copies are checked here.
     if (!solution.item_copies_feasible()) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": solution doesn't satisfy item copies.");
@@ -423,11 +423,11 @@ Solution reconstruct_solution(
 /////////////////////////////// Main function ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-const LabelingOutput packingsolver::rectangleguillotine::labeling(
+const TreeSearchHypergraphOutput packingsolver::rectangleguillotine::tree_search_hypergraph(
         const Instance& instance,
-        const LabelingParameters& parameters)
+        const TreeSearchHypergraphParameters& parameters)
 {
-    LabelingOutput output(instance);
+    TreeSearchHypergraphOutput output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();
