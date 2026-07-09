@@ -23,11 +23,6 @@ void optimize_dynamic_programming(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    if (instance.number_of_bins() != 1)
-        return;
-    if (instance.objective() != Objective::Knapsack)
-        return;
-
     const BinType& bin_type = instance.bin_type(0);
     knapsacksolver::InstanceFromFloatProfitsBuilder kp_instance_builder;
     std::vector<std::pair<ItemTypeId, ItemPos>> kp2ps;
@@ -87,10 +82,6 @@ void optimize_tree_search(
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    optimize_dynamic_programming(instance, parameters, algorithm_formatter);
-    if (algorithm_formatter.end_boolean())
-        return;
-
     TreeSearchParameters ts_parameters;
     ts_parameters.verbosity_level = 0;
     ts_parameters.timer = parameters.timer;
@@ -428,6 +419,14 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
                 }
             }
         }
+    }
+
+    if (instance.number_of_bins() == 1
+            && instance.objective() == Objective::Knapsack) {
+        optimize_dynamic_programming(
+                instance,
+                parameters,
+                algorithm_formatter);
     }
 
     if (algorithm_formatter.end_boolean()) {
