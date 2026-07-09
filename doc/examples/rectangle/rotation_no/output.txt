@@ -12,7 +12,7 @@ Objective:             BinPackingWithLeftovers
 Number of item types:  1
 Number of items:       3
 Number of bin types:   1
-Number of bins:        1
+Number of bins:        2
 Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
@@ -25,17 +25,17 @@ Total item profit:     240000
 Largest item profit:   80000
 Total item weight:     0
 Largest item copies:   3
-Total bin area:        500000
+Total bin area:        700000
 Total bin weight:      inf
-Largest bin cost:      500000
+Largest bin cost:      350000
 
         Time      # bins    Leftover                         Comment
         ----      ------    --------                         -------
-       0.000           1      180000                  TS g 1 d Y q 1
+       0.000           2      270000                  TS g 1 d Y q 1
 
 Final statistics
 ----------------
-Time (s):  0.000432879
+Time (s):  5.0036
 
 Solution
 --------
@@ -43,16 +43,16 @@ Number of items:  3 / 3 (100%)
 Item area:        240000 / 240000 (100%)
 Item weight:      0 / 0 (-nan%)
 Item profit:      240000 / 240000 (100%)
-Number of bins:   1 / 1 (100%)
-Bin area:         500000 / 500000 (100%)
+Number of bins:   2 / 2 (100%)
+Bin area:         700000 / 700000 (100%)
 Bin weight:       inf / inf (-nan%)
-Bin cost:         500000
-Waste:            80000
-Waste (%):        25
-Full waste:       260000
-Full waste (%):   52
-Area load:        0.48
+Bin cost:         700000
+Waste:            190000
+Waste (%):        44.186
+Full waste:       460000
+Full waste (%):   65.7143
+Area load:        0.342857
 Weight load:      0
-X max:            800
-Y max:            400
-Leftover value:   180000
+X max:            400
+Y max:            200
+Leftover value:   270000

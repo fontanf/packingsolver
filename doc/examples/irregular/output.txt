@@ -18,7 +18,7 @@ Number of defects:            0
 Number of rectangular items:  2
 Number of circular items:     0
 Item-item minimum spacing:    0
-Leftover corner:              BottomLeft
+Leftover mode:                BottomLeft
 Open dim. XY aspect ratio:    -1
 Total item area:              60000
 Smallest item area:           3600
@@ -32,11 +32,12 @@ Largest bin cost:             125000
         Time      # bins    Leftover                         Comment
         ----      ------    --------                         -------
        0.001           1       25000                  TS g 0 d 0 q 1
+       0.001           1       33000                  TS g 1 d 4 q 1
        0.001           1       45000                  TS g 0 d 0 q 2
 
 Final statistics
 ----------------
-Time (s):  0.00612886
+Time (s):  0.00491278
 
 Solution
 --------

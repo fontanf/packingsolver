@@ -32,23 +32,41 @@ Largest bin cost:      280000
         Time        Profit   # items                         Comment
         ----        ------   -------                         -------
        0.000         37500         1                  TS g 5 d Y q 1
-       0.000         75000         2                  TS g 5 d Y q 1
-       0.001        112500         3                  TS g 4 d Y q 1
-       0.001        150000         4                  TS g 4 d Y q 1
-       0.001        187500         5                  TS g 4 d Y q 1
-       0.001        207500         6                  TS g 4 d Y q 1
-       0.001        227500         7                  TS g 4 d Y q 1
-       0.001        247500         8                  TS g 4 d Y q 1
-       0.001        285000         9                  TS g 4 d Y q 1
-       0.064        560000        22                          CG n 1
+       0.001         75000         2                  TS g 5 d Y q 1
+       0.001        112500         3                  TS g 5 d Y q 1
+       0.001        150000         4                  TS g 5 d Y q 1
+       0.001        187500         5                  TS g 5 d Y q 1
+       0.001        207500         6                  TS g 5 d Y q 1
+       0.001        227500         7                  TS g 5 d Y q 1
+       0.001        247500         8                  TS g 5 d Y q 1
+       0.001        285000         9                  TS g 5 d Y q 1
+       0.001        322500        10                  TS g 5 d Y q 1
+       0.002        360000        11                  TS g 5 d Y q 1
+       0.002        397500        12                  TS g 5 d Y q 1
+       0.002        435000        13                  TS g 5 d Y q 1
+       0.002        455000        14                  TS g 5 d Y q 1
+       0.002        475000        15                  TS g 5 d Y q 1
+       0.002        495000        16                  TS g 5 d Y q 1
+       0.002        501250        17                  TS g 5 d Y q 3
+       0.002        515000        17                  TS g 4 d X q 2
+       0.003        517500        18                  TS g 4 d Y q 2
+       0.003        535000        18                  TS g 4 d X q 2
+       0.003        541250        19                  TS g 4 d X q 2
+       0.010        543750        20                 TS g 4 d X q 19
+       0.013        545625        22                 TS g 4 d X q 28
+       0.018        550000        21                 TS g 4 d Y q 42
+       0.027        551250        24                 TS g 4 d X q 63
+       0.028        551875        23                 TS g 4 d Y q 63
+       0.054        558125        24                 TS g 4 d Y q 94
+       0.058        560000        26                 TS g 4 d X q 94
 
 Final statistics
 ----------------
-Time (s):  0.0639555
+Time (s):  5.00804
 
 Solution
 --------
-Number of items:  22 / 34 (64.7059%)
+Number of items:  26 / 34 (76.4706%)
 Item area:        560000 / 772500 (72.4919%)
 Item weight:      0 / 0 (-nan%)
 Item profit:      560000 / 772500 (72.4919%)

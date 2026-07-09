@@ -30,14 +30,14 @@ Total bin weight:      inf
 Largest bin cost:      320000
 
         Time           X                         Comment
-        ----       -----                         -------
+        ----           -                         -------
        0.000         700                  TS g 1 d X q 1
        0.000         650                  TS g 1 d X q 1
-       0.000         500                  TS g 1 d X q 3
+       0.001         500                  TS g 1 d X q 3
 
 Final statistics
 ----------------
-Time (s):  0.00069147
+Time (s):  0.000694229
 
 Solution
 --------
