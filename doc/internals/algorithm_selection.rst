@@ -23,10 +23,3 @@ The :ref:`optimization mode<optimization_modes>` also affects how these algorith
 
 * In **anytime** mode, decomposition algorithms restart in a loop with a growing search effort for their knapsack sub-problems each time, so solution quality keeps improving the longer the solver runs.
 * In **non-anytime** modes, each algorithm instead uses a single, fixed search effort (configurable via the corresponding ``--not-anytime-*`` option) and is run deterministically rather than restarted.
-
-Bounds and post-processing
-----------------------------
-
-Independently of which algorithms are used to search for solutions, some domains also compute bounds unconditionally when it is cheap to do so: ``rectangle`` and ``rectangleguillotine`` compute a bin-packing bound via dual feasible functions for small single-bin-type instances; ``irregular`` computes a bin-packing/knapsack/variable-sized-bin-packing bound via a one-dimensional area relaxation.
-
-For the bin-packing-with-leftovers objective, ``rectangle`` and ``irregular`` additionally post-process the solution once all selected algorithms have finished: the last, partially filled bin is re-optimized on its own, exploring the packing space differently, to try to improve its leftover value.

@@ -9,34 +9,33 @@ OneDimensional
 Instance
 --------
 Objective:             BinPacking
-Number of item types:  2
-Number of items:       2
+Number of item types:  3
+Number of items:       5
 Number of bin types:   1
 Number of bins:        10
-Total item length:     300
-Total item profit:     300
-Largest item profit:   200
-Largest item copies:   1
+Total item length:     930
+Total item profit:     930
+Largest item profit:   250
+Largest item copies:   3
 Largest bin cost:      500
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       2           70.00                      TS g 0 q 1
-       0.000       1           40.00                      TS g 0 q 2
+       0.000       2            7.00                        SVC it 0
 
 Final statistics
 ----------------
-Time (s):  0.000752911
+Time (s):  0.000623405
 
 Solution
 --------
-Number of items:  2 / 2 (100%)
-Item length:      300 / 300 (100%)
-Item profit:      300 / 300 (100%)
-Number of bins:   1 / 10 (10%)
-Bin length:       500 / 5000 (10%)
-Bin cost:         500
-Waste:            0
-Waste (%):        0
-Full waste:       200
-Full waste (%):   40
+Number of items:  5 / 5 (100%)
+Item length:      930 / 930 (100%)
+Item profit:      930 / 930 (100%)
+Number of bins:   2 / 10 (20%)
+Bin length:       1000 / 5000 (20%)
+Bin cost:         1000
+Waste:            20
+Waste (%):        2.10526
+Full waste:       70
+Full waste (%):   7
