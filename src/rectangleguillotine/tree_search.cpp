@@ -1938,6 +1938,13 @@ Solution BranchingScheme::to_solution(
                     "solution.number_of_bins(): " + std::to_string(solution.number_of_bins()) + "; "
                     "node->number_of_bins: " + std::to_string(node->number_of_bins) + ".");
         }
+        if (instance().objective() == Objective::BinPackingCuttingCost
+                && solution.cutting_cost() != node->cutting_cost) {
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": wrong cutting cost; "
+                    "solution.cutting_cost(): " + std::to_string(solution.cutting_cost()) + "; "
+                    "node->cutting_cost: " + std::to_string(node->cutting_cost) + ".");
+        }
     }
 
     // Check feasibility.

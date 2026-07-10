@@ -416,7 +416,13 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr_max1cut" / "items.csv",
                 fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr_max1cut" / "parameters.csv",
-                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr_max1cut" / "solution.csv",}}));
+                fs::path("data") / "rectangleguillotine" / "tests" / "knapsack_3rvr_max1cut" / "solution.csv",
+            }, {
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_2nho" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_2nho" / "items.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_2nho" / "parameters.csv",
+                fs::path("data") / "rectangleguillotine" / "tests" / "bin_packing_cutting_cost_2nho" / "solution.csv",}}));
 
 
 
