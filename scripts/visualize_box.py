@@ -12,6 +12,7 @@ parser.add_argument('-o', '--output', help='save image to file instead of openin
 parser.add_argument('--width', type=int, default=None, help='image width in pixels for PNG export')
 parser.add_argument('--height', type=int, default=None, help='image height in pixels for PNG export')
 parser.add_argument('--columns', type=int, default=None, help='number of columns in the subplot grid')
+parser.add_argument('--scale', type=float, default=1.0, help='scale factor for cell dimensions')
 args = parser.parse_args()
 
 if args.itemcolor not in ["SAME", "ID"]:
@@ -43,6 +44,8 @@ item_ids_x = []
 item_ids_y = []
 item_ids_z = []
 item_ids = []
+max_bin_lx = 0
+max_bin_ly = 0
 
 with open(args.csvpath, newline='') as csvfile:
     csvreader = csv.DictReader(csvfile, delimiter=',')
@@ -61,6 +64,8 @@ with open(args.csvpath, newline='') as csvfile:
         z2 = z1 + lz
 
         if type_ == "BIN":
+            max_bin_lx = max(max_bin_lx, lx)
+            max_bin_ly = max(max_bin_ly, ly)
             bins_x.append([])
             bins_y.append([])
             bins_z.append([])
@@ -232,7 +237,9 @@ for i in range(0, m):
 
 # Plot.
 fig.update_layout(
-        autosize=True)
+        autosize=True,
+        font=dict(size=14),
+        legend=dict(font=dict(size=14), itemsizing='constant'))
 fig.update_xaxes(
         rangeslider=dict(visible=False))
 fig.update_yaxes(
@@ -244,6 +251,10 @@ fig.update_scenes(
             center=dict(x=0, y=0, z=-0.25),
             eye=dict(x=-1.75, y=-1.5, z=0.75)))
 if args.output:
-    fig.write_image(args.output, width=args.width, height=args.height)
+    cell_width = int(max_bin_lx * args.scale)
+    cell_height = int(max_bin_ly * args.scale)
+    export_width = args.width if args.width is not None else number_of_cols * cell_width + 160
+    export_height = args.height if args.height is not None else number_of_rows * cell_height + 170
+    fig.write_image(args.output, width=export_width, height=export_height, scale=2)
 else:
     fig.show()
