@@ -199,7 +199,9 @@ for i in range(0, m):
 
 # Plot.
 fig.update_layout(
-        autosize=True)
+        autosize=True,
+        font=dict(size=14),
+        legend=dict(font=dict(size=14), itemsizing='constant'))
 fig.update_xaxes(
         rangeslider=dict(visible=False))
 for i in range(0, m):
@@ -213,8 +215,8 @@ for i in range(0, m):
 if args.output:
     cell_width = int(max_bin_lx * args.scale)
     cell_height = int(max_bin_ly * args.scale)
-    export_width = args.width if args.width is not None else number_of_cols * cell_width + 80
+    export_width = args.width if args.width is not None else number_of_cols * cell_width + 160
     export_height = args.height if args.height is not None else number_of_rows * cell_height + 170
-    fig.write_image(args.output, width=export_width, height=export_height)
+    fig.write_image(args.output, width=export_width, height=export_height, scale=2)
 else:
     fig.show()
