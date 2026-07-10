@@ -1,0 +1,59 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Rectangle
+
+Instance
+--------
+Objective:             BinPacking
+Number of item types:  4
+Number of items:       4
+Number of bin types:   1
+Number of bins:        2
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item area:       106
+Total item width:      24
+Total item height:     18
+Smallest item width:   4
+Smallest item height:  3
+Total item profit:     106
+Largest item profit:   42
+Total item weight:     0
+Largest item copies:   1
+Total bin area:        216
+Total bin weight:      inf
+Largest bin cost:      108
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.000       2           50.93                  TS g 1 d Y q 1
+       0.001       1            1.85                        SVC it 0
+
+Final statistics
+----------------
+Time (s):  0.00139759
+
+Solution
+--------
+Number of items:  4 / 4 (100%)
+Item area:        106 / 106 (100%)
+Item weight:      0 / 0 (-nan%)
+Item profit:      106 / 106 (100%)
+Number of bins:   1 / 2 (50%)
+Bin area:         108 / 216 (50%)
+Bin weight:       inf / inf (-nan%)
+Bin cost:         108
+Waste:            2
+Waste (%):        1.85185
+Full waste:       2
+Full waste (%):   1.85185
+Area load:        0.490741
+Weight load:      0
+X max:            12
+Y max:            9
+Leftover value:   0

@@ -11,6 +11,8 @@ copyright = '2019-2024, Florian Fontan'
 author = 'Florian Fontan'
 release = '0.1'
 
+html_title = project
+
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

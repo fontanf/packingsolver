@@ -17,17 +17,17 @@ Features:
 
   * Knapsack
   * Bin packing
+  * Bin packing with leftovers
   * Open dimension X
   * Open dimension Y
-  * Open dimension Z
   * Variable-sized bin packing
 
 * Select allowed item rotations (among the 6 possible rotations)
 
 * Maximum weight in bins
 
-Usage
------
+Basic usage
+--------------
 
 The :code:`box` solver takes as input:
 
@@ -66,17 +66,6 @@ The **item file** contains:
   * column ``PROFIT``
   * default value: item volume (``X * Y * Z``)
 
-* The weight of the item
-
-  * column ``WEIGHT``
-  * default value: ``0``
-
-* The allowed orientations, encoded as a bitmask
-
-  * column ``ROTATIONS``
-  * default value: ``1`` (default orientation only)
-  * See `Rotations`_ below
-
 The **bin file** contains:
 
 * The X dimension of the bin type (**mandatory**)
@@ -109,11 +98,6 @@ The **bin file** contains:
   * column ``COST``
   * default value: bin volume
 
-* The maximum total weight allowed in a bin of this type
-
-  * column ``MAXIMUM_WEIGHT``
-  * default value: no limit
-
 The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible entries are:
 
 * The objective; name: ``objective``; possible values:
@@ -124,9 +108,6 @@ The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible ent
   * ``open-dimension-x``
   * ``open-dimension-y``
   * ``variable-sized-bin-packing``
-
-Basic example
--------------
 
 Inputs:
 
@@ -147,7 +128,8 @@ Solve:
             --items items.csv \
             --bins bins.csv \
             --parameters parameters.csv \
-            --certificate solution.csv
+            --certificate solution.csv \
+            --time-limit 5
 
 .. literalinclude:: examples/box/output.txt
 
@@ -164,63 +146,120 @@ Visualize:
 Rotations
 ---------
 
+* The allowed orientations
+
+  * columns ``ROTATION_XYZ``, ``ROTATION_YXZ``, ``ROTATION_ZYX``, ``ROTATION_YZX``, ``ROTATION_XZY``, ``ROTATION_ZXY``
+  * ``1``: this orientation is allowed; ``0`` or omitted: not allowed
+  * default: if none of these columns is set to ``1``, only ``ROTATION_XYZ`` (the default orientation) is used
+
 The six possible 3D orientations of a box are:
 
 .. list-table::
    :header-rows: 1
 
-   * - Rotation id
+   * - Column
      - X direction
      - Y direction
      - Z direction (vertical)
-   * - 0
+   * - ``ROTATION_XYZ``
      - x
      - y
      - z
-   * - 1
+   * - ``ROTATION_YXZ``
      - y
      - x
      - z
-   * - 2
+   * - ``ROTATION_ZYX``
      - z
      - y
      - x
-   * - 3
+   * - ``ROTATION_YZX``
      - y
      - z
      - x
-   * - 4
+   * - ``ROTATION_XZY``
      - x
      - z
      - y
-   * - 5
+   * - ``ROTATION_ZXY``
      - z
      - x
      - y
 
-The ``ROTATIONS`` column is a **bitmask**: bit *k* (value 2^k) is set if rotation *k* is allowed. Common values:
+Each rotation is enabled independently via its own boolean column (``1`` to allow it, ``0`` or omitted to disallow it). If none of the ``ROTATION_*`` columns is set, only ``ROTATION_XYZ`` (the default orientation) is used. Common combinations:
 
-* ``1`` (= 2^0): only the default orientation
-* ``3`` (= 2^0 + 2^1): Z face always on top; both XY rotations allowed
-* ``15`` (= 2^0 + 2^1 + 2^2 + 2^3): Y face cannot be on top
-* ``51`` (= 2^0 + 2^1 + 2^4 + 2^5): X face cannot be on top
-* ``63`` (= all 6 bits): all six orientations allowed
+* Only ``ROTATION_XYZ``: only the default orientation
+* ``ROTATION_XYZ`` and ``ROTATION_YXZ``: Z face always on top; both XY rotations allowed
+* ``ROTATION_XYZ``, ``ROTATION_YXZ``, ``ROTATION_ZYX`` and ``ROTATION_YZX``: Y face cannot be on top
+* ``ROTATION_XYZ``, ``ROTATION_YXZ``, ``ROTATION_XZY`` and ``ROTATION_ZXY``: X face cannot be on top
+* All six columns set to ``1``: all six orientations allowed
+
+The following example packs a 10×10×6 item and a 10×4×6 item into 10×10×10 bins (:code:`bin-packing` objective). The first item fills the bottom of a bin exactly, leaving a 10×10×4 gap on top. Without rotation, the second item keeps its 6-high default orientation, which does not fit in that gap, so it needs a second bin. Allowing ``ROTATION_XZY`` for the second item lets it be turned on its side (effectively 10×6×4), which fits exactly into the remaining gap, so both items pack into a single bin.
+
+.. |box_rotation_no| image:: img/box_rotation_no.png
+   :scale: 50%
+
+.. |box_rotation_yes| image:: img/box_rotation_yes.png
+   :scale: 50%
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - Without rotation
+     - With rotation
+   * - .. literalinclude:: examples/box/rotation_no/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/box/rotation_yes/items.csv
+          :caption: items.csv
+   * - .. literalinclude:: examples/box/rotation_no/bins.csv
+          :caption: bins.csv
+     - .. literalinclude:: examples/box/rotation_yes/bins.csv
+          :caption: bins.csv
+   * - .. literalinclude:: examples/box/rotation_no/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/box/rotation_yes/parameters.csv
+          :caption: parameters.csv
+   * - .. code-block:: shell
+
+            packingsolver_box \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_box \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |box_rotation_no|
+     - |box_rotation_yes|
 
 Maximum weight
 --------------
 
-Each bin type may have a maximum weight limits: the total weight of items placed in any bin must not exceed its maximum weight.
+Each bin type may have a maximum weight limit: the total weight of items placed in any bin must not exceed its maximum weight.
 
-The weight of an item type is specified via the ``WEIGHT`` column in the item CSV file.
-The maximum weight of a bin type is specified via the ``MAXIMUM_WEIGHT`` column in the bin CSV file. Items are assigned a weight via the ``WEIGHT`` column in the item CSV file.
+* The weight of the item
+
+  * column ``WEIGHT``
+  * default value: ``0``
+
+* The maximum total weight allowed in a bin of this type
+
+  * column ``MAXIMUM_WEIGHT``
+  * default value: no limit
 
 The following example packs 4 items of size 10×10×10 with weight 100 each into 20×20×10 bins. Without a weight limit, all 4 items (total weight 400) fit in a single bin arranged as a 2×2 grid. With ``MAXIMUM_WEIGHT=200``, at most 2 items can share a bin, so 2 bins are required.
 
 .. |box_maximum_weight_no| image:: img/box_maximum_weight_no.png
-   :width: 100%
+   :scale: 50%
 
 .. |box_maximum_weight_yes| image:: img/box_maximum_weight_yes.png
-   :width: 100%
+   :scale: 50%
 
 .. list-table::
    :widths: 1 1

@@ -1,0 +1,46 @@
+{
+  "objective": "bin-packing",
+  "bin_types": [
+    {
+      "type": "rectangle",
+      "width": 60,
+      "height": 60,
+      "copies": 1,
+      "defects": [
+        {
+          "type": "rectangle",
+          "x": 5,
+          "y": 5,
+          "width": 10,
+          "height": 10
+        }
+      ]
+    },
+    {
+      "type": "rectangle",
+      "width": 60,
+      "height": 60,
+      "copies": 1
+    }
+  ],
+  "item_types": [
+    {
+      "type": "polygon",
+      "vertices": [
+        {"x": 0,  "y": 0},
+        {"x": 40, "y": 0},
+        {"x": 40, "y": 20},
+        {"x": 20, "y": 20},
+        {"x": 20, "y": 60},
+        {"x": 0,  "y": 60}
+      ],
+      "copies": 2,
+      "allowed_rotations": [
+        {"start": 0,   "end": 0},
+        {"start": 90,  "end": 90},
+        {"start": 180, "end": 180},
+        {"start": 270, "end": 270}
+      ]
+    }
+  ]
+}

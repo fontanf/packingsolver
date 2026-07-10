@@ -8,52 +8,77 @@ Box
 
 Instance
 --------
-Objective:             BinPackingWithLeftovers
-Number of item types:  1
-Number of items:       15
+Objective:             Knapsack
+Number of item types:  3
+Number of items:       60
 Number of bin types:   1
 Number of bins:        1
 Number of defects:     0
-Total item volume:     45000
-Total item profit:     45000
-Largest item profit:   3000
+Total item volume:     15487000
+Total item profit:     1.5487e+07
+Largest item profit:   409860
 Total item weight:     0
-Largest item copies:   15
-Smallest item x:       20
-Smallest item y:       15
-Smallest item z:       10
-Total bin volume:      60000
+Largest item copies:   20
+Smallest item x:       92
+Smallest item y:       43
+Smallest item z:       25
+Total bin volume:      4110480
 Total bin weight:      inf
-Largest bin cost:      3000
+Largest bin cost:      37368
 
-        Time       Waste   Waste (%)                         Comment
-        ----       -----   ---------                         -------
-       0.000       15000       25.00                  TS g 0 d X q 1
+        Time        Profit   # items                         Comment
+        ----        ------   -------                         -------
+       0.000        246240         1                  TS g 5 d Z q 1
+       0.000        409860         1                  TS g 4 d X q 1
+       0.000        492480         2                  TS g 4 d X q 1
+       0.001        656100         2                  TS g 4 d X q 1
+       0.001        738720         3                  TS g 4 d X q 1
+       0.001        902340         3                  TS g 4 d X q 1
+       0.001   1.02059e+06         4                  TS g 4 d X q 1
+       0.001   1.13884e+06         5                  TS g 4 d X q 1
+       0.001   1.25709e+06         6                  TS g 4 d X q 1
+       0.001   1.37534e+06         7                  TS g 4 d X q 1
+       0.001   1.49359e+06         8                  TS g 4 d X q 1
+       0.001   1.57621e+06         9                  TS g 4 d X q 1
+       0.001   1.73983e+06         9                  TS g 4 d X q 1
+       0.002   1.85808e+06        10                  TS g 4 d X q 1
+       0.002   1.97633e+06        11                  TS g 4 d X q 1
+       0.002   2.09458e+06        12                  TS g 4 d X q 1
+       0.002   2.29554e+06         6                  TS g 5 d Z q 1
+       0.002   2.45916e+06         6                  TS g 5 d Z q 1
+       0.002    2.7054e+06         7                  TS g 5 d Z q 1
+       0.002   2.86902e+06         7                  TS g 5 d Z q 1
+       0.002   2.95164e+06         8                  TS g 5 d Z q 1
+       0.002   3.11526e+06         8                  TS g 5 d Z q 1
+       0.002   3.23351e+06         9                  TS g 5 d Z q 1
+       0.002   3.44241e+06        16                  TS g 4 d X q 1
+       0.003   3.56066e+06        17                  TS g 4 d X q 2
+       0.040    3.5704e+06        16                 TS g 4 d Y q 42
 
 Final statistics
 ----------------
-Time (s):  0.000612073
+Time (s):  5.00475
 
 Solution
 --------
-Number of items:   15 / 15 (100%)
-Item volume:       45000 / 45000 (100%)
+Number of items:   16 / 60 (26.6667%)
+Item volume:       3.5704e+06 / 1.5487e+07 (23.0542%)
 Item weight:       0 / 0 (-nan%)
-Item profit:       45000 / 45000 (100%)
+Item profit:       3.5704e+06 / 1.5487e+07 (23.0542%)
 Number of stacks:  0
 Stack area:        0
 Number of bins:    1 / 1 (100%)
-Bin volume:        60000 / 60000 (100%)
-Bin area:          3000 / 3000 (100%)
+Bin volume:        4110480 / 4110480 (100%)
+Bin area:          37368 / 37368 (100%)
 Bin weight:        inf / inf (-nan%)
-Bin cost:          3000
-Waste:             15000
-Waste (%):         25
-Full waste:        15000
-Full waste (%):    25
-Volume load:       0.75
+Bin cost:          37368
+Waste:             516320
+Waste (%):         12.6341
+Full waste:        540080
+Full waste (%):    13.1391
+Volume load:       0.868609
 Area load:         0
 Weight load:       0
-X max:             100
-Y max:             30
-Z max:             20
+X max:             216
+Y max:             172
+Z max:             110

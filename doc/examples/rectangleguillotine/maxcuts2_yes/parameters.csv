@@ -1,0 +1,4 @@
+NAME,VALUE
+objective,bin-packing
+first_stage_orientation,vertical
+maximum_number_2_cuts,1

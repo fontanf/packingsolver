@@ -30,8 +30,8 @@ Features:
 
 * Unloading constraints: only horizontal/vertical movements, increasing x/y
 
-Usage
------
+Basic usage
+--------------
 
 The :code:`rectangle` solver takes as input:
 
@@ -61,26 +61,10 @@ The **item file** contains:
   * column ``COPIES``
   * default value: ``1``
 
-* Whether the item is fixed in its original orientation (cannot be rotated 90°)
-
-  * column ``ORIENTED``
-  * ``0``: rotation allowed (default)
-  * ``1``: item is oriented; rotation not allowed
-
 * The profit of an item of this type (for a knapsack objective)
 
   * column ``PROFIT``
   * default value: item area (``WIDTH * HEIGHT``)
-
-* The group of the item (for unloading constraints)
-
-  * column ``GROUP_ID``
-  * default value: ``0``
-
-* The weight of the item
-
-  * column ``WEIGHT``
-  * default value: ``0``
 
 The **bin file** contains:
 
@@ -109,38 +93,6 @@ The **bin file** contains:
   * column ``COST``
   * default value: bin area (``WIDTH * HEIGHT``)
 
-* The maximum total weight that can be placed in a bin of this type
-
-  * column ``MAXIMUM_WEIGHT``
-  * default value: no limit
-
-The **defect file** contains:
-
-* The bin type that contains the defect (**mandatory**)
-
-  * column ``BIN``
-  * It refers to the bin type by its position (0-indexed) in the bins file
-
-* The X coordinate of the bottom-left corner of the defect (**mandatory**)
-
-  * column ``X``
-  * **Integer value**
-
-* The Y coordinate of the bottom-left corner of the defect (**mandatory**)
-
-  * column ``Y``
-  * **Integer value**
-
-* The width of the defect (**mandatory**)
-
-  * column ``WIDTH``
-  * **Integer value**
-
-* The height of the defect (**mandatory**)
-
-  * column ``HEIGHT``
-  * **Integer value**
-
 The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible entries are:
 
 * The objective; name: ``objective``; possible values:
@@ -152,17 +104,6 @@ The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible ent
   * ``open-dimension-y``
   * ``open-dimension-xy``
   * ``variable-sized-bin-packing``
-
-* The unloading constraint; name: ``unloading_constraint``; possible values:
-
-  * ``none`` (default)
-  * ``only-x-movements``
-  * ``only-y-movements``
-  * ``increasing-x``
-  * ``increasing-y``
-
-Basic example
--------------
 
 Inputs:
 
@@ -204,15 +145,19 @@ Each item may individually be allowed to be rotated by 90° or have a fixed orie
 
 By default, item rotation is allowed.
 
-Fixed orientation is specified via the ``ORIENTED`` column in the item CSV file. Value ``1`` specifies fixed orientation (no rotation alllowed), and value ``1`` rotation allowed.
+* Whether the item is fixed in its original orientation (cannot be rotated 90°)
+
+  * column ``ORIENTED``
+  * ``0``: rotation allowed (default)
+  * ``1``: item is oriented; rotation not allowed
 
 The following example packs 3 items of size 400×200 into a 1000×500 bin. Without rotation, the items occupy an 800×400 region and leave a narrow leftover. With rotation, one item is placed at 200×400, allowing all three to pack into a compact 600×400 region and leaving a larger leftover.
 
 .. |rect_rotation_no| image:: img/rectangle_rotation_no.png
-   :width: 100%
+   :scale: 50%
 
 .. |rect_rotation_yes| image:: img/rectangle_rotation_yes.png
-   :width: 100%
+   :scale: 50%
 
 .. list-table::
    :widths: 1 1
@@ -255,15 +200,40 @@ Defects
 
 Defects are rectangular regions inside a bin where items cannot be placed.
 
-Defects are specified in the defects CSV file (see above).
+Defects are specified in the defects CSV file; option: ``--defects defects.csv``. The **defect file** contains:
+
+* The bin type that contains the defect (**mandatory**)
+
+  * column ``BIN``
+  * It refers to the bin type by its position (0-indexed) in the bins file
+
+* The X coordinate of the bottom-left corner of the defect (**mandatory**)
+
+  * column ``X``
+  * **Integer value**
+
+* The Y coordinate of the bottom-left corner of the defect (**mandatory**)
+
+  * column ``Y``
+  * **Integer value**
+
+* The width of the defect (**mandatory**)
+
+  * column ``WIDTH``
+  * **Integer value**
+
+* The height of the defect (**mandatory**)
+
+  * column ``HEIGHT``
+  * **Integer value**
 
 The following example packs 3 items of size 400×200 into a 1000×500 bin. Without defects, the items fill a compact L-shaped region. With a 200×300 defect at position (450, 150), the item that would naturally sit there is pushed further right, reducing the leftover.
 
 .. |rect_defects_no| image:: img/rectangle_defects_no.png
-   :width: 100%
+   :scale: 50%
 
 .. |rect_defects_yes| image:: img/rectangle_defects_yes.png
-   :width: 100%
+   :scale: 50%
 
 .. list-table::
    :widths: 1 1
@@ -308,18 +278,25 @@ The following example packs 3 items of size 400×200 into a 1000×500 bin. Witho
 Maximum weight
 --------------
 
-Each bin type may have a maximum weight limits: the total weight of items placed in any bin must not exceed its maximum weight.
+Each bin type may have a maximum weight limit: the total weight of items placed in any bin must not exceed its maximum weight.
 
-The weight of an item type is specified vie the ``WEIGHT`` column in the item CSV file.
-The maximum weight of a bin type is specified via the ``MAXIMUM_WEIGHT`` column in the bin CSV file. Items are assigned a weight via the ``WEIGHT`` column in the item CSV file.
+* The weight of the item
+
+  * column ``WEIGHT``
+  * default value: ``0``
+
+* The maximum total weight that can be placed in a bin of this type
+
+  * column ``MAXIMUM_WEIGHT``
+  * default value: no limit
 
 The following example packs 4 items of size 300×200 with weight 100 each into 600×400 bins. Without a weight limit, all 4 items (total weight 400) fit in a single bin. With ``MAXIMUM_WEIGHT=200``, at most 2 items can share a bin, so 2 bins are required.
 
 .. |rect_maximum_weight_no| image:: img/rectangle_maximum_weight_no.png
-   :width: 100%
+   :scale: 50%
 
 .. |rect_maximum_weight_yes| image:: img/rectangle_maximum_weight_yes.png
-   :width: 100%
+   :scale: 50%
 
 .. list-table::
    :widths: 1 1
@@ -363,16 +340,26 @@ Unloading constraints
 When loading a truck that visits multiple loading/unloading locations, it might be necessary to be able to load/unload the items at a location without having to move the items which are already in the truck.
 This is modeled in the solver with unloading constraints. Items are assigned to groups: items in group 0 are placed last (nearest the door) and unloaded first, items in group 1 are placed next, etc.
 
-The group of an item type is specified via the ``GROUP_ID`` column in the item CSV file.
-Unloading constraints are specified via the ``unloading_constraint`` key in the parameters CSV file.
+* The group of the item (for unloading constraints)
+
+  * column ``GROUP_ID``
+  * default value: ``0``
+
+* The unloading constraint; name: ``unloading_constraint``; possible values:
+
+  * ``none`` (default)
+  * ``only-x-movements``
+  * ``only-y-movements``
+  * ``increasing-x``
+  * ``increasing-y``
 
 In the following examples, without unloading constraints, all items fit using a width of 600. But with unloading constraints, a width of 750 is necessary.
 
 .. |rect_unloading_no| image:: img/rectangle_unloading_no.png
-   :width: 100%
+   :scale: 50%
 
 .. |rect_unloading_yes| image:: img/rectangle_unloading_yes.png
-   :width: 100%
+   :scale: 50%
 
 .. list-table::
    :widths: 1 1
@@ -420,10 +407,10 @@ In the following examples, without unloading constraints, all items fit using a 
 In the following examples, two different solutions are obtained depending of the type of unloading constraint.
 
 .. |rect_unloading_x_movements| image:: img/rectangle_unloading_x_movements.png
-   :width: 100%
+   :scale: 50%
 
 .. |rect_unloading_increasing_x| image:: img/rectangle_unloading_increasing_x.png
-   :width: 100%
+   :scale: 50%
 
 .. list-table::
    :widths: 1 1

@@ -1,0 +1,43 @@
+{
+  "objective": "bin-packing",
+  "bin_types": [
+    {
+      "type": "rectangle",
+      "width": 40,
+      "height": 40,
+      "copies": 2
+    }
+  ],
+  "item_types": [
+    {
+      "type": "polygon",
+      "vertices": [
+        {"x": 0,  "y": 0},
+        {"x": 40, "y": 0},
+        {"x": 40, "y": 30},
+        {"x": 30, "y": 40},
+        {"x": 0,  "y": 40}
+      ],
+      "holes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {"x": 10, "y": 10},
+            {"x": 30, "y": 10},
+            {"x": 20, "y": 30}
+          ]
+        }
+      ],
+      "copies": 1
+    },
+    {
+      "type": "polygon",
+      "vertices": [
+        {"x": 0,  "y": 0},
+        {"x": 12, "y": 0},
+        {"x": 6,  "y": 12}
+      ],
+      "copies": 1
+    }
+  ]
+}
