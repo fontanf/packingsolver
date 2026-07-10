@@ -1,0 +1,27 @@
+{
+  "objective": "open-dimension-y",
+  "bin_types": [
+    {
+      "type": "rectangle",
+      "width": 50,
+      "height": 70,
+      "item_bin_minimum_spacing": 3
+    }
+  ],
+  "item_types": [
+    {
+      "type": "polygon",
+      "vertices": [
+        {"x": 0,  "y": 0},
+        {"x": 40, "y": 0},
+        {"x": 40, "y": 20},
+        {"x": 20, "y": 20},
+        {"x": 20, "y": 60},
+        {"x": 0,  "y": 60}
+      ],
+      "allowed_rotations": [
+        {"start": 0, "end": 0}
+      ]
+    }
+  ]
+}

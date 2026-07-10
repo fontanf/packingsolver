@@ -30,10 +30,8 @@ Features:
 
 * Maximum weight in bins
 
-* Item type / bin type eligibility
-
-Usage
------
+Basic usage
+--------------
 
 The :code:`one-dimensional` solver takes as input:
 
@@ -71,8 +69,13 @@ The **bin file** contains:
 
 * The number of copies of the bin type
 
-  * column ``COPIES`` 
+  * column ``COPIES``
   * default value: ``1``
+
+* The minimum number of copies of the bin type that must be used
+
+  * column ``COPIES_MIN``
+  * default value: ``0``
 
 * The cost of a bin of this type (for a variable-sized bin packing objective)
 
@@ -83,7 +86,7 @@ The **parameter file** has two columns: ``NAME`` and ``VALUE``. The possible ent
 
 * The objective; name: ``objective``; possible values:
 
-  * ``knapsasck``
+  * ``knapsack``
   * ``bin-packing``
   * ``bin-packing-with-leftovers``
   * ``variable-sized-bin-packing``
@@ -117,9 +120,6 @@ A line corresponding to an item contains:
 * The length of the item (input)
 
   * Column ``LX``
-
-Basic example
--------------
 
 Inputs:
 
@@ -167,10 +167,10 @@ The nesting length is specified via the ``NESTING_LENGTH`` column in the item CS
 In the following example, thanks to nesting, all items might fit in a single bin.
 
 .. |oned_nesting_length_no| image:: img/onedimensional_nesting_length_no.png
-   :width: 100%
+   :scale: 50%
 
 .. |oned_nesting_length_yes| image:: img/onedimensional_nesting_length_yes.png
-   :width: 100%
+   :scale: 50%
 
 .. list-table::
    :widths: 1 1
@@ -204,10 +204,10 @@ The maximum stackability of an item type is specified via the ``MAXIMUM_STACKABI
 In the following example, without the maximum stackability constraint, all items fit in 2 bins. In the second case, the second item type has a maximum stackability of 3. Therefore, the first bin of the first case is not valid in the second case; and there is no way to fit all items in 2 bins only.
 
 .. |oned_maximum_stackability_no| image:: img/onedimensional_maximum_stackability_no.png
-   :width: 100%
+   :scale: 50%
 
 .. |oned_maximum_stackability_yes| image:: img/onedimensional_maximum_stackability_yes.png
-   :width: 100%
+   :scale: 50%
 
 .. list-table::
    :widths: 1 1
@@ -242,10 +242,10 @@ The maximum weight of a bin type is specified via the ``MAXIMUM_WEIGHT`` column 
 In the following example, all items fit in a single bin without the maximum weight limit. In the second case, placing all items in a single bin violates the maximum weight limit. Therefore, 2 bins are necessary to pack all items.
 
 .. |oned_maximum_weight_no| image:: img/onedimensional_maximum_weight_no.png
-   :width: 100%
+   :scale: 50%
 
 .. |oned_maximum_weight_yes| image:: img/onedimensional_maximum_weight_yes.png
-   :width: 100%
+   :scale: 50%
 
 .. list-table::
    :widths: 1 1
@@ -293,10 +293,10 @@ The maximum weight after of an item type is specified via the ``MAXIMUM_WEIGHT_A
 In the following examples, in the first, the first item type has a tight maximum weight after value; while in the second case, it's the second item type that has a tight maximum weight after value. Therefore in the first case, the first item type is placed first; while in the second case, it's the second item type that is placed first.
 
 .. |oned_maximum_weight_after_no| image:: img/onedimensional_maximum_weight_after_no.png
-   :width: 100%
+   :scale: 50%
 
 .. |oned_maximum_weight_after_yes| image:: img/onedimensional_maximum_weight_after_yes.png
-   :width: 100%
+   :scale: 50%
 
 .. list-table::
    :widths: 1 1
@@ -319,6 +319,3 @@ In the following examples, in the first, the first item type has a tight maximum
           :caption: parameters.csv
    * - |oned_maximum_weight_after_no|
      - |oned_maximum_weight_after_yes|
-
-Item type / bin type eligibility
---------------------------------

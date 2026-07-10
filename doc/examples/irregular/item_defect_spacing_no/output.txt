@@ -1,0 +1,56 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Irregular
+
+Instance
+--------
+Objective:                    OpenDimensionY
+Number of item types:         1
+Number of items:              1
+Number of fixed items:        0
+Number of bin types:          1
+Number of bins:               1
+Number of defects:            1
+Number of rectangular items:  0
+Number of circular items:     0
+Item-item minimum spacing:    0
+Open dim. XY aspect ratio:    -1
+Total item area:              150
+Smallest item area:           150
+Largest item area:            150
+Total item profit:            150
+Largest item profit:          150
+Largest item copies:          1
+Total bin area:               1200
+Largest bin cost:             1200
+
+        Time           Y                         Comment
+        ----           -                         -------
+       0.000          21                  TS g 1 d 5 q 1
+
+Final statistics
+----------------
+Time (s):  0.000709158
+
+Solution
+--------
+Number of items:  1 / 1 (100%)
+Item area:        150 / 150 (100%)
+Item profit:      150 / 150 (100%)
+Number of bins:   1 / 1 (100%)
+Bin area:         1200 / 1200 (100%)
+Bin cost:         1200
+Full waste:       1050
+Full waste (%):   87.5
+X min:            10
+Y min:            6
+X max:            30
+Y max:            21
+Density X:        0.125
+Density Y:        0.238095
+ODXY area:        300
+Leftover value:   570

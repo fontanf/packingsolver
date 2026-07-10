@@ -1,0 +1,38 @@
+{
+  "objective": "bin-packing",
+  "bin_types": [
+    {
+      "type": "rectangle",
+      "width": 80,
+      "height": 60,
+      "copies": 2
+    }
+  ],
+  "item_types": [
+    {
+      "type": "polygon",
+      "vertices": [
+        {"x": 0,  "y": 0},
+        {"x": 40, "y": 0},
+        {"x": 40, "y": 20},
+        {"x": 20, "y": 20},
+        {"x": 20, "y": 60},
+        {"x": 0,  "y": 60}
+      ],
+      "copies": 2,
+      "allowed_rotations": [
+        {"start": 0, "end": 0},
+        {"start": 0, "end": 0, "mirror": true}
+      ]
+    },
+    {
+      "type": "rectangle",
+      "width": 38,
+      "height": 38,
+      "copies": 1,
+      "allowed_rotations": [
+        {"start": 0, "end": 0}
+      ]
+    }
+  ]
+}

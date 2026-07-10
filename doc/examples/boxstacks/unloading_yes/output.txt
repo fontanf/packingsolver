@@ -1,0 +1,54 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+BoxStacks
+
+Instance
+--------
+Objective:             BinPackingWithLeftovers
+Number of item types:  3
+Number of items:       3
+Number of bin types:   1
+Number of bins:        2
+Number of groups:      3
+Number of defects:     0
+Unloading constraint:  OnlyXMovements
+Total item volume:     22250000
+Total item profit:     2.225e+07
+Total item weight:     0
+Total bin volume:      56000000
+Total bin weight:      inf
+
+        Time       Waste   Waste (%)                         Comment
+        ----       -----   ---------                         -------
+       0.002    11750000       34.56                     iteration 0
+
+Final statistics
+----------------
+Time (s):  5.00137
+
+Solution
+--------
+Number of items:   3 / 3 (100%)
+Item volume:       2.225e+07 / 2.225e+07 (100%)
+Item weight:       0 / 0 (-nan%)
+Item profit:       2.225e+07 / 2.225e+07 (100%)
+Number of stacks:  3
+Stack area:        222500
+Number of bins:    2 / 2 (100%)
+Bin volume:        56000000 / 56000000 (100%)
+Bin area:          560000 / 560000 (100%)
+Bin weight:        inf / inf (-nan%)
+Bin cost:          560000
+Waste:             11750000
+Waste (%):         34.5588
+Full waste:        33750000
+Full waste (%):    60.2679
+Volume load:       0.397321
+Area load:         0.397321
+Weight load:       0
+X max:             150
+Y max:             150

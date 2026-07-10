@@ -1,0 +1,32 @@
+{
+  "objective": "open-dimension-y",
+  "bin_types": [
+    {
+      "type": "rectangle",
+      "width": 30,
+      "height": 40,
+      "defects": [
+        {
+          "type": "rectangle",
+          "x": 5,
+          "y": 3,
+          "width": 20,
+          "height": 3
+        }
+      ]
+    }
+  ],
+  "item_types": [
+    {
+      "type": "polygon",
+      "vertices": [
+        {"x": 0,  "y": 0},
+        {"x": 20, "y": 0},
+        {"x": 0,  "y": 15}
+      ],
+      "allowed_rotations": [
+        {"start": 0, "end": 0}
+      ]
+    }
+  ]
+}
