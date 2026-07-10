@@ -31,10 +31,12 @@ public:
     ColumnGenerationPricingSolver(
             const Instance& instance,
             const ColumnGenerationStripsParameters& parameters,
-            AlgorithmFormatter& algorithm_formatter):
+            AlgorithmFormatter& algorithm_formatter,
+            packingsolver::Output<Instance, Solution>* local_output):
         instance_(instance),
         parameters_(parameters),
         algorithm_formatter_(algorithm_formatter),
+        local_output_(local_output),
         filled_demands_(instance.number_of_item_types())
     { }
 
@@ -97,6 +99,8 @@ private:
     const ColumnGenerationStripsParameters& parameters_;
 
     AlgorithmFormatter& algorithm_formatter_;
+
+    packingsolver::Output<Instance, Solution>* local_output_;
 
     std::vector<ItemPos> filled_demands_;
 
@@ -519,7 +523,8 @@ struct GetModelOutput
 GetModelOutput get_model(
         const Instance& instance,
         const ColumnGenerationStripsParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter)
+        AlgorithmFormatter& algorithm_formatter,
+        packingsolver::Output<Instance, Solution>* local_output)
 {
     const BinType& bin_type = instance.bin_type(0);
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
@@ -585,7 +590,7 @@ GetModelOutput get_model(
 
     // Pricing solver.
     model.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
-            new ColumnGenerationPricingSolver(instance, parameters, algorithm_formatter));
+            new ColumnGenerationPricingSolver(instance, parameters, algorithm_formatter, local_output));
 
     // Try to generate all columns.
 
@@ -645,7 +650,11 @@ GetModelOutput get_model(
         for (const std::shared_ptr<const Column>& column: column_pool) {
             const Solution& solution = *std::static_pointer_cast<Solution>(column->extra);
             check_feasibility(solution, FUNC_SIGNATURE);
-            algorithm_formatter.update_solution(solution, "V strip");
+            if (local_output != nullptr) {
+                local_output->solution_pool.add(solution, "V strip");
+            } else {
+                algorithm_formatter.update_solution(solution, "V strip");
+            }
         }
     }
 
@@ -2042,7 +2051,11 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         for (const std::shared_ptr<const Column>& column: output.columns) {
             const Solution& solution = *std::static_pointer_cast<Solution>(column->extra);
             check_feasibility(solution, FUNC_SIGNATURE);
-            algorithm_formatter_.update_solution(solution, "V strip");
+            if (local_output_ != nullptr) {
+                local_output_->solution_pool.add(solution, "V strip");
+            } else {
+                algorithm_formatter_.update_solution(solution, "V strip");
+            }
         }
     }
 
@@ -2055,9 +2068,10 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
 void column_generation_strips_vertical(
         const Instance& instance,
         const ColumnGenerationStripsParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter)
+        AlgorithmFormatter& algorithm_formatter,
+        packingsolver::Output<Instance, Solution>* local_output)
 {
-    GetModelOutput cgs_model = get_model(instance, parameters, algorithm_formatter);
+    GetModelOutput cgs_model = get_model(instance, parameters, algorithm_formatter, local_output);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     for (const auto& column: cgs_model.column_pool)
         cgslds_parameters.column_pool.push_back(column);
@@ -2067,7 +2081,7 @@ void column_generation_strips_vertical(
     cgslds_parameters.internal_diving = 0;
     cgslds_parameters.dummy_column_objective_coefficient = 2;
     cgslds_parameters.automatic_stop = (parameters.optimization_mode != OptimizationMode::Anytime);
-    cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
+    cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter, local_output](
             const columngenerationsolver::Output& cgs_output)
     {
         const BinType& bin_type = instance.bin_type(0);
@@ -2113,7 +2127,11 @@ void column_generation_strips_vertical(
             check_feasibility(solution, FUNC_SIGNATURE);
             std::stringstream ss;
             ss << "V n " << cgslds_output.number_of_nodes;
-            algorithm_formatter.update_solution(solution, ss.str());
+            if (local_output != nullptr) {
+                local_output->solution_pool.add(solution, ss.str());
+            } else {
+                algorithm_formatter.update_solution(solution, ss.str());
+            }
             //std::cout << "callback end" << std::endl;
         }
     };
@@ -2148,7 +2166,8 @@ void column_generation_strips_vertical(
 void column_generation_strips_horizontal(
         const Instance& instance,
         const ColumnGenerationStripsParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter)
+        AlgorithmFormatter& algorithm_formatter,
+        packingsolver::Output<Instance, Solution>* local_output)
 {
     // Build flipped instance.
     InstanceFlipper instance_flippper(instance);
@@ -2156,7 +2175,7 @@ void column_generation_strips_horizontal(
 
     ColumnGenerationStripsParameters flipped_parameters = parameters;
     flipped_parameters.new_solution_callback = [
-        &instance, &algorithm_formatter, &instance_flippper](
+        &instance, &algorithm_formatter, local_output, &instance_flippper](
                 const packingsolver::Output<Instance, Solution>& ps_output)
         {
             const ColumnGenerationStripsOutput& flipped_output
@@ -2167,7 +2186,11 @@ void column_generation_strips_horizontal(
             Solution solution = instance_flippper.unflip_solution(
                     flipped_output.solution_pool.best());
             check_feasibility(solution, FUNC_SIGNATURE);
-            algorithm_formatter.update_solution(solution, label);
+            if (local_output != nullptr) {
+                local_output->solution_pool.add(solution, label);
+            } else {
+                algorithm_formatter.update_solution(solution, label);
+            }
             // 'InstanceFlipper' turns OpenDimensionY into OpenDimensionX
             // (and leaves every other objective untouched), so
             // 'flipped_output''s bound must be routed back according to the
@@ -2204,37 +2227,61 @@ const ColumnGenerationStripsOutput packingsolver::rectangleguillotine::column_ge
         column_generation_strips_vertical(
                 instance,
                 parameters,
-                algorithm_formatter);
+                algorithm_formatter,
+                nullptr);
     } else if (instance.parameters().first_stage_orientation == CutOrientation::Horizontal) {
         column_generation_strips_horizontal(
                 instance,
                 parameters,
-                algorithm_formatter);
+                algorithm_formatter,
+                nullptr);
     } else {
+        // 'column_generation_strips_vertical' and
+        // 'column_generation_strips_horizontal' run in parallel; in
+        // 'NotAnytimeDeterministic' mode, each writes its solutions to its
+        // own local output instead of the shared 'algorithm_formatter', so
+        // that they can be replayed into it in a fixed, deterministic order
+        // (vertical then horizontal) once both have terminated, instead of
+        // the (non-deterministic) order in which they actually finish.
+        bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
+        packingsolver::Output<Instance, Solution> local_output_vertical(instance);
+        packingsolver::Output<Instance, Solution> local_output_horizontal(instance);
+
         std::vector<std::function<void()>> tasks;
         std::forward_list<std::exception_ptr> exception_ptr_list;
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr_1 = exception_ptr_list.front();
-        tasks.push_back([&exception_ptr_1, &instance, &parameters, &algorithm_formatter]() {
+        tasks.push_back([&exception_ptr_1, &instance, &parameters, &algorithm_formatter, &local_output_vertical, deterministic]() {
             wrapper<decltype(&column_generation_strips_vertical), column_generation_strips_vertical>(
                     exception_ptr_1,
                     instance,
                     parameters,
-                    algorithm_formatter);
+                    algorithm_formatter,
+                    deterministic ? &local_output_vertical : nullptr);
         });
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr_2 = exception_ptr_list.front();
-        tasks.push_back([&exception_ptr_2, &instance, &parameters, &algorithm_formatter]() {
+        tasks.push_back([&exception_ptr_2, &instance, &parameters, &algorithm_formatter, &local_output_horizontal, deterministic]() {
             wrapper<decltype(&column_generation_strips_horizontal), column_generation_strips_horizontal>(
                     exception_ptr_2,
                     instance,
                     parameters,
-                    algorithm_formatter);
+                    algorithm_formatter,
+                    deterministic ? &local_output_horizontal : nullptr);
         });
         run(tasks, true);
         for (const std::exception_ptr& exception_ptr: exception_ptr_list)
             if (exception_ptr)
                 std::rethrow_exception(exception_ptr);
+
+        if (deterministic) {
+            algorithm_formatter.update_solution(
+                    local_output_vertical.solution_pool.best(),
+                    local_output_vertical.solution_pool.best_label());
+            algorithm_formatter.update_solution(
+                    local_output_horizontal.solution_pool.best(),
+                    local_output_horizontal.solution_pool.best_label());
+        }
     }
 
     algorithm_formatter.end();

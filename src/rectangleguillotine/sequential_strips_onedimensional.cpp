@@ -164,7 +164,8 @@ void run_phase2_and_reconstruct(
         CutOrientation orientation,
         const Solution& phase1_solution,
         const SequentialStripsOnedimensionalParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter)
+        AlgorithmFormatter& algorithm_formatter,
+        packingsolver::Output<Instance, Solution>* local_output)
 {
     if (!phase1_solution.full() || phase1_solution.number_of_bins() == 0)
         return;
@@ -223,14 +224,19 @@ void run_phase2_and_reconstruct(
         }
     }
     Solution final_solution = final_solution_builder.build();
-    algorithm_formatter.update_solution(final_solution, "SSO");
+    if (local_output != nullptr) {
+        local_output->solution_pool.add(final_solution, "SSO");
+    } else {
+        algorithm_formatter.update_solution(final_solution, "SSO");
+    }
 }
 
 void sequential_strips_onedimensional_oriented(
         const Instance& instance,
         CutOrientation orientation,
         const SequentialStripsOnedimensionalParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter)
+        AlgorithmFormatter& algorithm_formatter,
+        packingsolver::Output<Instance, Solution>* local_output)
 {
     const BinType& bin_type = instance.bin_type(0);
     Length first_stage_length = first_stage_capacity(bin_type, orientation);
@@ -281,7 +287,7 @@ void sequential_strips_onedimensional_oriented(
     cgs_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     cgs_parameters.optimization_mode = parameters.optimization_mode;
     cgs_parameters.new_solution_callback = [
-        &instance, orientation, &parameters, &algorithm_formatter](
+        &instance, orientation, &parameters, &algorithm_formatter, local_output](
                 const packingsolver::Output<Instance, Solution>& ps_output)
         {
             run_phase2_and_reconstruct(
@@ -289,7 +295,8 @@ void sequential_strips_onedimensional_oriented(
                     orientation,
                     ps_output.solution_pool.best(),
                     parameters,
-                    algorithm_formatter);
+                    algorithm_formatter,
+                    local_output);
         };
     column_generation_strips(phase1_instance, cgs_parameters);
 }
@@ -310,40 +317,64 @@ const SequentialStripsOnedimensionalOutput packingsolver::rectangleguillotine::s
                 instance,
                 CutOrientation::Vertical,
                 parameters,
-                algorithm_formatter);
+                algorithm_formatter,
+                nullptr);
     } else if (instance.parameters().first_stage_orientation == CutOrientation::Horizontal) {
         sequential_strips_onedimensional_oriented(
                 instance,
                 CutOrientation::Horizontal,
                 parameters,
-                algorithm_formatter);
+                algorithm_formatter,
+                nullptr);
     } else {
+        // 'sequential_strips_onedimensional_oriented' runs in parallel for
+        // both orientations; in 'NotAnytimeDeterministic' mode, each writes
+        // its solutions to its own local output instead of the shared
+        // 'algorithm_formatter', so that they can be replayed into it in a
+        // fixed, deterministic order (vertical then horizontal) once both
+        // have terminated, instead of the (non-deterministic) order in which
+        // they actually finish.
+        bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
+        packingsolver::Output<Instance, Solution> local_output_vertical(instance);
+        packingsolver::Output<Instance, Solution> local_output_horizontal(instance);
+
         std::vector<std::function<void()>> tasks;
         std::forward_list<std::exception_ptr> exception_ptr_list;
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr_1 = exception_ptr_list.front();
-        tasks.push_back([&exception_ptr_1, &instance, &parameters, &algorithm_formatter]() {
+        tasks.push_back([&exception_ptr_1, &instance, &parameters, &algorithm_formatter, &local_output_vertical, deterministic]() {
             wrapper<decltype(&sequential_strips_onedimensional_oriented), sequential_strips_onedimensional_oriented>(
                     exception_ptr_1,
                     instance,
                     CutOrientation::Vertical,
                     parameters,
-                    algorithm_formatter);
+                    algorithm_formatter,
+                    deterministic ? &local_output_vertical : nullptr);
         });
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr_2 = exception_ptr_list.front();
-        tasks.push_back([&exception_ptr_2, &instance, &parameters, &algorithm_formatter]() {
+        tasks.push_back([&exception_ptr_2, &instance, &parameters, &algorithm_formatter, &local_output_horizontal, deterministic]() {
             wrapper<decltype(&sequential_strips_onedimensional_oriented), sequential_strips_onedimensional_oriented>(
                     exception_ptr_2,
                     instance,
                     CutOrientation::Horizontal,
                     parameters,
-                    algorithm_formatter);
+                    algorithm_formatter,
+                    deterministic ? &local_output_horizontal : nullptr);
         });
         run(tasks, true);
         for (const std::exception_ptr& exception_ptr: exception_ptr_list)
             if (exception_ptr)
                 std::rethrow_exception(exception_ptr);
+
+        if (deterministic) {
+            algorithm_formatter.update_solution(
+                    local_output_vertical.solution_pool.best(),
+                    local_output_vertical.solution_pool.best_label());
+            algorithm_formatter.update_solution(
+                    local_output_horizontal.solution_pool.best(),
+                    local_output_horizontal.solution_pool.best_label());
+        }
     }
 
     algorithm_formatter.end();
