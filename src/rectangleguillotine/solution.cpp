@@ -226,21 +226,26 @@ void Solution::update_indicators(
         }
 
         // Update cutting_cost_ for the 'BinPackingCuttingCost' objective.
-        // Odd depths (1, 3) are cuts along the width axis (checked/measured
-        // like 1-cuts); even depths (2, 4) are cuts along the height axis
-        // (checked/measured like 2-cuts). A cut is only real (chargeable)
-        // if it doesn't just extend to its parent's own boundary.
+        // Whether odd depths (1, 3) or even depths (2, 4) are cuts along the
+        // width axis (checked/measured like 1-cuts) vs. the height axis
+        // (checked/measured like 2-cuts) depends on bin.first_cut_orientation,
+        // exactly like the maximum_number_1_cuts / minimum_distance_2_cuts /
+        // etc. checks above. A cut is only real (chargeable) if it doesn't
+        // just extend to its parent's own boundary.
         if (instance().objective() == Objective::BinPackingCuttingCost
                 && node.d >= 1 && node.d <= 4) {
             const CutCost& node_cutting_cost = (node.d < (Counter)instance().parameters().cutting_costs.size())?
                 instance().parameters().cutting_costs[node.d]:
                 CutCost();
             bool is_odd_depth = (node.d % 2 == 1);
-            bool is_real_cut = (is_odd_depth)?
+            bool is_width_axis_cut = (bin.first_cut_orientation == CutOrientation::Vertical)?
+                is_odd_depth:
+                !is_odd_depth;
+            bool is_real_cut = (is_width_axis_cut)?
                 (node.r != bin.nodes[node.f].r):
                 (node.t != bin.nodes[node.f].t);
             if (is_real_cut) {
-                Length length = (is_odd_depth)?
+                Length length = (is_width_axis_cut)?
                     (node.t - node.b):
                     (node.r - node.l);
                 cutting_cost_ += bin.copies * (node_cutting_cost.fixed + node_cutting_cost.variable * length);
