@@ -1,19 +1,28 @@
 {
-  "objective": "open-dimension-y",
+  "objective": "bin-packing-with-leftovers",
   "bin_types": [
     {
       "type": "rectangle",
-      "width": 30,
-      "height": 40,
+      "width": 160,
+      "height": 120,
+      "copies": 1,
       "defects": [
         {
-          "type": "rectangle",
-          "x": 5,
-          "y": 3,
-          "width": 20,
-          "height": 3
+          "type": "polygon",
+          "vertices": [
+            {"x": 40, "y": 40},
+            {"x": 60, "y": 40},
+            {"x": 40, "y": 60}
+          ],
+          "item_defect_minimum_spacing": 0
         }
       ]
+    },
+    {
+      "type": "rectangle",
+      "width": 160,
+      "height": 120,
+      "copies": 2
     }
   ],
   "item_types": [
@@ -21,11 +30,15 @@
       "type": "polygon",
       "vertices": [
         {"x": 0,  "y": 0},
-        {"x": 20, "y": 0},
-        {"x": 0,  "y": 15}
+        {"x": 40, "y": 0},
+        {"x": 0,  "y": 40}
       ],
+      "copies": 23,
       "allowed_rotations": [
-        {"start": 0, "end": 0}
+        {"start": 0,   "end": 0},
+        {"start": 90,  "end": 90},
+        {"start": 180, "end": 180},
+        {"start": 270, "end": 270}
       ]
     }
   ]

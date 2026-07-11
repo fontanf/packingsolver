@@ -20,7 +20,7 @@ html_title = project
 extensions = ['myst_parser', 'sphinx.ext.mathjax']
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'TODO.md']
 
 
 # -- Options for HTML output -------------------------------------------------

@@ -106,12 +106,9 @@ The **output file** is a JSON file with a single ``bins`` array. Each entry corr
   * ``angle``: rotation angle in degrees
   * ``mirror``: whether the item is mirrored
 
-This example has two item types:
+This example has 8 item types: the 7 one-sided tetrominoes (I, O, T, S, Z, L and J, each made of 4 unit squares), with 2 copies of each, plus a cross-shaped piece (5 unit squares) with 3 copies (17 items in total).
 
-* An L-shaped piece (non-convex outer boundary) with a rectangular hole in its vertical arm. Two copies are packed, fixed at 0° rotation.
-* A small square (60×60) that fits exactly into the hole of the L-shaped piece. Two copies are packed.
-
-The objective is ``bin-packing-with-leftovers`` in a 500×250 bin. The solver packs all four items in one bin and maximizes the leftover value. The optimal solution places each small square inside the hole of one L-shaped piece.
+The objective is ``bin-packing`` in a 180×160 bin. The solver packs all 17 items into a single bin, wasting less than 1.4% of its area — the pieces interlock almost exactly, like a jigsaw puzzle.
 
 .. literalinclude:: examples/irregular/instance.json
    :caption: instance.json
@@ -364,13 +361,13 @@ A minimum distance can be enforced between any two items, globally, via the ``it
      "item_types": [...]
    }
 
-In the example below, 2 copies of an L-shaped item must be packed into 60×60 bins (:code:`bin-packing` objective) -- the same interlocking pattern as in the rotation example above. Without any minimum spacing, the two L-shapes interlock exactly, using a single bin. Enforcing an ``item_item_minimum_spacing`` of 2 leaves no room for that snug interlocking, so 2 bins become necessary.
+In the example below, 10 copies of an L-shaped item (with all 4 rotations allowed) must be packed into 160×100 bins (:code:`bin-packing-with-leftovers` objective). Without any minimum spacing, the 10 L-shapes interlock exactly, filling a single bin with no waste at all. Enforcing an ``item_item_minimum_spacing`` of 3 breaks that tight interlocking pattern entirely: only 6 items fit per bin, each with a clearly visible gap around it, so a second bin is needed for the remaining 4.
 
 .. |irregular_item_item_spacing_no| image:: img/irregular_item_item_spacing_no.png
-   :scale: 50%
+   :scale: 25%
 
 .. |irregular_item_item_spacing_yes| image:: img/irregular_item_item_spacing_yes.png
-   :scale: 50%
+   :scale: 25%
 
 .. list-table::
    :widths: 1 1
@@ -421,13 +418,13 @@ A minimum distance can also be enforced between items and the bin boundary, or b
      "item_types": [...]
    }
 
-In the example below, an L-shaped item is packed against a bin of fixed width, minimizing the bin height (:code:`open-dimension-y` objective). Without any minimum spacing, the item sits flush against the top of the bin, for a height of 60. Enforcing an ``item_bin_minimum_spacing`` of 3 pushes the item away from the boundary, requiring a height of 63 instead.
+In the example below, the same 10 interlocking L-shapes as above are packed into 160×100 bins (:code:`bin-packing-with-leftovers` objective), this time with no spacing between items. Without any minimum spacing, the 10 L-shapes still interlock exactly, filling a single bin with no waste. Enforcing an ``item_bin_minimum_spacing`` of 3 leaves a clearly visible margin around the whole cluster of items — even though they still touch each other — and that margin alone is enough to break the tiling: only 6 items fit per bin, so a second bin is needed for the remaining 4.
 
 .. |irregular_item_bin_spacing_no| image:: img/irregular_item_bin_spacing_no.png
-   :scale: 50%
+   :scale: 25%
 
 .. |irregular_item_bin_spacing_yes| image:: img/irregular_item_bin_spacing_yes.png
-   :scale: 50%
+   :scale: 25%
 
 .. list-table::
    :widths: 1 1
@@ -455,13 +452,13 @@ In the example below, an L-shaped item is packed against a bin of fixed width, m
    * - |irregular_item_bin_spacing_no|
      - |irregular_item_bin_spacing_yes|
 
-The same idea applies to defects. In the example below, a small triangular item is packed above a defect sitting inside the bin (not touching its border), again minimizing the bin height. Without any minimum spacing, the item sits flush against the defect, for a height of 21. Enforcing an ``item_defect_minimum_spacing`` of 4 on that defect pushes the item further away, requiring a height of 25 instead.
+The same idea applies to defects. In the example below, 23 copies of a right-triangle item (with legs of 40) are packed into 160×120 bins, one of which has a small triangular defect sitting well inside the bin, away from every border (:code:`bin-packing-with-leftovers` objective). Without any minimum spacing, the items pack right up against the defect and all 23 fit into that single bin. Enforcing an ``item_defect_minimum_spacing`` of 5 on that defect leaves a clearly visible gap around it, which is enough to push 3 items out, so a second (defect-free) bin is needed for them.
 
 .. |irregular_item_defect_spacing_no| image:: img/irregular_item_defect_spacing_no.png
-   :scale: 50%
+   :scale: 25%
 
 .. |irregular_item_defect_spacing_yes| image:: img/irregular_item_defect_spacing_yes.png
-   :scale: 50%
+   :scale: 25%
 
 .. list-table::
    :widths: 1 1

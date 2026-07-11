@@ -264,24 +264,24 @@ Cut types
 
 The cut type is set via the ``cut_type`` key in the parameters CSV file, using one of the values above.
 
-The following example packs the same 10 items (one item type has 2 copies, so that ``homogenous`` — which allows several items to share a sub-plate only if they are all copies of the same item type — has a chance to place more than one item on a given sub-plate) into 10×10 bins with the :code:`bin-packing-with-leftovers` objective, which minimizes the number of bins first and, among solutions using that many bins, maximizes the leftover value of the last bin. Solving it with each of the 4 cut types gives 4 different results:
+The following example packs 24 items (12 item types) into 80×40 bins with 3 cutting stages, ``first_stage_orientation`` set to ``vertical`` and the :code:`bin-packing-with-leftovers` objective, which minimizes the number of bins first and, among solutions using that many bins, maximizes the leftover value of the last bin. Every bin in every solution below uses several genuine stage-1 cuts, splitting it into multiple vertical strips. All 4 cut types pack every item into the same 2 bins, but the leftover value they reach decreases as the cut type gets more restrictive:
 
-* ``roadef2018``: 3 bins, leftover value 30 — the deepest cutting level mixes a same-width 2-item pairing with a single-item-plus-waste pairing, a pattern only ``roadef2018`` treats as free (it does not count against the 3-stage budget)
-* ``non-exact``: 3 bins, leftover value 12 — ties ``roadef2018`` on bin count (its own single-item-plus-waste pattern is also free), but cannot reproduce the same-width pairing, so it reaches the leftover bin through a different, less efficient cut
-* ``exact``: 4 bins, leftover value 0 — never gets a free deepest level, so this instance's 4-level cuts count fully, pushing it one bin over ``non-exact``
-* ``homogenous``: 4 bins, leftover value 12 — same bin count as ``exact``, but a different leftover value; the two copies of the same item type are placed together on a shared sub-plate (visible in the second bin below), which ``homogenous`` allows since they are the same item type, unlike the mismatched-type pairings used by the other cut types
+* ``roadef2018``: leftover value 72 — the most permissive cut type, it takes full advantage of its free trimming cuts past the 3-stage budget
+* ``non-exact``: leftover value 65 — still allows sub-plates to be filled with some waste, but without ``roadef2018``'s free trimming cuts, so it packs slightly less tightly
+* ``exact``: leftover value 57 — items must fill their sub-plate exactly, which rules out some of the arrangements the 2 cut types above use
+* ``homogenous``: leftover value 48 — the most restrictive cut type here, since items sharing a sub-plate must also be of the same type
 
 .. |rectangleguillotine_cuttype_roadef2018| image:: img/rectangleguillotine_cuttype_roadef2018.png
-   :scale: 50%
+   :scale: 25%
 
 .. |rectangleguillotine_cuttype_nonexact| image:: img/rectangleguillotine_cuttype_nonexact.png
-   :scale: 50%
+   :scale: 25%
 
 .. |rectangleguillotine_cuttype_exact| image:: img/rectangleguillotine_cuttype_exact.png
-   :scale: 50%
+   :scale: 25%
 
 .. |rectangleguillotine_cuttype_homogenous| image:: img/rectangleguillotine_cuttype_homogenous.png
-   :scale: 50%
+   :scale: 25%
 
 .. literalinclude:: examples/rectangleguillotine/cuttype_roadef2018/items.csv
    :caption: items.csv

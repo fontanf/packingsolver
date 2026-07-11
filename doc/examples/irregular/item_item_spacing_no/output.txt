@@ -8,49 +8,51 @@ Irregular
 
 Instance
 --------
-Objective:                    BinPacking
+Objective:                    BinPackingWithLeftovers
 Number of item types:         1
-Number of items:              2
+Number of items:              10
 Number of fixed items:        0
 Number of bin types:          1
-Number of bins:               2
+Number of bins:               3
 Number of defects:            0
 Number of rectangular items:  0
 Number of circular items:     0
 Item-item minimum spacing:    0
 Open dim. XY aspect ratio:    -1
-Total item area:              3200
+Leftover mode:                BottomLeft
+Total item area:              16000
 Smallest item area:           1600
 Largest item area:            1600
-Total item profit:            3200
+Total item profit:            16000
 Largest item profit:          1600
-Largest item copies:          2
-Total bin area:               7200
-Largest bin cost:             3600
+Largest item copies:          10
+Total bin area:               48000
+Largest bin cost:             16000
 
-        Time    Bins  Full waste (%)                         Comment
-        ----    ----  --------------                         -------
-       0.001       1           11.11                  TS g 1 d 0 q 1
+        Time      # bins    Leftover                         Comment
+        ----      ------    --------                         -------
+       0.001           2       13600                  TS g 1 d 0 q 1
+       0.009           1           0                  TS g 1 d 0 q 2
 
 Final statistics
 ----------------
-Time (s):  0.0048119
+Time (s):  10.0013
 
 Solution
 --------
-Number of items:  2 / 2 (100%)
-Item area:        3200 / 3200 (100%)
-Item profit:      3200 / 3200 (100%)
-Number of bins:   1 / 2 (50%)
-Bin area:         3600 / 7200 (50%)
-Bin cost:         3600
-Full waste:       400
-Full waste (%):   11.1111
+Number of items:  10 / 10 (100%)
+Item area:        16000 / 16000 (100%)
+Item profit:      16000 / 16000 (100%)
+Number of bins:   1 / 3 (33.3333%)
+Bin area:         16000 / 48000 (33.3333%)
+Bin cost:         16000
+Full waste:       0
+Full waste (%):   0
 X min:            0
 Y min:            0
-X max:            60
-Y max:            60
-Density X:        0.888889
-Density Y:        0.888889
-ODXY area:        3600
+X max:            160
+Y max:            100
+Density X:        1
+Density Y:        1
+ODXY area:        16000
 Leftover value:   0
