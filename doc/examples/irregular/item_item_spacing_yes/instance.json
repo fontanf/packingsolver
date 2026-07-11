@@ -1,14 +1,14 @@
 {
-  "objective": "bin-packing",
+  "objective": "bin-packing-with-leftovers",
   "parameters": {
-    "item_item_minimum_spacing": 2
+    "item_item_minimum_spacing": 3
   },
   "bin_types": [
     {
       "type": "rectangle",
-      "width": 60,
-      "height": 60,
-      "copies": 2
+      "width": 160,
+      "height": 100,
+      "copies": 3
     }
   ],
   "item_types": [
@@ -22,7 +22,7 @@
         {"x": 20, "y": 60},
         {"x": 0,  "y": 60}
       ],
-      "copies": 2,
+      "copies": 10,
       "allowed_rotations": [
         {"start": 0,   "end": 0},
         {"start": 90,  "end": 90},

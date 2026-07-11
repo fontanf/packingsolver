@@ -1,10 +1,11 @@
 {
-  "objective": "open-dimension-y",
+  "objective": "bin-packing-with-leftovers",
   "bin_types": [
     {
       "type": "rectangle",
-      "width": 50,
-      "height": 70
+      "width": 160,
+      "height": 100,
+      "copies": 3
     }
   ],
   "item_types": [
@@ -18,8 +19,12 @@
         {"x": 20, "y": 60},
         {"x": 0,  "y": 60}
       ],
+      "copies": 10,
       "allowed_rotations": [
-        {"start": 0, "end": 0}
+        {"start": 0,   "end": 0},
+        {"start": 90,  "end": 90},
+        {"start": 180, "end": 180},
+        {"start": 270, "end": 270}
       ]
     }
   ]

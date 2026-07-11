@@ -8,49 +8,52 @@ Irregular
 
 Instance
 --------
-Objective:                    OpenDimensionY
+Objective:                    BinPackingWithLeftovers
 Number of item types:         1
-Number of items:              1
+Number of items:              23
 Number of fixed items:        0
-Number of bin types:          1
-Number of bins:               1
+Number of bin types:          2
+Number of bins:               3
 Number of defects:            1
 Number of rectangular items:  0
 Number of circular items:     0
 Item-item minimum spacing:    0
 Open dim. XY aspect ratio:    -1
-Total item area:              150
-Smallest item area:           150
-Largest item area:            150
-Total item profit:            150
-Largest item profit:          150
-Largest item copies:          1
-Total bin area:               1200
-Largest bin cost:             1200
+Leftover mode:                BottomLeft
+Total item area:              18400
+Smallest item area:           800
+Largest item area:            800
+Total item profit:            18400
+Largest item profit:          800
+Largest item copies:          23
+Total bin area:               57600
+Largest bin cost:             19200
 
-        Time           Y                         Comment
-        ----           -                         -------
-       0.002          25                  TS g 1 d 5 q 1
+        Time      # bins    Leftover                         Comment
+        ----      ------    --------                         -------
+       0.002           2       12800                  TS g 0 d 0 q 1
+       0.003           2       14400                  TS g 0 d 0 q 1
+       0.019           2       16000                         SSK q 1
 
 Final statistics
 ----------------
-Time (s):  0.00194264
+Time (s):  8.00226
 
 Solution
 --------
-Number of items:  1 / 1 (100%)
-Item area:        150 / 150 (100%)
-Item profit:      150 / 150 (100%)
-Number of bins:   1 / 1 (100%)
-Bin area:         1200 / 1200 (100%)
-Bin cost:         1200
-Full waste:       1050
-Full waste (%):   87.5
-X min:            10
-Y min:            10
-X max:            30
-Y max:            25
-Density X:        0.125
-Density Y:        0.2
-ODXY area:        300
-Leftover value:   450
+Number of items:  23 / 23 (100%)
+Item area:        18400 / 18400 (100%)
+Item profit:      18400 / 18400 (100%)
+Number of bins:   2 / 3 (66.6667%)
+Bin area:         38400 / 57600 (66.6667%)
+Bin cost:         38400
+Full waste:       20000
+Full waste (%):   52.0833
+X min:            0
+Y min:            0
+X max:            80
+Y max:            40
+Density X:        0.638889
+Density Y:        0.71875
+ODXY area:        3200
+Leftover value:   16000

@@ -9,11 +9,11 @@ RectangleGuillotine
 Instance
 --------
 Objective:                             BinPackingWithLeftovers
-Number of item types:                  10
-Number of items:                       11
+Number of item types:                  12
+Number of items:                       24
 Number of bin types:                   1
 Number of bins:                        7
-Number of stacks:                      10
+Number of stacks:                      12
 Number of defects:                     0
 Number of stages:                      3
 Cut type:                              Roadef2018
@@ -27,37 +27,46 @@ Maximum number of consecutive 1-cuts:  -1
 Maximum number of consecutive 2-cuts:  -1
 Cut through defects:                   0
 Cut thickness:                         0
-Total item area:                       261
-Total item profit:                     261
-Largest item profit:                   49
-Largest item copies:                   2
-Total bin area:                        700
-Largest bin cost:                      100
+Total item area:                       5051
+Total item profit:                     5051
+Largest item profit:                   529
+Largest item copies:                   3
+Total bin area:                        22400
+Largest bin cost:                      3200
 
         Time      # bins       Waste   Waste (%)                         Comment
         ----      ------       -----   ---------                         -------
-       0.000           4          59       18.44           TS g 0 d Vertical q 1
-       0.001           3          39       13.00           TS g 1 d Vertical q 5
+       0.000           2         869       14.68           TS g 1 d Vertical q 1
+       0.002           2         749       12.91           TS g 1 d Vertical q 4
+       0.002           2         589       10.44           TS g 0 d Vertical q 3
+       0.010           2         589       10.44           TS g 0 d Vertical q 5
+       0.012           2         549        9.80          TS g 1 d Vertical q 13
+       0.016           2         349        6.46          TS g 1 d Vertical q 28
+       0.027           2         349        6.46          TS g 1 d Vertical q 63
+       0.027           2         349        6.46          TS g 1 d Vertical q 63
+       0.027           2         309        5.76          TS g 1 d Vertical q 63
+       0.037           2         309        5.76          TS g 1 d Vertical q 94
+       0.073           2         309        5.76         TS g 1 d Vertical q 211
 
 Final statistics
 ----------------
-Time (s):  10.0055
+Time (s):  10.0722
 
 Solution
 --------
-Number of items:           11 / 11 (100%)
-Item area:                 261 / 261 (100%)
-Item profit:               261 / 261 (100%)
-Number of bins:            3 / 7 (42.8571%)
-Number of different bins:  3
-Bin area:                  300 / 700 (42.8571%)
-Bin cost:                  300
+Number of items:           24 / 24 (100%)
+Item area:                 5051 / 5051 (100%)
+Item profit:               5051 / 5051 (100%)
+Number of bins:            2 / 7 (28.5714%)
+Number of different bins:  2
+Bin area:                  6400 / 22400 (28.5714%)
+Bin cost:                  6400
 Cutting cost:              0
-Waste:                     39 (13%)
-Full waste:                39 (13%)
-Width:                     10
-Height:                    10
-Second leftover value:     30
+Waste:                     309 (5.76493%)
+Full waste:                1349 (21.0781%)
+Width:                     54
+Height:                    40
+Second leftover value:     72
 Number of stages:          3
 Feasible:                  1
     Number of stages:      1
