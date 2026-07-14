@@ -1,0 +1,4 @@
+NAME,VALUE
+objective,bin-packing
+number_of_stages,2
+cut_through_defects,1

@@ -1,0 +1,81 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+RectangleGuillotine
+
+Instance
+--------
+Objective:                             BinPackingWithLeftovers
+Number of item types:                  12
+Number of items:                       24
+Number of bin types:                   1
+Number of bins:                        7
+Number of stacks:                      12
+Number of defects:                     0
+Number of stages:                      120
+Cut type:                              Exact
+First stage orientation:               Vertical
+Minimum distance between 1-cuts:       0
+Maximum distance between 1-cuts:       -1
+Minimum distance between 2-cuts:       0
+Maximum distance between 2-cuts:       -1
+Minimum waste length:                  0
+Maximum number of consecutive 1-cuts:  -1
+Maximum number of consecutive 2-cuts:  -1
+Cut through defects:                   0
+Cut thickness:                         0
+Total item area:                       5051
+Total item profit:                     5051
+Largest item profit:                   529
+Largest item copies:                   3
+Total bin area:                        22400
+Largest bin cost:                      3200
+
+        Time      # bins       Waste   Waste (%)                         Comment
+        ----      ------       -----   ---------                         -------
+       0.000           3        1869       27.01           TS g 1 d Vertical q 1
+       0.001           3        1869       27.01           TS g 1 d Vertical q 2
+       0.008           3        1829       26.58           TS g 0 d Vertical q 3
+       0.014           2         909       15.25           TS g 1 d Vertical q 5
+       0.020           2         789       13.51           TS g 1 d Vertical q 5
+       0.026           2         669       11.70          TS g 0 d Vertical q 11
+       0.030           2         589       10.44          TS g 1 d Vertical q 28
+       0.411           2         469        8.50                        SVC it 0
+       0.911           2         349        6.46                        SVC it 1
+
+Final statistics
+----------------
+Time (s):  10.1385
+
+Solution
+--------
+Number of items:           24 / 24 (100%)
+Item area:                 5051 / 5051 (100%)
+Item profit:               5051 / 5051 (100%)
+Number of bins:            2 / 7 (28.5714%)
+Number of different bins:  2
+Bin area:                  6400 / 22400 (28.5714%)
+Bin cost:                  6400
+Cutting cost:              0
+Waste:                     349 (6.46296%)
+Full waste:                1349 (21.0781%)
+Width:                     55
+Height:                    40
+Second leftover value:     38
+Number of stages:          10
+Feasible:                  1
+    Number of stages:      1
+    Min. waste length:     1
+    Min. dist. 1-cuts:     1
+    Max. dist. 1-cuts:     1
+    Min. dist. 2-cuts:     1
+    Max. dist. 2-cuts:     1
+    Max. no. 1-cuts:       1
+    Max. no. 2-cuts:       1
+    Stacks:                1
+    Defects:               1
+    Cut through defects:   1
+    Item copies:           1

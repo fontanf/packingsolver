@@ -10,45 +10,45 @@ Instance
 --------
 Objective:             BinPacking
 Number of item types:  1
-Number of items:       1
+Number of items:       18
 Number of bin types:   1
-Number of bins:        1
+Number of bins:        2
 Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
-Total item volume:     240
-Total item profit:     240
+Total item volume:     54000000000
+Total item profit:     5.4e+10
 Total item weight:     0
-Total bin volume:      600
+Total bin volume:      108000000000
 Total bin weight:      inf
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.001       1           60.00                        SOR it 0
+       0.001       1            0.00                     iteration 0
 
 Final statistics
 ----------------
-Time (s):  0.000638972
+Time (s):  0.00139917
 
 Solution
 --------
-Number of items:   1 / 1 (100%)
-Item volume:       240 / 240 (100%)
+Number of items:   18 / 18 (100%)
+Item volume:       5.4e+10 / 5.4e+10 (100%)
 Item weight:       0 / 0 (-nan%)
-Item profit:       240 / 240 (100%)
-Number of stacks:  1
-Stack area:        60
-Number of bins:    1 / 1 (100%)
-Bin volume:        600 / 600 (100%)
-Bin area:          60 / 60 (100%)
+Item profit:       5.4e+10 / 5.4e+10 (100%)
+Number of stacks:  6
+Stack area:        18000000
+Number of bins:    1 / 2 (50%)
+Bin volume:        54000000000 / 108000000000 (50%)
+Bin area:          18000000 / 36000000 (50%)
 Bin weight:        inf / inf (-nan%)
-Bin cost:          60
-Waste:             360
-Waste (%):         60
-Full waste:        360
-Full waste (%):    60
-Volume load:       0.4
-Area load:         1
+Bin cost:          1.8e+07
+Waste:             0
+Waste (%):         0
+Full waste:        0
+Full waste (%):    0
+Volume load:       0.5
+Area load:         0.5
 Weight load:       0
-X max:             6
-Y max:             10
+X max:             7500
+Y max:             2400

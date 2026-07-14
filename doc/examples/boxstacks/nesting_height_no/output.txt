@@ -10,45 +10,45 @@ Instance
 --------
 Objective:             BinPacking
 Number of item types:  2
-Number of items:       2
+Number of items:       12
 Number of bin types:   1
-Number of bins:        2
+Number of bins:        4
 Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
-Total item volume:     432
-Total item profit:     432
+Total item volume:     38400000000
+Total item profit:     3.84e+10
 Total item weight:     0
-Total bin volume:      720
+Total bin volume:      216000000000
 Total bin weight:      inf
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.001       2           40.00                     iteration 0
+       0.001       2           64.44                     iteration 0
 
 Final statistics
 ----------------
-Time (s):  0.00120282
+Time (s):  0.00170042
 
 Solution
 --------
-Number of items:   2 / 2 (100%)
-Item volume:       432 / 432 (100%)
+Number of items:   12 / 12 (100%)
+Item volume:       3.84e+10 / 3.84e+10 (100%)
 Item weight:       0 / 0 (-nan%)
-Item profit:       432 / 432 (100%)
-Number of stacks:  2
-Stack area:        72
-Number of bins:    2 / 2 (100%)
-Bin volume:        720 / 720 (100%)
-Bin area:          72 / 72 (100%)
+Item profit:       3.84e+10 / 3.84e+10 (100%)
+Number of stacks:  12
+Stack area:        24000000
+Number of bins:    2 / 4 (50%)
+Bin volume:        108000000000 / 216000000000 (50%)
+Bin area:          36000000 / 72000000 (50%)
 Bin weight:        inf / inf (-nan%)
-Bin cost:          72
-Waste:             288
-Waste (%):         40
-Full waste:        288
-Full waste (%):    40
-Volume load:       0.6
-Area load:         1
+Bin cost:          3.6e+07
+Waste:             58800000000
+Waste (%):         60.4938
+Full waste:        69600000000
+Full waste (%):    64.4444
+Volume load:       0.177778
+Area load:         0.333333
 Weight load:       0
-X max:             6
-Y max:             6
+X max:             6000
+Y max:             2000

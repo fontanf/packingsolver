@@ -8,34 +8,35 @@ OneDimensional
 
 Instance
 --------
-Objective:             BinPacking
-Number of item types:  3
+Objective:             BinPackingWithLeftovers
+Number of item types:  2
 Number of items:       5
 Number of bin types:   1
 Number of bins:        10
-Total item length:     930
-Total item profit:     930
-Largest item profit:   250
+Total item length:     960
+Total item profit:     960
+Largest item profit:   240
 Largest item copies:   3
 Largest bin cost:      500
 
-        Time    Bins  Full waste (%)                         Comment
-        ----    ----  --------------                         -------
-       0.000       3           38.00                      TS g 0 q 1
+        Time       Waste   Waste (%)                         Comment
+        ----       -----   ---------                         -------
+       0.001         280       22.58                        SVC it 0
+       0.002         200       17.24                        SVC it 1
 
 Final statistics
 ----------------
-Time (s):  0.000753994
+Time (s):  5.00722
 
 Solution
 --------
 Number of items:  5 / 5 (100%)
-Item length:      930 / 930 (100%)
-Item profit:      930 / 930 (100%)
+Item length:      960 / 960 (100%)
+Item profit:      960 / 960 (100%)
 Number of bins:   3 / 10 (30%)
 Bin length:       1500 / 5000 (30%)
 Bin cost:         1500
-Waste:            230
-Waste (%):        19.8276
-Full waste:       570
-Full waste (%):   38
+Waste:            200
+Waste (%):        17.2414
+Full waste:       540
+Full waste (%):   36

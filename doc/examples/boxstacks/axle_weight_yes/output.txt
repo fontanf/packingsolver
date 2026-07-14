@@ -1,0 +1,54 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+BoxStacks
+
+Instance
+--------
+Objective:             BinPacking
+Number of item types:  2
+Number of items:       38
+Number of bin types:   1
+Number of bins:        2
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item volume:     45600000000
+Total item profit:     4.56e+10
+Total item weight:     38000
+Total bin volume:      191052000000
+Total bin weight:      inf
+
+        Time    Bins  Full waste (%)                         Comment
+        ----    ----  --------------                         -------
+       0.424       2           76.13                     iteration 0
+
+Final statistics
+----------------
+Time (s):  0.424695
+
+Solution
+--------
+Number of items:   38 / 38 (100%)
+Item volume:       4.56e+10 / 4.56e+10 (100%)
+Item weight:       38000 / 38000 (100%)
+Item profit:       4.56e+10 / 4.56e+10 (100%)
+Number of stacks:  16
+Stack area:        19200000
+Number of bins:    2 / 2 (100%)
+Bin volume:        191052000000 / 191052000000 (100%)
+Bin area:          65880000 / 65880000 (100%)
+Bin weight:        inf / inf (-nan%)
+Bin cost:          6.588e+07
+Waste:             58417200000
+Waste (%):         56.1611
+Full waste:        145452000000
+Full waste (%):    76.1322
+Volume load:       0.238678
+Area load:         0.291439
+Weight load:       0
+X max:             1200
+Y max:             1000

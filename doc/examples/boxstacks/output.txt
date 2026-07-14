@@ -16,39 +16,39 @@ Number of bins:        1
 Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
-Total item volume:     9600000
-Total item profit:     9.6e+06
+Total item volume:     60000000000
+Total item profit:     6e+10
 Total item weight:     0
-Total bin volume:      8640000
+Total bin volume:      54000000000
 Total bin weight:      inf
 
         Time        Profit   # items                         Comment
         ----        ------   -------                         -------
-       0.002         8e+06        25                        SOR it 0
+       0.002         5e+10        25                        SOR it 0
 
 Final statistics
 ----------------
-Time (s):  0.00223546
+Time (s):  0.00260734
 
 Solution
 --------
 Number of items:   25 / 30 (83.3333%)
-Item volume:       8e+06 / 9.6e+06 (83.3333%)
+Item volume:       5e+10 / 6e+10 (83.3333%)
 Item weight:       0 / 0 (-nan%)
-Item profit:       8e+06 / 9.6e+06 (83.3333%)
+Item profit:       5e+10 / 6e+10 (83.3333%)
 Number of stacks:  9
-Stack area:        72000
+Stack area:        18000000
 Number of bins:    1 / 1 (100%)
-Bin volume:        8640000 / 8640000 (100%)
-Bin area:          72000 / 72000 (100%)
+Bin volume:        54000000000 / 54000000000 (100%)
+Bin area:          18000000 / 18000000 (100%)
 Bin weight:        inf / inf (-nan%)
-Bin cost:          72000
-Waste:             640000
+Bin cost:          1.8e+07
+Waste:             4000000000
 Waste (%):         7.40741
-Full waste:        640000
+Full waste:        4000000000
 Full waste (%):    7.40741
 Volume load:       0.925926
 Area load:         1
 Weight load:       0
-X max:             300
-Y max:             240
+X max:             7500
+Y max:             2400

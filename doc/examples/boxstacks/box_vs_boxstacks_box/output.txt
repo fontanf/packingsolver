@@ -1,0 +1,130 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Box
+
+Instance
+--------
+Objective:             Knapsack
+Number of item types:  9
+Number of items:       48
+Number of bin types:   1
+Number of bins:        1
+Number of defects:     0
+Total item volume:     48952000000
+Total item profit:     4.8952e+10
+Largest item profit:   2.4e+09
+Total item weight:     0
+Largest item copies:   12
+Smallest item x:       500
+Smallest item y:       400
+Smallest item z:       300
+Total bin volume:      54000000000
+Total bin weight:      inf
+Largest bin cost:      1.8e+07
+
+        Time        Profit   # items                         Comment
+        ----        ------   -------                         -------
+       0.000      2.34e+09         1                  TS g 4 d X q 1
+       0.004       2.4e+09         1                  TS g 4 d X q 1
+       0.009      4.68e+09         2                  TS g 4 d X q 1
+       0.014      4.74e+09         2                  TS g 4 d X q 1
+       0.019      7.02e+09         3                  TS g 4 d Y q 1
+       0.024      7.08e+09         3                  TS g 4 d Y q 1
+       0.029      9.36e+09         4                  TS g 4 d Y q 1
+       0.034      9.42e+09         4                  TS g 4 d Y q 1
+       0.039    1.0218e+10         5                  TS g 4 d Y q 1
+       0.044    1.1232e+10         5                  TS g 4 d Y q 1
+       0.049     1.176e+10         5                  TS g 4 d Y q 1
+       0.054     1.209e+10         6                  TS g 4 d Y q 1
+       0.058    1.2618e+10         6                  TS g 4 d Y q 1
+       0.064    1.2948e+10         7                  TS g 4 d Y q 1
+       0.068    1.3476e+10         7                  TS g 4 d Y q 1
+       0.070     1.428e+10         6                  TS g 5 d Y q 1
+       0.075     1.662e+10         7                  TS g 5 d Y q 1
+       0.078    1.8492e+10         8                  TS g 5 d Y q 1
+       0.082    2.0364e+10         9                  TS g 5 d Y q 1
+       0.086    2.2236e+10        10                  TS g 5 d Y q 1
+       0.091    2.4108e+10        11                  TS g 5 d Y q 1
+       0.094    2.5758e+10        12                  TS g 5 d Y q 1
+       0.096    2.6004e+10        12                  TS g 5 d X q 1
+       0.100    2.7408e+10        13                  TS g 5 d Y q 1
+       0.104    2.7876e+10        13                  TS g 5 d X q 1
+       0.108    2.9748e+10        14                  TS g 5 d Y q 1
+       0.113    2.9868e+10        15                  TS g 5 d Y q 1
+       0.117    3.0606e+10        15                  TS g 5 d X q 1
+       0.121    3.1398e+10        15                  TS g 5 d X q 1
+       0.123    3.2256e+10        16                  TS g 5 d X q 1
+       0.126    3.3048e+10        16                  TS g 5 d X q 1
+       0.128    3.3906e+10        17                  TS g 5 d X q 1
+       0.132    3.4554e+10        18                  TS g 5 d X q 1
+       0.137    3.4674e+10        19                  TS g 5 d X q 1
+       0.140    3.4794e+10        20                  TS g 5 d X q 1
+       0.144     3.492e+10        21                  TS g 5 d X q 1
+       0.147    3.5568e+10        22                  TS g 5 d X q 1
+       0.151    3.5778e+10        22                  TS g 5 d X q 1
+       0.153    3.6426e+10        23                  TS g 5 d X q 1
+       0.157    3.6636e+10        23                  TS g 5 d X q 1
+       0.159    3.7284e+10        24                  TS g 5 d X q 1
+       0.163    3.7494e+10        24                  TS g 5 d X q 1
+       0.165    3.8142e+10        25                  TS g 5 d X q 1
+       0.168    3.8352e+10        25                  TS g 5 d X q 1
+       0.172       3.9e+10        26                  TS g 5 d X q 1
+       0.175     3.921e+10        26                  TS g 5 d X q 1
+       0.179    3.9858e+10        27                  TS g 5 d X q 1
+       0.182    4.0068e+10        27                  TS g 5 d X q 1
+       0.185    4.0716e+10        28                  TS g 5 d X q 1
+       0.189    4.0926e+10        28                  TS g 5 d X q 1
+       0.192    4.1574e+10        29                  TS g 5 d X q 1
+       0.195    4.2222e+10        30                  TS g 5 d X q 1
+       0.199     4.287e+10        31                  TS g 5 d X q 1
+       0.202    4.2996e+10        32                  TS g 5 d X q 1
+       0.207    4.3122e+10        33                  TS g 5 d X q 1
+       0.212    4.3248e+10        34                  TS g 5 d X q 1
+       0.217    4.3318e+10        35                  TS g 5 d X q 1
+       0.220    4.3388e+10        36                  TS g 5 d X q 1
+       0.222    4.3458e+10        37                  TS g 5 d X q 1
+       0.227    4.3528e+10        38                  TS g 5 d X q 1
+       0.232    4.3776e+10        34                  TS g 5 d Z q 1
+       0.237    4.4176e+10        39                  TS g 5 d X q 1
+       0.242    4.4824e+10        40                  TS g 5 d X q 1
+       0.246    4.5472e+10        41                  TS g 5 d X q 1
+       0.249     4.612e+10        42                  TS g 5 d X q 1
+       0.253    4.6768e+10        43                  TS g 5 d X q 1
+       0.257    4.6888e+10        44                  TS g 5 d X q 1
+       0.263    4.6938e+10        44                  TS g 5 d Z q 1
+       0.267    4.7008e+10        45                  TS g 5 d X q 1
+       0.271    4.7656e+10        46                  TS g 4 d X q 2
+       0.277    4.8304e+10        47                  TS g 4 d X q 2
+       0.282    4.8952e+10        48                  TS g 4 d X q 2
+
+Final statistics
+----------------
+Time (s):  10.005
+
+Solution
+--------
+Number of items:   48 / 48 (100%)
+Item volume:       4.8952e+10 / 4.8952e+10 (100%)
+Item weight:       0 / 0 (-nan%)
+Item profit:       4.8952e+10 / 4.8952e+10 (100%)
+Number of stacks:  0
+Stack area:        0
+Number of bins:    1 / 1 (100%)
+Bin volume:        54000000000 / 54000000000 (100%)
+Bin area:          18000000 / 18000000 (100%)
+Bin weight:        inf / inf (-nan%)
+Bin cost:          1.8e+07
+Waste:             5048000000
+Waste (%):         9.34815
+Full waste:        5048000000
+Full waste (%):    9.34815
+Volume load:       0.906519
+Area load:         0
+Weight load:       0
+X max:             7500
+Y max:             2400
+Z max:             3000

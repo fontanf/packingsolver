@@ -16,39 +16,39 @@ Number of bins:        2
 Number of groups:      3
 Number of defects:     0
 Unloading constraint:  None
-Total item volume:     22250000
-Total item profit:     2.225e+07
+Total item volume:     13900000000
+Total item profit:     1.39e+10
 Total item weight:     0
-Total bin volume:      56000000
+Total bin volume:      108000000000
 Total bin weight:      inf
 
         Time       Waste   Waste (%)                         Comment
         ----       -----   ---------                         -------
-       0.002     1750000        7.29                     iteration 0
+       0.001 29300000000       67.82                     iteration 0
 
 Final statistics
 ----------------
-Time (s):  5.0009
+Time (s):  5.0029
 
 Solution
 --------
 Number of items:   3 / 3 (100%)
-Item volume:       2.225e+07 / 2.225e+07 (100%)
+Item volume:       1.39e+10 / 1.39e+10 (100%)
 Item weight:       0 / 0 (-nan%)
-Item profit:       2.225e+07 / 2.225e+07 (100%)
+Item profit:       1.39e+10 / 1.39e+10 (100%)
 Number of stacks:  3
-Stack area:        222500
+Stack area:        13900000
 Number of bins:    1 / 2 (50%)
-Bin volume:        28000000 / 56000000 (50%)
-Bin area:          280000 / 560000 (50%)
+Bin volume:        54000000000 / 108000000000 (50%)
+Bin area:          18000000 / 36000000 (50%)
 Bin weight:        inf / inf (-nan%)
-Bin cost:          280000
-Waste:             1750000
-Waste (%):         7.29167
-Full waste:        5750000
-Full waste (%):    20.5357
-Volume load:       0.397321
-Area load:         0.397321
+Bin cost:          1.8e+07
+Waste:             29300000000
+Waste (%):         67.8241
+Full waste:        40100000000
+Full waste (%):    74.2593
+Volume load:       0.128704
+Area load:         0.386111
 Weight load:       0
-X max:             600
-Y max:             400
+X max:             6000
+Y max:             2400

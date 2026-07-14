@@ -21,6 +21,8 @@ extensions = ['myst_parser', 'sphinx.ext.mathjax']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'TODO.md']
+html_static_path = ['_static']
+html_css_files = ['custom.css']
 
 
 # -- Options for HTML output -------------------------------------------------

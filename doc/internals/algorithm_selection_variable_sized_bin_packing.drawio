@@ -1,0 +1,60 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="uOJR60HdueqfJbeekV_i">
+    <mxGraphModel dx="1157" dy="842" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-3" edge="1" parent="1" source="V7dDSp54P9k8TKdQdOvg-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="V7dDSp54P9k8TKdQdOvg-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-4" connectable="0" parent="V7dDSp54P9k8TKdQdOvg-3" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Many" vertex="1">
+          <mxGeometry relative="1" y="-3" as="geometry">
+            <mxPoint y="-5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-8" edge="1" parent="1" source="V7dDSp54P9k8TKdQdOvg-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="V7dDSp54P9k8TKdQdOvg-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-10" connectable="0" parent="V7dDSp54P9k8TKdQdOvg-8" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Few" vertex="1">
+          <mxGeometry relative="1" y="1" as="geometry">
+            <mxPoint y="-3" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="How many items fit per bin?" vertex="1">
+          <mxGeometry height="40" width="160" x="280" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-12" edge="1" parent="1" source="V7dDSp54P9k8TKdQdOvg-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="V7dDSp54P9k8TKdQdOvg-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-15" connectable="0" parent="V7dDSp54P9k8TKdQdOvg-12" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Few" vertex="1">
+          <mxGeometry relative="1" x="-0.0167" y="-2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-16" edge="1" parent="1" source="V7dDSp54P9k8TKdQdOvg-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="V7dDSp54P9k8TKdQdOvg-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-17" connectable="0" parent="V7dDSp54P9k8TKdQdOvg-16" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Many" vertex="1">
+          <mxGeometry relative="1" x="-0.075" y="3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="How many copies per item type?" vertex="1">
+          <mxGeometry height="40" width="200" x="400" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;Sequential single knapsack&lt;/div&gt;&lt;div&gt;Dichotomic search&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="200" x="280" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Sequential single knapsack" vertex="1">
+          <mxGeometry height="40" width="200" x="520" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;Sequential value correction&lt;/div&gt;&lt;div&gt;Column generation&lt;/div&gt;" vertex="1">
+          <mxGeometry height="40" width="160" x="160" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="V7dDSp54P9k8TKdQdOvg-18" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Objective: variable-sized bin packing" vertex="1">
+          <mxGeometry height="40" width="230" x="240" y="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

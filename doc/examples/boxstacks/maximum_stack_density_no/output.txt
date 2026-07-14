@@ -10,45 +10,45 @@ Instance
 --------
 Objective:             BinPacking
 Number of item types:  2
-Number of items:       2
+Number of items:       18
 Number of bin types:   1
-Number of bins:        2
+Number of bins:        4
 Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
-Total item volume:     216
-Total item profit:     216
-Total item weight:     20
-Total bin volume:      720
+Total item volume:     54000000000
+Total item profit:     5.4e+10
+Total item weight:     1.44e+07
+Total bin volume:      216000000000
 Total bin weight:      inf
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.001       1           40.00                     iteration 0
+       0.001       1            0.00                     iteration 0
 
 Final statistics
 ----------------
-Time (s):  0.000726971
+Time (s):  0.00108898
 
 Solution
 --------
-Number of items:   2 / 2 (100%)
-Item volume:       216 / 216 (100%)
-Item weight:       20 / 20 (100%)
-Item profit:       216 / 216 (100%)
-Number of stacks:  1
-Stack area:        36
-Number of bins:    1 / 2 (50%)
-Bin volume:        360 / 720 (50%)
-Bin area:          36 / 72 (50%)
+Number of items:   18 / 18 (100%)
+Item volume:       5.4e+10 / 5.4e+10 (100%)
+Item weight:       1.44e+07 / 1.44e+07 (100%)
+Item profit:       5.4e+10 / 5.4e+10 (100%)
+Number of stacks:  6
+Stack area:        18000000
+Number of bins:    1 / 4 (25%)
+Bin volume:        54000000000 / 216000000000 (25%)
+Bin area:          18000000 / 72000000 (25%)
 Bin weight:        inf / inf (-nan%)
-Bin cost:          36
-Waste:             144
-Waste (%):         40
-Full waste:        144
-Full waste (%):    40
-Volume load:       0.3
-Area load:         0.5
+Bin cost:          1.8e+07
+Waste:             0
+Waste (%):         0
+Full waste:        0
+Full waste (%):    0
+Volume load:       0.25
+Area load:         0.25
 Weight load:       0
-X max:             6
-Y max:             6
+X max:             7500
+Y max:             2400

@@ -13,7 +13,7 @@ Number of item types:                  4
 Number of items:                       4
 Number of bin types:                   1
 Number of bins:                        4
-Number of stacks:                      1
+Number of stacks:                      2
 Number of defects:                     0
 Number of stages:                      3
 Cut type:                              NonExact
@@ -36,11 +36,11 @@ Largest bin cost:                      100
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       2           50.00           TS g 1 d Vertical q 1
+       0.001       2           50.00           TS g 1 d Vertical q 1
 
 Final statistics
 ----------------
-Time (s):  0.000775153
+Time (s):  0.00998285
 
 Solution
 --------
@@ -52,12 +52,12 @@ Number of different bins:  2
 Bin area:                  200 / 400 (50%)
 Bin cost:                  200
 Cutting cost:              0
-Waste:                     70 (41.1765%)
+Waste:                     50 (33.3333%)
 Full waste:                100 (50%)
-Width:                     7
+Width:                     5
 Height:                    10
-Second leftover value:     35
-Number of stages:          3
+Second leftover value:     30
+Number of stages:          2
 Feasible:                  1
     Number of stages:      1
     Min. waste length:     1
