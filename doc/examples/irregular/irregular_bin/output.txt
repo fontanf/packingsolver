@@ -1,0 +1,126 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Irregular
+
+Instance
+--------
+Objective:                    Knapsack
+Number of item types:         28
+Number of items:              28
+Number of fixed items:        0
+Number of bin types:          1
+Number of bins:               1
+Number of defects:            0
+Number of rectangular items:  0
+Number of circular items:     0
+Item-item minimum spacing:    0
+Open dim. XY aspect ratio:    -1
+Total item area:              29548
+Smallest item area:           57.0862
+Largest item area:            4374.95
+Total item profit:            2810
+Largest item profit:          379
+Largest item copies:          1
+Total bin area:               14882.1
+Largest bin cost:             14882.1
+
+        Time        Profit   # items                         Comment
+        ----        ------   -------                         -------
+       0.005            27         1                  TS g 5 d 0 q 1
+       0.005            53         1                  TS g 5 d 0 q 1
+       0.008            91         1                  TS g 5 d 0 q 1
+       0.012           318         1                  TS g 5 d 0 q 1
+       0.017           320         1                  TS g 5 d 0 q 1
+       0.021           379         1                  TS g 5 d 0 q 1
+       0.025           387         2                  TS g 5 d 4 q 1
+       0.028           406         2                  TS g 5 d 0 q 1
+       0.031           411         2                  TS g 5 d 3 q 1
+       0.033           436         2                  TS g 4 d 7 q 1
+       0.037           591         2                  TS g 5 d 7 q 1
+       0.039           699         2                  TS g 5 d 7 q 1
+       0.042           708         3                  TS g 5 d 7 q 1
+       0.046           709         3                  TS g 5 d 7 q 1
+       0.050           712         3                  TS g 5 d 7 q 1
+       0.052           726         3                  TS g 5 d 3 q 1
+       0.056           790         3                  TS g 5 d 3 q 1
+       0.059           889         3                  TS g 5 d 3 q 1
+       0.064           895         3                  TS g 5 d 3 q 1
+       0.068           968         3                  TS g 5 d 4 q 1
+       0.074           976         4                  TS g 5 d 4 q 1
+       0.078           986         4                  TS g 5 d 4 q 1
+       0.080          1025         4                  TS g 5 d 4 q 1
+       0.084          1059         4                  TS g 5 d 4 q 1
+       0.089          1067         5                  TS g 5 d 4 q 1
+       0.094          1077         5                  TS g 5 d 4 q 1
+       0.099          1086         5                  TS g 5 d 4 q 1
+       0.105          1094         6                  TS g 5 d 4 q 1
+       0.109          1104         6                  TS g 5 d 4 q 1
+       0.112          1110         7                  TS g 5 d 4 q 1
+       0.115          1111         7                  TS g 5 d 4 q 1
+       0.121          1117         8                  TS g 5 d 4 q 1
+       0.127          1118         8                  TS g 5 d 4 q 1
+       0.132          1126         9                  TS g 5 d 4 q 1
+       0.137          1134        10                  TS g 5 d 4 q 1
+       0.143          1138        18                  TS g 5 d 0 q 1
+       0.159          1140         7                  TS g 5 d 0 q 2
+       0.161          1158         8                  TS g 5 d 0 q 2
+       0.168          1165         9                  TS g 5 d 0 q 2
+       0.171          1166         9                  TS g 5 d 0 q 2
+       0.178          1173         9                  TS g 5 d 0 q 2
+       0.183          1179         9                  TS g 5 d 0 q 2
+       0.188          1184         9                  TS g 5 d 0 q 2
+       0.195          1187        10                  TS g 5 d 0 q 2
+       0.200          1188        10                  TS g 5 d 0 q 2
+       0.205          1195        10                  TS g 5 d 0 q 2
+       0.211          1200        10                  TS g 5 d 0 q 2
+       0.216          1206        10                  TS g 5 d 0 q 2
+       0.221          1208        11                  TS g 5 d 0 q 2
+       0.227          1210        11                  TS g 5 d 0 q 2
+       0.232          1211        12                  TS g 5 d 0 q 2
+       0.238          1218        12                  TS g 5 d 0 q 2
+       0.244          1227        13                  TS g 5 d 0 q 2
+       0.250          1234        14                  TS g 5 d 0 q 2
+       0.255          1240        15                  TS g 5 d 0 q 2
+       0.262          1241        15                  TS g 5 d 0 q 2
+       0.272          1248        16                  TS g 5 d 0 q 2
+       0.277          1255        17                  TS g 5 d 0 q 2
+       0.387          1257        13                 TS g 5 d 4 q 13
+       0.389          1258        14                 TS g 5 d 4 q 13
+       0.439          1260        13                 TS g 5 d 4 q 19
+       0.440          1262        13                 TS g 5 d 4 q 19
+       0.448          1266        14                 TS g 5 d 4 q 19
+       0.466          1270        17                 TS g 5 d 0 q 13
+       0.667          1272        15                 TS g 5 d 0 q 28
+       0.670          1278        16                 TS g 5 d 0 q 28
+       1.490          1282        16                 TS g 5 d 0 q 94
+       2.705          1285        15                TS g 5 d 0 q 211
+       2.716          1286        15                TS g 5 d 0 q 211
+       7.422          1291        16                TS g 5 d 4 q 711
+       7.759          1292        16                TS g 5 d 0 q 711
+
+Final statistics
+----------------
+Time (s):  10.0102
+
+Solution
+--------
+Number of items:  16 / 28 (57.1429%)
+Item area:        13463.4 / 29548 (45.5646%)
+Item profit:      1292 / 2810 (45.9786%)
+Number of bins:   1 / 1 (100%)
+Bin area:         14882 / 14882 (100%)
+Bin cost:         14882.1
+Full waste:       1418.71
+Full waste (%):   9.533
+X min:            0.3378
+Y min:            0.0363114
+X max:            136.539
+Y max:            128.211
+Density X:        0.768231
+Density Y:        0.76102
+ODXY area:        17457.6
+Leftover value:   204.936
