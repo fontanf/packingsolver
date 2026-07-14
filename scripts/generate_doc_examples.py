@@ -638,6 +638,7 @@ subprocess.run([
 irregular_examples = [
         ("defects_no", 5, 4), ("defects_yes", 5, 4),
         ("holes_no", 5, 4), ("holes_yes", 5, 4),
+        ("irregular_bin", 10, 4),
         ("item_bin_spacing_no", 10, 3), ("item_bin_spacing_yes", 10, 3),
         ("item_defect_spacing_no", 8, 3), ("item_defect_spacing_yes", 8, 3),
         ("item_item_spacing_no", 10, 3), ("item_item_spacing_yes", 10, 3),

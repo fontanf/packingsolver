@@ -136,6 +136,30 @@ A script is available to visualize the solution:
    :width: 512pt
    :align: center
 
+Irregular bins
+-----------------
+
+Bin types are not restricted to rectangles or circles: the ``type: "polygon"`` shape specification described above (see `Basic usage`_) applies to ``bin_types`` exactly as it does to ``item_types``, so a bin can be any polygon, convex or not.
+
+In the example below, the bin is the irregular 15-vertex polygon container from the smallest instance (``jigsaw_cf3_xcd14250_28``, 28 item types) of the jigsaw puzzle challenge of the `CG:SHOP 2024 <https://cgshop.ibr.cs.tu-bs.de/competition/cg-shop-2024/#problem-description>`_ competition (see ``data/irregular/cgshop2024/``). The objective is :code:`knapsack`: select and place a subset of the item types that maximizes total profit inside the single irregular bin.
+
+.. literalinclude:: examples/irregular/irregular_bin/instance.json
+   :caption: instance.json (bin shape only; the 28 item types are omitted here for brevity)
+   :language: json
+   :lines: 1-24
+
+.. code-block:: shell
+
+    packingsolver_irregular \
+            --input instance.json \
+            --certificate solution.json
+
+.. literalinclude:: examples/irregular/irregular_bin/output.txt
+
+.. image:: img/irregular_irregular_bin.png
+   :width: 400pt
+   :align: center
+
 Discrete rotations
 ----------------------
 
