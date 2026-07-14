@@ -136,8 +136,8 @@ A script is available to visualize the solution:
    :width: 512pt
    :align: center
 
-Rotation
------------
+Discrete rotations
+----------------------
 
 The ``allowed_rotations`` field on an item type controls which orientations are allowed.
 It is a list of rotation ranges, each with:
@@ -214,6 +214,29 @@ In the example below, 2 copies of an L-shaped item must be packed into 60×60 bi
                     --certificate solution.json
    * - |irregular_rotation_no|
      - |irregular_rotation_yes|
+
+Continuous rotations
+------------------------
+
+Setting ``start`` strictly lower than ``end`` in a rotation range allows any angle in between, instead of only a fixed set of discrete angles; ``end: 360`` allows a full continuous rotation. This is especially useful for irregular, non-rectangular shapes, where letting items nest at arbitrary angles (rather than only 0°/90°/180°/270°) can significantly reduce wasted space.
+
+In the example below, 7 copies of a Christmas-tree-shaped item (from the `Kaggle Santa 2025 <https://www.kaggle.com/code/inversion/santa-2025-getting-started>`_ competition) may be rotated by any angle (``allowed_rotations`` from 0° to 360°) and are packed with the :code:`open-dimension-xy` objective, which finds the smallest bin (here constrained to a square, aspect ratio 1) containing all of them. Free rotation lets the trees nest into each other at odd angles rather than sitting axis-aligned, filling the bin far more tightly.
+
+.. literalinclude:: examples/irregular/rotation_continuous/instance.json
+   :caption: instance.json
+   :language: json
+
+.. code-block:: shell
+
+    packingsolver_irregular \
+            --input instance.json \
+            --certificate solution.json
+
+.. literalinclude:: examples/irregular/rotation_continuous/output.txt
+
+.. image:: img/irregular_rotation_continuous.png
+   :width: 400pt
+   :align: center
 
 Mirroring
 ------------

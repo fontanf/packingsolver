@@ -1,0 +1,77 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+RectangleGuillotine
+
+Instance
+--------
+Objective:                             BinPackingWithLeftovers
+Number of item types:                  12
+Number of items:                       24
+Number of bin types:                   1
+Number of bins:                        7
+Number of stacks:                      12
+Number of defects:                     0
+Number of stages:                      2
+Cut type:                              Exact
+First stage orientation:               Vertical
+Minimum distance between 1-cuts:       0
+Maximum distance between 1-cuts:       -1
+Minimum distance between 2-cuts:       0
+Maximum distance between 2-cuts:       -1
+Minimum waste length:                  0
+Maximum number of consecutive 1-cuts:  -1
+Maximum number of consecutive 2-cuts:  -1
+Cut through defects:                   0
+Cut thickness:                         0
+Total item area:                       5051
+Total item profit:                     5051
+Largest item profit:                   529
+Largest item copies:                   3
+Total bin area:                        22400
+Largest bin cost:                      3200
+
+        Time      # bins       Waste   Waste (%)                         Comment
+        ----      ------       -----   ---------                         -------
+       0.000           3        3429       40.44           TS g 1 d Vertical q 1
+       0.001           3        3429       40.44           TS g 0 d Vertical q 4
+       0.008           3        3389       40.15           TS g 0 d Vertical q 9
+       0.014           3        3389       40.15           TS g 0 d Vertical q 9
+       0.024           3        3389       40.15          TS g 0 d Vertical q 23
+
+Final statistics
+----------------
+Time (s):  10.0024
+
+Solution
+--------
+Number of items:           24 / 24 (100%)
+Item area:                 5051 / 5051 (100%)
+Item profit:               5051 / 5051 (100%)
+Number of bins:            3 / 7 (42.8571%)
+Number of different bins:  3
+Bin area:                  9600 / 22400 (42.8571%)
+Bin cost:                  9600
+Cutting cost:              0
+Waste:                     3389 (40.154%)
+Full waste:                4549 (47.3854%)
+Width:                     51
+Height:                    40
+Second leftover value:     399
+Number of stages:          2
+Feasible:                  1
+    Number of stages:      1
+    Min. waste length:     1
+    Min. dist. 1-cuts:     1
+    Max. dist. 1-cuts:     1
+    Min. dist. 2-cuts:     1
+    Max. dist. 2-cuts:     1
+    Max. no. 1-cuts:       1
+    Max. no. 2-cuts:       1
+    Stacks:                1
+    Defects:               1
+    Cut through defects:   1
+    Item copies:           1

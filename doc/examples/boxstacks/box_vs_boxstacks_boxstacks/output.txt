@@ -1,0 +1,54 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+BoxStacks
+
+Instance
+--------
+Objective:             Knapsack
+Number of item types:  9
+Number of items:       48
+Number of bin types:   1
+Number of bins:        1
+Number of groups:      1
+Number of defects:     0
+Unloading constraint:  None
+Total item volume:     48952000000
+Total item profit:     4.8952e+10
+Total item weight:     0
+Total bin volume:      54000000000
+Total bin weight:      inf
+
+        Time        Profit   # items                         Comment
+        ----        ------   -------                         -------
+       0.064    4.7688e+10        36                        SOR it 0
+
+Final statistics
+----------------
+Time (s):  0.103086
+
+Solution
+--------
+Number of items:   36 / 48 (75%)
+Item volume:       4.7688e+10 / 4.8952e+10 (97.4179%)
+Item weight:       0 / 0 (-nan%)
+Item profit:       4.7688e+10 / 4.8952e+10 (97.4179%)
+Number of stacks:  12
+Stack area:        18000000
+Number of bins:    1 / 1 (100%)
+Bin volume:        54000000000 / 54000000000 (100%)
+Bin area:          18000000 / 18000000 (100%)
+Bin weight:        inf / inf (-nan%)
+Bin cost:          1.8e+07
+Waste:             6312000000
+Waste (%):         11.6889
+Full waste:        6312000000
+Full waste (%):    11.6889
+Volume load:       0.883111
+Area load:         1
+Weight load:       0
+X max:             7500
+Y max:             2400

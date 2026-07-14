@@ -1,0 +1,72 @@
+=================================
+          PackingSolver          
+=================================
+
+Problem type
+------------
+Irregular
+
+Instance
+--------
+Objective:                    OpenDimensionXY
+Number of item types:         1
+Number of items:              7
+Number of fixed items:        0
+Number of bin types:          1
+Number of bins:               1
+Number of defects:            0
+Number of rectangular items:  0
+Number of circular items:     0
+Item-item minimum spacing:    0
+Open dim. XY aspect ratio:    1
+Total item area:              17193.8
+Smallest item area:           2456.25
+Largest item area:            2456.25
+Total item profit:            17193.8
+Largest item profit:          2456.25
+Largest item copies:          7
+Total bin area:               90000
+Largest bin cost:             90000
+
+        Time          XY           X           Y                         Comment
+        ----          --           -           -                         -------
+       0.017       49000     217.858     221.359          TS SF it 0 g 0 d 0 q 1
+       0.035     48024.9     217.858     219.146          TS SF it 1 g 0 d 0 q 1
+       0.056     47069.2     210.266     216.954          TS SF it 2 g 1 d 0 q 1
+       0.074     42834.4     206.965     197.383          TS SF it 3 g 1 d 0 q 1
+       0.092     40521.2     201.299     197.383          TS SF it 4 g 0 d 0 q 1
+       0.107     39714.9     198.156     199.286          TS SF it 5 g 0 d 0 q 1
+       0.121     38924.5     196.104     197.293          TS SF it 6 g 0 d 0 q 1
+       0.135     38149.9      186.63      195.32          TS SF it 7 g 0 d 0 q 1
+       0.148     36452.6     189.645     190.926          TS SF it 8 g 0 d 0 q 1
+       0.164     35727.2     180.406     189.016          TS SF it 9 g 0 d 0 q 1
+       0.179     34099.8     180.978     184.661         TS SF it 10 g 0 d 0 q 1
+       0.193     33419.6     180.978      182.81         TS SF it 11 g 1 d 0 q 1
+       0.210     32754.6     180.978     180.982         TS SF it 12 g 1 d 0 q 1
+       0.357     32102.8     175.363     179.172         TS SF it 13 g 1 d 0 q 4
+       0.535     31133.4     176.447     169.152         TS SF it 14 g 0 d 0 q 6
+       3.027     29846.2     170.974     172.761        TS SF it 15 g 1 d 0 q 63
+       7.912     29252.3     169.576     171.033        TS SF it 16 g 0 d 0 q 94
+
+Final statistics
+----------------
+Time (s):  10.0034
+
+Solution
+--------
+Number of items:  7 / 7 (100%)
+Item area:        17193.8 / 17193.8 (100%)
+Item profit:      17193.8 / 17193.8 (100%)
+Number of bins:   1 / 1 (100%)
+Bin area:         90000 / 90000 (100%)
+Bin cost:         90000
+Full waste:       72806.2
+Full waste (%):   80.8958
+X min:            -3.55271e-15
+Y min:            0
+X max:            169.576
+Y max:            171.033
+Density X:        0.337975
+Density Y:        0.335096
+ODXY area:        29252.3
+Leftover value:   60996.9

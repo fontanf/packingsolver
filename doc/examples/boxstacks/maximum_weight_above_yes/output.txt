@@ -10,45 +10,45 @@ Instance
 --------
 Objective:             BinPacking
 Number of item types:  2
-Number of items:       2
+Number of items:       5
 Number of bin types:   1
 Number of bins:        2
 Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
-Total item volume:     216
-Total item profit:     216
-Total item weight:     20
-Total bin volume:      720
+Total item volume:     43200000000
+Total item profit:     4.32e+10
+Total item weight:     140
+Total bin volume:      108000000000
 Total bin weight:      inf
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.001       2           70.00                     iteration 0
+       0.001       2           60.00                     iteration 0
 
 Final statistics
 ----------------
-Time (s):  0.0013382
+Time (s):  0.00144244
 
 Solution
 --------
-Number of items:   2 / 2 (100%)
-Item volume:       216 / 216 (100%)
-Item weight:       20 / 20 (100%)
-Item profit:       216 / 216 (100%)
-Number of stacks:  2
-Stack area:        72
+Number of items:   5 / 5 (100%)
+Item volume:       4.32e+10 / 4.32e+10 (100%)
+Item weight:       140 / 140 (100%)
+Item profit:       4.32e+10 / 4.32e+10 (100%)
+Number of stacks:  3
+Stack area:        21600000
 Number of bins:    2 / 2 (100%)
-Bin volume:        720 / 720 (100%)
-Bin area:          72 / 72 (100%)
+Bin volume:        108000000000 / 108000000000 (100%)
+Bin area:          36000000 / 36000000 (100%)
 Bin weight:        inf / inf (-nan%)
-Bin cost:          72
-Waste:             504
-Waste (%):         70
-Full waste:        504
-Full waste (%):    70
-Volume load:       0.3
-Area load:         1
+Bin cost:          3.6e+07
+Waste:             32400000000
+Waste (%):         42.8571
+Full waste:        64800000000
+Full waste (%):    60
+Volume load:       0.4
+Area load:         0.6
 Weight load:       0
-X max:             6
-Y max:             6
+X max:             3000
+Y max:             2400

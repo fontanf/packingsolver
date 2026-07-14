@@ -36,12 +36,12 @@ Largest bin cost:                      100
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.000       2           50.00           TS g 1 d Vertical q 1
-       0.001       1            0.00           TS g 1 d Vertical q 3
+       0.001       2           50.00           TS g 0 d Vertical q 1
+       0.022       1            0.00                        SVC it 0
 
 Final statistics
 ----------------
-Time (s):  0.00751893
+Time (s):  0.028119
 
 Solution
 --------
@@ -58,7 +58,7 @@ Full waste:                0 (0%)
 Width:                     10
 Height:                    10
 Second leftover value:     0
-Number of stages:          3
+Number of stages:          2
 Feasible:                  1
     Number of stages:      1
     Min. waste length:     1

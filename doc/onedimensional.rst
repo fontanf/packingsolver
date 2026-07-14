@@ -164,6 +164,11 @@ In some cases, when two items are placed consecutively in a bin, the second item
 
 The nesting length is specified via the ``NESTING_LENGTH`` column in the item CSV file.
 
+.. image:: img/onedimensional_nesting_length.jpeg
+   :align: center
+
+The stackable crate above illustrates the idea: two of them nested (left) take up less length than twice the length of one alone (right), since the legs of the second crate sink into the one before it.
+
 In the following example, thanks to nesting, all items might fit in a single bin.
 
 .. |oned_nesting_length_no| image:: img/onedimensional_nesting_length_no.png
@@ -201,7 +206,7 @@ For each item type, it is possible to define a limit on the number of items in a
 
 The maximum stackability of an item type is specified via the ``MAXIMUM_STACKABILITY`` column in the item CSV file.
 
-In the following example, without the maximum stackability constraint, all items fit in 2 bins. In the second case, the second item type has a maximum stackability of 3. Therefore, the first bin of the first case is not valid in the second case; and there is no way to fit all items in 2 bins only.
+In the following example, without the maximum stackability constraint, all items fit in 2 bins. In the second case, the first item type has a maximum stackability of 3. Therefore, the first bin of the first case is not valid in the second case; and there is no way to fit all items in 2 bins only.
 
 .. |oned_maximum_stackability_no| image:: img/onedimensional_maximum_stackability_no.png
    :scale: 50%
@@ -290,7 +295,7 @@ Each item type may a have maximum weight allowed for the items packed after it i
 
 The maximum weight after of an item type is specified via the ``MAXIMUM_WEIGHT_AFTER`` column in the item CSV file.
 
-In the following examples, in the first, the first item type has a tight maximum weight after value; while in the second case, it's the second item type that has a tight maximum weight after value. Therefore in the first case, the first item type is placed first; while in the second case, it's the second item type that is placed first.
+The following example packs 2 copies of a 240-length item (weight 200) and 3 copies of a 160-length item (weight 100) into 500-length bins (:code:`bin-packing-with-leftovers` objective). Without a limit, the optimal solution uses 2 bins: one with both copies of the 240-length item (480), the other with all 3 copies of the 160-length item (480). Setting ``MAXIMUM_WEIGHT_AFTER`` to 150 on the 240-length item only means no more than 150 of weight may follow it in its bin: since another copy of that same item weighs 200, two of them can no longer share a bin, while a 160-length item (weight 100) still can. The optimal solution now uses each of the 2 copies of the 240-length item in its own bin, each paired with one of the 160-length items, and a third bin for the last, unpaired 160-length item.
 
 .. |oned_maximum_weight_after_no| image:: img/onedimensional_maximum_weight_after_no.png
    :scale: 50%

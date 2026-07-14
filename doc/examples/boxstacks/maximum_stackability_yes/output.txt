@@ -9,46 +9,46 @@ BoxStacks
 Instance
 --------
 Objective:             BinPacking
-Number of item types:  3
-Number of items:       3
+Number of item types:  2
+Number of items:       7
 Number of bin types:   1
 Number of bins:        2
 Number of groups:      1
 Number of defects:     0
 Unloading constraint:  None
-Total item volume:     324
-Total item profit:     324
+Total item volume:     43200000000
+Total item profit:     4.32e+10
 Total item weight:     0
-Total bin volume:      720
+Total bin volume:      108000000000
 Total bin weight:      inf
 
         Time    Bins  Full waste (%)                         Comment
         ----    ----  --------------                         -------
-       0.002       2           55.00                     iteration 0
+       0.004       2           60.00                     iteration 0
 
 Final statistics
 ----------------
-Time (s):  0.00194641
+Time (s):  0.00472797
 
 Solution
 --------
-Number of items:   3 / 3 (100%)
-Item volume:       324 / 324 (100%)
+Number of items:   7 / 7 (100%)
+Item volume:       4.32e+10 / 4.32e+10 (100%)
 Item weight:       0 / 0 (-nan%)
-Item profit:       324 / 324 (100%)
-Number of stacks:  2
-Stack area:        72
+Item profit:       4.32e+10 / 4.32e+10 (100%)
+Number of stacks:  3
+Stack area:        21600000
 Number of bins:    2 / 2 (100%)
-Bin volume:        720 / 720 (100%)
-Bin area:          72 / 72 (100%)
+Bin volume:        108000000000 / 108000000000 (100%)
+Bin area:          36000000 / 36000000 (100%)
 Bin weight:        inf / inf (-nan%)
-Bin cost:          72
-Waste:             396
-Waste (%):         55
-Full waste:        396
-Full waste (%):    55
-Volume load:       0.45
-Area load:         1
+Bin cost:          3.6e+07
+Waste:             32400000000
+Waste (%):         42.8571
+Full waste:        64800000000
+Full waste (%):    60
+Volume load:       0.4
+Area load:         0.6
 Weight load:       0
-X max:             6
-Y max:             6
+X max:             3000
+Y max:             2400

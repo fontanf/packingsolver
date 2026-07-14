@@ -31,7 +31,7 @@ Features:
 
     * Stackability identifier
     * Nesting height
-    * Maximum number of items in a stack
+    * Maximum number of items in a stack containing an item of a given type
     * Maximum weight above an item
 
 * Bin types
@@ -41,6 +41,57 @@ Features:
   * Maximum weight on the middle and rear axles (semi-trailer trucks)
 
 * Unloading constraints (same as the :ref:`rectangle<rectangle>` solver)
+
+Box vs box-stacks
+--------------------
+
+The :code:`box-stacks` solver only produces patterns where items sharing a footprint (X and Y dimensions) and stackability identifier form a single vertical **stack**; an item of a different footprint can never be inserted into the space left above a stack, even if that space would otherwise be enough to hold it. Problems where items may instead be placed freely anywhere in 3D space should be modeled with the :ref:`box<box>` solver.
+
+The following example solves the same instance — a 7500×2400×3000 bin shaped like a truck's cargo area, with three groups of columns of different footprints (4 columns of 1300×1200, 4 of 1200×1200, and 4 of 1250×1200, for 12 columns in total), each group stacking its own large and medium item types, plus three extra small item types (600×500, 500×400 and 700×600) that are all smaller than every column's footprint — with both solvers (:code:`knapsack` objective). The :code:`box-stacks` solver fills the 7500×2400 floor with all 12 columns, each group mixing one large item with several medium items (1500+550+550=2600, 1300+450+450+450=2650, and 1600+1100=2700 out of the 3000 available Z), but none of the three small item types can be placed: none of their footprints matches any column, and the floor is already fully covered, so there is nowhere left to start a new stack — only 88.3% of the bin's volume is loaded, leaving 400, 350 or 300 of unused space at the top of each column, depending on the group. The :code:`box` solver, which places items freely, fills that same leftover space by placing one small item directly on top of each column instead — a different small item type for each of the three groups — loading 90.7% of the bin's volume.
+
+.. literalinclude:: examples/boxstacks/box_vs_boxstacks_boxstacks/bins.csv
+   :caption: bins.csv
+
+.. literalinclude:: examples/boxstacks/box_vs_boxstacks_boxstacks/parameters.csv
+   :caption: parameters.csv
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - ``box``
+     - ``box-stacks``
+   * - .. literalinclude:: examples/boxstacks/box_vs_boxstacks_box/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/boxstacks/box_vs_boxstacks_boxstacks/items.csv
+          :caption: items.csv
+   * - .. code-block:: shell
+
+            packingsolver_box \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_boxstacks \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+
+.. image:: img/boxstacks_box_vs_boxstacks_box.png
+   :width: 48%
+   :align: left
+
+.. image:: img/boxstacks_box_vs_boxstacks_boxstacks.png
+   :width: 48%
+   :align: right
+
+.. raw:: html
+
+   <div style="clear: both;"></div>
 
 Basic usage
 --------------
@@ -221,38 +272,49 @@ Each rotation is enabled independently via its own boolean column (``1`` to allo
 * ``ROTATION_XYZ``, ``ROTATION_YXZ``, ``ROTATION_XZY`` and ``ROTATION_ZXY``: X face cannot be on top
 * All six columns set to ``1``: all six orientations allowed
 
-The following example packs a single 10×6×4 item into a 6×10×10 bin (:code:`bin-packing` objective). In its default orientation the item is 10 wide, which does not fit in the 6-wide bin, so without rotation the item cannot be packed at all. Allowing ``ROTATION_YXZ`` (swapping the X and Y directions) turns it into a 6×10×4 box, which fits, so the item packs into a single bin.
+The following example packs 18 copies of a 2400×1250×1000 item into 7500×2400×3000 bins, with up to 2 bins available (:code:`bin-packing` objective). Each stack holds 3 items (3×1000=3000 of the 3000 available Z). In its default orientation each item is 2400 wide, so 3 columns fit across the 7500-wide floor, but each column is 1250 deep, so only 1 row fits along the 2400-deep floor, for 1×3=3 stacks (9 items) per bin: packing all 18 items needs both bins. Allowing ``ROTATION_YXZ`` (swapping the X and Y directions) turns each item into a 1250×2400×1000 box, so 6 columns now fit across the floor, still 1 row deep, for 6×1=6 stacks (18 items) on a single bin's floor: all the items fit in just 1 of the 2 available bins.
 
-.. literalinclude:: examples/boxstacks/rotation_no/items.csv
-   :caption: items.csv (without rotation)
+.. |boxstacks_rotation_no| image:: img/boxstacks_rotation_no.png
+   :width: 400px
 
-.. literalinclude:: examples/boxstacks/rotation_yes/items.csv
-   :caption: items.csv (with rotation)
+.. |boxstacks_rotation_yes| image:: img/boxstacks_rotation_yes.png
+   :width: 400px
 
-.. literalinclude:: examples/boxstacks/rotation_no/bins.csv
-   :caption: bins.csv
-
-.. literalinclude:: examples/boxstacks/rotation_no/parameters.csv
-   :caption: parameters.csv
-
-.. code-block:: shell
-
-    packingsolver_boxstacks \
-            --items items.csv \
-            --bins bins.csv \
-            --parameters parameters.csv \
-            --certificate solution.csv
-
-Without rotation, no item fits into any bin:
-
-.. literalinclude:: examples/boxstacks/rotation_no/output.txt
-   :lines: 32-40
-
-With rotation, the item fits into a single bin:
-
-.. image:: img/boxstacks_rotation_yes.png
-   :width: 384pt
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
    :align: center
+
+   * - Without rotation
+     - With rotation
+   * - .. literalinclude:: examples/boxstacks/rotation_no/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/boxstacks/rotation_yes/items.csv
+          :caption: items.csv
+   * - .. literalinclude:: examples/boxstacks/rotation_no/bins.csv
+          :caption: bins.csv
+     - .. literalinclude:: examples/boxstacks/rotation_yes/bins.csv
+          :caption: bins.csv
+   * - .. literalinclude:: examples/boxstacks/rotation_no/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/boxstacks/rotation_yes/parameters.csv
+          :caption: parameters.csv
+   * - .. code-block:: shell
+
+            packingsolver_boxstacks \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_boxstacks \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |boxstacks_rotation_no|
+     - |boxstacks_rotation_yes|
 
 Nesting height
 --------------
@@ -264,13 +326,18 @@ Nesting height
 
 When item B is placed on top of item A, the effective Z space consumed by A is reduced by ``A.NESTING_HEIGHT``: this models hollow items (e.g. crates, buckets) that partially nest into each other when stacked, instead of resting flat on top.
 
-The following example packs 2 copies of a 6×6×6 item into 6×6×10 bins (:code:`bin-packing` objective). Without nesting height, stacking the 2 items requires 6+6=12 of Z space, which exceeds the bin height, so a second bin is needed. With a nesting height of 2, the second item sinks 2 units into the first, so the stack only needs 6+6-2=10 of Z space, exactly matching the bin height, and both items fit into a single bin.
+.. image:: img/boxstacks_nesting_height.jpeg
+   :align: center
+
+The stackable crate above illustrates the idea: two of them stacked (left) sit lower than twice the height of one alone (right), since the legs of the top crate sink into the one below.
+
+The following example packs 6 copies each of two 2000×1000×1600 items into 7500×2400×3000 bins (:code:`bin-packing` objective), forming 6 side-by-side stacks (3×2) per bin. Without nesting height, items of different types cannot share a stack (1600+1600=3200 exceeds the bin height of 3000), so the 6 copies of one type fill one bin and the 6 copies of the other type need a second bin. With a nesting height of 200, the second item of each stack sinks 200 units into the first, so a stack combining one of each type only needs 1600+1600-200=3000 of Z space, exactly matching the bin height, and all 12 items fit into a single bin as 6 stacks of 2.
 
 .. |boxstacks_nesting_height_no| image:: img/boxstacks_nesting_height_no.png
-   :scale: 50%
+   :width: 400px
 
 .. |boxstacks_nesting_height_yes| image:: img/boxstacks_nesting_height_yes.png
-   :scale: 50%
+   :width: 400px
 
 .. list-table::
    :widths: 1 1
@@ -308,21 +375,21 @@ The following example packs 2 copies of a 6×6×6 item into 6×6×10 bins (:code
    * - |boxstacks_nesting_height_no|
      - |boxstacks_nesting_height_yes|
 
-Maximum number of items in a stack
------------------------------------
+Maximum number of items in a stack containing an item of a given type
+------------------------------------------------------------------------
 
 * The maximum number of items that may be placed in a stack containing an item of this type
 
   * column ``MAXIMUM_STACKABILITY``
   * default value: no limit
 
-The following example packs 3 copies of a 6×6×3 item into 6×6×10 bins (:code:`bin-packing` objective). Without a limit, all 3 items stack into a single bin (3×3=9 of Z space, within the bin height of 10). With ``MAXIMUM_STACKABILITY`` set to 2, at most 2 items may share a stack, and since the item's footprint already fills the whole bin floor, the third item cannot start a second stack in the same bin, so a second bin is needed.
+The following example packs 3 copies of a 3000×2400×1200 item and 4 copies of a 3000×2400×600 item into 7500×2400×3000 bins — floor room for 2 stacks per bin (:code:`bin-packing` objective). Each stack behaves like a bin of the :ref:`onedimensional<onedimensional>` example above: without a limit, the optimal solution uses 2 stacks, both fitting in a single bin — one mixing 2 copies of the 1200-height item with 1 of the 600-height item (3000), the other mixing 1 copy of the 1200-height item with 3 of the 600-height item (3000). Setting ``MAXIMUM_STACKABILITY`` to 3 on the 1200-height item only means a stack containing it may hold at most 3 items: the first stack (2+1=3 items) is unaffected, but the second (1+3=4 items) no longer fits, so it drops one of its 600-height items — which no longer fits on the floor of the first bin either, so a second bin is needed.
 
 .. |boxstacks_maximum_stackability_no| image:: img/boxstacks_maximum_stackability_no.png
-   :scale: 50%
+   :width: 400px
 
 .. |boxstacks_maximum_stackability_yes| image:: img/boxstacks_maximum_stackability_yes.png
-   :scale: 50%
+   :width: 400px
 
 .. list-table::
    :widths: 1 1
@@ -373,13 +440,13 @@ Maximum weight above an item
   * column ``MAXIMUM_WEIGHT_ABOVE``
   * default value: no limit
 
-The following example packs 2 copies of a 6×6×3 item, each weighing 10, into 6×6×10 bins (:code:`bin-packing` objective). Without a limit, the 2 items stack into a single bin. With ``MAXIMUM_WEIGHT_ABOVE`` set to 5 on both items, neither item can support the other's weight (10 > 5) regardless of which one is on the bottom, so they cannot share a stack, and since their footprint fills the whole bin floor, a second bin is needed.
+The following example packs 2 copies of a 3000×2400×1500 item (weight 40) and 3 copies of a 3000×2400×1000 item (weight 20) into 7500×2400×3000 bins — floor room for 2 stacks per bin (:code:`bin-packing` objective). Each stack behaves like a bin of the :ref:`onedimensional<onedimensional>` example above: without a limit, the optimal solution uses 2 stacks, both fitting in a single bin — one with both copies of the 1500-height item (3000), the other with all 3 copies of the 1000-height item (3000). Setting ``MAXIMUM_WEIGHT_ABOVE`` to 30 on the 1500-height item only means no more than 30 of weight may rest above it: since another copy of that same item weighs 40, two of them can no longer share a stack, while a 1000-height item (weight 20) still can. The optimal solution now uses 2 stacks mixing one of each item, plus a third stack for the last, unpaired 1000-height item — which no longer fits on the floor of the first bin, so a second bin is needed.
 
 .. |boxstacks_maximum_weight_above_no| image:: img/boxstacks_maximum_weight_above_no.png
-   :scale: 50%
+   :width: 400px
 
 .. |boxstacks_maximum_weight_above_yes| image:: img/boxstacks_maximum_weight_above_yes.png
-   :scale: 50%
+   :width: 400px
 
 .. list-table::
    :widths: 1 1
@@ -425,13 +492,13 @@ Maximum stack density
   * column ``MAXIMUM_STACK_DENSITY`` in the bin CSV file
   * default value: no limit
 
-The following example packs 2 copies of a 6×6×3 item, each weighing 10, into 6×6×10 bins (:code:`bin-packing` objective). Without a density limit, the 2 items stack into a single bin. The stack's floor area is 6×6=36, so its density is (10+10)/36≈0.56. Setting ``MAXIMUM_STACK_DENSITY`` to 0.5 on the bin means a stack may weigh at most 0.5×36=18, which the combined weight of 20 exceeds, so the items cannot share a stack; since their footprint fills the whole bin floor, a second bin is needed.
+The following example packs 9 copies of a 2500×1200×1000 item weighing 700,000 and 9 copies of a 2500×1200×1000 item weighing 900,000 into 7500×2400×3000 bins (:code:`bin-packing` objective). Without a density limit, the items stack into a single bin as 6 side-by-side stacks of 3 — 3 stacks of the lighter item (3×1000=3000 of Z, weighing 3×700,000=2,100,000) and 3 of the heavier one (3×1000=3000 of Z, weighing 3×900,000=2,700,000) — each on a 2500×1200=3,000,000 floor area (density up to 2,700,000/3,000,000=0.9). Setting ``MAXIMUM_STACK_DENSITY`` to 0.6 on the bin means a stack may weigh at most 0.6×3,000,000=1,800,000: no 3-item combination of either item (2,100,000 to 2,700,000) fits under that limit anymore, so every stack is now limited to 2 items (1,400,000 to 1,800,000, all within the limit). With only 6 stacks per bin now holding 12 of the 18 items, a second bin is needed for the remaining 6 — one of its stacks even mixing one of each item.
 
 .. |boxstacks_maximum_stack_density_no| image:: img/boxstacks_maximum_stack_density_no.png
-   :scale: 50%
+   :width: 400px
 
 .. |boxstacks_maximum_stack_density_yes| image:: img/boxstacks_maximum_stack_density_yes.png
-   :scale: 50%
+   :width: 400px
 
 .. list-table::
    :widths: 1 1
@@ -439,7 +506,7 @@ The following example packs 2 copies of a 6×6×3 item, each weighing 10, into 6
    :align: center
 
    * - Without limit
-     - ``MAXIMUM_STACK_DENSITY`` = 0.5
+     - ``MAXIMUM_STACK_DENSITY`` = 0.6
    * - .. literalinclude:: examples/boxstacks/maximum_stack_density_no/items.csv
           :caption: items.csv
      - .. literalinclude:: examples/boxstacks/maximum_stack_density_yes/items.csv
@@ -473,6 +540,18 @@ Maximum weight on the middle and rear axles
 ---------------------------------------------
 
 For bins that model the trailer of a semi-trailer truck, the solver can enforce legal weight limits on the tractor's middle (drive) axle and on the trailer's rear axle, computed from the position of the loaded stacks along the trailer and the truck's geometry.
+
+The tractor alone is characterized by its weight (``CM``, i.e. ``TRACTOR_WEIGHT``) and by the distances between its front axle and its middle axle (``CJ``:sup:`fm`, i.e. ``FRONT_AXLE_MIDDLE_AXLE_DISTANCE``) and center of gravity (``CJ``:sup:`fc`, i.e. ``FRONT_AXLE_TRACTOR_GRAVITY_CENTER_DISTANCE``):
+
+.. image:: img/boxstacks_axle_weight_1.png
+   :width: 350px
+   :align: center
+
+Once the trailer is attached at the harness (fifth wheel), its own geometry and the loaded cargo's weight and position add the remaining quantities used in the axle weight computation below (``EM``, ``EJ``:sup:`eh`, ``EJ``:sup:`hr`, ``EJ``:sup:`cr` are the ``EMPTY_TRAILER_WEIGHT``, ``TRAILER_START_HARNESS_DISTANCE``, ``HARNESS_REAR_AXLE_DISTANCE`` and ``TRAILER_GRAVITY_CENTER_REAR_AXLE_DISTANCE`` columns; ``tm``:sub:`t` is the combined weight of the loaded stacks):
+
+.. image:: img/boxstacks_axle_weight_2.png
+   :width: 700px
+   :align: center
 
 * Whether the bin is a semi-trailer truck
 
@@ -531,6 +610,51 @@ For bins that model the trailer of a semi-trailer truck, the solver can enforce 
 
 Loading cargo further toward the front of the trailer (closer to the harness) shifts more weight onto the tractor's middle axle and less onto the trailer's rear axle; loading further back does the opposite. The solver uses the combined weight and the X position of each stack's center to compute the resulting middle and rear axle weights, and only accepts solutions that stay within the configured limits.
 
+The following example packs 19 copies of a 1200×1000×1200 item weighing 1200 and 19 copies of a 1200×1000×800 item weighing 800 — heights proportional to weight — into 13500×2440×2900 bins (38,000 of total weight) — dimensions and axle geometry matching a standard semi-trailer truck, as found in the reference instances under ``data/boxstacks`` — with up to 2 bins available (:code:`bin-packing` objective). Without ``IS_SEMI_TRAILER_TRUCK`` set, no axle limits apply, and all 38 items fit in a single bin, packed compactly from the front of the trailer (the shorter item even stacks 3 high there). Had the axle constraint been checked on that loading, it would put 23,499 on the middle axle — almost twice the 12,000 limit used below. Setting ``IS_SEMI_TRAILER_TRUCK`` to 1, with ``MIDDLE_AXLE_MAXIMUM_WEIGHT`` 12,000 and ``REAR_AXLE_MAXIMUM_WEIGHT`` 31,500, makes that loading infeasible: the solver instead places the lighter item toward the front of the trailer and the heavier item toward the back, shifting the load rearward until the middle axle drops to 11,991 and the rear axle rises to 31,256 — both just inside their limits. That rebalanced loading fits 35 of the 38 items (17 lighter, 18 heavier) in the first bin, so the remaining 3 (2 lighter, 1 heavier) need a second bin.
+
+.. |boxstacks_axle_weight_no| image:: img/boxstacks_axle_weight_no.png
+   :width: 400px
+
+.. |boxstacks_axle_weight_yes| image:: img/boxstacks_axle_weight_yes.png
+   :width: 400px
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+   :class: wide-table
+
+   * - Without axle constraints
+     - With axle constraints
+   * - .. literalinclude:: examples/boxstacks/axle_weight_no/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/boxstacks/axle_weight_yes/items.csv
+          :caption: items.csv
+   * - .. literalinclude:: examples/boxstacks/axle_weight_no/bins.csv
+          :caption: bins.csv
+     - .. literalinclude:: examples/boxstacks/axle_weight_yes/bins.csv
+          :caption: bins.csv
+   * - .. literalinclude:: examples/boxstacks/axle_weight_no/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/boxstacks/axle_weight_yes/parameters.csv
+          :caption: parameters.csv
+   * - .. code-block:: shell
+
+            packingsolver_boxstacks \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_boxstacks \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |boxstacks_axle_weight_no|
+     - |boxstacks_axle_weight_yes|
+
 Unloading constraints
 -------------------------
 
@@ -559,7 +683,7 @@ Note that unlike the :ref:`rectangle<rectangle>` solver, the parameter key is hy
 * ``increasing-x``: all items from group 0 have a greater X coordinate than all items from group 1, which in turn have a greater X coordinate than all items from group 2, etc.
 * ``increasing-y``: same along the Y axis
 
-The following example packs 3 items (200×200, 400×400 and 150×150 footprints, groups 0, 1 and 2) into 700×400×100 bins (:code:`bin-packing-with-leftovers` objective). Without an unloading constraint, the items can be arranged freely and all 3 fit into a single bin. With ``only-x-movements``, the group-2 item cannot be positioned without ending up to the right of the group-1 item while itself needing to come out first, so it no longer fits alongside the others, and a second bin is needed.
+The following example packs 3 items (3000×1400, 3000×2400 and 2500×1000 footprints, groups 0, 1 and 2) into 7500×2400×3000 bins (:code:`bin-packing-with-leftovers` objective). Without an unloading constraint, the items can be arranged freely and all 3 fit into a single bin. With ``only-x-movements``, the group-2 item cannot be positioned without ending up to the right of the group-1 item while itself needing to come out first, so it no longer fits alongside the others, and a second bin is needed.
 
 .. |boxstacks_unloading_no| image:: img/boxstacks_unloading_no.png
    :scale: 50%

@@ -38,14 +38,14 @@ Features:
   * Cut type (Roadef2018, NonExact, Exact, Homogenous)
   * First stage orientation (horizontal or vertical)
   * Minimum and maximum distances between cuts
-  * Maximum number of 1-cuts per strip
-  * Maximum number of 2-cuts per strip
+  * Maximum number of consecutive 1-cuts
+  * Maximum number of consecutive 2-cuts
   * Cut thickness
 
 Guillotine vs non-guillotine patterns
 -----------------------------------------
 
-A cutting pattern is a **guillotine pattern** if it can be produced by a sequence of straight cuts, each going all the way from one edge of the current plate to the opposite edge (see `Cutting stages`_ below). A pattern that cannot be produced this way, however the items are arranged, is a **non-guillotine pattern**.
+A cutting pattern is a **guillotine pattern** if it can be produced by a sequence of straight cuts, each going all the way from one edge of the current plate to the opposite edge (see `Maximum number of cutting stages`_ below). A pattern that cannot be produced this way, however the items are arranged, is a **non-guillotine pattern**.
 
 The :code:`rectangle-guillotine` solver only produces guillotine patterns. Problems where non-guillotine patterns are required (or simply allowed) should instead be modeled with the :ref:`rectangle<rectangle>` solver, which places items freely.
 
@@ -197,26 +197,37 @@ Visualize:
    :width: 512pt
    :align: center
 
-Cutting stages
---------------
+Maximum number of cutting stages
+--------------------------------
 
-A **guillotine cut** divides a plate into two sub-plates. Repeated cuts create a hierarchy of plates:
+The number of cutting stages of a pattern is the number of set of parallel cuts necessary to extract all the items from the pattern:
 
-* **Stage 1**: cuts that divide the original bin into vertical (or horizontal) **strips**
-* **Stage 2**: cuts inside each strip, perpendicular to stage-1 cuts
-* **Stage 3**: cuts inside the resulting sub-strips (exact cutting only)
+Here is an example of a 4-staged pattern:
 
-The number of stages controls how many levels of cuts are applied. Three-stage cutting is the most common in practice.
+.. image:: img/rectangleguillotine_number_of_stages.png
+   :scale: 100%
+   :align: center
+
+The maximum number of stages may be constrained.
 
 * The number of cutting stages; name: ``number_of_stages``; default value: ``3``
 
-The following example packs 3 items (10×4, 6×6 and 4×6) into 10×10 bins (:code:`bin-packing` objective). With only 2 stages, the 6×6 and 4×6 items cannot be combined on the same shelf (that would require a stage-3 cut), so the 3 items no longer fit together and a second bin is needed. With 3 stages, a stage-3 cut splits the top shelf into the 6×6 and 4×6 items side by side, and all 3 items fit into a single bin.
+The following example packs 24 items (12 item types) into 80×40 bins with ``cut_type`` set to ``exact``, ``first_stage_orientation`` set to ``vertical`` and the :code:`bin-packing-with-leftovers` objective. Since items must fill their sub-plate exactly at the last stage, the number of stages directly limits how tightly they can be nested. With only 2 stages, that requirement leaves so much waste that a third bin is needed (3 bins, 40.15% waste). Adding a third stage is already enough to fit everything into 2 bins, with far less waste (10.44%):
 
-.. |rectangleguillotine_stages_no| image:: img/rectangleguillotine_stages_no.png
-   :scale: 50%
+.. |rectangleguillotine_stages_2| image:: img/rectangleguillotine_stages_2.png
+   :scale: 25%
 
-.. |rectangleguillotine_stages_yes| image:: img/rectangleguillotine_stages_yes.png
-   :scale: 50%
+.. |rectangleguillotine_stages_3| image:: img/rectangleguillotine_stages_3.png
+   :scale: 25%
+
+.. |rectangleguillotine_stages_unlimited| image:: img/rectangleguillotine_stages_unlimited.png
+   :scale: 25%
+
+.. literalinclude:: examples/rectangleguillotine/stages_2/items.csv
+   :caption: items.csv
+
+.. literalinclude:: examples/rectangleguillotine/stages_2/bins.csv
+   :caption: bins.csv
 
 .. list-table::
    :widths: 1 1
@@ -225,17 +236,9 @@ The following example packs 3 items (10×4, 6×6 and 4×6) into 10×10 bins (:co
 
    * - 2 stages
      - 3 stages
-   * - .. literalinclude:: examples/rectangleguillotine/stages_no/items.csv
-          :caption: items.csv
-     - .. literalinclude:: examples/rectangleguillotine/stages_yes/items.csv
-          :caption: items.csv
-   * - .. literalinclude:: examples/rectangleguillotine/stages_no/bins.csv
-          :caption: bins.csv
-     - .. literalinclude:: examples/rectangleguillotine/stages_yes/bins.csv
-          :caption: bins.csv
-   * - .. literalinclude:: examples/rectangleguillotine/stages_no/parameters.csv
+   * - .. literalinclude:: examples/rectangleguillotine/stages_2/parameters.csv
           :caption: parameters.csv
-     - .. literalinclude:: examples/rectangleguillotine/stages_yes/parameters.csv
+     - .. literalinclude:: examples/rectangleguillotine/stages_3/parameters.csv
           :caption: parameters.csv
    * - .. code-block:: shell
 
@@ -251,8 +254,23 @@ The following example packs 3 items (10×4, 6×6 and 4×6) into 10×10 bins (:co
                     --bins bins.csv \
                     --parameters parameters.csv \
                     --certificate solution.csv
-   * - |rectangleguillotine_stages_no|
-     - |rectangleguillotine_stages_yes|
+   * - |rectangleguillotine_stages_2|
+     - |rectangleguillotine_stages_3|
+
+Allowing an unlimited number of stages keeps the same 2 bins but reduces waste further still (6.46%), by nesting items through a deeper hierarchy of cuts (up to a 6th-stage cut, visible in the image below):
+
+.. literalinclude:: examples/rectangleguillotine/stages_unlimited/parameters.csv
+   :caption: parameters.csv
+
+.. code-block:: shell
+
+    packingsolver_rectangleguillotine \
+            --items items.csv \
+            --bins bins.csv \
+            --parameters parameters.csv \
+            --certificate solution.csv
+
+|rectangleguillotine_stages_unlimited|
 
 Cut types
 ---------
@@ -348,7 +366,7 @@ The following example packs 24 items (12 item types) into 80×40 bins with 3 cut
 First stage orientation
 ---------------------------
 
-The first stage orientation controls whether stage-1 cuts (see `Cutting stages`_ above) are vertical or horizontal.
+The first stage orientation controls whether stage-1 cuts (see `Maximum number of cutting stages`_ above) are vertical or horizontal.
 
 * The first stage orientation; name: ``first_stage_orientation``; possible values: ``vertical`` or ``horizontal``
 
@@ -597,8 +615,6 @@ Defects are specified in the defects CSV file; option: ``--defects defects.csv``
   * column ``HEIGHT``
   * **Integer value**
 
-Whether cuts may pass through defects is controlled via the ``cut_through_defects`` key in the parameters CSV file (``0`` by default; ``1`` to allow it).
-
 The following example packs 2 copies of a 10×6 item into 10×12 bins (:code:`bin-packing` objective), stacked to fill each bin exactly with no waste. Without any defect, one bin is enough. Adding a small 2×2 defect in the middle of the join between the two items leaves no room to shift either item out of the way, since there is no slack left in the bin: one of the two items no longer fits, so a second bin is needed.
 
 .. |rectangleguillotine_defects_no| image:: img/rectangleguillotine_defects_no.png
@@ -647,6 +663,64 @@ The following example packs 2 copies of a 10×6 item into 10×12 bins (:code:`bi
    * - |rectangleguillotine_defects_no|
      - |rectangleguillotine_defects_yes|
 
+Cut through defects
+---------------------
+
+By default, a guillotine cut may not pass through a defect; it must be routed around it instead.
+
+* Whether cuts are allowed to pass through defects
+
+  * name: ``cut_through_defects``
+  * ``0``: cuts must avoid defects (default)
+  * ``1``: cuts may pass through defects
+
+The following example packs a 5×5 and a 5×6 item into 10×10 bins with only 2 cutting stages (:code:`bin-packing` objective), so the two items — whose widths sum exactly to the bin width — must be separated by a single first-stage cut. A small 2×2 defect floats in the unused strip above the shorter item, without touching either item or the edges of the bin, but still straddling that cut. Allowing cuts through defects lets the solver cut straight through it, and both items fit into a single bin. Without allowing cuts through defects, that cut can no longer be made, so the two items can no longer share a bin, and a second bin is needed.
+
+.. |rectangleguillotine_cutdefects_no| image:: img/rectangleguillotine_cutdefects_no.png
+   :scale: 50%
+
+.. |rectangleguillotine_cutdefects_yes| image:: img/rectangleguillotine_cutdefects_yes.png
+   :scale: 50%
+
+.. literalinclude:: examples/rectangleguillotine/cutdefects_no/items.csv
+   :caption: items.csv
+
+.. literalinclude:: examples/rectangleguillotine/cutdefects_no/bins.csv
+   :caption: bins.csv
+
+.. literalinclude:: examples/rectangleguillotine/cutdefects_no/defects.csv
+   :caption: defects.csv
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - With cuts through defects
+     - Without cuts through defects
+   * - .. literalinclude:: examples/rectangleguillotine/cutdefects_yes/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/rectangleguillotine/cutdefects_no/parameters.csv
+          :caption: parameters.csv
+   * - .. code-block:: shell
+
+            packingsolver_rectangleguillotine \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --defects defects.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_rectangleguillotine \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --defects defects.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |rectangleguillotine_cutdefects_yes|
+     - |rectangleguillotine_cutdefects_no|
+
 Stacks
 ------
 
@@ -657,7 +731,7 @@ Items with the same stack id must be produced contiguously, in the order they ap
   * column ``STACK_ID``
   * default value: no stack grouping
 
-The following example packs 4 items of height 5 into 10×10 bins (:code:`bin-packing` objective): two items of width 6 and 4 that together fill one 10×5 shelf, and two items of width 3 and 7 that together fill another 10×5 shelf. Without stacking constraints, the solver is free to group the items by shelf and packs everything into a single bin. Assigning all 4 items to the same stack, in an order that alternates between the two shelves (6, 3, 4, 7), forces the items to be produced in that exact sequence; since two items from different shelves can no longer be produced back-to-back, the shelves can no longer both be completed in a single bin, and a second bin is needed.
+The following example packs 4 items of width 5 into 10×10 bins (:code:`bin-packing` objective): two items of height 6 and 4 that together fill one 5×10 column, and two items of height 3 and 7 that together fill another 5×10 column. Without stacking constraints, the solver is free to group the items by column and packs everything into a single bin. Splitting the items into two stacks of two — stack 0 with the height-6 and height-7 items, stack 1 with the height-3 and height-4 items — pairs one item from each column in every stack, forcing each stack's two items to be produced back-to-back; since neither column can be completed without interrupting the other stack, a second bin is needed.
 
 .. |rectangleguillotine_stacks_no| image:: img/rectangleguillotine_stacks_no.png
    :scale: 50%
@@ -710,10 +784,10 @@ Minimum and maximum distances between cuts
 * The maximum distance between second-level cuts; name: ``maximum_distance_2_cuts``; ``-1`` for no limit (default); not allowed when ``number_of_stages == 2``
 * The minimum length for any waste piece; name: ``minimum_waste_length``; default value: ``0``
 
-Maximum number of 1-cuts per strip
-------------------------------------
+Maximum number of consecutive 1-cuts
+----------------------------------------
 
-* The maximum number of stage-1 cuts; name: ``maximum_number_1_cuts``; ``-1`` for no limit (default); must not be ``0``
+* The maximum number of 1-cuts in a bin; name: ``maximum_number_1_cuts``; ``-1`` for no limit (default); must not be ``0``
 
 The following example packs 3 copies of a 3×10 item into 10×10 bins with only 2 cutting stages (:code:`bin-packing` objective). Without a limit, the 3 items are placed side by side using 2 stage-1 cuts, all in a single bin. Setting ``maximum_number_1_cuts`` to 1 allows only 2 strips, so only 2 of the 3 items fit, and a second bin is needed for the third.
 
@@ -759,10 +833,10 @@ The following example packs 3 copies of a 3×10 item into 10×10 bins with only 
    * - |rectangleguillotine_maxcuts_no|
      - |rectangleguillotine_maxcuts_yes|
 
-Maximum number of 2-cuts per strip
-------------------------------------
+Maximum number of consecutive 2-cuts
+----------------------------------------
 
-* The maximum number of stage-2 cuts per strip; name: ``maximum_number_2_cuts``; ``-1`` for no limit
+* The maximum number of 2-cuts in a first-level sub-plate; name: ``maximum_number_2_cuts``; ``-1`` for no limit
 
 The following example packs 4 items (10×3, 10×3, 10×4 and 10×10) into 20×10 bins with only 2 cutting stages (:code:`bin-packing` objective). A first stage-1 cut splits the bin into two 10-wide strips: one holds the 10×10 item alone, the other stacks the three shorter items using 2 stage-2 cuts. Without a limit, all 4 items fit into a single bin. Setting ``maximum_number_2_cuts`` to 1 allows only 2 stage-2 cuts' worth of shelves per strip, so only 2 of the 3 stacked items fit, and a second bin is needed for the third.
 
