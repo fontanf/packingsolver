@@ -719,8 +719,8 @@ The following example packs a 5×5 and a 5×6 item into 10×10 bins with only 2 
    * - |rectangleguillotine_cutdefects_yes|
      - |rectangleguillotine_cutdefects_no|
 
-Stacks
-------
+Cutting sequences (stacks)
+--------------------------
 
 Items with the same stack id must be produced contiguously, in the order they appear in the item file: all copies of an item type must be cut before moving on to the next item type of the same stack. This models a physical stack of items (e.g. glued or stapled together) that must be separated in a fixed sequence. By default, each item type forms its own single-item stack, so no ordering constraint applies.
 
