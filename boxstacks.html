@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>box-stacks solver &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a00afc7f" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="irregular solver" href="irregular.html" />
+    <link rel="prev" title="box solver" href="box.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="irregular.html" title="irregular solver"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="box.html" title="box solver"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="box-stacks-solver">
+<span id="boxstacks"></span><h1><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver<a class="headerlink" href="#box-stacks-solver" title="Link to this heading">¶</a></h1>
+<p>The <code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver solves three-dimensional bin packing problems where items are rectangular parallelepipeds (boxes) that must be packed into rectangular bins. Items can be stacked vertically: a <strong>stack</strong> is a column of items that all have the same footprint (X and Y dimensions) and the same stackability identifier.</p>
+<a class="reference internal image-reference" href="_images/boxstacks.png"><img alt="_images/boxstacks.png" class="align-center" src="_images/boxstacks.png" style="width: 512pt;" />
+</a>
+<p>These problems occur for example in pallet building, container loading, and warehouse management.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Objectives:</p>
+<ul>
+<li><p>Knapsack</p></li>
+<li><p>Bin packing</p></li>
+<li><p>Bin packing with leftovers</p></li>
+<li><p>Open dimension X</p></li>
+<li><p>Open dimension Y</p></li>
+<li><p>Variable-sized bin packing</p></li>
+</ul>
+</li>
+<li><p>Item types</p>
+<ul>
+<li><p>3D rotations (up to 6 orientations per item)</p></li>
+<li><p>Groups (for unloading constraints)</p></li>
+<li><p>Weight</p></li>
+<li><p>Stacking constraints</p>
+<ul>
+<li><p>Stackability identifier</p></li>
+<li><p>Nesting height</p></li>
+<li><p>Maximum number of items in a stack containing an item of a given type</p></li>
+<li><p>Maximum weight above an item</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Bin types</p>
+<ul>
+<li><p>Maximum weight</p></li>
+<li><p>Maximum stack density (weight per unit floor area)</p></li>
+<li><p>Maximum weight on the middle and rear axles (semi-trailer trucks)</p></li>
+</ul>
+</li>
+<li><p>Unloading constraints (same as the <a class="reference internal" href="rectangle.html#rectangle"><span class="std std-ref">rectangle</span></a> solver)</p></li>
+</ul>
+<section id="box-vs-box-stacks">
+<h2>Box vs box-stacks<a class="headerlink" href="#box-vs-box-stacks" title="Link to this heading">¶</a></h2>
+<p>The <code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver only produces patterns where items sharing a footprint (X and Y dimensions) and stackability identifier form a single vertical <strong>stack</strong>; an item of a different footprint can never be inserted into the space left above a stack, even if that space would otherwise be enough to hold it. Problems where items may instead be placed freely anywhere in 3D space should be modeled with the <a class="reference internal" href="box.html#box"><span class="std std-ref">box</span></a> solver.</p>
+<p>The following example solves the same instance — a 7500×2400×3000 bin shaped like a truck’s cargo area, with three groups of columns of different footprints (4 columns of 1300×1200, 4 of 1200×1200, and 4 of 1250×1200, for 12 columns in total), each group stacking its own large and medium item types, plus three extra small item types (600×500, 500×400 and 700×600) that are all smaller than every column’s footprint — with both solvers (<code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective). The <code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver fills the 7500×2400 floor with all 12 columns, each group mixing one large item with several medium items (1500+550+550=2600, 1300+450+450+450=2650, and 1600+1100=2700 out of the 3000 available Z), but none of the three small item types can be placed: none of their footprints matches any column, and the floor is already fully covered, so there is nowhere left to start a new stack — only 88.3% of the bin’s volume is loaded, leaving 400, 350 or 300 of unused space at the top of each column, depending on the group. The <code class="code docutils literal notranslate"><span class="pre">box</span></code> solver, which places items freely, fills that same leftover space by placing one small item directly on top of each column instead — a different small item type for each of the three groups — loading 90.7% of the bin’s volume.</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="n">knapsack</span>
+</pre></div>
+</div>
+</div>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">box</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">box-stacks</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1300</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1500</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">1300</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">550</span><span class="p">,</span><span class="mi">8</span>
+<span class="mi">1200</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1300</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">1200</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">450</span><span class="p">,</span><span class="mi">12</span>
+<span class="mi">1250</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1600</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">1250</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1100</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">600</span><span class="p">,</span><span class="mi">500</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">500</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">350</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">700</span><span class="p">,</span><span class="mi">600</span><span class="p">,</span><span class="mi">300</span><span class="p">,</span><span class="mi">4</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id4" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">STACKABILITY_ID</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1300</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1500</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">1300</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">550</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">8</span>
+<span class="mi">1200</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1300</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">1200</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">450</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">12</span>
+<span class="mi">1250</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1600</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">1250</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1100</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">600</span><span class="p">,</span><span class="mi">500</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">500</span><span class="p">,</span><span class="mi">400</span><span class="p">,</span><span class="mi">350</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span>
+<span class="mi">700</span><span class="p">,</span><span class="mi">600</span><span class="p">,</span><span class="mi">300</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">4</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_box<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<a class="reference internal image-reference" href="_images/boxstacks_box_vs_boxstacks_box.png"><img alt="_images/boxstacks_box_vs_boxstacks_box.png" class="align-left" src="_images/boxstacks_box_vs_boxstacks_box.png" style="width: 48%;" />
+</a>
+<a class="reference internal image-reference" href="_images/boxstacks_box_vs_boxstacks_boxstacks.png"><img alt="_images/boxstacks_box_vs_boxstacks_boxstacks.png" class="align-right" src="_images/boxstacks_box_vs_boxstacks_boxstacks.png" style="width: 48%;" />
+</a>
+<div style="clear: both;"></div></section>
+<section id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Link to this heading">¶</a></h2>
+<p>The <code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver takes as input:</p>
+<ul class="simple">
+<li><p>an item CSV file; option: <code class="docutils literal notranslate"><span class="pre">--items</span> <span class="pre">items.csv</span></code></p></li>
+<li><p>a bin CSV file; option: <code class="docutils literal notranslate"><span class="pre">--bins</span> <span class="pre">bins.csv</span></code></p></li>
+<li><p>optionally a parameter CSV file; option: <code class="docutils literal notranslate"><span class="pre">--parameters</span> <span class="pre">parameters.csv</span></code></p></li>
+</ul>
+<p>It outputs:</p>
+<ul class="simple">
+<li><p>a solution CSV file; option: <code class="docutils literal notranslate"><span class="pre">--certificate</span> <span class="pre">solution.csv</span></code></p></li>
+</ul>
+<p>Items can be stacked on top of each other within a bin. An item can only be placed on top of another item if both items have exactly the same X and Y dimensions in their placed orientations, and both items have the same <code class="docutils literal notranslate"><span class="pre">STACKABILITY_ID</span></code>.</p>
+<p>The <strong>item file</strong> contains:</p>
+<ul class="simple">
+<li><p>The X dimension of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">X</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The Y dimension of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">Y</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The Z dimension of the item type (<strong>mandatory</strong>) — the vertical dimension in the default orientation</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">Z</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the item type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>The profit of an item of this type (for a knapsack objective)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">PROFIT</span></code></p></li>
+<li><p>default value: item volume (<code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">*</span> <span class="pre">Y</span> <span class="pre">*</span> <span class="pre">Z</span></code>)</p></li>
+</ul>
+</li>
+<li><p>The stackability identifier; only items with the same X and Y dimensions <strong>and</strong> the same stackability identifier may be stacked on top of each other</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">STACKABILITY_ID</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>bin file</strong> contains:</p>
+<ul class="simple">
+<li><p>The X dimension of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">X</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The Y dimension of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">Y</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The Z dimension of the bin type (<strong>mandatory</strong>) — the height of the bin</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">Z</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the bin type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>The minimum number of copies that must be used</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES_MIN</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The cost of a bin of this type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COST</span></code></p></li>
+<li><p>default value: bin volume</p></li>
+</ul>
+</li>
+<li><p>The maximum total weight allowed in a bin of this type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">MAXIMUM_WEIGHT</span></code></p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>parameter file</strong> has two columns: <code class="docutils literal notranslate"><span class="pre">NAME</span></code> and <code class="docutils literal notranslate"><span class="pre">VALUE</span></code>. The possible entries are:</p>
+<ul class="simple">
+<li><p>The objective; name: <code class="docutils literal notranslate"><span class="pre">objective</span></code>; possible values:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">knapsack</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-x</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-y</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Inputs:</p>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id5" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">STACKABILITY_ID</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">2500</span><span class="p">,</span><span class="mi">800</span><span class="p">,</span><span class="mi">750</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span>
+<span class="mi">2500</span><span class="p">,</span><span class="mi">800</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">10</span>
+<span class="mi">2500</span><span class="p">,</span><span class="mi">800</span><span class="p">,</span><span class="mi">1250</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">10</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id6" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id7">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id7" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="n">knapsack</span>
+</pre></div>
+</div>
+</div>
+<p>Solve:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">=================================</span>
+          <span class="n">PackingSolver</span>          
+<span class="o">=================================</span>
+
+<span class="n">Problem</span> <span class="nb">type</span>
+<span class="o">------------</span>
+<span class="n">BoxStacks</span>
+
+<span class="n">Instance</span>
+<span class="o">--------</span>
+<span class="n">Objective</span><span class="p">:</span>             <span class="n">Knapsack</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">item</span> <span class="n">types</span><span class="p">:</span>  <span class="mi">3</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>       <span class="mi">30</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="nb">bin</span> <span class="n">types</span><span class="p">:</span>   <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>        <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">groups</span><span class="p">:</span>      <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">defects</span><span class="p">:</span>     <span class="mi">0</span>
+<span class="n">Unloading</span> <span class="n">constraint</span><span class="p">:</span>  <span class="kc">None</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">volume</span><span class="p">:</span>     <span class="mi">60000000000</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>     <span class="mf">6e+10</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">weight</span><span class="p">:</span>     <span class="mi">0</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">volume</span><span class="p">:</span>      <span class="mi">54000000000</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">weight</span><span class="p">:</span>      <span class="n">inf</span>
+
+        <span class="n">Time</span>        <span class="n">Profit</span>   <span class="c1"># items                         Comment</span>
+        <span class="o">----</span>        <span class="o">------</span>   <span class="o">-------</span>                         <span class="o">-------</span>
+       <span class="mf">0.002</span>         <span class="mf">5e+10</span>        <span class="mi">25</span>                        <span class="n">SOR</span> <span class="n">it</span> <span class="mi">0</span>
+
+<span class="n">Final</span> <span class="n">statistics</span>
+<span class="o">----------------</span>
+<span class="n">Time</span> <span class="p">(</span><span class="n">s</span><span class="p">):</span>  <span class="mf">0.00260734</span>
+
+<span class="n">Solution</span>
+<span class="o">--------</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>   <span class="mi">25</span> <span class="o">/</span> <span class="mi">30</span> <span class="p">(</span><span class="mf">83.3333</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">volume</span><span class="p">:</span>       <span class="mf">5e+10</span> <span class="o">/</span> <span class="mf">6e+10</span> <span class="p">(</span><span class="mf">83.3333</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">weight</span><span class="p">:</span>       <span class="mi">0</span> <span class="o">/</span> <span class="mi">0</span> <span class="p">(</span><span class="o">-</span><span class="n">nan</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">profit</span><span class="p">:</span>       <span class="mf">5e+10</span> <span class="o">/</span> <span class="mf">6e+10</span> <span class="p">(</span><span class="mf">83.3333</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">stacks</span><span class="p">:</span>  <span class="mi">9</span>
+<span class="n">Stack</span> <span class="n">area</span><span class="p">:</span>        <span class="mi">18000000</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>    <span class="mi">1</span> <span class="o">/</span> <span class="mi">1</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">volume</span><span class="p">:</span>        <span class="mi">54000000000</span> <span class="o">/</span> <span class="mi">54000000000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">area</span><span class="p">:</span>          <span class="mi">18000000</span> <span class="o">/</span> <span class="mi">18000000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">weight</span><span class="p">:</span>        <span class="n">inf</span> <span class="o">/</span> <span class="n">inf</span> <span class="p">(</span><span class="o">-</span><span class="n">nan</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">cost</span><span class="p">:</span>          <span class="mf">1.8e+07</span>
+<span class="n">Waste</span><span class="p">:</span>             <span class="mi">4000000000</span>
+<span class="n">Waste</span> <span class="p">(</span><span class="o">%</span><span class="p">):</span>         <span class="mf">7.40741</span>
+<span class="n">Full</span> <span class="n">waste</span><span class="p">:</span>        <span class="mi">4000000000</span>
+<span class="n">Full</span> <span class="n">waste</span> <span class="p">(</span><span class="o">%</span><span class="p">):</span>    <span class="mf">7.40741</span>
+<span class="n">Volume</span> <span class="n">load</span><span class="p">:</span>       <span class="mf">0.925926</span>
+<span class="n">Area</span> <span class="n">load</span><span class="p">:</span>         <span class="mi">1</span>
+<span class="n">Weight</span> <span class="n">load</span><span class="p">:</span>       <span class="mi">0</span>
+<span class="n">X</span> <span class="nb">max</span><span class="p">:</span>             <span class="mi">7500</span>
+<span class="n">Y</span> <span class="nb">max</span><span class="p">:</span>             <span class="mi">2400</span>
+</pre></div>
+</div>
+<p>Visualize:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/visualize_boxstacks.py<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/boxstacks_example_solution.png"><img alt="_images/boxstacks_example_solution.png" class="align-center" src="_images/boxstacks_example_solution.png" style="width: 512pt;" />
+</a>
+</section>
+<section id="item-rotations">
+<h2>Item rotations<a class="headerlink" href="#item-rotations" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The allowed orientations</p>
+<ul>
+<li><p>columns <code class="docutils literal notranslate"><span class="pre">ROTATION_XYZ</span></code>, <code class="docutils literal notranslate"><span class="pre">ROTATION_YXZ</span></code>, <code class="docutils literal notranslate"><span class="pre">ROTATION_ZYX</span></code>, <code class="docutils literal notranslate"><span class="pre">ROTATION_YZX</span></code>, <code class="docutils literal notranslate"><span class="pre">ROTATION_XZY</span></code>, <code class="docutils literal notranslate"><span class="pre">ROTATION_ZXY</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: this orientation is allowed; <code class="docutils literal notranslate"><span class="pre">0</span></code> or omitted: not allowed</p></li>
+<li><p>default: if none of these columns is set to <code class="docutils literal notranslate"><span class="pre">1</span></code>, only <code class="docutils literal notranslate"><span class="pre">ROTATION_XYZ</span></code> (the default orientation) is used</p></li>
+</ul>
+</li>
+</ul>
+<p>The six possible 3D orientations of a box are:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>X direction</p></th>
+<th class="head"><p>Y direction</p></th>
+<th class="head"><p>Z direction (vertical)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ROTATION_XYZ</span></code></p></td>
+<td><p>x</p></td>
+<td><p>y</p></td>
+<td><p>z</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ROTATION_YXZ</span></code></p></td>
+<td><p>y</p></td>
+<td><p>x</p></td>
+<td><p>z</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ROTATION_ZYX</span></code></p></td>
+<td><p>z</p></td>
+<td><p>y</p></td>
+<td><p>x</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ROTATION_YZX</span></code></p></td>
+<td><p>y</p></td>
+<td><p>z</p></td>
+<td><p>x</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ROTATION_XZY</span></code></p></td>
+<td><p>x</p></td>
+<td><p>z</p></td>
+<td><p>y</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ROTATION_ZXY</span></code></p></td>
+<td><p>z</p></td>
+<td><p>x</p></td>
+<td><p>y</p></td>
+</tr>
+</tbody>
+</table>
+<p>Each rotation is enabled independently via its own boolean column (<code class="docutils literal notranslate"><span class="pre">1</span></code> to allow it, <code class="docutils literal notranslate"><span class="pre">0</span></code> or omitted to disallow it). If none of the <code class="docutils literal notranslate"><span class="pre">ROTATION_*</span></code> columns is set, only <code class="docutils literal notranslate"><span class="pre">ROTATION_XYZ</span></code> (the default orientation) is used. Common combinations:</p>
+<ul class="simple">
+<li><p>Only <code class="docutils literal notranslate"><span class="pre">ROTATION_XYZ</span></code>: only the default orientation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ROTATION_XYZ</span></code> and <code class="docutils literal notranslate"><span class="pre">ROTATION_YXZ</span></code>: Z face always on top; both XY rotations allowed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ROTATION_XYZ</span></code>, <code class="docutils literal notranslate"><span class="pre">ROTATION_YXZ</span></code>, <code class="docutils literal notranslate"><span class="pre">ROTATION_ZYX</span></code> and <code class="docutils literal notranslate"><span class="pre">ROTATION_YZX</span></code>: Y face cannot be on top</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ROTATION_XYZ</span></code>, <code class="docutils literal notranslate"><span class="pre">ROTATION_YXZ</span></code>, <code class="docutils literal notranslate"><span class="pre">ROTATION_XZY</span></code> and <code class="docutils literal notranslate"><span class="pre">ROTATION_ZXY</span></code>: X face cannot be on top</p></li>
+<li><p>All six columns set to <code class="docutils literal notranslate"><span class="pre">1</span></code>: all six orientations allowed</p></li>
+</ul>
+<p>The following example packs 18 copies of a 2400×1250×1000 item into 7500×2400×3000 bins, with up to 2 bins available (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective). Each stack holds 3 items (3×1000=3000 of the 3000 available Z). In its default orientation each item is 2400 wide, so 3 columns fit across the 7500-wide floor, but each column is 1250 deep, so only 1 row fits along the 2400-deep floor, for 1×3=3 stacks (9 items) per bin: packing all 18 items needs both bins. Allowing <code class="docutils literal notranslate"><span class="pre">ROTATION_YXZ</span></code> (swapping the X and Y directions) turns each item into a 1250×2400×1000 box, so 6 columns now fit across the floor, still 1 row deep, for 6×1=6 stacks (18 items) on a single bin’s floor: all the items fit in just 1 of the 2 available bins.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without rotation</p></th>
+<th class="head"><p>With rotation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id8">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id8" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">2400</span><span class="p">,</span><span class="mi">1250</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">18</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id9">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id9" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">ROTATION_XYZ</span><span class="p">,</span><span class="n">ROTATION_YXZ</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">2400</span><span class="p">,</span><span class="mi">1250</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">18</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id10">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id10" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id11">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id11" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id12">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id12" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id13">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id13" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/boxstacks_rotation_no.png"><img alt="boxstacks_rotation_no" src="_images/boxstacks_rotation_no.png" style="width: 400px;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/boxstacks_rotation_yes.png"><img alt="boxstacks_rotation_yes" src="_images/boxstacks_rotation_yes.png" style="width: 400px;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="nesting-height">
+<h2>Nesting height<a class="headerlink" href="#nesting-height" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The nesting height; extra Z space saved when this item is placed on top of another item (e.g., for hollow boxes that nest inside each other)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">NESTING_HEIGHT</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>When item B is placed on top of item A, the effective Z space consumed by A is reduced by <code class="docutils literal notranslate"><span class="pre">A.NESTING_HEIGHT</span></code>: this models hollow items (e.g. crates, buckets) that partially nest into each other when stacked, instead of resting flat on top.</p>
+<img alt="_images/boxstacks_nesting_height.jpeg" class="align-center" src="_images/boxstacks_nesting_height.jpeg" />
+<p>The stackable crate above illustrates the idea: two of them stacked (left) sit lower than twice the height of one alone (right), since the legs of the top crate sink into the one below.</p>
+<p>The following example packs 6 copies each of two 2000×1000×1600 items into 7500×2400×3000 bins (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective), forming 6 side-by-side stacks (3×2) per bin. Without nesting height, items of different types cannot share a stack (1600+1600=3200 exceeds the bin height of 3000), so the 6 copies of one type fill one bin and the 6 copies of the other type need a second bin. With a nesting height of 200, the second item of each stack sinks 200 units into the first, so a stack combining one of each type only needs 1600+1600-200=3000 of Z space, exactly matching the bin height, and all 12 items fit into a single bin as 6 stacks of 2.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without nesting height</p></th>
+<th class="head"><p>With nesting height</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id14">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id14" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">NESTING_HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">2000</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1600</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">6</span>
+<span class="mi">2000</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1600</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">6</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id15">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id15" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">NESTING_HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">2000</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1600</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">6</span>
+<span class="mi">2000</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1600</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">6</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id16">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id16" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">4</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id17">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id17" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">4</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id18">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id18" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id19">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id19" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/boxstacks_nesting_height_no.png"><img alt="boxstacks_nesting_height_no" src="_images/boxstacks_nesting_height_no.png" style="width: 400px;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/boxstacks_nesting_height_yes.png"><img alt="boxstacks_nesting_height_yes" src="_images/boxstacks_nesting_height_yes.png" style="width: 400px;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="maximum-number-of-items-in-a-stack-containing-an-item-of-a-given-type">
+<h2>Maximum number of items in a stack containing an item of a given type<a class="headerlink" href="#maximum-number-of-items-in-a-stack-containing-an-item-of-a-given-type" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The maximum number of items that may be placed in a stack containing an item of this type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">MAXIMUM_STACKABILITY</span></code></p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+</ul>
+<p>The following example packs 3 copies of a 3000×2400×1200 item and 4 copies of a 3000×2400×600 item into 7500×2400×3000 bins — floor room for 2 stacks per bin (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective). Each stack behaves like a bin of the <a class="reference internal" href="onedimensional.html#onedimensional"><span class="std std-ref">onedimensional</span></a> example above: without a limit, the optimal solution uses 2 stacks, both fitting in a single bin — one mixing 2 copies of the 1200-height item with 1 of the 600-height item (3000), the other mixing 1 copy of the 1200-height item with 3 of the 600-height item (3000). Setting <code class="docutils literal notranslate"><span class="pre">MAXIMUM_STACKABILITY</span></code> to 3 on the 1200-height item only means a stack containing it may hold at most 3 items: the first stack (2+1=3 items) is unaffected, but the second (1+3=4 items) no longer fits, so it drops one of its 600-height items — which no longer fits on the floor of the first bin either, so a second bin is needed.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without limit</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">MAXIMUM_STACKABILITY</span></code> = 2</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id20">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id20" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">600</span><span class="p">,</span><span class="mi">4</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id21">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id21" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">MAXIMUM_STACKABILITY</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">600</span><span class="p">,</span><span class="mi">100</span><span class="p">,</span><span class="mi">4</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id22">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id22" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id23">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id23" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id24">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id24" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id25">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id25" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/boxstacks_maximum_stackability_no.png"><img alt="boxstacks_maximum_stackability_no" src="_images/boxstacks_maximum_stackability_no.png" style="width: 400px;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/boxstacks_maximum_stackability_yes.png"><img alt="boxstacks_maximum_stackability_yes" src="_images/boxstacks_maximum_stackability_yes.png" style="width: 400px;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="maximum-weight-above-an-item">
+<h2>Maximum weight above an item<a class="headerlink" href="#maximum-weight-above-an-item" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The weight of the item (used by this constraint, by the maximum stack density and maximum bin weight constraints, and by the semi-trailer truck axle weight constraints)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WEIGHT</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The maximum weight that may be placed above an item of this type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">MAXIMUM_WEIGHT_ABOVE</span></code></p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+</ul>
+<p>The following example packs 2 copies of a 3000×2400×1500 item (weight 40) and 3 copies of a 3000×2400×1000 item (weight 20) into 7500×2400×3000 bins — floor room for 2 stacks per bin (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective). Each stack behaves like a bin of the <a class="reference internal" href="onedimensional.html#onedimensional"><span class="std std-ref">onedimensional</span></a> example above: without a limit, the optimal solution uses 2 stacks, both fitting in a single bin — one with both copies of the 1500-height item (3000), the other with all 3 copies of the 1000-height item (3000). Setting <code class="docutils literal notranslate"><span class="pre">MAXIMUM_WEIGHT_ABOVE</span></code> to 30 on the 1500-height item only means no more than 30 of weight may rest above it: since another copy of that same item weighs 40, two of them can no longer share a stack, while a 1000-height item (weight 20) still can. The optimal solution now uses 2 stacks mixing one of each item, plus a third stack for the last, unpaired 1000-height item — which no longer fits on the floor of the first bin, so a second bin is needed.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without limit</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">MAXIMUM_WEIGHT_ABOVE</span></code> = 5</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id26">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id26" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">WEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">1500</span><span class="p">,</span><span class="mi">40</span><span class="p">,</span><span class="mi">2</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id27">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id27" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">WEIGHT</span><span class="p">,</span><span class="n">MAXIMUM_WEIGHT_ABOVE</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">1500</span><span class="p">,</span><span class="mi">40</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">2</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">10000</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id28">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id28" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id29">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id29" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id30">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id30" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id31">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id31" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/boxstacks_maximum_weight_above_no.png"><img alt="boxstacks_maximum_weight_above_no" src="_images/boxstacks_maximum_weight_above_no.png" style="width: 400px;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/boxstacks_maximum_weight_above_yes.png"><img alt="boxstacks_maximum_weight_above_yes" src="_images/boxstacks_maximum_weight_above_yes.png" style="width: 400px;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="maximum-stack-density">
+<h2>Maximum stack density<a class="headerlink" href="#maximum-stack-density" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The maximum weight per unit floor area for any stack in the bin</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">MAXIMUM_STACK_DENSITY</span></code> in the bin CSV file</p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+</ul>
+<p>The following example packs 9 copies of a 2500×1200×1000 item weighing 700,000 and 9 copies of a 2500×1200×1000 item weighing 900,000 into 7500×2400×3000 bins (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective). Without a density limit, the items stack into a single bin as 6 side-by-side stacks of 3 — 3 stacks of the lighter item (3×1000=3000 of Z, weighing 3×700,000=2,100,000) and 3 of the heavier one (3×1000=3000 of Z, weighing 3×900,000=2,700,000) — each on a 2500×1200=3,000,000 floor area (density up to 2,700,000/3,000,000=0.9). Setting <code class="docutils literal notranslate"><span class="pre">MAXIMUM_STACK_DENSITY</span></code> to 0.6 on the bin means a stack may weigh at most 0.6×3,000,000=1,800,000: no 3-item combination of either item (2,100,000 to 2,700,000) fits under that limit anymore, so every stack is now limited to 2 items (1,400,000 to 1,800,000, all within the limit). With only 6 stacks per bin now holding 12 of the 18 items, a second bin is needed for the remaining 6 — one of its stacks even mixing one of each item.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without limit</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">MAXIMUM_STACK_DENSITY</span></code> = 0.6</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id32">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id32" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">WEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">2500</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">700000</span><span class="p">,</span><span class="mi">9</span>
+<span class="mi">2500</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">900000</span><span class="p">,</span><span class="mi">9</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id33">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id33" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">WEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">2500</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">700000</span><span class="p">,</span><span class="mi">9</span>
+<span class="mi">2500</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">900000</span><span class="p">,</span><span class="mi">9</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id34">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id34" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">4</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id35">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id35" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">MAXIMUM_STACK_DENSITY</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mf">0.6</span><span class="p">,</span><span class="mi">4</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id36">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id36" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id37">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id37" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/boxstacks_maximum_stack_density_no.png"><img alt="boxstacks_maximum_stack_density_no" src="_images/boxstacks_maximum_stack_density_no.png" style="width: 400px;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/boxstacks_maximum_stack_density_yes.png"><img alt="boxstacks_maximum_stack_density_yes" src="_images/boxstacks_maximum_stack_density_yes.png" style="width: 400px;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="unloading-constraints">
+<h2>Unloading constraints<a class="headerlink" href="#unloading-constraints" title="Link to this heading">¶</a></h2>
+<p>When loading a truck that visits multiple loading/unloading locations, it might be necessary to be able to load/unload the items at a location without having to move the items which are already in the truck.
+This is modeled in the solver with unloading constraints. Items are assigned to groups: items in group 0 are placed last (nearest the door) and unloaded first, items in group 1 are placed next, etc.</p>
+<ul class="simple">
+<li><p>The group of the item (for unloading constraints)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">GROUP_ID</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The unloading constraint; name: <code class="docutils literal notranslate"><span class="pre">unloading-constraint</span></code>; possible values:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">none</span></code> (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">only-x-movements</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">only-y-movements</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">increasing-x</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">increasing-y</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Note that unlike the <a class="reference internal" href="rectangle.html#rectangle"><span class="std std-ref">rectangle</span></a> solver, the parameter key is hyphenated: <code class="docutils literal notranslate"><span class="pre">unloading-constraint</span></code> rather than <code class="docutils literal notranslate"><span class="pre">unloading_constraint</span></code>.</p>
+<p>4 types of unloading constraints are available:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">only-x-movements</span></code>: items can only be moved out along the X axis; therefore, no item from a later group may be positioned to the right of an item from an earlier group</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">only-y-movements</span></code>: same along the Y axis</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">increasing-x</span></code>: all items from group 0 have a greater X coordinate than all items from group 1, which in turn have a greater X coordinate than all items from group 2, etc.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">increasing-y</span></code>: same along the Y axis</p></li>
+</ul>
+<p>The following example packs 3 items (3000×1400, 3000×2400 and 2500×1000 footprints, groups 0, 1 and 2) into 7500×2400×3000 bins (<code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objective). Without an unloading constraint, the items can be arranged freely and all 3 fit into a single bin. With <code class="docutils literal notranslate"><span class="pre">only-x-movements</span></code>, the group-2 item cannot be positioned without ending up to the right of the group-1 item while itself needing to come out first, so it no longer fits alongside the others, and a second bin is needed.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>No constraint</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">only-x-movements</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id38">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id38" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">GROUP_ID</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">1400</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">0</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">2500</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id39">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id39" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">GROUP_ID</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">1400</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">0</span>
+<span class="mi">3000</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">2500</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id40">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id40" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id41">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id41" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">7500</span><span class="p">,</span><span class="mi">2400</span><span class="p">,</span><span class="mi">3000</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id42">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id42" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id43">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id43" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+<span class="n">unloading</span><span class="o">-</span><span class="n">constraint</span><span class="p">,</span><span class="n">only</span><span class="o">-</span><span class="n">x</span><span class="o">-</span><span class="n">movements</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/boxstacks_unloading_no.png"><img alt="boxstacks_unloading_no" height="220" src="_images/boxstacks_unloading_no.png" width="318" /></a></p></td>
+<td><p><a class="reference internal" href="_images/boxstacks_unloading_yes.png"><img alt="boxstacks_unloading_yes" height="458" src="_images/boxstacks_unloading_yes.png" width="322" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="maximum-weight-on-the-middle-and-rear-axles">
+<h2>Maximum weight on the middle and rear axles<a class="headerlink" href="#maximum-weight-on-the-middle-and-rear-axles" title="Link to this heading">¶</a></h2>
+<p>For bins that model the trailer of a semi-trailer truck, the solver can enforce legal weight limits on the tractor’s middle (drive) axle and on the trailer’s rear axle, computed from the position of the loaded stacks along the trailer and the truck’s geometry.</p>
+<p>The tractor alone is characterized by its weight (<code class="docutils literal notranslate"><span class="pre">CM</span></code>, i.e. <code class="docutils literal notranslate"><span class="pre">TRACTOR_WEIGHT</span></code>) and by the distances between its front axle and its middle axle (<code class="docutils literal notranslate"><span class="pre">CJ</span></code><sup>fm</sup>, i.e. <code class="docutils literal notranslate"><span class="pre">FRONT_AXLE_MIDDLE_AXLE_DISTANCE</span></code>) and center of gravity (<code class="docutils literal notranslate"><span class="pre">CJ</span></code><sup>fc</sup>, i.e. <code class="docutils literal notranslate"><span class="pre">FRONT_AXLE_TRACTOR_GRAVITY_CENTER_DISTANCE</span></code>):</p>
+<a class="reference internal image-reference" href="_images/boxstacks_axle_weight_1.png"><img alt="_images/boxstacks_axle_weight_1.png" class="align-center" src="_images/boxstacks_axle_weight_1.png" style="width: 350px;" />
+</a>
+<p>Once the trailer is attached at the harness (fifth wheel), its own geometry and the loaded cargo’s weight and position add the remaining quantities used in the axle weight computation below (<code class="docutils literal notranslate"><span class="pre">EM</span></code>, <code class="docutils literal notranslate"><span class="pre">EJ</span></code><sup>eh</sup>, <code class="docutils literal notranslate"><span class="pre">EJ</span></code><sup>hr</sup>, <code class="docutils literal notranslate"><span class="pre">EJ</span></code><sup>cr</sup> are the <code class="docutils literal notranslate"><span class="pre">EMPTY_TRAILER_WEIGHT</span></code>, <code class="docutils literal notranslate"><span class="pre">TRAILER_START_HARNESS_DISTANCE</span></code>, <code class="docutils literal notranslate"><span class="pre">HARNESS_REAR_AXLE_DISTANCE</span></code> and <code class="docutils literal notranslate"><span class="pre">TRAILER_GRAVITY_CENTER_REAR_AXLE_DISTANCE</span></code> columns; <code class="docutils literal notranslate"><span class="pre">tm</span></code><sub>t</sub> is the combined weight of the loaded stacks):</p>
+<a class="reference internal image-reference" href="_images/boxstacks_axle_weight_2.png"><img alt="_images/boxstacks_axle_weight_2.png" class="align-center" src="_images/boxstacks_axle_weight_2.png" style="width: 700px;" />
+</a>
+<ul class="simple">
+<li><p>Whether the bin is a semi-trailer truck</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">IS_SEMI_TRAILER_TRUCK</span></code> in the bin CSV file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: bin is a semi-trailer truck; <code class="docutils literal notranslate"><span class="pre">0</span></code> or omitted: not a semi-trailer truck (no axle weight constraints)</p></li>
+</ul>
+</li>
+<li><p>The weight of the tractor</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">TRACTOR_WEIGHT</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The distance between the tractor’s front axle and its middle (drive) axle</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">FRONT_AXLE_MIDDLE_AXLE_DISTANCE</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The distance between the tractor’s front axle and the tractor’s center of gravity</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">FRONT_AXLE_TRACTOR_GRAVITY_CENTER_DISTANCE</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The distance between the tractor’s front axle and the harness (fifth-wheel coupling point)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">FRONT_AXLE_HARNESS_DISTANCE</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The weight of the empty trailer</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">EMPTY_TRAILER_WEIGHT</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The distance between the harness and the trailer’s rear axle</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">HARNESS_REAR_AXLE_DISTANCE</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The distance between the empty trailer’s center of gravity and its rear axle</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">TRAILER_GRAVITY_CENTER_REAR_AXLE_DISTANCE</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The distance between the start of the trailer’s cargo area (X = 0 in the item file) and the harness</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">TRAILER_START_HARNESS_DISTANCE</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The maximum weight allowed on the trailer’s rear axle</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">REAR_AXLE_MAXIMUM_WEIGHT</span></code></p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+<li><p>The maximum weight allowed on the tractor’s middle (drive) axle</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">MIDDLE_AXLE_MAXIMUM_WEIGHT</span></code></p></li>
+<li><p>default value: no limit</p></li>
+</ul>
+</li>
+</ul>
+<p>Loading cargo further toward the front of the trailer (closer to the harness) shifts more weight onto the tractor’s middle axle and less onto the trailer’s rear axle; loading further back does the opposite. The solver uses the combined weight and the X position of each stack’s center to compute the resulting middle and rear axle weights, and only accepts solutions that stay within the configured limits.</p>
+<p>The following example packs 19 copies of a 1200×1000×1200 item weighing 1200 and 19 copies of a 1200×1000×800 item weighing 800 — heights proportional to weight — into 13500×2440×2900 bins (38,000 of total weight) — dimensions and axle geometry matching a standard semi-trailer truck, as found in the reference instances under <code class="docutils literal notranslate"><span class="pre">data/boxstacks</span></code> — with up to 2 bins available (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective). Without <code class="docutils literal notranslate"><span class="pre">IS_SEMI_TRAILER_TRUCK</span></code> set, no axle limits apply, and all 38 items fit in a single bin, packed compactly from the front of the trailer (the shorter item even stacks 3 high there). Had the axle constraint been checked on that loading, it would put 23,499 on the middle axle — almost twice the 12,000 limit used below. Setting <code class="docutils literal notranslate"><span class="pre">IS_SEMI_TRAILER_TRUCK</span></code> to 1, with <code class="docutils literal notranslate"><span class="pre">MIDDLE_AXLE_MAXIMUM_WEIGHT</span></code> 12,000 and <code class="docutils literal notranslate"><span class="pre">REAR_AXLE_MAXIMUM_WEIGHT</span></code> 31,500, makes that loading infeasible: the solver instead places the lighter item toward the front of the trailer and the heavier item toward the back, shifting the load rearward until the middle axle drops to 11,991 and the rear axle rises to 31,256 — both just inside their limits. That rebalanced loading fits 35 of the 38 items (17 lighter, 18 heavier) in the first bin, so the remaining 3 (2 lighter, 1 heavier) need a second bin.</p>
+<table class="wide-table docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without axle constraints</p></th>
+<th class="head"><p>With axle constraints</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id44">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id44" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">WEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1200</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">19</span>
+<span class="mi">1200</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">800</span><span class="p">,</span><span class="mi">800</span><span class="p">,</span><span class="mi">19</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id45">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id45" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">WEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1200</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">1200</span><span class="p">,</span><span class="mi">19</span>
+<span class="mi">1200</span><span class="p">,</span><span class="mi">1000</span><span class="p">,</span><span class="mi">800</span><span class="p">,</span><span class="mi">800</span><span class="p">,</span><span class="mi">19</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id46">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id46" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">13500</span><span class="p">,</span><span class="mi">2440</span><span class="p">,</span><span class="mi">2900</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id47">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id47" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">COPIES</span><span class="p">,</span><span class="n">IS_SEMI_TRAILER_TRUCK</span><span class="p">,</span><span class="n">TRACTOR_WEIGHT</span><span class="p">,</span><span class="n">FRONT_AXLE_MIDDLE_AXLE_DISTANCE</span><span class="p">,</span><span class="n">FRONT_AXLE_TRACTOR_GRAVITY_CENTER_DISTANCE</span><span class="p">,</span><span class="n">FRONT_AXLE_HARNESS_DISTANCE</span><span class="p">,</span><span class="n">EMPTY_TRAILER_WEIGHT</span><span class="p">,</span><span class="n">HARNESS_REAR_AXLE_DISTANCE</span><span class="p">,</span><span class="n">TRAILER_GRAVITY_CENTER_REAR_AXLE_DISTANCE</span><span class="p">,</span><span class="n">TRAILER_START_HARNESS_DISTANCE</span><span class="p">,</span><span class="n">REAR_AXLE_MAXIMUM_WEIGHT</span><span class="p">,</span><span class="n">MIDDLE_AXLE_MAXIMUM_WEIGHT</span>
+<span class="mi">13500</span><span class="p">,</span><span class="mi">2440</span><span class="p">,</span><span class="mi">2900</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">7808</span><span class="p">,</span><span class="mi">3800</span><span class="p">,</span><span class="mi">1040</span><span class="p">,</span><span class="mi">3330</span><span class="p">,</span><span class="mi">7300</span><span class="p">,</span><span class="mi">7630</span><span class="p">,</span><span class="mi">2350</span><span class="p">,</span><span class="mi">1670</span><span class="p">,</span><span class="mi">31500</span><span class="p">,</span><span class="mi">12000</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id48">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id48" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id49">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id49" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_boxstacks<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/boxstacks_axle_weight_no.png"><img alt="boxstacks_axle_weight_no" src="_images/boxstacks_axle_weight_no.png" style="width: 400px;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/boxstacks_axle_weight_yes.png"><img alt="boxstacks_axle_weight_yes" src="_images/boxstacks_axle_weight_yes.png" style="width: 400px;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#box-vs-box-stacks">Box vs box-stacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#item-rotations">Item rotations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#nesting-height">Nesting height</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-number-of-items-in-a-stack-containing-an-item-of-a-given-type">Maximum number of items in a stack containing an item of a given type</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-weight-above-an-item">Maximum weight above an item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-stack-density">Maximum stack density</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#unloading-constraints">Unloading constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-weight-on-the-middle-and-rear-axles">Maximum weight on the middle and rear axles</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="internals/overview.html">Solver internals</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="irregular.html" title="irregular solver"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="box.html" title="box solver"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>irregular algorithms &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Generic algorithms" href="generic_algorithms.html" />
+    <link rel="prev" title="box-stacks algorithms" href="boxstacks.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="generic_algorithms.html" title="Generic algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="boxstacks.html" title="box-stacks algorithms"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="overview.html" accesskey="U">Solver internals</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="irregular-algorithms">
+<span id="internals-irregular"></span><h1><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms<a class="headerlink" href="#irregular-algorithms" title="Link to this heading">¶</a></h1>
+<p>See <a class="reference internal" href="../irregular.html#irregular"><span class="std std-ref">irregular</span></a> for the input/output format and CLI usage of this solver.</p>
+<section id="trivial-single-item">
+<h2>Trivial single item<a class="headerlink" href="#trivial-single-item" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective.</p>
+<p>This is not an algorithm aimed at generating real patterns. It is aimed at providing a fast debug routine to check if an item fits in at least one bin.</p>
+<p>It tries to place the item by aligning the center of its bounding box with the center of the bin’s bounding box, then validates (and, if needed, adjusts) the placement against the bin’s actual shape.</p>
+</section>
+<section id="tree-search">
+<h2>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>, <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code> objectives.</p>
+<p>It is a tree search algorithm where a single item is packed at each stage. The root node is an empty partial solution (no item packed). Given a node, a child node is generated for each feasible insertion of each unpacked item.</p>
+<p>It is a generalization of the tree search algorithm for <code class="code docutils literal notranslate"><span class="pre">rectangle</span></code>.</p>
+<a class="reference internal image-reference" href="../_images/irregular_tree_search.png"><img alt="../_images/irregular_tree_search.png" class="align-center" height="524" src="../_images/irregular_tree_search.png" width="774" />
+</a>
+</section>
+<section id="milp-raster">
+<h2>MILP raster<a class="headerlink" href="#milp-raster" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> and <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objectives.</p>
+<p>It rasterizes the bin and items onto a grid and solves the resulting placement problem as a mixed-integer linear program.</p>
+<a class="reference internal image-reference" href="../_images/irregular_milp_raster.png"><img alt="../_images/irregular_milp_raster.png" class="align-center" height="584" src="../_images/irregular_milp_raster.png" width="175" />
+</a>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>a set <span class="math notranslate nohighlight">\(G\)</span> of grid cells</p></li>
+<li><p>a set <span class="math notranslate nohighlight">\(P\)</span> of candidate placements; for each placement <span class="math notranslate nohighlight">\(p\)</span>, an item type <span class="math notranslate nohighlight">\(j(p)\)</span>, a profit <span class="math notranslate nohighlight">\(p_{j(p)}\)</span> and the set of cells <span class="math notranslate nohighlight">\(C_p \subseteq G\)</span> it covers</p></li>
+<li><p>item types <span class="math notranslate nohighlight">\(j = 1, \ldots, n\)</span>; for each item type <span class="math notranslate nohighlight">\(j\)</span>, a number of copies <span class="math notranslate nohighlight">\(q_j\)</span></p></li>
+</ul>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(x_p \in \{0, 1\}\)</span>, <span class="math notranslate nohighlight">\(p \in P\)</span>: <span class="math notranslate nohighlight">\(x_p = 1\)</span> iff placement <span class="math notranslate nohighlight">\(p\)</span> is selected</p></li>
+</ul>
+<p><strong>Objective</strong>: maximize the total profit of the placed items</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_{p} p_{j(p)} \, x_p\]</div>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Item copies: each item type is placed at most (<code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>) or exactly (<code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>) its number of copies</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall j \qquad \sum_{p \,:\, j(p) = j} x_p \le q_j\]</div>
+<ul class="simple">
+<li><p>Cell conflict: each grid cell is covered by at most one placement</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall c \in G \qquad \sum_{p \,:\, c \, \in \, C_p} x_p \le 1\]</div>
+<p>The algorithm starts with a coarse grid and iteratively halves the cell size, re-solving the model each time, until the time limit is reached.</p>
+</section>
+<section id="local-search">
+<h2>Local search<a class="headerlink" href="#local-search" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective.</p>
+<p>It works on a solution where all items are packed with overlap. At each iteration, it tries to reduce the overlap until no items overlap anymore and the solution becomes feasible.</p>
+<a class="reference internal image-reference" href="../_images/irregular_local_search.png"><img alt="../_images/irregular_local_search.png" class="align-center" height="284" src="../_images/irregular_local_search.png" width="124" />
+</a>
+</section>
+<section id="one-dimensional-bound">
+<h2>One-dimensional bound<a class="headerlink" href="#one-dimensional-bound" title="Link to this heading">¶</a></h2>
+<p>This algorithm computes a bound for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code>, <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> and <code class="code docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code> objectives.</p>
+<p>Relaxes the instance to a one-dimensional problem (each bin and item type keeps only its area) and solves it, which is much cheaper than solving the irregular problem itself. The resulting bin-packing / knapsack / variable-sized-bin-packing bound is a valid bound for the original instance, since no irregular packing can use less total area than this relaxation requires.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#milp-raster">MILP raster</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#local-search">Local search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="generic_algorithms.html" title="Generic algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="boxstacks.html" title="box-stacks algorithms"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="overview.html" >Solver internals</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

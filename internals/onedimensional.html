@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>one-dimensional algorithms &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="rectangle algorithms" href="rectangle.html" />
+    <link rel="prev" title="Solver internals" href="overview.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="rectangle.html" title="rectangle algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="Solver internals"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="overview.html" accesskey="U">Solver internals</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="one-dimensional-algorithms">
+<span id="internals-onedimensional"></span><h1><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms<a class="headerlink" href="#one-dimensional-algorithms" title="Link to this heading">¶</a></h1>
+<p>See <a class="reference internal" href="../onedimensional.html#onedimensional"><span class="std std-ref">onedimensional</span></a> for the input/output format and CLI usage of this solver.</p>
+<section id="dynamic-programming-for-the-classical-0-1-knapsack-problem">
+<h2>Dynamic programming for the classical 0-1 knapsack problem<a class="headerlink" href="#dynamic-programming-for-the-classical-0-1-knapsack-problem" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective.</p>
+<p>It ignores all the constraints except the capacity constraint and solves the problem as a classical 0-1 knapsack problem using the primal-dual dynamic programming algorithm.
+Afterwards, it checks if the returned solution satisfies the other constraints previously ignored. If so, the solution is stored and is actually optimal.</p>
+<p>Thus, if the instance to solve is a classical 0-1 knapsack problem, it is solved optimally. And even if it is not, as long as in practice only the capacity constraint is active for this instance, it still gets solved very quickly to proven optimality. Otherwise, the running time of this algorithm remains small compared to the time of the other algorithms that will be executed instead. Therefore, the overhead is not significant.</p>
+<p>Reference:</p>
+<ul class="simple">
+<li><p>“A Minimal Algorithm for the 0-1 Knapsack Problem” (Pisinger, 1997)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/opre.45.5.758">https://doi.org/10.1287/opre.45.5.758</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="tree-search">
+<h2>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>, <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objectives.</p>
+<p>It is a tree search algorithm where a single item is packed at each stage. The root node is an empty partial solution (no item packed). Given a node, a child node is generated for each feasible insertion of an unpacked item after the last one inserted, either in the same bin or in a new bin.</p>
+<a class="reference internal image-reference" href="../_images/onedimensional_tree_search.png"><img alt="../_images/onedimensional_tree_search.png" class="align-center" height="446" src="../_images/onedimensional_tree_search.png" width="684" />
+</a>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dynamic-programming-for-the-classical-0-1-knapsack-problem">Dynamic programming for the classical 0-1 knapsack problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tree-search">Tree search</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="rectangle.html" title="rectangle algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="Solver internals"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="overview.html" >Solver internals</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

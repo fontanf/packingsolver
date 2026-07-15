@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>rectangle algorithms &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="rectangle-guillotine algorithms" href="rectangleguillotine.html" />
+    <link rel="prev" title="one-dimensional algorithms" href="onedimensional.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="rectangleguillotine.html" title="rectangle-guillotine algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="onedimensional.html" title="one-dimensional algorithms"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="overview.html" accesskey="U">Solver internals</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="rectangle-algorithms">
+<span id="internals-rectangle"></span><h1><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms<a class="headerlink" href="#rectangle-algorithms" title="Link to this heading">¶</a></h1>
+<p>See <a class="reference internal" href="../rectangle.html#rectangle"><span class="std std-ref">rectangle</span></a> for the input/output format and CLI usage of this solver.</p>
+<section id="tree-search">
+<span id="internals-rectangle-tree-search"></span><h2>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code>, <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-x</span></code>, <code class="code docutils literal notranslate"><span class="pre">open-dimension-y</span></code>, <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> and <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objectives.</p>
+<p>It is a tree search algorithm where a single item is packed at each stage. The root node is an empty partial solution (no item packed). Given a node, a child node is generated for each feasible insertion of each unpacked item, either in the same bin or in a new bin.</p>
+<p>The possible insertions for an unpacked item are the ones where the new item is packed above either a packed item or the bottom of the bin, then shifted right until it intersects no packed item.</p>
+<a class="reference internal image-reference" href="../_images/rectangle_tree_search.png"><img alt="../_images/rectangle_tree_search.png" class="align-center" height="524" src="../_images/rectangle_tree_search.png" width="564" />
+</a>
+</section>
+<section id="tree-search-with-maximal-spaces">
+<span id="internals-rectangle-tree-search-maximal-spaces"></span><h2>Tree search with maximal spaces<a class="headerlink" href="#tree-search-with-maximal-spaces" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> and <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objectives with a single bin.
+It doesn’t support unloading constraints.</p>
+<p>It is a tree search algorithm where multiple items are packed at each stage.</p>
+<p>In a first step, some blocks of items are generated. Blocks may contain a single item, multiple items of the same type, or multiple items of different types. Here is an example of block generation from 4 items:</p>
+<a class="reference internal image-reference" href="../_images/rectangle_tree_search_maximal_spaces_1.png"><img alt="../_images/rectangle_tree_search_maximal_spaces_1.png" class="align-center" height="534" src="../_images/rectangle_tree_search_maximal_spaces_1.png" width="354" />
+</a>
+<p>In a node of the branching scheme, all maximal empty rectangles are stored. To generate the children of a node, a maximal empty rectangle is first selected, then one child is generated for each remaining block that fits inside the considered space.</p>
+<p>At the root node, the only maximal empty rectangle is the bin itself, so one child is generated per candidate block, placed in its bottom-left corner:</p>
+<a class="reference internal image-reference" href="../_images/rectangle_tree_search_maximal_spaces_2.png"><img alt="../_images/rectangle_tree_search_maximal_spaces_2.png" class="align-center" height="724" src="../_images/rectangle_tree_search_maximal_spaces_2.png" width="564" />
+</a>
+<p>Placing a block can leave more than one maximal empty rectangle: after placing the block containing item <code class="docutils literal notranslate"><span class="pre">1</span></code> in the bottom-left corner, both the strip above it and the strip to its right are maximal empty rectangles, and both are stored in the node:</p>
+<a class="reference internal image-reference" href="../_images/rectangle_tree_search_maximal_spaces_3.png"><img alt="../_images/rectangle_tree_search_maximal_spaces_3.png" class="align-center" height="124" src="../_images/rectangle_tree_search_maximal_spaces_3.png" width="364" />
+</a>
+<p>When generating the children of this node, one of these maximal empty rectangles is selected, and one child is generated per remaining block that fits inside:</p>
+<a class="reference internal image-reference" href="../_images/rectangle_tree_search_maximal_spaces_4.png"><img alt="../_images/rectangle_tree_search_maximal_spaces_4.png" class="align-center" height="564" src="../_images/rectangle_tree_search_maximal_spaces_4.png" width="364" />
+</a>
+<p>References:</p>
+<ul class="simple">
+<li><p>“A beam search algorithm for the biobjective container loading problem” (Araya, Moyano and Sanchez, 2020)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.ejor.2020.03.040">https://doi.org/10.1016/j.ejor.2020.03.040</a></p></li>
+</ul>
+</li>
+<li><p>“A tree search-based heuristic for the three-dimensional single container loading problem” (Guesser, Alves De Queiroz and Miyazawa, 2026)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.ejor.2026.01.039">https://doi.org/10.1016/j.ejor.2026.01.039</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="benders-decomposition">
+<h2>Benders decomposition<a class="headerlink" href="#benders-decomposition" title="Link to this heading">¶</a></h2>
+<p>This algorithm solves the <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> objective.</p>
+<p>It solves the mixed-integer linear programming model where the geometrical constraints have been removed, only keeping the constraint that the selected items must fit in the bin area.</p>
+<p><strong>Input</strong>:</p>
+<ul class="simple">
+<li><p>item types <span class="math notranslate nohighlight">\(j = 1, \ldots, n\)</span>; for each item type <span class="math notranslate nohighlight">\(j\)</span>:</p>
+<ul>
+<li><p>a profit <span class="math notranslate nohighlight">\(p_j\)</span></p></li>
+<li><p>an area <span class="math notranslate nohighlight">\(a_j\)</span></p></li>
+<li><p>a maximum number of copies <span class="math notranslate nohighlight">\(q_j\)</span> that could possibly fit in the bin</p></li>
+</ul>
+</li>
+<li><p>a bin area <span class="math notranslate nohighlight">\(A\)</span></p></li>
+<li><p>a set <span class="math notranslate nohighlight">\(\mathcal{C}\)</span> of previously rejected item selections (the no-good cuts found so far, initially empty)</p></li>
+</ul>
+<p><strong>Variables</strong>:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(x_{j,c} \in \{0, 1\}\)</span>, <span class="math notranslate nohighlight">\(j = 1, \ldots, n\)</span>, <span class="math notranslate nohighlight">\(c = 1, \ldots, q_j\)</span>: <span class="math notranslate nohighlight">\(x_{j,c} = 1\)</span> iff the <span class="math notranslate nohighlight">\(c\)</span>-th copy of item type <span class="math notranslate nohighlight">\(j\)</span> is selected, otherwise <span class="math notranslate nohighlight">\(0\)</span>.</p></li>
+</ul>
+<p><strong>Objective</strong>: maximize the total profit of the selected items</p>
+<div class="math notranslate nohighlight">
+\[\max \sum_{j} \sum_{c} p_j \, x_{j,c}\]</div>
+<p><strong>Constraints</strong>:</p>
+<ul class="simple">
+<li><p>Bin area: the selected items must fit in the bin area</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\sum_{j} \sum_{c} a_j \, x_{j,c} \le A\]</div>
+<ul class="simple">
+<li><p>Ordered copies: the copies of an item type are selected in order</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall j \quad \forall c = 1, \ldots, q_j - 1 \qquad x_{j,c+1} \le x_{j,c}\]</div>
+<ul class="simple">
+<li><p>No-good cuts: one per previously rejected selection <span class="math notranslate nohighlight">\(S \in \mathcal{C}\)</span>, forbidding that exact same combination of items from being selected again</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\forall S \in \mathcal{C} \qquad \sum_{(j,c) \, \in \, S} x_{j,c} \le |S| - 1\]</div>
+<p>At each iteration, the model above is solved, giving a candidate item selection. A <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> subproblem is then solved to check whether there exists a packing with the same items that satisfies the geometrical constraints ignored in the model. If yes, the algorithm stops: the candidate selection is an optimal solution. Otherwise, the candidate selection is added to <span class="math notranslate nohighlight">\(\mathcal{C}\)</span> as a new no-good cut, and the model is solved again.</p>
+<p>In the example below, the bin has an area of 15 and items <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code> and <code class="docutils literal notranslate"><span class="pre">3</span></code> have an area of 6, 6 and 3 respectively – exactly matching the bin area when all three are selected. At iteration 1, with no cuts yet, the model selects all three items (the only selection reaching the maximum possible area, 15). This selection turns out to be infeasible: items <code class="docutils literal notranslate"><span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">2</span></code> already leave no room for item <code class="docutils literal notranslate"><span class="pre">3</span></code>. A no-good cut excluding this exact combination is then added, and at iteration 2 the model selects items <code class="docutils literal notranslate"><span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">2</span></code> only (area 12), which is feasible:</p>
+<a class="reference internal image-reference" href="../_images/rectangle_benders_decomposition.png"><img alt="../_images/rectangle_benders_decomposition.png" class="align-center" height="594" src="../_images/rectangle_benders_decomposition.png" width="684" />
+</a>
+<p>References:</p>
+<ul class="simple">
+<li><p>“On the Two-Dimensional Knapsack Problem” (Caprara and Monaci, 2004)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/S0167-6377(03)00057-9">https://doi.org/10.1016/S0167-6377(03)00057-9</a></p></li>
+</ul>
+</li>
+<li><p>“A Cutting-Plane Approach for the Two-Dimensional Orthogonal Non-Guillotine Cutting Problem” (Baldacci and Boschetti, 2007)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.ejor.2005.11.060">https://doi.org/10.1016/j.ejor.2005.11.060</a></p></li>
+</ul>
+</li>
+<li><p>“Combinatorial Benders Decomposition for the Two-Dimensional Bin Packing Problem” (Côté, Haouari and Iori, 2021)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1287/ijoc.2020.1014">https://doi.org/10.1287/ijoc.2020.1014</a></p></li>
+</ul>
+</li>
+<li><p>“Optimisation de plans de palettisation hétérogène” (Le Jean, 2021, PhD thesis, Université Grenoble Alpes)</p>
+<ul>
+<li><p><a class="reference external" href="https://theses.fr/2021GRALM032">https://theses.fr/2021GRALM032</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="dual-feasible-functions">
+<span id="internals-rectangle-dual-feasible-functions"></span><h2>Dual feasible functions<a class="headerlink" href="#dual-feasible-functions" title="Link to this heading">¶</a></h2>
+<p>This algorithm computes a bound for the <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective.</p>
+<p>It builds dominated instances in the sense that every feasible solution of the original instance is also feasible for the equivalent instances; however, computing the classical bound on these instances may lead to different values, sometimes better, which remain valid bounds for the original instance.</p>
+<p>In the example below, the bin is 10x6 and there are two copies each of items <code class="docutils literal notranslate"><span class="pre">1</span></code> (6x4), <code class="docutils literal notranslate"><span class="pre">2</span></code> (4x6) and <code class="docutils literal notranslate"><span class="pre">3</span></code> (4x3). Every pair of these items fits together in the bin, so the naive bound based on the total item area (2x(24+24+12) = 120, divided by the bin area 60, rounded up) is only 2:</p>
+<a class="reference internal image-reference" href="../_images/rectangle_dual_feasible_functions_1.png"><img alt="../_images/rectangle_dual_feasible_functions_1.png" class="align-center" height="524" src="../_images/rectangle_dual_feasible_functions_1.png" width="644" />
+</a>
+<p>We apply the following transformation:</p>
+<ul class="simple">
+<li><p>For every item with height <span class="math notranslate nohighlight">\(\geq 4\)</span>, change its height to <span class="math notranslate nohighlight">\(6\)</span></p></li>
+<li><p>Remove every item with height <span class="math notranslate nohighlight">\(\leq 2\)</span></p></li>
+</ul>
+<p>Every feasible solution for the original instance is feasible for the modified instance: when the height of an item with height <span class="math notranslate nohighlight">\(\geq 4\)</span> is increased, every item it might intersect necessarily has height <span class="math notranslate nohighlight">\(\leq 2\)</span>, and is therefore among the removed items.</p>
+<p>Only item <code class="docutils literal notranslate"><span class="pre">1</span></code> is affected by the transformation: its height becomes 6. Here is the dominated instance:</p>
+<a class="reference internal image-reference" href="../_images/rectangle_dual_feasible_functions_2.png"><img alt="../_images/rectangle_dual_feasible_functions_2.png" class="align-center" height="524" src="../_images/rectangle_dual_feasible_functions_2.png" width="644" />
+</a>
+<p>Here, the naive area bound computed on the dominated instance (2x(36+24+12) = 144, divided by 60, rounded up) is 3 – which turns out to be tight: the original instance does require 3 bins.</p>
+<p>References:</p>
+<ul class="simple">
+<li><p>“New reduction procedures and lower bounds for the two-dimensional bin packing problem with fixed orientation” (Carlier, Clautiaux and Moukrim, 2007)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.cor.2005.08.012">https://doi.org/10.1016/j.cor.2005.08.012</a></p></li>
+</ul>
+</li>
+<li><p>“A new lower bound for the non-oriented two-dimensional bin-packing problem” (Clautiaux, Jouglet and El Hayek, 2007)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.orl.2006.07.001">https://doi.org/10.1016/j.orl.2006.07.001</a></p></li>
+</ul>
+</li>
+<li><p>“Heuristic approaches for the two- and three-dimensional knapsack packing problem” (Egeblad and Pisinger, 2009)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.cor.2007.12.004">https://doi.org/10.1016/j.cor.2007.12.004</a></p></li>
+</ul>
+</li>
+<li><p>“A theoretical and experimental study of fast lower bounds for the two-dimensional bin packing problem” (Serairi and Haouari, 2018)</p>
+<ul>
+<li><p><a class="reference external" href="https://doi.org/10.1051/ro/2017019">https://doi.org/10.1051/ro/2017019</a></p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="overview.html">Solver internals</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tree-search">Tree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="rectangleguillotine.html" title="rectangle-guillotine algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="onedimensional.html" title="one-dimensional algorithms"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="overview.html" >Solver internals</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

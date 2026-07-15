@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Solver internals &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a00afc7f" />
+    
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="one-dimensional algorithms" href="onedimensional.html" />
+    <link rel="prev" title="irregular solver" href="../irregular.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="onedimensional.html" title="one-dimensional algorithms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../irregular.html" title="irregular solver"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Solver internals</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="solver-internals">
+<span id="internals-overview"></span><h1>Solver internals<a class="headerlink" href="#solver-internals" title="Link to this heading">¶</a></h1>
+<p>This section is not necessary to use the solver. It is aimed at people interested in understanding how the solver works under the hood. It assumes the reader is familiar with standard approaches to solving optimization problems (mathematical programming, tree search, local search, etc.).</p>
+<p>To solve the wide range of problem types and features it supports, <cite>PackingSolver</cite> integrates multiple algorithms, some of which interact with each other. First, let’s distinguish between the pattern-generating algorithms and the generic algorithms.</p>
+<p>The <strong>pattern-generating algorithms</strong> are specific to a given problem type and generate an actual pattern. They may only solve the <code class="code docutils literal notranslate"><span class="pre">feasibility</span></code> objective, but usually also handle other objectives such as <code class="code docutils literal notranslate"><span class="pre">knapsack</span></code> or <code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> directly.</p>
+<p>The <strong>generic algorithms</strong> are not specific to any problem type. They implement generic strategies that rely on the pattern-generating algorithms to solve sub-problems.</p>
+<p>Even for a specific problem variant, different algorithms may work best depending on the characteristics of the instance. Therefore, <cite>PackingSolver</cite> includes multiple algorithms and <strong>selects</strong> the right ones to run based on the instance’s characteristics.</p>
+<p>The first sections of this part of the documentation describe the pattern-generating algorithms for each problem type. Then the generic algorithms are documented. Finally, the last section describes how algorithm selection works.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="onedimensional.html#dynamic-programming-for-the-classical-0-1-knapsack-problem">Dynamic programming for the classical 0-1 knapsack problem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="onedimensional.html#tree-search">Tree search</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rectangle.html#tree-search">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangle.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangle.html#benders-decomposition">Benders decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangle.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html#tree-search">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html#column-generation-strips">Column generation strips</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html#sequential-strips-one-dimensional">Sequential strips / one-dimensional</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html#tree-search-hypergraph">Tree search hypergraph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html#tree-search-hypergraph-with-infinite-copies">Tree search hypergraph with infinite copies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html#dual-feasible-functions">Dual feasible functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="box.html#tree-search">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="box.html#tree-search-with-maximal-spaces">Tree search with maximal spaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="boxstacks.html#sequential-one-dimensional-rectangle">Sequential one-dimensional / rectangle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxstacks.html#tree-search">Tree search</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="irregular.html#trivial-single-item">Trivial single item</a></li>
+<li class="toctree-l2"><a class="reference internal" href="irregular.html#tree-search">Tree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="irregular.html#milp-raster">MILP raster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="irregular.html#local-search">Local search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="irregular.html#one-dimensional-bound">One-dimensional bound</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="generic_algorithms.html">Generic algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html#sequential-single-knapsack">Sequential single knapsack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html#sequential-value-correction">Sequential value correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html#dichotomic-search">Dichotomic search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html#column-generation">Column generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html#sequential-feasibility">Sequential feasibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</div>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Solver internals</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rectangleguillotine.html"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generic_algorithms.html">Generic algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="algorithm_selection.html">Algorithm selection</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="onedimensional.html" title="one-dimensional algorithms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../irregular.html" title="irregular solver"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">PackingSolver</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Solver internals</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>

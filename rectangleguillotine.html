@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>rectangle-guillotine solver &#8212; PackingSolver</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=14e077c0" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a00afc7f" />
+    
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="box solver" href="box.html" />
+    <link rel="prev" title="rectangle solver" href="rectangle.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="box.html" title="box solver"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="rectangle.html" title="rectangle solver"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="rectangle-guillotine-solver">
+<span id="rectangleguillotine"></span><h1><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver<a class="headerlink" href="#rectangle-guillotine-solver" title="Link to this heading">¶</a></h1>
+<p>The <code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver solves problems where items are two-dimensional rectangles that must be cut from rectangular bins using <strong>guillotine cuts</strong> — cuts that go all the way from one side of the current plate to the other.</p>
+<a class="reference internal image-reference" href="_images/rectangleguillotine.png"><img alt="_images/rectangleguillotine.png" class="align-center" src="_images/rectangleguillotine.png" style="width: 512pt;" />
+</a>
+<p>These problems occur for example in glass cutting, wooden panel cutting, and paper cutting industries.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Objectives:</p>
+<ul>
+<li><p>Knapsack</p></li>
+<li><p>Bin packing</p></li>
+<li><p>Bin packing with leftovers</p></li>
+<li><p>Open dimension X</p></li>
+<li><p>Open dimension Y</p></li>
+<li><p>Variable-sized bin packing</p></li>
+</ul>
+</li>
+<li><p>Item types</p>
+<ul>
+<li><p>Item rotation (90°)</p></li>
+<li><p>Stacks (items that must stay grouped)</p></li>
+</ul>
+</li>
+<li><p>Bin types</p>
+<ul>
+<li><p>Trims (border offsets on each side)</p></li>
+<li><p>Rectangular defects</p></li>
+</ul>
+</li>
+<li><p>Cutting constraints</p>
+<ul>
+<li><p>Number of cutting stages</p></li>
+<li><p>Cut type (Roadef2018, NonExact, Exact, Homogenous)</p></li>
+<li><p>First stage orientation (horizontal or vertical)</p></li>
+<li><p>Minimum and maximum distances between cuts</p></li>
+<li><p>Maximum number of consecutive 1-cuts</p></li>
+<li><p>Maximum number of consecutive 2-cuts</p></li>
+<li><p>Cut thickness</p></li>
+</ul>
+</li>
+</ul>
+<section id="guillotine-vs-non-guillotine-patterns">
+<h2>Guillotine vs non-guillotine patterns<a class="headerlink" href="#guillotine-vs-non-guillotine-patterns" title="Link to this heading">¶</a></h2>
+<p>A cutting pattern is a <strong>guillotine pattern</strong> if it can be produced by a sequence of straight cuts, each going all the way from one edge of the current plate to the opposite edge. The number of cutting stages of a pattern is the number of sets of parallel cuts necessary to extract all the items from the pattern. Here is an example of a 4-staged pattern:</p>
+<a class="reference internal image-reference" href="_images/rectangleguillotine_number_of_stages.png"><img alt="_images/rectangleguillotine_number_of_stages.png" class="align-center" height="751" src="_images/rectangleguillotine_number_of_stages.png" width="771" />
+</a>
+<p>A pattern that cannot be produced this way, however the items are arranged, is a <strong>non-guillotine pattern</strong>.</p>
+<p>The <code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver only produces guillotine patterns. Problems where non-guillotine patterns are required (or simply allowed) should instead be modeled with the <a class="reference internal" href="rectangle.html#rectangle"><span class="std std-ref">rectangle</span></a> solver, which places items freely.</p>
+<p>The following example solves the same instance — four items of clearly different shapes (8×3, 4×5, 5×4 and 7×6) arranged in a “pinwheel” around a tiny unused central rectangle — with both solvers (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective). The <code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver, which is free to produce non-guillotine patterns, packs all 4 items into a single 12×9 bin using the pinwheel arrangement, leaving almost no waste. The <code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver cannot reproduce this pattern with straight cuts, however the items are arranged, so it needs a second bin.</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">8</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">7</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">12</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id3" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">rectangle</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangle<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_images/rectangleguillotine_guillotine_vs_non_guillotine_rectangle.png"><img alt="rectangleguillotine_gvng_rectangle" height="350" src="_images/rectangleguillotine_guillotine_vs_non_guillotine_rectangle.png" width="400" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_guillotine_vs_non_guillotine_rectangleguillotine.png"><img alt="rectangleguillotine_gvng_rectangleguillotine" height="530" src="_images/rectangleguillotine_guillotine_vs_non_guillotine_rectangleguillotine.png" width="400" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Link to this heading">¶</a></h2>
+<p>The <code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver takes as input:</p>
+<ul class="simple">
+<li><p>an item CSV file; option: <code class="docutils literal notranslate"><span class="pre">--items</span> <span class="pre">items.csv</span></code></p></li>
+<li><p>a bin CSV file; option: <code class="docutils literal notranslate"><span class="pre">--bins</span> <span class="pre">bins.csv</span></code></p></li>
+<li><p>optionally a defect CSV file; option: <code class="docutils literal notranslate"><span class="pre">--defects</span> <span class="pre">defects.csv</span></code></p></li>
+<li><p>optionally a parameter CSV file; option: <code class="docutils literal notranslate"><span class="pre">--parameters</span> <span class="pre">parameters.csv</span></code></p></li>
+</ul>
+<p>It outputs:</p>
+<ul class="simple">
+<li><p>a solution CSV file; option: <code class="docutils literal notranslate"><span class="pre">--certificate</span> <span class="pre">solution.csv</span></code></p></li>
+</ul>
+<p>The <strong>item file</strong> contains:</p>
+<ul class="simple">
+<li><p>The width of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WIDTH</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The height of the item type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">HEIGHT</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the item type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>The profit of an item of this type (for a knapsack objective)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">PROFIT</span></code></p></li>
+<li><p>default value: item area (<code class="docutils literal notranslate"><span class="pre">WIDTH</span> <span class="pre">*</span> <span class="pre">HEIGHT</span></code>)</p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>bin file</strong> contains:</p>
+<ul class="simple">
+<li><p>The width of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WIDTH</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The height of the bin type (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">HEIGHT</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The number of copies of the bin type</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+</li>
+<li><p>The minimum number of copies that must be used</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COPIES_MIN</span></code></p></li>
+<li><p>default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>The cost of a bin of this type (for a variable-sized bin packing objective)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">COST</span></code></p></li>
+<li><p>default value: bin area</p></li>
+</ul>
+</li>
+</ul>
+<p>The <strong>parameter file</strong> has two columns: <code class="docutils literal notranslate"><span class="pre">NAME</span></code> and <code class="docutils literal notranslate"><span class="pre">VALUE</span></code>. The possible entries are:</p>
+<ul class="simple">
+<li><p>The objective; name: <code class="docutils literal notranslate"><span class="pre">objective</span></code>; possible values:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">knapsack</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-x</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">open-dimension-y</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variable-sized-bin-packing</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Inputs:</p>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id4" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">250</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span>
+<span class="mi">150</span><span class="p">,</span><span class="mi">300</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span>
+<span class="mi">200</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id5" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">1000</span><span class="p">,</span><span class="mi">700</span><span class="p">,</span><span class="mi">5</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id6" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+</pre></div>
+</div>
+</div>
+<p>Solve:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">=================================</span>
+          <span class="n">PackingSolver</span>          
+<span class="o">=================================</span>
+
+<span class="n">Problem</span> <span class="nb">type</span>
+<span class="o">------------</span>
+<span class="n">RectangleGuillotine</span>
+
+<span class="n">Instance</span>
+<span class="o">--------</span>
+<span class="n">Objective</span><span class="p">:</span>                             <span class="n">BinPackingWithLeftovers</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">item</span> <span class="n">types</span><span class="p">:</span>                  <span class="mi">3</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>                       <span class="mi">7</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="nb">bin</span> <span class="n">types</span><span class="p">:</span>                   <span class="mi">1</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>                        <span class="mi">5</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">stacks</span><span class="p">:</span>                      <span class="mi">3</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">defects</span><span class="p">:</span>                     <span class="mi">0</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">stages</span><span class="p">:</span>                      <span class="mi">3</span>
+<span class="n">Cut</span> <span class="nb">type</span><span class="p">:</span>                              <span class="n">NonExact</span>
+<span class="n">First</span> <span class="n">stage</span> <span class="n">orientation</span><span class="p">:</span>               <span class="n">Vertical</span>
+<span class="n">Minimum</span> <span class="n">distance</span> <span class="n">between</span> <span class="mi">1</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>       <span class="mi">0</span>
+<span class="n">Maximum</span> <span class="n">distance</span> <span class="n">between</span> <span class="mi">1</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>       <span class="o">-</span><span class="mi">1</span>
+<span class="n">Minimum</span> <span class="n">distance</span> <span class="n">between</span> <span class="mi">2</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>       <span class="mi">0</span>
+<span class="n">Maximum</span> <span class="n">distance</span> <span class="n">between</span> <span class="mi">2</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>       <span class="o">-</span><span class="mi">1</span>
+<span class="n">Minimum</span> <span class="n">waste</span> <span class="n">length</span><span class="p">:</span>                  <span class="mi">0</span>
+<span class="n">Maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">consecutive</span> <span class="mi">1</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>  <span class="o">-</span><span class="mi">1</span>
+<span class="n">Maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">consecutive</span> <span class="mi">2</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>  <span class="o">-</span><span class="mi">1</span>
+<span class="n">Cut</span> <span class="n">through</span> <span class="n">defects</span><span class="p">:</span>                   <span class="mi">0</span>
+<span class="n">Cut</span> <span class="n">thickness</span><span class="p">:</span>                         <span class="mi">0</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">area</span><span class="p">:</span>                       <span class="mi">280000</span>
+<span class="n">Total</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>                     <span class="mi">280000</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">profit</span><span class="p">:</span>                   <span class="mi">50000</span>
+<span class="n">Largest</span> <span class="n">item</span> <span class="n">copies</span><span class="p">:</span>                   <span class="mi">3</span>
+<span class="n">Total</span> <span class="nb">bin</span> <span class="n">area</span><span class="p">:</span>                        <span class="mi">3500000</span>
+<span class="n">Largest</span> <span class="nb">bin</span> <span class="n">cost</span><span class="p">:</span>                      <span class="mi">700000</span>
+
+        <span class="n">Time</span>      <span class="c1"># bins       Waste   Waste (%)                         Comment</span>
+        <span class="o">----</span>      <span class="o">------</span>       <span class="o">-----</span>   <span class="o">---------</span>                         <span class="o">-------</span>
+       <span class="mf">0.000</span>           <span class="mi">1</span>      <span class="mi">210000</span>       <span class="mf">42.86</span>           <span class="n">TS</span> <span class="n">g</span> <span class="mi">1</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.000</span>           <span class="mi">1</span>      <span class="mi">175000</span>       <span class="mf">38.46</span>           <span class="n">TS</span> <span class="n">g</span> <span class="mi">1</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.001</span>           <span class="mi">1</span>       <span class="mi">70000</span>       <span class="mf">20.00</span>           <span class="n">TS</span> <span class="n">g</span> <span class="mi">1</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">1</span>
+       <span class="mf">0.002</span>           <span class="mi">1</span>       <span class="mi">35000</span>       <span class="mf">11.11</span>          <span class="n">TS</span> <span class="n">g</span> <span class="mi">1</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">19</span>
+       <span class="mf">0.010</span>           <span class="mi">1</span>       <span class="mi">35000</span>       <span class="mf">11.11</span>         <span class="n">TS</span> <span class="n">g</span> <span class="mi">0</span> <span class="n">d</span> <span class="n">Vertical</span> <span class="n">q</span> <span class="mi">211</span>
+
+<span class="n">Final</span> <span class="n">statistics</span>
+<span class="o">----------------</span>
+<span class="n">Time</span> <span class="p">(</span><span class="n">s</span><span class="p">):</span>  <span class="mf">5.00008</span>
+
+<span class="n">Solution</span>
+<span class="o">--------</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">items</span><span class="p">:</span>           <span class="mi">7</span> <span class="o">/</span> <span class="mi">7</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">area</span><span class="p">:</span>                 <span class="mi">280000</span> <span class="o">/</span> <span class="mi">280000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Item</span> <span class="n">profit</span><span class="p">:</span>               <span class="mi">280000</span> <span class="o">/</span> <span class="mi">280000</span> <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">bins</span><span class="p">:</span>            <span class="mi">1</span> <span class="o">/</span> <span class="mi">5</span> <span class="p">(</span><span class="mi">20</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">different</span> <span class="n">bins</span><span class="p">:</span>  <span class="mi">1</span>
+<span class="n">Bin</span> <span class="n">area</span><span class="p">:</span>                  <span class="mi">700000</span> <span class="o">/</span> <span class="mi">3500000</span> <span class="p">(</span><span class="mi">20</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Bin</span> <span class="n">cost</span><span class="p">:</span>                  <span class="mi">700000</span>
+<span class="n">Cutting</span> <span class="n">cost</span><span class="p">:</span>              <span class="mi">0</span>
+<span class="n">Waste</span><span class="p">:</span>                     <span class="mi">35000</span> <span class="p">(</span><span class="mf">11.1111</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Full</span> <span class="n">waste</span><span class="p">:</span>                <span class="mi">420000</span> <span class="p">(</span><span class="mi">60</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Width</span><span class="p">:</span>                     <span class="mi">450</span>
+<span class="n">Height</span><span class="p">:</span>                    <span class="mi">700</span>
+<span class="n">Second</span> <span class="n">leftover</span> <span class="n">value</span><span class="p">:</span>     <span class="mi">15000</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">stages</span><span class="p">:</span>          <span class="mi">3</span>
+<span class="n">Feasible</span><span class="p">:</span>                  <span class="mi">1</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">stages</span><span class="p">:</span>      <span class="mi">1</span>
+    <span class="n">Min</span><span class="o">.</span> <span class="n">waste</span> <span class="n">length</span><span class="p">:</span>     <span class="mi">1</span>
+    <span class="n">Min</span><span class="o">.</span> <span class="n">dist</span><span class="o">.</span> <span class="mi">1</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>     <span class="mi">1</span>
+    <span class="n">Max</span><span class="o">.</span> <span class="n">dist</span><span class="o">.</span> <span class="mi">1</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>     <span class="mi">1</span>
+    <span class="n">Min</span><span class="o">.</span> <span class="n">dist</span><span class="o">.</span> <span class="mi">2</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>     <span class="mi">1</span>
+    <span class="n">Max</span><span class="o">.</span> <span class="n">dist</span><span class="o">.</span> <span class="mi">2</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>     <span class="mi">1</span>
+    <span class="n">Max</span><span class="o">.</span> <span class="n">no</span><span class="o">.</span> <span class="mi">1</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>       <span class="mi">1</span>
+    <span class="n">Max</span><span class="o">.</span> <span class="n">no</span><span class="o">.</span> <span class="mi">2</span><span class="o">-</span><span class="n">cuts</span><span class="p">:</span>       <span class="mi">1</span>
+    <span class="n">Stacks</span><span class="p">:</span>                <span class="mi">1</span>
+    <span class="n">Defects</span><span class="p">:</span>               <span class="mi">1</span>
+    <span class="n">Cut</span> <span class="n">through</span> <span class="n">defects</span><span class="p">:</span>   <span class="mi">1</span>
+    <span class="n">Item</span> <span class="n">copies</span><span class="p">:</span>           <span class="mi">1</span>
+</pre></div>
+</div>
+<p>Visualize:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/visualize_rectangleguillotine.py<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/rectangleguillotine_example_solution.png"><img alt="_images/rectangleguillotine_example_solution.png" class="align-center" src="_images/rectangleguillotine_example_solution.png" style="width: 512pt;" />
+</a>
+</section>
+<section id="maximum-number-of-cutting-stages">
+<h2>Maximum number of cutting stages<a class="headerlink" href="#maximum-number-of-cutting-stages" title="Link to this heading">¶</a></h2>
+<p>The maximum number of stages may be constrained.</p>
+<ul class="simple">
+<li><p>The number of cutting stages; name: <code class="docutils literal notranslate"><span class="pre">number_of_stages</span></code>; default value: <code class="docutils literal notranslate"><span class="pre">3</span></code></p></li>
+</ul>
+<p>The following example packs 24 items (12 item types) into 80×40 bins with <code class="docutils literal notranslate"><span class="pre">cut_type</span></code> set to <code class="docutils literal notranslate"><span class="pre">exact</span></code>, <code class="docutils literal notranslate"><span class="pre">first_stage_orientation</span></code> set to <code class="docutils literal notranslate"><span class="pre">vertical</span></code> and the <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objective. Since items must fill their sub-plate exactly at the last stage, the number of stages directly limits how tightly they can be nested. With only 2 stages, that requirement leaves so much waste that a third bin is needed (3 bins, 40.15% waste). Adding a third stage is already enough to fit everything into 2 bins, with far less waste (10.44%):</p>
+<div class="literal-block-wrapper docutils container" id="id7">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id7" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">23</span><span class="p">,</span><span class="mi">23</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">19</span><span class="p">,</span><span class="mi">19</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">17</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">13</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">13</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">13</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">12</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">9</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">11</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">13</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">7</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id8">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id8" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">80</span><span class="p">,</span><span class="mi">40</span><span class="p">,</span><span class="mi">7</span>
+</pre></div>
+</div>
+</div>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>2 stages</p></th>
+<th class="head"><p>3 stages</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id9">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id9" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">2</span>
+<span class="n">cut_type</span><span class="p">,</span><span class="n">exact</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">vertical</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id10">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id10" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">3</span>
+<span class="n">cut_type</span><span class="p">,</span><span class="n">exact</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">vertical</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_stages_2.png"><img alt="rectangleguillotine_stages_2" height="505" src="_images/rectangleguillotine_stages_2.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_stages_3.png"><img alt="rectangleguillotine_stages_3" height="365" src="_images/rectangleguillotine_stages_3.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+<p>Allowing an unlimited number of stages keeps the same 2 bins but reduces waste further still (6.46%), by nesting items through a deeper hierarchy of cuts (up to a 6th-stage cut, visible in the image below):</p>
+<div class="literal-block-wrapper docutils container" id="id11">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id11" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="n">unlimited</span>
+<span class="n">cut_type</span><span class="p">,</span><span class="n">exact</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">vertical</span>
+</pre></div>
+</div>
+</div>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+<p><a class="reference internal" href="_images/rectangleguillotine_stages_unlimited.png"><img alt="rectangleguillotine_stages_unlimited" height="365" src="_images/rectangleguillotine_stages_unlimited.png" width="360" /></a></p>
+</section>
+<section id="cut-types">
+<h2>Cut types<a class="headerlink" href="#cut-types" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">roadef2018</span></code>: pattern from the 2018 ROADEF challenge; stage-2 cuts produce only items of identical height; trimming cuts are allowed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">non-exact</span></code>: more flexible; stage-3 cuts are not required; some waste is allowed in sub-plates</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exact</span></code>: items must fill their sub-plate exactly with no waste at stage 3</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">homogenous</span></code>: all items in a strip have the same height</p></li>
+</ul>
+<p>The cut type is set via the <code class="docutils literal notranslate"><span class="pre">cut_type</span></code> key in the parameters CSV file, using one of the values above.</p>
+<p>The following example packs 24 items (12 item types) into 80×40 bins with 3 cutting stages, <code class="docutils literal notranslate"><span class="pre">first_stage_orientation</span></code> set to <code class="docutils literal notranslate"><span class="pre">vertical</span></code> and the <code class="code docutils literal notranslate"><span class="pre">bin-packing-with-leftovers</span></code> objective, which minimizes the number of bins first and, among solutions using that many bins, maximizes the leftover value of the last bin. Every bin in every solution below uses several genuine stage-1 cuts, splitting it into multiple vertical strips. All 4 cut types pack every item into the same 2 bins, but the leftover value they reach decreases as the cut type gets more restrictive:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">roadef2018</span></code>: leftover value 72 — the most permissive cut type, it takes full advantage of its free trimming cuts past the 3-stage budget</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">non-exact</span></code>: leftover value 65 — still allows sub-plates to be filled with some waste, but without <code class="docutils literal notranslate"><span class="pre">roadef2018</span></code>’s free trimming cuts, so it packs slightly less tightly</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exact</span></code>: leftover value 57 — items must fill their sub-plate exactly, which rules out some of the arrangements the 2 cut types above use</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">homogenous</span></code>: leftover value 48 — the most restrictive cut type here, since items sharing a sub-plate must also be of the same type</p></li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id12">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id12" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">23</span><span class="p">,</span><span class="mi">23</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">19</span><span class="p">,</span><span class="mi">19</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">17</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">13</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">13</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">13</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">12</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">9</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">11</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">13</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">7</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id13">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id13" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">80</span><span class="p">,</span><span class="mi">40</span><span class="p">,</span><span class="mi">7</span>
+</pre></div>
+</div>
+</div>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">roadef2018</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">non-exact</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id14">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id14" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+<span class="n">cut_type</span><span class="p">,</span><span class="n">roadef2018</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">3</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">vertical</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id15">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id15" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+<span class="n">cut_type</span><span class="p">,</span><span class="n">non</span><span class="o">-</span><span class="n">exact</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">3</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">vertical</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_cuttype_roadef2018.png"><img alt="rectangleguillotine_cuttype_roadef2018" height="450" src="_images/rectangleguillotine_cuttype_roadef2018.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_cuttype_nonexact.png"><img alt="rectangleguillotine_cuttype_nonexact" height="450" src="_images/rectangleguillotine_cuttype_nonexact.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">exact</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">homogenous</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id16">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id16" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+<span class="n">cut_type</span><span class="p">,</span><span class="n">exact</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">3</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">vertical</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id17">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id17" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">leftovers</span>
+<span class="n">cut_type</span><span class="p">,</span><span class="n">homogenous</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">3</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">vertical</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_cuttype_exact.png"><img alt="rectangleguillotine_cuttype_exact" height="450" src="_images/rectangleguillotine_cuttype_exact.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_cuttype_homogenous.png"><img alt="rectangleguillotine_cuttype_homogenous" height="450" src="_images/rectangleguillotine_cuttype_homogenous.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="first-stage-orientation">
+<h2>First stage orientation<a class="headerlink" href="#first-stage-orientation" title="Link to this heading">¶</a></h2>
+<p>The first stage orientation controls whether stage-1 cuts (see <a class="reference internal" href="#guillotine-vs-non-guillotine-patterns">Guillotine vs non-guillotine patterns</a> above) are vertical or horizontal.</p>
+<ul class="simple">
+<li><p>The first stage orientation; name: <code class="docutils literal notranslate"><span class="pre">first_stage_orientation</span></code>; possible values: <code class="docutils literal notranslate"><span class="pre">vertical</span></code> or <code class="docutils literal notranslate"><span class="pre">horizontal</span></code></p></li>
+</ul>
+<p>The following example packs 4 items (4×3, 4×7, 6×5 and 6×4) into 10×10 bins with only 2 cutting stages (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective). The two 4-wide items share a column, stacking to exactly fill a 4×10 vertical strip; the two 6-wide items share a second 6×10 vertical strip, stacking to a height of 9 with some waste. With <code class="docutils literal notranslate"><span class="pre">first_stage_orientation</span></code> set to <code class="docutils literal notranslate"><span class="pre">vertical</span></code>, stage-1 cuts run along these two columns and all 4 items fit into a single bin. With <code class="docutils literal notranslate"><span class="pre">horizontal</span></code>, stage-1 cuts run the other way instead: since no two items share the same height, each stage-1 row can only hold one item at that depth, and a second bin is needed.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">horizontal</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">vertical</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id18">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id18" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">4</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">4</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">6</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">6</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id19">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id19" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">4</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">4</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">6</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">6</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id20">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id20" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id21">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id21" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id22">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id22" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">2</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">horizontal</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id23">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id23" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">2</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">vertical</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_orientation_no.png"><img alt="rectangleguillotine_orientation_no" height="570" src="_images/rectangleguillotine_orientation_no.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_orientation_yes.png"><img alt="rectangleguillotine_orientation_yes" height="370" src="_images/rectangleguillotine_orientation_yes.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="item-rotations">
+<h2>Item rotations<a class="headerlink" href="#item-rotations" title="Link to this heading">¶</a></h2>
+<p>Each item may individually be allowed to be rotated by 90° or have a fixed orientation.</p>
+<p>By default, item rotation is allowed.</p>
+<ul class="simple">
+<li><p>Whether the item is fixed in its original orientation (cannot be rotated 90°)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">ORIENTED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: rotation allowed (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: item is oriented; rotation not allowed</p></li>
+</ul>
+</li>
+</ul>
+<p>The following example packs 2 copies of a 6×10 item into 10×12 bins (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective). Without rotation, two items side by side need 12 of width (more than the bin’s 10) and stacked need 20 of height (more than the bin’s 12), so they cannot share a bin: 2 bins are needed. With rotation allowed, both items are turned on their side (10×6) and stacked exactly into a single 10×12 bin.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without rotation</p></th>
+<th class="head"><p>With rotation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id24">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id24" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">6</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id25">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id25" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">6</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id26">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id26" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id27">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id27" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id28">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id28" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id29">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id29" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_rotation_no.png"><img alt="rectangleguillotine_rotation_no" height="650" src="_images/rectangleguillotine_rotation_no.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_rotation_yes.png"><img alt="rectangleguillotine_rotation_yes" height="410" src="_images/rectangleguillotine_rotation_yes.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="cut-thickness">
+<h2>Cut thickness<a class="headerlink" href="#cut-thickness" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The width of the saw blade; name: <code class="docutils literal notranslate"><span class="pre">cut_thickness</span></code>; default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+<p>The following example packs 3 items (10×4, 10×3 and 10×3) into 10×10 bins (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective), stacked to exactly fill the bin height. With no cut thickness, all 3 items fit in a single bin. Each cut also consumes material equal to the saw blade width: with a cut thickness of 1, the two cuts separating the 3 items eat into the available height, so the third item no longer fits and a second bin is needed.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">cut_thickness</span></code> = 0</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">cut_thickness</span></code> = 1</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id30">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id30" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id31">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id31" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id32">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id32" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id33">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id33" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id34">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id34" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+<span class="n">cut_thickness</span><span class="p">,</span><span class="mi">0</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id35">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id35" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+<span class="n">cut_thickness</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_cutthickness_no.png"><img alt="rectangleguillotine_cutthickness_no" height="370" src="_images/rectangleguillotine_cutthickness_no.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_cutthickness_yes.png"><img alt="rectangleguillotine_cutthickness_yes" height="570" src="_images/rectangleguillotine_cutthickness_yes.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="trims">
+<h2>Trims<a class="headerlink" href="#trims" title="Link to this heading">¶</a></h2>
+<p>Trims model a reserved border around the bin (e.g., for clamping or edge defects). They prevent items from being placed within the specified distance of each edge.</p>
+<ul class="simple">
+<li><p>A <strong>hard</strong> trim is physically cut away: the trim strip is counted as waste.</p></li>
+<li><p>A <strong>soft</strong> trim is reserved but not cut: waste is only counted from the first actual cut inward.</p></li>
+<li><p>Border trims: distances from each edge before any item can be placed</p>
+<ul>
+<li><p>columns <code class="docutils literal notranslate"><span class="pre">BOTTOM_TRIM</span></code>, <code class="docutils literal notranslate"><span class="pre">TOP_TRIM</span></code>, <code class="docutils literal notranslate"><span class="pre">LEFT_TRIM</span></code>, <code class="docutils literal notranslate"><span class="pre">RIGHT_TRIM</span></code> in the bin CSV file</p></li>
+<li><p><strong>Integer values</strong>, default: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</li>
+<li><p>Trim types: whether trimming strips are cut (hard) or just reserved (soft)</p>
+<ul>
+<li><p>columns <code class="docutils literal notranslate"><span class="pre">BOTTOM_TRIM_TYPE</span></code>, <code class="docutils literal notranslate"><span class="pre">TOP_TRIM_TYPE</span></code>, <code class="docutils literal notranslate"><span class="pre">LEFT_TRIM_TYPE</span></code>, <code class="docutils literal notranslate"><span class="pre">RIGHT_TRIM_TYPE</span></code> in the bin CSV file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Hard</span></code>: the trim is physically cut; the strip is waste</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Soft</span></code>: the trim is reserved but not cut; default for top and right trims</p></li>
+</ul>
+</li>
+</ul>
+<p>The following example packs 3 items (4×8, 3×8 and 3×8) into 10×10 bins (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective), side by side to exactly fill the bin width. Without any trim, all 3 items fit in a single bin. Reserving a 1-unit trim on all four edges (left, right, bottom and top) leaves only 8 of usable width, which is no longer enough for the three items to sit side by side, so a second bin is needed.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without trim</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">LEFT_TRIM</span></code> = 2</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id36">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id36" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">4</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">3</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">3</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id37">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id37" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">4</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">3</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">3</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id38">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id38" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id39">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id39" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">LEFT_TRIM</span><span class="p">,</span><span class="n">RIGHT_TRIM</span><span class="p">,</span><span class="n">BOTTOM_TRIM</span><span class="p">,</span><span class="n">TOP_TRIM</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id40">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id40" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id41">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id41" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_trims_no.png"><img alt="rectangleguillotine_trims_no" height="370" src="_images/rectangleguillotine_trims_no.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_trims_yes.png"><img alt="rectangleguillotine_trims_yes" height="570" src="_images/rectangleguillotine_trims_yes.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="defects">
+<h2>Defects<a class="headerlink" href="#defects" title="Link to this heading">¶</a></h2>
+<p>Defects are rectangular regions inside a bin where items cannot be placed.</p>
+<p>Defects are specified in the defects CSV file; option: <code class="docutils literal notranslate"><span class="pre">--defects</span> <span class="pre">defects.csv</span></code>. The <strong>defect file</strong> contains the same columns as for the <a class="reference internal" href="rectangle.html#rectangle"><span class="std std-ref">rectangle</span></a> solver:</p>
+<ul class="simple">
+<li><p>The bin type that contains the defect (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">BIN</span></code></p></li>
+<li><p>It refers to the bin type by its position (0-indexed) in the bins file</p></li>
+</ul>
+</li>
+<li><p>The X coordinate of the bottom-left corner of the defect (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">X</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The Y coordinate of the bottom-left corner of the defect (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">Y</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The width of the defect (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">WIDTH</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+<li><p>The height of the defect (<strong>mandatory</strong>)</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">HEIGHT</span></code></p></li>
+<li><p><strong>Integer value</strong></p></li>
+</ul>
+</li>
+</ul>
+<p>The following example packs 2 copies of a 10×6 item into 10×12 bins (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective), stacked to fill each bin exactly with no waste. Without any defect, one bin is enough. Adding a small 2×2 defect in the middle of the join between the two items leaves no room to shift either item out of the way, since there is no slack left in the bin: one of the two items no longer fits, so a second bin is needed.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without defects</p></th>
+<th class="head"><p>With defects</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id42">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id42" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id43">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id43" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id44">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id44" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id45">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id45" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td></td>
+<td><div class="literal-block-wrapper docutils container" id="id46">
+<div class="code-block-caption"><span class="caption-text">defects.csv</span><a class="headerlink" href="#id46" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">BIN</span><span class="p">,</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span>
+<span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id47">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id47" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id48">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id48" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--defects<span class="w"> </span>defects.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_images/rectangleguillotine_defects_no.png"><img alt="rectangleguillotine_defects_no" height="410" src="_images/rectangleguillotine_defects_no.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_defects_yes.png"><img alt="rectangleguillotine_defects_yes" height="650" src="_images/rectangleguillotine_defects_yes.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="cut-through-defects">
+<h2>Cut through defects<a class="headerlink" href="#cut-through-defects" title="Link to this heading">¶</a></h2>
+<p>By default, a guillotine cut may not pass through a defect; it must be routed around it instead.</p>
+<ul class="simple">
+<li><p>Whether cuts are allowed to pass through defects</p>
+<ul>
+<li><p>name: <code class="docutils literal notranslate"><span class="pre">cut_through_defects</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: cuts must avoid defects (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: cuts may pass through defects</p></li>
+</ul>
+</li>
+</ul>
+<p>The following example packs a 5×5 and a 5×6 item into 10×10 bins with only 2 cutting stages (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective), so the two items — whose widths sum exactly to the bin width — must be separated by a single first-stage cut. A small 2×2 defect floats in the unused strip above the shorter item, without touching either item or the edges of the bin, but still straddling that cut. Allowing cuts through defects lets the solver cut straight through it, and both items fit into a single bin. Without allowing cuts through defects, that cut can no longer be made, so the two items can no longer share a bin, and a second bin is needed.</p>
+<div class="literal-block-wrapper docutils container" id="id49">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id49" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id50">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id50" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id51">
+<div class="code-block-caption"><span class="caption-text">defects.csv</span><a class="headerlink" href="#id51" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">BIN</span><span class="p">,</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span>
+<span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>With cuts through defects</p></th>
+<th class="head"><p>Without cuts through defects</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id52">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id52" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">2</span>
+<span class="n">cut_through_defects</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id53">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id53" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--defects<span class="w"> </span>defects.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--defects<span class="w"> </span>defects.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_cutdefects_yes.png"><img alt="rectangleguillotine_cutdefects_yes" height="370" src="_images/rectangleguillotine_cutdefects_yes.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_cutdefects_no.png"><img alt="rectangleguillotine_cutdefects_no" height="570" src="_images/rectangleguillotine_cutdefects_no.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="cutting-sequences-stacks">
+<h2>Cutting sequences (stacks)<a class="headerlink" href="#cutting-sequences-stacks" title="Link to this heading">¶</a></h2>
+<p>Items with the same stack id must be produced contiguously, in the order they appear in the item file: all copies of an item type must be cut before moving on to the next item type of the same stack. This models a physical stack of items (e.g. glued or stapled together) that must be separated in a fixed sequence. By default, each item type forms its own single-item stack, so no ordering constraint applies.</p>
+<ul class="simple">
+<li><p>The stack identifier; items with the same stack id must remain contiguous in the solution</p>
+<ul>
+<li><p>column <code class="docutils literal notranslate"><span class="pre">STACK_ID</span></code></p></li>
+<li><p>default value: no stack grouping</p></li>
+</ul>
+</li>
+</ul>
+<p>The following example packs 4 items of width 5 into 10×10 bins (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective): two items of height 6 and 4 that together fill one 5×10 column, and two items of height 3 and 7 that together fill another 5×10 column. Without stacking constraints, the solver is free to group the items by column and packs everything into a single bin. Splitting the items into two stacks of two — stack 0 with the height-6 and height-7 items, stack 1 with the height-3 and height-4 items — pairs one item from each column in every stack, forcing each stack’s two items to be produced back-to-back; since neither column can be completed without interrupting the other stack, a second bin is needed.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without stacks</p></th>
+<th class="head"><p>With stacks</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id54">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id54" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id55">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id55" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">STACK_ID</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">5</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id56">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id56" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">4</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id57">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id57" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">4</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id58">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id58" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id59">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id59" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_stacks_no.png"><img alt="rectangleguillotine_stacks_no" height="370" src="_images/rectangleguillotine_stacks_no.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_stacks_yes.png"><img alt="rectangleguillotine_stacks_yes" height="570" src="_images/rectangleguillotine_stacks_yes.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="minimum-and-maximum-distances-between-cuts">
+<h2>Minimum and maximum distances between cuts<a class="headerlink" href="#minimum-and-maximum-distances-between-cuts" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The minimum distance between first-level (stage-1) cuts; name: <code class="docutils literal notranslate"><span class="pre">minimum_distance_1_cuts</span></code>; default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+<li><p>The maximum distance between first-level cuts; name: <code class="docutils literal notranslate"><span class="pre">maximum_distance_1_cuts</span></code>; <code class="docutils literal notranslate"><span class="pre">-1</span></code> for no limit</p></li>
+<li><p>The minimum distance between second-level cuts; name: <code class="docutils literal notranslate"><span class="pre">minimum_distance_2_cuts</span></code>; default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+<li><p>The maximum distance between second-level cuts; name: <code class="docutils literal notranslate"><span class="pre">maximum_distance_2_cuts</span></code>; <code class="docutils literal notranslate"><span class="pre">-1</span></code> for no limit (default); not allowed when <code class="docutils literal notranslate"><span class="pre">number_of_stages</span> <span class="pre">==</span> <span class="pre">2</span></code></p></li>
+<li><p>The minimum length for any waste piece; name: <code class="docutils literal notranslate"><span class="pre">minimum_waste_length</span></code>; default value: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+</section>
+<section id="maximum-number-of-consecutive-1-cuts">
+<h2>Maximum number of consecutive 1-cuts<a class="headerlink" href="#maximum-number-of-consecutive-1-cuts" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The maximum number of 1-cuts in a bin; name: <code class="docutils literal notranslate"><span class="pre">maximum_number_1_cuts</span></code>; <code class="docutils literal notranslate"><span class="pre">-1</span></code> for no limit (default); must not be <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+<p>The following example packs 3 copies of a 3×10 item into 10×10 bins with only 2 cutting stages (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective). Without a limit, the 3 items are placed side by side using 2 stage-1 cuts, all in a single bin. Setting <code class="docutils literal notranslate"><span class="pre">maximum_number_1_cuts</span></code> to 1 allows only 2 strips, so only 2 of the 3 items fit, and a second bin is needed for the third.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without limit</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">maximum_number_1_cuts</span></code> = 1</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id60">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id60" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">3</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id61">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id61" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">3</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id62">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id62" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id63">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id63" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id64">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id64" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id65">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id65" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+<span class="n">number_of_stages</span><span class="p">,</span><span class="mi">2</span>
+<span class="n">maximum_number_1_cuts</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_maxcuts_no.png"><img alt="rectangleguillotine_maxcuts_no" height="370" src="_images/rectangleguillotine_maxcuts_no.png" width="360" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_maxcuts_yes.png"><img alt="rectangleguillotine_maxcuts_yes" height="570" src="_images/rectangleguillotine_maxcuts_yes.png" width="360" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="maximum-number-of-consecutive-2-cuts">
+<h2>Maximum number of consecutive 2-cuts<a class="headerlink" href="#maximum-number-of-consecutive-2-cuts" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The maximum number of 2-cuts in a first-level sub-plate; name: <code class="docutils literal notranslate"><span class="pre">maximum_number_2_cuts</span></code>; <code class="docutils literal notranslate"><span class="pre">-1</span></code> for no limit</p></li>
+</ul>
+<p>The following example packs 4 items (10×3, 10×3, 10×4 and 10×10) into 20×10 bins with only 2 cutting stages (<code class="code docutils literal notranslate"><span class="pre">bin-packing</span></code> objective). A first stage-1 cut splits the bin into two 10-wide strips: one holds the 10×10 item alone, the other stacks the three shorter items using 2 stage-2 cuts. Without a limit, all 4 items fit into a single bin. Setting <code class="docutils literal notranslate"><span class="pre">maximum_number_2_cuts</span></code> to 1 allows only 2 stage-2 cuts’ worth of shelves per strip, so only 2 of the 3 stacked items fit, and a second bin is needed for the third.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Without limit</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">maximum_number_2_cuts</span></code> = 1</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id66">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id66" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id67">
+<div class="code-block-caption"><span class="caption-text">items.csv</span><a class="headerlink" href="#id67" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">ORIENTED</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="literal-block-wrapper docutils container" id="id68">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id68" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id69">
+<div class="code-block-caption"><span class="caption-text">bins.csv</span><a class="headerlink" href="#id69" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WIDTH</span><span class="p">,</span><span class="n">HEIGHT</span><span class="p">,</span><span class="n">COPIES</span>
+<span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><div class="literal-block-wrapper docutils container" id="id70">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id70" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">vertical</span>
+</pre></div>
+</div>
+</div>
+</td>
+<td><div class="literal-block-wrapper docutils container" id="id71">
+<div class="code-block-caption"><span class="caption-text">parameters.csv</span><a class="headerlink" href="#id71" title="Link to this code">¶</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">NAME</span><span class="p">,</span><span class="n">VALUE</span>
+<span class="n">objective</span><span class="p">,</span><span class="nb">bin</span><span class="o">-</span><span class="n">packing</span>
+<span class="n">first_stage_orientation</span><span class="p">,</span><span class="n">vertical</span>
+<span class="n">maximum_number_2_cuts</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+<td><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>packingsolver_rectangleguillotine<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--items<span class="w"> </span>items.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--bins<span class="w"> </span>bins.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--parameters<span class="w"> </span>parameters.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--certificate<span class="w"> </span>solution.csv
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/rectangleguillotine_maxcuts2_no.png"><img alt="rectangleguillotine_maxcuts2_no" height="370" src="_images/rectangleguillotine_maxcuts2_no.png" width="560" /></a></p></td>
+<td><p><a class="reference internal" href="_images/rectangleguillotine_maxcuts2_yes.png"><img alt="rectangleguillotine_maxcuts2_yes" height="570" src="_images/rectangleguillotine_maxcuts2_yes.png" width="560" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PackingSolver’s documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="objectives.html">Objectives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimization_modes.html">Optimization modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onedimensional.html"><code class="code docutils literal notranslate"><span class="pre">one-dimensional</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rectangle.html"><code class="code docutils literal notranslate"><span class="pre">rectangle</span></code> solver</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#guillotine-vs-non-guillotine-patterns">Guillotine vs non-guillotine patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-number-of-cutting-stages">Maximum number of cutting stages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cut-types">Cut types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#first-stage-orientation">First stage orientation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#item-rotations">Item rotations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cut-thickness">Cut thickness</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#trims">Trims</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#defects">Defects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cut-through-defects">Cut through defects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cutting-sequences-stacks">Cutting sequences (stacks)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#minimum-and-maximum-distances-between-cuts">Minimum and maximum distances between cuts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-number-of-consecutive-1-cuts">Maximum number of consecutive 1-cuts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-number-of-consecutive-2-cuts">Maximum number of consecutive 2-cuts</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="box.html"><code class="code docutils literal notranslate"><span class="pre">box</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="boxstacks.html"><code class="code docutils literal notranslate"><span class="pre">box-stacks</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="irregular.html"><code class="code docutils literal notranslate"><span class="pre">irregular</span></code> solver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="internals/overview.html">Solver internals</a></li>
+</ul>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="box.html" title="box solver"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="rectangle.html" title="rectangle solver"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">PackingSolver</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="code docutils literal notranslate"><span class="pre">rectangle-guillotine</span></code> solver</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2024, Florian Fontan.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    </div>
+  </body>
+</html>
