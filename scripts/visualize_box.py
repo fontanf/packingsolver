@@ -13,6 +13,9 @@ parser.add_argument('--width', type=int, default=None, help='image width in pixe
 parser.add_argument('--height', type=int, default=None, help='image height in pixels for PNG export')
 parser.add_argument('--columns', type=int, default=None, help='number of columns in the subplot grid')
 parser.add_argument('--scale', type=float, default=1.0, help='scale factor for cell dimensions')
+parser.add_argument('--zoom', type=float, default=1.0, help='camera zoom factor (higher: closer/bigger)')
+parser.add_argument('--autocrop', action='store_true', help='crop exported PNG to its non-white content, with a small margin')
+parser.add_argument('--no-legend', action='store_true', help='hide the legend, freeing up space for the plot itself')
 args = parser.parse_args()
 
 if args.itemcolor not in ["SAME", "ID"]:
@@ -239,6 +242,7 @@ for i in range(0, m):
 fig.update_layout(
         autosize=True,
         font=dict(size=14),
+        showlegend=not args.no_legend,
         legend=dict(font=dict(size=14), itemsizing='constant'))
 fig.update_xaxes(
         rangeslider=dict(visible=False))
@@ -249,12 +253,22 @@ fig.update_scenes(
         aspectmode='data',
         camera=dict(
             center=dict(x=0, y=0, z=-0.25),
-            eye=dict(x=-1.75, y=-1.5, z=0.75)))
+            eye=dict(x=-1.75 / args.zoom, y=-1.5 / args.zoom, z=0.75 / args.zoom)))
 if args.output:
     cell_width = int(max_bin_lx * args.scale)
     cell_height = int(max_bin_ly * args.scale)
     export_width = args.width if args.width is not None else number_of_cols * cell_width + 160
     export_height = args.height if args.height is not None else number_of_rows * cell_height + 170
     fig.write_image(args.output, width=export_width, height=export_height, scale=2)
+    if args.autocrop:
+        from PIL import Image, ImageChops
+        margin = 20
+        im = Image.open(args.output).convert("RGB")
+        bbox = ImageChops.difference(im, Image.new("RGB", im.size, (255, 255, 255))).getbbox()
+        if bbox is not None:
+            x1, y1, x2, y2 = bbox
+            x1, y1 = max(0, x1 - margin), max(0, y1 - margin)
+            x2, y2 = min(im.width, x2 + margin), min(im.height, y2 + margin)
+            im.crop((x1, y1, x2, y2)).save(args.output)
 else:
     fig.show()

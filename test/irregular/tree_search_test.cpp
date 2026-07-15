@@ -201,4 +201,7 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 fs::path("data") / "irregular" / "tests" / "fixed_item.json",
                 fs::path("data") / "irregular" / "tests" / "fixed_item_solution.json"
+            }, {
+                fs::path("data") / "irregular" / "tests" / "circle.json",
+                fs::path("data") / "irregular" / "tests" / "circle_solution.json"
             }}));

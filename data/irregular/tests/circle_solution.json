@@ -1,0 +1,17 @@
+{
+    "bins": [
+        {
+            "id": 0,
+            "copies": 1,
+            "items": [
+                {
+                    "id": 0,
+                    "x": 1.0,
+                    "y": 5.0,
+                    "angle": 0.0,
+                    "mirror": false
+                }
+            ]
+        }
+    ]
+}

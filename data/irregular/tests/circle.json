@@ -1,0 +1,16 @@
+{
+    "objective": "feasibility",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 10,
+            "height": 10
+        }
+    ],
+    "item_types": [
+        {
+            "type": "circle",
+            "radius": 1
+        }
+    ]
+}

@@ -5,4 +5,5 @@ plotly
 shapely
 streamlit
 kaleido
+Pillow
 py7zr
