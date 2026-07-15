@@ -138,8 +138,8 @@ Visualize:
    :width: 512pt
    :align: center
 
-Rotation
---------
+Item rotations
+--------------
 
 Each item may individually be allowed to be rotated by 90° or have a fixed orientation.
 

@@ -221,8 +221,8 @@ Visualize:
    :width: 512pt
    :align: center
 
-Rotations
----------
+Item rotations
+--------------
 
 * The allowed orientations
 
