@@ -160,15 +160,15 @@ In the example below, the bin is the irregular 15-vertex polygon container from 
    :width: 400pt
    :align: center
 
-Discrete rotations
-----------------------
+Discrete item rotations
+-----------------------
 
 The ``allowed_rotations`` field on an item type controls which orientations are allowed.
 It is a list of rotation ranges, each with:
 
 * ``start``: start angle in degrees
 * ``end``: end angle in degrees
-* ``mirror``: if ``true``, the item is first mirrored about the Y axis, then rotated (default: ``false``; see `Mirroring`_ below)
+* ``mirror``: if ``true``, the item is first mirrored about the Y axis, then rotated (default: ``false``; see `Item mirroring`_ below)
 
 When ``start == end``, only that exact angle is allowed.
 When ``start < end``, any angle in ``[start, end]`` is allowed (continuous rotation range).
@@ -239,8 +239,8 @@ In the example below, 2 copies of an L-shaped item must be packed into 60×60 bi
    * - |irregular_rotation_no|
      - |irregular_rotation_yes|
 
-Continuous rotations
-------------------------
+Continuous item rotations
+-------------------------
 
 Setting ``start`` strictly lower than ``end`` in a rotation range allows any angle in between, instead of only a fixed set of discrete angles; ``end: 360`` allows a full continuous rotation. This is especially useful for irregular, non-rectangular shapes, where letting items nest at arbitrary angles (rather than only 0°/90°/180°/270°) can significantly reduce wasted space.
 
@@ -262,8 +262,8 @@ In the example below, 7 copies of a Christmas-tree-shaped item (from the `Kaggle
    :width: 400pt
    :align: center
 
-Mirroring
-------------
+Item mirroring
+--------------
 
 Each rotation range in ``allowed_rotations`` may set ``mirror: true``, in which case the item is first mirrored about its Y axis, then rotated by the given angle range. Mirroring is off (``false``) by default.
 

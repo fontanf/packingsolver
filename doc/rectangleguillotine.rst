@@ -412,8 +412,8 @@ The following example packs 4 items (4×3, 4×7, 6×5 and 6×4) into 10×10 bins
    * - |rectangleguillotine_orientation_no|
      - |rectangleguillotine_orientation_yes|
 
-Rotation
---------
+Item rotations
+--------------
 
 Each item may individually be allowed to be rotated by 90° or have a fixed orientation.
 
