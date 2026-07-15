@@ -238,8 +238,8 @@ The following example packs a 10×10×6 item and a 10×4×6 item into 10×10×10
    * - |box_rotation_no|
      - |box_rotation_yes|
 
-Maximum weight
---------------
+Maximum total weight in a bin
+------------------------------
 
 Each bin type may have a maximum weight limit: the total weight of items placed in any bin must not exceed its maximum weight.
 

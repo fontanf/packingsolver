@@ -236,8 +236,8 @@ In the following example, without the maximum stackability constraint, all items
    * - |oned_maximum_stackability_no|
      - |oned_maximum_stackability_yes|
 
-Maximum weight
---------------
+Maximum total weight in a bin
+------------------------------
 
 Each bin type may have a maximum weight limits: the total weight of items placed in any bin must not exceed its maximum weight.
 
