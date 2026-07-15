@@ -11,6 +11,7 @@ parser.add_argument('-o', '--output', help='save image to file instead of openin
 parser.add_argument('--width', type=int, default=None, help='image width in pixels for PNG export')
 parser.add_argument('--height', type=int, default=None, help='image height in pixels for PNG export')
 parser.add_argument('--scale', type=float, default=1.0, help='scale factor for cell dimensions')
+parser.add_argument('--expand-copies', action='store_true', help='draw one subplot per bin copy instead of one per bin type')
 args = parser.parse_args()
 
 if args.itemcolor not in ["SAME", "ID"]:
@@ -24,6 +25,7 @@ item_ids_x = []
 item_ids_y = []
 item_ids = []
 max_bin_lx = 0
+bin_copies = []
 
 with open(args.csvpath, newline='') as csvfile:
     csvreader = csv.DictReader(csvfile, delimiter=',')
@@ -40,6 +42,7 @@ with open(args.csvpath, newline='') as csvfile:
 
         if type_ == "BIN":
             max_bin_lx = max(max_bin_lx, w)
+            bin_copies.append(int(row["COPIES"]) if "COPIES" in row else 1)
             bins_x.append([])
             bins_y.append([])
             items_x.append([])
@@ -59,6 +62,20 @@ with open(args.csvpath, newline='') as csvfile:
             item_ids_x[i].append((x1 + x2) / 2)
             item_ids_y[i].append((y1 + y2) / 2)
             item_ids[i].append(id_)
+
+if args.expand_copies:
+    def expand(lst):
+        out = []
+        for v, c in zip(lst, bin_copies):
+            out += [v] * c
+        return out
+    bins_x = expand(bins_x)
+    bins_y = expand(bins_y)
+    items_x = expand(items_x)
+    items_y = expand(items_y)
+    item_ids_x = expand(item_ids_x)
+    item_ids_y = expand(item_ids_y)
+    item_ids = expand(item_ids)
 
 m = len(bins_x)
 colors = px.colors.qualitative.Pastel

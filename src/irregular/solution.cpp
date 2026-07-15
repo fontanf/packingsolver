@@ -1,5 +1,6 @@
 #include "packingsolver/irregular/solution.hpp"
 
+#include "shape/boolean_operations.hpp"
 #include "shape/intersection_tree.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
@@ -490,10 +491,31 @@ void Solution::write(
         json["bins"][bin_pos]["copies"] = bin.copies;
         json["bins"][bin_pos]["id"] = bin.bin_type_id;
         // Bin shape.
+        // For open-dimension objectives, only the used part of the bin in the
+        // open dimension(s) is written, instead of the full input bin.
+        Shape bin_shape = bin_type.shape_orig;
+        if ((instance().objective() == Objective::OpenDimensionX
+                || instance().objective() == Objective::OpenDimensionY
+                || instance().objective() == Objective::OpenDimensionXY)
+                && !bin.items.empty()) {
+            AxisAlignedBoundingBox restricting_aabb = bin_type.aabb_orig;
+            if (instance().objective() == Objective::OpenDimensionX
+                    || instance().objective() == Objective::OpenDimensionXY) {
+                restricting_aabb.x_max = bin.x_max;
+            }
+            if (instance().objective() == Objective::OpenDimensionY
+                    || instance().objective() == Objective::OpenDimensionXY) {
+                restricting_aabb.y_max = bin.y_max;
+            }
+            const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
+            const std::vector<shape::ShapeWithHoles> intersection = shape::compute_intersection(
+                    {{bin_type.shape_orig}, {restricting_rect}});
+            bin_shape = intersection[0].shape;
+        }
         for (Counter element_pos = 0;
-                element_pos < (Counter)bin_type.shape_orig.elements.size();
+                element_pos < (Counter)bin_shape.elements.size();
                 ++element_pos) {
-            const ShapeElement& element = bin_type.shape_orig.elements[element_pos];
+            const ShapeElement& element = bin_shape.elements[element_pos];
             json["bins"][bin_pos]["shape"][element_pos]["type"] = element2str(element.type);
             json["bins"][bin_pos]["shape"][element_pos]["xs"] = element.start.x;
             json["bins"][bin_pos]["shape"][element_pos]["ys"] = element.start.y;

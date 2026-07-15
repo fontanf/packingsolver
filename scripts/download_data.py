@@ -64,14 +64,12 @@ if args.data is None or "imahori2010" in args.data:
 if args.data is None or "roadef2022_2024-04-25_kp" in args.data:
     download(
         "https://drive.google.com/file/d/1HbK0QJQyDk7fII8jF9nBMP0sD-D1E3N-/view?usp=drive_link",
-        pathlib.Path("data") / "boxstacks",
-        "tar.gz")
+        pathlib.Path("data") / "boxstacks")
 
 if args.data is None or "roadef2022_2024-04-25_bpp" in args.data:
     download(
         "https://drive.google.com/file/d/1U2MefX8UeCWn0ohFCDpxiCNwRHkAPvFP/view?usp=drive_link",
-        pathlib.Path("data") / "boxstacks",
-        "tar.gz")
+        pathlib.Path("data") / "boxstacks")
 
 
 if args.data is None or "irregular" in args.data:
