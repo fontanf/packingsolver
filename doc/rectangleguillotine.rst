@@ -45,7 +45,13 @@ Features:
 Guillotine vs non-guillotine patterns
 -----------------------------------------
 
-A cutting pattern is a **guillotine pattern** if it can be produced by a sequence of straight cuts, each going all the way from one edge of the current plate to the opposite edge (see `Maximum number of cutting stages`_ below). A pattern that cannot be produced this way, however the items are arranged, is a **non-guillotine pattern**.
+A cutting pattern is a **guillotine pattern** if it can be produced by a sequence of straight cuts, each going all the way from one edge of the current plate to the opposite edge. The number of cutting stages of a pattern is the number of sets of parallel cuts necessary to extract all the items from the pattern. Here is an example of a 4-staged pattern:
+
+.. image:: img/rectangleguillotine_number_of_stages.png
+   :scale: 100%
+   :align: center
+
+A pattern that cannot be produced this way, however the items are arranged, is a **non-guillotine pattern**.
 
 The :code:`rectangle-guillotine` solver only produces guillotine patterns. Problems where non-guillotine patterns are required (or simply allowed) should instead be modeled with the :ref:`rectangle<rectangle>` solver, which places items freely.
 
@@ -199,14 +205,6 @@ Visualize:
 
 Maximum number of cutting stages
 --------------------------------
-
-The number of cutting stages of a pattern is the number of set of parallel cuts necessary to extract all the items from the pattern:
-
-Here is an example of a 4-staged pattern:
-
-.. image:: img/rectangleguillotine_number_of_stages.png
-   :scale: 100%
-   :align: center
 
 The maximum number of stages may be constrained.
 
@@ -366,7 +364,7 @@ The following example packs 24 items (12 item types) into 80×40 bins with 3 cut
 First stage orientation
 ---------------------------
 
-The first stage orientation controls whether stage-1 cuts (see `Maximum number of cutting stages`_ above) are vertical or horizontal.
+The first stage orientation controls whether stage-1 cuts (see `Guillotine vs non-guillotine patterns`_ above) are vertical or horizontal.
 
 * The first stage orientation; name: ``first_stage_orientation``; possible values: ``vertical`` or ``horizontal``
 
