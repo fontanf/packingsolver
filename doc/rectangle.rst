@@ -275,8 +275,8 @@ The following example packs 3 items of size 400×200 into a 1000×500 bin. Witho
    * - |rect_defects_no|
      - |rect_defects_yes|
 
-Maximum weight
---------------
+Maximum total weight in a bin
+------------------------------
 
 Each bin type may have a maximum weight limit: the total weight of items placed in any bin must not exceed its maximum weight.
 
