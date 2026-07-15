@@ -536,6 +536,78 @@ The following example packs 9 copies of a 2500×1200×1000 item weighing 700,000
    * - |boxstacks_maximum_stack_density_no|
      - |boxstacks_maximum_stack_density_yes|
 
+Unloading constraints
+-------------------------
+
+When loading a truck that visits multiple loading/unloading locations, it might be necessary to be able to load/unload the items at a location without having to move the items which are already in the truck.
+This is modeled in the solver with unloading constraints. Items are assigned to groups: items in group 0 are placed last (nearest the door) and unloaded first, items in group 1 are placed next, etc.
+
+* The group of the item (for unloading constraints)
+
+  * column ``GROUP_ID``
+  * default value: ``0``
+
+* The unloading constraint; name: ``unloading-constraint``; possible values:
+
+  * ``none`` (default)
+  * ``only-x-movements``
+  * ``only-y-movements``
+  * ``increasing-x``
+  * ``increasing-y``
+
+Note that unlike the :ref:`rectangle<rectangle>` solver, the parameter key is hyphenated: ``unloading-constraint`` rather than ``unloading_constraint``.
+
+4 types of unloading constraints are available:
+
+* ``only-x-movements``: items can only be moved out along the X axis; therefore, no item from a later group may be positioned to the right of an item from an earlier group
+* ``only-y-movements``: same along the Y axis
+* ``increasing-x``: all items from group 0 have a greater X coordinate than all items from group 1, which in turn have a greater X coordinate than all items from group 2, etc.
+* ``increasing-y``: same along the Y axis
+
+The following example packs 3 items (3000×1400, 3000×2400 and 2500×1000 footprints, groups 0, 1 and 2) into 7500×2400×3000 bins (:code:`bin-packing-with-leftovers` objective). Without an unloading constraint, the items can be arranged freely and all 3 fit into a single bin. With ``only-x-movements``, the group-2 item cannot be positioned without ending up to the right of the group-1 item while itself needing to come out first, so it no longer fits alongside the others, and a second bin is needed.
+
+.. |boxstacks_unloading_no| image:: img/boxstacks_unloading_no.png
+   :scale: 50%
+
+.. |boxstacks_unloading_yes| image:: img/boxstacks_unloading_yes.png
+   :scale: 50%
+
+.. list-table::
+   :widths: 1 1
+   :header-rows: 1
+   :align: center
+
+   * - No constraint
+     - ``only-x-movements``
+   * - .. literalinclude:: examples/boxstacks/unloading_no/items.csv
+          :caption: items.csv
+     - .. literalinclude:: examples/boxstacks/unloading_yes/items.csv
+          :caption: items.csv
+   * - .. literalinclude:: examples/boxstacks/unloading_no/bins.csv
+          :caption: bins.csv
+     - .. literalinclude:: examples/boxstacks/unloading_yes/bins.csv
+          :caption: bins.csv
+   * - .. literalinclude:: examples/boxstacks/unloading_no/parameters.csv
+          :caption: parameters.csv
+     - .. literalinclude:: examples/boxstacks/unloading_yes/parameters.csv
+          :caption: parameters.csv
+   * - .. code-block:: shell
+
+            packingsolver_boxstacks \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+     - .. code-block:: shell
+
+            packingsolver_boxstacks \
+                    --items items.csv \
+                    --bins bins.csv \
+                    --parameters parameters.csv \
+                    --certificate solution.csv
+   * - |boxstacks_unloading_no|
+     - |boxstacks_unloading_yes|
+
 Maximum weight on the middle and rear axles
 ---------------------------------------------
 
@@ -654,75 +726,3 @@ The following example packs 19 copies of a 1200×1000×1200 item weighing 1200 a
                     --certificate solution.csv
    * - |boxstacks_axle_weight_no|
      - |boxstacks_axle_weight_yes|
-
-Unloading constraints
--------------------------
-
-When loading a truck that visits multiple loading/unloading locations, it might be necessary to be able to load/unload the items at a location without having to move the items which are already in the truck.
-This is modeled in the solver with unloading constraints. Items are assigned to groups: items in group 0 are placed last (nearest the door) and unloaded first, items in group 1 are placed next, etc.
-
-* The group of the item (for unloading constraints)
-
-  * column ``GROUP_ID``
-  * default value: ``0``
-
-* The unloading constraint; name: ``unloading-constraint``; possible values:
-
-  * ``none`` (default)
-  * ``only-x-movements``
-  * ``only-y-movements``
-  * ``increasing-x``
-  * ``increasing-y``
-
-Note that unlike the :ref:`rectangle<rectangle>` solver, the parameter key is hyphenated: ``unloading-constraint`` rather than ``unloading_constraint``.
-
-4 types of unloading constraints are available:
-
-* ``only-x-movements``: items can only be moved out along the X axis; therefore, no item from a later group may be positioned to the right of an item from an earlier group
-* ``only-y-movements``: same along the Y axis
-* ``increasing-x``: all items from group 0 have a greater X coordinate than all items from group 1, which in turn have a greater X coordinate than all items from group 2, etc.
-* ``increasing-y``: same along the Y axis
-
-The following example packs 3 items (3000×1400, 3000×2400 and 2500×1000 footprints, groups 0, 1 and 2) into 7500×2400×3000 bins (:code:`bin-packing-with-leftovers` objective). Without an unloading constraint, the items can be arranged freely and all 3 fit into a single bin. With ``only-x-movements``, the group-2 item cannot be positioned without ending up to the right of the group-1 item while itself needing to come out first, so it no longer fits alongside the others, and a second bin is needed.
-
-.. |boxstacks_unloading_no| image:: img/boxstacks_unloading_no.png
-   :scale: 50%
-
-.. |boxstacks_unloading_yes| image:: img/boxstacks_unloading_yes.png
-   :scale: 50%
-
-.. list-table::
-   :widths: 1 1
-   :header-rows: 1
-   :align: center
-
-   * - No constraint
-     - ``only-x-movements``
-   * - .. literalinclude:: examples/boxstacks/unloading_no/items.csv
-          :caption: items.csv
-     - .. literalinclude:: examples/boxstacks/unloading_yes/items.csv
-          :caption: items.csv
-   * - .. literalinclude:: examples/boxstacks/unloading_no/bins.csv
-          :caption: bins.csv
-     - .. literalinclude:: examples/boxstacks/unloading_yes/bins.csv
-          :caption: bins.csv
-   * - .. literalinclude:: examples/boxstacks/unloading_no/parameters.csv
-          :caption: parameters.csv
-     - .. literalinclude:: examples/boxstacks/unloading_yes/parameters.csv
-          :caption: parameters.csv
-   * - .. code-block:: shell
-
-            packingsolver_boxstacks \
-                    --items items.csv \
-                    --bins bins.csv \
-                    --parameters parameters.csv \
-                    --certificate solution.csv
-     - .. code-block:: shell
-
-            packingsolver_boxstacks \
-                    --items items.csv \
-                    --bins bins.csv \
-                    --parameters parameters.csv \
-                    --certificate solution.csv
-   * - |boxstacks_unloading_no|
-     - |boxstacks_unloading_yes|
