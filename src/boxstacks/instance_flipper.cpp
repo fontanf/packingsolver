@@ -1,6 +1,7 @@
 #include "boxstacks/instance_flipper.hpp"
 
 #include "packingsolver/boxstacks/instance_builder.hpp"
+#include "boxstacks/solution_builder.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
@@ -88,26 +89,26 @@ Instance InstanceFlipper::flip(const Instance& instance)
 
 Solution InstanceFlipper::unflip_solution(const Solution& flipped_solution) const
 {
-    Solution solution(instance_orig_);
+    SolutionBuilder solution_builder(instance_orig_);
     for (BinPos bin_pos = 0;
             bin_pos < flipped_solution.number_of_different_bins();
             ++bin_pos) {
         const SolutionBin& flipped_bin = flipped_solution.bin(bin_pos);
-        solution.add_bin(
+        solution_builder.add_bin(
                 flipped_bin.bin_type_id,
                 flipped_bin.copies);
         for (StackId stack_pos = 0;
                 stack_pos < (StackId)flipped_bin.stacks.size();
                 ++stack_pos) {
             const SolutionStack& flipped_stack = flipped_bin.stacks[stack_pos];
-            solution.add_stack(
+            solution_builder.add_stack(
                     bin_pos,
                     flipped_stack.y_start,
                     flipped_stack.y_end,
                     flipped_stack.x_start,
                     flipped_stack.x_end);
             for (const SolutionItem& flipped_item: flipped_stack.items) {
-                solution.add_item(
+                solution_builder.add_item(
                         bin_pos,
                         stack_pos,
                         flipped_item.item_type_id,
@@ -115,5 +116,5 @@ Solution InstanceFlipper::unflip_solution(const Solution& flipped_solution) cons
             }
         }
     }
-    return solution;
+    return solution_builder.build();
 }

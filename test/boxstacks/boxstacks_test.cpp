@@ -1,5 +1,6 @@
 #include "packingsolver/boxstacks/instance_builder.hpp"
 #include "packingsolver/boxstacks/solution.hpp"
+#include "boxstacks/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -14,8 +15,9 @@ TEST(BoxStacks, BinCopies)
     instance_builder.add_item_type(1, 1, 1, -1, 10);
     instance_builder.add_bin_type(10, 10, 10, -1, 10);
     const Instance instance = instance_builder.build();
-    Solution solution(instance);
-    solution.add_bin(0, 2);
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(0, 2);
+    Solution solution = solution_builder.build();
     EXPECT_EQ(solution.number_of_bins(), 2);
     EXPECT_EQ(solution.bin_copies(0), 2);
 }

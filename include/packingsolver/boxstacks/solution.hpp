@@ -108,26 +108,6 @@ public:
         item_copies_(instance.number_of_item_types(), 0)
     { }
 
-    /** Add a bin at the end of the solution. */
-    BinPos add_bin(
-            BinTypeId bin_type_id,
-            BinPos copies);
-
-    /** Add a stack to the solution. */
-    StackId add_stack(
-            BinPos bin_pos,
-            Length x_start,
-            Length x_end,
-            Length y_start,
-            Length y_end);
-
-    /** Add an item to the solution. */
-    void add_item(
-            BinPos bin_pos,
-            StackId stack_id,
-            ItemTypeId item_type_id,
-            Rotation rotation);
-
     /** Destructor. */
     virtual ~Solution() { }
 
@@ -149,6 +129,13 @@ public:
 
     /** Get the instance. */
     inline const Instance& instance() const { return *instance_; }
+
+    /*
+     * Getters: feasibility
+     */
+
+    /** Feasibility according to the user feasibility callback. */
+    inline bool callback_feasible() const { return callback_feasible_; }
 
     /*
      * Getters: bins
@@ -295,7 +282,8 @@ public:
 
     bool feasible_axle_weights() const;
 
-    bool feasible() const;
+    /** Overall feasibility. */
+    inline bool feasible() const { return feasible_; }
 
     bool operator<(const Solution& solution) const;
 
@@ -317,11 +305,24 @@ public:
 private:
 
     /*
+     * Private methods.
+     */
+
+    void update_indicators(
+            BinPos bin_pos);
+
+    /*
      * Private attributes.
      */
 
     /** Instance. */
     const Instance* instance_;
+
+    /** Feasibility according to the user feasibility callback. */
+    bool callback_feasible_ = true;
+
+    /** Overall feasibility. */
+    bool feasible_ = true;
 
     /** Bins. */
     std::vector<SolutionBin> bins_;
@@ -374,9 +375,7 @@ private:
     /** Number of copies of each item type in the solution. */
     std::vector<ItemPos> item_copies_;
 
-    /*
-     * Private methods.
-     */
+    friend class SolutionBuilder;
 
 };
 
