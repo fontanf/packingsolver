@@ -68,16 +68,6 @@ public:
         item_copies_(instance.number_of_item_types(), 0)
     { }
 
-    /** Add a bin at the end of the solution. */
-    BinPos add_bin(
-            BinTypeId bin_type_id,
-            BinPos copies);
-
-    /** Add an item to the solution. */
-    void add_item(
-            BinPos bin_pos,
-            ItemTypeId item_type_id);
-
     void append(
             const Solution& solution,
             BinPos bin_pos,
@@ -90,17 +80,19 @@ public:
             const std::vector<BinTypeId>& bin_type_ids,
             const std::vector<ItemTypeId>& item_type_ids);
 
-    /** Read a solution from a file. */
-    Solution(
-            const Instance& instance,
-            const std::string& certificate_path);
-
     /*
      * Getters
      */
 
     /** Get the instance. */
     inline const Instance& instance() const { return *instance_; }
+
+    /*
+     * Getters: feasibility
+     */
+
+    /** Feasibility according to the user feasibility callback. */
+    inline bool callback_feasible() const { return callback_feasible_; }
 
     /** Get the number of items in the solution. */
     inline ItemPos number_of_items() const { return number_of_items_; }
@@ -173,6 +165,13 @@ public:
 private:
 
     /*
+     * Private methods.
+     */
+
+    void update_indicators(
+            BinPos bin_pos);
+
+    /*
      * Private attributes.
      */
 
@@ -209,8 +208,19 @@ private:
     /** Number of copies of each item type in the solution. */
     std::vector<ItemPos> item_copies_;
 
+    /**
+     * 'true' iff the solution satisfies the built-in packing constraints
+     * (bin length, weight, stackability, remaining weight).
+     */
+    bool built_in_feasible_ = true;
+
+    /** Feasibility according to the user feasibility callback. */
+    bool callback_feasible_ = true;
+
     /** 'true' iff the solution is feasible regarding the packing constraints. */
     bool feasible_ = true;
+
+    friend class SolutionBuilder;
 
 };
 

@@ -4,6 +4,7 @@ target_sources(PackingSolver_onedimensional PRIVATE
     instance.cpp
     instance_builder.cpp
     solution.cpp
+    solution_builder.cpp
     algorithm_formatter.cpp
     optimize.cpp
     post_process.cpp

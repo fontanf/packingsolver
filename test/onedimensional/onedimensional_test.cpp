@@ -1,5 +1,6 @@
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
+#include "onedimensional/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -14,8 +15,9 @@ TEST(OneDimensional, BinCopies)
     instance_builder.add_item_type(1, -1, 10);
     instance_builder.add_bin_type(10, -1, 10);
     const Instance instance = instance_builder.build();
-    Solution solution(instance);
-    solution.add_bin(0, 2);
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(0, 2);
+    Solution solution = solution_builder.build();
     EXPECT_EQ(solution.number_of_bins(), 2);
     EXPECT_EQ(solution.bin_copies(0), 2);
 }
@@ -34,7 +36,9 @@ TEST(OneDimensional, Users_2023_08_01)
     optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, (directory / "2023-08-01_solution.csv").string());
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read((directory / "2023-08-01_solution.csv").string());
+    Solution solution = solution_builder.build();
     std::cout << std::endl
         << "Reference solution" << std::endl
         << "------------------" << std::endl;
@@ -56,7 +60,9 @@ TEST(OneDimensional, Users_2024_04_06_t1)
     optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, (directory / "2024-04-06_t1_solution.csv").string());
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read((directory / "2024-04-06_t1_solution.csv").string());
+    Solution solution = solution_builder.build();
     std::cout << std::endl
         << "Reference solution" << std::endl
         << "------------------" << std::endl;
@@ -78,7 +84,9 @@ TEST(OneDimensional, Users_2024_04_06_t2)
     optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, (directory / "2024-04-06_t2_solution.csv").string());
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read((directory / "2024-04-06_t2_solution.csv").string());
+    Solution solution = solution_builder.build();
     std::cout << std::endl
         << "Reference solution" << std::endl
         << "------------------" << std::endl;
@@ -100,7 +108,9 @@ TEST(OneDimensional, Users_2024_04_06_t3)
     optimize_parameters.use_tree_search = 1;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, (directory / "2024-04-06_t3_solution.csv").string());
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read((directory / "2024-04-06_t3_solution.csv").string());
+    Solution solution = solution_builder.build();
     std::cout << std::endl
         << "Reference solution" << std::endl
         << "------------------" << std::endl;
@@ -123,7 +133,9 @@ TEST(OneDimensional, Users_2024_04_07)
     optimize_parameters.verbosity_level = 2;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, (directory / "2024-04-07_solution.csv").string());
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read((directory / "2024-04-07_solution.csv").string());
+    Solution solution = solution_builder.build();
     std::cout << std::endl
         << "Reference solution" << std::endl
         << "------------------" << std::endl;
@@ -145,7 +157,9 @@ TEST(OneDimensional, Users_2024_04_09)
     optimize_parameters.use_sequential_value_correction = 1;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, (directory / "2024-04-09_solution.csv").string());
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read((directory / "2024-04-09_solution.csv").string());
+    Solution solution = solution_builder.build();
     std::cout << std::endl
         << "Reference solution" << std::endl
         << "------------------" << std::endl;
@@ -167,7 +181,9 @@ TEST(OneDimensional, Users_2024_04_21)
     optimize_parameters.use_column_generation = 1;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, (directory / "2024-04-21_solution.csv").string());
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read((directory / "2024-04-21_solution.csv").string());
+    Solution solution = solution_builder.build();
     std::cout << std::endl
         << "Reference solution" << std::endl
         << "------------------" << std::endl;
