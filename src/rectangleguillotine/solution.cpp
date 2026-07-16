@@ -81,7 +81,6 @@ void Solution::update_indicators(
             if (item_copies_[node.item_type_id]
                     > instance().item_type(node.item_type_id).copies) {
                 item_copies_feasible_ = false;
-                feasible_ = false;
             }
         }
 
@@ -115,7 +114,6 @@ void Solution::update_indicators(
                 std::cout << "minimum_waste_length_feasible_ = false" << std::endl;
                 std::cout << "bin_pos " << bin_pos << " node " << node << std::endl;
                 minimum_waste_length_feasible_ = false;
-                feasible_ = false;
             }
         }
 
@@ -130,7 +128,6 @@ void Solution::update_indicators(
                         < instance().parameters().minimum_distance_1_cuts)) {
                 //std::cout << "minimum_distance_1_cuts = false" << std::endl;
                 minimum_distance_1_cuts_feasible_ = false;
-                feasible_ = false;
             }
         }
 
@@ -146,7 +143,6 @@ void Solution::update_indicators(
                             > instance().parameters().maximum_distance_1_cuts)) {
                     //std::cout << "maximum_distance_1_cuts = false" << std::endl;
                     maximum_distance_1_cuts_feasible_ = false;
-                    feasible_ = false;
                 }
             }
         }
@@ -162,7 +158,6 @@ void Solution::update_indicators(
                         < instance().parameters().minimum_distance_2_cuts)) {
                 //std::cout << "minimum_distance_2_cuts = false" << std::endl;
                 minimum_distance_2_cuts_feasible_ = false;
-                feasible_ = false;
             }
         }
 
@@ -178,7 +173,6 @@ void Solution::update_indicators(
                             > instance().parameters().maximum_distance_2_cuts)) {
                     //std::cout << "maximum_distance_2_cuts = false" << std::endl;
                     maximum_distance_2_cuts_feasible_ = false;
-                    feasible_ = false;
                 }
             }
         }
@@ -195,7 +189,6 @@ void Solution::update_indicators(
                             > instance().parameters().maximum_number_1_cuts) {
                         //std::cout << "maximum_number_1_cuts = false" << std::endl;
                         maximum_number_1_cuts_feasible_ = false;
-                        feasible_ = false;
                     }
                 }
             }
@@ -219,7 +212,6 @@ void Solution::update_indicators(
                             > instance().parameters().maximum_number_2_cuts) {
                         //std::cout << "maximum_number_2_cuts = false" << std::endl;
                         maximum_number_2_cuts_feasible_ = false;
-                        feasible_ = false;
                     }
                 }
             }
@@ -274,7 +266,6 @@ void Solution::update_indicators(
                     //    << " / " << item_type_pred.copies
                     //    << std::endl;
                     stacks_feasible_ = false;
-                    feasible_ = false;
                 }
             }
         }
@@ -291,7 +282,6 @@ void Solution::update_indicators(
             if (k != -1) {
                 //std::cout << "defects_feasible = false" << std::endl;
                 defects_feasible_ = false;
-                feasible_ = false;
             }
         }
 
@@ -320,7 +310,6 @@ void Solution::update_indicators(
                     bin_type);
             if (kl != -1 || kr != -1 || kb != -1 || kt != -1) {
                 cut_through_defects_feasible_ = false;
-                feasible_ = false;
             }
         }
     }
@@ -407,7 +396,6 @@ void Solution::update_indicators(
     // Number-of-stages feasibility check.
     if (this->number_of_stages_ > instance().parameters().number_of_stages) {
         this->number_of_stages_feasible_ = false;
-        this->feasible_ = false;
     }
 
     if (!minimum_waste_length_feasible()) {
@@ -419,6 +407,26 @@ void Solution::update_indicators(
     }
 
     cutting_cost_ += instance().parameters().waste_cost * (waste() - waste_before_bin);
+
+    // Feasibility callback.
+    callback_feasible_ = instance().feasibility_callback()(*this);
+
+    // Aggregate feasibility flags into the overall feasibility indicator.
+    // Recomputed (not accumulated) on every call since the feasibility
+    // callback's result is not required to be monotonic as bins are added.
+    feasible_ = number_of_stages_feasible_
+        && minimum_waste_length_feasible_
+        && minimum_distance_1_cuts_feasible_
+        && maximum_distance_1_cuts_feasible_
+        && minimum_distance_2_cuts_feasible_
+        && maximum_distance_2_cuts_feasible_
+        && maximum_number_1_cuts_feasible_
+        && maximum_number_2_cuts_feasible_
+        && stacks_feasible_
+        && defects_feasible_
+        && cut_through_defects_feasible_
+        && item_copies_feasible_
+        && callback_feasible_;
 }
 
 void Solution::append(

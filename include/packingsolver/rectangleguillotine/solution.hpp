@@ -138,6 +138,8 @@ public:
 
     bool item_copies_feasible() const { return item_copies_feasible_; }
 
+    bool callback_feasible() const { return callback_feasible_; }
+
     bool feasible() const { return feasible_; }
 
     /*
@@ -302,6 +304,9 @@ private:
 
     /** Feasibility for item copy limits. */
     bool item_copies_feasible_ = true;
+
+    /** Feasibility according to the user feasibility callback. */
+    bool callback_feasible_ = true;
 
     /** Overall feasibility. */
     bool feasible_ = true;

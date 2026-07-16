@@ -87,6 +87,16 @@ public:
     inline const Instance& instance() const { return *instance_; }
 
     /*
+     * Getters: feasibility
+     */
+
+    /** Feasibility according to the user feasibility callback. */
+    inline bool callback_feasible() const { return callback_feasible_; }
+
+    /** Overall feasibility. */
+    inline bool feasible() const { return feasible_; }
+
+    /*
      * Getters: bins
      */
 
@@ -216,6 +226,12 @@ private:
 
     /** Instance. */
     const Instance* instance_;
+
+    /** Feasibility according to the user feasibility callback. */
+    bool callback_feasible_ = true;
+
+    /** Overall feasibility. */
+    bool feasible_ = true;
 
     /** Bins. */
     std::vector<SolutionBin> bins_;

@@ -3,6 +3,8 @@
 #include "packingsolver/algorithms/common.hpp"
 #include "packingsolver/algorithms/truck.hpp"
 
+#include <functional>
+
 namespace packingsolver
 {
 namespace rectangle
@@ -286,6 +288,16 @@ struct Parameters
 /////////////////////////////////// Instance ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+class Solution;
+
+/**
+ * User-provided feasibility callback.
+ *
+ * Called on a fully-built Solution in addition to the built-in feasibility
+ * checks; returning 'false' marks the solution as infeasible.
+ */
+using FeasibilityCallback = std::function<bool(const Solution&)>;
+
 /**
  * Instance class for a problem of type "rectangle".
  */
@@ -310,6 +322,9 @@ public:
 
     /** Get parameters. */
     const Parameters& parameters() const { return parameters_; }
+
+    /** Get the feasibility callback. */
+    inline const FeasibilityCallback& feasibility_callback() const { return feasibility_callback_; }
 
     /** Get unloading constraint type. */
     inline UnloadingConstraint unloading_constraint() const { return parameters_.unloading_constraint; }
@@ -435,6 +450,9 @@ private:
 
     /** Parameters. */
     Parameters parameters_;
+
+    /** User-provided feasibility callback. */
+    FeasibilityCallback feasibility_callback_ = [](const Solution&) { return true; };
 
     /** Bin types. */
     std::vector<BinType> bin_types_;
