@@ -18,177 +18,87 @@ std::ostream& packingsolver::boxstacks::operator<<(
     return os;
 }
 
-BinPos Solution::add_bin(
-        BinTypeId bin_type_id,
-        BinPos copies)
+void Solution::update_indicators(
+        BinPos bin_pos)
 {
-    const BinType& bin_type = instance().bin_type(bin_type_id);
+    SolutionBin& bin = bins_[bin_pos];
+    const BinType& bin_type = instance().bin_type(bin.bin_type_id);
 
-    SolutionBin bin;
-    bin.bin_type_id = bin_type_id;
-    bin.copies = copies;
-    bin.weight = std::vector<Weight>(instance().number_of_groups(), 0);
-    bin.weight_weighted_sum = std::vector<Weight>(instance().number_of_groups(), 0);
-    bins_.push_back(bin);
-
-    bin_copies_[bin_type_id] += copies;
-    bin_volume_ += copies * bin_type.volume();
-    bin_area_ += copies * bin_type.area();
-    bin_weight_ += copies * bin_type.maximum_weight;
-    bin_cost_ += copies * bin_type.cost;
-    number_of_bins_ += copies;
+    bin_copies_[bin.bin_type_id] += bin.copies;
+    bin_volume_ += bin.copies * bin_type.volume();
+    bin_area_ += bin.copies * bin_type.area();
+    bin_weight_ += bin.copies * bin_type.maximum_weight;
+    bin_cost_ += bin.copies * bin_type.cost;
+    number_of_bins_ += bin.copies;
     x_max_ = 0;
     y_max_ = 0;
 
-    return bins_.size() - 1;
-}
+    bin.weight = std::vector<Weight>(instance().number_of_groups(), 0.0);
+    bin.weight_weighted_sum = std::vector<Weight>(instance().number_of_groups(), 0.0);
+    bin.profit = 0.0;
 
-StackId Solution::add_stack(
-        BinPos bin_pos,
-        Length x_start,
-        Length x_end,
-        Length y_start,
-        Length y_end)
-{
-    if (bin_pos >= number_of_bins()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "bin_pos: " + std::to_string(bin_pos) + "; "
-                "number_of_bins(): " + std::to_string(number_of_bins()) + ".");
-    }
-    SolutionBin& bin = bins_[bin_pos];
+    for (SolutionStack& stack: bin.stacks) {
+        stack.weight = std::vector<Weight>(instance().number_of_groups(), 0.0);
+        stack.weight_weighted_sum = std::vector<Weight>(instance().number_of_groups(), 0.0);
+        stack.profit = 0.0;
+        stack.z_end = 0;
 
-    SolutionStack stack;
-    stack.x_start = x_start;
-    stack.x_end = x_end;
-    stack.y_start = y_start;
-    stack.y_end = y_end;
-    stack.weight = std::vector<Weight>(instance().number_of_groups(), 0.0);
-    stack.weight_weighted_sum = std::vector<Weight>(instance().number_of_groups(), 0.0);
-    bin.stacks.push_back(stack);
-    if (bin_pos == (BinPos)bins_.size() - 1) {
-        if (x_max_ < x_end)
-            x_max_ = x_end;
-        if (y_max_ < y_end)
-            y_max_ = y_end;
-        Length xi = instance().bin_type(bin.bin_type_id).box.x;
-        Length yi = instance().bin_type(bin.bin_type_id).box.y;
-        Length zi = instance().bin_type(bin.bin_type_id).box.z;
-        volume_ = bin_volume_ - zi * std::max((xi - x_max_) * yi, (yi - y_max_ * xi));
-    }
+        if (bin_pos == (BinPos)bins_.size() - 1) {
+            if (x_max_ < stack.x_end)
+                x_max_ = stack.x_end;
+            if (y_max_ < stack.y_end)
+                y_max_ = stack.y_end;
+            Length xi = bin_type.box.x;
+            Length yi = bin_type.box.y;
+            Length zi = bin_type.box.z;
+            volume_ = bin_volume_ - zi * std::max((xi - x_max_) * yi, (yi - y_max_ * xi));
+        }
 
-    number_of_stacks_ += bin.copies;
-    stack_area_ += bin.copies * (x_end - x_start) * (y_end - y_start);
+        number_of_stacks_ += bin.copies;
+        stack_area_ += bin.copies * (stack.x_end - stack.x_start) * (stack.y_end - stack.y_start);
 
-    return bin.stacks.size() - 1;
-}
+        bool first_item = true;
+        for (SolutionItem& item: stack.items) {
+            const ItemType& item_type = instance().item_type(item.item_type_id);
+            Length zj = item_type.z(item.rotation);
 
-void Solution::add_item(
-        BinPos bin_pos,
-        StackId stack_id,
-        ItemTypeId item_type_id,
-        Rotation rotation)
-{
-    if (bin_pos >= number_of_bins()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "bin_pos: " + std::to_string(bin_pos) + "; "
-                "number_of_bins(): " + std::to_string(number_of_bins()) + ".");
-    }
-    if (item_type_id < 0 || item_type_id >= instance().number_of_item_types()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "item_type_id: " + std::to_string(item_type_id)
-                + " / " + std::to_string(instance().number_of_item_types()) + ".");
-    }
-    SolutionBin& bin = bins_[bin_pos];
+            item.z_start = stack.z_end;
+            if (!first_item)
+                item.z_start -= item_type.nesting_height;
+            first_item = false;
 
-    SolutionStack& stack = bin.stacks[stack_id];
-    const ItemType& item_type = instance().item_type(item_type_id);
-    Length xj = item_type.x(rotation);
-    Length yj = item_type.y(rotation);
-    Length zj = item_type.z(rotation);
-    //std::cout
-    //    << "j " << j
-    //    << " x " << stack.x_start
-    //    << " y " << stack.y_start
-    //    << " z " << stack.z_end
-    //    << " xj " << xj
-    //    << " yj " << yj
-    //    << " zj " << zj
-    //    << std::endl;
+            stack.z_end = item.z_start + zj;
+            for (GroupId group_id = 0; group_id <= item_type.group_id; ++group_id) {
+                stack.weight[group_id] += item_type.weight;
+                stack.weight_weighted_sum[group_id]
+                    += ((double)stack.x_start + (double)(stack.x_end - stack.x_start) / 2) * item_type.weight;
+            }
+            stack.profit += item_type.profit;
 
-    if (!item_type.can_rotate(rotation)) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "forbidden rotation; "
-                "item_type_id: " + std::to_string(item_type_id) + "; "
-                "rotation: " + to_string(rotation) + "; "
-                "xj: " + std::to_string(xj) + "; "
-                "yj: " + std::to_string(yj) + "; "
-                "stack.x_start: " + std::to_string(stack.x_start) + "; "
-                "stack.x_end: " + std::to_string(stack.x_end) + "; "
-                "stack.y_start: " + std::to_string(stack.y_start) + "; "
-                "stack.y_end: " + std::to_string(stack.y_end) + ".");
-    }
-    if (xj != stack.x_end - stack.x_start) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "item_type_id: " + std::to_string(item_type_id) + "; "
-                "z: " + std::to_string(stack.z_end) + "; "
-                "rotation: " + to_string(rotation) + "; "
-                "xj: " + std::to_string(xj) + "; "
-                "yj: " + std::to_string(yj) + "; "
-                "zj: " + std::to_string(zj) + "; "
-                "stack.x_start: " + std::to_string(stack.x_start) + "; "
-                "stack.x_end: " + std::to_string(stack.x_end) + "; "
-                "stack.y_start: " + std::to_string(stack.y_start) + "; "
-                "stack.y_end: " + std::to_string(stack.y_end) + ".");
-    }
-    if (yj != stack.y_end - stack.y_start) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "item_type_id: " + std::to_string(item_type_id) + "; "
-                "rotation: " + to_string(rotation) + "; "
-                "xj: " + std::to_string(xj) + "; "
-                "yj: " + std::to_string(yj) + "; "
-                "zj: " + std::to_string(zj) + "; "
-                "stack.x_start: " + std::to_string(stack.x_start) + "; "
-                "stack.x_end: " + std::to_string(stack.x_end) + "; "
-                "stack.y_start: " + std::to_string(stack.y_start) + "; "
-                "stack.y_end: " + std::to_string(stack.y_end) + ".");
+            for (GroupId group_id = 0; group_id <= item_type.group_id; ++group_id) {
+                bin.weight[group_id] += item_type.weight;
+                bin.weight_weighted_sum[group_id]
+                    += ((double)stack.x_start + (double)(stack.x_end - stack.x_start) / 2) * item_type.weight;
+            }
+            bin.profit += item_type.profit;
+
+            number_of_items_ += bin.copies;
+            item_copies_[item.item_type_id] += bin.copies;
+            item_volume_ += bin.copies * (stack.z_end - item.z_start)
+                * (stack.y_end - stack.y_start)
+                * (stack.x_end - stack.x_start);
+            item_weight_ += bin.copies * item_type.weight;
+            item_profit_ += bin.copies * item_type.profit;
+        }
     }
 
-    SolutionItem item;
-    item.item_type_id = item_type_id;
-    item.z_start = stack.z_end;
-    if (!stack.items.empty())
-        item.z_start -= item_type.nesting_height;
-    item.rotation = rotation;
+    // Feasibility callback.
+    callback_feasible_ = instance().feasibility_callback()(*this);
 
-    stack.z_end = item.z_start + zj;
-    stack.items.push_back(item);
-    for (GroupId group_id = 0; group_id <= item_type.group_id; ++group_id) {
-        stack.weight[group_id] += item_type.weight;
-        stack.weight_weighted_sum[group_id]
-            += ((double)stack.x_start + (double)(stack.x_end - stack.x_start) / 2) * item_type.weight;
-    }
-    stack.profit += item_type.profit;
-
-    for (GroupId group_id = 0; group_id <= item_type.group_id; ++group_id) {
-        bin.weight[group_id] += item_type.weight;
-        bin.weight_weighted_sum[group_id]
-            += ((double)stack.x_start + (double)(stack.x_end - stack.x_start) / 2) * item_type.weight;
-    }
-    bin.profit += item_type.profit;
-
-    number_of_items_ += bin.copies;
-    item_copies_[item.item_type_id] += bin.copies;
-    item_volume_ += bin.copies * (stack.z_end - item.z_start)
-        * (stack.y_end - stack.y_start)
-        * (stack.x_end - stack.x_start);
-    item_weight_ += bin.copies * item_type.weight;
-    item_profit_ += bin.copies * item_type.profit;
+    // Aggregate feasibility, recomputed (not accumulated) on every call since
+    // the feasibility callback's result is not required to be monotonic as
+    // bins are added.
+    feasible_ = feasible_total_weight() && feasible_axle_weights() && callback_feasible_;
 }
 
 bool Solution::feasible_total_weight() const
@@ -220,11 +130,6 @@ bool Solution::feasible_axle_weights() const
         }
     }
     return true;
-}
-
-bool Solution::feasible() const
-{
-    return feasible_total_weight() && feasible_axle_weights();
 }
 
 bool Solution::check_stack(
@@ -320,18 +225,26 @@ void Solution::append(
     BinTypeId bin_type_id = (bin_type_ids.empty())?
         solution.bins_[bin_pos].bin_type_id:
         bin_type_ids[solution.bins_[bin_pos].bin_type_id];
-    const SolutionBin& bin = solution.bins_[bin_pos];
-    BinPos i = add_bin(bin_type_id, copies);
-    for (const SolutionStack& stack: bin.stacks) {
-        StackId stack_id = add_stack(
-                i, stack.x_start, stack.x_end, stack.y_start, stack.y_end);
-        for (const SolutionItem& item: stack.items) {
-            ItemTypeId item_type_id = (item_type_ids.empty())?
+    const SolutionBin& bin_old = solution.bins_[bin_pos];
+    SolutionBin bin;
+    bin.bin_type_id = bin_type_id;
+    bin.copies = copies;
+    for (const SolutionStack& stack_old: bin_old.stacks) {
+        SolutionStack stack;
+        stack.x_start = stack_old.x_start;
+        stack.x_end = stack_old.x_end;
+        stack.y_start = stack_old.y_start;
+        stack.y_end = stack_old.y_end;
+        for (SolutionItem item: stack_old.items) {
+            item.item_type_id = (item_type_ids.empty())?
                 item.item_type_id:
                 item_type_ids[item.item_type_id];
-            add_item(i, stack_id, item_type_id, item.rotation);
+            stack.items.push_back(item);
         }
+        bin.stacks.push_back(stack);
     }
+    bins_.push_back(bin);
+    update_indicators(bins_.size() - 1);
 }
 
 void Solution::append(

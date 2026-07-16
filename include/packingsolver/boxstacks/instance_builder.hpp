@@ -41,6 +41,9 @@ public:
     /** Set parameters. */
     void set_parameters(const Parameters& parameters) { instance_.parameters_ = parameters; }
 
+    /** Set the feasibility callback. */
+    void set_feasibility_callback(const FeasibilityCallback& feasibility_callback) { instance_.feasibility_callback_ = feasibility_callback; }
+
     /** Set whether or not to consider weight constraints for a group. */
     void set_group_weight_constraints(
             GroupId group_id,

@@ -1,6 +1,7 @@
 #include "boxstacks/tree_search.hpp"
 
 #include "packingsolver/boxstacks/algorithm_formatter.hpp"
+#include "boxstacks/solution_builder.hpp"
 #include "algorithms/thread_pool.hpp"
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
@@ -1486,15 +1487,18 @@ Solution BranchingScheme::to_solution(
     }
     std::reverse(descendents.begin(), descendents.end());
 
-    Solution solution(instance());
+    SolutionBuilder solution_builder(instance());
     BinPos bin_pos = -1;
+    BinPos number_of_bins = 0;
     std::map<std::tuple<BinPos, Length, Length>, StackId> coord2stack;
     for (auto current_node: descendents) {
         const Instance& instance = this->instance(current_node->last_bin_direction);
-        if (current_node->number_of_bins > solution.number_of_bins())
-            bin_pos = solution.add_bin(
+        if (number_of_bins < current_node->number_of_bins) {
+            bin_pos = solution_builder.add_bin(
                     instance.bin_type_id(current_node->number_of_bins - 1),
                     1);
+            number_of_bins++;
+        }
         const ItemType& item_type = instance.item_type(current_node->item_type_id);
         Length xj = item_type.x(current_node->rotation);
         Length yj = item_type.y(current_node->rotation);
@@ -1511,14 +1515,14 @@ Solution BranchingScheme::to_solution(
         if (current_node->new_stack) {
             StackId stack_id = -1;
             if (current_node->last_bin_direction == Direction::X) {
-                stack_id = solution.add_stack(
+                stack_id = solution_builder.add_stack(
                         bin_pos,
                         current_node->x,
                         current_node->x + xj,
                         current_node->y,
                         current_node->y + yj);
             } else {
-                stack_id = solution.add_stack(
+                stack_id = solution_builder.add_stack(
                         bin_pos,
                         current_node->y,
                         current_node->y + yj,
@@ -1528,12 +1532,13 @@ Solution BranchingScheme::to_solution(
             coord2stack[{bin_pos, current_node->x, current_node->y}] = stack_id;
         }
         StackId stack_id = coord2stack[{bin_pos, current_node->x, current_node->y}];
-        solution.add_item(
+        solution_builder.add_item(
                 bin_pos,
                 stack_id,
                 current_node->item_type_id,
                 current_node->rotation);
     }
+    Solution solution = solution_builder.build();
     //if (!solution.feasible()) {
     //    std::cout.precision(std::numeric_limits<double>::max_digits10);
     //    for (GroupId group_id = 0; group_id < instance().number_of_groups(); ++group_id) {

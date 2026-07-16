@@ -1,6 +1,7 @@
 #include "boxstacks/sequential_onedimensional_rectangle.hpp"
 
 #include "packingsolver/boxstacks/algorithm_formatter.hpp"
+#include "boxstacks/solution_builder.hpp"
 
 #include "packingsolver/onedimensional/instance_builder.hpp"
 
@@ -97,6 +98,97 @@ struct Location
 
     /** Position of the stack assigned to the location. */
     StackId stack_position = -1;
+};
+
+/**
+ * Lightweight, single-bin solution representation used only by the frontier
+ * search in sequential_onedimensional_rectangle's main loop below.
+ *
+ * That loop copies a solution and extends it with one stack+item per
+ * candidate, many times per outer iteration, so add_stack/add_item here stay
+ * O(1) (mirroring what boxstacks::Solution::add_stack/add_item used to do
+ * inline before they moved to SolutionBuilder) instead of paying the cost of
+ * a full SolutionBuilder(const Solution&) resume+recompute on every
+ * candidate. It is converted to a real boxstacks::Solution (via
+ * SolutionBuilder) only once a candidate is accepted into the frontier.
+ */
+struct SorSolution
+{
+    SorSolution(const Instance& instance):
+        item_copies(instance.number_of_item_types(), 0),
+        weight(instance.number_of_groups(), 0.0),
+        weight_weighted_sum(instance.number_of_groups(), 0.0)
+    { }
+
+    /** Stacks of the (single, implicit) bin. */
+    std::vector<SolutionStack> stacks;
+
+    /** Number of copies of each item type. */
+    std::vector<ItemPos> item_copies;
+
+    /** Maximum x. */
+    Length x_max = 0;
+
+    /** Total item weight. */
+    Weight item_weight = 0.0;
+
+    /** For each group, weight. */
+    std::vector<Weight> weight;
+
+    /** For each group, sum of x times weight of all items. */
+    std::vector<Weight> weight_weighted_sum;
+
+    /** Add a stack. */
+    StackId add_stack(
+            Length x_start,
+            Length x_end,
+            Length y_start,
+            Length y_end)
+    {
+        SolutionStack stack;
+        stack.x_start = x_start;
+        stack.x_end = x_end;
+        stack.y_start = y_start;
+        stack.y_end = y_end;
+        stack.weight = std::vector<Weight>(weight.size(), 0.0);
+        stack.weight_weighted_sum = std::vector<Weight>(weight.size(), 0.0);
+        stacks.push_back(stack);
+        if (x_max < x_end)
+            x_max = x_end;
+        return stacks.size() - 1;
+    }
+
+    /** Add an item. */
+    void add_item(
+            const Instance& instance,
+            StackId stack_id,
+            ItemTypeId item_type_id,
+            Rotation rotation)
+    {
+        SolutionStack& stack = stacks[stack_id];
+        const ItemType& item_type = instance.item_type(item_type_id);
+
+        SolutionItem item;
+        item.item_type_id = item_type_id;
+        item.z_start = stack.z_end;
+        if (!stack.items.empty())
+            item.z_start -= item_type.nesting_height;
+        item.rotation = rotation;
+
+        stack.z_end = item.z_start + item_type.z(rotation);
+        stack.items.push_back(item);
+        for (GroupId group_id = 0; group_id <= item_type.group_id; ++group_id) {
+            stack.weight[group_id] += item_type.weight;
+            stack.weight_weighted_sum[group_id]
+                += ((double)stack.x_start + (double)(stack.x_end - stack.x_start) / 2) * item_type.weight;
+            weight[group_id] += item_type.weight;
+            weight_weighted_sum[group_id]
+                += ((double)stack.x_start + (double)(stack.x_end - stack.x_start) / 2) * item_type.weight;
+        }
+
+        item_copies[item_type_id]++;
+        item_weight += item_type.weight;
+    }
 };
 
 struct SequentialOneDimensionalRectangleSubproblemOutput
@@ -264,19 +356,33 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     }
 
     // Build boxstacks solution.
-    Solution solution(instance);
-    BinPos bin_pos = 0;
-    if (sor_output.number_of_iterations == 0) {
-        bin_pos = solution.add_bin(0, 1);
-    } else {
-        solution = fixed_items;
+    SolutionBuilder solution_builder(instance);
+    BinPos bin_pos = solution_builder.add_bin(0, 1);
+    if (sor_output.number_of_iterations > 0) {
+        // Re-add the stacks/items already fixed from the previous iteration.
+        const SolutionBin& fixed_bin = fixed_items.bin(0);
+        for (const SolutionStack& fixed_stack: fixed_bin.stacks) {
+            StackId fixed_stack_id = solution_builder.add_stack(
+                    bin_pos,
+                    fixed_stack.x_start,
+                    fixed_stack.x_end,
+                    fixed_stack.y_start,
+                    fixed_stack.y_end);
+            for (const SolutionItem& fixed_item: fixed_stack.items) {
+                solution_builder.add_item(
+                        bin_pos,
+                        fixed_stack_id,
+                        fixed_item.item_type_id,
+                        fixed_item.rotation);
+            }
+        }
     }
     for (auto it = locations.begin(); it != locations.end(); ++it) {
         Location& location = *it;
         StackabilityGroup& stackability_group = stackability_groups[location.stackability_group_pos];
         // Get the stack to add.
         Stack& stack = stackability_group.stacks[location.rotation][location.stack_position];
-        StackId stack_id = solution.add_stack(
+        StackId stack_id = solution_builder.add_stack(
                 bin_pos,
                 location.x,
                 location.x + location.lx,
@@ -284,13 +390,14 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
                 location.y + location.ly);
         // Add the items from the stack.
         for (auto it2 = stack.items.rbegin(); it2 != stack.items.rend(); ++it2) {
-            solution.add_item(
+            solution_builder.add_item(
                     bin_pos,
                     stack_id,
                     *it2,
                     location.rotate ? Rotation::YXZ : Rotation::XYZ);
         }
     }
+    Solution solution = solution_builder.build();
     ItemPos number_of_items_before_repair = solution.number_of_items();
     sor_output.maximum_number_of_items = std::max(
             sor_output.maximum_number_of_items,
@@ -335,24 +442,41 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
     const BinType& bin_type = instance.bin_type(0);
     Length yi = bin_type.box.y;
     Length xi = bin_type.box.x;
-    BinPos bin_pos = 0;
 
     std::vector<Solution> fixed_items_solutions;
-    auto cmp = [](const Solution& solution_1, const Solution& solution_2)
+    auto cmp = [](const SorSolution& solution_1, const SorSolution& solution_2)
     {
-        return solution_1.x_max() < solution_2.x_max();
+        return solution_1.x_max < solution_2.x_max;
     };
-    std::set<Solution, decltype(cmp)> queue(cmp);
-    Solution solution_empty(instance);
-    solution_empty.add_bin(0, 1);
-    queue.insert(solution_empty);
+    std::set<SorSolution, decltype(cmp)> queue(cmp);
+    queue.insert(SorSolution(instance));
     while (!queue.empty()) {
-        Solution solution = *queue.begin();
-        fixed_items_solutions.push_back(solution);
-        //std::cout << "x " << solution.x_max()
+        SorSolution solution = *queue.begin();
+
+        // Convert to a real boxstacks solution and save it.
+        {
+            SolutionBuilder solution_builder(instance);
+            BinPos sol_bin_pos = solution_builder.add_bin(0, 1);
+            for (const SolutionStack& stack: solution.stacks) {
+                StackId stack_id = solution_builder.add_stack(
+                        sol_bin_pos,
+                        stack.x_start,
+                        stack.x_end,
+                        stack.y_start,
+                        stack.y_end);
+                for (const SolutionItem& item: stack.items) {
+                    solution_builder.add_item(
+                            sol_bin_pos,
+                            stack_id,
+                            item.item_type_id,
+                            item.rotation);
+                }
+            }
+            fixed_items_solutions.push_back(solution_builder.build());
+        }
+        //std::cout << "x " << solution.x_max
         //    << " w " << bin_type.semi_trailer_truck_data.compute_axle_weights(
-        //                        solution.bin(0).weight_weighted_sum.front(), solution.bin(0).weight.front()).first
-        //    << " n " << solution.number_of_items()
+        //                        solution.weight_weighted_sum.front(), solution.weight.front()).first
         //    << std::endl;
         queue.erase(queue.begin());
         GroupId highest_group_id = 0;
@@ -360,7 +484,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
             const ItemType& item_type = instance.item_type(item_type_id);
-            if (solution.item_copies(item_type_id) == item_type.copies)
+            if (solution.item_copies[item_type_id] == item_type.copies)
                 continue;
             highest_group_id = (std::max)(highest_group_id, item_type.group_id);
         }
@@ -368,31 +492,30 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
             const ItemType& item_type = instance.item_type(item_type_id);
-            if (solution.item_copies(item_type_id) == item_type.copies)
+            if (solution.item_copies[item_type_id] == item_type.copies)
                 continue;
             if (item_type.group_id != highest_group_id)
                 continue;
             for (Rotation rotation: item_type.rotations) {
                 {
-                    Solution solution_child = solution;
+                    SorSolution solution_child = solution;
                     Length xj = item_type.x(rotation);
                     Length yj = item_type.y(rotation);
                     if (yj > yi)
                         continue;
-                    Length x_start = solution.x_max();
+                    Length x_start = solution.x_max;
                     Length x_end = x_start + xj;
                     Length y_start = std::max(Length(0), yi / 2 - yj / 2);
                     Length y_end = y_start + yj;
                     if (x_end > xi)
                         continue;
                     StackId stack_pos = solution_child.add_stack(
-                            bin_pos,
                             x_start,
                             x_end,
                             y_start,
                             y_end);
                     solution_child.add_item(
-                            bin_pos,
+                            instance,
                             stack_pos,
                             item_type_id,
                             rotation);
@@ -400,17 +523,17 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     bool dominated = false;
                     for (auto it = queue.begin(); it != queue.end();) {
                         std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
-                                it->bin(0).weight_weighted_sum.front(), it->bin(0).weight.front());
+                                it->weight_weighted_sum.front(), it->weight.front());
                         std::pair<double, double> axle_weights_child = bin_type.semi_trailer_truck_data.compute_axle_weights(
-                                solution_child.bin(0).weight_weighted_sum.front(), solution_child.bin(0).weight.front());
-                        if (it->x_max() <= solution_child.x_max()
-                                && it->item_weight() >= solution_child.item_weight()
+                                solution_child.weight_weighted_sum.front(), solution_child.weight.front());
+                        if (it->x_max <= solution_child.x_max
+                                && it->item_weight >= solution_child.item_weight
                                 && axle_weights.first <= axle_weights_child.first) {
                             dominated = true;
                             break;
                         }
-                        if (it->x_max() >= solution_child.x_max()
-                                && it->item_weight() <= solution_child.item_weight()
+                        if (it->x_max >= solution_child.x_max
+                                && it->item_weight <= solution_child.item_weight
                                 && axle_weights.first >= axle_weights_child.first) {
                             queue.erase(it++);
                         } else {
@@ -1118,8 +1241,11 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
 
         output.failed = true;
 
-        fixed_items = Solution(instance);
-        BinPos bin_pos = fixed_items.add_bin(0, 1);
+        {
+            SolutionBuilder fixed_items_builder(instance);
+            fixed_items_builder.add_bin(0, 1);
+            fixed_items = fixed_items_builder.build();
+        }
         FFOT_LOG(
                 parameters.logger,
                 "failed_middle_axle_weight_constraint " << failed_middle_axle_weight_constraint << std::endl
