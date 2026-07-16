@@ -1,6 +1,7 @@
 #include "irregular/local_search.hpp"
 #include "irregular/sequential_feasibility.hpp"
 #include "irregular/linear_programming.hpp"
+#include "irregular/solution_builder.hpp"
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 
@@ -140,7 +141,22 @@ BinPos assign_item_to_bin(
     //std::cout << "bl_corner " << bl_corner.to_string() << std::endl;
     bl_corner = 1.0 / instance.parameters().scale_value * bl_corner;
     //std::cout << "bl_corner " << bl_corner.to_string() << std::endl;
-    solution.add_item(best_bin_pos, item_type_id, bl_corner, angle, mirror);
+    SolutionBuilder solution_builder(instance);
+    for (BinPos bp = 0; bp < solution.number_of_different_bins(); ++bp) {
+        const SolutionBin& bin = solution.bin(bp);
+        solution_builder.add_bin(bin.bin_type_id, bin.copies);
+        for (const SolutionItem& item: bin.items) {
+            solution_builder.add_item(
+                    bp,
+                    item.item_type_id,
+                    item.bl_corner,
+                    item.angle,
+                    item.mirror,
+                    item.is_fixed);
+        }
+    }
+    solution_builder.add_item(best_bin_pos, item_type_id, bl_corner, angle, mirror);
+    solution = solution_builder.build();
 
     return best_bin_pos;
 }
@@ -265,9 +281,9 @@ LocalSearchOutput packingsolver::irregular::local_search(
 
     std::mt19937_64 rng(parameters.seed);
 
-    Solution solution(instance);
+    SolutionBuilder solution_builder(instance);
     for (BinPos bin_pos = 0; bin_pos < instance.number_of_bins(); ++bin_pos)
-        solution.add_bin(instance.bin_type_id(bin_pos), 1);
+        solution_builder.add_bin(instance.bin_type_id(bin_pos), 1);
 
     // Pre-place fixed items and initialize their bin_data entries.
     // Per-bin state.
@@ -277,7 +293,7 @@ LocalSearchOutput packingsolver::irregular::local_search(
         bin_data[bin_pos].remaining_area = bin_type.area_scaled;
         for (const FixedItem& fixed_item: bin_type.fixed_items) {
             const ItemType& item_type = instance.item_type(fixed_item.item_type_id);
-            solution.add_item(
+            solution_builder.add_item(
                     bin_pos,
                     fixed_item.item_type_id,
                     fixed_item.bl_corner,
@@ -290,6 +306,7 @@ LocalSearchOutput packingsolver::irregular::local_search(
             bin_data[bin_pos].lambda.push_back(1.0);
         }
     }
+    Solution solution = solution_builder.build();
 
     // Build a flat list of all remaining item copies sorted ascending by area
     // so that pop_back processes the largest items first.

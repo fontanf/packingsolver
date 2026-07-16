@@ -1,5 +1,6 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/solution.hpp"
+#include "irregular/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 
@@ -31,8 +32,9 @@ TEST(Irregular, BinCopies)
     instance_builder.add_item_type({item_shape}, -1, 10);
     instance_builder.add_bin_type(shape, -1, 10);
     const Instance instance = instance_builder.build();
-    Solution solution(instance);
-    solution.add_bin(0, 2);
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(0, 2);
+    Solution solution = solution_builder.build();
     EXPECT_EQ(solution.number_of_bins(), 2);
     EXPECT_EQ(solution.bin_copies(0), 2);
 }

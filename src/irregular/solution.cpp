@@ -26,130 +26,89 @@ std::ostream& packingsolver::irregular::operator<<(
     return os;
 }
 
-BinPos Solution::add_bin(
-        BinTypeId bin_type_id,
-        BinPos copies)
+void Solution::update_indicators(
+        BinPos bin_pos)
 {
-    const BinType& bin_type = instance().bin_type(bin_type_id);
-
-    SolutionBin bin;
-    bin.bin_type_id = bin_type_id;
-    bin.copies = copies;
-    bins_.push_back(bin);
-
-    bin_copies_[bin_type_id] += copies;
-    number_of_bins_ += copies;
-    bin_cost_ += copies * bin_type.cost;
-    bin_area_ += copies * bin_type.area_orig;
-    AxisAlignedBoundingBox aabb = bin_type.shape_orig.compute_min_max();
-    x_min_ = aabb.x_max;
-    y_min_ = aabb.y_max;
-    x_max_ = aabb.x_min;
-    y_max_ = aabb.y_min;
-
-    return bins_.size() - 1;
-}
-
-void Solution::add_item(
-        BinPos bin_pos,
-        ItemTypeId item_type_id,
-        Point bl_corner,
-        Angle angle,
-        bool mirror,
-        bool is_fixed)
-{
-    if (item_type_id < 0
-            || item_type_id >= instance().number_of_item_types()) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "invalid 'item_type_id'; "
-                "item_type_id: " + std::to_string(item_type_id) + ".");
-    }
-
     SolutionBin& bin = bins_[bin_pos];
-
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
-    const ItemType& item_type = instance().item_type(item_type_id);
 
-    // Check angle and mirror.
-    if (!item_type.is_rotation_allowed(angle, mirror)) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "invalid (angle, mirror) combination; "
-                "angle: " + std::to_string(angle) + "; "
-                "mirror: " + std::to_string(mirror) + "; "
-                "item_type_id: " + std::to_string(item_type_id) + ".");
+    bin_copies_[bin.bin_type_id] += bin.copies;
+    number_of_bins_ += bin.copies;
+    bin_cost_ += bin.copies * bin_type.cost;
+    bin_area_ += bin.copies * bin_type.area_orig;
+    AxisAlignedBoundingBox bin_aabb = bin_type.shape_orig.compute_min_max();
+
+    for (const SolutionItem& item: bin.items) {
+        const ItemType& item_type = instance().item_type(item.item_type_id);
+
+        bin.item_area += item_type.area_orig;
+
+        item_area_ += bin.copies * item_type.area_orig;
+        item_profit_ += bin.copies * item_type.profit;
+        number_of_items_ += bin.copies;
+        item_copies_[item.item_type_id] += bin.copies;
+
+        AxisAlignedBoundingBox aabb = item_type.compute_min_max(item.angle, item.mirror);
+        bin.x_min = std::min(bin.x_min, item.bl_corner.x + aabb.x_min);
+        bin.y_min = std::min(bin.y_min, item.bl_corner.y + aabb.y_min);
+        bin.x_max = std::max(bin.x_max, item.bl_corner.x + aabb.x_max);
+        bin.y_max = std::max(bin.y_max, item.bl_corner.y + aabb.y_max);
     }
 
-    SolutionItem item;
-    item.item_type_id = item_type_id;
-    item.bl_corner = bl_corner;
-    item.angle = angle;
-    item.mirror = mirror;
-    item.is_fixed = is_fixed;
-    bin.items.push_back(item);
-    bin.item_area += item_type.area_orig;
-
-    item_area_ += bin.copies * item_type.area_orig;
-    item_profit_ += bin.copies * item_type.profit;
-    number_of_items_ += bin.copies;
-    item_copies_[item_type_id] += bin.copies;
-
-    AxisAlignedBoundingBox aabb = item_type.compute_min_max(angle, mirror);
-    bin.x_min = std::min(bin.x_min, bl_corner.x + aabb.x_min);
-    bin.y_min = std::min(bin.y_min, bl_corner.y + aabb.y_min);
-    bin.x_max = std::max(bin.x_max, bl_corner.x + aabb.x_max);
-    bin.y_max = std::max(bin.y_max, bl_corner.y + aabb.y_max);
+    // x_min_/y_min_/x_max_/y_max_ and the leftover value track the last bin only.
     if (bin_pos == (BinPos)bins_.size() - 1) {
-        x_min_ = bin.x_min;
-        y_min_ = bin.y_min;
-        x_max_ = bin.x_max;
-        y_max_ = bin.y_max;
-        switch (instance().parameters().leftover_mode) {
-        case LeftoverMode::BottomLeft: {
-            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                - (x_max_ - bin_type.aabb_orig.x_min) * (y_max_ - bin_type.aabb_orig.y_min);
-            break;
-        } case LeftoverMode::BottomRight: {
-            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                - (bin_type.aabb_orig.x_max - x_min_) * (y_max_ - bin_type.aabb_orig.y_min);
-            break;
-        } case LeftoverMode::TopLeft: {
-            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                - (x_max_ - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - y_min_);
-            break;
-        } case LeftoverMode::TopRight: {
-            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                - (bin_type.aabb_orig.x_max - x_min_) * (bin_type.aabb_orig.y_max - y_min_);
-            break;
-        } case LeftoverMode::Left: {
-            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                - (x_max_ - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
-            break;
-        } case LeftoverMode::Right: {
-            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                - (bin_type.aabb_orig.x_max - x_min_) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
-            break;
-        } case LeftoverMode::Bottom: {
-            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                - (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (y_max_ - bin_type.aabb_orig.y_min);
-            break;
-        } case LeftoverMode::Top: {
-            leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
-                - (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - y_min_);
-            break;
+        if (bin.items.empty()) {
+            x_min_ = bin_aabb.x_max;
+            y_min_ = bin_aabb.y_max;
+            x_max_ = bin_aabb.x_min;
+            y_max_ = bin_aabb.y_min;
+        } else {
+            x_min_ = bin.x_min;
+            y_min_ = bin.y_min;
+            x_max_ = bin.x_max;
+            y_max_ = bin.y_max;
+            switch (instance().parameters().leftover_mode) {
+            case LeftoverMode::BottomLeft: {
+                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                    - (x_max_ - bin_type.aabb_orig.x_min) * (y_max_ - bin_type.aabb_orig.y_min);
+                break;
+            } case LeftoverMode::BottomRight: {
+                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                    - (bin_type.aabb_orig.x_max - x_min_) * (y_max_ - bin_type.aabb_orig.y_min);
+                break;
+            } case LeftoverMode::TopLeft: {
+                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                    - (x_max_ - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - y_min_);
+                break;
+            } case LeftoverMode::TopRight: {
+                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                    - (bin_type.aabb_orig.x_max - x_min_) * (bin_type.aabb_orig.y_max - y_min_);
+                break;
+            } case LeftoverMode::Left: {
+                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                    - (x_max_ - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
+                break;
+            } case LeftoverMode::Right: {
+                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                    - (bin_type.aabb_orig.x_max - x_min_) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min);
+                break;
+            } case LeftoverMode::Bottom: {
+                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                    - (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (y_max_ - bin_type.aabb_orig.y_min);
+                break;
+            } case LeftoverMode::Top: {
+                leftover_value_orig_ = (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min)
+                    - (bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min) * (bin_type.aabb_orig.y_max - y_min_);
+                break;
+            }
+            }
+            leftover_value_scaled_ = leftover_value_orig_ * instance().parameters().scale_value;
         }
-        }
-        leftover_value_scaled_ = leftover_value_orig_ * instance().parameters().scale_value;
     }
 
-    //if (strictly_lesser(leftover_value_, 0.0)) {
-    //    write("solution_irregular.json");
-    //    throw std::invalid_argument(
-    //            "irregular::Solution::add_item."
-    //            " Negative leftover value: "
-    //            + std::to_string(leftover_value_) + ".");
-    //}
+    // Feasibility callback.
+    callback_feasible_ = instance().feasibility_callback()(*this);
+    feasible_ = callback_feasible_;
 }
 
 void Solution::append(
@@ -171,13 +130,17 @@ void Solution::append(
     BinTypeId bin_type_id = (bin_type_ids.empty())?
         solution.bins_[bin_pos].bin_type_id:
         bin_type_ids[solution.bins_[bin_pos].bin_type_id];
-    BinPos i_pos = add_bin(bin_type_id, copies);
-    for (const SolutionItem& item: solution.bins_[bin_pos].items) {
-        ItemTypeId item_type_id = (item_type_ids.empty())?
+    SolutionBin bin;
+    bin.bin_type_id = bin_type_id;
+    bin.copies = copies;
+    for (SolutionItem item: solution.bins_[bin_pos].items) {
+        item.item_type_id = (item_type_ids.empty())?
             item.item_type_id:
             item_type_ids[item.item_type_id];
-        add_item(i_pos, item_type_id, item.bl_corner, item.angle, item.mirror, item.is_fixed);
+        bin.items.push_back(item);
     }
+    bins_.push_back(bin);
+    update_indicators(bins_.size() - 1);
 }
 
 void Solution::append(
@@ -188,37 +151,6 @@ void Solution::append(
     for (BinPos i_pos = 0; i_pos < (BinPos)solution.bins_.size(); ++i_pos) {
         const SolutionBin& bin = solution.bins_[i_pos];
         append(solution, i_pos, bin.copies, bin_type_ids, item_type_ids);
-    }
-}
-
-Solution::Solution(
-        const Instance& instance,
-        const std::string& certificate_path):
-    Solution(instance)
-{
-    std::ifstream file(certificate_path);
-    if (!file.good()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "unable to open file \"" + certificate_path + "\".");
-    }
-
-    nlohmann ::json j;
-    file >> j;
-
-    for (const auto& json_bin: j["bins"]) {
-        BinPos bin_pos = add_bin(json_bin["id"], json_bin["copies"]);
-        for (const auto& json_item: json_bin["items"]) {
-            bool mirror = false;
-            if (json_item.contains("mirror"))
-                mirror = json_item["mirror"];
-            add_item(
-                    bin_pos,
-                    json_item["id"],
-                    {json_item["x"], json_item["y"]},
-                    json_item["angle"],
-                    mirror);
-        }
     }
 }
 

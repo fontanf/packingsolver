@@ -1,6 +1,7 @@
 #include "irregular/linear_programming.hpp"
 
 #include "irregular/utils.hpp"
+#include "irregular/solution_builder.hpp"
 
 #include "shape/writer.hpp"
 
@@ -594,12 +595,12 @@ Solution linear_programming_anchor(
         current_value = new_value;
 
         // Retrieve solution.
-        Solution new_solution(instance);
-        new_solution.add_bin(solution_bin.bin_type_id, 1);
+        SolutionBuilder new_solution_builder(instance);
+        new_solution_builder.add_bin(solution_bin.bin_type_id, 1);
         for (ItemPos pos = 0; pos < (ItemPos)solution_bin.items.size(); ++pos) {
             const SolutionItem& solution_item = solution_bin.items[pos];
             if (solution_item.is_fixed) {
-                new_solution.add_item(
+                new_solution_builder.add_item(
                         0,
                         solution_item.item_type_id,
                         solution_item.bl_corner,
@@ -607,7 +608,7 @@ Solution linear_programming_anchor(
                         solution_item.mirror,
                         true);
             } else {
-                new_solution.add_item(
+                new_solution_builder.add_item(
                         0,
                         solution_item.item_type_id,
                         {lp_solution[x[pos]] / instance.parameters().scale_value, lp_solution[y[pos]] / instance.parameters().scale_value},
@@ -615,7 +616,7 @@ Solution linear_programming_anchor(
                         solution_item.mirror);
             }
         }
-        solution = new_solution;
+        solution = new_solution_builder.build();
     }
 
     return solution;
@@ -1170,12 +1171,12 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
             break;
 
         // Retrieve solution.
-        Solution new_solution(instance);
-        new_solution.add_bin(solution_bin.bin_type_id, 1);
+        SolutionBuilder new_solution_builder(instance);
+        new_solution_builder.add_bin(solution_bin.bin_type_id, 1);
         for (ItemPos pos = 0; pos < (ItemPos)solution_bin.items.size(); ++pos) {
             const SolutionItem& solution_item = solution_bin.items[pos];
             if (solution_item.is_fixed) {
-                new_solution.add_item(
+                new_solution_builder.add_item(
                         0,
                         solution_item.item_type_id,
                         solution_item.bl_corner,
@@ -1183,7 +1184,7 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
                         solution_item.mirror,
                         true);
             } else {
-                new_solution.add_item(
+                new_solution_builder.add_item(
                         0,
                         solution_item.item_type_id,
                         {lp_solution[x[pos]] / sv, lp_solution[y[pos]] / sv},
@@ -1191,6 +1192,7 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
                         solution_item.mirror);
             }
         }
+        Solution new_solution = new_solution_builder.build();
 
         // Check intersections between convex parts.
         for (const IntersectingItemParts& e: intersecting_parts.intersecting_item_parts) {

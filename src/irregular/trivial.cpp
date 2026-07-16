@@ -1,6 +1,7 @@
 #include "irregular/trivial.hpp"
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
+#include "irregular/solution_builder.hpp"
 
 #include "shape/intersection_tree.hpp"
 
@@ -78,9 +79,10 @@ TrivialSingleItemOutput packingsolver::irregular::trivial_single_item(
     }
 
     if (fits) {
-        Solution solution(instance);
-        BinPos bin_pos = solution.add_bin(bin_type_id, 1);
-        solution.add_item(bin_pos, 0, bl_corner, angle, mirror);
+        SolutionBuilder solution_builder(instance);
+        BinPos bin_pos = solution_builder.add_bin(bin_type_id, 1);
+        solution_builder.add_item(bin_pos, 0, bl_corner, angle, mirror);
+        Solution solution = solution_builder.build();
         algorithm_formatter.update_solution(solution, "trivial");
     }
 

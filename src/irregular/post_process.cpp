@@ -1,6 +1,7 @@
 #include "packingsolver/irregular/post_process.hpp"
 
 #include "irregular/linear_programming.hpp"
+#include "irregular/solution_builder.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -56,21 +57,22 @@ static Solution compute_shifted_solution(
         }
 
         // Build the candidate shifted bin.
-        Solution shifted_bin(instance);
-        BinPos tmp_pos = shifted_bin.add_bin(
+        SolutionBuilder shifted_bin_builder(instance);
+        BinPos tmp_pos = shifted_bin_builder.add_bin(
                 solution_bin.bin_type_id,
                 solution_bin.copies);
         for (const SolutionItem& item: solution_bin.items) {
             Point bl_corner = item.bl_corner;
             bl_corner.x += dx;
             bl_corner.y += dy;
-            shifted_bin.add_item(
+            shifted_bin_builder.add_item(
                     tmp_pos,
                     item.item_type_id,
                     bl_corner,
                     item.angle,
                     item.mirror);
         }
+        Solution shifted_bin = shifted_bin_builder.build();
 
         // Check feasibility: items must not leave the bin or overlap defects/borders.
         const Solution::OverlappingItems overlapping
