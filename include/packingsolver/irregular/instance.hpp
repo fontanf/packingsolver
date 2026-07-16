@@ -4,6 +4,8 @@
 
 #include "shape/shape.hpp"
 
+#include <functional>
+
 namespace packingsolver
 {
 namespace irregular
@@ -283,6 +285,16 @@ struct ItemType
 /////////////////////////////////// Instance ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+class Solution;
+
+/**
+ * User-provided feasibility callback.
+ *
+ * Called on a fully-built Solution in addition to the built-in feasibility
+ * checks; returning 'false' marks the solution as infeasible.
+ */
+using FeasibilityCallback = std::function<bool(const Solution&)>;
+
 /**
  * Instance class for a problem of type "irregular".
  */
@@ -307,6 +319,9 @@ public:
 
     /** Get parameters. */
     const Parameters& parameters() const { return parameters_; }
+
+    /** Get the feasibility callback. */
+    inline const FeasibilityCallback& feasibility_callback() const { return feasibility_callback_; }
 
     /**
      * Return 'true' iff quality_rule 'quality_rule' can contain a defect of
@@ -450,6 +465,9 @@ private:
 
     /** Parameters. */
     Parameters parameters_;
+
+    /** User-provided feasibility callback. */
+    FeasibilityCallback feasibility_callback_ = [](const Solution&) { return true; };
 
     /** Bin types. */
     std::vector<BinType> bin_types_;

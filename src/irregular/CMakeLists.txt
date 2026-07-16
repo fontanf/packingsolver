@@ -4,6 +4,7 @@ target_sources(PackingSolver_irregular PRIVATE
     instance.cpp
     instance_builder.cpp
     solution.cpp
+    solution_builder.cpp
     algorithm_formatter.cpp
     optimize.cpp
     post_process.cpp
@@ -63,6 +64,8 @@ if(PACKINGSOLVER_BUILD_MAIN)
     add_executable(PackingSolver_irregular_fill_solution_file)
     target_sources(PackingSolver_irregular_fill_solution_file PRIVATE
         fill_solution_file_main.cpp)
+    target_include_directories(PackingSolver_irregular_fill_solution_file PRIVATE
+        ${PROJECT_SOURCE_DIR}/src)
     target_link_libraries(PackingSolver_irregular_fill_solution_file PUBLIC
         PackingSolver_irregular
         Boost::program_options)

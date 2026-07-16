@@ -32,6 +32,9 @@ public:
     /** Set parameters. */
     void set_parameters(const Parameters& parameters) { instance_.parameters_ = parameters; }
 
+    /** Set the feasibility callback. */
+    void set_feasibility_callback(const FeasibilityCallback& feasibility_callback) { instance_.feasibility_callback_ = feasibility_callback; }
+
     /** Add a quality rule. */
     inline void add_quality_rule(
             const std::vector<uint8_t>& quality_rule);

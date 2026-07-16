@@ -73,20 +73,6 @@ public:
         item_copies_(instance.number_of_item_types(), 0)
     { }
 
-    /** Add a bin at the end of the solution. */
-    BinPos add_bin(
-            BinTypeId bin_type_id,
-            BinPos copies);
-
-    /** Add an item to the solution. */
-    void add_item(
-            BinPos bin_pos,
-            ItemTypeId item_type_id,
-            Point bl_corner,
-            Angle angle,
-            bool mirror,
-            bool is_fixed = false);
-
     void append(
             const Solution& solution,
             BinPos bin_pos,
@@ -99,17 +85,22 @@ public:
             const std::vector<BinTypeId>& bin_type_ids,
             const std::vector<ItemTypeId>& item_type_ids);
 
-    /** Read a solution from a file. */
-    Solution(
-            const Instance& instance,
-            const std::string& certificate_path);
-
     /*
      * Getters
      */
 
     /** Get the instance. */
     inline const Instance& instance() const { return *instance_; }
+
+    /*
+     * Getters: feasibility
+     */
+
+    /** Feasibility according to the user feasibility callback. */
+    inline bool callback_feasible() const { return callback_feasible_; }
+
+    /** Overall feasibility. */
+    inline bool feasible() const { return feasible_; }
 
     /*
      * Getters: bins
@@ -246,8 +237,25 @@ public:
 
 private:
 
+    /*
+     * Private methods.
+     */
+
+    void update_indicators(
+            BinPos bin_pos);
+
+    /*
+     * Private attributes.
+     */
+
     /** Instance. */
     const Instance* instance_;
+
+    /** Feasibility according to the user feasibility callback. */
+    bool callback_feasible_ = true;
+
+    /** Overall feasibility. */
+    bool feasible_ = true;
 
     /** bins. */
     std::vector<SolutionBin> bins_;
@@ -293,6 +301,8 @@ private:
 
     /** Number of copies of each item type in the solution. */
     std::vector<ItemPos> item_copies_;
+
+    friend class SolutionBuilder;
 
 };
 

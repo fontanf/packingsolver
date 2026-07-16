@@ -1,5 +1,6 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/optimize.hpp"
+#include "irregular/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -37,7 +38,9 @@ TEST_P(IrregularTreeSearchTest, IrregularTreeSearch)
     optimize_parameters.use_tree_search = true;
     Output output = optimize(instance, optimize_parameters);
 
-    Solution solution(instance, test_params.certificate_path.string());
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read(test_params.certificate_path.string());
+    Solution solution = solution_builder.build();
     std::cout << std::endl
         << "Reference solution" << std::endl
         << "------------------" << std::endl;

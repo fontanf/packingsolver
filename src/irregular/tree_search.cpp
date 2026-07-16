@@ -1,5 +1,6 @@
 #include "irregular/tree_search.hpp"
 #include "irregular/sequential_feasibility.hpp"
+#include "irregular/solution_builder.hpp"
 
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 #include "algorithms/thread_pool.hpp"
@@ -2201,15 +2202,17 @@ Solution BranchingScheme::to_solution(
     }
     std::reverse(descendents.begin(), descendents.end());
 
-    Solution solution(instance());
+    SolutionBuilder solution_builder(instance());
     BinPos bin_pos = -1;
+    BinPos number_of_bins = 0;
     for (auto current_node: descendents) {
         // Bins that were skipped because no item fit in them are still
         // added to the solution, as empty bins.
-        while (solution.number_of_bins() < current_node->number_of_bins) {
-            bin_pos = solution.add_bin(
-                    instance().bin_type_id(solution.number_of_bins()),
+        while (number_of_bins < current_node->number_of_bins) {
+            bin_pos = solution_builder.add_bin(
+                    instance().bin_type_id(number_of_bins),
                     1);
+            number_of_bins++;
         }
 
         BinTypeId bin_type_id_cur = instance().bin_type_id(current_node->number_of_bins - 1);
@@ -2222,7 +2225,7 @@ Solution BranchingScheme::to_solution(
         //    << " bl_corner " << bl_corner.to_string()
         //    << " angle " << trapezoid_set.angle
         //    << std::endl;
-        solution.add_item(
+        solution_builder.add_item(
                 bin_pos,
                 trapezoid_set.item_type_id,
                 bl_corner,
@@ -2230,39 +2233,21 @@ Solution BranchingScheme::to_solution(
                 trapezoid_set.mirror);
     }
 
-    if (node->number_of_bins > 0) {
-        if (node->last_bin_direction == Direction::LeftToRightThenBottomToTop
-                || node->last_bin_direction == Direction::BottomToTopThenLeftToRight) {
-            if (!equal(node->x_min, solution.x_min())) {
-                solution.write("solution_irregular.json");
-                throw std::runtime_error(
-                        FUNC_SIGNATURE + "; "
-                        "node->x_mix: " + std::to_string(node->x_min) + "; "
-                        "solution.x_min(): " + std::to_string(solution.x_min()) + "; "
-                        "d: " + std::to_string((int)node->last_bin_direction) + ".");
-            }
-            if (!equal(node->y_min, solution.y_min())) {
-                throw std::runtime_error(
-                        FUNC_SIGNATURE + "; "
-                        "node->y_min: " + std::to_string(node->y_min) + "; "
-                        "solution.y_min(): " + std::to_string(solution.y_min()) + "; "
-                        "d: " + std::to_string((int)node->last_bin_direction) + ".");
-            }
-        }
-    }
     // Add fixed items to each bin, extending the solution up to the last bin
     // that has a bin type with fixed items.
+    // (The main loop above already created bins 0..number_of_bins-1.)
     for (BinPos bin_pos = 0;
             bin_pos <= instance().last_bin_with_fixed_items();
             ++bin_pos) {
-        if (bin_pos >= solution.number_of_bins()) {
+        if (bin_pos >= number_of_bins) {
             BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
-            solution.add_bin(bin_type_id, 1);
+            solution_builder.add_bin(bin_type_id, 1);
+            number_of_bins++;
         }
         BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
         const BinType& bin_type = instance().bin_type(bin_type_id);
         for (const FixedItem& fixed_item: bin_type.fixed_items) {
-            solution.add_item(
+            solution_builder.add_item(
                     bin_pos,
                     fixed_item.item_type_id,
                     fixed_item.bl_corner,
@@ -2271,7 +2256,7 @@ Solution BranchingScheme::to_solution(
                     true);
         }
     }
-    return solution;
+    return solution_builder.build();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

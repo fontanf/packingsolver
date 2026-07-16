@@ -1,6 +1,7 @@
 #include "irregular/milp_raster.hpp"
 
 #include "irregular/rotations.hpp"
+#include "irregular/solution_builder.hpp"
 #include "packingsolver/irregular/algorithm_formatter.hpp"
 
 #include "shape/rasterization.hpp"
@@ -336,11 +337,11 @@ Solution solve_milp_raster_for_cell_size(
     auto retrieve_solution = [&](const std::vector<double>& milp_solution)
     {
         // Extract solution.
-        Solution solution(instance);
+        SolutionBuilder solution_builder(instance);
         for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
             BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
             const BinTypeData& data = bin_type_data[bin_type_id];
-            BinPos solution_bin_pos = solution.add_bin(bin_type_id, 1);
+            BinPos solution_bin_pos = solution_builder.add_bin(bin_type_id, 1);
             for (PlacementId placement_id = 0;
                     placement_id < (PlacementId)data.base_placements.size();
                     ++placement_id) {
@@ -350,21 +351,22 @@ Solution solve_milp_raster_for_cell_size(
                 Point bl_corner;
                 bl_corner.x = (bp.col * cell_size - bp.aabb_x_min) / scale;
                 bl_corner.y = (bp.row * cell_size - bp.aabb_y_min) / scale;
-                solution.add_item(solution_bin_pos, bp.item_type_id, bl_corner, bp.angle, bp.mirror);
+                solution_builder.add_item(solution_bin_pos, bp.item_type_id, bl_corner, bp.angle, bp.mirror);
             }
         }
         // Add fixed items to each bin up to the last bin with fixed items.
+        // (The main loop above already created bins 0..number_of_bins-1.)
         for (BinPos bin_pos = 0;
                 bin_pos <= instance.last_bin_with_fixed_items();
                 ++bin_pos) {
-            if (bin_pos >= solution.number_of_bins()) {
+            if (bin_pos >= number_of_bins) {
                 BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
-                solution.add_bin(bin_type_id, 1);
+                solution_builder.add_bin(bin_type_id, 1);
             }
             BinTypeId bin_type_id = instance.bin_type_id(bin_pos);
             const BinType& bin_type = instance.bin_type(bin_type_id);
             for (const FixedItem& fixed_item: bin_type.fixed_items) {
-                solution.add_item(
+                solution_builder.add_item(
                         bin_pos,
                         fixed_item.item_type_id,
                         fixed_item.bl_corner,
@@ -373,7 +375,7 @@ Solution solve_milp_raster_for_cell_size(
                         true);
             }
         }
-        return solution;
+        return solution_builder.build();
     };
 
     // Solve.

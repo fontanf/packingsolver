@@ -1,5 +1,6 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "packingsolver/irregular/solution.hpp"
+#include "irregular/solution_builder.hpp"
 
 #include <boost/program_options.hpp>
 
@@ -37,7 +38,9 @@ int main(int argc, char *argv[])
     Instance instance = instance_builder.build();
 
     const std::string solution_path = vm["solution"].as<std::string>();
-    Solution solution(instance, solution_path);
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read(solution_path);
+    Solution solution = solution_builder.build();
     solution.write(solution_path);
 
     return 0;

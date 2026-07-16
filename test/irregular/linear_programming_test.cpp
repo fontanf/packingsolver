@@ -1,5 +1,6 @@
 #include "packingsolver/irregular/instance_builder.hpp"
 #include "irregular/linear_programming.hpp"
+#include "irregular/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -34,10 +35,14 @@ TEST_P(LinearProgrammingTest, LinearProgramming)
     Instance instance = instance_builder.build();
 
     std::cout << "Initial solution path: " << test_params.initial_solution_path << std::endl;
-    Solution initial_solution(instance, test_params.initial_solution_path.string());
+    SolutionBuilder initial_solution_builder(instance);
+    initial_solution_builder.read(test_params.initial_solution_path.string());
+    Solution initial_solution = initial_solution_builder.build();
 
     std::cout << "Expected solution path: " << test_params.expected_solution_path << std::endl;
-    Solution expected_solution(instance, test_params.expected_solution_path.string());
+    SolutionBuilder expected_solution_builder(instance);
+    expected_solution_builder.read(test_params.expected_solution_path.string());
+    Solution expected_solution = expected_solution_builder.build();
 
     LinearProgrammingAnchorParameters lp_parameters;
     LinearProgrammingAnchorOutput lp_output = linear_programming_anchor(
