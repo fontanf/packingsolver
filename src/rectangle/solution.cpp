@@ -81,6 +81,10 @@ void Solution::update_indicators(
             }
         }
     }
+
+    // Feasibility callback.
+    callback_feasible_ = instance().feasibility_callback()(*this);
+    feasible_ = callback_feasible_;
 }
 
 void Solution::append(
