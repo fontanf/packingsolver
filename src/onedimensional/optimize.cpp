@@ -2,6 +2,7 @@
 
 #include "packingsolver/onedimensional/algorithm_formatter.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
+#include "onedimensional/solution_builder.hpp"
 #include "onedimensional/tree_search.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
@@ -56,8 +57,8 @@ void optimize_dynamic_programming(
             kp_instance,
             kp_parameters);
 
-    Solution solution(instance);
-    solution.add_bin(0, 1);
+    SolutionBuilder solution_builder(instance);
+    solution_builder.add_bin(0, 1);
     for (knapsacksolver::ItemId kp_item_type_id = 0;
             kp_item_type_id < kp_instance.number_of_items();
             ++kp_item_type_id) {
@@ -65,9 +66,10 @@ void optimize_dynamic_programming(
             ItemTypeId item_type_id = kp2ps[kp_item_type_id].first;
             ItemPos copies = kp2ps[kp_item_type_id].second;
             for (ItemPos copy = 0; copy < copies; ++copy)
-                solution.add_item(0, item_type_id);
+                solution_builder.add_item(0, item_type_id);
         }
     }
+    Solution solution = solution_builder.build();
 
     if (solution.feasible()) {
         std::stringstream ss;

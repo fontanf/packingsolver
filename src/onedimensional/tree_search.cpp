@@ -1,6 +1,7 @@
 #include "onedimensional/tree_search.hpp"
 
 #include "packingsolver/onedimensional/algorithm_formatter.hpp"
+#include "onedimensional/solution_builder.hpp"
 #include "algorithms/thread_pool.hpp"
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
@@ -296,14 +297,17 @@ Solution BranchingScheme::to_solution(
     }
     std::reverse(descendents.begin(), descendents.end());
 
-    Solution solution(instance());
+    SolutionBuilder solution_builder(instance());
     BinPos bin_pos = -1;
+    BinPos number_of_bins = 0;
     for (auto current_node: descendents) {
-        if (current_node->number_of_bins > solution.number_of_bins())
-            bin_pos = solution.add_bin(instance().bin_type_id(current_node->number_of_bins - 1), 1);
-        solution.add_item(bin_pos, current_node->item_type_id);
+        if (number_of_bins < current_node->number_of_bins) {
+            number_of_bins++;
+            bin_pos = solution_builder.add_bin(instance().bin_type_id(number_of_bins - 1), 1);
+        }
+        solution_builder.add_item(bin_pos, current_node->item_type_id);
     }
-    return solution;
+    return solution_builder.build();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

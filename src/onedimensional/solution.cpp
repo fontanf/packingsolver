@@ -17,89 +17,77 @@ std::ostream& packingsolver::onedimensional::operator<<(
     return os;
 }
 
-BinPos Solution::add_bin(
-        BinTypeId bin_type_id,
-        BinPos copies)
+void Solution::update_indicators(
+        BinPos bin_pos)
 {
-    const BinType& bin_type = instance().bin_type(bin_type_id);
-
-    SolutionBin bin;
-    bin.bin_type_id = bin_type_id;
-    bin.copies = copies;
-    bins_.push_back(bin);
-
-    bin_copies_[bin_type_id] += copies;
-    bin_cost_ += copies * bin_type.cost;
-    bin_length_ += copies * bin_type.length;
-    number_of_bins_ += copies;
-    return bins_.size() - 1;
-}
-
-void Solution::add_item(
-        BinPos bin_pos,
-        ItemTypeId item_type_id)
-{
-    if (bin_pos >= number_of_bins()) {
-        throw std::invalid_argument(FUNC_SIGNATURE);
-    }
     SolutionBin& bin = bins_[bin_pos];
-
-    const ItemType& item_type = instance().item_type(item_type_id);
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
 
-    SolutionItem item;
-    item.item_type_id = item_type_id;
+    bin_copies_[bin.bin_type_id] += bin.copies;
+    bin_cost_ += bin.copies * bin_type.cost;
+    bin_length_ += bin.copies * bin_type.length;
+    number_of_bins_ += bin.copies;
 
-    item.start = bin.end;
-    if (!bin.items.empty())
-        item.start -= item_type.nesting_length;
+    bin.end = 0;
+    ItemPos number_of_items_in_bin = 0;
+    for (SolutionItem& item: bin.items) {
+        const ItemType& item_type = instance().item_type(item.item_type_id);
 
-    bin.end = item.start + item_type.length;
-    if (bin.end > bin_type.length) {
-        feasible_ = false;
-    }
+        item.start = bin.end;
+        if (number_of_items_in_bin > 0)
+            item.start -= item_type.nesting_length;
 
-    // Update bin.weight.
-    bin.weight += item_type.weight;
-    if (bin.weight > bin_type.maximum_weight) {
-        feasible_ = false;
-    }
+        bin.end = item.start + item_type.length;
+        if (bin.end > bin_type.length) {
+            built_in_feasible_ = false;
+        }
 
-    bin.items.push_back(item);
+        // Update bin.weight.
+        bin.weight += item_type.weight;
+        if (bin.weight > bin_type.maximum_weight) {
+            built_in_feasible_ = false;
+        }
 
-    // Update bin.maximum_number_of_items and bin.maximum_number_of_items.
-    if (bin.items.size() == 1) {
-        bin.maximum_number_of_items = item_type.maximum_stackability;
-        bin.remaining_weight = item_type.maximum_weight_after;
-    } else {
-        bin.maximum_number_of_items = std::min(
-                bin.maximum_number_of_items,
-                item_type.maximum_stackability);
-        bin.remaining_weight = std::min(
-                bin.remaining_weight - item_type.weight,
-                item_type.maximum_weight_after);
-    }
-    if (bin.items.size() > bin.maximum_number_of_items) {
-        feasible_ = false;
-    }
-    if (bin.remaining_weight < 0) {
-        feasible_ = false;
-    }
+        ++number_of_items_in_bin;
 
-    number_of_items_ += bin.copies;
-    item_copies_[item.item_type_id] += bin.copies;
-    if (item_copies_[item.item_type_id] > item_type.copies) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "item_copies_[item.item_type_id]: " + std::to_string(item_copies_[item.item_type_id]) + "; "
-                "item_type.copies: " + std::to_string(item_type.copies) + ".");
+        // Update bin.maximum_number_of_items and bin.remaining_weight.
+        if (number_of_items_in_bin == 1) {
+            bin.maximum_number_of_items = item_type.maximum_stackability;
+            bin.remaining_weight = item_type.maximum_weight_after;
+        } else {
+            bin.maximum_number_of_items = std::min(
+                    bin.maximum_number_of_items,
+                    item_type.maximum_stackability);
+            bin.remaining_weight = std::min(
+                    bin.remaining_weight - item_type.weight,
+                    item_type.maximum_weight_after);
+        }
+        if (number_of_items_in_bin > bin.maximum_number_of_items) {
+            built_in_feasible_ = false;
+        }
+        if (bin.remaining_weight < 0) {
+            built_in_feasible_ = false;
+        }
+
+        number_of_items_ += bin.copies;
+        item_copies_[item.item_type_id] += bin.copies;
+        if (item_copies_[item.item_type_id] > item_type.copies) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "item_copies_[item.item_type_id]: " + std::to_string(item_copies_[item.item_type_id]) + "; "
+                    "item_type.copies: " + std::to_string(item_type.copies) + ".");
+        }
+        item_length_ += bin.copies * item_type.length;
+        item_profit_ += bin.copies * item_type.profit;
     }
-    item_length_ += bin.copies * item_type.length;
-    item_profit_ += bin.copies * item_type.profit;
 
     // Update length_.
-    if (bin_pos == (BinPos)bins_.size() - 1)
+    if (bin_pos == (BinPos)bins_.size() - 1 && !bin.items.empty())
         length_ = bin_length_ - bin_type.length + bin.end;
+
+    // Feasibility callback.
+    callback_feasible_ = instance().feasibility_callback()(*this);
+    feasible_ = built_in_feasible_ && callback_feasible_;
 }
 
 void Solution::append(
@@ -123,13 +111,17 @@ void Solution::append(
     BinTypeId bin_type_id = (bin_type_ids.empty())?
         solution.bins_[bin_pos].bin_type_id:
         bin_type_ids[bin.bin_type_id];
-    BinPos i = add_bin(bin_type_id, copies);
-    for (const SolutionItem& item: bin.items) {
-        ItemTypeId item_type_id = (item_type_ids.empty())?
+    SolutionBin new_bin;
+    new_bin.bin_type_id = bin_type_id;
+    new_bin.copies = copies;
+    for (SolutionItem item: bin.items) {
+        item.item_type_id = (item_type_ids.empty())?
             item.item_type_id:
             item_type_ids[item.item_type_id];
-        add_item(i, item_type_id);
+        new_bin.items.push_back(item);
     }
+    bins_.push_back(new_bin);
+    update_indicators(bins_.size() - 1);
 }
 
 void Solution::append(
@@ -140,97 +132,6 @@ void Solution::append(
     for (BinPos i_pos = 0; i_pos < (BinPos)solution.bins_.size(); ++i_pos) {
         const SolutionBin& bin = solution.bins_[i_pos];
         append(solution, i_pos, bin.copies, bin_type_ids, item_type_ids);
-    }
-}
-
-Solution::Solution(
-        const Instance& instance,
-        const std::string& certificate_path):
-    Solution(instance)
-{
-    std::ifstream f(certificate_path);
-    if (!f.good()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "unable to open file \"" + certificate_path + "\".");
-    }
-
-    std::string tmp;
-    std::vector<std::string> line;
-    std::vector<std::string> labels;
-
-    // read bin file
-    getline(f, tmp);
-    labels = optimizationtools::split(tmp, ',');
-    while (getline(f, tmp)) {
-        line = optimizationtools::split(tmp, ',');
-
-        std::string type;
-        BinTypeId type_id = -1;
-        BinPos copies = -1;
-        BinPos bin_pos = -1;
-        Length x = -1;
-        Length lx = -1;
-
-        for (Counter i = 0; i < (Counter)line.size(); ++i) {
-            if (labels[i] == "TYPE") {
-                type = line[i];
-            } else if (labels[i] == "ID") {
-                type_id = (BinTypeId)std::stol(line[i]);
-            } else if (labels[i] == "COPIES") {
-                copies = (BinPos)std::stol(line[i]);
-            } else if (labels[i] == "BIN") {
-                bin_pos = (BinPos)std::stol(line[i]);
-            } else if (labels[i] == "X") {
-                x = (Length)std::stod(line[i]);
-            } else if (labels[i] == "LX") {
-                lx = (Length)std::stod(line[i]);
-            }
-        }
-        if (type == "") {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": "
-                    "missing \"TYPE\" value in \"" + certificate_path + "\".");
-        }
-        if (type_id == -1) {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": "
-                    "missing \"ID\" value in \"" + certificate_path + "\".");
-        }
-        if (copies == -1) {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": "
-                    "missing \"COPIES\" value in \"" + certificate_path + "\".");
-        }
-        if (bin_pos == -1) {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": "
-                    "missing \"BIN\" value in \"" + certificate_path + "\".");
-        }
-        if (x == -1) {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": "
-                    "missing \"X\" value in \"" + certificate_path + "\".");
-        }
-        if (lx == -1) {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": "
-                    "missing \"LX\" value in \"" + certificate_path + "\".");
-        }
-
-        if (type == "BIN") {
-            add_bin(
-                    type_id,
-                    copies);
-        } else if (type == "ITEM") {
-            add_item(
-                    bin_pos,
-                    type_id);
-        } else {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": "
-                    "wrong \"TYPE\" value in \"" + certificate_path + "\".");
-        }
     }
 }
 
