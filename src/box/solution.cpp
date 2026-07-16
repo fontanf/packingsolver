@@ -18,105 +18,52 @@ std::ostream& packingsolver::box::operator<<(
     return os;
 }
 
-BinPos Solution::add_bin(
-        BinTypeId bin_type_id,
-        BinPos copies)
+void Solution::update_indicators(
+        BinPos bin_pos)
 {
-    const BinType& bin_type = instance().bin_type(bin_type_id);
-
-    SolutionBin bin;
-    bin.bin_type_id = bin_type_id;
-    bin.copies = copies;
-    bins_.push_back(bin);
-
-    bin_copies_[bin_type_id] += copies;
-    bin_volume_ += copies * bin_type.volume();
-    bin_area_ += copies * bin_type.area();
-    bin_weight_ += copies * bin_type.maximum_weight;
-    bin_cost_ += copies * bin_type.cost;
-    number_of_bins_ += copies;
-    x_max_ = 0;
-    y_max_ = 0;
-
-    return bins_.size() - 1;
-}
-
-void Solution::add_item(
-        BinPos bin_pos,
-        ItemTypeId item_type_id,
-        const Point& bl_corner,
-        Rotation rotation)
-{
-    if (bin_pos >= number_of_bins()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "bin_pos: " + std::to_string(bin_pos) + "; "
-                "number_of_bins(): " + std::to_string(number_of_bins()) + ".");
-    }
-    if (item_type_id < 0 || item_type_id >= instance().number_of_item_types()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "item_type_id: " + std::to_string(item_type_id)
-                + " / " + std::to_string(instance().number_of_item_types()) + ".");
-    }
     SolutionBin& bin = bins_[bin_pos];
     const BinType& bin_type = instance().bin_type(bin.bin_type_id);
 
-    const ItemType& item_type = instance().item_type(item_type_id);
-    Box box = item_type.box.rotate(rotation);
-    Length xe = bl_corner.x + box.x;
-    Length ye = bl_corner.y + box.y;
-    Length ze = bl_corner.z + box.z;
-    //std::cout
-    //    << "j " << j
-    //    << " x " << stack.x_start
-    //    << " y " << stack.y_start
-    //    << " z " << stack.z_end
-    //    << " xj " << xj
-    //    << " yj " << yj
-    //    << " zj " << zj
-    //    << std::endl;
+    bin_copies_[bin.bin_type_id] += bin.copies;
+    bin_volume_ += bin.copies * bin_type.volume();
+    bin_area_ += bin.copies * bin_type.area();
+    bin_weight_ += bin.copies * bin_type.maximum_weight;
+    bin_cost_ += bin.copies * bin_type.cost;
+    number_of_bins_ += bin.copies;
+    x_max_ = 0;
+    y_max_ = 0;
 
-    if (!item_type.can_rotate(rotation)) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "forbidden rotation; "
-                "item_type_id: " + std::to_string(item_type_id) + "; "
-                "rotation: " + to_string(rotation) + "; "
-                "xj: " + std::to_string(box.x) + "; "
-                "yj: " + std::to_string(box.y) + ".");
+    for (const SolutionItem& item: bin.items) {
+        const ItemType& item_type = instance().item_type(item.item_type_id);
+        Box box = item_type.box.rotate(item.rotation);
+        Length xe = item.bl_corner.x + box.x;
+        Length ye = item.bl_corner.y + box.y;
+        Length ze = item.bl_corner.z + box.z;
+
+        bin.weight += item_type.weight;
+        bin.profit += item_type.profit;
+
+        number_of_items_ += bin.copies;
+        item_copies_[item.item_type_id] += bin.copies;
+        item_volume_ += bin.copies * item_type.box.volume();
+        item_weight_ += bin.copies * item_type.weight;
+        item_profit_ += bin.copies * item_type.profit;
+
+        if (bin_pos == (BinPos)bins_.size() - 1) {
+            if (x_max_ < xe)
+                x_max_ = xe;
+            if (y_max_ < ye)
+                y_max_ = ye;
+            if (z_max_ < ze)
+                z_max_ = ze;
+            volume_ = bin_volume_ - bin_type.volume() + (x_max_ * y_max_ * z_max_);
+            leftover_value_ = bin_volume_ - volume_;
+        }
     }
 
-    SolutionItem item;
-    item.item_type_id = item_type_id;
-    item.bl_corner = bl_corner;
-    item.rotation = rotation;
-    bin.items.push_back(item);
-
-    bin.weight += item_type.weight;
-    bin.profit += item_type.profit;
-
-    number_of_items_ += bin.copies;
-    item_copies_[item.item_type_id] += bin.copies;
-    item_volume_ += bin.copies * item_type.box.volume();
-    item_weight_ += bin.copies * item_type.weight;
-    item_profit_ += bin.copies * item_type.profit;
-
-    if (bin_pos == (BinPos)bins_.size() - 1) {
-        if (x_max_ < xe)
-            x_max_ = xe;
-        if (y_max_ < ye)
-            y_max_ = ye;
-        if (z_max_ < ze)
-            z_max_ = ze;
-        volume_ = bin_volume_ - bin_type.volume() + (x_max_ * y_max_ * z_max_);
-        leftover_value_ = bin_volume_ - volume_;
-    }
-}
-
-bool Solution::feasible() const
-{
-    return true;
+    // Feasibility callback.
+    callback_feasible_ = instance().feasibility_callback()(*this);
+    feasible_ = callback_feasible_;
 }
 
 void Solution::append(
@@ -126,17 +73,21 @@ void Solution::append(
         const std::vector<BinTypeId>& bin_type_ids,
         const std::vector<ItemTypeId>& item_type_ids)
 {
+    const SolutionBin& bin_old = solution.bin(bin_pos);
     BinTypeId bin_type_id = (bin_type_ids.empty())?
-        solution.bins_[bin_pos].bin_type_id:
-        bin_type_ids[solution.bins_[bin_pos].bin_type_id];
-    const SolutionBin& bin = solution.bins_[bin_pos];
-    BinPos i = add_bin(bin_type_id, copies);
-    for (const SolutionItem& item: bin.items) {
-        ItemTypeId item_type_id = (item_type_ids.empty())?
+        bin_old.bin_type_id:
+        bin_type_ids[bin_old.bin_type_id];
+    SolutionBin bin;
+    bin.bin_type_id = bin_type_id;
+    bin.copies = copies;
+    for (SolutionItem item: bin_old.items) {
+        item.item_type_id = (item_type_ids.empty())?
             item.item_type_id:
             item_type_ids[item.item_type_id];
-        add_item(i, item_type_id, item.bl_corner, item.rotation);
+        bin.items.push_back(item);
     }
+    bins_.push_back(bin);
+    update_indicators(bins_.size() - 1);
 }
 
 void Solution::append(
@@ -147,78 +98,6 @@ void Solution::append(
     for (BinPos i_pos = 0; i_pos < (BinPos)solution.bins_.size(); ++i_pos) {
         const SolutionBin& bin = solution.bins_[i_pos];
         append(solution, i_pos, bin.copies, bin_type_ids, item_type_ids);
-    }
-}
-
-Solution::Solution(
-        const Instance& instance,
-        const std::string& certificate_path):
-    Solution(instance)
-{
-    std::ifstream file(certificate_path);
-    if (!file.good()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "unable to open file \"" + certificate_path + "\".");
-    }
-
-    std::string tmp;
-    std::vector<std::string> line;
-    std::vector<std::string> labels;
-
-    getline(file, tmp);
-    labels = optimizationtools::split(tmp, ',');
-    while (getline(file, tmp)) {
-        line = optimizationtools::split(tmp, ',');
-
-        std::string type = "";
-        ItemTypeId id = -1;
-        BinPos copies = -1;
-        BinPos bin_pos = -1;
-        Length x = -1;
-        Length y = -1;
-        Length z = -1;
-        Length lx = -1;
-        Length ly = -1;
-        Length lz = -1;
-        Rotation rotation = Rotation::XYZ;
-
-        for (Counter i = 0; i < (Counter)line.size(); ++i) {
-            if (labels[i] == "TYPE") {
-                type = line[i];
-            } else if (labels[i] == "ID") {
-                id = (ItemTypeId)std::stol(line[i]);
-            } else if (labels[i] == "COPIES") {
-                copies = (Length)std::stol(line[i]);
-            } else if (labels[i] == "BIN") {
-                bin_pos = (BinPos)std::stol(line[i]);
-            } else if (labels[i] == "X") {
-                x = (Length)std::stol(line[i]);
-            } else if (labels[i] == "Y") {
-                y = (Length)std::stol(line[i]);
-            } else if (labels[i] == "Z") {
-                z = (Length)std::stol(line[i]);
-            } else if (labels[i] == "LX") {
-                lx = (Length)std::stol(line[i]);
-            } else if (labels[i] == "LY") {
-                ly = (Length)std::stol(line[i]);
-            } else if (labels[i] == "LZ") {
-                lz = (Length)std::stol(line[i]);
-            } else if (labels[i] == "ROTATION") {
-                rotation = rotation_from_string(line[i]);
-            }
-        }
-
-        if (type == "BIN") {
-            add_bin(id, copies);
-        } else if (type == "ITEM") {
-            const ItemType& item_type = instance.item_type(id);
-            add_item(
-                    bin_pos,
-                    id,
-                    {x, y, z},
-                    rotation);
-        }
     }
 }
 

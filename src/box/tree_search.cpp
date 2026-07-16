@@ -1,6 +1,7 @@
 #include "box/tree_search.hpp"
 
 #include "packingsolver/box/algorithm_formatter.hpp"
+#include "box/solution_builder.hpp"
 #include "algorithms/thread_pool.hpp"
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
@@ -696,14 +697,17 @@ Solution BranchingScheme::to_solution(
     }
     std::reverse(descendents.begin(), descendents.end());
 
-    Solution solution(instance());
+    SolutionBuilder solution_builder(instance());
     BinPos bin_pos = -1;
+    BinPos number_of_bins = 0;
     for (auto current_node: descendents) {
         const Instance& instance = this->instance(current_node->last_bin_direction);
-        if (current_node->number_of_bins > solution.number_of_bins())
-            bin_pos = solution.add_bin(
-                    instance.bin_type_id(current_node->number_of_bins - 1),
+        if (number_of_bins < current_node->number_of_bins) {
+            number_of_bins++;
+            bin_pos = solution_builder.add_bin(
+                    instance.bin_type_id(number_of_bins - 1),
                     1);
+        }
         const ItemType& item_type = instance.item_type(current_node->item_type_id);
         Point bl_corner = convert_point_back(
                 {current_node->x, current_node->y, current_node->z},
@@ -721,13 +725,13 @@ Solution BranchingScheme::to_solution(
         //    << " rot " << current_node->rotation
         //    << " o " << current_node->last_bin_direction
         //    << std::endl;
-        solution.add_item(
+        solution_builder.add_item(
                 bin_pos,
                 current_node->item_type_id,
                 bl_corner,
                 original_rotation);
     }
-    return solution;
+    return solution_builder.build();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
