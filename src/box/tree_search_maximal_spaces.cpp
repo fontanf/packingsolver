@@ -2,6 +2,7 @@
 
 #include "packingsolver/box/solution.hpp"
 #include "packingsolver/box/algorithm_formatter.hpp"
+#include "box/solution_builder.hpp"
 #include "algorithms/thread_pool.hpp"
 #include "treesearchsolver/iterative_beam_search.hpp"
 
@@ -676,9 +677,9 @@ Solution BranchingSchemeMaximalSpaces::to_solution(const std::shared_ptr<Node>& 
         apply_insertion(greedy_node, insertion);
     }
 
-    Solution solution(instance_);
+    SolutionBuilder solution_builder(instance_);
     BinTypeId bin_type_id = instance_.bin_type_id(0);
-    BinPos bin_pos = solution.add_bin(bin_type_id, 1);
+    BinPos bin_pos = solution_builder.add_bin(bin_type_id, 1);
     for (const Node::PlacedBlock& pb: greedy_node.placed_blocks) {
         const Block& block = blocks_[bin_type_id][pb.block_id];
         for (const SolutionItem& solution_item: block.items) {
@@ -686,7 +687,7 @@ Solution BranchingSchemeMaximalSpaces::to_solution(const std::shared_ptr<Node>& 
             item_bl_corner.x = pb.bl_corner.x + solution_item.bl_corner.x;
             item_bl_corner.y = pb.bl_corner.y + solution_item.bl_corner.y;
             item_bl_corner.z = pb.bl_corner.z + solution_item.bl_corner.z;
-            solution.add_item(
+            solution_builder.add_item(
                 bin_pos,
                 solution_item.item_type_id,
                 item_bl_corner,
@@ -694,7 +695,7 @@ Solution BranchingSchemeMaximalSpaces::to_solution(const std::shared_ptr<Node>& 
         }
     }
 
-    return solution;
+    return solution_builder.build();
 }
 
 Profit BranchingSchemeMaximalSpaces::compute_guide_greedy(const Node& node) const

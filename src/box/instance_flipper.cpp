@@ -1,6 +1,7 @@
 #include "box/instance_flipper.hpp"
 
 #include "packingsolver/box/instance_builder.hpp"
+#include "box/solution_builder.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::box;
@@ -104,23 +105,23 @@ Instance InstanceFlipper::flip(
 
 Solution InstanceFlipper::unflip_solution(const Solution& flipped_solution) const
 {
-    Solution solution(instance_orig_);
+    SolutionBuilder solution_builder(instance_orig_);
     for (BinPos bin_pos = 0;
             bin_pos < flipped_solution.number_of_different_bins();
             ++bin_pos) {
         const SolutionBin& flipped_bin = flipped_solution.bin(bin_pos);
-        solution.add_bin(
+        solution_builder.add_bin(
                 flipped_bin.bin_type_id,
                 flipped_bin.copies);
         for (const SolutionItem& flipped_item: flipped_bin.items) {
             Point bl_corner = convert_point_back(flipped_item.bl_corner, direction_);
             Rotation original_rotation = get_flipped_rotation(flipped_item.rotation, direction_);
-            solution.add_item(
+            solution_builder.add_item(
                     bin_pos,
                     flipped_item.item_type_id,
                     bl_corner,
                     original_rotation);
         }
     }
-    return solution;
+    return solution_builder.build();
 }
