@@ -742,20 +742,20 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
                     && item_type.rect.h <= height
                     && (instance_.parameters().maximum_distance_2_cuts == -1
                         || item_type.rect.h <= instance_.parameters().maximum_distance_2_cuts)) {
-                kp_instance_builder.add_item_type(
-                        item_type.rect.h + cut_thickness,
-                        profit,
-                        copies);
+                ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(
+                        item_type.rect.h + cut_thickness);
+                kp_instance_builder.set_item_type_profit(kp_item_type_id, profit);
+                kp_instance_builder.set_item_type_copies(kp_item_type_id, copies);
                 kp2orig.push_back(item_type_id);
             } else if (!item_type.oriented
                     && item_type.rect.h == width
                     && item_type.rect.w <= height
                     && (instance_.parameters().maximum_distance_2_cuts == -1
                         || item_type.rect.w <= instance_.parameters().maximum_distance_2_cuts)) {
-                kp_instance_builder.add_item_type(
-                        item_type.rect.w + cut_thickness,
-                        profit,
-                        copies);
+                ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(
+                        item_type.rect.w + cut_thickness);
+                kp_instance_builder.set_item_type_profit(kp_item_type_id, profit);
+                kp_instance_builder.set_item_type_copies(kp_item_type_id, copies);
                 kp2orig.push_back(item_type_id);
             }
         }
@@ -919,10 +919,10 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             if (item_width <= width
                     && (instance_.parameters().maximum_distance_2_cuts == -1
                         || item_height <= instance_.parameters().maximum_distance_2_cuts)) {
-                kp_instance_builder.add_item_type(
-                        item_height + cut_thickness,
-                        profit,
-                        copies);
+                ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(
+                        item_height + cut_thickness);
+                kp_instance_builder.set_item_type_profit(kp_item_type_id, profit);
+                kp_instance_builder.set_item_type_copies(kp_item_type_id, copies);
                 kp2orig.push_back({item_type_id, item_width});
             }
         }
@@ -1161,10 +1161,10 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
                 //    << " " << item_type_id_2
                 //    << " profit " << profit_1 + profit_2
                 //    << std::endl;
-                kp_instance_builder.add_item_type(
-                        item_type_1.rect.h + cut_thickness,
-                        profit_1 + profit_2,
-                        copies);
+                ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(
+                        item_type_1.rect.h + cut_thickness);
+                kp_instance_builder.set_item_type_profit(kp_item_type_id, profit_1 + profit_2);
+                kp_instance_builder.set_item_type_copies(kp_item_type_id, copies);
                 kp2orig.push_back({item_type_id_1, item_type_id_2});
 
                 remaining_copies[item_type_id_1] -= copies;
@@ -1172,10 +1172,10 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
             }
             if (remaining_copies[item_type_id_1] > 0) {
                 //std::cout << "add_item_type " << item_type_id_1 << std::endl;
-                kp_instance_builder.add_item_type(
-                        item_type_1.rect.h,
-                        profit_1,
-                        remaining_copies[item_type_id_1]);
+                ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(
+                        item_type_1.rect.h);
+                kp_instance_builder.set_item_type_profit(kp_item_type_id, profit_1);
+                kp_instance_builder.set_item_type_copies(kp_item_type_id, remaining_copies[item_type_id_1]);
                 kp2orig.push_back({item_type_id_1, -1});
             }
         }
@@ -1412,17 +1412,17 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             //    << std::endl;
 
             if (number_of_full_strips > 0) {
-                kp_instance_builder.add_item_type(
-                        item_type.rect.h + cut_thickness,
-                        number_of_copies_in_full_strip * profit,
-                        number_of_full_strips);
+                ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(
+                        item_type.rect.h + cut_thickness);
+                kp_instance_builder.set_item_type_profit(kp_item_type_id, number_of_copies_in_full_strip * profit);
+                kp_instance_builder.set_item_type_copies(kp_item_type_id, number_of_full_strips);
                 kp2orig.push_back({item_type_id, number_of_copies_in_full_strip});
             }
             if (number_of_copies_in_last_strip > 0) {
-                kp_instance_builder.add_item_type(
-                        item_type.rect.h + cut_thickness,
-                        number_of_copies_in_last_strip * profit,
-                        1);
+                ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(
+                        item_type.rect.h + cut_thickness);
+                kp_instance_builder.set_item_type_profit(kp_item_type_id, number_of_copies_in_last_strip * profit);
+                kp_instance_builder.set_item_type_copies(kp_item_type_id, 1);
                 kp2orig.push_back({item_type_id, number_of_copies_in_last_strip});
             }
         }
@@ -1699,7 +1699,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         // outer level, so it is not inherited either.
         sub_parameters.maximum_number_2_cuts = -1;
         sub_instance_builder.set_parameters(sub_parameters);
-        sub_instance_builder.add_bin_type(width, height, -1, 1, 0);
+        sub_instance_builder.add_bin_type(width, height);
 
         for (ItemTypeId item_type_id: sub2orig) {
             const ItemType& item_type = instance_.item_type(item_type_id);
@@ -1710,7 +1710,9 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
             } else if (instance_.objective() == Objective::Knapsack) {
                 profit = item_type.profit - duals[item_type_id] * multiplier_profit;
             }
-            sub_instance_builder.add_item_type(instance_, item_type_id, profit, copies);
+            ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance_, item_type_id);
+            sub_instance_builder.set_item_type_profit(sub_item_type_id, profit);
+            sub_instance_builder.set_item_type_copies(sub_item_type_id, copies);
         }
 
         Instance sub_instance = sub_instance_builder.build();

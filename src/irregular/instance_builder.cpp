@@ -18,46 +18,15 @@ using namespace packingsolver::irregular;
 ////////////////////////////////////////////////////////////////////////////////
 
 BinTypeId InstanceBuilder::add_bin_type(
-        const Shape& shape,
-        Profit cost,
-        BinPos copies,
-        BinPos copies_min)
+        const Shape& shape)
 {
-    if (cost <= 0 && cost != -1) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "bin 'cost' must be > 0 (or == -1); "
-                "cost: " + std::to_string(cost) + ".");
-    }
-    if (copies_min < 0) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "bin 'copies_min' must be >= 0; "
-                "copies_min: " + std::to_string(copies_min) + ".");
-    }
-    if (copies != -1) {
-        if (copies <= 0) {
-            throw std::invalid_argument(
-                    FUNC_SIGNATURE + ": "
-                    "bin 'copies' must be > 0 (or == -1); "
-                    "copies: " + std::to_string(copies) + ".");
-        }
-        if (copies_min > copies) {
-            throw std::invalid_argument(
-                    FUNC_SIGNATURE + ": "
-                    "bin 'copies_min' must be <= 'copies'; "
-                    "copies: " + std::to_string(copies) + "; "
-                    "copies_min: " + std::to_string(copies_min) + ".");
-        }
-    }
-
     BinType bin_type;
     bin_type.shape_orig = shape;
     bin_type.area_orig = shape.compute_area();
     bin_type.aabb_orig = shape.compute_min_max();
-    bin_type.cost = (cost == -1)? bin_type.area_orig: cost;
-    bin_type.copies = copies;
-    bin_type.copies_min = copies_min;
+    bin_type.cost = bin_type.area_orig;
+    bin_type.copies = 1;
+    bin_type.copies_min = 0;
     instance_.bin_types_.push_back(bin_type);
     return instance_.bin_types_.size() - 1;
 }
@@ -83,21 +52,18 @@ DefectId InstanceBuilder::add_defect(
     return bin_type.defects.size() - 1;
 }
 
-void InstanceBuilder::add_bin_type(
+BinTypeId InstanceBuilder::add_bin_type(
         const Instance& original_instance,
-        BinTypeId original_bin_type_id,
-        BinPos copies,
-        BinPos copies_min)
+        BinTypeId original_bin_type_id)
 {
     const BinType& bin_type = original_instance.bin_type(original_bin_type_id);
-    BinTypeId bin_type_id = add_bin_type(
-            bin_type.shape_orig,
-            bin_type.cost,
-            copies,
-            copies_min);
+    BinTypeId bin_type_id = add_bin_type(bin_type.shape_orig);
     if ((BinTypeId)orig_to_sub_bin_type_ids_.size() <= original_bin_type_id)
         orig_to_sub_bin_type_ids_.resize(original_bin_type_id + 1, -1);
     orig_to_sub_bin_type_ids_[original_bin_type_id] = bin_type_id;
+    set_bin_type_cost(bin_type_id, bin_type.cost);
+    set_bin_type_copies(bin_type_id, bin_type.copies);
+    set_bin_type_copies_min(bin_type_id, bin_type.copies_min);
     this->set_item_bin_minimum_spacing(
             bin_type_id,
             bin_type.item_bin_minimum_spacing);
@@ -119,6 +85,89 @@ void InstanceBuilder::add_bin_type(
                 fixed_item.angle,
                 fixed_item.mirror);
     }
+    return bin_type_id;
+}
+
+void InstanceBuilder::set_bin_type_cost(
+        BinTypeId bin_type_id,
+        Profit cost)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+    if (cost <= 0 && cost != -1) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "bin 'cost' must be > 0 (or == -1); "
+                "cost: " + std::to_string(cost) + ".");
+    }
+
+    instance_.bin_types_[bin_type_id].cost = (cost == -1)?
+        instance_.bin_types_[bin_type_id].area_orig:
+        cost;
+}
+
+void InstanceBuilder::set_bin_type_copies(
+        BinTypeId bin_type_id,
+        BinPos copies)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+    if (copies != -1) {
+        if (copies <= 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "bin 'copies' must be > 0 (or == -1); "
+                    "copies: " + std::to_string(copies) + ".");
+        }
+        if (instance_.bin_types_[bin_type_id].copies_min > copies) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "bin 'copies_min' must be <= 'copies'; "
+                    "copies: " + std::to_string(copies) + "; "
+                    "copies_min: " + std::to_string(instance_.bin_types_[bin_type_id].copies_min) + ".");
+        }
+    }
+
+    instance_.bin_types_[bin_type_id].copies = copies;
+}
+
+void InstanceBuilder::set_bin_type_copies_min(
+        BinTypeId bin_type_id,
+        BinPos copies_min)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+    if (copies_min < 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "bin 'copies_min' must be >= 0; "
+                "copies_min: " + std::to_string(copies_min) + ".");
+    }
+    if (instance_.bin_types_[bin_type_id].copies != -1
+            && copies_min > instance_.bin_types_[bin_type_id].copies) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "bin 'copies_min' must be <= 'copies'; "
+                "copies: " + std::to_string(instance_.bin_types_[bin_type_id].copies) + "; "
+                "copies_min: " + std::to_string(copies_min) + ".");
+    }
+
+    instance_.bin_types_[bin_type_id].copies_min = copies_min;
 }
 
 void InstanceBuilder::set_item_bin_minimum_spacing(
@@ -187,20 +236,12 @@ void InstanceBuilder::set_bin_types_unweighted()
 ////////////////////////////////////////////////////////////////////////////////
 
 ItemTypeId InstanceBuilder::add_item_type(
-        const std::vector<ItemShape>& shapes,
-        Profit profit,
-        ItemPos copies)
+        const std::vector<ItemShape>& shapes)
 {
     if (shapes.empty()) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "item 'shapes' must be non-empty.");
-    }
-    if (copies <= 0) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "item 'copies' must be > 0; "
-                "copies: " + std::to_string(copies) + ".");
     }
 
     ItemType item_type;
@@ -212,8 +253,8 @@ ItemTypeId InstanceBuilder::add_item_type(
         for (const Shape& hole: item_shape.shape_orig.holes)
             item_type.area_orig -= hole.compute_area();
     }
-    item_type.profit = (profit != -1)? profit: item_type.area_orig;
-    item_type.copies = copies;
+    item_type.profit = item_type.area_orig;
+    item_type.copies = 1;
     instance_.item_types_.push_back(item_type);
     return instance_.item_types_.size() - 1;
 }
@@ -235,17 +276,14 @@ void InstanceBuilder::add_item_type_allowed_rotation(
     instance_.item_types_[item_type_id].allowed_rotations.push_back({start_angle, end_angle, mirror});
 }
 
-void InstanceBuilder::add_item_type(
+ItemTypeId InstanceBuilder::add_item_type(
         const Instance& original_instance,
-        ItemTypeId original_item_type_id,
-        Profit profit,
-        ItemPos copies)
+        ItemTypeId original_item_type_id)
 {
     const ItemType& item_type = original_instance.item_type(original_item_type_id);
-    ItemTypeId item_type_id = add_item_type(
-            item_type.shapes,
-            profit,
-            copies);
+    ItemTypeId item_type_id = add_item_type(item_type.shapes);
+    set_item_type_profit(item_type_id, item_type.profit);
+    set_item_type_copies(item_type_id, item_type.copies);
     for (const AllowedRotation& rotation: item_type.allowed_rotations) {
         add_item_type_allowed_rotation(
                 item_type_id,
@@ -256,6 +294,43 @@ void InstanceBuilder::add_item_type(
     if ((ItemTypeId)orig_to_sub_item_type_ids_.size() <= original_item_type_id)
         orig_to_sub_item_type_ids_.resize(original_item_type_id + 1, -1);
     orig_to_sub_item_type_ids_[original_item_type_id] = item_type_id;
+    return item_type_id;
+}
+
+void InstanceBuilder::set_item_type_profit(
+        ItemTypeId item_type_id,
+        Profit profit)
+{
+    if (item_type_id < 0 || item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
+    instance_.item_types_[item_type_id].profit = profit;
+}
+
+void InstanceBuilder::set_item_type_copies(
+        ItemTypeId item_type_id,
+        ItemPos copies)
+{
+    if (item_type_id < 0 || item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+    if (copies != -1 && copies <= 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "item 'copies' must be > 0 (or == -1); "
+                "copies: " + std::to_string(copies) + ".");
+    }
+
+    instance_.item_types_[item_type_id].copies = copies;
 }
 
 void InstanceBuilder::set_item_types_unweighted()
@@ -334,23 +409,17 @@ void InstanceBuilder::read(
     for (const auto& json_item: j["bin_types"]) {
         Shape shape = Shape::from_json(json_item);
 
-        Profit cost = -1;
-        if (json_item.contains("cost"))
-            cost = json_item["cost"];
-
-        BinPos copies = 1;
-        if (json_item.contains("copies"))
-            copies = json_item["copies"];
-
-        BinPos copies_min = 0;
-        if (json_item.contains("copies_min"))
-            copies_min = json_item["copies_min"];
-
         LengthDbl item_bin_minimum_spacing = 0;
         if (json_item.contains("item_bin_minimum_spacing"))
             item_bin_minimum_spacing = json_item["item_bin_minimum_spacing"];
 
-        BinTypeId bin_type_id = add_bin_type(shape, cost, copies, copies_min);
+        BinTypeId bin_type_id = add_bin_type(shape);
+        if (json_item.contains("cost"))
+            set_bin_type_cost(bin_type_id, json_item["cost"]);
+        if (json_item.contains("copies"))
+            set_bin_type_copies(bin_type_id, json_item["copies"]);
+        if (json_item.contains("copies_min"))
+            set_bin_type_copies_min(bin_type_id, json_item["copies_min"]);
         set_item_bin_minimum_spacing(
                 bin_type_id,
                 item_bin_minimum_spacing);
@@ -424,18 +493,11 @@ void InstanceBuilder::read(
             item_shapes.push_back(item_shape);
         }
 
-        Profit profit = -1;
+        ItemTypeId item_type_id = add_item_type(item_shapes);
         if (json_item.contains("profit"))
-            profit = json_item["profit"];
-
-        ItemPos copies = 1;
+            set_item_type_profit(item_type_id, json_item["profit"]);
         if (json_item.contains("copies"))
-            copies = json_item["copies"];
-
-        ItemTypeId item_type_id = add_item_type(
-                item_shapes,
-                profit,
-                copies);
+            set_item_type_copies(item_type_id, json_item["copies"]);
 
         // Read allowed rotations.
         if (json_item.contains("allowed_rotations")) {

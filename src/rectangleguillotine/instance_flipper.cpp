@@ -23,9 +23,15 @@ Instance InstanceFlipper::flip(const Instance& instance)
         const BinType& bin_type = instance.bin_type(bin_type_id);
         BinTypeId flipped_bin_type_id = flipped_instance_builder.add_bin_type(
                 bin_type.rect.h,
-                bin_type.rect.w,
-                bin_type.cost,
-                bin_type.copies,
+                bin_type.rect.w);
+        flipped_instance_builder.set_bin_type_cost(
+                flipped_bin_type_id,
+                bin_type.cost);
+        flipped_instance_builder.set_bin_type_copies(
+                flipped_bin_type_id,
+                bin_type.copies);
+        flipped_instance_builder.set_bin_type_copies_min(
+                flipped_bin_type_id,
                 bin_type.copies_min);
         flipped_instance_builder.add_trims(
                 flipped_bin_type_id,
@@ -50,13 +56,17 @@ Instance InstanceFlipper::flip(const Instance& instance)
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        flipped_instance_builder.add_item_type(
+        ItemTypeId flipped_item_type_id = flipped_instance_builder.add_item_type(
                 item_type.rect.h,
                 item_type.rect.w,
-                item_type.profit,
-                item_type.copies,
                 item_type.oriented,
                 item_type.stack_id);
+        flipped_instance_builder.set_item_type_profit(
+                flipped_item_type_id,
+                item_type.profit);
+        flipped_instance_builder.set_item_type_copies(
+                flipped_item_type_id,
+                item_type.copies);
     }
     return flipped_instance_builder.build();
 }

@@ -34,8 +34,8 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness1)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
-    instance_builder.add_item_type(500, 500, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(500, 500, false, 0);
+    instance_builder.add_item_type(1000, 1000, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -80,8 +80,8 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness2)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
-    instance_builder.add_item_type(3000, 500, -1, 1, false, 0);
-    instance_builder.add_item_type(2970, 3210, -1, 1, false, 0);
+    instance_builder.add_item_type(3000, 500, false, 0);
+    instance_builder.add_item_type(2970, 3210, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -123,8 +123,8 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness3)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
     instance_builder.set_minimum_waste_length(10);
-    instance_builder.add_item_type(3000, 500, -1, 1, false, 0);
-    instance_builder.add_item_type(2970, 3210, -1, 1, false, 0);
+    instance_builder.add_item_type(3000, 500, false, 0);
+    instance_builder.add_item_type(2970, 3210, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -164,8 +164,8 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness4)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
-    instance_builder.add_item_type(3000, 1000, -1, 1, false, 0);
-    instance_builder.add_item_type(6000, 2180, -1, 1, false, 0);
+    instance_builder.add_item_type(3000, 1000, false, 0);
+    instance_builder.add_item_type(6000, 2180, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -207,8 +207,8 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness5)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
     instance_builder.set_minimum_waste_length(10);
-    instance_builder.add_item_type(3000, 1000, -1, 1, false, 0);
-    instance_builder.add_item_type(6000, 2180, -1, 1, false, 0);
+    instance_builder.add_item_type(3000, 1000, false, 0);
+    instance_builder.add_item_type(6000, 2180, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -250,8 +250,8 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness6)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
     instance_builder.set_cut_through_defects(false);
-    instance_builder.add_item_type(3000, 1000, -1, 1, false, 0);
-    instance_builder.add_item_type(3500, 2190, -1, 1, false, 0);
+    instance_builder.add_item_type(3000, 1000, false, 0);
+    instance_builder.add_item_type(3500, 2190, false, 0);
     BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_defect(bin_type_id, 4000, 1000, 20, 20);
     Instance instance = instance_builder.build();
@@ -297,8 +297,8 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness7)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
     instance_builder.set_cut_through_defects(false);
-    instance_builder.add_item_type(3000, 1500, -1, 1, true, 0);
-    instance_builder.add_item_type(1000, 2000, -1, 1, true, 0);
+    instance_builder.add_item_type(3000, 1500, true, 0);
+    instance_builder.add_item_type(1000, 2000, true, 0);
     BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_defect(bin_type_id, 3000, 2500, 20, 20);
     Instance instance = instance_builder.build();
@@ -344,7 +344,7 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness8)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
     instance_builder.set_cut_through_defects(false);
-    instance_builder.add_item_type(3000, 1000, -1, 1, true, 0);
+    instance_builder.add_item_type(3000, 1000, true, 0);
     BinTypeId bin_type_id = instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_defect(bin_type_id, 3005, 500, 10, 10);
     Instance instance = instance_builder.build();
@@ -381,8 +381,8 @@ TEST(RectangleGuillotineBranchingScheme, CutThickness9)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_cut_thickness(20);
     instance_builder.set_minimum_waste_length(30);
-    instance_builder.add_item_type(3000, 1000, -1, 1, true, 0);
-    instance_builder.add_item_type(3010, 2190, -1, 1, true, 0);
+    instance_builder.add_item_type(3000, 1000, true, 0);
+    instance_builder.add_item_type(3010, 2190, true, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 

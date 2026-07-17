@@ -178,16 +178,13 @@ void run_phase2_and_reconstruct(
 
     onedimensional::InstanceBuilder phase2_instance_builder;
     phase2_instance_builder.set_objective(instance.objective());
-    phase2_instance_builder.add_bin_type(
-            first_stage_length + cut_thickness,
-            bin_type.cost,
-            bin_type.copies,
-            bin_type.copies_min);
+    BinTypeId phase2_bin_type_id = phase2_instance_builder.add_bin_type(
+            first_stage_length + cut_thickness);
+    phase2_instance_builder.set_bin_type_cost(phase2_bin_type_id, bin_type.cost);
+    phase2_instance_builder.set_bin_type_copies(phase2_bin_type_id, bin_type.copies);
+    phase2_instance_builder.set_bin_type_copies_min(phase2_bin_type_id, bin_type.copies_min);
     for (const Strip& strip: strips) {
-        phase2_instance_builder.add_item_type(
-                strip.extent + cut_thickness,
-                -1,
-                1);
+        phase2_instance_builder.add_item_type(strip.extent + cut_thickness);
     }
     onedimensional::Instance phase2_instance = phase2_instance_builder.build();
 
@@ -262,16 +259,13 @@ void sequential_strips_onedimensional_oriented(
         first_stage_length:
         std::min(phase1_parameters.maximum_distance_1_cuts, first_stage_length);
     phase1_instance_builder.set_parameters(phase1_parameters);
-    phase1_instance_builder.add_bin_type(instance, 0, 1);
+    BinTypeId phase1_bin_type_id = phase1_instance_builder.add_bin_type(instance, 0);
+    phase1_instance_builder.set_bin_type_copies(phase1_bin_type_id, 1);
+    phase1_instance_builder.set_bin_type_copies_min(phase1_bin_type_id, 0);
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        phase1_instance_builder.add_item_type(
-                instance,
-                item_type_id,
-                item_type.profit,
-                item_type.copies);
+        phase1_instance_builder.add_item_type(instance, item_type_id);
     }
     if (orientation == CutOrientation::Vertical) {
         phase1_instance_builder.set_bin_types_infinite_x();

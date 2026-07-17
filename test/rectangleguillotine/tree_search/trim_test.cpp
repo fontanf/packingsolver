@@ -41,7 +41,7 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimSoft)
             20, TrimType::Soft,
             0, TrimType::Soft);
     instance_builder.add_defect(bin_type_id, 495, 25, 5, 5);
-    instance_builder.add_item_type(1000, 500, -1, 1, true, 0);
+    instance_builder.add_item_type(1000, 500, true, 0);
     Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
@@ -90,7 +90,7 @@ TEST(RectangleGuillotineBranchingScheme, BottomTrimHard)
             20, TrimType::Hard,
             0, TrimType::Soft);
     instance_builder.add_defect(bin_type_id, 495, 25, 5, 5);
-    instance_builder.add_item_type(1000, 500, -1, 1, true, 0);
+    instance_builder.add_item_type(1000, 500, true, 0);
     Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
@@ -138,7 +138,7 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimSoft)
             0, TrimType::Soft,
             0, TrimType::Soft);
     instance_builder.add_defect(bin_type_id, 25, 495, 5, 5);
-    instance_builder.add_item_type(500, 1000, -1, 1, true, 0);
+    instance_builder.add_item_type(500, 1000, true, 0);
     Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
@@ -186,7 +186,7 @@ TEST(RectangleGuillotineBranchingScheme, LeftTrimHard)
             0, TrimType::Soft,
             0, TrimType::Soft);
     instance_builder.add_defect(bin_type_id, 25, 495, 5, 5);
-    instance_builder.add_item_type(500, 1000, -1, 1, true, 0);
+    instance_builder.add_item_type(500, 1000, true, 0);
     Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
@@ -231,7 +231,7 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimSoft)
             0, TrimType::Soft,
             0, TrimType::Soft,
             20, TrimType::Soft);
-    instance_builder.add_item_type(1000, 3180, -1, 1, true, 0);
+    instance_builder.add_item_type(1000, 3180, true, 0);
     Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
@@ -275,7 +275,7 @@ TEST(RectangleGuillotineBranchingScheme, TopTrimHard)
             0, TrimType::Soft,
             0, TrimType::Soft,
             20, TrimType::Hard);
-    instance_builder.add_item_type(1000, 3180, -1, 1, true, 0);
+    instance_builder.add_item_type(1000, 3180, true, 0);
     Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
@@ -318,7 +318,7 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimSoft)
             20, TrimType::Soft,
             0, TrimType::Soft,
             0, TrimType::Soft);
-    instance_builder.add_item_type(2970, 500, -1, 1, true, 0);
+    instance_builder.add_item_type(2970, 500, true, 0);
     Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);
@@ -362,7 +362,7 @@ TEST(RectangleGuillotineBranchingScheme, RightTrimHard)
             20, TrimType::Hard,
             0, TrimType::Soft,
             0, TrimType::Soft);
-    instance_builder.add_item_type(2970, 500, -1, 1, true, 0);
+    instance_builder.add_item_type(2970, 500, true, 0);
     Instance instance = instance_builder.build();
 
     BranchingScheme branching_scheme(instance);

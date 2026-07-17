@@ -107,35 +107,40 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
             modified_instance_builder.set_parameters(instance.parameters());
             // Add bins and dummy items.
             if (bin_type.rect.x == bin_type.rect.y) {
-                modified_instance_builder.add_bin_type(
+                BinTypeId modified_bin_type_id = modified_instance_builder.add_bin_type(
                         bin_type.rect.x,
-                        bin_type.rect.y,
-                        -1,
+                        bin_type.rect.y);
+                modified_instance_builder.set_bin_type_copies(
+                        modified_bin_type_id,
                         2 * instance.number_of_items());
             } else if (bin_type.rect.x > bin_type.rect.y) {
-                modified_instance_builder.add_bin_type(
+                BinTypeId modified_bin_type_id = modified_instance_builder.add_bin_type(
                         bin_type.rect.x,
-                        bin_type.rect.x,
-                        -1,
+                        bin_type.rect.x);
+                modified_instance_builder.set_bin_type_copies(
+                        modified_bin_type_id,
                         2 * instance.number_of_items() + bound);
                 if (bound > 0) {
-                    modified_instance_builder.add_item_type(
+                    ItemTypeId modified_item_type_id = modified_instance_builder.add_item_type(
                             bin_type.rect.x,
-                            bin_type.rect.x - bin_type.rect.y,
-                            -1,
+                            bin_type.rect.x - bin_type.rect.y);
+                    modified_instance_builder.set_item_type_copies(
+                            modified_item_type_id,
                             bound);
                 }
             } else if (bin_type.rect.x < bin_type.rect.y) {
-                modified_instance_builder.add_bin_type(
+                BinTypeId modified_bin_type_id = modified_instance_builder.add_bin_type(
                         bin_type.rect.y,
-                        bin_type.rect.y,
-                        -1,
+                        bin_type.rect.y);
+                modified_instance_builder.set_bin_type_copies(
+                        modified_bin_type_id,
                         2 * instance.number_of_items() + bound);
                 if (bound > 0) {
-                    modified_instance_builder.add_item_type(
+                    ItemTypeId modified_item_type_id = modified_instance_builder.add_item_type(
                             bin_type.rect.y - bin_type.rect.x,
-                            bin_type.rect.y,
-                            -1,
+                            bin_type.rect.y);
+                    modified_instance_builder.set_item_type_copies(
+                            modified_item_type_id,
                             bound);
                 }
             }
@@ -145,25 +150,37 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
                     ++item_type_id) {
                 const ItemType& item_type = instance.item_type(item_type_id);
                 if (item_type.rect.x == item_type.rect.y) {
-                    modified_instance_builder.add_item_type(
+                    ItemTypeId modified_item_type_id = modified_instance_builder.add_item_type(
                             item_type.rect.x,
                             item_type.rect.y,
-                            item_type.profit,
-                            2 * item_type.copies,
                             true);
+                    modified_instance_builder.set_item_type_profit(
+                            modified_item_type_id,
+                            item_type.profit);
+                    modified_instance_builder.set_item_type_copies(
+                            modified_item_type_id,
+                            2 * item_type.copies);
                 } else {
-                    modified_instance_builder.add_item_type(
+                    ItemTypeId modified_item_type_id_1 = modified_instance_builder.add_item_type(
                             item_type.rect.x,
                             item_type.rect.y,
-                            item_type.profit,
-                            item_type.copies,
                             true);
-                    modified_instance_builder.add_item_type(
+                    modified_instance_builder.set_item_type_profit(
+                            modified_item_type_id_1,
+                            item_type.profit);
+                    modified_instance_builder.set_item_type_copies(
+                            modified_item_type_id_1,
+                            item_type.copies);
+                    ItemTypeId modified_item_type_id_2 = modified_instance_builder.add_item_type(
                             item_type.rect.y,
                             item_type.rect.x,
-                            item_type.profit,
-                            item_type.copies,
                             true);
+                    modified_instance_builder.set_item_type_profit(
+                            modified_item_type_id_2,
+                            item_type.profit);
+                    modified_instance_builder.set_item_type_copies(
+                            modified_item_type_id_2,
+                            item_type.copies);
                 }
             }
             Instance modified_instance = modified_instance_builder.build();

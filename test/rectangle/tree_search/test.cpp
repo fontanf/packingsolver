@@ -71,9 +71,9 @@ TEST(RectangleBranchingScheme, Insertion2)
 
     InstanceBuilder instance_builder;
     instance_builder.add_bin_type(6000, 3210);
-    instance_builder.add_item_type(1000, 500, -1, 1, true);
-    instance_builder.add_item_type(1250, 1210, -1, 1, true);
-    instance_builder.add_item_type(250, 1000, -1, 1, true);
+    instance_builder.add_item_type(1000, 500, true);
+    instance_builder.add_item_type(1250, 1210, true);
+    instance_builder.add_item_type(250, 1000, true);
     Instance instance = instance_builder.build();
 
     BranchingScheme::Parameters p;
