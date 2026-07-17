@@ -30,11 +30,11 @@ void optimize_onedimensional_bound(
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        onedim_instance_builder.add_bin_type(
-                std::ceil(bin_type.area_scaled),
-                bin_type.cost,
-                bin_type.copies,
-                bin_type.copies_min);
+        BinTypeId onedim_bin_type_id = onedim_instance_builder.add_bin_type(
+                std::ceil(bin_type.area_scaled));
+        onedim_instance_builder.set_bin_type_cost(onedim_bin_type_id, bin_type.cost);
+        onedim_instance_builder.set_bin_type_copies(onedim_bin_type_id, bin_type.copies);
+        onedim_instance_builder.set_bin_type_copies_min(onedim_bin_type_id, bin_type.copies_min);
     }
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
@@ -43,10 +43,9 @@ void optimize_onedimensional_bound(
         Length length = std::floor(item_type.area_scaled);
         if (length == 0)
             continue;
-        onedim_instance_builder.add_item_type(
-                length,
-                item_type.profit,
-                item_type.copies);
+        ItemTypeId onedim_item_type_id = onedim_instance_builder.add_item_type(length);
+        onedim_instance_builder.set_item_type_profit(onedim_item_type_id, item_type.profit);
+        onedim_instance_builder.set_item_type_copies(onedim_item_type_id, item_type.copies);
     }
     onedimensional::Instance onedim_instance = onedim_instance_builder.build();
 
@@ -794,7 +793,9 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
 
         // Add bin types.
         const SolutionBin& last_bin = solution_best.bin(solution_best.number_of_different_bins() - 1);
-        last_bin_instance_builder.add_bin_type(instance, last_bin.bin_type_id, 1);
+        BinTypeId last_bin_type_id = last_bin_instance_builder.add_bin_type(instance, last_bin.bin_type_id);
+        last_bin_instance_builder.set_bin_type_copies(last_bin_type_id, 1);
+        last_bin_instance_builder.set_bin_type_copies_min(last_bin_type_id, 0);
 
         // Add item types.
         std::vector<ItemPos> last_bin_item_copies(instance.number_of_item_types(), 0);
@@ -805,13 +806,9 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
-            const ItemType& item_type = instance.item_type(item_type_id);
             if (last_bin_item_copies[item_type_id] > 0) {
-                last_bin_instance_builder.add_item_type(
-                        instance,
-                        item_type_id,
-                        item_type.profit,
-                        last_bin_item_copies[item_type_id]);
+                ItemTypeId sub_item_type_id = last_bin_instance_builder.add_item_type(instance, item_type_id);
+                last_bin_instance_builder.set_item_type_copies(sub_item_type_id, last_bin_item_copies[item_type_id]);
                 last_bin_to_orig.push_back(item_type_id);
             }
         }

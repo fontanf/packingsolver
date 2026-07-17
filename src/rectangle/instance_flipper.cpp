@@ -31,9 +31,15 @@ Instance InstanceFlipper::flip(const Instance& instance)
         const BinType& bin_type = instance.bin_type(bin_type_id);
         BinTypeId flipped_bin_type_id = flipped_instance_builder.add_bin_type(
                 bin_type.rect.y,
-                bin_type.rect.x,
-                bin_type.cost,
-                bin_type.copies,
+                bin_type.rect.x);
+        flipped_instance_builder.set_bin_type_cost(
+                flipped_bin_type_id,
+                bin_type.cost);
+        flipped_instance_builder.set_bin_type_copies(
+                flipped_bin_type_id,
+                bin_type.copies);
+        flipped_instance_builder.set_bin_type_copies_min(
+                flipped_bin_type_id,
                 bin_type.copies_min);
         flipped_instance_builder.set_bin_type_maximum_weight(
                 flipped_bin_type_id,
@@ -57,9 +63,13 @@ Instance InstanceFlipper::flip(const Instance& instance)
         ItemTypeId flipped_item_type_id = flipped_instance_builder.add_item_type(
                 item_type.rect.y,
                 item_type.rect.x,
-                item_type.profit,
-                item_type.copies,
                 item_type.oriented);
+        flipped_instance_builder.set_item_type_profit(
+                flipped_item_type_id,
+                item_type.profit);
+        flipped_instance_builder.set_item_type_copies(
+                flipped_item_type_id,
+                item_type.copies);
         flipped_instance_builder.set_item_type_group(
                 flipped_item_type_id,
                 item_type.group_id);

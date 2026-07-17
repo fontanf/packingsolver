@@ -18,8 +18,11 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostSingleItem)
     instance_builder.set_objective(Objective::BinPackingCuttingCost);
     instance_builder.set_number_of_stages(3);
     instance_builder.set_cut_type(CutType::NonExact);
-    instance_builder.add_item_type(100, 100, -1, 1, false, 0);
-    instance_builder.add_bin_type(100, 100, 1, -1, 0);
+    instance_builder.add_item_type(100, 100, false, 0);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
+
+    instance_builder.set_bin_type_cost(bin_type_id, 1);
+    instance_builder.set_bin_type_copies(bin_type_id, -1);
     instance_builder.set_fixed_cutting_cost(0, 10);
     instance_builder.set_variable_cutting_cost(0, 1);
     for (Counter stage_id = 1; stage_id <= 4; ++stage_id) {
@@ -56,8 +59,12 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostTwoColumns)
     instance_builder.set_objective(Objective::BinPackingCuttingCost);
     instance_builder.set_number_of_stages(3);
     instance_builder.set_cut_type(CutType::NonExact);
-    instance_builder.add_item_type(100, 100, -1, 2, false, 0);
-    instance_builder.add_bin_type(200, 100, 1, -1, 0);
+    ItemTypeId item_type_id = instance_builder.add_item_type(100, 100, false, 0);
+    instance_builder.set_item_type_copies(item_type_id, 2);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(200, 100);
+
+    instance_builder.set_bin_type_cost(bin_type_id, 1);
+    instance_builder.set_bin_type_copies(bin_type_id, -1);
     instance_builder.set_fixed_cutting_cost(0, 10);
     instance_builder.set_variable_cutting_cost(0, 1);
     instance_builder.set_fixed_cutting_cost(1, 5);
@@ -90,8 +97,11 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostUnsetIsZero)
     instance_builder.set_objective(Objective::BinPackingCuttingCost);
     instance_builder.set_number_of_stages(3);
     instance_builder.set_cut_type(CutType::NonExact);
-    instance_builder.add_item_type(100, 100, -1, 1, false, 0);
-    instance_builder.add_bin_type(100, 100, 1, -1, 0);
+    instance_builder.add_item_type(100, 100, false, 0);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
+
+    instance_builder.set_bin_type_cost(bin_type_id, 1);
+    instance_builder.set_bin_type_copies(bin_type_id, -1);
     Instance instance = instance_builder.build();
 
     BranchingScheme::Parameters branching_scheme_parameters;
@@ -123,8 +133,12 @@ TEST(RectangleGuillotineBranchingScheme, CuttingCostWasteCost)
     instance_builder.set_objective(Objective::BinPackingCuttingCost);
     instance_builder.set_number_of_stages(3);
     instance_builder.set_cut_type(CutType::NonExact);
-    instance_builder.add_item_type(100, 100, -1, 2, false, 0);
-    instance_builder.add_bin_type(150, 100, 1, -1, 0);
+    ItemTypeId item_type_id = instance_builder.add_item_type(100, 100, false, 0);
+    instance_builder.set_item_type_copies(item_type_id, 2);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(150, 100);
+
+    instance_builder.set_bin_type_cost(bin_type_id, 1);
+    instance_builder.set_bin_type_copies(bin_type_id, -1);
     instance_builder.set_waste_cost(2);
     Instance instance = instance_builder.build();
 

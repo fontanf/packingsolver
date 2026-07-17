@@ -618,8 +618,12 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
 
             // Add bin types.
             BinTypeId onedim_bin_type_id_0 = onedim_instance_builder.add_bin_type(
-                    instance.bin_type(0).box.z,
-                    10,
+                    instance.bin_type(0).box.z);
+            onedim_instance_builder.set_bin_type_cost(
+                    onedim_bin_type_id_0,
+                    10);
+            onedim_instance_builder.set_bin_type_copies(
+                    onedim_bin_type_id_0,
                     instance.number_of_items());
             onedim_instance_builder.set_bin_type_maximum_weight(
                     onedim_bin_type_id_0,
@@ -634,8 +638,12 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     2);
 
             BinTypeId onedim_bin_type_id_1 = onedim_instance_builder.add_bin_type(
-                    instance.bin_type(0).box.z,
-                    10,
+                    instance.bin_type(0).box.z);
+            onedim_instance_builder.set_bin_type_cost(
+                    onedim_bin_type_id_1,
+                    10);
+            onedim_instance_builder.set_bin_type_copies(
+                    onedim_bin_type_id_1,
                     instance.number_of_items());
             onedim_instance_builder.set_bin_type_maximum_weight(
                     onedim_bin_type_id_1,
@@ -650,8 +658,12 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     2);
 
             BinTypeId onedim_bin_type_id_01 = onedim_instance_builder.add_bin_type(
-                    instance.bin_type(0).box.z,
-                    8,
+                    instance.bin_type(0).box.z);
+            onedim_instance_builder.set_bin_type_cost(
+                    onedim_bin_type_id_01,
+                    8);
+            onedim_instance_builder.set_bin_type_copies(
+                    onedim_bin_type_id_01,
                     instance.number_of_items());
             onedim_instance_builder.set_bin_type_maximum_weight(
                     onedim_bin_type_id_01,
@@ -675,8 +687,9 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     continue;
                 stackability_group.item_types.push_back(item_type_id);
                 ItemTypeId onedim_item_type_id = onedim_instance_builder.add_item_type(
-                        item_type.box.z,
-                        -1,
+                        item_type.box.z);
+                onedim_instance_builder.set_item_type_copies(
+                        onedim_item_type_id,
                         copies[item_type_id]);
                 onedim_instance_builder.set_item_type_weight(
                         onedim_item_type_id,
@@ -806,9 +819,15 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                 const BinType& bin_type = instance.bin_type(bin_type_id);
                 auto rectangle_bin_type_id = rectangle_instance_builder.add_bin_type(
                         bin_type.box.x,
-                        bin_type.box.y,
-                        bin_type.cost,
-                        bin_type.copies,
+                        bin_type.box.y);
+                rectangle_instance_builder.set_bin_type_cost(
+                        rectangle_bin_type_id,
+                        bin_type.cost);
+                rectangle_instance_builder.set_bin_type_copies(
+                        rectangle_bin_type_id,
+                        bin_type.copies);
+                rectangle_instance_builder.set_bin_type_copies_min(
+                        rectangle_bin_type_id,
                         bin_type.copies_min);
                 rectangle_instance_builder.set_bin_type_maximum_weight(
                         rectangle_bin_type_id,
@@ -845,9 +864,10 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                         auto rectangle_item_type_id = rectangle_instance_builder.add_item_type(
                                 x,
                                 y,
-                                stack.profit,
-                                1,  // copies
                                 oriented);
+                        rectangle_instance_builder.set_item_type_profit(
+                                rectangle_item_type_id,
+                                stack.profit);
                         rectangle_instance_builder.set_item_type_group(
                                 rectangle_item_type_id,
                                 stackability_group.group_id);
@@ -881,9 +901,10 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     ItemTypeId rectangle_item_type_id = rectangle_instance_builder.add_item_type(
                             solution_stack.x_end - solution_stack.x_start,
                             solution_stack.y_end - solution_stack.y_start,
-                            profit,
-                            1, // copies
                             false); // oriented
+                    rectangle_instance_builder.set_item_type_profit(
+                            rectangle_item_type_id,
+                            profit);
                     rectangle_instance_builder.set_item_type_group(
                             rectangle_item_type_id,
                             item_type.group_id);

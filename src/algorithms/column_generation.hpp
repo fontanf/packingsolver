@@ -248,7 +248,9 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
         InstanceBuilder kp_instance_builder = InstanceBuilder();
         kp_instance_builder.set_objective(Objective::Knapsack);
         kp_instance_builder.set_parameters(instance_.parameters());
-        kp_instance_builder.add_bin_type(instance_, bin_type_id, 1);
+        BinTypeId kp_bin_type_id = kp_instance_builder.add_bin_type(instance_, bin_type_id);
+        kp_instance_builder.set_bin_type_copies(kp_bin_type_id, 1);
+        kp_instance_builder.set_bin_type_copies_min(kp_bin_type_id, 0);
         std::vector<ItemTypeId> kp2vbpp;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance_.number_of_item_types();
@@ -279,11 +281,9 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
             //std::cout << "j " << j << " profit " << profit << std::endl;
             if (copies <= 0)
                 continue;
-            kp_instance_builder.add_item_type(
-                    instance_,
-                    item_type_id,
-                    profit,
-                    copies);
+            ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(instance_, item_type_id);
+            kp_instance_builder.set_item_type_profit(kp_item_type_id, profit);
+            kp_instance_builder.set_item_type_copies(kp_item_type_id, copies);
             kp2vbpp.push_back(item_type_id);
         }
         Instance kp_instance = kp_instance_builder.build();

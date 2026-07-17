@@ -19,7 +19,8 @@ Instance packingsolver::irregular::convert_song2014(const Instance& instance)
         const BinType& bin_type = instance.bin_type(bin_type_id);
         LengthDbl height = bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min;
         Shape square = shape::build_rectangle(height, height);
-        builder.add_bin_type(square, bin_type.cost);
+        BinTypeId new_bin_type_id = builder.add_bin_type(square);
+        builder.set_bin_type_cost(new_bin_type_id, bin_type.cost);
     }
     builder.set_bin_types_infinite_copies();
 
@@ -27,10 +28,9 @@ Instance packingsolver::irregular::convert_song2014(const Instance& instance)
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        ItemTypeId new_item_type_id = builder.add_item_type(
-                item_type.shapes,
-                item_type.profit,
-                item_type.copies * 100);
+        ItemTypeId new_item_type_id = builder.add_item_type(item_type.shapes);
+        builder.set_item_type_profit(new_item_type_id, item_type.profit);
+        builder.set_item_type_copies(new_item_type_id, item_type.copies * 100);
         for (const AllowedRotation& rotation: item_type.allowed_rotations) {
             builder.add_item_type_allowed_rotation(
                     new_item_type_id,
@@ -70,10 +70,9 @@ Instance packingsolver::irregular::convert_martinez2017(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
-        ItemTypeId new_item_type_id = builder.add_item_type(
-                item_type.shapes,
-                item_type.profit,
-                item_type.copies);
+        ItemTypeId new_item_type_id = builder.add_item_type(item_type.shapes);
+        builder.set_item_type_profit(new_item_type_id, item_type.profit);
+        builder.set_item_type_copies(new_item_type_id, item_type.copies);
         for (const AllowedRotation& rotation: item_type.allowed_rotations) {
             builder.add_item_type_allowed_rotation(
                     new_item_type_id,

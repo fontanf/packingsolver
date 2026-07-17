@@ -215,7 +215,9 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                 InstanceBuilder kp_instance_builder = InstanceBuilder();
                 kp_instance_builder.set_objective(Objective::Knapsack);
                 kp_instance_builder.set_parameters(instance.parameters());
-                kp_instance_builder.add_bin_type(instance, bin_type_id, 1);
+                BinTypeId kp_bin_type_id = kp_instance_builder.add_bin_type(instance, bin_type_id);
+                kp_instance_builder.set_bin_type_copies(kp_bin_type_id, 1);
+                kp_instance_builder.set_bin_type_copies_min(kp_bin_type_id, 0);
                 std::vector<ItemTypeId> kp2orig;
                 for (ItemTypeId item_type_id = 0;
                         item_type_id < instance.number_of_item_types();
@@ -226,11 +228,9 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                         + bin_fixed_copies[item_type_id];
                     if (copies <= 0)
                         continue;
-                    kp_instance_builder.add_item_type(
-                            instance,
-                            item_type_id,
-                            profits[item_type_id],
-                            copies);
+                    ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(instance, item_type_id);
+                    kp_instance_builder.set_item_type_profit(kp_item_type_id, profits[item_type_id]);
+                    kp_instance_builder.set_item_type_copies(kp_item_type_id, copies);
                     kp2orig.push_back(item_type_id);
                 }
                 Instance kp_instance = kp_instance_builder.build();
@@ -288,18 +288,18 @@ SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
                     InstanceBuilder bppl_instance_builder;
                     bppl_instance_builder.set_objective(Objective::BinPackingWithLeftovers);
                     bppl_instance_builder.set_parameters(instance.parameters());
-                    bppl_instance_builder.add_bin_type(instance, bin_type_id, 1);
+                    BinTypeId bppl_bin_type_id = bppl_instance_builder.add_bin_type(instance, bin_type_id);
+                    bppl_instance_builder.set_bin_type_copies(bppl_bin_type_id, 1);
+                    bppl_instance_builder.set_bin_type_copies_min(bppl_bin_type_id, 0);
                     for (ItemTypeId item_type_id: kp2orig) {
                         ItemPos free_copies = instance.item_type(item_type_id).copies
                             - instance.item_type(item_type_id).copies_fixed
                             - (solution.item_copies(item_type_id) - partial_fixed_copies[item_type_id]);
                         ItemPos copies = (free_copies / number_of_copies)
                             + bin_fixed_copies[item_type_id];
-                        bppl_instance_builder.add_item_type(
-                                instance,
-                                item_type_id,
-                                profits[item_type_id],
-                                copies);
+                        ItemTypeId bppl_item_type_id = bppl_instance_builder.add_item_type(instance, item_type_id);
+                        bppl_instance_builder.set_item_type_profit(bppl_item_type_id, profits[item_type_id]);
+                        bppl_instance_builder.set_item_type_copies(bppl_item_type_id, copies);
                     }
                     Instance bppl_instance = bppl_instance_builder.build();
 

@@ -87,11 +87,11 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
                     ++bin_type_id_iter) {
                 const BinType& bin_type_iter = instance.bin_type(bin_type_id_iter);
                 BinPos copies = std::min(bin_type_iter.copies, remaining_bins);
-                sub_instance_builder.add_bin_type(
+                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
                         bin_type_iter.rect.w,
-                        bin_type_iter.rect.h,
-                        bin_type_iter.cost,
-                        copies);
+                        bin_type_iter.rect.h);
+                sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type_iter.cost);
+                sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id_iter);
                 remaining_bins -= copies;
             }
@@ -102,34 +102,29 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
                     ++bin_type_id_iter) {
                 const BinType& bin_type_iter = instance.bin_type(bin_type_id_iter);
                 BinPos copies = std::min(bin_type_iter.copies, remaining_bins);
-                sub_instance_builder.add_bin_type(
+                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
                         current_x,
-                        bin_type_iter.rect.h,
-                        bin_type_iter.cost,
-                        copies);
+                        bin_type_iter.rect.h);
+                sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type_iter.cost);
+                sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id_iter);
                 remaining_bins -= copies;
             }
         } else if (instance.objective() == Objective::OpenDimensionX) {
-            sub_instance_builder.add_bin_type(
+            BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
                     current_x,
-                    bin_type.rect.h,
-                    bin_type.cost);
+                    bin_type.rect.h);
+            sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type.cost);
         } else {  // OpenDimensionY
-            sub_instance_builder.add_bin_type(
+            BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
                     bin_type.rect.w,
-                    current_y,
-                    bin_type.cost);
+                    current_y);
+            sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type.cost);
         }
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
-            const ItemType& item_type = instance.item_type(item_type_id);
-            sub_instance_builder.add_item_type(
-                    instance,
-                    item_type_id,
-                    item_type.profit,
-                    item_type.copies);
+            sub_instance_builder.add_item_type(instance, item_type_id);
         }
         Instance sub_instance = sub_instance_builder.build();
 

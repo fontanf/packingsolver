@@ -28,7 +28,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDFm1I)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(500, 1000, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -48,9 +48,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDfm1II)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(3000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(3000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(3000, 3210, -1, 1, false, 0);
+    instance_builder.add_item_type(3000, 3210, false, 0);
+    instance_builder.add_item_type(3000, 3210, false, 0);
+    instance_builder.add_item_type(3000, 3210, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
@@ -95,8 +95,8 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf0)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 1500, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 1500, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -143,9 +143,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1I)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 3000, -1, 1, false, 0);
-    instance_builder.add_item_type(1100, 2000, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 3000, false, 0);
+    instance_builder.add_item_type(1100, 2000, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -193,9 +193,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1II)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 3000, -1, 1, false, 0);
-    instance_builder.add_item_type(1100, 2990, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 3000, false, 0);
+    instance_builder.add_item_type(1100, 2990, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -243,9 +243,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1III)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 3000, -1, 1, false, 0);
-    instance_builder.add_item_type(1100, 3010, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 3000, false, 0);
+    instance_builder.add_item_type(1100, 3010, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -293,9 +293,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1IV)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 3000, -1, 1, false, 0);
-    instance_builder.add_item_type(1100, 3020, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 3000, false, 0);
+    instance_builder.add_item_type(1100, 3020, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -344,10 +344,10 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1V)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 3000, -1, 1, false, 0);
-    instance_builder.add_item_type(1100, 3010, -1, 1, false, 0);
-    instance_builder.add_item_type(1110, 3050, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 3000, false, 0);
+    instance_builder.add_item_type(1100, 3010, false, 0);
+    instance_builder.add_item_type(1110, 3050, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -398,10 +398,10 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteI)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1500, 2000, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 1500, -1, 1, false, 0);
-    instance_builder.add_item_type(1010, 1500, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 1500, -1, 1, false, 0);
+    instance_builder.add_item_type(1500, 2000, false, 0);
+    instance_builder.add_item_type(1000, 1500, false, 0);
+    instance_builder.add_item_type(1010, 1500, false, 0);
+    instance_builder.add_item_type(1000, 1500, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -454,9 +454,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf1MinWasteII)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 2000, -1, 1, false, 0);
-    instance_builder.add_item_type(1010, 2005, -1, 1, false, 0);
-    instance_builder.add_item_type(1200, 2010, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 2000, false, 0);
+    instance_builder.add_item_type(1010, 2005, false, 0);
+    instance_builder.add_item_type(1200, 2010, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -504,10 +504,10 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2I)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 2000, -1, 1, false, 0);
-    instance_builder.add_item_type(500, 2210, -1, 1, false, 0);
-    instance_builder.add_item_type(700, 1010, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 2000, false, 0);
+    instance_builder.add_item_type(500, 2210, false, 0);
+    instance_builder.add_item_type(700, 1010, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -558,10 +558,10 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2II)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 2000, -1, 1, false, 0);
-    instance_builder.add_item_type(500, 1010, -1, 1, false, 0);
-    instance_builder.add_item_type(700, 1000, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 2000, false, 0);
+    instance_builder.add_item_type(500, 1010, false, 0);
+    instance_builder.add_item_type(700, 1000, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -612,10 +612,10 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2III)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 2000, -1, 1, false, 0);
-    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
-    instance_builder.add_item_type(700, 1010, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 2000, false, 0);
+    instance_builder.add_item_type(500, 1000, false, 0);
+    instance_builder.add_item_type(700, 1010, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -666,10 +666,10 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2IV)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 2000, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 1500, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 2000, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 2000, false, 0);
+    instance_builder.add_item_type(1000, 1500, false, 0);
+    instance_builder.add_item_type(1000, 2000, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -720,9 +720,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionDf2V)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 1500, -1, 1, false, 0);
-    instance_builder.add_item_type(500, 1000, -1, 1, false, 0);
-    instance_builder.add_item_type(500, 1500, -1, 1, false, 0);
+    instance_builder.add_item_type(1000, 1500, false, 0);
+    instance_builder.add_item_type(500, 1000, false, 0);
+    instance_builder.add_item_type(500, 1500, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -776,9 +776,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX1)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(500, 980, -1, 1, false, 0);
-    instance_builder.add_item_type(500, 990, -1, 1, false, 1);
-    instance_builder.add_item_type(500, 1000, -1, 1, false, 2);
+    instance_builder.add_item_type(500, 980, false, 0);
+    instance_builder.add_item_type(500, 990, false, 1);
+    instance_builder.add_item_type(500, 1000, false, 2);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -813,11 +813,11 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX2)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(431, 658, -1, 1, false, 0);
-    instance_builder.add_item_type(431, 1170, -1, 1, false, 1);
-    instance_builder.add_item_type(303, 1054, -1, 1, false, 2);
-    instance_builder.add_item_type(568, 1399, -1, 1, false, 3);
-    instance_builder.add_item_type(545, 872, -1, 1, false, 4);
+    instance_builder.add_item_type(431, 658, false, 0);
+    instance_builder.add_item_type(431, 1170, false, 1);
+    instance_builder.add_item_type(303, 1054, false, 2);
+    instance_builder.add_item_type(568, 1399, false, 3);
+    instance_builder.add_item_type(545, 872, false, 4);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -877,9 +877,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionX3)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(3000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 2960, -1, 1, false, 1);
-    instance_builder.add_item_type(1000, 2970, -1, 1, false, 2);
+    instance_builder.add_item_type(3000, 3210, false, 0);
+    instance_builder.add_item_type(1000, 2960, false, 1);
+    instance_builder.add_item_type(1000, 2970, false, 2);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -932,9 +932,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionY1)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(500, 980, -1, 1, false, 0);
-    instance_builder.add_item_type(500, 990, -1, 1, false, 1);
-    instance_builder.add_item_type(500, 1000, -1, 1, false, 2);
+    instance_builder.add_item_type(500, 980, false, 0);
+    instance_builder.add_item_type(500, 990, false, 1);
+    instance_builder.add_item_type(500, 1000, false, 2);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -981,8 +981,8 @@ TEST(RectangleGuillotineBranchingScheme, InsertionY2)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1000, 3000, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 3200, -1, 1, false, 1);
+    instance_builder.add_item_type(1000, 3000, false, 0);
+    instance_builder.add_item_type(1000, 3200, false, 1);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -1028,11 +1028,11 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDfm1)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(400, 1000, -1, 1, false, 0);
-    instance_builder.add_item_type(500, 1001, -1, 1, false, 0);
-    instance_builder.add_item_type(700, 1002, -1, 1, false, 0);
-    instance_builder.add_item_type(200, 1000, -1, 1, false, 1);
-    instance_builder.add_item_type(590, 1003, -1, 1, false, 1);
+    instance_builder.add_item_type(400, 1000, false, 0);
+    instance_builder.add_item_type(500, 1001, false, 0);
+    instance_builder.add_item_type(700, 1002, false, 0);
+    instance_builder.add_item_type(200, 1000, false, 1);
+    instance_builder.add_item_type(590, 1003, false, 1);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -1082,12 +1082,12 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf0)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(400, 1000, -1, 1, false, 0);
-    instance_builder.add_item_type(500, 1001, -1, 1, false, 0);
-    instance_builder.add_item_type(700, 1002, -1, 1, false, 0);
-    instance_builder.add_item_type(200, 1000, -1, 1, false, 1);
-    instance_builder.add_item_type(590, 1003, -1, 1, false, 1);
-    instance_builder.add_item_type(1000, 3210, -1, 1, false, 2);
+    instance_builder.add_item_type(400, 1000, false, 0);
+    instance_builder.add_item_type(500, 1001, false, 0);
+    instance_builder.add_item_type(700, 1002, false, 0);
+    instance_builder.add_item_type(200, 1000, false, 1);
+    instance_builder.add_item_type(590, 1003, false, 1);
+    instance_builder.add_item_type(1000, 3210, false, 2);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -1141,13 +1141,13 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf1)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(3210, 1000, -1, 1, false, 0);
-    instance_builder.add_item_type(1000, 2000, -1, 1, false, 1);
-    instance_builder.add_item_type(400, 1000, -1, 1, false, 2);
-    instance_builder.add_item_type(500, 1001, -1, 1, false, 2);
-    instance_builder.add_item_type(700, 1002, -1, 1, false, 2);
-    instance_builder.add_item_type(200, 1000, -1, 1, false, 3);
-    instance_builder.add_item_type(590, 1003, -1, 1, false, 3);
+    instance_builder.add_item_type(3210, 1000, false, 0);
+    instance_builder.add_item_type(1000, 2000, false, 1);
+    instance_builder.add_item_type(400, 1000, false, 2);
+    instance_builder.add_item_type(500, 1001, false, 2);
+    instance_builder.add_item_type(700, 1002, false, 2);
+    instance_builder.add_item_type(200, 1000, false, 3);
+    instance_builder.add_item_type(590, 1003, false, 3);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -1208,14 +1208,14 @@ TEST(RectangleGuillotineBranchingScheme, Insertion4CutDf2)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(3000, 3210, -1, 1, false, 0);
-    instance_builder.add_item_type(2000, 3000, -1, 1, false, 1);
-    instance_builder.add_item_type(500, 1000, -1, 1, false, 2);
-    instance_builder.add_item_type(400, 1000, -1, 1, false, 3);
-    instance_builder.add_item_type(500, 1000, -1, 1, false, 3);
-    instance_builder.add_item_type(700, 1000, -1, 1, false, 3);
-    instance_builder.add_item_type(200, 1000, -1, 1, false, 4);
-    instance_builder.add_item_type(590, 1000, -1, 1, false, 4);
+    instance_builder.add_item_type(3000, 3210, false, 0);
+    instance_builder.add_item_type(2000, 3000, false, 1);
+    instance_builder.add_item_type(500, 1000, false, 2);
+    instance_builder.add_item_type(400, 1000, false, 3);
+    instance_builder.add_item_type(500, 1000, false, 3);
+    instance_builder.add_item_type(700, 1000, false, 3);
+    instance_builder.add_item_type(200, 1000, false, 4);
+    instance_builder.add_item_type(590, 1000, false, 4);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -1271,7 +1271,7 @@ TEST(RectangleGuillotineBranchingScheme, PlateRotationI)
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
     instance_builder.set_first_stage_orientation(CutOrientation::Horizontal);
-    instance_builder.add_item_type(500, 1000, -1, 1, true, 0);
+    instance_builder.add_item_type(500, 1000, true, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -1310,9 +1310,9 @@ TEST(RectangleGuillotineBranchingScheme, InsertionSymmetry)
     instance_builder.set_number_of_stages(3);
     instance_builder.set_cut_type(CutType::NonExact);
     instance_builder.set_item_types_oriented();
-    instance_builder.add_item_type(70, 100, -1, 1, false, 0);
-    instance_builder.add_item_type(40, 80, -1, 1, false, 0);
-    instance_builder.add_item_type(40, 80, -1, 1, false, 0);
+    instance_builder.add_item_type(70, 100, false, 0);
+    instance_builder.add_item_type(40, 80, false, 0);
+    instance_builder.add_item_type(40, 80, false, 0);
     instance_builder.add_bin_type(100, 200);
     Instance instance = instance_builder.build();
 
@@ -1361,8 +1361,8 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteI)
     instance_builder.set_roadef2018();
     instance_builder.set_number_of_stages(2);
     instance_builder.set_minimum_distance_2_cuts(0);
-    instance_builder.add_item_type(500, 3200, -1, 1, false, 0);
-    instance_builder.add_item_type(500, 3200, -1, 1, false, 0);
+    instance_builder.add_item_type(500, 3200, false, 0);
+    instance_builder.add_item_type(500, 3200, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -1406,7 +1406,7 @@ TEST(RectangleGuillotineBranchingScheme, InsertionTwoStagedMinWasteII)
     instance_builder.set_roadef2018();
     instance_builder.set_number_of_stages(2);
     instance_builder.set_minimum_distance_2_cuts(0);
-    instance_builder.add_item_type(250, 3200, -1, 1, false, 0);
+    instance_builder.add_item_type(250, 3200, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_defect(0, 240, 3190, 10, 10);
     Instance instance = instance_builder.build();
@@ -1450,8 +1450,8 @@ TEST(RectangleGuillotineBranchingScheme, InsertionUpdate)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(3000, 1500, -1, 1, false, 0);
-    instance_builder.add_item_type(3050, 1500, -1, 1, false, 0);
+    instance_builder.add_item_type(3000, 1500, false, 0);
+    instance_builder.add_item_type(3050, 1500, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     instance_builder.add_defect(0, 3005, 1590, 10, 10);
     Instance instance = instance_builder.build();

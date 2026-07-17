@@ -107,7 +107,9 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                     ++bin_type_id) {
                 const BinType& bin_type = instance.bin_type(bin_type_id);
                 BinPos copies = std::min(bin_type.copies, remaining_bins);
-                sub_instance_builder.add_bin_type(instance, bin_type_id, copies);
+                BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+                sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
+                sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id);
                 remaining_bins -= copies;
             }
@@ -126,7 +128,9 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                         {{bin_type.shape_orig},
                         {restricting_rect}});
                 BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
-                        intersection[0].shape, bin_type.cost, copies);
+                        intersection[0].shape);
+                sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type.cost);
+                sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
                 sub_instance_builder.set_item_bin_minimum_spacing(
                         sub_bin_type_id, bin_type.item_bin_minimum_spacing);
                 sub_to_orig_bin_type_ids.push_back(bin_type_id);
@@ -151,12 +155,7 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
-            const ItemType& item_type = instance.item_type(item_type_id);
-            sub_instance_builder.add_item_type(
-                    instance,
-                    item_type_id,
-                    item_type.profit,
-                    item_type.copies);
+            sub_instance_builder.add_item_type(instance, item_type_id);
         }
         Instance sub_instance = sub_instance_builder.build();
 

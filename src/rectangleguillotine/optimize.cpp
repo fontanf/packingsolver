@@ -34,20 +34,28 @@ void optimize_dual_feasible_functions(
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
         BinType bin_type = instance.bin_type(bin_type_id);
-        rectangle_instance_builder.add_bin_type(
+        BinTypeId rectangle_bin_type_id = rectangle_instance_builder.add_bin_type(
                 bin_type.rect.w,
-                bin_type.rect.h,
-                bin_type.cost,
+                bin_type.rect.h);
+        rectangle_instance_builder.set_bin_type_cost(
+                rectangle_bin_type_id,
+                bin_type.cost);
+        rectangle_instance_builder.set_bin_type_copies(
+                rectangle_bin_type_id,
                 bin_type.copies);
     }
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         ItemType item_type = instance.item_type(item_type_id);
-        rectangle_instance_builder.add_item_type(
+        ItemTypeId rectangle_item_type_id = rectangle_instance_builder.add_item_type(
                 item_type.rect.w,
-                item_type.rect.h,
-                item_type.profit,
+                item_type.rect.h);
+        rectangle_instance_builder.set_item_type_profit(
+                rectangle_item_type_id,
+                item_type.profit);
+        rectangle_instance_builder.set_item_type_copies(
+                rectangle_item_type_id,
                 item_type.copies);
     }
     rectangle::Instance rectangle_instance = rectangle_instance_builder.build();

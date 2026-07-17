@@ -46,8 +46,11 @@ TEST_P(RectangleGuillotinePostProcessTest, BuildGuillotineSolution)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::Knapsack);
     instance_builder.add_bin_type(test_params.bin_width, test_params.bin_height);
-    for (const ItemDef& item: test_params.items)
-        instance_builder.add_item_type(item.w, item.h, item.profit, item.copies, item.oriented);
+    for (const ItemDef& item: test_params.items) {
+        ItemTypeId item_type_id = instance_builder.add_item_type(item.w, item.h, item.oriented);
+        instance_builder.set_item_type_profit(item_type_id, item.profit);
+        instance_builder.set_item_type_copies(item_type_id, item.copies);
+    }
     instance_builder.set_first_stage_orientation(test_params.first_stage_orientation);
     Instance instance = instance_builder.build();
 

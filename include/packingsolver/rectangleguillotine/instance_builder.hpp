@@ -115,10 +115,12 @@ public:
     /** Add a bin type. */
     BinTypeId add_bin_type(
             Length width,
-            Length height,
-            Profit cost = -1,
-            BinPos copies = 1,
-            BinPos copies_min = 0);
+            Length height);
+
+    /** Set the cost of a bin type. */
+    void set_bin_type_cost(
+            BinTypeId bin_type_id,
+            Profit cost);
 
     /** Add trims to bin type 'i'. */
     void add_trims(
@@ -145,11 +147,19 @@ public:
      *
      * This method is used in the column generation procedure.
      */
-    void add_bin_type(
+    BinTypeId add_bin_type(
             const Instance& original_instance,
-            BinTypeId original_bin_type_id,
-            BinPos copies,
-            BinPos copies_min = 0);
+            BinTypeId original_bin_type_id);
+
+    /** Set the number of copies of a bin type. */
+    void set_bin_type_copies(
+            BinTypeId bin_type_id,
+            BinPos copies);
+
+    /** Set the minimum number of copies of a bin type. */
+    void set_bin_type_copies_min(
+            BinTypeId bin_type_id,
+            BinPos copies_min);
 
     /**
      * For each bin type, set an infinite x.
@@ -190,8 +200,6 @@ public:
     ItemTypeId add_item_type(
             Length width,
             Length height,
-            Profit profit = -1,
-            ItemPos copies = 1,
             bool oriented = false,
             StackId stack_id = -1);
 
@@ -200,10 +208,18 @@ public:
      *
      * This method is used in the column generation procedure.
      */
-    void add_item_type(
+    ItemTypeId add_item_type(
             const Instance& original_instance,
-            ItemTypeId original_item_type_id,
-            Profit profit,
+            ItemTypeId original_item_type_id);
+
+    /** Set the profit of an item type. */
+    void set_item_type_profit(
+            ItemTypeId item_type_id,
+            Profit profit);
+
+    /** Set the number of copies of an item type. */
+    void set_item_type_copies(
+            ItemTypeId item_type_id,
             ItemPos copies);
 
     /**

@@ -25,9 +25,9 @@ TEST(RectangleGuillotineBranchingScheme, Waste1)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(500, 500, -1, 1, false, 0);
-    instance_builder.add_item_type(300, 300, -1, 1, false, 0);
-    instance_builder.add_item_type(400, 400, -1, 1, false, 0);
+    instance_builder.add_item_type(500, 500, false, 0);
+    instance_builder.add_item_type(300, 300, false, 0);
+    instance_builder.add_item_type(400, 400, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
     instance.format(std::cerr, 2);
@@ -73,10 +73,10 @@ TEST(RectangleGuillotineBranchingScheme, Waste2)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(500, 500, -1, 1, false, 0);
-    instance_builder.add_item_type(300, 300, -1, 1, false, 0);
-    instance_builder.add_item_type(100, 500, -1, 1, false, 0);
-    instance_builder.add_item_type(100, 500, -1, 1, false, 0);
+    instance_builder.add_item_type(500, 500, false, 0);
+    instance_builder.add_item_type(300, 300, false, 0);
+    instance_builder.add_item_type(100, 500, false, 0);
+    instance_builder.add_item_type(100, 500, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -135,11 +135,11 @@ TEST(RectangleGuillotineBranchingScheme, Waste3)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(200, 500, -1, 1, false, 0);
-    instance_builder.add_item_type(200, 400, -1, 1, false, 0);
-    instance_builder.add_item_type(200, 500, -1, 1, false, 0);
-    instance_builder.add_item_type(600, 100, -1, 1, false, 0);
-    instance_builder.add_item_type(600, 100, -1, 1, false, 0);
+    instance_builder.add_item_type(200, 500, false, 0);
+    instance_builder.add_item_type(200, 400, false, 0);
+    instance_builder.add_item_type(200, 500, false, 0);
+    instance_builder.add_item_type(600, 100, false, 0);
+    instance_builder.add_item_type(600, 100, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -176,11 +176,11 @@ TEST(RectangleGuillotineBranchingScheme, Waste4)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1578, 758, -1, 1, false, 0);
-    instance_builder.add_item_type(738, 1550, -1, 1, false, 0);
-    instance_builder.add_item_type(581, 276, -1, 1, false, 0);
-    instance_builder.add_item_type(781, 276, -1, 1, false, 0);
-    instance_builder.add_item_type(1426, 648, -1, 1, false, 0);
+    instance_builder.add_item_type(1578, 758, false, 0);
+    instance_builder.add_item_type(738, 1550, false, 0);
+    instance_builder.add_item_type(581, 276, false, 0);
+    instance_builder.add_item_type(781, 276, false, 0);
+    instance_builder.add_item_type(1426, 648, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
@@ -223,11 +223,11 @@ TEST(RectangleGuillotineBranchingScheme, Waste5)
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPackingWithLeftovers);
     instance_builder.set_roadef2018();
-    instance_builder.add_item_type(1578, 758, -1, 1, false, 0);
-    instance_builder.add_item_type(738, 1550, -1, 1, false, 0);
-    instance_builder.add_item_type(581, 276, -1, 1, false, 0);
-    instance_builder.add_item_type(781, 1396, -1, 1, false, 0);
-    instance_builder.add_item_type(1426, 648, -1, 1, false, 0);
+    instance_builder.add_item_type(1578, 758, false, 0);
+    instance_builder.add_item_type(738, 1550, false, 0);
+    instance_builder.add_item_type(581, 276, false, 0);
+    instance_builder.add_item_type(781, 1396, false, 0);
+    instance_builder.add_item_type(1426, 648, false, 0);
     instance_builder.add_bin_type(6000, 3210);
     Instance instance = instance_builder.build();
 
