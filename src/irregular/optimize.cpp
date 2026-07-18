@@ -19,6 +19,38 @@ using namespace packingsolver::irregular;
 namespace
 {
 
+void optimize_trivial_bound(
+        const Instance& instance,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (instance.objective() == Objective::Knapsack) {
+        algorithm_formatter.update_knapsack_bound(instance.item_profit());
+        return;
+    }
+
+    if (instance.objective() != Objective::OpenDimensionX
+            && instance.objective() != Objective::OpenDimensionY) {
+        return;
+    }
+
+    // Area-based bound: the open dimension cannot be smaller than what is
+    // required to fit the total area of the items in the fixed dimension of
+    // the bin's bounding box.
+    const auto& bin_type = instance.bin_type(0);
+    LengthDbl fixed_dimension = (instance.objective() == Objective::OpenDimensionX)?
+        bin_type.aabb_orig.y_max - bin_type.aabb_orig.y_min:
+        bin_type.aabb_orig.x_max - bin_type.aabb_orig.x_min;
+    if (fixed_dimension <= 0)
+        return;
+    LengthDbl bound = instance.item_area() / fixed_dimension;
+
+    if (instance.objective() == Objective::OpenDimensionX) {
+        algorithm_formatter.update_open_dimension_x_bound(bound);
+    } else {
+        algorithm_formatter.update_open_dimension_y_bound(bound);
+    }
+}
+
 void optimize_onedimensional_bound(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -600,8 +632,7 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         }
     }
 
-    if (instance.objective() == Objective::Knapsack)
-        algorithm_formatter.update_knapsack_bound(instance.item_profit());
+    optimize_trivial_bound(instance, algorithm_formatter);
 
     if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::Knapsack

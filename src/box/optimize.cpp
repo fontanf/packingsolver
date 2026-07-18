@@ -15,6 +15,65 @@ using namespace packingsolver::box;
 namespace
 {
 
+void optimize_trivial_bound(
+        const Instance& instance,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (instance.objective() == Objective::Knapsack) {
+        algorithm_formatter.update_knapsack_bound(instance.item_profit());
+        return;
+    }
+
+    if (instance.objective() != Objective::OpenDimensionX
+            && instance.objective() != Objective::OpenDimensionY
+            && instance.objective() != Objective::OpenDimensionZ) {
+        return;
+    }
+
+    // Area-based bound: the open dimension cannot be smaller than what is
+    // required to fit the total volume of the items in the fixed
+    // cross-section of the bin.
+    // Item-based bound: the open dimension cannot be smaller than the
+    // smallest extent an item can have in that direction, over its allowed
+    // rotations, for the item requiring the most space in that direction.
+    const auto& bin_type = instance.bin_type(0);
+    Volume cross_section = 0;
+    if (instance.objective() == Objective::OpenDimensionX) {
+        cross_section = bin_type.box.y * bin_type.box.z;
+    } else if (instance.objective() == Objective::OpenDimensionY) {
+        cross_section = bin_type.box.x * bin_type.box.z;
+    } else {
+        cross_section = bin_type.box.x * bin_type.box.y;
+    }
+    Length bound = (cross_section > 0)?
+        (Length)((instance.item_volume() + cross_section - 1) / cross_section):
+        0;
+
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        Length item_min_extent = item_type.box.max();
+        for (Rotation rotation: item_type.rotations) {
+            Box rotated_box = item_type.box.rotate(rotation);
+            Length extent
+                = (instance.objective() == Objective::OpenDimensionX)? rotated_box.x:
+                (instance.objective() == Objective::OpenDimensionY)? rotated_box.y:
+                rotated_box.z;
+            item_min_extent = std::min(item_min_extent, extent);
+        }
+        bound = std::max(bound, item_min_extent);
+    }
+
+    if (instance.objective() == Objective::OpenDimensionX) {
+        algorithm_formatter.update_open_dimension_x_bound(bound);
+    } else if (instance.objective() == Objective::OpenDimensionY) {
+        algorithm_formatter.update_open_dimension_y_bound(bound);
+    } else {
+        algorithm_formatter.update_open_dimension_z_bound(bound);
+    }
+}
+
 void optimize_tree_search(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -444,6 +503,8 @@ packingsolver::box::Output packingsolver::box::optimize(
             }
         }
     }
+
+    optimize_trivial_bound(instance, algorithm_formatter);
 
     if (algorithm_formatter.end_boolean()) {
         algorithm_formatter.end();

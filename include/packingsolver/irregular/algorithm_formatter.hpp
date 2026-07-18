@@ -64,6 +64,14 @@ public:
     void update_variable_sized_bin_packing_bound(
             Profit cost);
 
+    /** Update the open dimension X bound. */
+    void update_open_dimension_x_bound(
+            LengthDbl x);
+
+    /** Update the open dimension Y bound. */
+    void update_open_dimension_y_bound(
+            LengthDbl y);
+
     /** Update all applicable bounds from another output. */
     void update_bounds(
             const Output& output);

@@ -4,11 +4,93 @@
 #include "packingsolver/boxstacks/instance_builder.hpp"
 #include "boxstacks/tree_search.hpp"
 #include "boxstacks/sequential_onedimensional_rectangle.hpp"
+#include "packingsolver/box/instance_builder.hpp"
+#include "packingsolver/box/optimize.hpp"
 
 #include "algorithms/sequential_value_correction.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
+
+namespace
+{
+
+void optimize_trivial_bound(
+        const Instance& instance,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (instance.objective() == Objective::Knapsack)
+        algorithm_formatter.update_knapsack_bound(instance.item_profit());
+}
+
+void optimize_box_bound(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    // Relax the instance to a plain 'box' instance: drop the stacking,
+    // axle weight, stack density and unloading constraints, keep only the
+    // dimensions, cost, weight, profit and rotations. Any boxstacks-feasible
+    // solution is also feasible for this relaxation, so a bound computed on
+    // it remains a valid bound for the original instance.
+    box::InstanceBuilder box_instance_builder;
+    box_instance_builder.set_objective(instance.objective());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        BinTypeId box_bin_type_id = box_instance_builder.add_bin_type(
+                bin_type.box.x,
+                bin_type.box.y,
+                bin_type.box.z);
+        box_instance_builder.set_bin_type_cost(box_bin_type_id, bin_type.cost);
+        box_instance_builder.set_bin_type_copies(box_bin_type_id, bin_type.copies);
+        box_instance_builder.set_bin_type_copies_min(box_bin_type_id, bin_type.copies_min);
+        box_instance_builder.set_bin_type_maximum_weight(box_bin_type_id, bin_type.maximum_weight);
+    }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        ItemTypeId box_item_type_id = box_instance_builder.add_item_type(
+                item_type.box.x,
+                item_type.box.y,
+                item_type.box.z);
+        box_instance_builder.set_item_type_profit(box_item_type_id, item_type.profit);
+        box_instance_builder.set_item_type_copies(box_item_type_id, item_type.copies);
+        box_instance_builder.set_item_type_weight(box_item_type_id, item_type.weight);
+        for (Rotation rotation: item_type.rotations) {
+            box_instance_builder.add_item_type_rotation(
+                    box_item_type_id,
+                    static_cast<box::Rotation>(rotation));
+        }
+    }
+    box::Instance box_instance = box_instance_builder.build();
+
+    box::OptimizeParameters box_parameters;
+    box_parameters.verbosity_level = 0;
+    box_parameters.timer = parameters.timer;
+    box_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    box_parameters.optimization_mode = OptimizationMode::NotAnytime;
+    box_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    box::Output box_output = box::optimize(box_instance, box_parameters);
+
+    switch (instance.objective()) {
+    case Objective::Knapsack:
+        algorithm_formatter.update_knapsack_bound(box_output.knapsack_bound);
+        break;
+    case Objective::BinPacking:
+        algorithm_formatter.update_bin_packing_bound(box_output.bin_packing_bound);
+        break;
+    case Objective::VariableSizedBinPacking:
+        algorithm_formatter.update_variable_sized_bin_packing_bound(box_output.variable_sized_bin_packing_bound);
+        break;
+    default:
+        break;
+    }
+}
+
+}
 
 packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         const Instance& instance,
@@ -19,6 +101,22 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
     auto logger = parameters.get_logger();
+
+    optimize_trivial_bound(instance, algorithm_formatter);
+    if (instance.objective() == Objective::Knapsack
+            || instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::VariableSizedBinPacking) {
+        optimize_box_bound(instance, parameters, algorithm_formatter);
+    }
+
+    if (algorithm_formatter.end_boolean()) {
+        algorithm_formatter.end();
+        return output;
+    }
+    if (parameters.timer.needs_to_end()) {
+        algorithm_formatter.end();
+        return output;
+    }
 
     if (instance.number_of_bins() == 1) {
 

@@ -56,6 +56,22 @@ public:
     void update_bin_packing_bound(
             BinPos number_of_bins);
 
+    /** Update the variable-sized bin packing bound. */
+    void update_variable_sized_bin_packing_bound(
+            Profit cost);
+
+    /** Update the open dimension X bound. */
+    void update_open_dimension_x_bound(
+            Length x);
+
+    /** Update the open dimension Y bound. */
+    void update_open_dimension_y_bound(
+            Length y);
+
+    /** Update the open dimension Z bound. */
+    void update_open_dimension_z_bound(
+            Length z);
+
     /** Update all applicable bounds from another output. */
     void update_bounds(
             const Output& output);

@@ -19,6 +19,14 @@ using namespace packingsolver::onedimensional;
 namespace
 {
 
+void optimize_trivial_bound(
+        const Instance& instance,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (instance.objective() == Objective::Knapsack)
+        algorithm_formatter.update_knapsack_bound(instance.item_profit());
+}
+
 void optimize_dynamic_programming(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -447,6 +455,8 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
             }
         }
     }
+
+    optimize_trivial_bound(instance, algorithm_formatter);
 
     if (instance.number_of_bins() == 1
             && instance.objective() == Objective::Knapsack) {

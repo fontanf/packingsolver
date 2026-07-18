@@ -14,13 +14,21 @@ struct Output: packingsolver::Output<Instance, Solution>
     Output(const Instance& instance):
         packingsolver::Output<Instance, Solution>(instance) { }
 
+    /** Knapsack bound. */
+    Profit knapsack_bound = std::numeric_limits<Profit>::infinity();
+
     /** Bin packing bound. */
     BinPos bin_packing_bound = 0;
+
+    /** Variable-sized bin packing bound. */
+    Profit variable_sized_bin_packing_bound = 0;
 
     virtual nlohmann::json to_json() const override
     {
         nlohmann::json json = packingsolver::Output<Instance, Solution>::to_json();
+        json["KnapsackBound"] = knapsack_bound;
         json["BinPackingBound"] = bin_packing_bound;
+        json["VariableSizedBinPackingBound"] = variable_sized_bin_packing_bound;
         return json;
     }
 
@@ -29,7 +37,9 @@ struct Output: packingsolver::Output<Instance, Solution>
         packingsolver::Output<Instance, Solution>::format(os);
         int width = format_width();
         os
+            << std::setw(width) << std::left << "Knapsack bound: " << knapsack_bound << std::endl
             << std::setw(width) << std::left << "Bin packing bound: " << bin_packing_bound << std::endl
+            << std::setw(width) << std::left << "Variable-sized bin packing bound: " << variable_sized_bin_packing_bound << std::endl
             ;
     }
 
