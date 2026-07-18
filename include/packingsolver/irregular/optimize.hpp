@@ -29,6 +29,9 @@ struct Output: packingsolver::Output<Instance, Solution>
     /** Open dimension Y bound. */
     LengthDbl open_dimension_y_bound = 0;
 
+    /** True if the instance has been proven infeasible (Feasibility objective only). */
+    bool is_proven_infeasible = false;
+
     virtual nlohmann::json to_json() const override
     {
         nlohmann::json json = packingsolver::Output<Instance, Solution>::to_json();
@@ -37,6 +40,7 @@ struct Output: packingsolver::Output<Instance, Solution>
         json["VariableSizedBinPackingBound"] = variable_sized_bin_packing_bound;
         json["OpenDimensionXBound"] = open_dimension_x_bound;
         json["OpenDimensionYBound"] = open_dimension_y_bound;
+        json["IsProvenInfeasible"] = is_proven_infeasible;
         return json;
     }
 
@@ -50,6 +54,7 @@ struct Output: packingsolver::Output<Instance, Solution>
             << std::setw(width) << std::left << "Variable-sized bin packing bound: " << variable_sized_bin_packing_bound << std::endl
             << std::setw(width) << std::left << "Open dimension X bound: " << open_dimension_x_bound << std::endl
             << std::setw(width) << std::left << "Open dimension Y bound: " << open_dimension_y_bound << std::endl
+            << std::setw(width) << std::left << "Is proven infeasible: " << is_proven_infeasible << std::endl
             ;
     }
 };

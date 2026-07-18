@@ -222,10 +222,24 @@ void AlgorithmFormatter::update_solution(
                 end_ = true;
             }
         } else if (instance_.objective() == Objective::Feasibility) {
-            if (output_.solution_pool.best().full()) {
+            if (output_.solution_pool.best().full()
+                    && output_.solution_pool.best().feasible()) {
                 end_ = true;
             }
         }
+    }
+    mutex_.unlock();
+}
+
+void AlgorithmFormatter::update_is_proven_infeasible()
+{
+    mutex_.lock();
+    if (!output_.is_proven_infeasible) {
+        output_.is_proven_infeasible = true;
+        if (parameters_.write_json_output)
+            output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+        end_ = true;
     }
     mutex_.unlock();
 }
@@ -298,6 +312,10 @@ void AlgorithmFormatter::update_bounds(
         break;
     case Objective::VariableSizedBinPacking:
         update_variable_sized_bin_packing_bound(output.variable_sized_bin_packing_bound);
+        break;
+    case Objective::Feasibility:
+        if (output.is_proven_infeasible)
+            update_is_proven_infeasible();
         break;
     default:
         break;

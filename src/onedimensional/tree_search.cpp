@@ -428,10 +428,14 @@ const packingsolver::onedimensional::TreeSearchOutput packingsolver::onedimensio
                     ss << "g " << branching_schemes[scheme_idx].parameters().guide_id
                         << " q " << tssibs_output.maximum_size_of_the_queue;
                     algorithm_formatter.update_solution(solution, ss.str());
-                    if (tssibs_output.optimal
-                            && solution.instance().objective() == packingsolver::Objective::BinPacking) {
-                        algorithm_formatter.update_bin_packing_bound(
-                                solution.number_of_bins());
+                    if (tssibs_output.optimal) {
+                        if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
+                            algorithm_formatter.update_bin_packing_bound(
+                                    solution.number_of_bins());
+                        } else if (solution.instance().objective() == packingsolver::Objective::Feasibility) {
+                            if (!solution.full())
+                                algorithm_formatter.update_is_proven_infeasible();
+                        }
                     }
                 };
         } else {

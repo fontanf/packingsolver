@@ -39,6 +39,12 @@ public:
                     && equal(output_.variable_sized_bin_packing_bound, output_.solution_pool.best().cost())) {
                 end_ = true;
             }
+       } else if (instance_.objective() == Objective::Feasibility) {
+            if ((output_.solution_pool.best().full()
+                        && output_.solution_pool.best().feasible())
+                    || output_.is_proven_infeasible) {
+                end_ = true;
+            }
         }
     }
 
@@ -56,6 +62,9 @@ public:
     void update_solution(
             const Solution& solution,
             const std::string& s);
+
+    /** Mark the instance as proven infeasible (Feasibility objective only). */
+    void update_is_proven_infeasible();
 
     /** Update the knapsack bound. */
     void update_knapsack_bound(

@@ -2392,9 +2392,31 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
                     algorithm_formatter.update_solution(solution, ss.str());
 
                     if (tssibs_output.optimal) {
-                        if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
-                            algorithm_formatter.update_bin_packing_bound(
-                                    solution.number_of_bins());
+                        // The tree search is only guaranteed exhaustive (and
+                        // 'tssibs_output.optimal' a genuine proof of
+                        // optimality/infeasibility) when the first stage
+                        // orientation is fixed (not 'Any') and there is no
+                        // minimum/maximum distance between cuts, between
+                        // 1-cuts or between 2-cuts, and no maximum number of
+                        // 1-cuts or 2-cuts.
+                        const auto& params = solution.instance().parameters();
+                        bool exhaustive
+                            = params.first_stage_orientation != CutOrientation::Any
+                            && params.minimum_waste_length == 0
+                            && params.minimum_distance_1_cuts == 0
+                            && params.maximum_distance_1_cuts == -1
+                            && params.maximum_number_1_cuts == -1
+                            && params.minimum_distance_2_cuts == 0
+                            && params.maximum_distance_2_cuts == -1
+                            && params.maximum_number_2_cuts == -1;
+                        if (exhaustive) {
+                            if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
+                                algorithm_formatter.update_bin_packing_bound(
+                                        solution.number_of_bins());
+                            } else if (solution.instance().objective() == packingsolver::Objective::Feasibility) {
+                                if (!solution.full())
+                                    algorithm_formatter.update_is_proven_infeasible();
+                            }
                         }
                     }
                 };

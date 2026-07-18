@@ -1017,6 +1017,9 @@ const packingsolver::box::TreeSearchOutput packingsolver::box::tree_search(
                         if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
                             algorithm_formatter.update_bin_packing_bound(
                                     solution.number_of_bins());
+                        } else if (solution.instance().objective() == packingsolver::Objective::Feasibility) {
+                            if (!solution.full())
+                                algorithm_formatter.update_is_proven_infeasible();
                         }
                     }
                 };
