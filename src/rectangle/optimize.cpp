@@ -18,6 +18,59 @@ using namespace packingsolver::rectangle;
 namespace
 {
 
+void optimize_trivial_bound(
+        const Instance& instance,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (instance.objective() == Objective::Knapsack) {
+        algorithm_formatter.update_knapsack_bound(instance.item_profit());
+        return;
+    }
+
+    if (instance.objective() != Objective::OpenDimensionX
+            && instance.objective() != Objective::OpenDimensionY) {
+        return;
+    }
+
+    // Area-based bound: the open dimension cannot be smaller than what is
+    // required to fit the total area of the items in the fixed dimension of
+    // the bin.
+    // Item-based bound: the open dimension cannot be smaller than the
+    // smallest extent an item can have in that direction (accounting for
+    // whether it may be rotated), for the item requiring the most space in
+    // that direction.
+    const auto& bin_type = instance.bin_type(0);
+    Length fixed_dimension = (instance.objective() == Objective::OpenDimensionX)?
+        bin_type.rect.y:
+        bin_type.rect.x;
+    Length bound = (fixed_dimension > 0)?
+        (Length)((instance.item_area() + fixed_dimension - 1) / fixed_dimension):
+        0;
+
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        Length item_min_extent = (instance.objective() == Objective::OpenDimensionX)?
+            item_type.rect.x:
+            item_type.rect.y;
+        if (!item_type.oriented) {
+            item_min_extent = std::min(
+                    item_min_extent,
+                    (instance.objective() == Objective::OpenDimensionX)?
+                        item_type.rect.y:
+                        item_type.rect.x);
+        }
+        bound = std::max(bound, item_min_extent);
+    }
+
+    if (instance.objective() == Objective::OpenDimensionX) {
+        algorithm_formatter.update_open_dimension_x_bound(bound);
+    } else {
+        algorithm_formatter.update_open_dimension_y_bound(bound);
+    }
+}
+
 void optimize_dual_feasible_functions(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -487,8 +540,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         }
     }
 
-    if (instance.objective() == Objective::Knapsack)
-        algorithm_formatter.update_knapsack_bound(instance.item_profit());
+    optimize_trivial_bound(instance, algorithm_formatter);
 
     if (instance.objective() == Objective::BinPacking) {
         if (instance.number_of_bin_types() == 1

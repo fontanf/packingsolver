@@ -299,6 +299,63 @@ void AlgorithmFormatter::update_bin_packing_bound(
     mutex_.unlock();
 }
 
+void AlgorithmFormatter::update_variable_sized_bin_packing_bound(
+        Profit cost)
+{
+    mutex_.lock();
+    if (cost > output_.variable_sized_bin_packing_bound) {
+        output_.variable_sized_bin_packing_bound = cost;
+        if (parameters_.write_json_output)
+            output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+
+        // Check optimality.
+        if (output_.solution_pool.best().full()
+                && equal(output_.variable_sized_bin_packing_bound, output_.solution_pool.best().cost())) {
+            end_ = true;
+        }
+    }
+    mutex_.unlock();
+}
+
+void AlgorithmFormatter::update_open_dimension_x_bound(
+        Length x)
+{
+    mutex_.lock();
+    if (x > output_.open_dimension_x_bound) {
+        output_.open_dimension_x_bound = x;
+        if (parameters_.write_json_output)
+            output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+
+        // Check optimality.
+        if (output_.solution_pool.best().full()
+                && output_.open_dimension_x_bound == output_.solution_pool.best().x_max()) {
+            end_ = true;
+        }
+    }
+    mutex_.unlock();
+}
+
+void AlgorithmFormatter::update_open_dimension_y_bound(
+        Length y)
+{
+    mutex_.lock();
+    if (y > output_.open_dimension_y_bound) {
+        output_.open_dimension_y_bound = y;
+        if (parameters_.write_json_output)
+            output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+
+        // Check optimality.
+        if (output_.solution_pool.best().full()
+                && output_.open_dimension_y_bound == output_.solution_pool.best().y_max()) {
+            end_ = true;
+        }
+    }
+    mutex_.unlock();
+}
+
 void AlgorithmFormatter::update_bounds(
         const Output& output)
 {
@@ -308,6 +365,15 @@ void AlgorithmFormatter::update_bounds(
         break;
     case Objective::BinPacking:
         update_bin_packing_bound(output.bin_packing_bound);
+        break;
+    case Objective::VariableSizedBinPacking:
+        update_variable_sized_bin_packing_bound(output.variable_sized_bin_packing_bound);
+        break;
+    case Objective::OpenDimensionX:
+        update_open_dimension_x_bound(output.open_dimension_x_bound);
+        break;
+    case Objective::OpenDimensionY:
+        update_open_dimension_y_bound(output.open_dimension_y_bound);
         break;
     default:
         break;

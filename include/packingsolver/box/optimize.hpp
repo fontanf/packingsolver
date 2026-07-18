@@ -23,12 +23,24 @@ struct Output: packingsolver::Output<Instance, Solution>
     /** Variable-sized bin packing bound. */
     Profit variable_sized_bin_packing_bound = 0;
 
+    /** Open dimension X bound. */
+    Length open_dimension_x_bound = 0;
+
+    /** Open dimension Y bound. */
+    Length open_dimension_y_bound = 0;
+
+    /** Open dimension Z bound. */
+    Length open_dimension_z_bound = 0;
+
     virtual nlohmann::json to_json() const override
     {
         nlohmann::json json = packingsolver::Output<Instance, Solution>::to_json();
         json["KnapsackBound"] = knapsack_bound;
         json["BinPackingBound"] = bin_packing_bound;
         json["VariableSizedBinPackingBound"] = variable_sized_bin_packing_bound;
+        json["OpenDimensionXBound"] = open_dimension_x_bound;
+        json["OpenDimensionYBound"] = open_dimension_y_bound;
+        json["OpenDimensionZBound"] = open_dimension_z_bound;
         return json;
     }
 
@@ -40,6 +52,9 @@ struct Output: packingsolver::Output<Instance, Solution>
             << std::setw(width) << std::left << "Knapsack bound: " << knapsack_bound << std::endl
             << std::setw(width) << std::left << "Bin packing bound: " << bin_packing_bound << std::endl
             << std::setw(width) << std::left << "Variable-sized bin packing bound: " << variable_sized_bin_packing_bound << std::endl
+            << std::setw(width) << std::left << "Open dimension X bound: " << open_dimension_x_bound << std::endl
+            << std::setw(width) << std::left << "Open dimension Y bound: " << open_dimension_y_bound << std::endl
+            << std::setw(width) << std::left << "Open dimension Z bound: " << open_dimension_z_bound << std::endl
             ;
     }
 };

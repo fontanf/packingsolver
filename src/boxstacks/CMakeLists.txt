@@ -19,6 +19,7 @@ target_link_libraries(PackingSolver_boxstacks PUBLIC
     PackingSolver_algorithms
     PackingSolver_rectangle
     PackingSolver_onedimensional
+    PackingSolver_box
     MultipleChoiceSubsetSumSolver::dynamic_programming_bellman
     Threads::Threads)
 # Resource limits: the portable RSS reader in

@@ -258,6 +258,80 @@ void AlgorithmFormatter::update_solution(
     mutex_.unlock();
 }
 
+void AlgorithmFormatter::update_knapsack_bound(
+        Profit profit)
+{
+    mutex_.lock();
+    if (profit < output_.knapsack_bound) {
+        output_.knapsack_bound = profit;
+        if (parameters_.write_json_output)
+            output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+
+        // Check optimality.
+        if (equal(output_.knapsack_bound, output_.solution_pool.best().profit())) {
+            end_ = true;
+        }
+    }
+    mutex_.unlock();
+}
+
+void AlgorithmFormatter::update_bin_packing_bound(
+        BinPos number_of_bins)
+{
+    mutex_.lock();
+    if (number_of_bins > output_.bin_packing_bound) {
+        output_.bin_packing_bound = number_of_bins;
+        if (parameters_.write_json_output)
+            output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+
+        // Check optimality.
+        if (output_.solution_pool.best().full()
+                && output_.bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
+            end_ = true;
+        }
+    }
+    mutex_.unlock();
+}
+
+void AlgorithmFormatter::update_variable_sized_bin_packing_bound(
+        Profit cost)
+{
+    mutex_.lock();
+    if (cost > output_.variable_sized_bin_packing_bound) {
+        output_.variable_sized_bin_packing_bound = cost;
+        if (parameters_.write_json_output)
+            output_.json["IntermediaryOutputs"].push_back(output_.to_json());
+        parameters_.new_solution_callback(output_);
+
+        // Check optimality.
+        if (output_.solution_pool.best().full()
+                && equal(output_.variable_sized_bin_packing_bound, output_.solution_pool.best().cost())) {
+            end_ = true;
+        }
+    }
+    mutex_.unlock();
+}
+
+void AlgorithmFormatter::update_bounds(
+        const Output& output)
+{
+    switch (instance_.objective()) {
+    case Objective::Knapsack:
+        update_knapsack_bound(output.knapsack_bound);
+        break;
+    case Objective::BinPacking:
+        update_bin_packing_bound(output.bin_packing_bound);
+        break;
+    case Objective::VariableSizedBinPacking:
+        update_variable_sized_bin_packing_bound(output.variable_sized_bin_packing_bound);
+        break;
+    default:
+        break;
+    }
+}
+
 void AlgorithmFormatter::end()
 {
     output_.time = parameters_.timer.elapsed_time();
