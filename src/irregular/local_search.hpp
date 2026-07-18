@@ -7,21 +7,21 @@
 
 #pragma once
 
-#include "packingsolver/irregular/solution.hpp"
+#include "packingsolver/irregular/optimize.hpp"
 
 namespace packingsolver
 {
 namespace irregular
 {
 
-struct LocalSearchOutput: packingsolver::Output<Instance, Solution>
+struct LocalSearchOutput: Output
 {
     /** Constructor. */
     LocalSearchOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution>
+struct LocalSearchParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     /** Seed for the random number generator. */
     Seed seed = 0;

@@ -334,7 +334,7 @@ void AlgorithmFormatter::update_variable_sized_bin_packing_bound(
 }
 
 void AlgorithmFormatter::update_bounds(
-        const packingsolver::Output<Instance, Solution>& output)
+        const Output& output)
 {
     switch (instance_.objective()) {
     case Objective::Knapsack:

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "packingsolver/rectangleguillotine/solution.hpp"
+#include "packingsolver/rectangleguillotine/optimize.hpp"
 #include "rectangleguillotine/instance_flipper.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
@@ -829,13 +829,13 @@ namespace packingsolver
 namespace rectangleguillotine
 {
 
-struct TreeSearchOutput: packingsolver::Output<Instance, Solution>
+struct TreeSearchOutput: Output
 {
     TreeSearchOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution>
+struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     std::vector<GuideId> guides;
 

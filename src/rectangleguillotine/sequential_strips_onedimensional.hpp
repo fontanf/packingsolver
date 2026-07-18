@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "packingsolver/rectangleguillotine/solution.hpp"
+#include "packingsolver/rectangleguillotine/optimize.hpp"
 
 #include "columngenerationsolver/commons.hpp"
 
@@ -25,14 +25,14 @@ namespace packingsolver
 namespace rectangleguillotine
 {
 
-struct SequentialStripsOnedimensionalOutput: packingsolver::Output<Instance, Solution>
+struct SequentialStripsOnedimensionalOutput: Output
 {
     /** Constructor. */
     SequentialStripsOnedimensionalOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct SequentialStripsOnedimensionalParameters: packingsolver::Parameters<Instance, Solution>
+struct SequentialStripsOnedimensionalParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 

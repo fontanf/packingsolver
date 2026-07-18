@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "packingsolver/boxstacks/solution.hpp"
+#include "packingsolver/boxstacks/optimize.hpp"
 
 #include "packingsolver/onedimensional/optimize.hpp"
 
@@ -22,11 +22,11 @@ namespace packingsolver
 namespace boxstacks
 {
 
-struct SequentialOneDimensionalRectangleOutput: packingsolver::Output<Instance, Solution>
+struct SequentialOneDimensionalRectangleOutput: Output
 {
     /** Constructor. */
     SequentialOneDimensionalRectangleOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 
 
     /** Number of iterations. */
@@ -60,7 +60,7 @@ struct SequentialOneDimensionalRectangleOutput: packingsolver::Output<Instance, 
     double rectangle_time = 0.0;
 };
 
-struct SequentialOneDimensionalRectangleParameters: packingsolver::Parameters<Instance, Solution>
+struct SequentialOneDimensionalRectangleParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     bool sequential = true;
 

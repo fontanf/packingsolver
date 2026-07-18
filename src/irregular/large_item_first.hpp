@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "packingsolver/irregular/solution.hpp"
+#include "packingsolver/irregular/optimize.hpp"
 
 #include "columngenerationsolver/commons.hpp"
 
@@ -21,14 +21,14 @@ namespace packingsolver
 namespace irregular
 {
 
-struct LargeItemFirstOutput: packingsolver::Output<Instance, Solution>
+struct LargeItemFirstOutput: Output
 {
     /** Constructor. */
     LargeItemFirstOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct LargeItemFirstParameters: packingsolver::Parameters<Instance, Solution>
+struct LargeItemFirstParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     /** Linear programming solver. */
     columngenerationsolver::SolverName linear_programming_solver_name

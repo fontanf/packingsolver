@@ -57,10 +57,10 @@ using Value = columngenerationsolver::Value;
 using Column = columngenerationsolver::Column;
 using PricingOutput = columngenerationsolver::PricingSolver::PricingOutput;
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-using ColumnGenerationPricingFunction = std::function<Output<Instance, Solution>(const Instance&)>;
+template <typename Instance, typename InstanceBuilder, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
+using ColumnGenerationPricingFunction = std::function<Output(const Instance&)>;
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
+template <typename Instance, typename InstanceBuilder, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
 class ColumnGenerationPricingSolver: public columngenerationsolver::PricingSolver
 {
 
@@ -68,7 +68,7 @@ public:
 
     ColumnGenerationPricingSolver(
             const Instance& instance,
-            const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution>& pricing_function):
+            const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function):
         instance_(instance),
         pricing_function_(pricing_function),
         fixed_bin_types_(instance.number_of_bin_types()),
@@ -86,7 +86,7 @@ private:
 
     const Instance& instance_;
 
-    ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution> pricing_function_;
+    ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output> pricing_function_;
 
     std::vector<BinPos> fixed_bin_types_;
 
@@ -97,10 +97,10 @@ private:
 
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
+template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
 columngenerationsolver::Model get_model(
         const Instance& instance,
-        const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution>& pricing_function)
+        const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function)
 {
     columngenerationsolver::Model model;
 
@@ -149,12 +149,12 @@ columngenerationsolver::Model get_model(
 
     // Pricing solver.
     model.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
-            new ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>(instance, pricing_function));
+            new ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>(instance, pricing_function));
     return model;
 }
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>::initialize_pricing(
+template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
+std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::initialize_pricing(
         const std::vector<std::pair<std::shared_ptr<const Column>, Value>>& fixed_columns)
 {
     //std::cout << "initialize_pricing " << fixed_columns.size() << std::endl;
@@ -222,8 +222,8 @@ std::vector<std::shared_ptr<const Column>> solution_to_columns(
     return columns;
 }
 
-template <typename Instance, typename InstanceBuilder, typename Solution>
-PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>::solve_pricing(
+template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
+PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::solve_pricing(
             const std::vector<Value>& duals)
 {
     double multiplier_cost = largest_power_of_two_lesser_or_equal(instance_.largest_bin_cost());
@@ -359,15 +359,8 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution>
     return output;
 }
 
-template <typename Instance, typename Solution>
-struct ColumnGenerationOutput: packingsolver::Output<Instance, Solution>
-{
-    ColumnGenerationOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
-};
-
-template <typename Instance, typename Solution>
-struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution>
+template <typename Instance, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
+struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
     int internal_diving = 1;
@@ -375,19 +368,19 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution>
         = columngenerationsolver::SolverName::CLP;
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter>
-ColumnGenerationOutput<Instance, Solution> column_generation(
+template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter, typename Output = packingsolver::Output<Instance, Solution>>
+Output column_generation(
         const Instance& instance,
-        const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution>& pricing_function,
-        const ColumnGenerationParameters<Instance, Solution>& parameters = {})
+        const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function,
+        const ColumnGenerationParameters<Instance, Solution, Output>& parameters = {})
 {
-    ColumnGenerationOutput<Instance, Solution> output(instance);
+    Output output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
     columngenerationsolver::Model cgs_model
-        = get_model<Instance, InstanceBuilder, Solution>(instance, pricing_function);
+        = get_model<Instance, InstanceBuilder, Solution, Output>(instance, pricing_function);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;

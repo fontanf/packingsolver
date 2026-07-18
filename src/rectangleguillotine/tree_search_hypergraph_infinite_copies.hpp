@@ -1,16 +1,16 @@
 #pragma once
 
-#include "packingsolver/rectangleguillotine/solution.hpp"
+#include "packingsolver/rectangleguillotine/optimize.hpp"
 
 namespace packingsolver
 {
 namespace rectangleguillotine
 {
 
-struct TreeSearchHypergraphInfiniteCopiesOutput: packingsolver::Output<Instance, Solution>
+struct TreeSearchHypergraphInfiniteCopiesOutput: Output
 {
     TreeSearchHypergraphInfiniteCopiesOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 
     /**
      * DP values indexed by width + (eff_width + 1) * height, where
@@ -23,7 +23,7 @@ struct TreeSearchHypergraphInfiniteCopiesOutput: packingsolver::Output<Instance,
     std::vector<Profit> dp_values;
 };
 
-struct TreeSearchHypergraphInfiniteCopiesParameters: packingsolver::Parameters<Instance, Solution>
+struct TreeSearchHypergraphInfiniteCopiesParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
 };
 

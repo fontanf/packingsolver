@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "packingsolver/rectangleguillotine/solution.hpp"
+#include "packingsolver/rectangleguillotine/optimize.hpp"
 
 #include <functional>
 
@@ -21,14 +21,14 @@ namespace rectangleguillotine
 
 using SequentialFeasibilitySolver = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
-struct SequentialFeasibilityOutput: packingsolver::Output<Instance, Solution>
+struct SequentialFeasibilityOutput: Output
 {
     /** Constructor. */
     SequentialFeasibilityOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct SequentialFeasibilityParameters: packingsolver::Parameters<Instance, Solution>
+struct SequentialFeasibilityParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
 };
 

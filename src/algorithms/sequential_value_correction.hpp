@@ -47,12 +47,12 @@ namespace packingsolver
 template <typename Instance, typename Solution>
 using SequentialValueCorrectionFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
-template <typename Instance, typename Solution>
-struct SequentialValueCorrectionOutput: packingsolver::Output<Instance, Solution>
+template <typename Instance, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
+struct SequentialValueCorrectionOutput: Output
 {
     /** Constructor. */
     SequentialValueCorrectionOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 
 
     /** Number of iterations. */
@@ -62,8 +62,8 @@ struct SequentialValueCorrectionOutput: packingsolver::Output<Instance, Solution
     std::vector<Solution> all_patterns;
 };
 
-template <typename Instance, typename Solution>
-struct SequentialValueCorrectionParameters: packingsolver::Parameters<Instance, Solution>
+template <typename Instance, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
+struct SequentialValueCorrectionParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     /** Maximum number of iterations. */
     Counter maximum_number_of_iterations = -1;
@@ -79,13 +79,13 @@ struct SequentialValueCorrectionParameters: packingsolver::Parameters<Instance, 
     BinPos bin_packing_goal = 2;
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter>
-SequentialValueCorrectionOutput<Instance, Solution> sequential_value_correction(
+template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter, typename Output = packingsolver::Output<Instance, Solution>>
+SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_correction(
         const Instance& instance,
         const SequentialValueCorrectionFunction<Instance, Solution>& function,
-        const SequentialValueCorrectionParameters<Instance, Solution>& parameters)
+        const SequentialValueCorrectionParameters<Instance, Solution, Output>& parameters)
 {
-    SequentialValueCorrectionOutput<Instance, Solution> output(instance);
+    SequentialValueCorrectionOutput<Instance, Solution, Output> output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();

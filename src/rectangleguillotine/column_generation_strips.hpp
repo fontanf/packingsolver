@@ -51,7 +51,7 @@
 
 #pragma once
 
-#include "packingsolver/rectangleguillotine/solution.hpp"
+#include "packingsolver/rectangleguillotine/optimize.hpp"
 
 #include "columngenerationsolver/commons.hpp"
 
@@ -60,18 +60,18 @@ namespace packingsolver
 namespace rectangleguillotine
 {
 
-struct ColumnGenerationStripsOutput: packingsolver::Output<Instance, Solution>
+struct ColumnGenerationStripsOutput: Output
 {
     /** Constructor. */
     ColumnGenerationStripsOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 
     CutOrientation best_solution_first_stage_orientation;
 
     NodeId best_solution_number_of_nodes;
 };
 
-struct ColumnGenerationStripsParameters: packingsolver::Parameters<Instance, Solution>
+struct ColumnGenerationStripsParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 

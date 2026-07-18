@@ -271,21 +271,6 @@ struct Output: optimizationtools::Output
     /** Solution pool. */
     SolutionPool<Instance, Solution> solution_pool;
 
-    /** Knapsack bound. */
-    Profit knapsack_bound = std::numeric_limits<Profit>::infinity();
-
-    /** Bin packing bound. */
-    BinPos bin_packing_bound = 0;
-
-    /** Bin packing bound. */
-    Profit variable_sized_bin_packing_bound = 0;
-
-    /** Open dimension X bound. */
-    Length open_dimension_x_bound = 0;
-
-    /** Open dimension Y bound. */
-    Length open_dimension_y_bound = 0;
-
     /** Elapsed time. */
     double time = 0.0;
 
@@ -309,17 +294,17 @@ struct Output: optimizationtools::Output
     }
 };
 
-template <typename Instance, typename Solution>
-using NewSolutionCallback = std::function<void(const Output<Instance, Solution>&)>;
+template <typename Instance, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
+using NewSolutionCallback = std::function<void(const Output&)>;
 
-template <typename Instance, typename Solution>
+template <typename Instance, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
 struct Parameters: optimizationtools::Parameters
 {
     /** Maximum size of the solution pool. */
     Counter maximum_size_of_the_solution_pool = 1;
 
     /** New solution callback. */
-    NewSolutionCallback<Instance, Solution> new_solution_callback = [](const Output<Instance, Solution>&) { };
+    NewSolutionCallback<Instance, Solution, Output> new_solution_callback = [](const Output&) { };
 
     /** JSON search tree path. */
     std::string json_search_tree_path;

@@ -633,20 +633,20 @@ inline bool BranchingSchemeMaximalSpaces::operator()(
 } // namespace box
 } // namespace packingsolver
 
-#include "packingsolver/box/solution.hpp"
+#include "packingsolver/box/optimize.hpp"
 
 namespace packingsolver
 {
 namespace box
 {
 
-struct TreeSearchMaximalSpacesOutput: packingsolver::Output<Instance, Solution>
+struct TreeSearchMaximalSpacesOutput: Output
 {
     TreeSearchMaximalSpacesOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct TreeSearchMaximalSpacesParameters: packingsolver::Parameters<Instance, Solution>
+struct TreeSearchMaximalSpacesParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
