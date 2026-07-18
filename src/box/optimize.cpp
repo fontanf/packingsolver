@@ -25,6 +25,32 @@ void optimize_trivial_bound(
         return;
     }
 
+    if (instance.objective() == Objective::BinPacking) {
+        // Volume-based bound: fill bin types in the order they are
+        // provided (as bins are used for this objective) until enough
+        // volume is available to fit all the items. Cheap (linear in the
+        // number of bin/item types), so useful when there are too many
+        // (small) items for the more expensive dual feasible functions
+        // bound to run.
+        Volume remaining_item_volume = instance.item_volume();
+        BinPos bound = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            if (remaining_item_volume <= 0)
+                break;
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            if (bin_type.volume() <= 0)
+                continue;
+            BinPos bins_needed = (BinPos)((remaining_item_volume + bin_type.volume() - 1) / bin_type.volume());
+            BinPos bins_used = std::min(bins_needed, bin_type.copies);
+            bound += bins_used;
+            remaining_item_volume -= bins_used * bin_type.volume();
+        }
+        algorithm_formatter.update_bin_packing_bound(bound);
+        return;
+    }
+
     if (instance.objective() != Objective::OpenDimensionX
             && instance.objective() != Objective::OpenDimensionY
             && instance.objective() != Objective::OpenDimensionZ) {

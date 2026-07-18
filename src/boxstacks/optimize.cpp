@@ -19,8 +19,34 @@ void optimize_trivial_bound(
         const Instance& instance,
         AlgorithmFormatter& algorithm_formatter)
 {
-    if (instance.objective() == Objective::Knapsack)
+    if (instance.objective() == Objective::Knapsack) {
         algorithm_formatter.update_knapsack_bound(instance.item_profit());
+        return;
+    }
+
+    if (instance.objective() == Objective::BinPacking) {
+        // Volume-based bound: fill bin types in the order they are
+        // provided (as bins are used for this objective) until enough
+        // volume is available to fit all the items. Cheap (linear in the
+        // number of bin/item types).
+        Volume remaining_item_volume = instance.item_volume();
+        BinPos bound = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            if (remaining_item_volume <= 0)
+                break;
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            if (bin_type.volume() <= 0)
+                continue;
+            BinPos bins_needed = (BinPos)((remaining_item_volume + bin_type.volume() - 1) / bin_type.volume());
+            BinPos bins_used = std::min(bins_needed, bin_type.copies);
+            bound += bins_used;
+            remaining_item_volume -= bins_used * bin_type.volume();
+        }
+        algorithm_formatter.update_bin_packing_bound(bound);
+        return;
+    }
 }
 
 void optimize_box_bound(
@@ -52,10 +78,15 @@ void optimize_box_bound(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
+        // Items with a positive nesting height take up less vertical space
+        // than their full height once stacked, so that reduced height is
+        // used instead (matches how effective item heights are computed
+        // throughout boxstacks, e.g. in tree_search.cpp).
+        Length item_z = item_type.box.z - std::max(item_type.nesting_height, (Length)0);
         ItemTypeId box_item_type_id = box_instance_builder.add_item_type(
                 item_type.box.x,
                 item_type.box.y,
-                item_type.box.z);
+                item_z);
         box_instance_builder.set_item_type_profit(box_item_type_id, item_type.profit);
         box_instance_builder.set_item_type_copies(box_item_type_id, item_type.copies);
         box_instance_builder.set_item_type_weight(box_item_type_id, item_type.weight);
