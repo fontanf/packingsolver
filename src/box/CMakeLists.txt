@@ -8,6 +8,7 @@ target_sources(PackingSolver_box PRIVATE
     instance_flipper.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    dual_feasible_functions.cpp
     post_process.cpp
     block.cpp
     tree_search.cpp

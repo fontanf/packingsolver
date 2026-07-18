@@ -4,6 +4,7 @@
 #include "packingsolver/box/instance_builder.hpp"
 #include "box/tree_search.hpp"
 #include "box/tree_search_maximal_spaces.hpp"
+#include "box/dual_feasible_functions.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -72,6 +73,24 @@ void optimize_trivial_bound(
     } else {
         algorithm_formatter.update_open_dimension_z_bound(bound);
     }
+}
+
+void optimize_dual_feasible_functions(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    DualFeasibleFunctionsParameters dff_parameters;
+    dff_parameters.verbosity_level = 0;
+    dff_parameters.timer = parameters.timer;
+    dff_parameters.new_solution_callback
+        = [&algorithm_formatter](
+                const box::Output& dff_output)
+        {
+            algorithm_formatter.update_bin_packing_bound(
+                    dff_output.bin_packing_bound);
+        };
+    dual_feasible_functions(instance, dff_parameters);
 }
 
 void optimize_tree_search(
@@ -505,6 +524,19 @@ packingsolver::box::Output packingsolver::box::optimize(
     }
 
     optimize_trivial_bound(instance, algorithm_formatter);
+
+    if (instance.objective() == Objective::BinPacking) {
+        // The 3-axis threshold sweep is cubic in the number of item types
+        // (against quadratic for the 2D 'rectangle' case), so this is
+        // gated more conservatively.
+        if (instance.number_of_bin_types() == 1
+                && instance.number_of_items() <= 50) {
+            optimize_dual_feasible_functions(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        }
+    }
 
     if (algorithm_formatter.end_boolean()) {
         algorithm_formatter.end();
