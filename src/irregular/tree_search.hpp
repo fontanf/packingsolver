@@ -1,6 +1,6 @@
 #pragma once
 
-#include "packingsolver/irregular/solution.hpp"
+#include "packingsolver/irregular/optimize.hpp"
 
 #include "irregular/rotations.hpp"
 #include "shape_simplification.hpp"
@@ -736,13 +736,13 @@ namespace packingsolver
 namespace irregular
 {
 
-struct TreeSearchOutput: packingsolver::Output<Instance, Solution>
+struct TreeSearchOutput: Output
 {
     TreeSearchOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution>
+struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     std::vector<GuideId> guides;
 

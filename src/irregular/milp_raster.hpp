@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "packingsolver/irregular/solution.hpp"
+#include "packingsolver/irregular/optimize.hpp"
 
 #include "mathoptsolverscmake/mathopt.hpp"
 
@@ -16,14 +16,14 @@ namespace packingsolver
 namespace irregular
 {
 
-struct MilpRasterOutput: packingsolver::Output<Instance, Solution>
+struct MilpRasterOutput: Output
 {
     /** Constructor. */
     MilpRasterOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct MilpRasterParameters: packingsolver::Parameters<Instance, Solution>
+struct MilpRasterParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     /** MILP solver. */
     mathoptsolverscmake::SolverName solver

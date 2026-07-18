@@ -1,19 +1,19 @@
 #pragma once
 
-#include "packingsolver/irregular/solution.hpp"
+#include "packingsolver/irregular/optimize.hpp"
 
 namespace packingsolver
 {
 namespace irregular
 {
 
-struct TrivialSingleItemOutput: packingsolver::Output<Instance, Solution>
+struct TrivialSingleItemOutput: Output
 {
     TrivialSingleItemOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct TrivialSingleItemParameters: packingsolver::Parameters<Instance, Solution>
+struct TrivialSingleItemParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
 };
 

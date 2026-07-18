@@ -9,7 +9,7 @@ using namespace packingsolver::irregular;
 namespace po = boost::program_options;
 
 void read_args(
-        packingsolver::Parameters<Instance, Solution>& parameters,
+        packingsolver::Parameters<Instance, Solution, irregular::Output>& parameters,
         const po::variables_map& vm)
 {
     parameters.timer.set_sigint_handler();

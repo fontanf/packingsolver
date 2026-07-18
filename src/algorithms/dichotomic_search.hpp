@@ -51,12 +51,12 @@ double mean_item_type_copies(const Instance& instance)
 template <typename Instance, typename Solution>
 using DichotomicSearchFunction = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
-template <typename Instance, typename Solution>
-struct DichotomicSearchOutput: Output<Instance, Solution>
+template <typename Instance, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
+struct DichotomicSearchOutput: Output
 {
     /** Constructor. */
     DichotomicSearchOutput(const Instance& instance):
-        Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 
 
     /** Lower bound on the waste percentage. */
@@ -69,8 +69,8 @@ struct DichotomicSearchOutput: Output<Instance, Solution>
     double waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
 };
 
-template <typename Instance, typename Solution>
-struct DichotomicSearchParameters: Parameters<Instance, Solution>
+template <typename Instance, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
+struct DichotomicSearchParameters: Parameters<Instance, Solution, Output>
 {
     /** Initial waste percentage. */
     double initial_waste_percentage = 0.1;
@@ -79,13 +79,13 @@ struct DichotomicSearchParameters: Parameters<Instance, Solution>
     double initial_waste_percentage_upper_bound = std::numeric_limits<double>::infinity();
 };
 
-template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter>
-DichotomicSearchOutput<Instance, Solution> dichotomic_search(
+template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter, typename Output = packingsolver::Output<Instance, Solution>>
+DichotomicSearchOutput<Instance, Solution, Output> dichotomic_search(
         const Instance& instance,
         const DichotomicSearchFunction<Instance, Solution>& function,
-        const DichotomicSearchParameters<Instance, Solution>& parameters)
+        const DichotomicSearchParameters<Instance, Solution, Output>& parameters)
 {
-    DichotomicSearchOutput<Instance, Solution> output(instance);
+    DichotomicSearchOutput<Instance, Solution, Output> output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();

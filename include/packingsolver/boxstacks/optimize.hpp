@@ -14,6 +14,25 @@ struct Output: packingsolver::Output<Instance, Solution>
     Output(const Instance& instance):
         packingsolver::Output<Instance, Solution>(instance) { }
 
+    /** Bin packing bound. */
+    BinPos bin_packing_bound = 0;
+
+    virtual nlohmann::json to_json() const override
+    {
+        nlohmann::json json = packingsolver::Output<Instance, Solution>::to_json();
+        json["BinPackingBound"] = bin_packing_bound;
+        return json;
+    }
+
+    virtual void format(std::ostream& os) const override
+    {
+        packingsolver::Output<Instance, Solution>::format(os);
+        int width = format_width();
+        os
+            << std::setw(width) << std::left << "Bin packing bound: " << bin_packing_bound << std::endl
+            ;
+    }
+
 
     /**
      * Number of items in the solution found by the Sequential onedimensional
@@ -78,7 +97,7 @@ struct Output: packingsolver::Output<Instance, Solution>
     Counter number_of_tree_search_better = 0;
 };
 
-struct OptimizeParameters: packingsolver::Parameters<Instance, Solution>
+struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     /** Optimization mode. */
     OptimizationMode optimization_mode = OptimizationMode::Anytime;

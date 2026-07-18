@@ -1,6 +1,6 @@
 #pragma once
 
-#include "packingsolver/rectangle/solution.hpp"
+#include "packingsolver/rectangle/optimize.hpp"
 
 #include "mathoptsolverscmake/mathopt.hpp"
 
@@ -9,17 +9,17 @@ namespace packingsolver
 namespace rectangle
 {
 
-struct BendersDecompositionOutput: packingsolver::Output<Instance, Solution>
+struct BendersDecompositionOutput: Output
 {
     /** Constructor. */
     BendersDecompositionOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 
     /** Number of iterations. */
     Counter number_of_iterations = 0;
 };
 
-struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solution>
+struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     /** MILP solver. */
     mathoptsolverscmake::SolverName solver = mathoptsolverscmake::SolverName::Highs;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "packingsolver/irregular/solution.hpp"
+#include "packingsolver/irregular/optimize.hpp"
 
 #include <mutex>
 
@@ -17,8 +17,8 @@ public:
     /** Constructor. */
     AlgorithmFormatter(
             const Instance& instance,
-            const packingsolver::Parameters<Instance, Solution>& parameters,
-            packingsolver::Output<Instance, Solution>& output):
+            const packingsolver::Parameters<Instance, Solution, Output>& parameters,
+            Output& output):
         instance_(instance),
         parameters_(parameters),
         output_(output),
@@ -66,7 +66,7 @@ public:
 
     /** Update all applicable bounds from another output. */
     void update_bounds(
-            const packingsolver::Output<Instance, Solution>& output);
+            const Output& output);
 
     /** Method to call at the end of the algorithm. */
     void end();
@@ -80,10 +80,10 @@ private:
     const Instance& instance_;
 
     /** Parameters. */
-    const packingsolver::Parameters<Instance, Solution>& parameters_;
+    const packingsolver::Parameters<Instance, Solution, Output>& parameters_;
 
     /** Output. */
-    packingsolver::Output<Instance, Solution>& output_;
+    Output& output_;
 
     /** Output stream. */
     std::unique_ptr<optimizationtools::ComposeStream> os_;

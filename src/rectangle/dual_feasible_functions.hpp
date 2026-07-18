@@ -18,21 +18,21 @@
 
 #pragma once
 
-#include "packingsolver/rectangle/solution.hpp"
+#include "packingsolver/rectangle/optimize.hpp"
 
 namespace packingsolver
 {
 namespace rectangle
 {
 
-struct DualFeasibleFunctionsOutput: packingsolver::Output<Instance, Solution>
+struct DualFeasibleFunctionsOutput: Output
 {
     /** Constructor. */
     DualFeasibleFunctionsOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct DualFeasibleFunctionsParameters: packingsolver::Parameters<Instance, Solution>
+struct DualFeasibleFunctionsParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
 };
 

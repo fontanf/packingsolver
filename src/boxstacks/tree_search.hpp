@@ -1,6 +1,6 @@
 #pragma once
 
-#include "packingsolver/boxstacks/solution.hpp"
+#include "packingsolver/boxstacks/optimize.hpp"
 #include "boxstacks/instance_flipper.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
@@ -673,13 +673,13 @@ namespace packingsolver
 namespace boxstacks
 {
 
-struct TreeSearchOutput: packingsolver::Output<Instance, Solution>
+struct TreeSearchOutput: Output
 {
     TreeSearchOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution>
+struct TreeSearchParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     std::vector<GuideId> guides;
 

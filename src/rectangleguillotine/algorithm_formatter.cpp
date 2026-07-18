@@ -377,7 +377,7 @@ void AlgorithmFormatter::update_open_dimension_y_bound(
 }
 
 void AlgorithmFormatter::update_bounds(
-        const packingsolver::Output<Instance, Solution>& output)
+        const Output& output)
 {
     switch (instance_.objective()) {
     case Objective::Knapsack:

@@ -32,7 +32,7 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         //sor_parameters.info.set_verbosity_level(2);
         sor_parameters.new_solution_callback = [
             &algorithm_formatter](
-                    const packingsolver::Output<Instance, Solution>& ps_output)
+                    const boxstacks::Output& ps_output)
             {
                 const SequentialOneDimensionalRectangleOutput& sor_output
                     = static_cast<const SequentialOneDimensionalRectangleOutput&>(ps_output);
@@ -120,7 +120,7 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
             ts_parameters.guides = parameters.tree_search_guides;
             ts_parameters.maximum_number_of_selected_items = output.sequential_onedimensional_rectangle_number_of_items;
             ts_parameters.new_solution_callback = [&algorithm_formatter](
-                    const packingsolver::Output<Instance, Solution>& ts_output)
+                    const boxstacks::Output& ts_output)
             {
                 algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS " + ts_output.solution_pool.best_label());
             };
@@ -177,20 +177,20 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                 output.number_of_tree_search_better += kp_output.number_of_tree_search_better;
                 return kp_output.solution_pool;
             };
-        SequentialValueCorrectionParameters<Instance, Solution> svc_parameters;
+        SequentialValueCorrectionParameters<Instance, Solution, boxstacks::Output> svc_parameters;
         svc_parameters.verbosity_level = 0;
         svc_parameters.timer = parameters.timer;
         svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         svc_parameters.new_solution_callback = [&algorithm_formatter](
-                const packingsolver::Output<Instance, Solution>& ps_output)
+                const boxstacks::Output& ps_output)
         {
-            const SequentialValueCorrectionOutput<Instance, Solution>& pssvc_output
-                = static_cast<const SequentialValueCorrectionOutput<Instance, Solution>&>(ps_output);
+            const SequentialValueCorrectionOutput<Instance, Solution, boxstacks::Output>& pssvc_output
+                = static_cast<const SequentialValueCorrectionOutput<Instance, Solution, boxstacks::Output>&>(ps_output);
             std::stringstream ss;
             ss << "iteration " << pssvc_output.number_of_iterations;
             algorithm_formatter.update_solution(pssvc_output.solution_pool.best(), ss.str());
         };
-        auto svc_output = sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter>(instance, kp_solve, svc_parameters);
+        auto svc_output = sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, boxstacks::Output>(instance, kp_solve, svc_parameters);
 
     }
 

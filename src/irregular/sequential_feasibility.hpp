@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "packingsolver/irregular/solution.hpp"
+#include "packingsolver/irregular/optimize.hpp"
 
 #include <functional>
 
@@ -23,14 +23,14 @@ namespace irregular
 
 using SequentialFeasibilitySolver = std::function<SolutionPool<Instance, Solution>(const Instance&)>;
 
-struct SequentialFeasibilityOutput: packingsolver::Output<Instance, Solution>
+struct SequentialFeasibilityOutput: Output
 {
     /** Constructor. */
     SequentialFeasibilityOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct SequentialFeasibilityParameters: packingsolver::Parameters<Instance, Solution>
+struct SequentialFeasibilityParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
 };
 

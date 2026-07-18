@@ -1,19 +1,19 @@
 #pragma once
 
-#include "packingsolver/rectangleguillotine/solution.hpp"
+#include "packingsolver/rectangleguillotine/optimize.hpp"
 
 namespace packingsolver
 {
 namespace rectangleguillotine
 {
 
-struct TreeSearchHypergraphOutput: packingsolver::Output<Instance, Solution>
+struct TreeSearchHypergraphOutput: Output
 {
     TreeSearchHypergraphOutput(const Instance& instance):
-        packingsolver::Output<Instance, Solution>(instance) { }
+        Output(instance) { }
 };
 
-struct TreeSearchHypergraphParameters: packingsolver::Parameters<Instance, Solution>
+struct TreeSearchHypergraphParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
 };
 
