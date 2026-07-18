@@ -23,8 +23,44 @@ void optimize_trivial_bound(
         const Instance& instance,
         AlgorithmFormatter& algorithm_formatter)
 {
-    if (instance.objective() == Objective::Knapsack)
+    if (instance.objective() == Objective::Knapsack) {
         algorithm_formatter.update_knapsack_bound(instance.item_profit());
+        return;
+    }
+
+    if (instance.objective() == Objective::BinPacking) {
+        // Length-based bound: fill bin types in the order they are
+        // provided (as bins are used for this objective) until enough
+        // length is available to fit all the items. Cheap (linear in the
+        // number of bin/item types). Items with a positive nesting length
+        // take up less space than their full length once packed next to
+        // another copy of the same type, so that reduced length is used
+        // instead.
+        Length remaining_item_length = 0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance.item_type(item_type_id);
+            remaining_item_length += item_type.copies
+                * (item_type.length - std::max(item_type.nesting_length, (Length)0));
+        }
+        BinPos bound = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            if (remaining_item_length <= 0)
+                break;
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            if (bin_type.length <= 0)
+                continue;
+            BinPos bins_needed = (BinPos)((remaining_item_length + bin_type.length - 1) / bin_type.length);
+            BinPos bins_used = std::min(bins_needed, bin_type.copies);
+            bound += bins_used;
+            remaining_item_length -= bins_used * bin_type.length;
+        }
+        algorithm_formatter.update_bin_packing_bound(bound);
+        return;
+    }
 }
 
 void optimize_dynamic_programming(

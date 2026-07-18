@@ -28,6 +28,30 @@ void optimize_trivial_bound(
         return;
     }
 
+    if (instance.objective() == Objective::BinPacking) {
+        // Area-based bound: fill bin types in the order they are provided
+        // (as bins are used for this objective) until enough area is
+        // available to fit all the items. Cheap (linear in the number of
+        // bin/item types).
+        AreaDbl remaining_item_area = instance.item_area();
+        BinPos bound = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            if (remaining_item_area <= 0)
+                break;
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            if (bin_type.area_orig <= 0)
+                continue;
+            BinPos bins_needed = (BinPos)std::ceil(remaining_item_area / bin_type.area_orig);
+            BinPos bins_used = std::min(bins_needed, bin_type.copies);
+            bound += bins_used;
+            remaining_item_area -= bins_used * bin_type.area_orig;
+        }
+        algorithm_formatter.update_bin_packing_bound(bound);
+        return;
+    }
+
     if (instance.objective() != Objective::OpenDimensionX
             && instance.objective() != Objective::OpenDimensionY) {
         return;
