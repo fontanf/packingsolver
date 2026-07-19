@@ -40,12 +40,22 @@ struct Output: packingsolver::Output<Instance, Solution>
     {
         packingsolver::Output<Instance, Solution>::format(os);
         int width = format_width();
-        os
-            << std::setw(width) << std::left << "Knapsack bound: " << knapsack_bound << std::endl
-            << std::setw(width) << std::left << "Bin packing bound: " << bin_packing_bound << std::endl
-            << std::setw(width) << std::left << "Variable-sized bin packing bound: " << variable_sized_bin_packing_bound << std::endl
-            << std::setw(width) << std::left << "Is proven infeasible: " << is_proven_infeasible << std::endl
-            ;
+        switch (solution_pool.best().instance().objective()) {
+        case Objective::Knapsack:
+            os << std::setw(width) << std::left << "Knapsack bound: " << knapsack_bound << std::endl;
+            break;
+        case Objective::BinPacking:
+            os << std::setw(width) << std::left << "Bin packing bound: " << bin_packing_bound << std::endl;
+            break;
+        case Objective::VariableSizedBinPacking:
+            os << std::setw(width) << std::left << "Variable-sized bin packing bound: " << variable_sized_bin_packing_bound << std::endl;
+            break;
+        case Objective::Feasibility:
+            os << std::setw(width) << std::left << "Is proven infeasible: " << is_proven_infeasible << std::endl;
+            break;
+        default:
+            break;
+        }
     }
 
 
