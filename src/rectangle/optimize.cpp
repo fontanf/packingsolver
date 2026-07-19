@@ -459,6 +459,31 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 use_tree_search = true;
             }
         }
+    } else if (instance.objective() == Objective::Feasibility) {
+        // Disable algorithms which are not available for this objective.
+        use_tree_search_maximal_spaces = false;
+        use_dichotomic_search = false;
+        use_benders_decomposition = false;
+        // Automatic selection.
+        if (!use_tree_search
+                && !use_sequential_single_knapsack
+                && !use_sequential_value_correction
+                && !use_column_generation) {
+            if (mean_item_type_copies(instance)
+                    > parameters.many_item_type_copies_factor
+                    * mean_number_of_items_in_bins) {
+                if (mean_number_of_items_in_bins
+                        > parameters.many_items_in_bins_threshold) {
+                    use_sequential_single_knapsack = true;
+                } else {
+                    use_sequential_value_correction = true;
+                    use_column_generation = true;
+                }
+            } else {
+                use_tree_search = true;
+                use_column_generation = true;
+            }
+        }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
         use_tree_search_maximal_spaces = false;
