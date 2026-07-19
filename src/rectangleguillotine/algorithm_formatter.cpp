@@ -266,19 +266,8 @@ void AlgorithmFormatter::update_solution(
             output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
 
-        // Check optimality.
-        if (instance_.objective() == Objective::BinPacking) {
-            if (output_.solution_pool.best().full()
-                    && output_.bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
-                end_ = true;
-            }
-        } else if (instance_.objective() == Objective::Feasibility) {
-            if (output_.solution_pool.best().full()
-                    && output_.solution_pool.best().feasible()) {
-                end_ = true;
-            }
-        }
-
+        if (output_.is_proven_optimal())
+            end_ = true;
     }
     mutex_.unlock();
 }
@@ -306,10 +295,8 @@ void AlgorithmFormatter::update_knapsack_bound(
             output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
 
-        // Check optimality.
-        if (equal(output_.knapsack_bound, output_.solution_pool.best().profit())) {
+        if (output_.is_proven_optimal())
             end_ = true;
-        }
     }
     mutex_.unlock();
 }
@@ -324,11 +311,8 @@ void AlgorithmFormatter::update_bin_packing_bound(
             output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
 
-        // Check optimality.
-        if (output_.solution_pool.best().full()
-                && output_.bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
+        if (output_.is_proven_optimal())
             end_ = true;
-        }
     }
     mutex_.unlock();
 }
@@ -343,11 +327,8 @@ void AlgorithmFormatter::update_variable_sized_bin_packing_bound(
             output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
 
-        // Check optimality.
-        if (output_.solution_pool.best().full()
-                && equal(output_.variable_sized_bin_packing_bound, output_.solution_pool.best().cost())) {
+        if (output_.is_proven_optimal())
             end_ = true;
-        }
     }
     mutex_.unlock();
 }
@@ -362,11 +343,8 @@ void AlgorithmFormatter::update_open_dimension_x_bound(
             output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
 
-        // Check optimality.
-        if (output_.solution_pool.best().full()
-                && output_.open_dimension_x_bound == output_.solution_pool.best().width()) {
+        if (output_.is_proven_optimal())
             end_ = true;
-        }
     }
     mutex_.unlock();
 }
@@ -381,11 +359,8 @@ void AlgorithmFormatter::update_open_dimension_y_bound(
             output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
 
-        // Check optimality.
-        if (output_.solution_pool.best().full()
-                && output_.open_dimension_y_bound == output_.solution_pool.best().height()) {
+        if (output_.is_proven_optimal())
             end_ = true;
-        }
     }
     mutex_.unlock();
 }

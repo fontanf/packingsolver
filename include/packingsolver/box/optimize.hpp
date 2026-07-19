@@ -35,6 +35,36 @@ struct Output: packingsolver::Output<Instance, Solution>
     /** True if the instance has been proven infeasible (Feasibility objective only). */
     bool is_proven_infeasible = false;
 
+    /** Return 'true' iff the current bound proves the best solution optimal. */
+    bool is_proven_optimal() const
+    {
+        switch (solution_pool.best().instance().objective()) {
+        case Objective::Knapsack:
+            return equal(knapsack_bound, solution_pool.best().profit());
+        case Objective::BinPacking:
+            return solution_pool.best().full()
+                && bin_packing_bound == solution_pool.best().number_of_bins();
+        case Objective::VariableSizedBinPacking:
+            return solution_pool.best().full()
+                && equal(variable_sized_bin_packing_bound, solution_pool.best().cost());
+        case Objective::OpenDimensionX:
+            return solution_pool.best().full()
+                && open_dimension_x_bound == solution_pool.best().x_max();
+        case Objective::OpenDimensionY:
+            return solution_pool.best().full()
+                && open_dimension_y_bound == solution_pool.best().y_max();
+        case Objective::OpenDimensionZ:
+            return solution_pool.best().full()
+                && open_dimension_z_bound == solution_pool.best().z_max();
+        case Objective::Feasibility:
+            return (solution_pool.best().full()
+                    && solution_pool.best().feasible())
+                || is_proven_infeasible;
+        default:
+            return false;
+        }
+    }
+
     virtual nlohmann::json to_json() const override
     {
         nlohmann::json json = packingsolver::Output<Instance, Solution>::to_json();

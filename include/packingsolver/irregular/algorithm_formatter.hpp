@@ -24,23 +24,8 @@ public:
         output_(output),
         os_(parameters.create_os())
     {
-        // Check optimality.
-        if (instance_.objective() == Objective::Knapsack) {
-            if (equal(output_.knapsack_bound, output_.solution_pool.best().profit())) {
-                end_ = true;
-            }
-        } else if (instance_.objective() == Objective::BinPacking) {
-            if (output_.solution_pool.best().full()
-                    && output_.bin_packing_bound == output_.solution_pool.best().number_of_bins()) {
-                end_ = true;
-            }
-        } else if (instance_.objective() == Objective::Feasibility) {
-            if ((output_.solution_pool.best().full()
-                        && output_.solution_pool.best().feasible())
-                    || output_.is_proven_infeasible) {
-                end_ = true;
-            }
-        }
+        if (output_.is_proven_optimal())
+            end_ = true;
     }
 
     /** Print the header. */

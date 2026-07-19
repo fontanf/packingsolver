@@ -492,6 +492,37 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
+    optimize_trivial_bound(instance, algorithm_formatter);
+
+    if (instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::Knapsack
+            || instance.objective() == Objective::VariableSizedBinPacking) {
+        optimize_onedimensional_bound(
+                instance,
+                parameters,
+                algorithm_formatter);
+    }
+
+    if (instance.number_of_items() == 1
+            && instance.number_of_bins() == 1
+            && (instance.objective() == Objective::Knapsack
+                || instance.objective() == Objective::BinPacking
+                || instance.objective() == Objective::Feasibility)) {
+        optimize_trivial_single_item(
+                instance,
+                parameters,
+                algorithm_formatter);
+    }
+
+    if (algorithm_formatter.end_boolean()) {
+        algorithm_formatter.end();
+        return output;
+    }
+    if (parameters.timer.needs_to_end()) {
+        algorithm_formatter.end();
+        return output;
+    }
+
     // Select algorithms to run.
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
@@ -649,37 +680,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
                 }
             }
         }
-    }
-
-    optimize_trivial_bound(instance, algorithm_formatter);
-
-    if (instance.objective() == Objective::BinPacking
-            || instance.objective() == Objective::Knapsack
-            || instance.objective() == Objective::VariableSizedBinPacking) {
-        optimize_onedimensional_bound(
-                instance,
-                parameters,
-                algorithm_formatter);
-    }
-
-    if (instance.number_of_items() == 1
-            && instance.number_of_bins() == 1
-            && (instance.objective() == Objective::Knapsack
-                || instance.objective() == Objective::BinPacking
-                || instance.objective() == Objective::Feasibility)) {
-        optimize_trivial_single_item(
-                instance,
-                parameters,
-                algorithm_formatter);
-    }
-
-    if (algorithm_formatter.end_boolean()) {
-        algorithm_formatter.end();
-        return output;
-    }
-    if (parameters.timer.needs_to_end()) {
-        algorithm_formatter.end();
-        return output;
     }
 
     // Run selected algorithms.
