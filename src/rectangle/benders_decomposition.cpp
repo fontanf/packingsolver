@@ -33,6 +33,12 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
 
     // MILP cuts.
     std::vector<std::vector<std::pair<ItemTypeId, ItemPos>>> milp_cuts;
+    // 'true' iff every subproblem solved so far that led to a cut has been
+    // proven infeasible (as opposed to merely not having found a full
+    // packing). The MILP relaxation bound is only a valid bound on the
+    // knapsack objective as long as this holds: a cut added without proof
+    // may have removed a genuinely feasible (and possibly optimal) region.
+    bool all_cuts_proven_infeasible = true;
 
     for (output.number_of_iterations = 0;
             ;
@@ -281,6 +287,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
         }
 
         std::vector<double> milp_solution;
+        double milp_bound = std::numeric_limits<double>::infinity();
         if (parameters.solver == mathoptsolverscmake::SolverName::Highs) {
 #ifdef HIGHS_FOUND
             Highs highs;
@@ -292,6 +299,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             mathoptsolverscmake::load(highs, milp_model);
             mathoptsolverscmake::solve(highs);
             milp_solution = mathoptsolverscmake::get_solution(highs);
+            milp_bound = mathoptsolverscmake::get_bound(highs);
 #else
             throw std::invalid_argument(FUNC_SIGNATURE);
 #endif
@@ -390,6 +398,17 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
         } else {
             // Otherwise, add the corresponding cut.
             milp_cuts.push_back(selected_items);
+            all_cuts_proven_infeasible
+                = all_cuts_proven_infeasible && sub_output.is_proven_infeasible;
+            // As long as every cut added so far is backed by a proof of
+            // infeasibility, the master's feasible region has never been
+            // shrunk beyond what the true problem allows, so the current
+            // MILP relaxation bound remains a valid upper bound on the
+            // achievable profit.
+            if (all_cuts_proven_infeasible) {
+                algorithm_formatter.update_knapsack_bound(
+                        milp_bound * multiplier_profit);
+            }
         }
     }
 
