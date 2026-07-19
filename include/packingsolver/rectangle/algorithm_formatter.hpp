@@ -22,7 +22,11 @@ public:
         instance_(instance),
         parameters_(parameters),
         output_(output),
-        os_(parameters.create_os()) { }
+        os_(parameters.create_os())
+    {
+        if (output_.is_proven_optimal())
+            end_ = true;
+    }
 
     /** Print the header. */
     void start();

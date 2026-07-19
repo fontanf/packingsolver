@@ -428,6 +428,27 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
+    optimize_trivial_bound(instance, algorithm_formatter);
+
+    if (instance.objective() == Objective::BinPacking) {
+        if (instance.number_of_bin_types() == 1
+                && instance.number_of_items() <= 100) {
+            optimize_dual_feasible_functions(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        }
+    }
+
+    if (algorithm_formatter.end_boolean()) {
+        algorithm_formatter.end();
+        return output;
+    }
+    if (parameters.timer.needs_to_end()) {
+        algorithm_formatter.end();
+        return output;
+    }
+
     // Select algorithms to run.
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
@@ -588,27 +609,6 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 }
             }
         }
-    }
-
-    optimize_trivial_bound(instance, algorithm_formatter);
-
-    if (instance.objective() == Objective::BinPacking) {
-        if (instance.number_of_bin_types() == 1
-                && instance.number_of_items() <= 100) {
-            optimize_dual_feasible_functions(
-                    instance,
-                    parameters,
-                    algorithm_formatter);
-        }
-    }
-
-    if (algorithm_formatter.end_boolean()) {
-        algorithm_formatter.end();
-        return output;
-    }
-    if (parameters.timer.needs_to_end()) {
-        algorithm_formatter.end();
-        return output;
     }
 
     // Run selected algorithms.
