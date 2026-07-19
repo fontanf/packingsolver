@@ -306,7 +306,7 @@ void optimize_dichotomic_search(
                     = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
                     OptimizationMode::NotAnytimeSequential:
                     OptimizationMode::NotAnytimeDeterministic;
-                bpp_parameters.use_tree_search = 1;
+                bpp_parameters.use_tree_search = true;
                 bpp_parameters.not_anytime_tree_search_queue_size = queue_size;
                 bpp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
                 auto bpp_output = optimize(bpp_instance, bpp_parameters);
