@@ -105,7 +105,8 @@ columngenerationsolver::Model get_model(
     columngenerationsolver::Model model;
 
     if (instance.objective() == Objective::VariableSizedBinPacking
-            || instance.objective() == Objective::BinPacking) {
+            || instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::Feasibility) {
         model.objective_sense = optimizationtools::ObjectiveDirection::Minimize;
     } else if (instance.objective() == Objective::Knapsack) {
         model.objective_sense = optimizationtools::ObjectiveDirection::Maximize;
@@ -123,7 +124,8 @@ columngenerationsolver::Model get_model(
         model.rows.push_back(row);
     }
     if (instance.objective() == Objective::VariableSizedBinPacking
-            || instance.objective() == Objective::BinPacking) {
+            || instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::Feasibility) {
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
@@ -259,7 +261,8 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
 
             Profit profit = 0;
             if (instance_.objective() == Objective::VariableSizedBinPacking
-                    || instance_.objective() == Objective::BinPacking) {
+                    || instance_.objective() == Objective::BinPacking
+                    || instance_.objective() == Objective::Feasibility) {
                 profit = duals[instance_.number_of_bin_types() + item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
                 profit = item_type.profit
@@ -340,6 +343,10 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                 reduced_cost_bound = (std::min)(
                         reduced_cost_bound,
                         bin_type.cost / multiplier_cost - duals[bin_type_id] - kp_output.knapsack_bound);
+            } else if (instance_.objective() == Objective::Feasibility) {
+                reduced_cost_bound = (std::min)(
+                        reduced_cost_bound,
+                        -duals[bin_type_id] - kp_output.knapsack_bound);
             } else if (instance_.objective() == Objective::Knapsack) {
                 reduced_cost_bound = (std::max)(
                         reduced_cost_bound,
@@ -427,6 +434,11 @@ Output column_generation(
             double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
             output.bin_packing_bound = std::ceil(
                     cgslds_output.bound * multiplier_cost / instance.bin_type(0).space() - 0.001);
+        } else if (instance.objective() == Objective::Feasibility) {
+            // By the extended reals convention, the optimal value of an
+            // infeasible minimization problem is +inf.
+            if (cgslds_output.bound == std::numeric_limits<double>::infinity())
+                output.is_proven_infeasible = true;
         }
         if (parameters.new_solution_callback)
             parameters.new_solution_callback(output);
