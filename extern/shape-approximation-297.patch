@@ -1,0 +1,74 @@
+diff --git a/src/approximation.cpp b/src/approximation.cpp
+index 99a797d..6bb6f4f 100644
+--- a/src/approximation.cpp
++++ b/src/approximation.cpp
+@@ -359,7 +359,9 @@ ShapeWithHoles shape::approximate_shape_by_line_segments(
+         return shape_new;
+     }
+ 
+-    std::vector<ShapeWithHoles> union_input = {{shape}};
++    // Seed with the FLATTENED shape — seeding with `shape` leaks CircularArc
++    // elements through compute_union into the result (packingsolver #297).
++    std::vector<ShapeWithHoles> union_input = {shape_new};
+ 
+     for (const ShapeElement& element: shape.elements) {
+         switch (element.type) {
+@@ -384,7 +386,11 @@ ShapeWithHoles shape::approximate_shape_by_line_segments(
+ 
+     //Writer().add_shapes_with_holes(union_input).write_json("union_input.json");
+     std::vector<ShapeWithHoles> union_output = compute_union(union_input);
+-    return union_output.front();
++    const ShapeWithHoles* best = &union_output.front();
++    for (const ShapeWithHoles& component: union_output)
++        if (component.shape.compute_area() > best->shape.compute_area())
++            best = &component;
++    return *best;
+ }
+ 
+ Shape shape::approximate_path_by_line_segments(
+@@ -501,7 +507,10 @@ ShapeWithHoles shape::approximate_by_line_segments(
+         return shape_new;
+     }
+ 
+-    std::vector<ShapeWithHoles> union_input = {shape};
++    // Union the FLATTENED shape with the arc extras. Seeding with `shape` leaks
++    // CircularArc elements through compute_union into the result, whose holes then
++    // fail is_polygon() — crashes on inflated holed shapes (packingsolver #297).
++    std::vector<ShapeWithHoles> union_input = {shape_new};
+ 
+     for (const ShapeElement& element: shape.shape.elements) {
+         switch (element.type) {
+@@ -519,7 +528,6 @@ ShapeWithHoles shape::approximate_by_line_segments(
+     }
+ 
+     for (const Shape& hole: shape.holes) {
+-        Shape hole_new;
+         for (const ShapeElement& element: hole.elements) {
+             switch (element.type) {
+             case ShapeElementType::LineSegment: {
+@@ -534,7 +542,6 @@ ShapeWithHoles shape::approximate_by_line_segments(
+             }
+             }
+         }
+-        shape_new.holes.push_back(hole_new);
+     }
+ 
+     std::vector<ShapeWithHoles> union_output = compute_union(union_input);
+@@ -545,10 +552,15 @@ ShapeWithHoles shape::approximate_by_line_segments(
+         .add_shapes_with_holes(union_output, "Union output")
+         .write_json("union_input.json");
+ #endif
+-    if (!union_output.front().is_polygon()) {
++    // Extras always touch the shape, but be defensive: keep the largest component.
++    const ShapeWithHoles* best = &union_output.front();
++    for (const ShapeWithHoles& component: union_output)
++        if (component.shape.compute_area() > best->shape.compute_area())
++            best = &component;
++    if (!best->is_polygon()) {
+         throw std::logic_error(FUNC_SIGNATURE);
+     }
+-    return union_output.front();
++    return *best;
+ }
+ 
+ void shape::approximate_shape_by_line_segments_export_inputs(

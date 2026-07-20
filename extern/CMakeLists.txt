@@ -34,11 +34,16 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(optimizationtools)
 
 # Fetch fontanf/shape.
+# PATCH: approximate_by_line_segments seeded its union with the arc-bearing shape,
+# leaking CircularArcs through compute_union -> is_polygon() throw on inflated holed
+# shapes (the native item_item_minimum_spacing crash). Patch is idempotent: apply,
+# or verify already-applied via --reverse --check.
 set(SHAPE_BUILD_TEST OFF)
 FetchContent_Declare(
     shape
     GIT_REPOSITORY https://github.com/fontanf/shape.git
     GIT_TAG 1809a9c7a1f8734fc8c7330ffe00cc3270ba7d44
+    PATCH_COMMAND git apply --ignore-whitespace "${CMAKE_CURRENT_SOURCE_DIR}/shape-approximation-297.patch" || git apply --reverse --check --ignore-whitespace "${CMAKE_CURRENT_SOURCE_DIR}/shape-approximation-297.patch"
     #SOURCE_DIR "${PROJECT_SOURCE_DIR}/../shape/"
     EXCLUDE_FROM_ALL)
 FetchContent_MakeAvailable(shape)
