@@ -2904,33 +2904,24 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
         }
     }
 
+    bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
     std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter scheme_idx = 0;
             scheme_idx < (Counter)branching_scheme_parameters_list.size();
             ++scheme_idx) {
-        std::function<void(const Solution&, const std::string&)> new_solution_callback;
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
-            new_solution_callback = [&algorithm_formatter](
-                    const Solution& solution,
-                    const std::string& label)
-            {
-                algorithm_formatter.update_solution(solution, label);
-            };
-        } else {
-            new_solution_callback = [&local_outputs, scheme_idx](
-                    const Solution& solution,
-                    const std::string& label)
-            {
-                local_outputs[(size_t)scheme_idx].solution_pool.add(solution, label);
-            };
-        }
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         BranchingScheme::Parameters bs_parameters = branching_scheme_parameters_list[scheme_idx];
         treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme> ibs_parameters = ibs_parameters_list[scheme_idx];
+        // Always record into 'local_outputs[scheme_idx]' first (this is
+        // also what the deterministic replay below reads from); in
+        // non-deterministic mode, additionally forward immediately to the
+        // shared 'algorithm_formatter', since there ordering across
+        // schemes doesn't need to be deferred for reproducibility.
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter,
-                bs_parameters, ibs_parameters, new_solution_callback]()
+                &local_outputs, scheme_idx, deterministic,
+                bs_parameters, ibs_parameters]()
         {
             wrapper<decltype(&tree_search_worker), tree_search_worker>(
                     exception_ptr,
@@ -2939,7 +2930,17 @@ const packingsolver::irregular::TreeSearchOutput packingsolver::irregular::tree_
                     algorithm_formatter,
                     bs_parameters,
                     ibs_parameters,
-                    new_solution_callback);
+                    [&algorithm_formatter, &local_outputs, scheme_idx, deterministic](
+                            const Solution& solution,
+                            const std::string& label)
+                    {
+                        local_outputs[(size_t)scheme_idx].solution_pool.add(solution, label);
+                        if (!deterministic) {
+                            algorithm_formatter.update_solution(
+                                    local_outputs[(size_t)scheme_idx].solution_pool.best(),
+                                    local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+                        }
+                    });
         });
     }
     run(tasks, parameters.optimization_mode != OptimizationMode::NotAnytimeSequential);

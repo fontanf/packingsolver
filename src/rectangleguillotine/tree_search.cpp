@@ -2344,7 +2344,7 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
 
     std::vector<BranchingScheme> branching_schemes;
     std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
-    std::vector<packingsolver::Output<Instance, Solution>> local_outputs;
+    std::vector<Output> local_outputs;
     for (double growth_factor: growth_factors) {
         for (GuideId guide_id: guides) {
             for (CutOrientation first_stage_orientation: first_stage_orientations) {
@@ -2368,74 +2368,73 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
                         + "_d_" + std::to_string((int)branching_scheme_parameters.first_stage_orientation);
                 }
                 ibs_parameters_list.push_back(ibs_parameters);
-                local_outputs.push_back(packingsolver::Output<Instance, Solution>(instance));
+                local_outputs.push_back(Output(instance));
             }
         }
     }
 
+    bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
     std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
-            ibs_parameters_list[scheme_idx].new_solution_callback
-                = [&algorithm_formatter, &branching_schemes, scheme_idx](
-                        const treesearchsolver::Output<BranchingScheme>& tss_output)
-                {
-                    const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
-                        = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
-                    Solution solution = branching_schemes[scheme_idx].to_solution(
-                            tssibs_output.solution_pool.best());
-                    std::stringstream ss;
-                    ss << "g " << branching_schemes[scheme_idx].parameters().guide_id
-                        << " d " << branching_schemes[scheme_idx].parameters().first_stage_orientation
-                        << " q " << tssibs_output.maximum_size_of_the_queue;
-                    algorithm_formatter.update_solution(solution, ss.str());
+        // Always record into 'local_outputs[scheme_idx]' first (this is
+        // also what the deterministic replay below reads from); in
+        // non-deterministic mode, additionally forward immediately to the
+        // shared 'algorithm_formatter', since there ordering across
+        // schemes doesn't need to be deferred for reproducibility.
+        ibs_parameters_list[scheme_idx].new_solution_callback
+            = [&algorithm_formatter, &local_outputs, &branching_schemes, scheme_idx, deterministic](
+                    const treesearchsolver::Output<BranchingScheme>& tss_output)
+            {
+                const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
+                    = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
+                Solution solution = branching_schemes[scheme_idx].to_solution(
+                        tssibs_output.solution_pool.best());
+                std::stringstream ss;
+                ss << "g " << branching_schemes[scheme_idx].parameters().guide_id
+                    << " d " << branching_schemes[scheme_idx].parameters().first_stage_orientation
+                    << " q " << tssibs_output.maximum_size_of_the_queue;
+                local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
 
-                    if (tssibs_output.optimal) {
-                        // The tree search is only guaranteed exhaustive (and
-                        // 'tssibs_output.optimal' a genuine proof of
-                        // optimality/infeasibility) when the first stage
-                        // orientation is fixed (not 'Any') and there is no
-                        // minimum/maximum distance between cuts, between
-                        // 1-cuts or between 2-cuts, and no maximum number of
-                        // 1-cuts or 2-cuts.
-                        const auto& params = solution.instance().parameters();
-                        bool exhaustive
-                            = params.first_stage_orientation != CutOrientation::Any
-                            && params.minimum_waste_length == 0
-                            && params.minimum_distance_1_cuts == 0
-                            && params.maximum_distance_1_cuts == -1
-                            && params.maximum_number_1_cuts == -1
-                            && params.minimum_distance_2_cuts == 0
-                            && params.maximum_distance_2_cuts == -1
-                            && params.maximum_number_2_cuts == -1;
-                        if (exhaustive) {
-                            if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
-                                algorithm_formatter.update_bin_packing_bound(
-                                        solution.number_of_bins());
-                            } else if (solution.instance().objective() == packingsolver::Objective::Feasibility) {
-                                if (!solution.full())
-                                    algorithm_formatter.update_is_proven_infeasible();
-                            }
+                if (tssibs_output.optimal) {
+                    // The tree search is only guaranteed exhaustive (and
+                    // 'tssibs_output.optimal' a genuine proof of
+                    // optimality/infeasibility) when the first stage
+                    // orientation is fixed (not 'Any') and there is no
+                    // minimum/maximum distance between cuts, between
+                    // 1-cuts or between 2-cuts, and no maximum number of
+                    // 1-cuts or 2-cuts.
+                    const auto& params = solution.instance().parameters();
+                    bool exhaustive
+                        = params.first_stage_orientation != CutOrientation::Any
+                        && params.minimum_waste_length == 0
+                        && params.minimum_distance_1_cuts == 0
+                        && params.maximum_distance_1_cuts == -1
+                        && params.maximum_number_1_cuts == -1
+                        && params.minimum_distance_2_cuts == 0
+                        && params.maximum_distance_2_cuts == -1
+                        && params.maximum_number_2_cuts == -1;
+                    if (exhaustive) {
+                        if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
+                            local_outputs[(size_t)scheme_idx].bin_packing_bound
+                                = solution.number_of_bins();
+                        } else if (solution.instance().objective() == packingsolver::Objective::Feasibility) {
+                            if (!solution.full())
+                                local_outputs[(size_t)scheme_idx].is_proven_infeasible = true;
+                        } else if (solution.instance().objective() == packingsolver::Objective::Knapsack) {
+                            local_outputs[(size_t)scheme_idx].knapsack_bound
+                                = solution.profit();
                         }
                     }
-                };
-        } else {
-            ibs_parameters_list[scheme_idx].new_solution_callback
-                = [&local_outputs, &branching_schemes, scheme_idx](
-                        const treesearchsolver::Output<BranchingScheme>& tss_output)
-                {
-                    const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
-                        = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
-                    Solution solution = branching_schemes[scheme_idx].to_solution(
-                            tssibs_output.solution_pool.best());
-                    std::stringstream ss;
-                    ss << "g " << branching_schemes[scheme_idx].parameters().guide_id
-                        << " d " << branching_schemes[scheme_idx].parameters().first_stage_orientation
-                        << " q " << tssibs_output.maximum_size_of_the_queue;
-                    local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
-                };
-        }
+                }
+
+                if (!deterministic) {
+                    algorithm_formatter.update_solution(
+                            local_outputs[(size_t)scheme_idx].solution_pool.best(),
+                            local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+                    algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
+                }
+            };
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         BranchingScheme& branching_scheme = branching_schemes[scheme_idx];
@@ -2456,6 +2455,7 @@ const packingsolver::rectangleguillotine::TreeSearchOutput packingsolver::rectan
             algorithm_formatter.update_solution(
                     local_outputs[(size_t)scheme_idx].solution_pool.best(),
                     local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
         }
     }
 

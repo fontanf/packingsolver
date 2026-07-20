@@ -895,33 +895,27 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
 
     packingsolver::Output<Instance, Solution> local_output(instance);
 
-    if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
-        ibs_parameters.new_solution_callback
-            = [&algorithm_formatter, &branching_scheme](
-                    const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
-            {
-                const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
-                    = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
-                Solution solution = branching_scheme.to_solution(
-                        tssibs_output.solution_pool.best());
-                std::stringstream ss;
-                ss << "n " << tssibs_output.maximum_size_of_the_queue;
-                algorithm_formatter.update_solution(solution, ss.str());
-            };
-    } else {
-        ibs_parameters.new_solution_callback
-            = [&local_output, &branching_scheme](
-                    const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
-            {
-                const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
-                    = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
-                Solution solution = branching_scheme.to_solution(
-                        tssibs_output.solution_pool.best());
-                std::stringstream ss;
-                ss << "n " << tssibs_output.maximum_size_of_the_queue;
-                local_output.solution_pool.add(solution, ss.str());
-            };
-    }
+    bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
+    // Always record into 'local_output' first (this is also what the
+    // deterministic replay below reads from); in non-deterministic mode,
+    // additionally forward immediately to the shared 'algorithm_formatter'.
+    ibs_parameters.new_solution_callback
+        = [&algorithm_formatter, &local_output, &branching_scheme, deterministic](
+                const treesearchsolver::Output<BranchingSchemeMaximalSpaces>& tss_output)
+        {
+            const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>& tssibs_output
+                = static_cast<const treesearchsolver::IterativeBeamSearchOutput<BranchingSchemeMaximalSpaces>&>(tss_output);
+            Solution solution = branching_scheme.to_solution(
+                    tssibs_output.solution_pool.best());
+            std::stringstream ss;
+            ss << "n " << tssibs_output.maximum_size_of_the_queue;
+            local_output.solution_pool.add(solution, ss.str());
+            if (!deterministic) {
+                algorithm_formatter.update_solution(
+                        local_output.solution_pool.best(),
+                        local_output.solution_pool.best_label());
+            }
+        };
 
     std::exception_ptr exception_ptr;
     if (parameters.optimization_mode != OptimizationMode::NotAnytimeSequential) {
