@@ -176,7 +176,8 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
 {
     const BinType& bin_type = instance.bin_type(0);
 
-    if (instance.objective() != Objective::BinPacking) {
+    if (instance.objective() != Objective::BinPacking
+            && instance.objective() != Objective::Feasibility) {
         throw std::invalid_argument(FUNC_SIGNATURE);
     }
     if (instance.number_of_bin_types() != 1) {
@@ -299,7 +300,12 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
         }
     }
 
-    algorithm_formatter.update_bin_packing_bound(bound);
+    if (instance.objective() == Objective::BinPacking) {
+        algorithm_formatter.update_bin_packing_bound(bound);
+    } else if (instance.objective() == Objective::Feasibility) {
+        if (bound > instance.number_of_bins())
+            algorithm_formatter.update_is_proven_infeasible();
+    }
 
     algorithm_formatter.end();
     return output;
