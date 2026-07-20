@@ -35,6 +35,16 @@ public:
         /** 'true' iff the item is inserted in a new bin. */
         bool new_bin;
 
+        /**
+         * Position of the new bin the item is inserted in, only meaningful
+         * when 'new_bin' is 'true'.
+         *
+         * Not necessarily equal to the parent node's 'number_of_bins': bins
+         * that can't fit any item are skipped so that the next available
+         * bin can be tried instead.
+         */
+        BinPos new_bin_pos = -1;
+
         bool operator==(const Insertion& insertion) const;
         bool operator!=(const Insertion& insertion) const { return !(*this == insertion); }
     };
@@ -280,7 +290,8 @@ private:
     /** Insertion of an item in a new bin. */
     void insertion_item_new_bin(
             const std::shared_ptr<Node>& parent,
-            ItemTypeId item_type_id) const;
+            ItemTypeId item_type_id,
+            BinPos new_bin_pos) const;
 
 };
 

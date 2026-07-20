@@ -163,7 +163,12 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     // Update number_of_bins and last_bin_direction.
     if (insertion.new_bin > 0) {  // New bin.
-        node.number_of_bins = parent.number_of_bins + 1;
+        // 'new_bin_pos' defaults to '-1' for insertions that don't set it
+        // explicitly (e.g. hand-constructed in tests); fall back to the
+        // next sequential position in that case.
+        node.number_of_bins = (insertion.new_bin_pos >= 0)?
+            insertion.new_bin_pos + 1:
+            parent.number_of_bins + 1;
         node.last_bin_direction = (insertion.new_bin == 1)?
             Direction::X:
             Direction::Y;
@@ -554,6 +559,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             item_type_id,
                             rotate,
                             0,  // new_bin
+                            -1,  // new_bin_pos
                             uncovered_item_pos,
                             -1);  // defect_id
 
@@ -607,6 +613,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             item_type_id,
                             rotate,
                             0,  // new_bin
+                            -1,  // new_bin_pos
                             uncovered_item_pos,
                             -1);  // defect_id
 
@@ -648,6 +655,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             item_type_id,
                             false,  // rotate
                             0,  // new_bin
+                            -1,  // new_bin_pos
                             -1,  // uncovered_item_pos
                             defect_id);
 
@@ -657,6 +665,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             item_type_id,
                             true,  // rotate
                             0,  // new_bin
+                            -1,  // new_bin_pos
                             -1,  // uncovered_item_pos
                             defect_id);
             }
@@ -664,7 +673,11 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
     }
 
     // Insert in a new bin.
-    if (insertions_.empty() && parent->number_of_bins < instance().number_of_bins()) {
+    // Bins that can't fit any item are skipped: if a bin position doesn't
+    // yield any insertion, the next bin position is tried instead.
+    for (BinPos new_bin_pos = parent->number_of_bins;
+            insertions_.empty() && new_bin_pos < instance().number_of_bins();
+            ++new_bin_pos) {
 
         int new_bin = 0;
         if (parameters_.direction == Direction::X) {
@@ -672,7 +685,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         } else if (parameters_.direction == Direction::Y) {
             new_bin = 2;
         } else {
-            BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins);
+            BinTypeId bin_type_id = instance().bin_type_id(new_bin_pos);
             const BinType& bin_type = instance().bin_type(bin_type_id);
             if ((double)instance().total_item_height() / bin_type.rect.y
                     >= (double)instance().total_item_width() / bin_type.rect.x) {
@@ -682,7 +695,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
             }
         }
         const Instance& instance = this->instance(new_bin);
-        BinTypeId bin_type_id = instance.bin_type_id(parent->number_of_bins);
+        BinTypeId bin_type_id = instance.bin_type_id(new_bin_pos);
         const BinType& bin_type = instance.bin_type(bin_type_id);
 
         // Items.
@@ -701,6 +714,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                         item_type_id,
                         false,
                         new_bin,
+                        new_bin_pos,
                         0,  // uncovered_item_pos
                         -1);  // defect_id
 
@@ -710,6 +724,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                         item_type_id,
                         true,  // rotate
                         new_bin,
+                        new_bin_pos,
                         0,  // uncovered_item_pos
                         -1);  // defect_id
 
@@ -724,6 +739,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             item_type_id,
                             false,  // rotate
                             new_bin,
+                            new_bin_pos,
                             -1,  // uncovered_item_pos
                             defect_id);
 
@@ -733,6 +749,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
                             item_type_id,
                             true,  // rotate
                             new_bin,
+                            new_bin_pos,
                             -1,  // uncovered_item_pos
                             defect_id);
             }
@@ -747,6 +764,7 @@ void BranchingScheme::insertion_item(
         ItemTypeId item_type_id,
         bool rotate,
         int8_t new_bin,
+        BinPos new_bin_pos,
         ItemPos uncovered_item_pos,
         DefectId defect_id) const
 {
@@ -757,7 +775,7 @@ void BranchingScheme::insertion_item(
     const ItemType& item_type = instance.item_type(item_type_id);
     BinTypeId bin_type_id = (new_bin == 0)?
         instance.bin_type_id(parent->number_of_bins - 1):
-        instance.bin_type_id(parent->number_of_bins);
+        instance.bin_type_id(new_bin_pos);
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Length xj = item_type.x(rotate);
     Length yj = item_type.y(rotate);
@@ -878,6 +896,7 @@ void BranchingScheme::insertion_item(
     insertion.x = xs;
     insertion.y = ys;
     insertion.new_bin = new_bin;
+    insertion.new_bin_pos = new_bin_pos;
     insertions_.push_back(insertion);
 }
 
@@ -1144,10 +1163,12 @@ Solution BranchingScheme::to_solution(
     BinPos bin_pos = -1;
     BinPos number_of_bins = 0;
     for (auto current_node: descendents) {
-        if (number_of_bins < current_node->number_of_bins) {
-            number_of_bins++;
-            BinTypeId bin_type_id = instance().bin_type_id(number_of_bins - 1);
+        // Bins that were skipped because no item fit in them are still
+        // added to the solution, as empty bins.
+        while (number_of_bins < current_node->number_of_bins) {
+            BinTypeId bin_type_id = instance().bin_type_id(number_of_bins);
             bin_pos = solution_builder.add_bin(bin_type_id, 1);
+            number_of_bins++;
         }
         Point bl_corner = (current_node->last_bin_direction == Direction::X)?
             Point{current_node->x, current_node->y}:
@@ -1467,7 +1488,7 @@ const packingsolver::rectangle::TreeSearchOutput packingsolver::rectangle::tree_
 
     std::vector<BranchingScheme> branching_schemes;
     std::vector<treesearchsolver::IterativeBeamSearch2Parameters<BranchingScheme>> ibs_parameters_list;
-    std::vector<packingsolver::Output<Instance, Solution>> local_outputs;
+    std::vector<Output> local_outputs;
     for (double growth_factor: growth_factors) {
         for (GuideId guide_id: guides) {
             for (Direction direction: directions) {
@@ -1492,55 +1513,54 @@ const packingsolver::rectangle::TreeSearchOutput packingsolver::rectangle::tree_
                         + "_d_" + std::to_string((int)branching_scheme_parameters.direction);
                 }
                 ibs_parameters_list.push_back(ibs_parameters);
-                local_outputs.push_back(packingsolver::Output<Instance, Solution>(instance));
+                local_outputs.push_back(Output(instance));
             }
         }
     }
 
+    bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
     std::vector<std::function<void()>> tasks;
     std::forward_list<std::exception_ptr> exception_ptr_list;
     for (Counter scheme_idx = 0; scheme_idx < (Counter)branching_schemes.size(); ++scheme_idx) {
-        if (parameters.optimization_mode != OptimizationMode::NotAnytimeDeterministic) {
-            ibs_parameters_list[scheme_idx].new_solution_callback
-                = [&algorithm_formatter, &branching_schemes, scheme_idx](
-                        const treesearchsolver::Output<BranchingScheme>& tss_output)
-                {
-                    const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
-                        = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
-                    Solution solution = branching_schemes[scheme_idx].to_solution(
-                            tssibs_output.solution_pool.best());
-                    std::stringstream ss;
-                    ss << "g " << branching_schemes[scheme_idx].parameters().guide_id
-                        << " d " << branching_schemes[scheme_idx].parameters().direction
-                        << " q " << tssibs_output.maximum_size_of_the_queue;
-                    algorithm_formatter.update_solution(solution, ss.str());
+        // Always record into 'local_outputs[scheme_idx]' first (this is
+        // also what the deterministic replay below reads from); in
+        // non-deterministic mode, additionally forward immediately to the
+        // shared 'algorithm_formatter', since there ordering across
+        // schemes doesn't need to be deferred for reproducibility.
+        ibs_parameters_list[scheme_idx].new_solution_callback
+            = [&algorithm_formatter, &local_outputs, &branching_schemes, scheme_idx, deterministic](
+                    const treesearchsolver::Output<BranchingScheme>& tss_output)
+            {
+                const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
+                    = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
+                Solution solution = branching_schemes[scheme_idx].to_solution(
+                        tssibs_output.solution_pool.best());
+                std::stringstream ss;
+                ss << "g " << branching_schemes[scheme_idx].parameters().guide_id
+                    << " d " << branching_schemes[scheme_idx].parameters().direction
+                    << " q " << tssibs_output.maximum_size_of_the_queue;
+                local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
 
-                    if (tssibs_output.optimal) {
-                        if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
-                            algorithm_formatter.update_bin_packing_bound(
-                                    solution.number_of_bins());
-                        } else if (solution.instance().objective() == packingsolver::Objective::Feasibility) {
-                            if (!solution.full())
-                                algorithm_formatter.update_is_proven_infeasible();
-                        }
+                if (tssibs_output.optimal) {
+                    if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
+                        local_outputs[(size_t)scheme_idx].bin_packing_bound
+                            = solution.number_of_bins();
+                    } else if (solution.instance().objective() == packingsolver::Objective::Feasibility) {
+                        if (!solution.full())
+                            local_outputs[(size_t)scheme_idx].is_proven_infeasible = true;
+                    } else if (solution.instance().objective() == packingsolver::Objective::Knapsack) {
+                        local_outputs[(size_t)scheme_idx].knapsack_bound
+                            = solution.profit();
                     }
-                };
-        } else {
-            ibs_parameters_list[scheme_idx].new_solution_callback
-                = [&local_outputs, &branching_schemes, scheme_idx](
-                        const treesearchsolver::Output<BranchingScheme>& tss_output)
-                {
-                    const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>& tssibs_output
-                        = static_cast<const treesearchsolver::IterativeBeamSearch2Output<BranchingScheme>&>(tss_output);
-                    Solution solution = branching_schemes[scheme_idx].to_solution(
-                            tssibs_output.solution_pool.best());
-                    std::stringstream ss;
-                    ss << "g " << branching_schemes[scheme_idx].parameters().guide_id
-                        << " d " << branching_schemes[scheme_idx].parameters().direction
-                        << " q " << tssibs_output.maximum_size_of_the_queue;
-                    local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
-                };
-        }
+                }
+
+                if (!deterministic) {
+                    algorithm_formatter.update_solution(
+                            local_outputs[(size_t)scheme_idx].solution_pool.best(),
+                            local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+                    algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
+                }
+            };
         exception_ptr_list.push_front(std::exception_ptr());
         std::exception_ptr& exception_ptr = exception_ptr_list.front();
         BranchingScheme& branching_scheme = branching_schemes[scheme_idx];
@@ -1561,6 +1581,7 @@ const packingsolver::rectangle::TreeSearchOutput packingsolver::rectangle::tree_
             algorithm_formatter.update_solution(
                     local_outputs[(size_t)scheme_idx].solution_pool.best(),
                     local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
         }
     }
 

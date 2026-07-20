@@ -99,6 +99,20 @@ public:
         /** z-coordinate of the point of interest. */
         Length z;
 
+        /**
+         * Position of the new bin the item is inserted in, only meaningful
+         * when 'new_bin > 0'.
+         *
+         * Not necessarily equal to the parent node's 'number_of_bins': bins
+         * that can't fit any item are skipped so that the next available
+         * bin can be tried instead.
+         *
+         * Placed last so that any existing positional aggregate
+         * initialization of 'Insertion' keeps compiling unchanged, relying
+         * on this field's default value.
+         */
+        BinPos new_bin_pos = -1;
+
         bool operator==(const Insertion& insertion) const;
         bool operator!=(const Insertion& insertion) const { return !(*this == insertion); }
     };
@@ -482,6 +496,7 @@ private:
             ItemTypeId item_type_id,
             Rotation rotation,
             int8_t new_bin,
+            BinPos new_bin_pos,
             ItemPos uncovered_item_pos,
             DefectId defect_id) const;
 
