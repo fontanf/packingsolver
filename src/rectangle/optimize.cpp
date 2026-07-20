@@ -398,6 +398,7 @@ void optimize_benders_decomposition(
     bd_parameters.verbosity_level = 0;
     bd_parameters.timer = parameters.timer;
     bd_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    bd_parameters.optimization_mode = parameters.optimization_mode;
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         bd_parameters.maximum_number_of_iterations = parameters.not_anytime_benders_decomposition_number_of_iterations;
     bd_parameters.new_solution_callback = [&algorithm_formatter, local_output](
