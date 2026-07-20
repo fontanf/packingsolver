@@ -363,10 +363,11 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
         OptimizeParameters sub_parameters;
         sub_parameters.verbosity_level = 0;
         sub_parameters.timer = parameters.timer;
-        sub_parameters.optimization_mode = OptimizationMode::NotAnytime;
+        sub_parameters.optimization_mode
+            = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+            OptimizationMode::NotAnytimeSequential:
+            OptimizationMode::NotAnytimeDeterministic;
         sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
-        sub_parameters.use_tree_search = true;
-        sub_parameters.tree_search_guides = {0, 1};
         auto sub_output = optimize(sub_instance, sub_parameters);
         const Solution& sub_solution = sub_output.solution_pool.best();
 

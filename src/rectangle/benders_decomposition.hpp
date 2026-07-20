@@ -24,6 +24,9 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
     /** MILP solver. */
     mathoptsolverscmake::SolverName solver = mathoptsolverscmake::SolverName::Highs;
 
+    /** Optimization mode. */
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
+
     /** Maximum number of iterations. */
     Counter maximum_number_of_iterations = -1;
 
