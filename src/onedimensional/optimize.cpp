@@ -24,7 +24,58 @@ void optimize_trivial_bound(
         AlgorithmFormatter& algorithm_formatter)
 {
     if (instance.objective() == Objective::Knapsack) {
-        algorithm_formatter.update_knapsack_bound(instance.item_profit());
+        // 1D continuous relaxation (length-based Dantzig bound): pool the
+        // length of all bins together (ignoring the constraint that items
+        // must be split across discrete, separate bins), sort items by
+        // decreasing profit/length ratio, and greedily fill that pooled
+        // capacity, taking the last item fractionally. Always a valid,
+        // cheap (O(n log n), no search) upper bound, and much tighter than
+        // the trivial "sum of all profits" whenever item profits aren't
+        // roughly proportional to their length. Items with a positive
+        // nesting length take up less space than their full length once
+        // packed next to another copy of the same type, so that reduced
+        // length is used instead, matching the bin packing bound below.
+        Length total_capacity = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            total_capacity += bin_type.length * bin_type.copies;
+        }
+        std::vector<ItemTypeId> sorted_item_types(instance.number_of_item_types());
+        std::iota(sorted_item_types.begin(), sorted_item_types.end(), 0);
+        std::sort(
+                sorted_item_types.begin(),
+                sorted_item_types.end(),
+                [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2) -> bool
+                {
+                    const ItemType& item_type_1 = instance.item_type(item_type_id_1);
+                    const ItemType& item_type_2 = instance.item_type(item_type_id_2);
+                    Length length_1 = item_type_1.length - std::max(item_type_1.nesting_length, (Length)0);
+                    Length length_2 = item_type_2.length - std::max(item_type_2.nesting_length, (Length)0);
+                    return item_type_1.profit * length_2
+                        > item_type_2.profit * length_1;
+                });
+        Profit bound = 0.0;
+        Length remaining_capacity = total_capacity;
+        for (ItemTypeId item_type_id: sorted_item_types) {
+            if (remaining_capacity <= 0)
+                break;
+            const ItemType& item_type = instance.item_type(item_type_id);
+            Length length = item_type.length - std::max(item_type.nesting_length, (Length)0);
+            if (length <= 0)
+                continue;
+            Length item_total_length = length * item_type.copies;
+            if (item_total_length <= remaining_capacity) {
+                bound += item_type.profit * item_type.copies;
+                remaining_capacity -= item_total_length;
+            } else {
+                bound += item_type.profit
+                    * ((double)remaining_capacity / length);
+                remaining_capacity = 0;
+            }
+        }
+        algorithm_formatter.update_knapsack_bound(bound);
         return;
     }
 

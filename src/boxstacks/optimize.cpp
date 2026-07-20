@@ -20,7 +20,50 @@ void optimize_trivial_bound(
         AlgorithmFormatter& algorithm_formatter)
 {
     if (instance.objective() == Objective::Knapsack) {
-        algorithm_formatter.update_knapsack_bound(instance.item_profit());
+        // 1D continuous relaxation (volume-based Dantzig bound): sort items
+        // by decreasing profit/volume ratio and greedily fill the total
+        // available bin volume, taking the last item fractionally. Always a
+        // valid, cheap (O(n log n), no search) upper bound, and much
+        // tighter than the trivial "sum of all profits" whenever item
+        // profits aren't roughly proportional to their volume.
+        Volume total_capacity = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            total_capacity += bin_type.volume() * bin_type.copies;
+        }
+        std::vector<ItemTypeId> sorted_item_types(instance.number_of_item_types());
+        std::iota(sorted_item_types.begin(), sorted_item_types.end(), 0);
+        std::sort(
+                sorted_item_types.begin(),
+                sorted_item_types.end(),
+                [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2) -> bool
+                {
+                    const ItemType& item_type_1 = instance.item_type(item_type_id_1);
+                    const ItemType& item_type_2 = instance.item_type(item_type_id_2);
+                    return item_type_1.profit * item_type_2.volume()
+                        > item_type_2.profit * item_type_1.volume();
+                });
+        Profit bound = 0.0;
+        Volume remaining_capacity = total_capacity;
+        for (ItemTypeId item_type_id: sorted_item_types) {
+            if (remaining_capacity <= 0)
+                break;
+            const ItemType& item_type = instance.item_type(item_type_id);
+            if (item_type.volume() <= 0)
+                continue;
+            Volume item_total_volume = item_type.volume() * item_type.copies;
+            if (item_total_volume <= remaining_capacity) {
+                bound += item_type.profit * item_type.copies;
+                remaining_capacity -= item_total_volume;
+            } else {
+                bound += item_type.profit
+                    * ((double)remaining_capacity / item_type.volume());
+                remaining_capacity = 0;
+            }
+        }
+        algorithm_formatter.update_knapsack_bound(bound);
         return;
     }
 
