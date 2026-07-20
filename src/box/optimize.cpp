@@ -156,8 +156,7 @@ void optimize_dual_feasible_functions(
         = [&algorithm_formatter](
                 const box::Output& dff_output)
         {
-            algorithm_formatter.update_bin_packing_bound(
-                    dff_output.bin_packing_bound);
+            algorithm_formatter.update_bounds(dff_output);
         };
     dual_feasible_functions(instance, dff_parameters);
 }
@@ -450,7 +449,8 @@ packingsolver::box::Output packingsolver::box::optimize(
 
     optimize_trivial_bound(instance, algorithm_formatter);
 
-    if (instance.objective() == Objective::BinPacking) {
+    if (instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::Feasibility) {
         // The 3-axis threshold sweep is cubic in the number of item types
         // (against quadratic for the 2D 'rectangle' case), so this is
         // gated more conservatively.

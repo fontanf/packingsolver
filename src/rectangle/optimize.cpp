@@ -108,8 +108,7 @@ void optimize_dual_feasible_functions(
         = [&algorithm_formatter](
                 const rectangle::Output& dff_output)
         {
-            algorithm_formatter.update_bin_packing_bound(
-                    dff_output.bin_packing_bound);
+            algorithm_formatter.update_bounds(dff_output);
         };
     dual_feasible_functions(instance, dff_parameters);
 }
@@ -430,7 +429,8 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
 
     optimize_trivial_bound(instance, algorithm_formatter);
 
-    if (instance.objective() == Objective::BinPacking) {
+    if (instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::Feasibility) {
         if (instance.number_of_bin_types() == 1
                 && instance.number_of_items() <= 100) {
             optimize_dual_feasible_functions(

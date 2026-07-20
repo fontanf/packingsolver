@@ -188,8 +188,12 @@ void optimize_dual_feasible_functions(
         = [&algorithm_formatter](
                 const rectangle::Output& dff_output)
         {
-            algorithm_formatter.update_bin_packing_bound(
-                    dff_output.bin_packing_bound);
+            if (dff_output.is_proven_infeasible) {
+                algorithm_formatter.update_is_proven_infeasible();
+            } else {
+                algorithm_formatter.update_bin_packing_bound(
+                        dff_output.bin_packing_bound);
+            }
         };
     rectangle::dual_feasible_functions(rectangle_instance, dff_parameters);
 }
@@ -595,7 +599,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
 
     optimize_trivial_bound(instance, algorithm_formatter);
 
-    if (instance.objective() == Objective::BinPacking) {
+    if (instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::Feasibility) {
         if (instance.number_of_bin_types() == 1
                 && instance.number_of_items() <= 100) {
             optimize_dual_feasible_functions(

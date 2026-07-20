@@ -68,7 +68,8 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
 {
     const BinType& bin_type = instance.bin_type(0);
 
-    if (instance.objective() != Objective::BinPacking) {
+    if (instance.objective() != Objective::BinPacking
+            && instance.objective() != Objective::Feasibility) {
         throw std::invalid_argument(FUNC_SIGNATURE);
     }
     if (instance.number_of_bin_types() != 1) {
@@ -102,8 +103,12 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
         BinPos bound = 0;
         for (;;) {
             // Build modified instance.
+            // Always use 'BinPacking' here, regardless of the original
+            // instance's objective: this modified instance only exists to
+            // compute a bin count lower bound via the recursive call below,
+            // never to be checked for feasibility itself.
             InstanceBuilder modified_instance_builder;
-            modified_instance_builder.set_objective(instance.objective());
+            modified_instance_builder.set_objective(Objective::BinPacking);
             modified_instance_builder.set_parameters(instance.parameters());
             // Add bins and dummy items.
             if (bin_type.rect.x == bin_type.rect.y) {
@@ -197,7 +202,12 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
             if (bound >= bound_cur)
                 break;
             bound = bound_cur;
-            algorithm_formatter.update_bin_packing_bound(bound);
+            if (instance.objective() == Objective::BinPacking) {
+                algorithm_formatter.update_bin_packing_bound(bound);
+            } else if (instance.objective() == Objective::Feasibility) {
+                if (bound > instance.number_of_bins())
+                    algorithm_formatter.update_is_proven_infeasible();
+            }
 
             if (bin_type.rect.x == bin_type.rect.y)
                 break;
@@ -412,7 +422,12 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
     }
 
     //std::cout << "bound " << bound << std::endl;
-    algorithm_formatter.update_bin_packing_bound(bound);
+    if (instance.objective() == Objective::BinPacking) {
+        algorithm_formatter.update_bin_packing_bound(bound);
+    } else if (instance.objective() == Objective::Feasibility) {
+        if (bound > instance.number_of_bins())
+            algorithm_formatter.update_is_proven_infeasible();
+    }
 
     algorithm_formatter.end();
     return output;
