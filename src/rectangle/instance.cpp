@@ -214,6 +214,25 @@ std::ostream& packingsolver::rectangle::operator<<(
     return os;
 }
 
+bool Instance::fits_some_bin(
+        ItemTypeId item_type_id) const
+{
+    const ItemType& item_type = this->item_type(item_type_id);
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        if ((item_type.rect.x <= bin_type.rect.x
+                    && item_type.rect.y <= bin_type.rect.y)
+                || (!item_type.oriented
+                    && item_type.rect.y <= bin_type.rect.x
+                    && item_type.rect.x <= bin_type.rect.y)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::ostream& Instance::format(
         std::ostream& os,
         int verbosity_level) const

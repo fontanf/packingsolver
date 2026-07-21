@@ -30,6 +30,15 @@ void optimize_trivial_bound(
         // valid, cheap (O(n log n), no search) upper bound, and much
         // tighter than the trivial "sum of all profits" whenever item
         // profits aren't roughly proportional to their area.
+        // Items whose bounding box (over every allowed discrete rotation)
+        // doesn't fit within any bin's bounding box can never be packed
+        // (a necessary, if not sufficient, condition for actually fitting
+        // the polygon), so they are excluded entirely rather than counted
+        // as fractionally packable area. Items with a continuous rotation
+        // range are conservatively always kept: proving they don't fit
+        // would require an exact geometric optimization over the range,
+        // and wrongly excluding a fitting item would make the bound
+        // unsound.
         AreaDbl total_capacity = 0;
         for (BinTypeId bin_type_id = 0;
                 bin_type_id < instance.number_of_bin_types();
@@ -37,8 +46,13 @@ void optimize_trivial_bound(
             const BinType& bin_type = instance.bin_type(bin_type_id);
             total_capacity += bin_type.area_orig * bin_type.copies;
         }
-        std::vector<ItemTypeId> sorted_item_types(instance.number_of_item_types());
-        std::iota(sorted_item_types.begin(), sorted_item_types.end(), 0);
+        std::vector<ItemTypeId> sorted_item_types;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            if (instance.fits_some_bin(item_type_id))
+                sorted_item_types.push_back(item_type_id);
+        }
         std::sort(
                 sorted_item_types.begin(),
                 sorted_item_types.end(),

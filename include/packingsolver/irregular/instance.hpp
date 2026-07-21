@@ -434,6 +434,20 @@ public:
     /** Return true iff all items have infinite copies. */
     inline bool unbounded_knapsack() const { return all_item_types_infinite_copies_; }
 
+    /**
+     * Conservatively check whether item type 'item_type_id' could fit in
+     * some bin type.
+     *
+     * One-sided: 'false' is a guarantee the item fits in no bin type (its
+     * bounding box, over every allowed discrete rotation, exceeds every
+     * bin's bounding box). 'true' is not a guarantee it fits anywhere,
+     * only that this couldn't be disproved (either its bounding box does
+     * fit some bin, or it has a continuous rotation range, which isn't
+     * checked, since exactly ruling that out would need an exact
+     * geometric optimization over the range).
+     */
+    bool fits_some_bin(ItemTypeId item_type_id) const;
+
 
     /*
      * Export

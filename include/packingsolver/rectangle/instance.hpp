@@ -420,6 +420,12 @@ public:
     /** Return true iff all items have infinite copies. */
     inline bool unbounded_knapsack() const { return all_item_types_infinite_copies_; }
 
+    /**
+     * Return 'true' iff item type 'item_type_id' fits (in either
+     * orientation, if allowed) in at least one bin type.
+     */
+    bool fits_some_bin(ItemTypeId item_type_id) const;
+
     /*
      * Export
      */

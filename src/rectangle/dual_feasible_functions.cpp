@@ -83,6 +83,11 @@ Profit dantzig_profit_bound(
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
+        // An item that doesn't fit the bin at all can never be packed,
+        // regardless of what its (possibly zero, after DFF rounding)
+        // scaled volume suggests.
+        if (!instance.fits_some_bin(item_type_id))
+            continue;
         const ItemType& item_type = instance.item_type(item_type_id);
         if (volumes[item_type_id] <= 0) {
             bound += item_type.profit * item_type.copies;

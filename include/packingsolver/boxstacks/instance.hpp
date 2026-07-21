@@ -440,6 +440,12 @@ public:
     /** Get a group. */
     inline const Group& group(GroupId group_id) const { return groups_[group_id]; }
 
+    /**
+     * Return 'true' iff item type 'item_type_id' fits (in some allowed
+     * rotation) in at least one bin type.
+     */
+    bool fits_some_bin(ItemTypeId item_type_id) const;
+
     /*
      * Export
      */

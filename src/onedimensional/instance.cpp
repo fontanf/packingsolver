@@ -30,6 +30,19 @@ std::ostream& packingsolver::onedimensional::operator<<(
     return os;
 }
 
+bool Instance::fits_some_bin(
+        ItemTypeId item_type_id) const
+{
+    const ItemType& item_type = this->item_type(item_type_id);
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        if (item_type.length <= this->bin_type(bin_type_id).length)
+            return true;
+    }
+    return false;
+}
+
 std::ostream& Instance::format(
         std::ostream& os,
         int verbosity_level) const
