@@ -106,6 +106,10 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 milp_model.objective_coefficients.push_back(item_type.profit / multiplier_profit);
             }
         }
+        if (milp_model.variables_lower_bounds.empty()) {
+            algorithm_formatter.end();
+            return output;
+        }
 
         // Constraints.
 
@@ -171,9 +175,22 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 if (item_copies[item_type_id_2] == 0)
                     continue;
                 const ItemType& item_type_2 = instance.item_type(item_type_id_2);
+                // When two item types are fully tied (same profit and both
+                // dimensions), each registers as dominating the other; only
+                // keep the constraint in one direction (lower id dominates),
+                // otherwise the pair becomes mutually-required while also
+                // being mutually-exclusive (e.g. via the incompatible-items
+                // constraint below), making both permanently unselectable.
+                // The swap argument behind dominance holds equally in both
+                // directions for an exact tie, so enforcing just one
+                // direction is still sound.
+                bool fully_tied = item_type_2.profit == item_type.profit
+                        && item_type_2.rect.x == item_type.rect.x
+                        && item_type_2.rect.y == item_type.rect.y;
                 if (item_type_2.profit >= item_type.profit
                         && item_type_2.rect.x <= item_type.rect.x
-                        && item_type_2.rect.y <= item_type.rect.y) {
+                        && item_type_2.rect.y <= item_type.rect.y
+                        && (!fully_tied || item_type_id_2 < item_type_id)) {
                     // Initialize new row.
                     milp_model.constraints_starts.push_back(milp_model.elements_variables.size());
                     // Add row elements.
