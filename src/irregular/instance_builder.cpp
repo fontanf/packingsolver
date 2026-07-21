@@ -381,11 +381,22 @@ void InstanceBuilder::read(
     nlohmann ::json j;
     file >> j;
 
-    if (j.contains("objective")) {
-        std::stringstream objective_ss;
-        objective_ss << std::string(j["objective"]);
+    if (!j.contains("objective")) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "missing \"objective\" field.");
+    }
+    {
+        std::string objective_string = j["objective"];
+        std::stringstream objective_ss(objective_string);
         Objective objective;
         objective_ss >> objective;
+        if (objective_ss.fail()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "unrecognized \"objective\" value \""
+                    + objective_string + "\".");
+        }
         set_objective(objective);
     }
 
