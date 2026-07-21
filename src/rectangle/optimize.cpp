@@ -431,7 +431,8 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     optimize_trivial_bound(instance, algorithm_formatter);
 
     if (instance.objective() == Objective::BinPacking
-            || instance.objective() == Objective::Feasibility) {
+            || instance.objective() == Objective::Feasibility
+            || instance.objective() == Objective::Knapsack) {
         if (instance.number_of_bin_types() == 1
                 && instance.number_of_items() <= 100) {
             optimize_dual_feasible_functions(

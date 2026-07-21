@@ -4,6 +4,7 @@
 
 #include <array>
 #include <functional>
+#include <limits>
 
 using namespace packingsolver;
 using namespace packingsolver::box;
@@ -63,6 +64,63 @@ Length f_ccm_2(
     } else {
         return 2 * (length / k);
     }
+}
+
+/**
+ * 1D relaxation (Dantzig / Dembo-Hammer) profit upper bound: sort items by
+ * decreasing profit / volume ratio and greedily fill 'capacity', taking the
+ * last item fractionally. Items with a scaled volume of 0 are free (they
+ * consume no capacity) and are always fully included.
+ *
+ * 'volumes[item_type_id]' is the item's scaled volume under some dual
+ * feasible function; since that function preserves packing feasibility,
+ * this is a valid upper bound on the knapsack objective for any choice of
+ * dual feasible function.
+ */
+Profit dantzig_profit_bound(
+        const Instance& instance,
+        const std::vector<Volume>& volumes,
+        double capacity)
+{
+    Profit bound = 0.0;
+    std::vector<ItemTypeId> sorted_item_type_ids;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (volumes[item_type_id] <= 0) {
+            bound += item_type.profit * item_type.copies;
+        } else {
+            sorted_item_type_ids.push_back(item_type_id);
+        }
+    }
+    std::sort(
+            sorted_item_type_ids.begin(),
+            sorted_item_type_ids.end(),
+            [&instance, &volumes](
+                ItemTypeId item_type_id_1,
+                ItemTypeId item_type_id_2)
+            {
+                const ItemType& item_type_1 = instance.item_type(item_type_id_1);
+                const ItemType& item_type_2 = instance.item_type(item_type_id_2);
+                return item_type_1.profit * volumes[item_type_id_2]
+                    > item_type_2.profit * volumes[item_type_id_1];
+            });
+    double remaining_capacity = capacity;
+    for (ItemTypeId item_type_id: sorted_item_type_ids) {
+        if (remaining_capacity <= 0)
+            break;
+        const ItemType& item_type = instance.item_type(item_type_id);
+        double item_total_volume = (double)volumes[item_type_id] * item_type.copies;
+        if (item_total_volume <= remaining_capacity) {
+            bound += item_type.profit * item_type.copies;
+            remaining_capacity -= item_total_volume;
+        } else {
+            bound += item_type.profit * (remaining_capacity / volumes[item_type_id]);
+            remaining_capacity = 0;
+        }
+    }
+    return bound;
 }
 
 /**
@@ -177,7 +235,8 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
     const BinType& bin_type = instance.bin_type(0);
 
     if (instance.objective() != Objective::BinPacking
-            && instance.objective() != Objective::Feasibility) {
+            && instance.objective() != Objective::Feasibility
+            && instance.objective() != Objective::Knapsack) {
         throw std::invalid_argument(FUNC_SIGNATURE);
     }
     if (instance.number_of_bin_types() != 1) {
@@ -221,6 +280,7 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
     }
 
     BinPos bound = 0;
+    Profit knapsack_bound = std::numeric_limits<Profit>::infinity();
 
     for (ItemTypeId k_pos = 0; k_pos < (ItemTypeId)thresholds[0].size(); ++k_pos) {
         for (ItemTypeId l_pos = 0; l_pos < (ItemTypeId)thresholds[1].size(); ++l_pos) {
@@ -246,11 +306,22 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
 
                 // Sum, for each of the 'number_of_families'^3 combinations
                 // of families (one per axis), of the transformed volume of
-                // the items.
+                // the items. For the Knapsack objective, the per-item
+                // scaled volumes are needed individually (to run a Dantzig
+                // bound over the selection), rather than summed over all
+                // items.
                 std::array<std::array<std::array<Volume, number_of_families>, number_of_families>, number_of_families> sum;
-                for (auto& sum_yz: sum) {
-                    for (auto& sum_z: sum_yz)
-                        sum_z.fill(0);
+                std::array<std::array<std::array<std::vector<Volume>, number_of_families>, number_of_families>, number_of_families> volumes;
+                if (instance.objective() == Objective::Knapsack) {
+                    for (auto& volumes_yz: volumes)
+                        for (auto& volumes_z: volumes_yz)
+                            for (auto& v: volumes_z)
+                                v.resize(instance.number_of_item_types());
+                } else {
+                    for (auto& sum_yz: sum) {
+                        for (auto& sum_z: sum_yz)
+                            sum_z.fill(0);
+                    }
                 }
 
                 for (ItemTypeId item_type_id = 0;
@@ -275,24 +346,53 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
                                 f_ccm_2(capacity, k[axis_id], item_lengths[axis_id])};
                     }
 
-                    for (int fx = 0; fx < number_of_families; ++fx) {
-                        for (int fy = 0; fy < number_of_families; ++fy) {
-                            for (int fz = 0; fz < number_of_families; ++fz) {
-                                sum[fx][fy][fz] += item_type.copies
-                                    * f_item[0][fx] * f_item[1][fy] * f_item[2][fz];
+                    if (instance.objective() == Objective::Knapsack) {
+                        for (int fx = 0; fx < number_of_families; ++fx) {
+                            for (int fy = 0; fy < number_of_families; ++fy) {
+                                for (int fz = 0; fz < number_of_families; ++fz) {
+                                    volumes[fx][fy][fz][item_type_id]
+                                        = f_item[0][fx] * f_item[1][fy] * f_item[2][fz];
+                                }
+                            }
+                        }
+                    } else {
+                        for (int fx = 0; fx < number_of_families; ++fx) {
+                            for (int fy = 0; fy < number_of_families; ++fy) {
+                                for (int fz = 0; fz < number_of_families; ++fz) {
+                                    sum[fx][fy][fz] += item_type.copies
+                                        * f_item[0][fx] * f_item[1][fy] * f_item[2][fz];
+                                }
                             }
                         }
                     }
                 }
 
-                for (int fx = 0; fx < number_of_families; ++fx) {
-                    for (int fy = 0; fy < number_of_families; ++fy) {
-                        for (int fz = 0; fz < number_of_families; ++fz) {
-                            Volume denominator = f_bin[0][fx] * f_bin[1][fy] * f_bin[2][fz];
-                            if (denominator <= 0)
-                                continue;
-                            BinPos bound_cur = std::ceil((double)sum[fx][fy][fz] / (double)denominator);
-                            bound = (std::max)(bound, bound_cur);
+                if (instance.objective() == Objective::Knapsack) {
+                    for (int fx = 0; fx < number_of_families; ++fx) {
+                        for (int fy = 0; fy < number_of_families; ++fy) {
+                            for (int fz = 0; fz < number_of_families; ++fz) {
+                                Volume capacity_single = f_bin[0][fx] * f_bin[1][fy] * f_bin[2][fz];
+                                if (capacity_single <= 0)
+                                    continue;
+                                double capacity = (double)capacity_single * bin_type.copies;
+                                Profit bound_combo = dantzig_profit_bound(
+                                        instance,
+                                        volumes[fx][fy][fz],
+                                        capacity);
+                                knapsack_bound = (std::min)(knapsack_bound, bound_combo);
+                            }
+                        }
+                    }
+                } else {
+                    for (int fx = 0; fx < number_of_families; ++fx) {
+                        for (int fy = 0; fy < number_of_families; ++fy) {
+                            for (int fz = 0; fz < number_of_families; ++fz) {
+                                Volume denominator = f_bin[0][fx] * f_bin[1][fy] * f_bin[2][fz];
+                                if (denominator <= 0)
+                                    continue;
+                                BinPos bound_cur = std::ceil((double)sum[fx][fy][fz] / (double)denominator);
+                                bound = (std::max)(bound, bound_cur);
+                            }
                         }
                     }
                 }
@@ -305,6 +405,8 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
     } else if (instance.objective() == Objective::Feasibility) {
         if (bound > instance.number_of_bins())
             algorithm_formatter.update_is_proven_infeasible();
+    } else if (instance.objective() == Objective::Knapsack) {
+        algorithm_formatter.update_knapsack_bound(knapsack_bound);
     }
 
     algorithm_formatter.end();

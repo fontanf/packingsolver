@@ -450,7 +450,8 @@ packingsolver::box::Output packingsolver::box::optimize(
     optimize_trivial_bound(instance, algorithm_formatter);
 
     if (instance.objective() == Objective::BinPacking
-            || instance.objective() == Objective::Feasibility) {
+            || instance.objective() == Objective::Feasibility
+            || instance.objective() == Objective::Knapsack) {
         // The 3-axis threshold sweep is cubic in the number of item types
         // (against quadratic for the 2D 'rectangle' case), so this is
         // gated more conservatively.
