@@ -35,6 +35,10 @@ void optimize_trivial_bound(
         // nesting length take up less space than their full length once
         // packed next to another copy of the same type, so that reduced
         // length is used instead, matching the bin packing bound below.
+        // Items longer than every bin type can never be packed (even a
+        // single, un-nested copy needs its full length to fit), so they
+        // must be excluded entirely rather than counted as fractionally
+        // packable length.
         Length total_capacity = 0;
         for (BinTypeId bin_type_id = 0;
                 bin_type_id < instance.number_of_bin_types();
@@ -42,8 +46,13 @@ void optimize_trivial_bound(
             const BinType& bin_type = instance.bin_type(bin_type_id);
             total_capacity += bin_type.length * bin_type.copies;
         }
-        std::vector<ItemTypeId> sorted_item_types(instance.number_of_item_types());
-        std::iota(sorted_item_types.begin(), sorted_item_types.end(), 0);
+        std::vector<ItemTypeId> sorted_item_types;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            if (instance.fits_some_bin(item_type_id))
+                sorted_item_types.push_back(item_type_id);
+        }
         std::sort(
                 sorted_item_types.begin(),
                 sorted_item_types.end(),

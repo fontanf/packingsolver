@@ -130,6 +130,26 @@ std::ostream& packingsolver::box::operator<<(
     return os;
 }
 
+bool Instance::fits_some_bin(
+        ItemTypeId item_type_id) const
+{
+    const ItemType& item_type = this->item_type(item_type_id);
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        for (Rotation rotation: item_type.rotations) {
+            Box effective_box = item_type.box.rotate(rotation);
+            if (effective_box.x <= bin_type.box.x
+                    && effective_box.y <= bin_type.box.y
+                    && effective_box.z <= bin_type.box.z) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 std::ostream& Instance::format(
         std::ostream& os,
         int verbosity_level) const

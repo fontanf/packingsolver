@@ -23,7 +23,61 @@ void optimize_trivial_bound(
         AlgorithmFormatter& algorithm_formatter)
 {
     if (instance.objective() == Objective::Knapsack) {
-        algorithm_formatter.update_knapsack_bound(instance.item_profit());
+        // 1D continuous relaxation (area-based Dantzig bound): sort items
+        // by decreasing profit/area ratio and greedily fill the total
+        // available bin area, taking the last item fractionally. Always a
+        // valid, cheap (O(n log n), no search) upper bound, and much
+        // tighter than the trivial "sum of all profits" whenever item
+        // profits aren't roughly proportional to their area.
+        //
+        // Items that don't fit (in either orientation, if allowed) in any
+        // bin type can never be packed, so they must be excluded entirely
+        // rather than counted as fractionally packable area: otherwise an
+        // oversized item's area alone can make the bound arbitrarily
+        // looser than the achievable profit.
+        Area total_capacity = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            total_capacity += bin_type.area() * bin_type.copies;
+        }
+        std::vector<ItemTypeId> sorted_item_types;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            if (instance.fits_some_bin(item_type_id))
+                sorted_item_types.push_back(item_type_id);
+        }
+        std::sort(
+                sorted_item_types.begin(),
+                sorted_item_types.end(),
+                [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2) -> bool
+                {
+                    const ItemType& item_type_1 = instance.item_type(item_type_id_1);
+                    const ItemType& item_type_2 = instance.item_type(item_type_id_2);
+                    return item_type_1.profit * item_type_2.area()
+                        > item_type_2.profit * item_type_1.area();
+                });
+        Profit bound = 0.0;
+        Area remaining_capacity = total_capacity;
+        for (ItemTypeId item_type_id: sorted_item_types) {
+            if (remaining_capacity <= 0)
+                break;
+            const ItemType& item_type = instance.item_type(item_type_id);
+            if (item_type.area() <= 0)
+                continue;
+            Area item_total_area = item_type.area() * item_type.copies;
+            if (item_total_area <= remaining_capacity) {
+                bound += item_type.profit * item_type.copies;
+                remaining_capacity -= item_total_area;
+            } else {
+                bound += item_type.profit
+                    * ((double)remaining_capacity / item_type.area());
+                remaining_capacity = 0;
+            }
+        }
+        algorithm_formatter.update_knapsack_bound(bound);
         return;
     }
 
