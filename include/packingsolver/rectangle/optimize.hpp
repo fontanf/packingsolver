@@ -59,6 +59,47 @@ struct Output: packingsolver::Output<Instance, Solution>
         }
     }
 
+    /**
+     * Tighten this output's bounds with 'output's. Unlike
+     * 'AlgorithmFormatter::update_bounds', this has no side effect (no
+     * printing, no external callback): it is meant to accumulate bounds into
+     * a task-local 'Output' (e.g. when running algorithms in parallel in
+     * 'NotAnytimeDeterministic' mode), so that a parallel algorithm's bound
+     * updates cannot flip a sibling's stop signal at a non-deterministic
+     * point.
+     */
+    void update_bounds(const Output& output)
+    {
+        switch (solution_pool.best().instance().objective()) {
+        case Objective::Knapsack:
+            if (output.knapsack_bound < knapsack_bound)
+                knapsack_bound = output.knapsack_bound;
+            break;
+        case Objective::BinPacking:
+            if (output.bin_packing_bound > bin_packing_bound)
+                bin_packing_bound = output.bin_packing_bound;
+            break;
+        case Objective::VariableSizedBinPacking:
+            if (output.variable_sized_bin_packing_bound > variable_sized_bin_packing_bound)
+                variable_sized_bin_packing_bound = output.variable_sized_bin_packing_bound;
+            break;
+        case Objective::OpenDimensionX:
+            if (output.open_dimension_x_bound > open_dimension_x_bound)
+                open_dimension_x_bound = output.open_dimension_x_bound;
+            break;
+        case Objective::OpenDimensionY:
+            if (output.open_dimension_y_bound > open_dimension_y_bound)
+                open_dimension_y_bound = output.open_dimension_y_bound;
+            break;
+        case Objective::Feasibility:
+            if (output.is_proven_infeasible)
+                is_proven_infeasible = true;
+            break;
+        default:
+            break;
+        }
+    }
+
     virtual nlohmann::json to_json() const override
     {
         nlohmann::json json = packingsolver::Output<Instance, Solution>::to_json();
