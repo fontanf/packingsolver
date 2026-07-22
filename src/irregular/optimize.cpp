@@ -507,10 +507,11 @@ void optimize_column_generation(
     {
         if (local_output != nullptr) {
             local_output->solution_pool.add(ps_output.solution_pool.best(), "CG " + ps_output.solution_pool.best_label());
+            local_output->update_bounds(ps_output);
         } else {
             algorithm_formatter.update_solution(ps_output.solution_pool.best(), "CG " + ps_output.solution_pool.best_label());
+            algorithm_formatter.update_bounds(ps_output);
         }
-        algorithm_formatter.update_bounds(ps_output);
     };
     column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, irregular::Output>(instance, pricing_function, cg_parameters);
 }
@@ -529,10 +530,12 @@ void optimize_milp_raster(
             const irregular::Output& output) {
         if (local_output != nullptr) {
             local_output->solution_pool.add(output.solution_pool.best(), "MILP raster");
+            local_output->update_bounds(output);
         } else {
             algorithm_formatter.update_solution(
                     output.solution_pool.best(),
                     "MILP raster");
+            algorithm_formatter.update_bounds(output);
         }
     };
     milp_raster(instance, milp_raster_parameters);
@@ -876,14 +879,15 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
 
-    // Replay the solutions found by each algorithm in a fixed, deterministic
-    // order (registration order), instead of the (non-deterministic) order in
-    // which the algorithms actually finished.
+    // Replay the solutions and bounds found by each algorithm in a fixed,
+    // deterministic order (registration order), instead of the
+    // (non-deterministic) order in which the algorithms actually finished.
     if (deterministic) {
         for (const auto& local_output: local_outputs) {
             algorithm_formatter.update_solution(
                     local_output->solution_pool.best(),
                     local_output->solution_pool.best_label());
+            algorithm_formatter.update_bounds(*local_output);
         }
     }
 

@@ -217,10 +217,11 @@ void optimize_tree_search(
     {
         if (local_output != nullptr) {
             local_output->solution_pool.add(ts_output.solution_pool.best(), "TS " + ts_output.solution_pool.best_label());
+            local_output->update_bounds(ts_output);
         } else {
             algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TS " + ts_output.solution_pool.best_label());
+            algorithm_formatter.update_bounds(ts_output);
         }
-        algorithm_formatter.update_bounds(ts_output);
     };
     tree_search(instance, ts_parameters);
 }
@@ -578,10 +579,11 @@ void optimize_column_generation(
     {
         if (local_output != nullptr) {
             local_output->solution_pool.add(ps_output.solution_pool.best(), "CG " + ps_output.solution_pool.best_label());
+            local_output->update_bounds(ps_output);
         } else {
             algorithm_formatter.update_solution(ps_output.solution_pool.best(), "CG " + ps_output.solution_pool.best_label());
+            algorithm_formatter.update_bounds(ps_output);
         }
-        algorithm_formatter.update_bounds(ps_output);
     };
     column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, rectangleguillotine::Output>(instance, pricing_function, cg_parameters);
 }
@@ -1010,14 +1012,15 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         if (exception_ptr)
             std::rethrow_exception(exception_ptr);
 
-    // Replay the solutions found by each algorithm in a fixed, deterministic
-    // order (registration order), instead of the (non-deterministic) order in
-    // which the algorithms actually finished.
+    // Replay the solutions and bounds found by each algorithm in a fixed,
+    // deterministic order (registration order), instead of the
+    // (non-deterministic) order in which the algorithms actually finished.
     if (deterministic) {
         for (const auto& local_output: local_outputs) {
             algorithm_formatter.update_solution(
                     local_output->solution_pool.best(),
                     local_output->solution_pool.best_label());
+            algorithm_formatter.update_bounds(*local_output);
         }
     }
 
