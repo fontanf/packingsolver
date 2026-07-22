@@ -114,14 +114,21 @@ Solution solve_milp_raster_for_cell_size(
                 border_pos < (Counter)bin_type.borders.size();
                 ++border_pos) {
             const ShapeWithHoles& border_shape = bin_type.borders[border_pos].shape_scaled;
-            std::vector<shape::IntersectedCell> border_cells = shape::rasterization(border_shape, cell_size, cell_size);
+            shape::RasterizedGrid border_grid = shape::rasterization(border_shape, cell_size, cell_size);
             //writer.add_shape_with_holes(border_shape, "Border " + std::to_string(border_pos));
-            //writer.add_shape_with_holes(cells_to_shapes(border_cells, cell_size, cell_size).front(), "Border " + std::to_string(border_pos));
-            for (const shape::IntersectedCell& ic: border_cells) {
-                shape::ColumnId c = ic.cell.column - data.col_shift;
-                shape::RowId r = ic.cell.row - data.row_shift;
-                if (c >= 0 && c < data.num_cols && r >= 0 && r < data.num_rows)
-                    data.available[c][r] = false;
+            for (shape::ColumnId column = border_grid.column_offset;
+                    column < border_grid.column_offset + border_grid.number_of_columns;
+                    ++column) {
+                for (shape::RowId row = border_grid.row_offset;
+                        row < border_grid.row_offset + border_grid.number_of_rows;
+                        ++row) {
+                    if (!shape::strictly_greater(border_grid.at(column, row).coverage, 0.0))
+                        continue;
+                    shape::ColumnId c = column - data.col_shift;
+                    shape::RowId r = row - data.row_shift;
+                    if (c >= 0 && c < data.num_cols && r >= 0 && r < data.num_rows)
+                        data.available[c][r] = false;
+                }
             }
         }
 
@@ -129,14 +136,21 @@ Solution solve_milp_raster_for_cell_size(
                 defect_pos < (Counter)bin_type.defects.size();
                 ++defect_pos) {
             const ShapeWithHoles& defect_shape = bin_type.defects[defect_pos].shape_scaled;
-            std::vector<shape::IntersectedCell> defect_cells = shape::rasterization(defect_shape, cell_size, cell_size);
+            shape::RasterizedGrid defect_grid = shape::rasterization(defect_shape, cell_size, cell_size);
             //writer.add_shape_with_holes(defect_shape, "Defect " + std::to_string(defect_pos));
-            //writer.add_shape_with_holes(cells_to_shapes(defect_cells, cell_size, cell_size).front(), "Defect " + std::to_string(defect_pos));
-            for (const shape::IntersectedCell& ic: defect_cells) {
-                shape::ColumnId c = ic.cell.column - data.col_shift;
-                shape::RowId r = ic.cell.row - data.row_shift;
-                if (c >= 0 && c < data.num_cols && r >= 0 && r < data.num_rows)
-                    data.available[c][r] = false;
+            for (shape::ColumnId column = defect_grid.column_offset;
+                    column < defect_grid.column_offset + defect_grid.number_of_columns;
+                    ++column) {
+                for (shape::RowId row = defect_grid.row_offset;
+                        row < defect_grid.row_offset + defect_grid.number_of_rows;
+                        ++row) {
+                    if (!shape::strictly_greater(defect_grid.at(column, row).coverage, 0.0))
+                        continue;
+                    shape::ColumnId c = column - data.col_shift;
+                    shape::RowId r = row - data.row_shift;
+                    if (c >= 0 && c < data.num_cols && r >= 0 && r < data.num_rows)
+                        data.available[c][r] = false;
+                }
             }
         }
 
@@ -151,12 +165,20 @@ Solution solve_milp_raster_for_cell_size(
                 transformed.shift(
                         fixed_item.bl_corner.x * scale,
                         fixed_item.bl_corner.y * scale);
-                std::vector<shape::IntersectedCell> raster_cells = shape::rasterization(transformed, cell_size, cell_size);
-                for (const shape::IntersectedCell& ic: raster_cells) {
-                    shape::ColumnId c = ic.cell.column - data.col_shift;
-                    shape::RowId r = ic.cell.row - data.row_shift;
-                    if (c >= 0 && c < data.num_cols && r >= 0 && r < data.num_rows)
-                        data.fixed_items[c][r] = true;
+                shape::RasterizedGrid raster_grid = shape::rasterization(transformed, cell_size, cell_size);
+                for (shape::ColumnId column = raster_grid.column_offset;
+                        column < raster_grid.column_offset + raster_grid.number_of_columns;
+                        ++column) {
+                    for (shape::RowId row = raster_grid.row_offset;
+                            row < raster_grid.row_offset + raster_grid.number_of_rows;
+                            ++row) {
+                        if (!shape::strictly_greater(raster_grid.at(column, row).coverage, 0.0))
+                            continue;
+                        shape::ColumnId c = column - data.col_shift;
+                        shape::RowId r = row - data.row_shift;
+                        if (c >= 0 && c < data.num_cols && r >= 0 && r < data.num_rows)
+                            data.fixed_items[c][r] = true;
+                    }
                 }
             }
         }
@@ -190,9 +212,17 @@ Solution solve_milp_raster_for_cell_size(
                         ++item_shape_pos) {
                     ShapeWithHoles transformed = instance.item_shape_scaled(item_type_id, item_shape_pos, rotation.angle, rotation.mirror);
                     transformed.shift(-combined_aabb.x_min, -combined_aabb.y_min);
-                    std::vector<shape::IntersectedCell> raster_cells = shape::rasterization(transformed, cell_size, cell_size);
-                    for (const shape::IntersectedCell& ic: raster_cells)
-                        placement_cells.push_back(std::make_pair(ic.cell.column, ic.cell.row));
+                    shape::RasterizedGrid raster_grid = shape::rasterization(transformed, cell_size, cell_size);
+                    for (shape::ColumnId column = raster_grid.column_offset;
+                            column < raster_grid.column_offset + raster_grid.number_of_columns;
+                            ++column) {
+                        for (shape::RowId row = raster_grid.row_offset;
+                                row < raster_grid.row_offset + raster_grid.number_of_rows;
+                                ++row) {
+                            if (shape::strictly_greater(raster_grid.at(column, row).coverage, 0.0))
+                                placement_cells.push_back(std::make_pair(column, row));
+                        }
+                    }
                 }
 
                 if (placement_cells.empty())

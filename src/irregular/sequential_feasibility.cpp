@@ -124,11 +124,11 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
                 AxisAlignedBoundingBox restricting_aabb = bin_type.aabb_scaled;
                 restricting_aabb.x_max = restricting_aabb.x_min + x;
                 const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
-                const std::vector<shape::ShapeWithHoles> intersection = shape::compute_intersection(
+                const shape::MultiShapeWithHoles intersection = shape::compute_intersection(
                         {{bin_type.shape_orig},
                         {restricting_rect}});
                 BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(
-                        intersection[0].shape);
+                        intersection.shapes_with_holes[0].shape);
                 sub_instance_builder.set_bin_type_cost(sub_bin_type_id, bin_type.cost);
                 sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
                 sub_instance_builder.set_item_bin_minimum_spacing(
@@ -144,10 +144,10 @@ SequentialFeasibilityOutput packingsolver::irregular::sequential_feasibility(
             restricting_aabb.x_max = restricting_aabb.x_min + x;
             restricting_aabb.y_max = restricting_aabb.y_min + y;
             const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
-            const std::vector<shape::ShapeWithHoles> intersection = shape::compute_intersection(
+            const shape::MultiShapeWithHoles intersection = shape::compute_intersection(
                     {{original_bin_type.shape_orig},
                     {restricting_rect}});
-            sub_instance_builder.add_bin_type(intersection[0].shape);
+            sub_instance_builder.add_bin_type(intersection.shapes_with_holes[0].shape);
             sub_instance_builder.set_item_bin_minimum_spacing(
                     0,
                     instance.bin_type(0).item_bin_minimum_spacing);
