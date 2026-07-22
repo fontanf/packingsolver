@@ -110,8 +110,10 @@ BinPos assign_item_to_bin(
     for (const Defect& border: best_bin_type.borders)
         occupied_shapes.push_back(border.shape_scaled);
 
-    const std::vector<shape::ShapeWithHoles> free_regions =
-            shape::compute_difference({bin_shape}, occupied_shapes);
+    const shape::MultiShapeWithHoles free_regions_multi = shape::compute_difference(
+            shape::MultiShapeWithHoles{{bin_shape}},
+            shape::MultiShapeWithHoles{occupied_shapes});
+    const std::vector<shape::ShapeWithHoles>& free_regions = free_regions_multi.shapes_with_holes;
     //shape::Writer().add_shape_with_holes(bin_shape, "Bin")
     //    .add_shapes_with_holes(occupied_shapes, "Occupied")
     //    .add_shapes_with_holes(free_regions, "Difference")

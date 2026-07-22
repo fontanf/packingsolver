@@ -66,10 +66,10 @@ ShapeWithHoles get_item_combined_shape(
     }
     if ((ItemShapePos)shapes.size() == 1)
         return shapes[0];
-    std::vector<ShapeWithHoles> union_result = shape::compute_union(shapes);
-    if (union_result.empty())
+    MultiShapeWithHoles union_result = shape::compute_union(shapes);
+    if (union_result.shapes_with_holes.empty())
         return shapes[0];
-    return union_result[0];
+    return union_result.shapes_with_holes[0];
 }
 
 /**
@@ -415,30 +415,30 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice(
     std::vector<ShapeWithHoles> combined_nfp;
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
-            std::vector<ShapeWithHoles> nfp_ij = shape::no_fit_polygon(shapes[i], shapes[j]);
-            if (nfp_ij.empty())
+            MultiShapeWithHoles nfp_ij = shape::no_fit_polygon(shapes[i], shapes[j]);
+            if (nfp_ij.shapes_with_holes.empty())
                 continue;
-            for (const ShapeWithHoles& swh: shape::compute_union(nfp_ij))
+            for (const ShapeWithHoles& swh: shape::compute_union(nfp_ij.shapes_with_holes).shapes_with_holes)
                 combined_nfp.push_back(swh);
         }
     }
     if (combined_nfp.empty())
         return {};
-    std::vector<ShapeWithHoles> combined_nfp_union = shape::compute_union(combined_nfp);
+    MultiShapeWithHoles combined_nfp_union = shape::compute_union(combined_nfp);
 
     std::vector<PeriodicPacking> result;
 
     // Horizontal strategy: v1 = (w, 0).
     {
-        Point vector_1 = find_leftmost_y0_point(combined_nfp_union);
+        Point vector_1 = find_leftmost_y0_point(combined_nfp_union.shapes_with_holes);
         if (shape::strictly_greater(vector_1.x, 0.0)
                 && vector_1.x != std::numeric_limits<double>::infinity()) {
-            std::vector<ShapeWithHoles> ext_nfp = combined_nfp_union;
-            std::vector<ShapeWithHoles> shifted = combined_nfp_union;
+            std::vector<ShapeWithHoles> ext_nfp = combined_nfp_union.shapes_with_holes;
+            std::vector<ShapeWithHoles> shifted = combined_nfp_union.shapes_with_holes;
             for (ShapeWithHoles& swh: shifted)
                 swh.shift(vector_1.x, vector_1.y);
             ext_nfp.insert(ext_nfp.end(), shifted.begin(), shifted.end());
-            std::vector<ShapeWithHoles> ext_nfp_union = shape::compute_union(ext_nfp);
+            std::vector<ShapeWithHoles> ext_nfp_union = shape::compute_union(ext_nfp).shapes_with_holes;
             Point vector_2 = find_bottommost_constrained_point(ext_nfp_union, vector_1.x);
             if (shape::strictly_greater(vector_2.y, 0.0)
                     && check_periodic_packing(shapes, zero_positions, vector_1, vector_2, 3)) {
@@ -449,15 +449,15 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice(
 
     // Vertical strategy: v1 = (0, h).
     {
-        Point vector_1 = find_bottommost_x0_point(combined_nfp_union);
+        Point vector_1 = find_bottommost_x0_point(combined_nfp_union.shapes_with_holes);
         if (shape::strictly_greater(vector_1.y, 0.0)
                 && vector_1.y != std::numeric_limits<double>::infinity()) {
-            std::vector<ShapeWithHoles> ext_nfp = combined_nfp_union;
-            std::vector<ShapeWithHoles> shifted = combined_nfp_union;
+            std::vector<ShapeWithHoles> ext_nfp = combined_nfp_union.shapes_with_holes;
+            std::vector<ShapeWithHoles> shifted = combined_nfp_union.shapes_with_holes;
             for (ShapeWithHoles& swh: shifted)
                 swh.shift(vector_1.x, vector_1.y);
             ext_nfp.insert(ext_nfp.end(), shifted.begin(), shifted.end());
-            std::vector<ShapeWithHoles> ext_nfp_union = shape::compute_union(ext_nfp);
+            std::vector<ShapeWithHoles> ext_nfp_union = shape::compute_union(ext_nfp).shapes_with_holes;
             Point vector_2 = find_leftmost_constrained_point(ext_nfp_union, vector_1.y);
             if (shape::strictly_greater(vector_2.x, 0.0)
                     && check_periodic_packing(shapes, zero_positions, vector_1, vector_2, 3)) {
@@ -523,10 +523,10 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
 
     // NFP(shape_0, shape_r) shifted by position_0 gives translations t_r such
     // that (shape_r + t_r) just touches shifted_shape_0.
-    std::vector<ShapeWithHoles> nfp_0r = shape::no_fit_polygon(shape_0, shape_r);
-    if (nfp_0r.empty())
+    MultiShapeWithHoles nfp_0r = shape::no_fit_polygon(shape_0, shape_r);
+    if (nfp_0r.shapes_with_holes.empty())
         return {};
-    std::vector<ShapeWithHoles> nfp_0r_union = shape::compute_union(nfp_0r);
+    std::vector<ShapeWithHoles> nfp_0r_union = shape::compute_union(nfp_0r.shapes_with_holes).shapes_with_holes;
     for (ShapeWithHoles& swh: nfp_0r_union) swh.shift(position_0.x, position_0.y);
 
     // Collect all boundary vertices as candidate placements for shape_r.

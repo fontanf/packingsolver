@@ -440,9 +440,9 @@ void Solution::write(
                 restricting_aabb.y_max = bin.y_max;
             }
             const Shape restricting_rect = shape::build_rectangle(restricting_aabb);
-            const std::vector<shape::ShapeWithHoles> intersection = shape::compute_intersection(
+            const shape::MultiShapeWithHoles intersection = shape::compute_intersection(
                     {{bin_type.shape_orig}, {restricting_rect}});
-            bin_shape = intersection[0].shape;
+            bin_shape = intersection.shapes_with_holes[0].shape;
         }
         for (Counter element_pos = 0;
                 element_pos < (Counter)bin_shape.elements.size();
