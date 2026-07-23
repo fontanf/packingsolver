@@ -75,7 +75,8 @@ BinPos compute_bin_instance_upper_bound(
 
 /**
  * The classical assignment ("Kantorovich") MILP model of the
- * Variable-sized Bin Packing Problem, together with the bindings between its
+ * Variable-sized Bin Packing Problem (or, for the Knapsack objective, of the
+ * Multiple Knapsack Problem), together with the bindings between its
  * variables and the instance's bin/item types.
  */
 struct MilpModel
@@ -86,7 +87,11 @@ struct MilpModel
     /** Number of bin instances of each bin type considered in the model. */
     std::vector<BinPos> bin_type_upper_bounds;
 
-    /** y[bin_type_id][bin_instance_pos]: bin instance is used. */
+    /**
+     * y[bin_type_id][bin_instance_pos]: bin instance is used, or -1 if the
+     * bin instance has no 'y' variable, meaning it is always available (this
+     * is the case for every bin instance for the 'Knapsack' objective).
+     */
     std::vector<std::vector<int>> y;
 
     /** x[item_type_id][bin_type_id][bin_instance_pos]: copies of the item type packed in the bin instance. */
@@ -98,9 +103,13 @@ MilpModel build_milp_model(
         const Instance& instance,
         const std::vector<BinPos>& bin_type_upper_bounds)
 {
+    bool is_knapsack = (instance.objective() == Objective::Knapsack);
+
     MilpModel milp_model;
     milp_model.bin_type_upper_bounds = bin_type_upper_bounds;
-    milp_model.model.objective_direction = mathoptsolverscmake::ObjectiveDirection::Minimize;
+    milp_model.model.objective_direction = is_knapsack?
+        mathoptsolverscmake::ObjectiveDirection::Maximize:
+        mathoptsolverscmake::ObjectiveDirection::Minimize;
     milp_model.y.resize(instance.number_of_bin_types());
     milp_model.x.resize(instance.number_of_item_types());
     for (ItemTypeId item_type_id = 0;
@@ -110,19 +119,28 @@ MilpModel build_milp_model(
     }
 
     // Variables: y_{t,k}.
+    // For 'VariableSizedBinPacking', a 'y' variable is created for every
+    // candidate bin instance: whether to use it is a real decision, with a
+    // cost (its lower bound is forced to 1 for the mandatory instances,
+    // i.e. those within the bin type's 'copies_min'). For 'Knapsack', bin
+    // instances are already fixed/available ('copies_min' does not apply):
+    // no 'y' variable is created at all (every entry stays at its -1
+    // sentinel).
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance.bin_type(bin_type_id);
         BinPos number_of_bin_instances = bin_type_upper_bounds[bin_type_id];
-        milp_model.y[bin_type_id] = std::vector<int>(number_of_bin_instances);
+        milp_model.y[bin_type_id] = std::vector<int>(number_of_bin_instances, -1);
+        if (is_knapsack)
+            continue;
         for (BinPos bin_instance_pos = 0;
                 bin_instance_pos < number_of_bin_instances;
                 ++bin_instance_pos) {
+            bool mandatory = (bin_instance_pos < bin_type.copies_min);
             milp_model.y[bin_type_id][bin_instance_pos] = milp_model.model.variables_lower_bounds.size();
-            // Force the first 'copies_min' instances of the type to be used.
-            milp_model.model.variables_lower_bounds.push_back(
-                    (bin_instance_pos < bin_type.copies_min)? 1.0: 0.0);
+            // Force the mandatory instances of the type to be used.
+            milp_model.model.variables_lower_bounds.push_back(mandatory? 1.0: 0.0);
             milp_model.model.variables_upper_bounds.push_back(1.0);
             milp_model.model.variables_types.push_back(mathoptsolverscmake::VariableType::Binary);
             milp_model.model.objective_coefficients.push_back(bin_type.cost);
@@ -148,13 +166,14 @@ MilpModel build_milp_model(
                 milp_model.model.variables_lower_bounds.push_back(0.0);
                 milp_model.model.variables_upper_bounds.push_back((double)item_type.copies);
                 milp_model.model.variables_types.push_back(mathoptsolverscmake::VariableType::Integer);
-                milp_model.model.objective_coefficients.push_back(0.0);
+                milp_model.model.objective_coefficients.push_back(is_knapsack? item_type.profit: 0.0);
             }
         }
     }
 
     // Constraints: demand.
-    // sum_{t,k} x_{i,t,k} = copies_i
+    // 'VariableSizedBinPacking': sum_{t,k} x_{i,t,k} = copies_i
+    // 'Knapsack':                sum_{t,k} x_{i,t,k} <= copies_i
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -171,13 +190,14 @@ MilpModel build_milp_model(
             }
         }
         // Add row bounds.
-        milp_model.model.constraints_lower_bounds.push_back((double)item_type.copies);
+        milp_model.model.constraints_lower_bounds.push_back(is_knapsack? 0.0: (double)item_type.copies);
         milp_model.model.constraints_upper_bounds.push_back((double)item_type.copies);
     }
 
     // Constraints: capacity.
-    // sum_i length_i * x_{i,t,k} <= length_t * y_{t,k}
-    // <=> sum_i length_i * x_{i,t,k} - length_t * y_{t,k} <= 0
+    // With a 'y' variable:    sum_i length_i * x_{i,t,k} <= length_t * y_{t,k}
+    //                     <=> sum_i length_i * x_{i,t,k} - length_t * y_{t,k} <= 0
+    // Without a 'y' variable: sum_i length_i * x_{i,t,k} <= length_t
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
@@ -198,11 +218,18 @@ MilpModel build_milp_model(
                 milp_model.model.elements_variables.push_back(milp_model.x[item_type_id][bin_type_id][bin_instance_pos]);
                 milp_model.model.elements_coefficients.push_back((double)item_type.length);
             }
-            milp_model.model.elements_variables.push_back(milp_model.y[bin_type_id][bin_instance_pos]);
-            milp_model.model.elements_coefficients.push_back(-(double)bin_type.length);
-            // Add row bounds.
-            milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
-            milp_model.model.constraints_upper_bounds.push_back(0.0);
+            int y_variable_id = milp_model.y[bin_type_id][bin_instance_pos];
+            if (y_variable_id != -1) {
+                milp_model.model.elements_variables.push_back(y_variable_id);
+                milp_model.model.elements_coefficients.push_back(-(double)bin_type.length);
+                // Add row bounds.
+                milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+                milp_model.model.constraints_upper_bounds.push_back(0.0);
+            } else {
+                // Add row bounds.
+                milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+                milp_model.model.constraints_upper_bounds.push_back((double)bin_type.length);
+            }
         }
     }
 
@@ -216,12 +243,16 @@ MilpModel build_milp_model(
         for (BinPos bin_instance_pos = 0;
                 bin_instance_pos < number_of_bin_instances - 1;
                 ++bin_instance_pos) {
+            int y_variable_id_1 = milp_model.y[bin_type_id][bin_instance_pos];
+            int y_variable_id_2 = milp_model.y[bin_type_id][bin_instance_pos + 1];
+            if (y_variable_id_1 == -1 || y_variable_id_2 == -1)
+                continue;
             // Initialize new row.
             milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
             // Add row elements.
-            milp_model.model.elements_variables.push_back(milp_model.y[bin_type_id][bin_instance_pos]);
+            milp_model.model.elements_variables.push_back(y_variable_id_1);
             milp_model.model.elements_coefficients.push_back(1.0);
-            milp_model.model.elements_variables.push_back(milp_model.y[bin_type_id][bin_instance_pos + 1]);
+            milp_model.model.elements_variables.push_back(y_variable_id_2);
             milp_model.model.elements_coefficients.push_back(-1.0);
             // Add row bounds.
             milp_model.model.constraints_lower_bounds.push_back(0.0);
@@ -246,9 +277,11 @@ Solution retrieve_solution(
         for (BinPos bin_instance_pos = 0;
                 bin_instance_pos < number_of_bin_instances;
                 ++bin_instance_pos) {
-            if (milp_solution[milp_model.y[bin_type_id][bin_instance_pos]] < 0.5)
+            int y_variable_id = milp_model.y[bin_type_id][bin_instance_pos];
+            if (y_variable_id != -1 && milp_solution[y_variable_id] < 0.5)
                 continue;
-            BinPos solution_bin_pos = solution_builder.add_bin(bin_type_id, 1);
+
+            std::vector<std::pair<ItemTypeId, ItemPos>> bin_items;
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
                     ++item_type_id) {
@@ -256,8 +289,18 @@ Solution retrieve_solution(
                     continue;
                 double value = milp_solution[milp_model.x[item_type_id][bin_type_id][bin_instance_pos]];
                 ItemPos copies = (ItemPos)std::llround(value);
-                for (ItemPos copy = 0; copy < copies; ++copy)
-                    solution_builder.add_item(solution_bin_pos, item_type_id);
+                if (copies > 0)
+                    bin_items.push_back({item_type_id, copies});
+            }
+            // No 'y' variable: the bin instance is only included when
+            // non-empty (it was never "activated", it is simply available).
+            if (y_variable_id == -1 && bin_items.empty())
+                continue;
+
+            BinPos solution_bin_pos = solution_builder.add_bin(bin_type_id, 1);
+            for (const std::pair<ItemTypeId, ItemPos>& item_entry: bin_items) {
+                for (ItemPos copy = 0; copy < item_entry.second; ++copy)
+                    solution_builder.add_item(solution_bin_pos, item_entry.first);
             }
         }
     }
@@ -275,26 +318,37 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    if (instance.objective() != Objective::VariableSizedBinPacking) {
+    if (instance.objective() != Objective::VariableSizedBinPacking
+            && instance.objective() != Objective::Knapsack) {
         throw std::invalid_argument(
-                FUNC_SIGNATURE + ": only the 'VariableSizedBinPacking' "
-                "objective is currently supported.");
+                FUNC_SIGNATURE + ": only the 'VariableSizedBinPacking' and "
+                "'Knapsack' objectives are currently supported.");
     }
 
-    // Bound, for each bin type, the number of bin instances of that type to
-    // consider in the MILP.
+    // Determine, for each bin type, the number of bin instances of that type
+    // to consider in the MILP. For 'VariableSizedBinPacking', how many bins
+    // of each type to use is a decision, so this is only an upper bound. For
+    // 'Knapsack', the bins are already fixed by the instance.
     std::vector<BinPos> bin_type_upper_bounds(instance.number_of_bin_types());
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
-            ++bin_type_id) {
-        bin_type_upper_bounds[bin_type_id] = compute_bin_instance_upper_bound(
-                instance,
-                bin_type_id,
-                parameters,
-                algorithm_formatter);
-        if (algorithm_formatter.end_boolean()) {
-            algorithm_formatter.end();
-            return output;
+    if (instance.objective() == Objective::VariableSizedBinPacking) {
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            bin_type_upper_bounds[bin_type_id] = compute_bin_instance_upper_bound(
+                    instance,
+                    bin_type_id,
+                    parameters,
+                    algorithm_formatter);
+            if (algorithm_formatter.end_boolean()) {
+                algorithm_formatter.end();
+                return output;
+            }
+        }
+    } else {
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            bin_type_upper_bounds[bin_type_id] = instance.bin_type(bin_type_id).copies;
         }
     }
 
@@ -329,11 +383,19 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
                                 solution,
                                 "node " + std::to_string(highs_output->mip_node_count));
                     }
-                    if (output.solution_pool.best().full()
-                            && !strictly_lesser(
-                                highs_output->mip_dual_bound,
-                                output.solution_pool.best().cost())) {
-                        highs_input->user_interrupt = 1;
+                    if (instance.objective() == Objective::VariableSizedBinPacking) {
+                        if (output.solution_pool.best().full()
+                                && !strictly_lesser(
+                                    highs_output->mip_dual_bound,
+                                    output.solution_pool.best().cost())) {
+                            highs_input->user_interrupt = 1;
+                        }
+                    } else {
+                        if (!strictly_greater(
+                                    highs_output->mip_dual_bound,
+                                    output.solution_pool.best().profit())) {
+                            highs_input->user_interrupt = 1;
+                        }
                     }
 
                     // Check end.
@@ -346,8 +408,14 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
         highs_status = highs.startCallback(HighsCallbackType::kCallbackMipInterrupt);
         mathoptsolverscmake::solve(highs);
         milp_solution = mathoptsolverscmake::get_solution(highs);
-        if (!milp_solution.empty())
-            algorithm_formatter.update_variable_sized_bin_packing_bound(mathoptsolverscmake::get_bound(highs));
+        if (!milp_solution.empty()) {
+            double bound = mathoptsolverscmake::get_bound(highs);
+            if (instance.objective() == Objective::VariableSizedBinPacking) {
+                algorithm_formatter.update_variable_sized_bin_packing_bound(bound);
+            } else {
+                algorithm_formatter.update_knapsack_bound(bound);
+            }
+        }
 #else
         throw std::invalid_argument(FUNC_SIGNATURE);
 #endif

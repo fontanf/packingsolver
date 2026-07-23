@@ -3,7 +3,8 @@
  *
  * The goal of the MILP assignment algorithm is to find a packing solution by
  * solving the classical assignment ("Kantorovich") mixed-integer linear
- * program of the Variable-sized Bin Packing Problem.
+ * program of the Variable-sized Bin Packing Problem, or, for the (multiple)
+ * Knapsack objective, of the Multiple Knapsack Problem.
  */
 
 #pragma once
@@ -33,6 +34,10 @@ struct MilpAssignmentParameters: packingsolver::Parameters<Instance, Solution, O
     /**
      * Size of the tree search queue used to bound, for each bin type, the
      * number of bin instances of that type to consider in the MILP.
+     *
+     * Only used for the 'VariableSizedBinPacking' objective (for the
+     * 'Knapsack' objective, the number of bin instances of each type is
+     * given directly by the instance).
      */
     NodeId bin_count_subproblem_tree_search_queue_size = 1024;
 };

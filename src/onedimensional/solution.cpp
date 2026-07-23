@@ -82,7 +82,11 @@ void Solution::update_indicators(
     }
 
     // Update length_.
-    if (bin_pos == (BinPos)bins_.size() - 1 && !bin.items.empty())
+    // Only update on non-empty bins, so that 'length_' tracks the end of the
+    // last non-empty bin processed so far: a trailing empty bin (e.g. one
+    // forced present by 'copies_min' but left unused) must not reset or
+    // otherwise affect it.
+    if (!bin.items.empty())
         length_ = bin_length_ - bin_type.length + bin.end;
 
     // Feasibility callback.

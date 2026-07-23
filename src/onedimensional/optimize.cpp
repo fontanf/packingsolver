@@ -493,7 +493,8 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
     bool use_milp_assignment = parameters.use_milp_assignment
-        && instance.objective() == Objective::VariableSizedBinPacking;
+        && (instance.objective() == Objective::VariableSizedBinPacking
+                || instance.objective() == Objective::Knapsack);
     if (instance.number_of_bins() <= 1) {
         use_tree_search = true;
         use_sequential_single_knapsack = false;
@@ -531,7 +532,8 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
         if (!use_tree_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
-                && !use_column_generation) {
+                && !use_column_generation
+                && !use_milp_assignment) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
