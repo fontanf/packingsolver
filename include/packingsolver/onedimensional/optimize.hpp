@@ -145,6 +145,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Use column generation algorithm. */
     bool use_column_generation = false;
 
+    /** Use MILP assignment algorithm. */
+    bool use_milp_assignment = false;
+
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 

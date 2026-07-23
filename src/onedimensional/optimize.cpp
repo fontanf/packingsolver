@@ -4,6 +4,7 @@
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "onedimensional/solution_builder.hpp"
 #include "onedimensional/tree_search.hpp"
+#include "onedimensional/milp_assignment.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -429,6 +430,30 @@ void optimize_column_generation(
     column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, onedimensional::Output>(instance, pricing_function, cg_parameters);
 }
 
+void optimize_milp_assignment(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter,
+        onedimensional::Output* local_output)
+{
+    MilpAssignmentParameters ma_parameters;
+    ma_parameters.verbosity_level = 0;
+    ma_parameters.timer = parameters.timer;
+    ma_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    ma_parameters.new_solution_callback = [&algorithm_formatter, local_output](
+            const onedimensional::Output& ps_output)
+    {
+        if (local_output != nullptr) {
+            local_output->solution_pool.add(ps_output.solution_pool.best(), "MA " + ps_output.solution_pool.best_label());
+            local_output->update_bounds(ps_output);
+        } else {
+            algorithm_formatter.update_solution(ps_output.solution_pool.best(), "MA " + ps_output.solution_pool.best_label());
+            algorithm_formatter.update_bounds(ps_output);
+        }
+    };
+    milp_assignment(instance, ma_parameters);
+}
+
 }
 
 packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
@@ -467,12 +492,15 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
+    bool use_milp_assignment = parameters.use_milp_assignment
+        && instance.objective() == Objective::VariableSizedBinPacking;
     if (instance.number_of_bins() <= 1) {
         use_tree_search = true;
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
+        use_milp_assignment = false;
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
@@ -568,7 +596,8 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_dichotomic_search
-                && !use_column_generation) {
+                && !use_column_generation
+                && !use_milp_assignment) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -685,6 +714,23 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
             local_output = std::make_unique<onedimensional::Output>(instance);
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
             wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
+                    exception_ptr,
+                    instance,
+                    parameters,
+                    algorithm_formatter,
+                    local_output);
+        });
+        local_outputs.push_back(std::move(local_output));
+    }
+    // MILP assignment.
+    if (use_milp_assignment) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        std::unique_ptr<onedimensional::Output> local_output;
+        if (deterministic)
+            local_output = std::make_unique<onedimensional::Output>(instance);
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+            wrapper<decltype(&optimize_milp_assignment), optimize_milp_assignment>(
                     exception_ptr,
                     instance,
                     parameters,
