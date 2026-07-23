@@ -408,6 +408,19 @@ private:
     /** Parameters. */
     Parameters parameters_;
 
+    /**
+     * Bin type of the bin at each position, in the order in which bins are
+     * considered by the branching scheme.
+     *
+     * For the Knapsack objective, bins are considered by increasing space,
+     * regardless of the order in which they appear in the instance.
+     * Otherwise, this matches 'instance_.bin_type_id(bin_pos)'.
+     */
+    std::vector<BinTypeId> bin_type_ids_;
+
+    /** Total area of the bins preceding each position, in the same order as 'bin_type_ids_'. */
+    std::vector<Area> previous_bins_area_;
+
     /** First stage orientation. */
     CutOrientation first_stage_orientation_ = CutOrientation::Any;
 
@@ -544,7 +557,7 @@ private:
         const Instance& instance = this->instance(node.first_stage_orientation);
         BinPos i = node.number_of_bins - 1;
         CutOrientation o = node.first_stage_orientation;
-        BinTypeId bin_type_id = instance.bin_type_id(i);
+        BinTypeId bin_type_id = bin_type_ids_[i];
         const BinType& bin_type = instance.bin_type(bin_type_id);
         return (instance_.parameters().number_of_stages >= 3)?
             (node.x1_curr - node.x1_prev)
@@ -696,7 +709,7 @@ inline bool BranchingScheme::dominates(
                 && f1.x1_curr <= f2.x1_curr
                 && f1.y2_curr <= f2.y2_prev)
             return true;
-        BinTypeId bin_type_id = instance.bin_type_id(f1.i);
+        BinTypeId bin_type_id = bin_type_ids_[f1.i];
         const BinType& bin_type = instance.bin_type(bin_type_id);
         Length h = bin_type.rect.h;
         if (f1.y2_curr != h

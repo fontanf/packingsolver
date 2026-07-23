@@ -5,6 +5,8 @@
 #include "algorithms/thread_pool.hpp"
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
+#include <algorithm>
+#include <numeric>
 #include <string>
 
 using namespace packingsolver;
@@ -34,6 +36,36 @@ BranchingScheme::BranchingScheme(
     predecessors_(instance_orig.number_of_item_types())
 {
     const Instance& instance = this->instance();
+
+    // Compute bin_type_ids_ and previous_bins_volume_.
+    //
+    // For the Knapsack objective, bins are considered by increasing space,
+    // regardless of the order in which they appear in the instance.
+    // Otherwise, bins are considered in the order in which they appear in
+    // the instance.
+    {
+        std::vector<BinTypeId> bin_type_id_order(instance.number_of_bin_types());
+        std::iota(bin_type_id_order.begin(), bin_type_id_order.end(), 0);
+        if (instance.objective() == Objective::Knapsack) {
+            std::stable_sort(
+                    bin_type_id_order.begin(),
+                    bin_type_id_order.end(),
+                    [&instance](BinTypeId bin_type_id_1, BinTypeId bin_type_id_2)
+                    {
+                        return instance.bin_type(bin_type_id_1).space()
+                            < instance.bin_type(bin_type_id_2).space();
+                    });
+        }
+        Volume previous_bin_volume = 0;
+        for (BinTypeId bin_type_id: bin_type_id_order) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            for (BinPos copy = 0; copy < bin_type.copies; ++copy) {
+                bin_type_ids_.push_back(bin_type_id);
+                previous_bins_volume_.push_back(previous_bin_volume);
+                previous_bin_volume += bin_type.volume();
+            }
+        }
+    }
 
     // Compute predecessors.
     //instance.format(std::cout, 3);
@@ -201,7 +233,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     BinPos i = node.number_of_bins - 1;
     Direction o = node.last_bin_direction;
-    BinTypeId bin_type_id = instance.bin_type_id(i);
+    BinTypeId bin_type_id = bin_type_ids_[i];
     const BinType& bin_type = instance.bin_type(bin_type_id);
     const ItemType& item_type = instance.item_type(insertion.item_type_id);
 
@@ -301,8 +333,8 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.xs_max = (insertion.new_bin == 0)?
         std::max(parent.xs_max, insertion.x):
         insertion.x;
-    node.current_volume = instance.previous_bin_volume(i);
-    node.guide_volume = instance.previous_bin_volume(i) + node.xs_max * yi * zi;
+    node.current_volume = previous_bins_volume_[i];
+    node.guide_volume = previous_bins_volume_[i] + node.xs_max * yi * zi;
     for (const UncoveredItem& uncovered_item: node.uncovered_items) {
         node.current_volume += uncovered_item.x_dominance
             * (uncovered_item.ye - uncovered_item.ys)
@@ -358,7 +390,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
     // Insert in the current bin.
     if (parent->number_of_bins > 0) {
         const Instance& instance = this->instance(parent->last_bin_direction);
-        BinTypeId bin_type_id = instance.bin_type_id(parent->number_of_bins - 1);
+        BinTypeId bin_type_id = bin_type_ids_[parent->number_of_bins - 1];
         const BinType& bin_type = instance.bin_type(bin_type_id);
 
         // For all y uncovered item.
@@ -408,7 +440,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         } else if (parameters_.direction == Direction::Z) {
             new_bin = 3;
         } else {
-            BinTypeId bin_type_id = instance().bin_type_id(new_bin_pos);
+            BinTypeId bin_type_id = bin_type_ids_[new_bin_pos];
             const BinType& bin_type = instance().bin_type(bin_type_id);
             if (bin_type.box.x >= std::max(bin_type.box.y, bin_type.box.z)) {
                 new_bin = 1;
@@ -421,7 +453,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         //std::cout << "new bin " << (int)new_bin << std::endl;
 
         const Instance& instance = this->instance(new_bin);
-        BinTypeId bin_type_id = instance.bin_type_id(new_bin_pos);
+        BinTypeId bin_type_id = bin_type_ids_[new_bin_pos];
         const BinType& bin_type = instance.bin_type(bin_type_id);
 
         // Items.
@@ -477,8 +509,8 @@ void BranchingScheme::insertion_item(
         this->instance(new_bin);
     const ItemType& item_type = instance.item_type(item_type_id);
     BinTypeId bin_type_id = (new_bin == 0)?
-        instance.bin_type_id(parent->number_of_bins - 1):
-        instance.bin_type_id(new_bin_pos);
+        bin_type_ids_[parent->number_of_bins - 1]:
+        bin_type_ids_[new_bin_pos];
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Box box = item_type.box.rotate(rotation);
     Length xi = bin_type.box.x;
@@ -658,7 +690,7 @@ bool BranchingScheme::bound(
             bin_pos++;
             if (bin_pos >= instance().number_of_bins())
                 return true;
-            BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+            BinTypeId bin_type_id = bin_type_ids_[bin_pos];
             const BinType& bin_type = instance().bin_type(bin_type_id);
             a -= bin_type.volume();
         }
@@ -719,7 +751,7 @@ Solution BranchingScheme::to_solution(
         // added to the solution, as empty bins.
         while (number_of_bins < current_node->number_of_bins) {
             bin_pos = solution_builder.add_bin(
-                    instance.bin_type_id(number_of_bins),
+                    bin_type_ids_[number_of_bins],
                     1);
             number_of_bins++;
         }
@@ -836,7 +868,7 @@ nlohmann::json BranchingScheme::json_export(
     nlohmann::json plot;
     Counter i = 0;
     // Plot bin.
-    BinTypeId bin_type_id = instance().bin_type_id(node->number_of_bins - 1);
+    BinTypeId bin_type_id = bin_type_ids_[node->number_of_bins - 1];
     plot[i] = {
         {"Id",json_bins_init_ids_[bin_type_id]},
         {"X", 0},

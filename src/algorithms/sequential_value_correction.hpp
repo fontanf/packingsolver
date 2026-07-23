@@ -38,7 +38,9 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
+#include <algorithm>
 #include <functional>
+#include <numeric>
 #include <sstream>
 
 namespace packingsolver
@@ -109,6 +111,32 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
     }
     auto lbs = largest_bin_space(instance);
 
+    // Bin type of the bin at each position, in the order in which bins are
+    // considered by the algorithm.
+    //
+    // For the Knapsack objective, bins are considered by increasing space,
+    // regardless of the order in which they appear in the instance.
+    // Otherwise, bins are considered in the order in which they appear in
+    // the instance.
+    std::vector<BinTypeId> bin_type_id_order(instance.number_of_bin_types());
+    std::iota(bin_type_id_order.begin(), bin_type_id_order.end(), 0);
+    if (instance.objective() == Objective::Knapsack) {
+        std::stable_sort(
+                bin_type_id_order.begin(),
+                bin_type_id_order.end(),
+                [&instance](BinTypeId bin_type_id_1, BinTypeId bin_type_id_2)
+                {
+                    return instance.bin_type(bin_type_id_1).space()
+                        < instance.bin_type(bin_type_id_2).space();
+                });
+    }
+    std::vector<BinTypeId> bin_type_ids_by_position;
+    for (BinTypeId bin_type_id: bin_type_id_order) {
+        const auto& bin_type = instance.bin_type(bin_type_id);
+        for (BinPos copy = 0; copy < bin_type.copies; ++copy)
+            bin_type_ids_by_position.push_back(bin_type_id);
+    }
+
     for (output.number_of_iterations = 0;; output.number_of_iterations++) {
         // track fixed copies from bins added to the partial solution in this iteration
         std::vector<ItemPos> partial_fixed_copies(instance.number_of_item_types(), 0);
@@ -175,7 +203,7 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
                     }
                 }
             } else {
-                bin_type_ids.push_back(instance.bin_type_id(solution.number_of_bins()));
+                bin_type_ids.push_back(bin_type_ids_by_position[solution.number_of_bins()]);
             }
 
             std::vector<ItemPos> bin_fixed_copies(instance.number_of_item_types(), 0);

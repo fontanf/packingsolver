@@ -5,6 +5,8 @@
 #include "algorithms/thread_pool.hpp"
 #include "treesearchsolver/iterative_beam_search_2.hpp"
 
+#include <algorithm>
+#include <numeric>
 #include <thread>
 
 using namespace packingsolver;
@@ -20,6 +22,33 @@ BranchingScheme::BranchingScheme(
     instance_(instance),
     parameters_(parameters)
 {
+    // Compute bin_type_ids_ and previous_bins_length_.
+    //
+    // For the Knapsack objective, bins are considered by increasing space,
+    // regardless of the order in which they appear in the instance.
+    // Otherwise, bins are considered in the order in which they appear in
+    // the instance.
+    std::vector<BinTypeId> bin_type_id_order(instance.number_of_bin_types());
+    std::iota(bin_type_id_order.begin(), bin_type_id_order.end(), 0);
+    if (instance.objective() == Objective::Knapsack) {
+        std::stable_sort(
+                bin_type_id_order.begin(),
+                bin_type_id_order.end(),
+                [&instance](BinTypeId bin_type_id_1, BinTypeId bin_type_id_2)
+                {
+                    return instance.bin_type(bin_type_id_1).space()
+                        < instance.bin_type(bin_type_id_2).space();
+                });
+    }
+    Length previous_bin_length = 0;
+    for (BinTypeId bin_type_id: bin_type_id_order) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        for (BinPos copy = 0; copy < bin_type.copies; ++copy) {
+            bin_type_ids_.push_back(bin_type_id);
+            previous_bins_length_.push_back(previous_bin_length);
+            previous_bin_length += bin_type.length;
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -73,7 +102,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.profit = parent.profit + item_type.profit;
 
     // Compute current_length, guide_length and width using uncovered_items.
-    node.current_length = instance_.previous_bin_length(i) + node.last_bin_length;
+    node.current_length = previous_bins_length_[i] + node.last_bin_length;
     node.waste = node.current_length - node.item_length;
 
     node.id = node_id_++;
@@ -99,7 +128,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
 
     // Insert an item in the same bin.
     if (parent->number_of_bins > 0) {
-        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
+        BinTypeId bin_type_id = bin_type_ids_[parent->number_of_bins - 1];
         const BinType& bin_type = instance().bin_type(bin_type_id);
         for (ItemTypeId item_type_id: bin_type.item_type_ids) {
             const ItemType& item_type = instance_.item_type(item_type_id);
@@ -115,7 +144,7 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
     for (BinPos new_bin_pos = parent->number_of_bins;
             insertions_.empty() && new_bin_pos < instance().number_of_bins();
             ++new_bin_pos) {
-        BinTypeId bin_type_id = instance().bin_type_id(new_bin_pos);
+        BinTypeId bin_type_id = bin_type_ids_[new_bin_pos];
         const BinType& bin_type = instance().bin_type(bin_type_id);
         for (ItemTypeId item_type_id: bin_type.item_type_ids) {
             const ItemType& item_type = instance_.item_type(item_type_id);
@@ -133,7 +162,7 @@ void BranchingScheme::insertion_item_same_bin(
         ItemTypeId item_type_id) const
 {
     const ItemType& item_type = instance_.item_type(item_type_id);
-    BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
+    BinTypeId bin_type_id = bin_type_ids_[parent->number_of_bins - 1];
     const BinType& bin_type = instance().bin_type(bin_type_id);
 
     // Check bin length.
@@ -165,7 +194,7 @@ void BranchingScheme::insertion_item_new_bin(
 {
     //std::cout << "insertion_item " << item_type_id << std::endl;
     const ItemType& item_type = instance_.item_type(item_type_id);
-    BinTypeId bin_type_id = instance().bin_type_id(new_bin_pos);
+    BinTypeId bin_type_id = bin_type_ids_[new_bin_pos];
     const BinType& bin_type = instance().bin_type(bin_type_id);
     // Check bin length.
     if (item_type.length > bin_type.length)
@@ -262,7 +291,7 @@ bool BranchingScheme::bound(
             bin_pos++;
             if (bin_pos >= instance_.number_of_bins())
                 return true;
-            BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+            BinTypeId bin_type_id = bin_type_ids_[bin_pos];
             a -= instance().bin_type(bin_type_id).length;
         }
         return (bin_pos + 1 >= node_2->number_of_bins);
@@ -310,7 +339,7 @@ Solution BranchingScheme::to_solution(
         // Bins that were skipped because no item fit in them are still
         // added to the solution, as empty bins.
         while (number_of_bins < current_node->number_of_bins) {
-            bin_pos = solution_builder.add_bin(instance().bin_type_id(number_of_bins), 1);
+            bin_pos = solution_builder.add_bin(bin_type_ids_[number_of_bins], 1);
             number_of_bins++;
         }
         solution_builder.add_item(bin_pos, current_node->item_type_id);
