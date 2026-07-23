@@ -4,6 +4,7 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 
 #include <array>
+#include <map>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
@@ -60,6 +61,288 @@ Length f_ccm_2(
     } else {
         return 2 * (length / k);
     }
+}
+
+/**
+ * Greedy maximum cardinality: given a pool of piece lengths sorted
+ * ascending (with multiplicities), greedily fill 'capacity' and return how
+ * many pieces were used. Sorting ascending and greedily filling is optimal
+ * for maximizing the count of pieces packed subject to a sum constraint.
+ */
+ItemPos greedy_maximum_cardinality(
+        Length capacity,
+        const std::vector<std::pair<Length, ItemPos>>& sorted_pool)
+{
+    Length used = 0;
+    ItemPos count = 0;
+    for (const auto& p: sorted_pool) {
+        Length length = p.first;
+        ItemPos copies = p.second;
+        if (used + copies * length < capacity) {
+            used += copies * length;
+            count += copies;
+        } else {
+            count += (capacity - used) / length;
+            break;
+        }
+    }
+    return count;
+}
+
+/**
+ * Length 'item_type' effectively contributes to the "medium items" pool on
+ * one axis (breakpoint 'k', 'half_capacity' being half the bin's capacity
+ * on that axis) - used only to upper-bound how many medium items can be
+ * packed alongside a big item (f_ccm_1's "MC(C, S) - MC(C - x, S)" term).
+ *
+ * 'own_dimension' is the item's dimension along this axis if it were
+ * oriented that way (rect.x for width, rect.y for height); 'other_dimension'
+ * is its other dimension, only relevant if the item is not oriented.
+ *
+ * For an unoriented item, either dimension could end up on this axis;
+ * using whichever qualifying dimension is smallest can only overestimate -
+ * never underestimate - the true achievable count, keeping the result a
+ * valid upper bound regardless of which orientation actually ends up being
+ * used. Returns -1 if the item cannot be "medium" on this axis in any
+ * orientation.
+ */
+Length medium_pool_length(
+        const ItemType& item_type,
+        Length own_dimension,
+        Length other_dimension,
+        Length k,
+        Length half_capacity)
+{
+    if (item_type.oriented) {
+        if (k <= own_dimension && own_dimension <= half_capacity)
+            return own_dimension;
+        return -1;
+    }
+    Length lo = (std::min)(own_dimension, other_dimension);
+    Length hi = (std::max)(own_dimension, other_dimension);
+    if (k <= lo && lo <= half_capacity)
+        return lo;
+    if (k <= hi && hi <= half_capacity)
+        return hi;
+    return -1;
+}
+
+/**
+ * f_ccm_1 for a specific assumed length on one axis, looking up the
+ * "maximum cardinality" value it needs only when it actually falls in the
+ * "big item" branch (length > capacity / 2); 'excluded_cardinality' must
+ * have an entry for 'length' whenever this branch is taken.
+ */
+Length f_ccm_1_axis(
+        Length capacity,
+        Length k,
+        Length length,
+        ItemPos full_cardinality,
+        const std::map<Length, ItemPos>& excluded_cardinality)
+{
+    if (length > capacity / 2) {
+        ItemPos excluded = excluded_cardinality.at(length);
+        return f_ccm_1(capacity, k, length, full_cardinality - excluded);
+    }
+    return f_ccm_1(capacity, k, length, 0);
+}
+
+/**
+ * Coefficient of 'item_type' for breakpoints (k, l) and DFF families
+ * (family_w, family_h in {0: f_ccm_0, 1: f_ccm_1, 2: f_ccm_2}).
+ *
+ * If the item is not oriented, its true contribution depends on an
+ * orientation choice this per-item-type coefficient scheme doesn't track;
+ * using the smaller of its two orientations' coefficients stays a valid
+ * (safe) lower bound on the true contribution regardless of which
+ * orientation actually ends up being used.
+ */
+Length item_coefficient(
+        const ItemType& item_type,
+        int family_w,
+        int family_h,
+        Length k,
+        Length l,
+        Length bin_w,
+        Length bin_h,
+        ItemPos full_cardinality_w,
+        const std::map<Length, ItemPos>& excluded_cardinality_w,
+        ItemPos full_cardinality_h,
+        const std::map<Length, ItemPos>& excluded_cardinality_h)
+{
+    auto eval_w = [&](Length length) -> Length
+    {
+        switch (family_w) {
+        case 0: return f_ccm_0(bin_w, k, length);
+        case 1: return f_ccm_1_axis(bin_w, k, length, full_cardinality_w, excluded_cardinality_w);
+        default: return f_ccm_2(bin_w, k, length);
+        }
+    };
+    auto eval_h = [&](Length length) -> Length
+    {
+        switch (family_h) {
+        case 0: return f_ccm_0(bin_h, l, length);
+        case 1: return f_ccm_1_axis(bin_h, l, length, full_cardinality_h, excluded_cardinality_h);
+        default: return f_ccm_2(bin_h, l, length);
+        }
+    };
+
+    Length a = eval_w(item_type.rect.x) * eval_h(item_type.rect.y);
+    if (item_type.oriented)
+        return a;
+    Length b = eval_w(item_type.rect.y) * eval_h(item_type.rect.x);
+    return (std::min)(a, b);
+}
+
+/**
+ * Precomputed tables shared by every (k, l, family_w, family_h) combo of
+ * the breakpoint sweep: candidate breakpoints on each axis, and the
+ * "maximum cardinality" bookkeeping f_ccm_1 needs. These only depend on
+ * 'instance' and 'bin_type', not on any particular candidate selection, so
+ * they are computed once and reused - both across every combo of a single
+ * sweep, and across every call site that runs a sweep over the same
+ * instance (the bin-count/profit bound below, and the Benders
+ * decomposition pre-subproblem cut checker).
+ */
+struct DualFeasibleFunctionsTables
+{
+    std::vector<Length> widths;
+    std::vector<Length> heights;
+    std::vector<ItemPos> full_cardinality_w;
+    std::vector<std::map<Length, ItemPos>> excluded_cardinality_w;
+    std::vector<ItemPos> full_cardinality_h;
+    std::vector<std::map<Length, ItemPos>> excluded_cardinality_h;
+};
+
+DualFeasibleFunctionsTables compute_dual_feasible_functions_tables(
+        const Instance& instance,
+        const BinType& bin_type)
+{
+    DualFeasibleFunctionsTables tables;
+
+    // Compute all distinct widths and heights. Both dimensions of every
+    // non-oriented item type feed both axes: it may end up presenting
+    // either side along the bin's width or its height, so a breakpoint
+    // that only matters for one orientation should not be missed.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        std::vector<Length> width_candidates = item_type.oriented ?
+            std::vector<Length>{item_type.rect.x}:
+            std::vector<Length>{item_type.rect.x, item_type.rect.y};
+        for (Length d: width_candidates) {
+            if (d == bin_type.rect.x) {
+            } else if (d <= bin_type.rect.x / 2) {
+                tables.widths.push_back(d);
+            } else {
+                tables.widths.push_back(bin_type.rect.x - d);
+            }
+        }
+        std::vector<Length> height_candidates = item_type.oriented ?
+            std::vector<Length>{item_type.rect.y}:
+            std::vector<Length>{item_type.rect.x, item_type.rect.y};
+        for (Length d: height_candidates) {
+            if (d == bin_type.rect.y) {
+            } else if (d <= bin_type.rect.y / 2) {
+                tables.heights.push_back(d);
+            } else {
+                tables.heights.push_back(bin_type.rect.y - d);
+            }
+        }
+    }
+    // capacity / 2 is where f_ccm_0/f_ccm_2 themselves switch branch: it is
+    // a meaningful breakpoint on its own, regardless of whether any item
+    // dimension happens to fold onto it (this matters most for rotation:
+    // e.g. an item that is "big" in both orientations, on both axes, needs
+    // this breakpoint to be recognized as such if no item dimension is
+    // exactly at half the bin's capacity).
+    tables.widths.push_back(bin_type.rect.x / 2);
+    tables.heights.push_back(bin_type.rect.y / 2);
+    sort(tables.widths.begin(), tables.widths.end());
+    sort(tables.heights.begin(), tables.heights.end());
+    tables.widths.erase(unique(tables.widths.begin(), tables.widths.end()), tables.widths.end());
+    tables.heights.erase(unique(tables.heights.begin(), tables.heights.end()), tables.heights.end());
+
+    // Distinct "big" (> half the bin's capacity on that axis) dimension
+    // values that some item type might present along each axis - these are
+    // the only values f_ccm_1_axis will ever need an excluded-cardinality
+    // entry for.
+    std::vector<Length> big_values_w;
+    std::vector<Length> big_values_h;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (item_type.rect.x > bin_type.rect.x / 2)
+            big_values_w.push_back(item_type.rect.x);
+        if (!item_type.oriented && item_type.rect.y > bin_type.rect.x / 2)
+            big_values_w.push_back(item_type.rect.y);
+        if (item_type.rect.y > bin_type.rect.y / 2)
+            big_values_h.push_back(item_type.rect.y);
+        if (!item_type.oriented && item_type.rect.x > bin_type.rect.y / 2)
+            big_values_h.push_back(item_type.rect.x);
+    }
+    sort(big_values_w.begin(), big_values_w.end());
+    big_values_w.erase(unique(big_values_w.begin(), big_values_w.end()), big_values_w.end());
+    sort(big_values_h.begin(), big_values_h.end());
+    big_values_h.erase(unique(big_values_h.begin(), big_values_h.end()), big_values_h.end());
+
+    // Compute maximum cardinalities.
+    tables.full_cardinality_w.resize(tables.widths.size());
+    tables.excluded_cardinality_w.resize(tables.widths.size());
+    for (ItemTypeId k_pos = 0; k_pos < (ItemTypeId)tables.widths.size(); ++k_pos) {
+        Length k = tables.widths[k_pos];
+        std::vector<std::pair<Length, ItemPos>> pool;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance.item_type(item_type_id);
+            Length length = medium_pool_length(
+                    item_type,
+                    item_type.rect.x,
+                    item_type.rect.y,
+                    k,
+                    bin_type.rect.x / 2);
+            if (length >= 0)
+                pool.push_back({length, item_type.copies});
+        }
+        sort(pool.begin(), pool.end());
+        tables.full_cardinality_w[k_pos] = greedy_maximum_cardinality(bin_type.rect.x, pool);
+        for (Length big_value: big_values_w) {
+            tables.excluded_cardinality_w[k_pos][big_value] = greedy_maximum_cardinality(
+                    bin_type.rect.x - big_value,
+                    pool);
+        }
+    }
+    tables.full_cardinality_h.resize(tables.heights.size());
+    tables.excluded_cardinality_h.resize(tables.heights.size());
+    for (ItemTypeId l_pos = 0; l_pos < (ItemTypeId)tables.heights.size(); ++l_pos) {
+        Length l = tables.heights[l_pos];
+        std::vector<std::pair<Length, ItemPos>> pool;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance.item_type(item_type_id);
+            Length length = medium_pool_length(
+                    item_type,
+                    item_type.rect.y,
+                    item_type.rect.x,
+                    l,
+                    bin_type.rect.y / 2);
+            if (length >= 0)
+                pool.push_back({length, item_type.copies});
+        }
+        sort(pool.begin(), pool.end());
+        tables.full_cardinality_h[l_pos] = greedy_maximum_cardinality(bin_type.rect.y, pool);
+        for (Length big_value: big_values_h) {
+            tables.excluded_cardinality_h[l_pos][big_value] = greedy_maximum_cardinality(
+                    bin_type.rect.y - big_value,
+                    pool);
+        }
+    }
+
+    return tables;
 }
 
 /**
@@ -146,7 +429,6 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    // These bounds are only valid if all items are oriented.
     bool all_items_oriented = true;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
@@ -157,24 +439,23 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
             break;
         }
     }
-    if (!all_items_oriented) {
-        // The recursive doubling strategy below only produces a bin count
-        // bound, which does not translate into a knapsack profit bound
-        // (profit does not simply halve when an item is duplicated once
-        // per orientation), so skip it entirely for the Knapsack objective.
-        if (instance.objective() == Objective::Knapsack) {
-            algorithm_formatter.end();
-            return output;
-        }
 
-        // If there are some non-oriented items, we use the strategy from
-        // clautiaux2007:
-        // - Build a modified instance containing for each item of the original
-        //   instance, one item for each orientation.
-        // - Compute the bound on the modified instance.
-        // - Divide it by 2 to get the bound of the original instance.
-
-        BinPos bound = 0;
+    // If there are some non-oriented items, also run the strategy from
+    // clautiaux2007 (build a modified instance containing, for each item,
+    // one copy per orientation; compute the bound on that fully-oriented,
+    // squared-up modified instance; divide it by 2), on top of the sweep
+    // below (which now handles rotation itself via item_coefficient's
+    // min-of-two-orientations). Neither technique dominates the other in
+    // general - e.g. this one pays no "squaring tax" on non-square bins,
+    // but doesn't get f_ccm_1's cross-item bookkeeping for ambiguous items
+    // - so take the max of both.
+    //
+    // This doesn't apply to the Knapsack objective: the recursive doubling
+    // strategy below only produces a bin count bound, which does not
+    // translate into a knapsack profit bound (profit does not simply halve
+    // when an item is duplicated once per orientation).
+    BinPos clautiaux_bound = 0;
+    if (!all_items_oriented && instance.objective() != Objective::Knapsack) {
         for (;;) {
             // Build modified instance.
             // Always use 'BinPacking' here, regardless of the original
@@ -198,14 +479,14 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
                         bin_type.rect.x);
                 modified_instance_builder.set_bin_type_copies(
                         modified_bin_type_id,
-                        2 * instance.number_of_items() + bound);
-                if (bound > 0) {
+                        2 * instance.number_of_items() + clautiaux_bound);
+                if (clautiaux_bound > 0) {
                     ItemTypeId modified_item_type_id = modified_instance_builder.add_item_type(
                             bin_type.rect.x,
                             bin_type.rect.x - bin_type.rect.y);
                     modified_instance_builder.set_item_type_copies(
                             modified_item_type_id,
-                            bound);
+                            clautiaux_bound);
                 }
             } else if (bin_type.rect.x < bin_type.rect.y) {
                 BinTypeId modified_bin_type_id = modified_instance_builder.add_bin_type(
@@ -213,14 +494,14 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
                         bin_type.rect.y);
                 modified_instance_builder.set_bin_type_copies(
                         modified_bin_type_id,
-                        2 * instance.number_of_items() + bound);
-                if (bound > 0) {
+                        2 * instance.number_of_items() + clautiaux_bound);
+                if (clautiaux_bound > 0) {
                     ItemTypeId modified_item_type_id = modified_instance_builder.add_item_type(
                             bin_type.rect.y - bin_type.rect.x,
                             bin_type.rect.y);
                     modified_instance_builder.set_item_type_copies(
                             modified_item_type_id,
-                            bound);
+                            clautiaux_bound);
                 }
             }
             // Add items.
@@ -273,145 +554,22 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
 
             // Retrieve the bound of the original instance.
             BinPos bound_cur = (modified_output.bin_packing_bound - 1) / 2 + 1;
-            if (bound >= bound_cur)
+            if (clautiaux_bound >= bound_cur)
                 break;
-            bound = bound_cur;
-            if (instance.objective() == Objective::BinPacking) {
-                algorithm_formatter.update_bin_packing_bound(bound);
-            } else if (instance.objective() == Objective::Feasibility) {
-                if (bound > instance.number_of_bins())
-                    algorithm_formatter.update_is_proven_infeasible();
-            }
+            clautiaux_bound = bound_cur;
 
             if (bin_type.rect.x == bin_type.rect.y)
                 break;
         }
-        algorithm_formatter.end();
-        return output;
     }
 
-    // Compute all distinct widths and heights.
-    std::vector<Length> widths;
-    std::vector<Length> heights;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        if (item_type.rect.x == bin_type.rect.x) {
-        } else if (item_type.rect.x <= bin_type.rect.x / 2) {
-            widths.push_back(item_type.rect.x);
-        } else {
-            widths.push_back(bin_type.rect.x - item_type.rect.x);
-        }
-        if (item_type.rect.y == bin_type.rect.y) {
-        } else if (item_type.rect.y <= bin_type.rect.y / 2) {
-            heights.push_back(item_type.rect.y);
-        } else {
-            heights.push_back(bin_type.rect.y - item_type.rect.y);
-        }
-    }
-    sort(widths.begin(), widths.end());
-    sort(heights.begin(), heights.end());
-    widths.erase(unique(widths.begin(), widths.end()), widths.end());
-    heights.erase(unique(heights.begin(), heights.end()), heights.end());
-
-    // Compute maximum cardinalities.
-    std::vector<std::vector<ItemPos>> maximum_cardinality_w(widths.size());
-    for (ItemTypeId k_pos = 0; k_pos < (ItemTypeId)widths.size(); ++k_pos) {
-        Length k = widths[k_pos];
-        std::vector<ItemTypeId> sorted_item_type_ids_w;
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            const ItemType& item_type = instance.item_type(item_type_id);
-            if (k <= item_type.rect.x && item_type.rect.x <= bin_type.rect.x / 2)
-                sorted_item_type_ids_w.push_back(item_type_id);
-        }
-        std::sort(
-                sorted_item_type_ids_w.begin(),
-                sorted_item_type_ids_w.end(),
-                [&instance](
-                    ItemTypeId item_type_id_1,
-                    ItemTypeId item_type_id_2)
-                {
-                const ItemType& item_type_1 = instance.item_type(item_type_id_1);
-                const ItemType& item_type_2 = instance.item_type(item_type_id_2);
-                return item_type_1.rect.x < item_type_2.rect.x;
-                });
-        maximum_cardinality_w[k_pos] = std::vector<ItemPos>(instance.number_of_item_types() + 1, -10000);
-        for (ItemTypeId item_type_id = 0;
-                item_type_id <= instance.number_of_item_types();
-                ++item_type_id) {
-            Length capacity_w = bin_type.rect.x;
-            if (item_type_id < instance.number_of_item_types()) {
-                const ItemType& item_type = instance.item_type(item_type_id);
-                if (item_type.rect.x <= bin_type.rect.x / 2)
-                    continue;
-                capacity_w -= item_type.rect.x;
-            }
-            Length width_cur = 0;
-            maximum_cardinality_w[k_pos][item_type_id] = 0;
-            for (ItemTypeId item_type_id_cur: sorted_item_type_ids_w) {
-                const ItemType& item_type_cur = instance.item_type(item_type_id_cur);
-                if (width_cur + item_type_cur.copies * item_type_cur.rect.x < capacity_w) {
-                    width_cur += item_type_cur.copies * item_type_cur.rect.x;
-                    maximum_cardinality_w[k_pos][item_type_id] += item_type_cur.copies;
-                } else {
-                    ItemPos copies = (capacity_w - width_cur) / item_type_cur.rect.x;
-                    maximum_cardinality_w[k_pos][item_type_id] += copies;
-                    break;
-                }
-            }
-        }
-    }
-    std::vector<std::vector<ItemPos>> maximum_cardinality_h(heights.size());
-    for (ItemTypeId l_pos = 0; l_pos < (ItemTypeId)heights.size(); ++l_pos) {
-        Length l = heights[l_pos];
-        std::vector<ItemTypeId> sorted_item_type_ids_h;
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            const ItemType& item_type = instance.item_type(item_type_id);
-            if (l <= item_type.rect.y && item_type.rect.y <= bin_type.rect.y / 2)
-                sorted_item_type_ids_h.push_back(item_type_id);
-        }
-        std::sort(
-                sorted_item_type_ids_h.begin(),
-                sorted_item_type_ids_h.end(),
-                [&instance](
-                    ItemTypeId item_type_id_1,
-                    ItemTypeId item_type_id_2)
-                {
-                const ItemType& item_type_1 = instance.item_type(item_type_id_1);
-                const ItemType& item_type_2 = instance.item_type(item_type_id_2);
-                return item_type_1.rect.y < item_type_2.rect.y;
-                });
-        maximum_cardinality_h[l_pos] = std::vector<ItemPos>(instance.number_of_item_types() + 1, -10000);
-        for (ItemTypeId item_type_id = 0;
-                item_type_id <= instance.number_of_item_types();
-                ++item_type_id) {
-            Length capacity_h = bin_type.rect.y;
-            if (item_type_id < instance.number_of_item_types()) {
-                const ItemType& item_type = instance.item_type(item_type_id);
-                if (item_type.rect.y <= bin_type.rect.y / 2)
-                    continue;
-                capacity_h -= item_type.rect.y;
-            }
-            Length height_cur = 0;
-            maximum_cardinality_h[l_pos][item_type_id] = 0;
-            for (ItemTypeId item_type_id_cur: sorted_item_type_ids_h) {
-                const ItemType& item_type_cur = instance.item_type(item_type_id_cur);
-                if (height_cur + item_type_cur.copies * item_type_cur.rect.y < capacity_h) {
-                    height_cur += item_type_cur.copies * item_type_cur.rect.y;
-                    maximum_cardinality_h[l_pos][item_type_id] += item_type_cur.copies;
-                } else {
-                    ItemPos copies = (capacity_h - height_cur) / item_type_cur.rect.y;
-                    maximum_cardinality_h[l_pos][item_type_id] += copies;
-                    break;
-                }
-            }
-        }
-    }
+    DualFeasibleFunctionsTables tables = compute_dual_feasible_functions_tables(instance, bin_type);
+    const std::vector<Length>& widths = tables.widths;
+    const std::vector<Length>& heights = tables.heights;
+    const std::vector<ItemPos>& full_cardinality_w = tables.full_cardinality_w;
+    const std::vector<std::map<Length, ItemPos>>& excluded_cardinality_w = tables.excluded_cardinality_w;
+    const std::vector<ItemPos>& full_cardinality_h = tables.full_cardinality_h;
+    const std::vector<std::map<Length, ItemPos>>& excluded_cardinality_h = tables.excluded_cardinality_h;
 
     BinPos bound = 0;
     Profit knapsack_bound = std::numeric_limits<Profit>::infinity();
@@ -422,69 +580,51 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
         for (ItemTypeId l_pos = 0; l_pos < (ItemTypeId)heights.size(); ++l_pos) {
             Length l = heights[l_pos];
 
-            Length f_ccm_0_w_bin = f_ccm_0(bin_type.rect.x, k, bin_type.rect.x);
-            Length f_ccm_0_h_bin = f_ccm_0(bin_type.rect.y, l, bin_type.rect.y);
-            Length f_ccm_1_w_bin = f_ccm_1(bin_type.rect.x, k, bin_type.rect.x, maximum_cardinality_w[k_pos][instance.number_of_item_types()]);
-            Length f_ccm_1_h_bin = f_ccm_1(bin_type.rect.y, l, bin_type.rect.y, maximum_cardinality_h[l_pos][instance.number_of_item_types()]);
-            Length f_ccm_2_w_bin = f_ccm_2(bin_type.rect.x, k, bin_type.rect.x);
-            Length f_ccm_2_h_bin = f_ccm_2(bin_type.rect.y, l, bin_type.rect.y);
+            std::array<Length, 3> f_w_bin = {
+                f_ccm_0(bin_type.rect.x, k, bin_type.rect.x),
+                f_ccm_1(bin_type.rect.x, k, bin_type.rect.x, full_cardinality_w[k_pos]),
+                f_ccm_2(bin_type.rect.x, k, bin_type.rect.x)};
+            std::array<Length, 3> f_h_bin = {
+                f_ccm_0(bin_type.rect.y, l, bin_type.rect.y),
+                f_ccm_1(bin_type.rect.y, l, bin_type.rect.y, full_cardinality_h[l_pos]),
+                f_ccm_2(bin_type.rect.y, l, bin_type.rect.y)};
 
-            Length f_ccm_0_w_0_h_sum = 0;
-            Length f_ccm_0_w_1_h_sum = 0;
-            Length f_ccm_0_w_2_h_sum = 0;
-            Length f_ccm_1_w_0_h_sum = 0;
-            Length f_ccm_1_w_1_h_sum = 0;
-            Length f_ccm_1_w_2_h_sum = 0;
-            Length f_ccm_2_w_0_h_sum = 0;
-            Length f_ccm_2_w_1_h_sum = 0;
-            Length f_ccm_2_w_2_h_sum = 0;
-            // For the Knapsack objective, the per-item scaled volumes are
-            // needed individually (to run a Dantzig bound over the
-            // selection), rather than summed over all items.
+            std::array<std::array<Length, 3>, 3> sums{};
             std::array<std::array<std::vector<Length>, 3>, 3> volumes;
             if (instance.objective() == Objective::Knapsack) {
                 for (auto& row: volumes)
                     for (auto& v: row)
                         v.resize(instance.number_of_item_types());
             }
+
             for (ItemTypeId item_type_id = 0;
                     item_type_id < instance.number_of_item_types();
                     ++item_type_id) {
                 const ItemType& item_type = instance.item_type(item_type_id);
-
-                Length f_ccm_0_w = f_ccm_0(bin_type.rect.x, k, item_type.rect.x);
-                Length f_ccm_0_h = f_ccm_0(bin_type.rect.y, l, item_type.rect.y);
-                Length f_ccm_1_w = f_ccm_1(bin_type.rect.x, k, item_type.rect.x, maximum_cardinality_w[k_pos][instance.number_of_item_types()] - maximum_cardinality_w[k_pos][item_type_id]);
-                Length f_ccm_1_h = f_ccm_1(bin_type.rect.y, l, item_type.rect.y, maximum_cardinality_h[l_pos][instance.number_of_item_types()] - maximum_cardinality_h[l_pos][item_type_id]);
-                Length f_ccm_2_w = f_ccm_2(bin_type.rect.x, k, item_type.rect.x);
-                Length f_ccm_2_h = f_ccm_2(bin_type.rect.y, l, item_type.rect.y);
-
-                if (instance.objective() == Objective::Knapsack) {
-                    volumes[0][0][item_type_id] = f_ccm_0_w * f_ccm_0_h;
-                    volumes[0][1][item_type_id] = f_ccm_0_w * f_ccm_1_h;
-                    volumes[0][2][item_type_id] = f_ccm_0_w * f_ccm_2_h;
-                    volumes[1][0][item_type_id] = f_ccm_1_w * f_ccm_0_h;
-                    volumes[1][1][item_type_id] = f_ccm_1_w * f_ccm_1_h;
-                    volumes[1][2][item_type_id] = f_ccm_1_w * f_ccm_2_h;
-                    volumes[2][0][item_type_id] = f_ccm_2_w * f_ccm_0_h;
-                    volumes[2][1][item_type_id] = f_ccm_2_w * f_ccm_1_h;
-                    volumes[2][2][item_type_id] = f_ccm_2_w * f_ccm_2_h;
-                } else {
-                    f_ccm_0_w_0_h_sum += item_type.copies * f_ccm_0_w * f_ccm_0_h;
-                    f_ccm_0_w_1_h_sum += item_type.copies * f_ccm_0_w * f_ccm_1_h;
-                    f_ccm_0_w_2_h_sum += item_type.copies * f_ccm_0_w * f_ccm_2_h;
-                    f_ccm_1_w_0_h_sum += item_type.copies * f_ccm_1_w * f_ccm_0_h;
-                    f_ccm_1_w_1_h_sum += item_type.copies * f_ccm_1_w * f_ccm_1_h;
-                    f_ccm_1_w_2_h_sum += item_type.copies * f_ccm_1_w * f_ccm_2_h;
-                    f_ccm_2_w_0_h_sum += item_type.copies * f_ccm_2_w * f_ccm_0_h;
-                    f_ccm_2_w_1_h_sum += item_type.copies * f_ccm_2_w * f_ccm_1_h;
-                    f_ccm_2_w_2_h_sum += item_type.copies * f_ccm_2_w * f_ccm_2_h;
+                for (int family_w = 0; family_w < 3; ++family_w) {
+                    for (int family_h = 0; family_h < 3; ++family_h) {
+                        Length c = item_coefficient(
+                                item_type,
+                                family_w,
+                                family_h,
+                                k,
+                                l,
+                                bin_type.rect.x,
+                                bin_type.rect.y,
+                                full_cardinality_w[k_pos],
+                                excluded_cardinality_w[k_pos],
+                                full_cardinality_h[l_pos],
+                                excluded_cardinality_h[l_pos]);
+                        if (instance.objective() == Objective::Knapsack) {
+                            volumes[family_w][family_h][item_type_id] = c;
+                        } else {
+                            sums[family_w][family_h] += item_type.copies * c;
+                        }
+                    }
                 }
             }
 
             if (instance.objective() == Objective::Knapsack) {
-                std::array<Length, 3> f_w_bin = {f_ccm_0_w_bin, f_ccm_1_w_bin, f_ccm_2_w_bin};
-                std::array<Length, 3> f_h_bin = {f_ccm_0_h_bin, f_ccm_1_h_bin, f_ccm_2_h_bin};
                 for (int family_w = 0; family_w < 3; ++family_w) {
                     for (int family_h = 0; family_h < 3; ++family_h) {
                         Length capacity_single = f_w_bin[family_w] * f_h_bin[family_h];
@@ -499,46 +639,23 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
                     }
                 }
             } else {
-                BinPos bound_0_w_0_h = std::ceil((double)f_ccm_0_w_0_h_sum / (f_ccm_0_w_bin * f_ccm_0_h_bin));
-                BinPos bound_0_w_1_h = std::ceil((double)f_ccm_0_w_1_h_sum / (f_ccm_0_w_bin * f_ccm_1_h_bin));
-                BinPos bound_0_w_2_h = std::ceil((double)f_ccm_0_w_2_h_sum / (f_ccm_0_w_bin * f_ccm_2_h_bin));
-                BinPos bound_1_w_0_h = std::ceil((double)f_ccm_1_w_0_h_sum / (f_ccm_1_w_bin * f_ccm_0_h_bin));
-                BinPos bound_1_w_1_h = std::ceil((double)f_ccm_1_w_1_h_sum / (f_ccm_1_w_bin * f_ccm_1_h_bin));
-                BinPos bound_1_w_2_h = std::ceil((double)f_ccm_1_w_2_h_sum / (f_ccm_1_w_bin * f_ccm_2_h_bin));
-                BinPos bound_2_w_0_h = std::ceil((double)f_ccm_2_w_0_h_sum / (f_ccm_2_w_bin * f_ccm_0_h_bin));
-                BinPos bound_2_w_1_h = std::ceil((double)f_ccm_2_w_1_h_sum / (f_ccm_2_w_bin * f_ccm_1_h_bin));
-                BinPos bound_2_w_2_h = std::ceil((double)f_ccm_2_w_2_h_sum / (f_ccm_2_w_bin * f_ccm_2_h_bin));
-
-                //std::cout << "k " << k << " l " << l << " bound_0_w_0_h " << bound_0_w_0_h << std::endl;
-                //std::cout << "k " << k << " l " << l << " bound_0_w_1_h " << bound_0_w_1_h << std::endl;
-                //std::cout << "k " << k << " l " << l << " bound_0_w_2_h " << bound_0_w_2_h << std::endl;
-                //std::cout << "k " << k << " l " << l << " bound_1_w_0_h " << bound_1_w_0_h << std::endl;
-                //std::cout << "k " << k << " l " << l << " bound_1_w_1_h " << bound_1_w_1_h << std::endl;
-                //std::cout << " f_ccm_1_w_1_h_sum " << f_ccm_1_w_1_h_sum << std::endl;
-                //std::cout << " f_ccm_1_w_bin " << f_ccm_1_w_bin << std::endl;
-                //std::cout << " f_ccm_1_h_bin " << f_ccm_1_h_bin << std::endl;
-                //std::cout << "k " << k << " l " << l << " bound_1_w_2_h " << bound_1_w_2_h << std::endl;
-                //std::cout << "k " << k << " l " << l << " bound_2_w_0_h " << bound_2_w_0_h << std::endl;
-                //std::cout << "k " << k << " l " << l << " bound_2_w_1_h " << bound_2_w_1_h << std::endl;
-                //std::cout << "k " << k << " l " << l << " bound_2_w_2_h " << bound_2_w_2_h << std::endl;
-
-                bound = (std::max)(bound, bound_0_w_0_h);
-                bound = (std::max)(bound, bound_0_w_1_h);
-                bound = (std::max)(bound, bound_0_w_2_h);
-                bound = (std::max)(bound, bound_1_w_0_h);
-                bound = (std::max)(bound, bound_1_w_1_h);
-                bound = (std::max)(bound, bound_1_w_2_h);
-                bound = (std::max)(bound, bound_2_w_0_h);
-                bound = (std::max)(bound, bound_2_w_1_h);
-                bound = (std::max)(bound, bound_2_w_2_h);
+                for (int family_w = 0; family_w < 3; ++family_w) {
+                    for (int family_h = 0; family_h < 3; ++family_h) {
+                        BinPos bound_combo = std::ceil(
+                                (double)sums[family_w][family_h]
+                                / (f_w_bin[family_w] * f_h_bin[family_h]));
+                        bound = (std::max)(bound, bound_combo);
+                    }
+                }
             }
         }
     }
 
-    //std::cout << "bound " << bound << std::endl;
     if (instance.objective() == Objective::BinPacking) {
+        bound = (std::max)(bound, clautiaux_bound);
         algorithm_formatter.update_bin_packing_bound(bound);
     } else if (instance.objective() == Objective::Feasibility) {
+        bound = (std::max)(bound, clautiaux_bound);
         if (bound > instance.number_of_bins())
             algorithm_formatter.update_is_proven_infeasible();
     } else if (instance.objective() == Objective::Knapsack) {
@@ -547,4 +664,87 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
 
     algorithm_formatter.end();
     return output;
+}
+
+DualFeasibleFunctionsCut packingsolver::rectangle::find_most_violated_dual_feasible_function_cut(
+        const Instance& instance,
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items)
+{
+    if (instance.number_of_bin_types() != 1) {
+        throw std::invalid_argument(FUNC_SIGNATURE);
+    }
+    const BinType& bin_type = instance.bin_type(0);
+
+    DualFeasibleFunctionsTables tables = compute_dual_feasible_functions_tables(instance, bin_type);
+
+    DualFeasibleFunctionsCut best;
+
+    for (ItemTypeId k_pos = 0; k_pos < (ItemTypeId)tables.widths.size(); ++k_pos) {
+        Length k = tables.widths[k_pos];
+
+        for (ItemTypeId l_pos = 0; l_pos < (ItemTypeId)tables.heights.size(); ++l_pos) {
+            Length l = tables.heights[l_pos];
+
+            std::array<Length, 3> f_w_bin = {
+                f_ccm_0(bin_type.rect.x, k, bin_type.rect.x),
+                f_ccm_1(bin_type.rect.x, k, bin_type.rect.x, tables.full_cardinality_w[k_pos]),
+                f_ccm_2(bin_type.rect.x, k, bin_type.rect.x)};
+            std::array<Length, 3> f_h_bin = {
+                f_ccm_0(bin_type.rect.y, l, bin_type.rect.y),
+                f_ccm_1(bin_type.rect.y, l, bin_type.rect.y, tables.full_cardinality_h[l_pos]),
+                f_ccm_2(bin_type.rect.y, l, bin_type.rect.y)};
+
+            for (int family_w = 0; family_w < 3; ++family_w) {
+                for (int family_h = 0; family_h < 3; ++family_h) {
+                    Length bin_coefficient = f_w_bin[family_w] * f_h_bin[family_h];
+                    if (bin_coefficient <= 0)
+                        continue;
+
+                    double sum = 0.0;
+                    for (const auto& p: selected_items) {
+                        const ItemType& item_type = instance.item_type(p.first);
+                        ItemPos copies = p.second;
+                        sum += copies * item_coefficient(
+                                item_type,
+                                family_w,
+                                family_h,
+                                k,
+                                l,
+                                bin_type.rect.x,
+                                bin_type.rect.y,
+                                tables.full_cardinality_w[k_pos],
+                                tables.excluded_cardinality_w[k_pos],
+                                tables.full_cardinality_h[l_pos],
+                                tables.excluded_cardinality_h[l_pos]);
+                    }
+
+                    double violation = sum - bin_coefficient;
+                    if (violation > best.violation) {
+                        best.found = true;
+                        best.violation = violation;
+                        best.bound = bin_coefficient;
+                        best.coefficients.assign(instance.number_of_item_types(), 0.0);
+                        for (ItemTypeId item_type_id = 0;
+                                item_type_id < instance.number_of_item_types();
+                                ++item_type_id) {
+                            best.coefficients[item_type_id] = item_coefficient(
+                                    instance.item_type(item_type_id),
+                                    family_w,
+                                    family_h,
+                                    k,
+                                    l,
+                                    bin_type.rect.x,
+                                    bin_type.rect.y,
+                                    tables.full_cardinality_w[k_pos],
+                                    tables.excluded_cardinality_w[k_pos],
+                                    tables.full_cardinality_h[l_pos],
+                                    tables.excluded_cardinality_h[l_pos]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return best;
 }

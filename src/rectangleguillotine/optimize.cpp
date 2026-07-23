@@ -678,7 +678,8 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::Feasibility) {
         if (instance.number_of_bin_types() == 1
-                && instance.number_of_items() <= 100) {
+                && (parameters.use_dual_feasible_functions
+                    || instance.number_of_items() <= 100)) {
             optimize_dual_feasible_functions(
                     instance,
                     parameters,

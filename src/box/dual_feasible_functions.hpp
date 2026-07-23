@@ -1,11 +1,14 @@
 /**
  * Dual feasible functions
  *
- * Formulas to get bounds on bin packing problems (with a single bin type and
- * without item rotation).
+ * Formulas to get bounds on bin packing problems (with a single bin type).
  *
  * Generalization to three dimensions of the two-dimensional functions used in
- * 'rectangle/dual_feasible_functions.hpp'.
+ * 'rectangle/dual_feasible_functions.hpp', including that file's handling of
+ * item rotation (there, up to 2 orientations; here, up to
+ * 'NUMBER_OF_ROTATIONS' == 6): each item's coefficient is the minimum over
+ * all of its allowed rotations, a valid lower bound on its true contribution
+ * regardless of which rotation actually ends up being used.
  *
  * References:
  * - "New reduction procedures and lower bounds for the two-dimensional bin
