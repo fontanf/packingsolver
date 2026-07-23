@@ -243,6 +243,19 @@ private:
     /** Parameters. */
     Parameters parameters_;
 
+    /**
+     * Bin type of the bin at each position, in the order in which bins are
+     * considered by the branching scheme.
+     *
+     * For the Knapsack objective, bins are considered by increasing space,
+     * regardless of the order in which they appear in the instance.
+     * Otherwise, this matches 'instance_.bin_type_id(bin_pos)'.
+     */
+    std::vector<BinTypeId> bin_type_ids_;
+
+    /** Total length of the bins preceding each position, in the same order as 'bin_type_ids_'. */
+    std::vector<Length> previous_bins_length_;
+
     mutable Counter node_id_ = 0;
 
     mutable std::vector<Insertion> insertions_;

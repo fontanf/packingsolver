@@ -15,7 +15,9 @@
 #include "shape/supports.hpp"
 #include "shape/shapes_intersections.hpp"
 
+#include <algorithm>
 #include <iostream>
+#include <numeric>
 
 using namespace packingsolver;
 using namespace packingsolver::irregular;
@@ -122,6 +124,36 @@ BranchingScheme::BranchingScheme(
             parameters.maximum_approximation_ratio)),
     parameters_(parameters)
 {
+    // Compute bin_type_ids_ and previous_bins_area_.
+    //
+    // For the Knapsack objective, bins are considered by increasing space,
+    // regardless of the order in which they appear in the instance.
+    // Otherwise, bins are considered in the order in which they appear in
+    // the instance.
+    {
+        std::vector<BinTypeId> bin_type_id_order(instance.number_of_bin_types());
+        std::iota(bin_type_id_order.begin(), bin_type_id_order.end(), 0);
+        if (instance.objective() == Objective::Knapsack) {
+            std::stable_sort(
+                    bin_type_id_order.begin(),
+                    bin_type_id_order.end(),
+                    [&instance](BinTypeId bin_type_id_1, BinTypeId bin_type_id_2)
+                    {
+                        return instance.bin_type(bin_type_id_1).space()
+                            < instance.bin_type(bin_type_id_2).space();
+                    });
+        }
+        AreaDbl previous_bin_area = 0;
+        for (BinTypeId bin_type_id: bin_type_id_order) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            for (BinPos copy = 0; copy < bin_type.copies; ++copy) {
+                bin_type_ids_.push_back(bin_type_id);
+                previous_bins_area_.push_back(previous_bin_area);
+                previous_bin_area += bin_type.area_orig;
+            }
+        }
+    }
+
     item_types_allowed_rotations_ = compute_item_type_rotations(instance);
 
     //std::cout << "BranchingScheme" << std::endl;
@@ -1051,7 +1083,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     BinPos bin_pos = node.number_of_bins - 1;
     Direction o = node.last_bin_direction;
-    BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+    BinTypeId bin_type_id = bin_type_ids_[bin_pos];
     const BinType& bin_type = instance().bin_type(bin_type_id);
     const DirectionData& direction_data = directions_data_[(int)node.last_bin_direction];
     const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
@@ -1238,7 +1270,7 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.xs_max = (insertion.new_bin_direction == Direction::Any)?  // Same bin
         std::max(parent.xs_max, insertion.x + trapezoid_set.x_min):
         insertion.x + trapezoid_set.x_min;
-    node.guide_area = instance().previous_bin_area(bin_pos)
+    node.guide_area = previous_bins_area_[bin_pos]
         + (node.xs_max - bb_bin_type.x_min)
         * (bb_bin_type.y_max - bb_bin_type.y_min);
     for (auto it = node.all_trapezoids_skyline.rbegin(); it != node.all_trapezoids_skyline.rend(); ++it) {
@@ -1316,7 +1348,7 @@ void BranchingScheme::update_extra_trapezoids(Node& node) const
         const Node& parent = *node.parent;
         const DirectionData& direction_data = directions_data_[(int)node.last_bin_direction];
         BinPos bin_pos = node.number_of_bins - 1;
-        BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+        BinTypeId bin_type_id = bin_type_ids_[bin_pos];
         const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
 
         // Don't add extra rectangles which are behind the skyline.
@@ -1397,7 +1429,7 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
         //BinPos bin_pos = cs.back()->number_of_bins - 1;
         //Direction o = cs.back()->last_bin_direction;
         //const DirectionData& direction_data = directions_data_[(int)o];
-        //BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+        //BinTypeId bin_type_id = bin_type_ids_[bin_pos];
         //const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
         //std::cout << cs.back()->id
         //    << " insertion " << parent->children_insertions[i]
@@ -1417,7 +1449,7 @@ void BranchingScheme::insertions(
 {
     uncovered_trapezoids_cur_.clear();
     if (parent->number_of_bins > 0) {
-        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
+        BinTypeId bin_type_id = bin_type_ids_[parent->number_of_bins - 1];
         const DirectionData& direction_data = directions_data_[(int)parent->last_bin_direction];
         const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
         for (ItemPos uncovered_trapezoid_pos_cur = 0;
@@ -1457,7 +1489,7 @@ void BranchingScheme::insertions(
     // Insert in the current bin.
     if (parent->number_of_bins > 0) {
 
-        BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
+        BinTypeId bin_type_id = bin_type_ids_[parent->number_of_bins - 1];
         const BinType& bin_type = instance().bin_type(bin_type_id);
         const DirectionData& direction_data = directions_data_[(int)parent->last_bin_direction];
         const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
@@ -1522,7 +1554,7 @@ void BranchingScheme::insertions(
             && new_bin_pos < instance().number_of_bins();
             ++new_bin_pos) {
         //std::cout << "insert in a new bin " << new_bin_pos << std::endl;
-        BinTypeId bin_type_id = instance().bin_type_id(new_bin_pos);
+        BinTypeId bin_type_id = bin_type_ids_[new_bin_pos];
         const BinType& bin_type = instance().bin_type(bin_type_id);
 
         Direction new_bin_direction = parameters_.direction;
@@ -1709,7 +1741,7 @@ void BranchingScheme::update_insertion(
 {
     //std::cout << "update_insertion " << insertion_orig << std::endl;
 
-    BinTypeId bin_type_id = instance().bin_type_id(parent->number_of_bins - 1);
+    BinTypeId bin_type_id = bin_type_ids_[parent->number_of_bins - 1];
     const BinType& bin_type = instance().bin_type(bin_type_id);
     Direction direction = parent->last_bin_direction;
 
@@ -1847,8 +1879,8 @@ void BranchingScheme::insertion_trapezoid_set(
     //    << std::endl;
 
     BinTypeId bin_type_id = (new_bin_direction == Direction::Any)?
-        instance().bin_type_id(parent->number_of_bins - 1):
-        instance().bin_type_id(new_bin_pos);
+        bin_type_ids_[parent->number_of_bins - 1]:
+        bin_type_ids_[new_bin_pos];
     const BinType& bin_type = instance().bin_type(bin_type_id);
     Direction direction = (new_bin_direction == Direction::Any)?
         parent->last_bin_direction:
@@ -2210,12 +2242,12 @@ Solution BranchingScheme::to_solution(
         // added to the solution, as empty bins.
         while (number_of_bins < current_node->number_of_bins) {
             bin_pos = solution_builder.add_bin(
-                    instance().bin_type_id(number_of_bins),
+                    bin_type_ids_[number_of_bins],
                     1);
             number_of_bins++;
         }
 
-        BinTypeId bin_type_id_cur = instance().bin_type_id(current_node->number_of_bins - 1);
+        BinTypeId bin_type_id_cur = bin_type_ids_[current_node->number_of_bins - 1];
         const DirectionData& direction_data = directions_data_[(int)current_node->last_bin_direction];
         const TrapezoidSet& trapezoid_set = direction_data.bin_types[bin_type_id_cur].trapezoid_sets[current_node->trapezoid_set_id];
         Point bl_corner = convert_point_back({current_node->x, current_node->y}, current_node->last_bin_direction);
@@ -2240,11 +2272,11 @@ Solution BranchingScheme::to_solution(
             bin_pos <= instance().last_bin_with_fixed_items();
             ++bin_pos) {
         if (bin_pos >= number_of_bins) {
-            BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+            BinTypeId bin_type_id = bin_type_ids_[bin_pos];
             solution_builder.add_bin(bin_type_id, 1);
             number_of_bins++;
         }
-        BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+        BinTypeId bin_type_id = bin_type_ids_[bin_pos];
         const BinType& bin_type = instance().bin_type(bin_type_id);
         for (const FixedItem& fixed_item: bin_type.fixed_items) {
             solution_builder.add_item(
@@ -2390,7 +2422,7 @@ nlohmann::json BranchingScheme::json_export(
         return json;
     }
 
-    BinTypeId bin_type_id = instance().bin_type_id(node->number_of_bins - 1);
+    BinTypeId bin_type_id = bin_type_ids_[node->number_of_bins - 1];
     const DirectionData& direction_data = directions_data_[(int)node->last_bin_direction];
     const TrapezoidSet& trapezoid_set = direction_data.bin_types[bin_type_id].trapezoid_sets[node->trapezoid_set_id];
     Point bl_orig = convert_point_back({node->x, node->y}, node->last_bin_direction);
@@ -2429,7 +2461,7 @@ nlohmann::json BranchingScheme::json_export(
     for (std::shared_ptr<const Node> node_tmp = node;
             node_tmp->number_of_bins == node->number_of_bins;
             node_tmp = node_tmp->parent) {
-        BinTypeId bin_type_id_tmp = instance().bin_type_id(node_tmp->number_of_bins - 1);
+        BinTypeId bin_type_id_tmp = bin_type_ids_[node_tmp->number_of_bins - 1];
         const DirectionData& direction_data_tmp = directions_data_[(int)node_tmp->last_bin_direction];
         const TrapezoidSet& trapezoid_set = direction_data_tmp.bin_types[bin_type_id_tmp].trapezoid_sets[node_tmp->trapezoid_set_id];
         Point bl_corner = convert_point_back({node_tmp->x, node_tmp->y}, node_tmp->last_bin_direction);
@@ -2464,7 +2496,7 @@ void BranchingScheme::write_svg(
         return;
 
     BinPos bin_pos = node->number_of_bins - 1;
-    BinTypeId bin_type_id = instance().bin_type_id(bin_pos);
+    BinTypeId bin_type_id = bin_type_ids_[bin_pos];
     const BinType& bin_type = instance().bin_type(bin_type_id);
     const DirectionData& direction_data = directions_data_[(int)node->last_bin_direction];
     const BranchingSchemeBinType& bb_bin_type = direction_data.bin_types[bin_type_id];
