@@ -1720,7 +1720,9 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         ColumnGenerationStripsParameters sub_params;
         sub_params.verbosity_level = 0;
         sub_params.optimization_mode = OptimizationMode::NotAnytimeSequential;
+        sub_params.linear_programming_solver_name = parameters_.linear_programming_solver_name;
         sub_params.timer = parameters_.timer;
+        sub_params.timer.add_end_boolean(&algorithm_formatter_.end_boolean());
         auto sub_output = column_generation_strips(sub_instance, sub_params);
         if (parameters_.timer.needs_to_end())
             break;
@@ -2175,7 +2177,12 @@ void column_generation_strips_horizontal(
     InstanceFlipper instance_flippper(instance);
     const Instance& flipped_instance = instance_flippper.flipped_instance();
 
-    ColumnGenerationStripsParameters flipped_parameters = parameters;
+    ColumnGenerationStripsParameters flipped_parameters;
+    flipped_parameters.verbosity_level = parameters.verbosity_level;
+    flipped_parameters.optimization_mode = parameters.optimization_mode;
+    flipped_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    flipped_parameters.timer = parameters.timer;
+    flipped_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     flipped_parameters.new_solution_callback = [
         &instance, &algorithm_formatter, local_output, &instance_flippper](
                 const packingsolver::Output<Instance, Solution>& ps_output)
