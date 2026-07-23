@@ -3,8 +3,8 @@
 #include "packingsolver/box/algorithm_formatter.hpp"
 
 #include <array>
-#include <functional>
 #include <limits>
+#include <map>
 
 using namespace packingsolver;
 using namespace packingsolver::box;
@@ -128,107 +128,224 @@ Profit dantzig_profit_bound(
     return bound;
 }
 
-/**
- * Effective (rotated) dimensions of an item.
- *
- * Only valid for oriented items (a single allowed rotation), which is the
- * only case handled by this bound.
- */
-Box item_effective_box(const ItemType& item_type)
+Length axis_component(const Box& box, int axis_id)
 {
-    return item_type.box.rotate(item_type.rotations.front());
+    return (axis_id == 0) ? box.x: (axis_id == 1) ? box.y: box.z;
 }
 
 /**
- * Compute the distinct candidate threshold values for one axis: for each
- * item, if its dimension in this axis equals the bin's, it is ignored;
- * otherwise it (or its 'folded' complement, if it is more than half the
- * bin's dimension) is added as a candidate threshold.
+ * Distinct values 'item_type' could present along 'axis_id', across all of
+ * its allowed rotations.
  */
-std::vector<Length> compute_thresholds(
-        const Instance& instance,
-        Length bin_length,
-        const std::function<Length(const Box&)>& axis)
+std::vector<Length> possible_axis_values(
+        const ItemType& item_type,
+        int axis_id)
 {
     std::vector<Length> values;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        Length item_length = axis(item_effective_box(instance.item_type(item_type_id)));
-        if (item_length == bin_length) {
-        } else if (item_length <= bin_length / 2) {
-            values.push_back(item_length);
-        } else {
-            values.push_back(bin_length - item_length);
-        }
-    }
-    std::sort(values.begin(), values.end());
-    values.erase(std::unique(values.begin(), values.end()), values.end());
+    for (Rotation rotation: item_type.rotations)
+        values.push_back(axis_component(item_type.box.rotate(rotation), axis_id));
+    sort(values.begin(), values.end());
+    values.erase(unique(values.begin(), values.end()), values.end());
     return values;
 }
 
 /**
- * Compute, for each threshold value and each item type id ('number_of_item_types()'
- * meaning 'no excluded item type'), the maximum number of copies of 'small'
- * items (dimension <= bin_length / 2 in this axis, and >= the threshold)
- * that fit in the bin (minus the excluded item's dimension, if any) along
- * this axis.
+ * Greedy maximum cardinality: given a pool of piece lengths sorted
+ * ascending (with multiplicities), greedily fill 'capacity' and return how
+ * many pieces were used. Sorting ascending and greedily filling is optimal
+ * for maximizing the count of pieces packed subject to a sum constraint.
  */
-std::vector<std::vector<ItemPos>> compute_maximum_cardinalities(
+ItemPos greedy_maximum_cardinality(
+        Length capacity,
+        const std::vector<std::pair<Length, ItemPos>>& sorted_pool)
+{
+    Length used = 0;
+    ItemPos count = 0;
+    for (const auto& p: sorted_pool) {
+        Length length = p.first;
+        ItemPos copies = p.second;
+        if (used + copies * length < capacity) {
+            used += copies * length;
+            count += copies;
+        } else {
+            count += (capacity - used) / length;
+            break;
+        }
+    }
+    return count;
+}
+
+/**
+ * Smallest value 'item_type' could present along 'axis_id' that still
+ * qualifies as "medium" ('k' <= value <= 'half_capacity'), across all its
+ * allowed rotations - or -1 if none qualify.
+ *
+ * Used only to upper-bound how many medium items can be packed alongside a
+ * big item (f_ccm_1's "MC(C, S) - MC(C - x, S)" term). Using the smallest
+ * qualifying value (rather than requiring every rotation to qualify) can
+ * only overestimate - never underestimate - the true achievable count,
+ * keeping the result a valid upper bound regardless of which rotation the
+ * item actually ends up using.
+ */
+Length medium_pool_length(
+        const ItemType& item_type,
+        int axis_id,
+        Length k,
+        Length half_capacity)
+{
+    Length best = -1;
+    for (Length v: possible_axis_values(item_type, axis_id)) {
+        if (k <= v && v <= half_capacity && (best < 0 || v < best))
+            best = v;
+    }
+    return best;
+}
+
+/**
+ * Precomputed tables for one axis: candidate breakpoints, and the "maximum
+ * cardinality" bookkeeping f_ccm_1 needs. These only depend on 'instance'
+ * and the bin's length on this axis, not on any item's chosen rotation.
+ */
+struct AxisTables
+{
+    std::vector<Length> thresholds;
+    std::vector<ItemPos> full_cardinality;
+    std::vector<std::map<Length, ItemPos>> excluded_cardinality;
+};
+
+AxisTables compute_axis_tables(
         const Instance& instance,
         Length bin_length,
-        const std::vector<Length>& thresholds,
-        const std::function<Length(const Box&)>& axis)
+        int axis_id)
 {
-    std::vector<std::vector<ItemPos>> maximum_cardinality(thresholds.size());
-    for (ItemTypeId k_pos = 0; k_pos < (ItemTypeId)thresholds.size(); ++k_pos) {
-        Length k = thresholds[k_pos];
-        std::vector<ItemTypeId> sorted_item_type_ids;
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            Length item_length = axis(item_effective_box(instance.item_type(item_type_id)));
-            if (k <= item_length && item_length <= bin_length / 2)
-                sorted_item_type_ids.push_back(item_type_id);
-        }
-        std::sort(
-                sorted_item_type_ids.begin(),
-                sorted_item_type_ids.end(),
-                [&instance, &axis](
-                    ItemTypeId item_type_id_1,
-                    ItemTypeId item_type_id_2)
-                {
-                    return axis(item_effective_box(instance.item_type(item_type_id_1)))
-                        < axis(item_effective_box(instance.item_type(item_type_id_2)));
-                });
-        maximum_cardinality[k_pos] = std::vector<ItemPos>(instance.number_of_item_types() + 1, -10000);
-        for (ItemTypeId item_type_id = 0;
-                item_type_id <= instance.number_of_item_types();
-                ++item_type_id) {
-            Length capacity = bin_length;
-            if (item_type_id < instance.number_of_item_types()) {
-                Length item_length = axis(item_effective_box(instance.item_type(item_type_id)));
-                if (item_length <= bin_length / 2)
-                    continue;
-                capacity -= item_length;
-            }
-            Length length_cur = 0;
-            maximum_cardinality[k_pos][item_type_id] = 0;
-            for (ItemTypeId item_type_id_cur: sorted_item_type_ids) {
-                const ItemType& item_type_cur = instance.item_type(item_type_id_cur);
-                Length item_length_cur = axis(item_effective_box(item_type_cur));
-                if (length_cur + item_type_cur.copies * item_length_cur < capacity) {
-                    length_cur += item_type_cur.copies * item_length_cur;
-                    maximum_cardinality[k_pos][item_type_id] += item_type_cur.copies;
-                } else {
-                    ItemPos copies = (capacity - length_cur) / item_length_cur;
-                    maximum_cardinality[k_pos][item_type_id] += copies;
-                    break;
-                }
+    AxisTables tables;
+
+    // Candidate breakpoints: every distinct rotation-achievable value on
+    // this axis (folded), across all item types - both dimensions of a
+    // rotatable item feed the same axis's breakpoint list, since it may
+    // end up presenting any of them there.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        for (Length v: possible_axis_values(item_type, axis_id)) {
+            if (v == bin_length) {
+            } else if (v <= bin_length / 2) {
+                tables.thresholds.push_back(v);
+            } else {
+                tables.thresholds.push_back(bin_length - v);
             }
         }
     }
-    return maximum_cardinality;
+    // capacity / 2 is where f_ccm_0/f_ccm_2 themselves switch branch: it is
+    // a meaningful breakpoint on its own, regardless of whether any item
+    // dimension happens to fold onto it (this matters most for rotation:
+    // e.g. an item that is "big" in every allowed rotation, on every axis,
+    // needs this breakpoint to be recognized as such if no item dimension
+    // is exactly at half the bin's capacity).
+    tables.thresholds.push_back(bin_length / 2);
+    sort(tables.thresholds.begin(), tables.thresholds.end());
+    tables.thresholds.erase(unique(tables.thresholds.begin(), tables.thresholds.end()), tables.thresholds.end());
+
+    // Distinct "big" (> half the bin's length on this axis) values some
+    // item type might present along this axis - these are the only values
+    // f_ccm_1_axis will ever need an excluded-cardinality entry for.
+    std::vector<Length> big_values;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        for (Length v: possible_axis_values(item_type, axis_id))
+            if (v > bin_length / 2)
+                big_values.push_back(v);
+    }
+    sort(big_values.begin(), big_values.end());
+    big_values.erase(unique(big_values.begin(), big_values.end()), big_values.end());
+
+    tables.full_cardinality.resize(tables.thresholds.size());
+    tables.excluded_cardinality.resize(tables.thresholds.size());
+    for (ItemTypeId k_pos = 0; k_pos < (ItemTypeId)tables.thresholds.size(); ++k_pos) {
+        Length k = tables.thresholds[k_pos];
+        std::vector<std::pair<Length, ItemPos>> pool;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance.item_type(item_type_id);
+            Length length = medium_pool_length(item_type, axis_id, k, bin_length / 2);
+            if (length >= 0)
+                pool.push_back({length, item_type.copies});
+        }
+        sort(pool.begin(), pool.end());
+        tables.full_cardinality[k_pos] = greedy_maximum_cardinality(bin_length, pool);
+        for (Length big_value: big_values) {
+            tables.excluded_cardinality[k_pos][big_value] = greedy_maximum_cardinality(
+                    bin_length - big_value,
+                    pool);
+        }
+    }
+
+    return tables;
+}
+
+/**
+ * f_ccm_1 for a specific assumed length on one axis, looking up the
+ * "maximum cardinality" value it needs only when it actually falls in the
+ * "big item" branch (length > capacity / 2); 'excluded_cardinality' must
+ * have an entry for 'length' whenever this branch is taken.
+ */
+Length f_ccm_1_axis(
+        Length capacity,
+        Length k,
+        Length length,
+        ItemPos full_cardinality,
+        const std::map<Length, ItemPos>& excluded_cardinality)
+{
+    if (length > capacity / 2) {
+        ItemPos excluded = excluded_cardinality.at(length);
+        return f_ccm_1(capacity, k, length, full_cardinality - excluded);
+    }
+    return f_ccm_1(capacity, k, length, 0);
+}
+
+/**
+ * Coefficient of 'item_type' for breakpoints 'k' (one per axis) and DFF
+ * families 'families' (one per axis, in {0: f_ccm_0, 1: f_ccm_1, 2:
+ * f_ccm_2}), taking the minimum over all of the item's allowed rotations.
+ *
+ * The item's true contribution depends on a rotation choice this
+ * per-item-type coefficient scheme doesn't track; using the smallest
+ * coefficient among its allowed rotations stays a valid (safe) lower bound
+ * on the true contribution regardless of which rotation actually ends up
+ * being used.
+ */
+Volume item_coefficient(
+        const ItemType& item_type,
+        const std::array<int, 3>& families,
+        const std::array<Length, 3>& k,
+        const std::array<Length, 3>& bin_lengths,
+        const std::array<ItemPos, 3>& full_cardinality,
+        const std::array<const std::map<Length, ItemPos>*, 3>& excluded_cardinality)
+{
+    auto eval_axis = [&](int axis_id, Length length) -> Length
+    {
+        Length capacity = bin_lengths[axis_id];
+        switch (families[axis_id]) {
+        case 0: return f_ccm_0(capacity, k[axis_id], length);
+        case 1: return f_ccm_1_axis(capacity, k[axis_id], length, full_cardinality[axis_id], *excluded_cardinality[axis_id]);
+        default: return f_ccm_2(capacity, k[axis_id], length);
+        }
+    };
+
+    Volume best = -1;
+    for (Rotation rotation: item_type.rotations) {
+        Box effective_box = item_type.box.rotate(rotation);
+        Volume value = 1;
+        for (int axis_id = 0; axis_id < 3; ++axis_id)
+            value *= eval_axis(axis_id, axis_component(effective_box, axis_id));
+        if (best < 0 || value < best)
+            best = value;
+    }
+    return best;
 }
 
 }
@@ -253,48 +370,30 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    // This bound is only implemented for fully oriented items, i.e. items
-    // with a single allowed rotation; skip it otherwise.
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        if (instance.item_type(item_type_id).rotations.size() != 1) {
-            algorithm_formatter.end();
-            return output;
-        }
-    }
-
-    std::array<std::function<Length(const Box&)>, 3> axes = {
-            std::function<Length(const Box&)>([](const Box& box) { return box.x; }),
-            std::function<Length(const Box&)>([](const Box& box) { return box.y; }),
-            std::function<Length(const Box&)>([](const Box& box) { return box.z; })};
     std::array<Length, 3> bin_lengths = {
             bin_type.box.x,
             bin_type.box.y,
             bin_type.box.z};
 
-    std::array<std::vector<Length>, 3> thresholds;
-    std::array<std::vector<std::vector<ItemPos>>, 3> maximum_cardinalities;
-    for (int axis_id = 0; axis_id < 3; ++axis_id) {
-        thresholds[axis_id] = compute_thresholds(instance, bin_lengths[axis_id], axes[axis_id]);
-        maximum_cardinalities[axis_id] = compute_maximum_cardinalities(
-                instance,
-                bin_lengths[axis_id],
-                thresholds[axis_id],
-                axes[axis_id]);
-    }
+    std::array<AxisTables, 3> tables;
+    for (int axis_id = 0; axis_id < 3; ++axis_id)
+        tables[axis_id] = compute_axis_tables(instance, bin_lengths[axis_id], axis_id);
 
     BinPos bound = 0;
     Profit knapsack_bound = std::numeric_limits<Profit>::infinity();
 
-    for (ItemTypeId k_pos = 0; k_pos < (ItemTypeId)thresholds[0].size(); ++k_pos) {
-        for (ItemTypeId l_pos = 0; l_pos < (ItemTypeId)thresholds[1].size(); ++l_pos) {
-            for (ItemTypeId m_pos = 0; m_pos < (ItemTypeId)thresholds[2].size(); ++m_pos) {
+    for (ItemTypeId k_pos = 0; k_pos < (ItemTypeId)tables[0].thresholds.size(); ++k_pos) {
+        for (ItemTypeId l_pos = 0; l_pos < (ItemTypeId)tables[1].thresholds.size(); ++l_pos) {
+            for (ItemTypeId m_pos = 0; m_pos < (ItemTypeId)tables[2].thresholds.size(); ++m_pos) {
                 std::array<ItemTypeId, 3> pos = {k_pos, l_pos, m_pos};
-                std::array<Length, 3> k = {
-                        thresholds[0][k_pos],
-                        thresholds[1][l_pos],
-                        thresholds[2][m_pos]};
+                std::array<Length, 3> k;
+                std::array<ItemPos, 3> full_cardinality;
+                std::array<const std::map<Length, ItemPos>*, 3> excluded_cardinality;
+                for (int axis_id = 0; axis_id < 3; ++axis_id) {
+                    k[axis_id] = tables[axis_id].thresholds[pos[axis_id]];
+                    full_cardinality[axis_id] = tables[axis_id].full_cardinality[pos[axis_id]];
+                    excluded_cardinality[axis_id] = &tables[axis_id].excluded_cardinality[pos[axis_id]];
+                }
 
                 // Value of each of the 'number_of_families' families of
                 // dual feasible functions applied to the bin's dimension,
@@ -302,10 +401,9 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
                 std::array<std::array<Length, number_of_families>, 3> f_bin;
                 for (int axis_id = 0; axis_id < 3; ++axis_id) {
                     Length capacity = bin_lengths[axis_id];
-                    ItemPos value = maximum_cardinalities[axis_id][pos[axis_id]][instance.number_of_item_types()];
                     f_bin[axis_id] = {
                             f_ccm_0(capacity, k[axis_id], capacity),
-                            f_ccm_1(capacity, k[axis_id], capacity, value),
+                            f_ccm_1(capacity, k[axis_id], capacity, full_cardinality[axis_id]),
                             f_ccm_2(capacity, k[axis_id], capacity)};
                 }
 
@@ -333,30 +431,18 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
                         item_type_id < instance.number_of_item_types();
                         ++item_type_id) {
                     const ItemType& item_type = instance.item_type(item_type_id);
-                    Box effective_box = item_effective_box(item_type);
-                    std::array<Length, 3> item_lengths = {
-                            effective_box.x,
-                            effective_box.y,
-                            effective_box.z};
-
-                    std::array<std::array<Length, number_of_families>, 3> f_item;
-                    for (int axis_id = 0; axis_id < 3; ++axis_id) {
-                        Length capacity = bin_lengths[axis_id];
-                        ItemPos value
-                            = maximum_cardinalities[axis_id][pos[axis_id]][instance.number_of_item_types()]
-                            - maximum_cardinalities[axis_id][pos[axis_id]][item_type_id];
-                        f_item[axis_id] = {
-                                f_ccm_0(capacity, k[axis_id], item_lengths[axis_id]),
-                                f_ccm_1(capacity, k[axis_id], item_lengths[axis_id], value),
-                                f_ccm_2(capacity, k[axis_id], item_lengths[axis_id])};
-                    }
 
                     if (instance.objective() == Objective::Knapsack) {
                         for (int fx = 0; fx < number_of_families; ++fx) {
                             for (int fy = 0; fy < number_of_families; ++fy) {
                                 for (int fz = 0; fz < number_of_families; ++fz) {
-                                    volumes[fx][fy][fz][item_type_id]
-                                        = f_item[0][fx] * f_item[1][fy] * f_item[2][fz];
+                                    volumes[fx][fy][fz][item_type_id] = item_coefficient(
+                                            item_type,
+                                            {fx, fy, fz},
+                                            k,
+                                            bin_lengths,
+                                            full_cardinality,
+                                            excluded_cardinality);
                                 }
                             }
                         }
@@ -364,8 +450,13 @@ DualFeasibleFunctionsOutput packingsolver::box::dual_feasible_functions(
                         for (int fx = 0; fx < number_of_families; ++fx) {
                             for (int fy = 0; fy < number_of_families; ++fy) {
                                 for (int fz = 0; fz < number_of_families; ++fz) {
-                                    sum[fx][fy][fz] += item_type.copies
-                                        * f_item[0][fx] * f_item[1][fy] * f_item[2][fz];
+                                    sum[fx][fy][fz] += item_type.copies * item_coefficient(
+                                            item_type,
+                                            {fx, fy, fz},
+                                            k,
+                                            bin_lengths,
+                                            full_cardinality,
+                                            excluded_cardinality);
                                 }
                             }
                         }

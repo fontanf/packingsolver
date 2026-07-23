@@ -541,7 +541,8 @@ packingsolver::box::Output packingsolver::box::optimize(
         // (against quadratic for the 2D 'rectangle' case), so this is
         // gated more conservatively.
         if (instance.number_of_bin_types() == 1
-                && instance.number_of_items() <= 50) {
+                && (parameters.use_dual_feasible_functions
+                    || instance.number_of_items() <= 50)) {
             optimize_dual_feasible_functions(
                     instance,
                     parameters,

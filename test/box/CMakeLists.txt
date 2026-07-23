@@ -1,6 +1,7 @@
 add_executable(PackingSolver_box_test)
 target_sources(PackingSolver_box_test PRIVATE
     box_test.cpp
+    dual_feasible_functions_test.cpp
     tree_search_test.cpp)
 target_include_directories(PackingSolver_box_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)

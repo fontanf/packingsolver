@@ -3,6 +3,7 @@
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/optimize.hpp"
+#include "rectangle/dual_feasible_functions.hpp"
 
 #ifdef CBC_FOUND
 #include "mathoptsolverscmake/mathopt_cbc.hpp"
@@ -33,6 +34,11 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
 
     // MILP cuts.
     std::vector<std::vector<std::pair<ItemTypeId, ItemPos>>> milp_cuts;
+    // Dual-feasible-function cuts: unlike 'milp_cuts', each of these is a
+    // general inequality valid for any selection of items from 'instance',
+    // not just the exact selection that revealed it, so it keeps pruning
+    // the master in every later iteration too.
+    std::vector<DualFeasibleFunctionsCut> dff_cuts;
     // 'true' iff every subproblem solved so far that led to a cut has been
     // proven infeasible (as opposed to merely not having found a full
     // packing). The MILP relaxation bound is only a valid bound on the
@@ -303,6 +309,29 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             milp_model.constraints_upper_bounds.push_back(cut_size - 1);
         }
 
+        // Constraints: dual-feasible-function cuts.
+        // sum_j coefficients[j] * sum_c x_{j, c} <= bound
+        for (const DualFeasibleFunctionsCut& cut: dff_cuts) {
+            // Initialize new row.
+            milp_model.constraints_starts.push_back(milp_model.elements_variables.size());
+            // Add row elements.
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                if (cut.coefficients[item_type_id] == 0.0)
+                    continue;
+                for (ItemPos copy = 0;
+                        copy < item_copies[item_type_id];
+                        ++copy) {
+                    milp_model.elements_variables.push_back(x[item_type_id][copy]);
+                    milp_model.elements_coefficients.push_back(cut.coefficients[item_type_id]);
+                }
+            }
+            // Add row bounds.
+            milp_model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+            milp_model.constraints_upper_bounds.push_back(cut.bound);
+        }
+
         std::vector<double> milp_solution;
         double milp_bound = std::numeric_limits<double>::infinity();
         if (parameters.solver == mathoptsolverscmake::SolverName::Highs) {
@@ -357,6 +386,20 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                     break;
                 }
             }
+        }
+
+        // Check for a violated dual-feasible-function inequality before
+        // paying for the (potentially expensive) subproblem solve: if one
+        // is found, it proves on its own that 'selected_items' cannot fit
+        // in one bin, without needing the subproblem at all. Unlike a
+        // no-good cut on this exact selection, it is a general inequality
+        // valid for any selection of items from 'instance', so it is added
+        // as a permanent row rather than a one-off cut.
+        DualFeasibleFunctionsCut dff_cut = find_most_violated_dual_feasible_function_cut(
+                instance, selected_items);
+        if (dff_cut.found) {
+            dff_cuts.push_back(dff_cut);
+            continue;
         }
 
         // Build subproblem instance.
