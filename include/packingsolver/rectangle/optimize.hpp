@@ -118,19 +118,19 @@ struct Output: packingsolver::Output<Instance, Solution>
         int width = format_width();
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
-            os << std::setw(width) << std::left << "Knapsack bound: " << knapsack_bound << std::endl;
+            write_bound(os, width, solution_pool.best().profit(), knapsack_bound);
             break;
         case Objective::BinPacking:
-            os << std::setw(width) << std::left << "Bin packing bound: " << bin_packing_bound << std::endl;
+            write_bound(os, width, solution_pool.best().number_of_bins(), bin_packing_bound);
             break;
         case Objective::VariableSizedBinPacking:
-            os << std::setw(width) << std::left << "Variable-sized bin packing bound: " << variable_sized_bin_packing_bound << std::endl;
+            write_bound(os, width, solution_pool.best().cost(), variable_sized_bin_packing_bound);
             break;
         case Objective::OpenDimensionX:
-            os << std::setw(width) << std::left << "Open dimension X bound: " << open_dimension_x_bound << std::endl;
+            write_bound(os, width, solution_pool.best().x_max(), open_dimension_x_bound);
             break;
         case Objective::OpenDimensionY:
-            os << std::setw(width) << std::left << "Open dimension Y bound: " << open_dimension_y_bound << std::endl;
+            write_bound(os, width, solution_pool.best().y_max(), open_dimension_y_bound);
             break;
         case Objective::Feasibility:
             os << std::setw(width) << std::left << "Is proven infeasible: " << is_proven_infeasible << std::endl;

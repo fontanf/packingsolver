@@ -259,6 +259,27 @@ private:
 };
 
 /**
+ * Print a "Primal bound" / "Dual bound" / "Gap" block for a pair of bound
+ * values on the same scale (which one is the primal and which is the dual
+ * doesn't matter here: only their difference relative to the primal value is
+ * used).
+ */
+template <typename T>
+void write_bound(
+        std::ostream& os,
+        int width,
+        T primal_bound,
+        T dual_bound)
+{
+    os << std::setw(width) << std::left << "Primal bound: " << primal_bound << std::endl;
+    os << std::setw(width) << std::left << "Dual bound: " << dual_bound << std::endl;
+    double gap = (primal_bound != 0)?
+        100.0 * std::abs((double)primal_bound - (double)dual_bound) / std::abs((double)primal_bound):
+        ((dual_bound != 0)? 100.0: 0.0);
+    os << std::setw(width) << std::left << "Gap: " << gap << "%" << std::endl;
+}
+
+/**
  * Output stucture for packing optimization algorithms.
  */
 template <typename Instance, typename Solution>
@@ -283,7 +304,19 @@ struct Output: optimizationtools::Output
         };
     }
 
-    virtual int format_width() const { return 11; }
+    virtual int format_width() const
+    {
+        switch (solution_pool.best().instance().objective()) {
+        case Objective::Feasibility:
+            // Fits "Is proven infeasible: ", the only line printed for this
+            // objective besides "Time (s): ".
+            return 23;
+        default:
+            // Fits "Primal bound: ", the longest of the "Primal bound" /
+            // "Dual bound" / "Gap" lines printed for every other objective.
+            return 15;
+        }
+    }
 
     virtual void format(std::ostream& os) const
     {

@@ -10,6 +10,8 @@
 #include "rectangleguillotine/tree_search_hypergraph.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
 #include "packingsolver/rectangle/instance_builder.hpp"
+#include "packingsolver/onedimensional/instance_builder.hpp"
+#include "packingsolver/onedimensional/optimize.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -141,6 +143,69 @@ void optimize_trivial_bound(
         algorithm_formatter.update_open_dimension_x_bound(bound);
     } else {
         algorithm_formatter.update_open_dimension_y_bound(bound);
+    }
+}
+
+void optimize_onedimensional_bound(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    // Relax the instance to 1D, keeping only bin/item areas: any solution of
+    // the original instance is also a solution of this relaxation (with the
+    // same cost), so the bound the onedimensional solver finds for it
+    // (which runs the same dichotomic search) is a valid lower bound here.
+    onedimensional::InstanceBuilder onedim_instance_builder;
+    onedim_instance_builder.set_objective(instance.objective());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        BinTypeId onedim_bin_type_id = onedim_instance_builder.add_bin_type(bin_type.area());
+        onedim_instance_builder.set_bin_type_cost(onedim_bin_type_id, bin_type.cost);
+        onedim_instance_builder.set_bin_type_copies(onedim_bin_type_id, bin_type.copies);
+        onedim_instance_builder.set_bin_type_copies_min(onedim_bin_type_id, bin_type.copies_min);
+    }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (item_type.area() <= 0)
+            continue;
+        ItemTypeId onedim_item_type_id = onedim_instance_builder.add_item_type(item_type.area());
+        onedim_instance_builder.set_item_type_profit(onedim_item_type_id, item_type.profit);
+        onedim_instance_builder.set_item_type_copies(onedim_item_type_id, item_type.copies);
+    }
+    onedimensional::Instance onedim_instance = onedim_instance_builder.build();
+
+    onedimensional::OptimizeParameters onedim_parameters;
+    onedim_parameters.verbosity_level = 0;
+    onedim_parameters.timer = parameters.timer;
+    onedim_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    onedim_parameters.optimization_mode = OptimizationMode::NotAnytime;
+    onedim_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    auto onedim_output = optimize(onedim_instance, onedim_parameters);
+
+    switch (instance.objective()) {
+    case Objective::BinPacking: {
+        algorithm_formatter.update_bin_packing_bound(
+                onedim_output.bin_packing_bound);
+        break;
+    } case Objective::Knapsack: {
+        algorithm_formatter.update_knapsack_bound(
+                onedim_output.knapsack_bound);
+        break;
+    } case Objective::VariableSizedBinPacking: {
+        algorithm_formatter.update_variable_sized_bin_packing_bound(
+                onedim_output.variable_sized_bin_packing_bound);
+        break;
+    } default: {
+        std::stringstream ss;
+        ss << FUNC_SIGNATURE << ": "
+            << "objective \""
+            << instance.objective() << "\" not supported.";
+        throw std::logic_error(ss.str());
+    }
     }
 }
 
@@ -600,6 +665,15 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     algorithm_formatter.print_header();
 
     optimize_trivial_bound(instance, algorithm_formatter);
+
+    if (instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::Knapsack
+            || instance.objective() == Objective::VariableSizedBinPacking) {
+        optimize_onedimensional_bound(
+                instance,
+                parameters,
+                algorithm_formatter);
+    }
 
     if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::Feasibility) {
