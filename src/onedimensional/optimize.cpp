@@ -21,6 +21,7 @@ namespace
 
 void optimize_trivial_bound(
         const Instance& instance,
+        const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
     if (instance.objective() == Objective::Knapsack) {
@@ -119,6 +120,79 @@ void optimize_trivial_bound(
             remaining_item_length -= bins_used * bin_type.length;
         }
         algorithm_formatter.update_bin_packing_bound(bound);
+        return;
+    }
+
+    if (instance.objective() == Objective::VariableSizedBinPacking) {
+        // Same bin-selection knapsack as the one solved by the dichotomic
+        // search (see 'algorithms/dichotomic_search.hpp'), but solved once
+        // at zero waste instead of iteratively: a real solution can never
+        // have negative waste, so the minimum cost of a bin selection whose
+        // total length covers the (nesting-reduced) item lengths exactly is
+        // a valid lower bound on the actual solution's cost.
+        //
+        // Bin copies beyond 'copies_min' are knapsack items (weight =
+        // length, profit = cost); leaving a bin out of the knapsack means
+        // using it, so maximizing the profit (cost) of the bins put in the
+        // knapsack (i.e. left unused) is equivalent to minimizing the cost
+        // of the bins actually used.
+        Length bin_length = 0;
+        Length bin_min_length = 0;
+        Profit total_cost = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            bin_length += bin_type.length * bin_type.copies;
+            bin_min_length += bin_type.length * bin_type.copies_min;
+            total_cost += bin_type.cost * bin_type.copies;
+        }
+        Length item_length = 0;
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            const ItemType& item_type = instance.item_type(item_type_id);
+            item_length += item_type.copies
+                * (item_type.length - std::max(item_type.nesting_length, (Length)0));
+        }
+
+        Length kp_capacity = bin_length - bin_min_length - item_length;
+        if (kp_capacity <= 0) {
+            // No bin can be left unused: they are all needed just to cover
+            // the item lengths.
+            algorithm_formatter.update_variable_sized_bin_packing_bound(total_cost);
+            return;
+        }
+
+        InstanceBuilder kp_instance_builder;
+        kp_instance_builder.set_objective(Objective::Knapsack);
+        kp_instance_builder.add_bin_type(kp_capacity);
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            BinPos optional_copies = bin_type.copies - bin_type.copies_min;
+            if (optional_copies <= 0
+                    || bin_type.length <= 0
+                    || bin_type.length > kp_capacity) {
+                continue;
+            }
+            ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(bin_type.length);
+            kp_instance_builder.set_item_type_profit(kp_item_type_id, bin_type.cost);
+            kp_instance_builder.set_item_type_copies(kp_item_type_id, optional_copies);
+        }
+        Instance kp_instance = kp_instance_builder.build();
+
+        OptimizeParameters kp_parameters;
+        kp_parameters.verbosity_level = 0;
+        kp_parameters.timer = parameters.timer;
+        kp_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        kp_parameters.optimization_mode = OptimizationMode::NotAnytime;
+        kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+        auto kp_output = optimize(kp_instance, kp_parameters);
+
+        algorithm_formatter.update_variable_sized_bin_packing_bound(
+                total_cost - kp_output.solution_pool.best().profit());
         return;
     }
 }
@@ -440,7 +514,7 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
-    optimize_trivial_bound(instance, algorithm_formatter);
+    optimize_trivial_bound(instance, parameters, algorithm_formatter);
 
     if (instance.number_of_bins() == 1
             && instance.objective() == Objective::Knapsack) {

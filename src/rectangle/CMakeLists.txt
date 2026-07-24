@@ -20,6 +20,7 @@ target_include_directories(PackingSolver_rectangle PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_rectangle PUBLIC
     PackingSolver_algorithms
+    PackingSolver_onedimensional
     TreeSearchSolver::treesearchsolver
     Shape::shape
     MathOptSolversCMake::mathopt
