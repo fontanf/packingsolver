@@ -281,7 +281,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                     - (filled_demands_[item_type_id] - filled_fixed_demands_[item_type_id])
                     + bin_fixed_copies[item_type_id];
             }
-            //std::cout << "j " << j << " profit " << profit << std::endl;
+            //std::cout << "item_type_id " << item_type_id << " profit " << profit << std::endl;
             if (copies <= 0)
                 continue;
             ItemTypeId kp_item_type_id = kp_instance_builder.add_item_type(instance_, item_type_id);
@@ -419,29 +419,29 @@ Output column_generation(
             algorithm_formatter.update_solution(solution, ss.str());
         }
     };
-    cgslds_parameters.new_bound_callback = [&instance, &output, &parameters](
+    cgslds_parameters.new_bound_callback = [&instance, &algorithm_formatter](
             const columngenerationsolver::Output& cgs_output)
     {
         const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
             = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
         if (instance.objective() == Objective::VariableSizedBinPacking) {
             double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
-            output.variable_sized_bin_packing_bound = cgslds_output.bound * multiplier_cost;
+            algorithm_formatter.update_variable_sized_bin_packing_bound(
+                    cgslds_output.bound * multiplier_cost);
         } else if (instance.objective() == Objective::Knapsack) {
             double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
-            output.knapsack_bound = cgslds_output.bound * multiplier_profit;
+            algorithm_formatter.update_knapsack_bound(
+                    cgslds_output.bound * multiplier_profit);
         } else if (instance.objective() == Objective::BinPacking) {
             double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
-            output.bin_packing_bound = std::ceil(
-                    cgslds_output.bound * multiplier_cost / instance.bin_type(0).space() - 0.001);
+            algorithm_formatter.update_bin_packing_bound(std::ceil(
+                    cgslds_output.bound * multiplier_cost / instance.bin_type(0).cost - 0.001));
         } else if (instance.objective() == Objective::Feasibility) {
             // By the extended reals convention, the optimal value of an
             // infeasible minimization problem is +inf.
             if (cgslds_output.bound == std::numeric_limits<double>::infinity())
-                output.is_proven_infeasible = true;
+                algorithm_formatter.update_is_proven_infeasible();
         }
-        if (parameters.new_solution_callback)
-            parameters.new_solution_callback(output);
     };
     cgslds_parameters.column_generation_parameters.solver_name
         = parameters.linear_programming_solver_name;
