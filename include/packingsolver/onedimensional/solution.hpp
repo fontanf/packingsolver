@@ -94,6 +94,29 @@ public:
     /** Feasibility according to the user feasibility callback. */
     inline bool callback_feasible() const { return callback_feasible_; }
 
+    /** Return 'true' iff the solution satisfies the bin length capacity constraint. */
+    inline bool capacity_feasible() const { return capacity_feasible_; }
+
+    /** Return 'true' iff the solution satisfies the bin weight capacity constraint. */
+    inline bool weight_feasible() const { return weight_feasible_; }
+
+    /** Return 'true' iff the solution satisfies the maximum stackability constraint. */
+    inline bool stackability_feasible() const { return stackability_feasible_; }
+
+    /** Return 'true' iff the solution satisfies the maximum weight after constraint. */
+    inline bool maximum_weight_after_feasible() const { return maximum_weight_after_feasible_; }
+
+    /** Return 'true' iff the solution satisfies the item copies constraint. */
+    inline bool item_copies_feasible() const { return item_copies_feasible_; }
+
+    /**
+     * Return 'true' iff bin types are used in the order they are provided
+     * (every bin type used before the last used bin type is used up
+     * entirely). Only relevant for the 'BinPacking' objective; always 'true'
+     * for the other objectives, which do not require this.
+     */
+    inline bool bin_type_order_feasible() const { return bin_type_order_feasible_; }
+
     /** Get the number of items in the solution. */
     inline ItemPos number_of_items() const { return number_of_items_; }
 
@@ -208,11 +231,23 @@ private:
     /** Number of copies of each item type in the solution. */
     std::vector<ItemPos> item_copies_;
 
-    /**
-     * 'true' iff the solution satisfies the built-in packing constraints
-     * (bin length, weight, stackability, remaining weight).
-     */
-    bool built_in_feasible_ = true;
+    /** 'true' iff the solution satisfies the bin length capacity constraint. */
+    bool capacity_feasible_ = true;
+
+    /** 'true' iff the solution satisfies the bin weight capacity constraint. */
+    bool weight_feasible_ = true;
+
+    /** 'true' iff the solution satisfies the maximum stackability constraint. */
+    bool stackability_feasible_ = true;
+
+    /** 'true' iff the solution satisfies the maximum weight after constraint. */
+    bool maximum_weight_after_feasible_ = true;
+
+    /** 'true' iff the solution satisfies the item copies constraint. */
+    bool item_copies_feasible_ = true;
+
+    /** 'true' iff bin types are used in the order they are provided ('BinPacking' objective only). */
+    bool bin_type_order_feasible_ = true;
 
     /** Feasibility according to the user feasibility callback. */
     bool callback_feasible_ = true;

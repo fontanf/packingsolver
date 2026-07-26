@@ -234,6 +234,11 @@ public:
      */
     bool fits_some_bin(ItemTypeId item_type_id) const;
 
+    /** Return 'true' iff item type 'item_type_id' fits in bin type 'bin_type_id'. */
+    bool item_type_fits_bin_type(
+            ItemTypeId item_type_id,
+            BinTypeId bin_type_id) const;
+
     /*
      * Export
      */

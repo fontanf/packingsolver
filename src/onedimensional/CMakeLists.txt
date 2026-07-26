@@ -7,6 +7,7 @@ target_sources(PackingSolver_onedimensional PRIVATE
     solution_builder.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    milp_assignment.cpp
     post_process.cpp
     tree_search.cpp)
 target_include_directories(PackingSolver_onedimensional PUBLIC
@@ -16,6 +17,7 @@ target_include_directories(PackingSolver_onedimensional PRIVATE
 target_link_libraries(PackingSolver_onedimensional PUBLIC
     PackingSolver_algorithms
     TreeSearchSolver::treesearchsolver
+    MathOptSolversCMake::mathopt
     Threads::Threads)
 # Resource limits: the portable RSS reader in
 # include/packingsolver/algorithms/thread_pool.hpp uses GetProcessMemoryInfo on

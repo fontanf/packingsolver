@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
             ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
             ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
+            ("use-milp-assignment,", po::value<bool>(), "enable MILP assignment algorithm")
             ("sequential-value-correction-number-of-iterations,", po::value<Counter>(), "set sequential value correction number of iterations")
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
             ("not-anytime-tree-search-queue-size,", po::value<Counter>(), "")
@@ -181,6 +182,8 @@ int main(int argc, char *argv[])
             parameters.use_column_generation = vm["use-column-generation"].as<bool>();
         if (vm.count("use-dichotomic-search"))
             parameters.use_dichotomic_search = vm["use-dichotomic-search"].as<bool>();
+        if (vm.count("use-milp-assignment"))
+            parameters.use_milp_assignment = vm["use-milp-assignment"].as<bool>();
 
         if (vm.count("sequential-value-correction-subproblem-tree-search-queue-size"))
             parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();

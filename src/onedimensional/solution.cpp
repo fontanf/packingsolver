@@ -39,13 +39,13 @@ void Solution::update_indicators(
 
         bin.end = item.start + item_type.length;
         if (bin.end > bin_type.length) {
-            built_in_feasible_ = false;
+            capacity_feasible_ = false;
         }
 
         // Update bin.weight.
         bin.weight += item_type.weight;
         if (bin.weight > bin_type.maximum_weight) {
-            built_in_feasible_ = false;
+            weight_feasible_ = false;
         }
 
         ++number_of_items_in_bin;
@@ -63,31 +63,60 @@ void Solution::update_indicators(
                     item_type.maximum_weight_after);
         }
         if (number_of_items_in_bin > bin.maximum_number_of_items) {
-            built_in_feasible_ = false;
+            stackability_feasible_ = false;
         }
         if (bin.remaining_weight < 0) {
-            built_in_feasible_ = false;
+            maximum_weight_after_feasible_ = false;
         }
 
         number_of_items_ += bin.copies;
         item_copies_[item.item_type_id] += bin.copies;
         if (item_copies_[item.item_type_id] > item_type.copies) {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": "
-                    "item_copies_[item.item_type_id]: " + std::to_string(item_copies_[item.item_type_id]) + "; "
-                    "item_type.copies: " + std::to_string(item_type.copies) + ".");
+            item_copies_feasible_ = false;
         }
         item_length_ += bin.copies * item_type.length;
         item_profit_ += bin.copies * item_type.profit;
     }
 
     // Update length_.
-    if (bin_pos == (BinPos)bins_.size() - 1 && !bin.items.empty())
+    // Only update on non-empty bins, so that 'length_' tracks the end of the
+    // last non-empty bin processed so far: a trailing empty bin (e.g. one
+    // forced present by 'copies_min' but left unused) must not reset or
+    // otherwise affect it.
+    if (!bin.items.empty())
         length_ = bin_length_ - bin_type.length + bin.end;
+
+    // Check bin type usage order ('BinPacking' objective only): every bin
+    // type used before the last used bin type must be used up entirely.
+    // Computed once all bins have been added, since it depends on the final
+    // per-type usage counts.
+    if (instance().objective() == Objective::BinPacking
+            && bin_pos == (BinPos)bins_.size() - 1) {
+        BinTypeId last_used_bin_type_id = -1;
+        for (BinTypeId check_bin_type_id = 0;
+                check_bin_type_id < instance().number_of_bin_types();
+                ++check_bin_type_id) {
+            if (bin_copies_[check_bin_type_id] > 0)
+                last_used_bin_type_id = check_bin_type_id;
+        }
+        for (BinTypeId check_bin_type_id = 0;
+                check_bin_type_id < last_used_bin_type_id;
+                ++check_bin_type_id) {
+            if (bin_copies_[check_bin_type_id] != instance().bin_type(check_bin_type_id).copies) {
+                bin_type_order_feasible_ = false;
+                break;
+            }
+        }
+    }
 
     // Feasibility callback.
     callback_feasible_ = instance().feasibility_callback()(*this);
-    feasible_ = built_in_feasible_ && callback_feasible_;
+    feasible_ = capacity_feasible_
+        && weight_feasible_
+        && stackability_feasible_
+        && maximum_weight_after_feasible_
+        && item_copies_feasible_
+        && callback_feasible_;
 }
 
 void Solution::append(
