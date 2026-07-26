@@ -2,6 +2,7 @@
 
 #include "optimizationtools/utils/utils.hpp"
 
+#include <algorithm>
 #include <fstream>
 
 using namespace packingsolver;
@@ -47,6 +48,16 @@ void Solution::update_indicators(
         bin.weight += item_type.weight;
         if (bin.weight > bin_type.maximum_weight) {
             weight_feasible_ = false;
+        }
+
+        // Check eligibility.
+        if (item_type.eligibility_id != -1
+                && std::find(
+                    bin_type.eligibility_ids.begin(),
+                    bin_type.eligibility_ids.end(),
+                    item_type.eligibility_id)
+                == bin_type.eligibility_ids.end()) {
+            eligibility_feasible_ = false;
         }
 
         // Update bin.resource_consumption.
@@ -129,6 +140,7 @@ void Solution::update_indicators(
         && maximum_weight_after_feasible_
         && item_copies_feasible_
         && resource_feasible_
+        && eligibility_feasible_
         && callback_feasible_;
 }
 
