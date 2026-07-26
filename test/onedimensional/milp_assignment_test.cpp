@@ -16,13 +16,20 @@ struct OneDimensionalMilpAssignmentTestParams
 
     /** Path to the reference solution; if empty, the instance is expected to be proven infeasible. */
     fs::path certificate_path;
+
+    /**
+     * Path to a JSON instance file; if non-empty, used instead of
+     * 'items_path'/'bins_path'/'parameters_path' (needed for features with
+     * no CSV representation, e.g. resources).
+     */
+    fs::path instance_path;
 };
 
 inline std::ostream& operator<<(
         std::ostream& os,
         const OneDimensionalMilpAssignmentTestParams& test_params)
 {
-    os << test_params.items_path;
+    os << (!test_params.instance_path.empty()? test_params.instance_path: test_params.items_path);
     return os;
 }
 
@@ -32,9 +39,13 @@ TEST_P(OneDimensionalMilpAssignmentTest, OneDimensionalMilpAssignment)
 {
     OneDimensionalMilpAssignmentTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
-    instance_builder.read_item_types(test_params.items_path.string());
-    instance_builder.read_bin_types(test_params.bins_path.string());
-    instance_builder.read_parameters(test_params.parameters_path.string());
+    if (!test_params.instance_path.empty()) {
+        instance_builder.read(test_params.instance_path.string());
+    } else {
+        instance_builder.read_item_types(test_params.items_path.string());
+        instance_builder.read_bin_types(test_params.bins_path.string());
+        instance_builder.read_parameters(test_params.parameters_path.string());
+    }
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
@@ -97,4 +108,10 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_weight_capacity" / "bins.csv",
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_weight_capacity" / "parameters.csv",
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_weight_capacity" / "solution.csv",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_resource_capacity" / "solution.csv",
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_resource_capacity" / "instance.json",
             }}));

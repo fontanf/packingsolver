@@ -44,6 +44,9 @@ struct SolutionBin
      * weight after constraint.
      */
     Weight remaining_weight = -1;
+
+    /** Resource consumption, indexed by resource_id. */
+    std::vector<double> resource_consumption;
 };
 
 bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
@@ -116,6 +119,9 @@ public:
      * for the other objectives, which do not require this.
      */
     inline bool bin_type_order_feasible() const { return bin_type_order_feasible_; }
+
+    /** Return 'true' iff the solution satisfies the resource capacity constraints. */
+    inline bool resource_feasible() const { return resource_feasible_; }
 
     /** Get the number of items in the solution. */
     inline ItemPos number_of_items() const { return number_of_items_; }
@@ -248,6 +254,9 @@ private:
 
     /** 'true' iff bin types are used in the order they are provided ('BinPacking' objective only). */
     bool bin_type_order_feasible_ = true;
+
+    /** 'true' iff the solution satisfies the resource capacity constraints. */
+    bool resource_feasible_ = true;
 
     /** Feasibility according to the user feasibility callback. */
     bool callback_feasible_ = true;

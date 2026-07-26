@@ -29,6 +29,7 @@ void Solution::update_indicators(
     number_of_bins_ += bin.copies;
 
     bin.end = 0;
+    bin.resource_consumption.assign(bin_type.number_of_resources(), 0.0);
     ItemPos number_of_items_in_bin = 0;
     for (SolutionItem& item: bin.items) {
         const ItemType& item_type = instance().item_type(item.item_type_id);
@@ -46,6 +47,17 @@ void Solution::update_indicators(
         bin.weight += item_type.weight;
         if (bin.weight > bin_type.maximum_weight) {
             weight_feasible_ = false;
+        }
+
+        // Update bin.resource_consumption.
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            bin.resource_consumption[resource_id]
+                += bin_type.item_resource_consumption(item.item_type_id, resource_id);
+            if (bin.resource_consumption[resource_id] > bin_type.resource_capacities[resource_id]) {
+                resource_feasible_ = false;
+            }
         }
 
         ++number_of_items_in_bin;
@@ -116,6 +128,7 @@ void Solution::update_indicators(
         && stackability_feasible_
         && maximum_weight_after_feasible_
         && item_copies_feasible_
+        && resource_feasible_
         && callback_feasible_;
 }
 

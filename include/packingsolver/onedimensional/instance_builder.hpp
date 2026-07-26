@@ -31,6 +31,15 @@ public:
     /** Read item types from a file. */
     void read_item_types(const std::string& items_path);
 
+    /**
+     * Read a full instance from a JSON file.
+     *
+     * Unlike the CSV readers above, this format supports every instance
+     * feature, including resources, and is meant for instances that need
+     * them; simple instances can keep using the CSV readers.
+     */
+    void read(const std::string& instance_path);
+
     /*
      * Set parameters
      */
@@ -63,6 +72,18 @@ public:
     void add_bin_type_eligibility(
             BinTypeId bin_type_id,
             EligibilityId eligibility_id);
+
+    /** Add a resource to a bin type. Returns the resource's id (local to this bin type). */
+    ResourceId add_bin_type_resource(
+            BinTypeId bin_type_id,
+            double capacity);
+
+    /** Set an item type's consumption of a bin type's resource. */
+    void add_resource_consumption(
+            BinTypeId bin_type_id,
+            ResourceId resource_id,
+            ItemTypeId item_type_id,
+            double consumption);
 
     /**
      * Add a bin type from another bin type.

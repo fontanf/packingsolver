@@ -114,6 +114,9 @@ public:
          */
         Weight last_bin_remaining_weight = -1;
 
+        /** Resource consumption in the last bin, indexed by resource_id. */
+        std::vector<double> last_bin_resource_consumption;
+
     };
 
     struct Parameters

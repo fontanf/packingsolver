@@ -289,6 +289,52 @@ MilpModel build_milp_model(
         }
     }
 
+    // Constraints: resource capacity.
+    // With a 'y' variable:    sum_i consumption_{i,r} * x_{i,t,k} <= capacity_{t,r} * y_{t,k}
+    //                     <=> sum_i consumption_{i,r} * x_{i,t,k} - capacity_{t,r} * y_{t,k} <= 0
+    // Without a 'y' variable: sum_i consumption_{i,r} * x_{i,t,k} <= capacity_{t,r}
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        BinPos number_of_bin_instances = bin_type_upper_bounds[bin_type_id];
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            double capacity = bin_type.resource_capacities[resource_id];
+            for (BinPos bin_instance_pos = 0;
+                    bin_instance_pos < number_of_bin_instances;
+                    ++bin_instance_pos) {
+                // Initialize new row.
+                milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
+                // Add row elements.
+                for (ItemTypeId item_type_id = 0;
+                        item_type_id < instance.number_of_item_types();
+                        ++item_type_id) {
+                    double consumption = bin_type.item_resource_consumption(item_type_id, resource_id);
+                    if (consumption == 0.0)
+                        continue;
+                    if (milp_model.x[item_type_id][bin_type_id].empty())
+                        continue;
+                    milp_model.model.elements_variables.push_back(milp_model.x[item_type_id][bin_type_id][bin_instance_pos]);
+                    milp_model.model.elements_coefficients.push_back(consumption);
+                }
+                int y_variable_id = milp_model.y[bin_type_id][bin_instance_pos];
+                if (y_variable_id != -1) {
+                    milp_model.model.elements_variables.push_back(y_variable_id);
+                    milp_model.model.elements_coefficients.push_back(-capacity);
+                    // Add row bounds.
+                    milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+                    milp_model.model.constraints_upper_bounds.push_back(0.0);
+                } else {
+                    // Add row bounds.
+                    milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+                    milp_model.model.constraints_upper_bounds.push_back(capacity);
+                }
+            }
+        }
+    }
+
     if (is_bin_packing) {
         // Constraints: bin usage order.
         // 'BinPacking' bin types must be used in the order they are
@@ -426,6 +472,10 @@ Solution retrieve_solution(
     if (!solution.weight_feasible()) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": solution doesn't satisfy bin weight capacity.");
+    }
+    if (!solution.resource_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy resource capacity.");
     }
     if (!solution.bin_type_order_feasible()) {
         throw std::logic_error(

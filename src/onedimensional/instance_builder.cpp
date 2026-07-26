@@ -84,6 +84,54 @@ void InstanceBuilder::add_bin_type_eligibility(
     instance_.bin_types_[bin_type_id].eligibility_ids.push_back(eligibility_id);
 }
 
+ResourceId InstanceBuilder::add_bin_type_resource(
+        BinTypeId bin_type_id,
+        double capacity)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    ResourceId resource_id = bin_type.resource_capacities.size();
+    bin_type.resource_capacities.push_back(capacity);
+    bin_type.item_resource_consumptions.push_back({});
+    return resource_id;
+}
+
+void InstanceBuilder::add_resource_consumption(
+        BinTypeId bin_type_id,
+        ResourceId resource_id,
+        ItemTypeId item_type_id,
+        double consumption)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    if (resource_id < 0 || resource_id >= (ResourceId)bin_type.resource_capacities.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'resource_id'; "
+                "resource_id: " + std::to_string(resource_id) + "; "
+                "bin_type.resource_capacities.size(): " + std::to_string(bin_type.resource_capacities.size()) + ".");
+    }
+
+    std::vector<double>& consumptions = bin_type.item_resource_consumptions[resource_id];
+    if (item_type_id >= (ItemTypeId)consumptions.size())
+        consumptions.resize(item_type_id + 1, 0.0);
+    consumptions[item_type_id] = consumption;
+}
+
 BinTypeId InstanceBuilder::add_bin_type(
         const Instance& original_instance,
         BinTypeId original_bin_type_id)
@@ -103,6 +151,15 @@ BinTypeId InstanceBuilder::add_bin_type(
         add_bin_type_eligibility(
                 bin_type_id,
                 eligibility_id);
+    }
+    // Copy resources (their consumptions are copied in 'add_item_type',
+    // which assumes the corresponding bin types have already been added).
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        add_bin_type_resource(
+                bin_type_id,
+                bin_type.resource_capacities[resource_id]);
     }
     return bin_type_id;
 }
@@ -300,6 +357,29 @@ ItemTypeId InstanceBuilder::add_item_type(
     set_item_type_eligibility(
             item_type_id,
             item_type.eligibility_id);
+    // Copy the consumption of this item type for the resources of
+    // already-added bin types. Assumes the relevant bin types have already
+    // been added via 'add_bin_type(original_instance, ...)'.
+    for (BinTypeId original_bin_type_id = 0;
+            original_bin_type_id < (BinTypeId)orig_to_sub_bin_type_ids_.size();
+            ++original_bin_type_id) {
+        BinTypeId sub_bin_type_id = orig_to_sub_bin_type_ids_[original_bin_type_id];
+        if (sub_bin_type_id == -1)
+            continue;
+        const BinType& original_bin_type = original_instance.bin_type(original_bin_type_id);
+        for (ResourceId resource_id = 0;
+                resource_id < original_bin_type.number_of_resources();
+                ++resource_id) {
+            double consumption = original_bin_type.item_resource_consumption(original_item_type_id, resource_id);
+            if (consumption != 0.0) {
+                add_resource_consumption(
+                        sub_bin_type_id,
+                        resource_id,
+                        item_type_id,
+                        consumption);
+            }
+        }
+    }
     return item_type_id;
 }
 
@@ -541,6 +621,96 @@ void InstanceBuilder::read_item_types(
         set_item_type_maximum_weight_after(
                 item_type_id,
                 maximum_weight_after);
+    }
+}
+
+void InstanceBuilder::read(
+        const std::string& instance_path)
+{
+    std::ifstream file(instance_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + instance_path + "\".");
+    }
+
+    nlohmann::json j;
+    file >> j;
+
+    if (!j.contains("objective")) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "missing \"objective\" field.");
+    }
+    {
+        std::string objective_string = j["objective"];
+        std::stringstream objective_ss(objective_string);
+        Objective objective;
+        objective_ss >> objective;
+        if (objective_ss.fail()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "unrecognized \"objective\" value \""
+                    + objective_string + "\".");
+        }
+        set_objective(objective);
+    }
+
+    // Read bin types.
+    for (const auto& json_bin_type: j["bin_types"]) {
+        Length length = json_bin_type["length"];
+        BinTypeId bin_type_id = add_bin_type(length);
+        if (json_bin_type.contains("cost"))
+            set_bin_type_cost(bin_type_id, json_bin_type["cost"]);
+        if (json_bin_type.contains("copies"))
+            set_bin_type_copies(bin_type_id, json_bin_type["copies"]);
+        if (json_bin_type.contains("copies_min"))
+            set_bin_type_copies_min(bin_type_id, json_bin_type["copies_min"]);
+        if (json_bin_type.contains("maximum_weight"))
+            set_bin_type_maximum_weight(bin_type_id, json_bin_type["maximum_weight"]);
+        if (json_bin_type.contains("eligibility_ids")) {
+            for (const auto& json_eligibility_id: json_bin_type["eligibility_ids"])
+                add_bin_type_eligibility(bin_type_id, json_eligibility_id);
+        }
+
+        // Read resources.
+        if (json_bin_type.contains("resources")) {
+            for (const auto& json_resource: json_bin_type["resources"]) {
+                double capacity = json_resource["capacity"];
+                ResourceId resource_id = add_bin_type_resource(bin_type_id, capacity);
+                if (json_resource.contains("consumptions")) {
+                    for (const auto& json_consumption: json_resource["consumptions"]) {
+                        ItemTypeId item_type_id = json_consumption["item_type_id"];
+                        double consumption = json_consumption["consumption"];
+                        add_resource_consumption(
+                                bin_type_id,
+                                resource_id,
+                                item_type_id,
+                                consumption);
+                    }
+                }
+            }
+        }
+    }
+
+    // Read item types.
+    for (const auto& json_item_type: j["item_types"]) {
+        Length length = json_item_type["length"];
+        ItemTypeId item_type_id = add_item_type(length);
+        if (json_item_type.contains("profit"))
+            set_item_type_profit(item_type_id, json_item_type["profit"]);
+        if (json_item_type.contains("weight"))
+            set_item_type_weight(item_type_id, json_item_type["weight"]);
+        if (json_item_type.contains("copies"))
+            set_item_type_copies(item_type_id, json_item_type["copies"]);
+        if (json_item_type.contains("nesting_length"))
+            set_item_type_nesting_length(item_type_id, json_item_type["nesting_length"]);
+        if (json_item_type.contains("maximum_stackability"))
+            set_item_type_maximum_stackability(item_type_id, json_item_type["maximum_stackability"]);
+        if (json_item_type.contains("maximum_weight_after"))
+            set_item_type_maximum_weight_after(item_type_id, json_item_type["maximum_weight_after"]);
+        if (json_item_type.contains("eligibility_id"))
+            set_item_type_eligibility(item_type_id, json_item_type["eligibility_id"]);
     }
 }
 
