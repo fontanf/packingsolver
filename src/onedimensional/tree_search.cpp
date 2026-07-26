@@ -344,7 +344,35 @@ Solution BranchingScheme::to_solution(
         }
         solution_builder.add_item(bin_pos, current_node->item_type_id);
     }
-    return solution_builder.build();
+    Solution solution = solution_builder.build();
+
+    // Check feasibility.
+    if (!solution.item_copies_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy item copies.");
+    }
+    if (!solution.capacity_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy bin length capacity.");
+    }
+    if (!solution.weight_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy bin weight capacity.");
+    }
+    if (!solution.stackability_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy maximum stackability.");
+    }
+    if (!solution.maximum_weight_after_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy maximum weight after.");
+    }
+    if (!solution.bin_type_order_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy bin type usage order.");
+    }
+
+    return solution;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
