@@ -1,0 +1,10 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        { "length": 100, "cost": 1, "copies": 3 },
+        { "length": 100, "cost": 1, "copies": 3, "eligibility_ids": [1] }
+    ],
+    "item_types": [
+        { "length": 10, "copies": 2, "eligibility_id": 1 }
+    ]
+}

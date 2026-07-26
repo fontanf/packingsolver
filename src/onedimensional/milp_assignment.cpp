@@ -477,6 +477,10 @@ Solution retrieve_solution(
         throw std::logic_error(
                 FUNC_SIGNATURE + ": solution doesn't satisfy resource capacity.");
     }
+    if (!solution.eligibility_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy eligibility.");
+    }
     if (!solution.bin_type_order_feasible()) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": solution doesn't satisfy bin type usage order.");

@@ -114,4 +114,10 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_resource_capacity" / "solution.csv",
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_resource_capacity" / "instance.json",
+            }, {
+                fs::path(""),
+                fs::path(""),
+                fs::path(""),
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_eligibility" / "solution.csv",
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_eligibility" / "instance.json",
             }}));

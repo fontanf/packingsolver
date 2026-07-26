@@ -123,6 +123,9 @@ public:
     /** Return 'true' iff the solution satisfies the resource capacity constraints. */
     inline bool resource_feasible() const { return resource_feasible_; }
 
+    /** Return 'true' iff every item is packed in a bin type it is eligible for. */
+    inline bool eligibility_feasible() const { return eligibility_feasible_; }
+
     /** Get the number of items in the solution. */
     inline ItemPos number_of_items() const { return number_of_items_; }
 
@@ -257,6 +260,9 @@ private:
 
     /** 'true' iff the solution satisfies the resource capacity constraints. */
     bool resource_feasible_ = true;
+
+    /** 'true' iff every item is packed in a bin type it is eligible for. */
+    bool eligibility_feasible_ = true;
 
     /** Feasibility according to the user feasibility callback. */
     bool callback_feasible_ = true;
