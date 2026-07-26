@@ -502,8 +502,10 @@ void optimize_tree_search_maximal_spaces(
     {
         if (local_output != nullptr) {
             local_output->solution_pool.add(ts_output.solution_pool.best(), "TSMS " + ts_output.solution_pool.best_label());
+            local_output->update_bounds(ts_output);
         } else {
             algorithm_formatter.update_solution(ts_output.solution_pool.best(), "TSMS " + ts_output.solution_pool.best_label());
+            algorithm_formatter.update_bounds(ts_output);
         }
     };
     tree_search_maximal_spaces(instance, ts_ms_parameters);
@@ -531,8 +533,10 @@ void optimize_benders_decomposition(
         ss << "BD " << psbd_output.number_of_iterations;
         if (local_output != nullptr) {
             local_output->solution_pool.add(psbd_output.solution_pool.best(), ss.str());
+            local_output->update_bounds(psbd_output);
         } else {
             algorithm_formatter.update_solution(psbd_output.solution_pool.best(), ss.str());
+            algorithm_formatter.update_bounds(psbd_output);
         }
     };
     benders_decomposition(instance, bd_parameters);
@@ -642,12 +646,12 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         // Disable algorithms which are not available for this objective.
         use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
-        use_benders_decomposition = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
-                && !use_column_generation) {
+                && !use_column_generation
+                && !use_benders_decomposition) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -670,12 +674,14 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         if (instance.number_of_bin_types() > 1)
             use_column_generation = false;
         use_dichotomic_search = false;
-        use_benders_decomposition = false;
+        if (instance.objective() == Objective::BinPackingWithLeftovers)
+            use_benders_decomposition = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
-                && !use_column_generation) {
+                && !use_column_generation
+                && !use_benders_decomposition) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -710,13 +716,13 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         } else {
             use_tree_search = false;
         }
-        use_benders_decomposition = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_dichotomic_search
-                && !use_column_generation) {
+                && !use_column_generation
+                && !use_benders_decomposition) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {

@@ -32,6 +32,10 @@ void Solution::update_indicators(
     bin.end = 0;
     bin.resource_consumption.assign(bin_type.number_of_resources(), 0.0);
     ItemPos number_of_items_in_bin = 0;
+    // Number of copies of each item type already placed in this bin, so
+    // far, at the point each item below is processed - needed to look up
+    // the correct entry of a per-copy resource consumption schedule.
+    std::vector<ItemPos> item_type_copies_in_bin(instance().number_of_item_types(), 0);
     for (SolutionItem& item: bin.items) {
         const ItemType& item_type = instance().item_type(item.item_type_id);
 
@@ -65,11 +69,15 @@ void Solution::update_indicators(
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
             bin.resource_consumption[resource_id]
-                += bin_type.item_resource_consumption(item.item_type_id, resource_id);
+                += bin_type.item_resource_consumption(
+                        item.item_type_id,
+                        resource_id,
+                        item_type_copies_in_bin[item.item_type_id]);
             if (bin.resource_consumption[resource_id] > bin_type.resource_capacities[resource_id]) {
                 resource_feasible_ = false;
             }
         }
+        ++item_type_copies_in_bin[item.item_type_id];
 
         ++number_of_items_in_bin;
 

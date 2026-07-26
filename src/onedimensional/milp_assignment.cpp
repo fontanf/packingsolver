@@ -85,6 +85,22 @@ struct MilpModel
     /** Underlying generic MILP model. */
     mathoptsolverscmake::MathOptModel model;
 
+    /**
+     * Power-of-two divisor applied to every length value (item lengths, bin
+     * lengths) appearing in the length-capacity and bin-instance-load-
+     * ordering rows, for numerical conditioning only; does not change the
+     * optimal solution.
+     */
+    double multiplier_length = 1.0;
+
+    /**
+     * Power-of-two divisor applied to item profits in the objective
+     * (Knapsack objective only), for numerical conditioning only; any
+     * profit-based bound retrieved from the solver must be multiplied back
+     * by this value before being reported.
+     */
+    double multiplier_profit = 1.0;
+
     /** Number of bin instances of each bin type considered in the model. */
     std::vector<BinPos> bin_type_upper_bounds;
 
@@ -96,8 +112,23 @@ struct MilpModel
      */
     std::vector<std::vector<int>> y;
 
-    /** x[item_type_id][bin_type_id][bin_instance_pos]: copies of the item type packed in the bin instance. */
-    std::vector<std::vector<std::vector<int>>> x;
+    /**
+     * x[item_type_id][bin_type_id][bin_instance_pos][copy]: binary variable,
+     * 'true' iff at least 'copy + 1' copies of the item type are packed in
+     * the bin instance.
+     *
+     * Copies are exploded into one binary variable each (rather than a
+     * single bounded integer count variable) so that "at least a fixed
+     * number of copies of this item type are used" is a plain existing
+     * variable ('x[...][a - 1]'), not something that would otherwise need
+     * an auxiliary clamp variable to express. This is what makes the
+     * "dominated copies" ordering below exact, and lets combinatorial cuts
+     * added by callers (e.g. the rectangle Benders decomposition's no-good
+     * cuts and pairwise-incompatibility cuts) be expressed as plain
+     * resources instead of needing their own mechanism - see
+     * 'BinType::item_resource_consumptions'.
+     */
+    std::vector<std::vector<std::vector<std::vector<int>>>> x;
 };
 
 /** Build the classical assignment MILP model of the instance. */
@@ -117,6 +148,20 @@ MilpModel build_milp_model(
             || is_bin_packing);
 
     MilpModel milp_model;
+    // Numerical conditioning only (power-of-two coefficient scaling); does
+    // not change the optimal solution.
+    Length largest_bin_length = 0;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        largest_bin_length = std::max(
+                largest_bin_length,
+                instance.bin_type(bin_type_id).length);
+    }
+    milp_model.multiplier_length = largest_power_of_two_lesser_or_equal(largest_bin_length);
+    milp_model.multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
+    double multiplier_length = milp_model.multiplier_length;
+    double multiplier_profit = milp_model.multiplier_profit;
     milp_model.bin_type_upper_bounds = bin_type_upper_bounds;
     milp_model.model.objective_direction = is_knapsack?
         mathoptsolverscmake::ObjectiveDirection::Maximize:
@@ -127,6 +172,28 @@ MilpModel build_milp_model(
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         milp_model.x[item_type_id].resize(instance.number_of_bin_types());
+    }
+
+    // Maximum number of copies of an item type that could ever fit (by
+    // length alone) in a single bin instance of a given type: the number of
+    // per-copy binaries created for that (item type, bin type) pair. Capped
+    // at the item type's own total number of copies.
+    std::vector<std::vector<ItemPos>> item_copies_bound(instance.number_of_item_types());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        item_copies_bound[item_type_id].resize(instance.number_of_bin_types(), 0);
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            if (!instance.item_type_fits_bin_type(item_type_id, bin_type_id))
+                continue;
+            const BinType& bin_type = instance.bin_type(bin_type_id);
+            item_copies_bound[item_type_id][bin_type_id] = std::min(
+                    item_type.copies,
+                    (ItemPos)(bin_type.length / item_type.length));
+        }
     }
 
     // Variables: y_{t,k}.
@@ -159,7 +226,7 @@ MilpModel build_milp_model(
         }
     }
 
-    // Variables: x_{i,t,k}.
+    // Variables: x_{i,t,k,c}.
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -170,22 +237,59 @@ MilpModel build_milp_model(
             if (!instance.item_type_fits_bin_type(item_type_id, bin_type_id))
                 continue;
             BinPos number_of_bin_instances = bin_type_upper_bounds[bin_type_id];
-            milp_model.x[item_type_id][bin_type_id] = std::vector<int>(number_of_bin_instances);
+            ItemPos copies_bound = item_copies_bound[item_type_id][bin_type_id];
+            milp_model.x[item_type_id][bin_type_id] = std::vector<std::vector<int>>(number_of_bin_instances);
             for (BinPos bin_instance_pos = 0;
                     bin_instance_pos < number_of_bin_instances;
                     ++bin_instance_pos) {
-                milp_model.x[item_type_id][bin_type_id][bin_instance_pos] = milp_model.model.variables_lower_bounds.size();
-                milp_model.model.variables_lower_bounds.push_back(0.0);
-                milp_model.model.variables_upper_bounds.push_back((double)item_type.copies);
-                milp_model.model.variables_types.push_back(mathoptsolverscmake::VariableType::Integer);
-                milp_model.model.objective_coefficients.push_back(is_knapsack? item_type.profit: 0.0);
+                std::vector<int>& slots = milp_model.x[item_type_id][bin_type_id][bin_instance_pos];
+                slots.resize(copies_bound);
+                for (ItemPos copy = 0; copy < copies_bound; ++copy) {
+                    slots[copy] = milp_model.model.variables_lower_bounds.size();
+                    milp_model.model.variables_lower_bounds.push_back(0.0);
+                    milp_model.model.variables_upper_bounds.push_back(1.0);
+                    milp_model.model.variables_types.push_back(mathoptsolverscmake::VariableType::Binary);
+                    milp_model.model.objective_coefficients.push_back(is_knapsack? item_type.profit / multiplier_profit: 0.0);
+                }
+            }
+        }
+    }
+
+    // Constraints: dominated copies.
+    // x_{i,t,k,c+1} <= x_{i,t,k,c}
+    // <=> 0 <= x_{i,t,k,c} - x_{i,t,k,c+1} <= inf
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            if (milp_model.x[item_type_id][bin_type_id].empty())
+                continue;
+            BinPos number_of_bin_instances = bin_type_upper_bounds[bin_type_id];
+            for (BinPos bin_instance_pos = 0;
+                    bin_instance_pos < number_of_bin_instances;
+                    ++bin_instance_pos) {
+                const std::vector<int>& slots = milp_model.x[item_type_id][bin_type_id][bin_instance_pos];
+                for (ItemPos copy = 0; copy + 1 < (ItemPos)slots.size(); ++copy) {
+                    // Initialize new row.
+                    milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
+                    // Add row elements.
+                    milp_model.model.elements_variables.push_back(slots[copy]);
+                    milp_model.model.elements_coefficients.push_back(1.0);
+                    milp_model.model.elements_variables.push_back(slots[copy + 1]);
+                    milp_model.model.elements_coefficients.push_back(-1.0);
+                    // Add row bounds.
+                    milp_model.model.constraints_lower_bounds.push_back(0.0);
+                    milp_model.model.constraints_upper_bounds.push_back(std::numeric_limits<double>::infinity());
+                }
             }
         }
     }
 
     // Constraints: demand.
-    // 'VariableSizedBinPacking', 'BinPacking' and 'Feasibility': sum_{t,k} x_{i,t,k} = copies_i
-    // 'Knapsack':                                                sum_{t,k} x_{i,t,k} <= copies_i
+    // 'VariableSizedBinPacking', 'BinPacking' and 'Feasibility': sum_{t,k,c} x_{i,t,k,c} = copies_i
+    // 'Knapsack':                                                sum_{t,k,c} x_{i,t,k,c} <= copies_i
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -196,9 +300,11 @@ MilpModel build_milp_model(
         for (BinTypeId bin_type_id = 0;
                 bin_type_id < instance.number_of_bin_types();
                 ++bin_type_id) {
-            for (int variable_id: milp_model.x[item_type_id][bin_type_id]) {
-                milp_model.model.elements_variables.push_back(variable_id);
-                milp_model.model.elements_coefficients.push_back(1.0);
+            for (const std::vector<int>& slots: milp_model.x[item_type_id][bin_type_id]) {
+                for (int variable_id: slots) {
+                    milp_model.model.elements_variables.push_back(variable_id);
+                    milp_model.model.elements_coefficients.push_back(1.0);
+                }
             }
         }
         // Add row bounds.
@@ -207,9 +313,9 @@ MilpModel build_milp_model(
     }
 
     // Constraints: length capacity.
-    // With a 'y' variable:    sum_i length_i * x_{i,t,k} <= length_t * y_{t,k}
-    //                     <=> sum_i length_i * x_{i,t,k} - length_t * y_{t,k} <= 0
-    // Without a 'y' variable: sum_i length_i * x_{i,t,k} <= length_t
+    // With a 'y' variable:    sum_{i,c} length_i * x_{i,t,k,c} <= length_t * y_{t,k}
+    //                     <=> sum_{i,c} length_i * x_{i,t,k,c} - length_t * y_{t,k} <= 0
+    // Without a 'y' variable: sum_{i,c} length_i * x_{i,t,k,c} <= length_t
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
@@ -227,28 +333,30 @@ MilpModel build_milp_model(
                 const ItemType& item_type = instance.item_type(item_type_id);
                 if (milp_model.x[item_type_id][bin_type_id].empty())
                     continue;
-                milp_model.model.elements_variables.push_back(milp_model.x[item_type_id][bin_type_id][bin_instance_pos]);
-                milp_model.model.elements_coefficients.push_back((double)item_type.length);
+                for (int variable_id: milp_model.x[item_type_id][bin_type_id][bin_instance_pos]) {
+                    milp_model.model.elements_variables.push_back(variable_id);
+                    milp_model.model.elements_coefficients.push_back((double)item_type.length / multiplier_length);
+                }
             }
             int y_variable_id = milp_model.y[bin_type_id][bin_instance_pos];
             if (y_variable_id != -1) {
                 milp_model.model.elements_variables.push_back(y_variable_id);
-                milp_model.model.elements_coefficients.push_back(-(double)bin_type.length);
+                milp_model.model.elements_coefficients.push_back(-(double)bin_type.length / multiplier_length);
                 // Add row bounds.
                 milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
                 milp_model.model.constraints_upper_bounds.push_back(0.0);
             } else {
                 // Add row bounds.
                 milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
-                milp_model.model.constraints_upper_bounds.push_back((double)bin_type.length);
+                milp_model.model.constraints_upper_bounds.push_back((double)bin_type.length / multiplier_length);
             }
         }
     }
 
     // Constraints: weight capacity.
-    // With a 'y' variable:    sum_i weight_i * x_{i,t,k} <= maximum_weight_t * y_{t,k}
-    //                     <=> sum_i weight_i * x_{i,t,k} - maximum_weight_t * y_{t,k} <= 0
-    // Without a 'y' variable: sum_i weight_i * x_{i,t,k} <= maximum_weight_t
+    // With a 'y' variable:    sum_{i,c} weight_i * x_{i,t,k,c} <= maximum_weight_t * y_{t,k}
+    //                     <=> sum_{i,c} weight_i * x_{i,t,k,c} - maximum_weight_t * y_{t,k} <= 0
+    // Without a 'y' variable: sum_{i,c} weight_i * x_{i,t,k,c} <= maximum_weight_t
     // Skipped for bin types without a weight limit.
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
@@ -271,8 +379,10 @@ MilpModel build_milp_model(
                     continue;
                 if (milp_model.x[item_type_id][bin_type_id].empty())
                     continue;
-                milp_model.model.elements_variables.push_back(milp_model.x[item_type_id][bin_type_id][bin_instance_pos]);
-                milp_model.model.elements_coefficients.push_back(item_type.weight);
+                for (int variable_id: milp_model.x[item_type_id][bin_type_id][bin_instance_pos]) {
+                    milp_model.model.elements_variables.push_back(variable_id);
+                    milp_model.model.elements_coefficients.push_back(item_type.weight);
+                }
             }
             int y_variable_id = milp_model.y[bin_type_id][bin_instance_pos];
             if (y_variable_id != -1) {
@@ -290,9 +400,20 @@ MilpModel build_milp_model(
     }
 
     // Constraints: resource capacity.
-    // With a 'y' variable:    sum_i consumption_{i,r} * x_{i,t,k} <= capacity_{t,r} * y_{t,k}
-    //                     <=> sum_i consumption_{i,r} * x_{i,t,k} - capacity_{t,r} * y_{t,k} <= 0
-    // Without a 'y' variable: sum_i consumption_{i,r} * x_{i,t,k} <= capacity_{t,r}
+    // With a 'y' variable:    sum_{i,c} consumption_{i,r,c} * x_{i,t,k,c} <= capacity_{t,r} * y_{t,k}
+    //                     <=> sum_{i,c} consumption_{i,r,c} * x_{i,t,k,c} - capacity_{t,r} * y_{t,k} <= 0
+    // Without a 'y' variable: sum_{i,c} consumption_{i,r,c} * x_{i,t,k,c} <= capacity_{t,r}
+    //
+    // The consumption of the 'c'-th copy of an item type can depend on 'c'
+    // (see 'BinType::item_resource_consumptions'): a schedule that is 1 for
+    // the first 'a' copies and 0 after makes the row's contribution from
+    // that item type equal to 'min(count, a)', which keeps growing only
+    // while count < a. This is what lets combinatorial cuts (no-good cuts,
+    // pairwise-incompatibility cuts - see the rectangle Benders
+    // decomposition) be expressed exactly as resources: a uniform
+    // "cost per unit" resource could only cap the *combined* total of the
+    // item types involved, wrongly excluding unrelated combinations using
+    // more of one item type and none of another.
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
@@ -311,13 +432,16 @@ MilpModel build_milp_model(
                 for (ItemTypeId item_type_id = 0;
                         item_type_id < instance.number_of_item_types();
                         ++item_type_id) {
-                    double consumption = bin_type.item_resource_consumption(item_type_id, resource_id);
-                    if (consumption == 0.0)
-                        continue;
                     if (milp_model.x[item_type_id][bin_type_id].empty())
                         continue;
-                    milp_model.model.elements_variables.push_back(milp_model.x[item_type_id][bin_type_id][bin_instance_pos]);
-                    milp_model.model.elements_coefficients.push_back(consumption);
+                    const std::vector<int>& slots = milp_model.x[item_type_id][bin_type_id][bin_instance_pos];
+                    for (ItemPos copy = 0; copy < (ItemPos)slots.size(); ++copy) {
+                        double consumption = bin_type.item_resource_consumption(item_type_id, resource_id, copy);
+                        if (consumption == 0.0)
+                            continue;
+                        milp_model.model.elements_variables.push_back(slots[copy]);
+                        milp_model.model.elements_coefficients.push_back(consumption);
+                    }
                 }
                 int y_variable_id = milp_model.y[bin_type_id][bin_instance_pos];
                 if (y_variable_id != -1) {
@@ -332,6 +456,178 @@ MilpModel build_milp_model(
                     milp_model.model.constraints_upper_bounds.push_back(capacity);
                 }
             }
+        }
+    }
+
+    // Constraints: item type precedence.
+    // See 'Precedence': each one means no unit of the dominated item type
+    // may be used unless the dominating item type uses all of its copies,
+    // globally, across every bin type and instance it can be packed in
+    // (not just one specific bin).
+    //
+    // With more than one candidate bin, this needs an auxiliary binary
+    // indicator 'z' (not tied to any specific bin) plus two constraints:
+    //   sum(all dominating copies) >= copies_dominating * z
+    //   sum(all dominated copies)  <= copies_dominated * z
+    // For equality-demand objectives ('BinPacking', 'VariableSizedBinPacking',
+    // 'Feasibility') 'sum(all dominating copies)' is already pinned to
+    // 'copies_dominating' by the item type's own demand constraint
+    // regardless of 'z', so 'z' is left free and the solver can always set
+    // it to 1: the pair becomes an automatic no-op there, exactly as it
+    // should (the underlying exchange argument - swap one dominated unit
+    // for one dominating unit, which always fits in the freed space since
+    // the dominating item type is no larger, and never decreases profit -
+    // only has force where the demand constraint allows some copies to go
+    // unpacked, i.e. 'Knapsack'). No explicit objective check is needed.
+    //
+    // With a single candidate bin, no new variable is needed at all: the
+    // dominating item type's own last achievable copy in that bin is
+    // already a binary meaning exactly "fully used there" (thanks to the
+    // "dominated copies" ordering above), so it is reused directly as 'z'
+    // (this is also exactly why a single-bin instance can never need more
+    // than this: with only one candidate bin, "used everywhere" and "used
+    // in this one bin" coincide).
+    {
+        bool single_bin = (instance.number_of_bins() <= 1);
+        BinTypeId single_bin_type_id = -1;
+        if (single_bin) {
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < instance.number_of_bin_types();
+                    ++bin_type_id) {
+                if (bin_type_upper_bounds[bin_type_id] > 0) {
+                    single_bin_type_id = bin_type_id;
+                    break;
+                }
+            }
+        }
+        for (const Precedence& precedence: instance.precedences()) {
+            ItemTypeId dominated_item_type_id = precedence.dominated_item_type_id;
+            ItemTypeId dominating_item_type_id = precedence.dominating_item_type_id;
+            const ItemType& dominated_item_type = instance.item_type(dominated_item_type_id);
+            const ItemType& dominating_item_type = instance.item_type(dominating_item_type_id);
+
+            if (single_bin) {
+                if (single_bin_type_id == -1
+                        || milp_model.x[dominated_item_type_id][single_bin_type_id].empty()
+                        || milp_model.x[dominating_item_type_id][single_bin_type_id].empty()) {
+                    // Either no bin at all, or one of the two item types
+                    // cannot be packed in the (only) candidate bin type: the
+                    // precedence is vacuous here.
+                    continue;
+                }
+                const std::vector<int>& dominated_slots = milp_model.x[dominated_item_type_id][single_bin_type_id][0];
+                const std::vector<int>& dominating_slots = milp_model.x[dominating_item_type_id][single_bin_type_id][0];
+                int z_variable_id = dominating_slots.back();
+                // sum_c x_{dominated,c} <= copies_dominated * z
+                // <=> sum_c x_{dominated,c} - copies_dominated * z <= 0
+                // Initialize new row.
+                milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
+                // Add row elements.
+                for (int variable_id: dominated_slots) {
+                    milp_model.model.elements_variables.push_back(variable_id);
+                    milp_model.model.elements_coefficients.push_back(1.0);
+                }
+                milp_model.model.elements_variables.push_back(z_variable_id);
+                milp_model.model.elements_coefficients.push_back(-(double)dominated_item_type.copies);
+                // Add row bounds.
+                milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+                milp_model.model.constraints_upper_bounds.push_back(0.0);
+                continue;
+            }
+
+            // Multiple candidate bins: auxiliary indicator variable.
+            int z_variable_id = milp_model.model.variables_lower_bounds.size();
+            milp_model.model.variables_lower_bounds.push_back(0.0);
+            milp_model.model.variables_upper_bounds.push_back(1.0);
+            milp_model.model.variables_types.push_back(mathoptsolverscmake::VariableType::Binary);
+            milp_model.model.objective_coefficients.push_back(0.0);
+
+            // sum(all dominating copies) >= copies_dominating * z
+            // <=> sum(all dominating copies) - copies_dominating * z >= 0
+            {
+                milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
+                for (BinTypeId bin_type_id = 0;
+                        bin_type_id < instance.number_of_bin_types();
+                        ++bin_type_id) {
+                    if (milp_model.x[dominating_item_type_id][bin_type_id].empty())
+                        continue;
+                    for (const std::vector<int>& slots: milp_model.x[dominating_item_type_id][bin_type_id]) {
+                        for (int variable_id: slots) {
+                            milp_model.model.elements_variables.push_back(variable_id);
+                            milp_model.model.elements_coefficients.push_back(1.0);
+                        }
+                    }
+                }
+                milp_model.model.elements_variables.push_back(z_variable_id);
+                milp_model.model.elements_coefficients.push_back(-(double)dominating_item_type.copies);
+                milp_model.model.constraints_lower_bounds.push_back(0.0);
+                milp_model.model.constraints_upper_bounds.push_back(std::numeric_limits<double>::infinity());
+            }
+
+            // sum(all dominated copies) <= copies_dominated * z
+            // <=> sum(all dominated copies) - copies_dominated * z <= 0
+            {
+                milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
+                for (BinTypeId bin_type_id = 0;
+                        bin_type_id < instance.number_of_bin_types();
+                        ++bin_type_id) {
+                    if (milp_model.x[dominated_item_type_id][bin_type_id].empty())
+                        continue;
+                    for (const std::vector<int>& slots: milp_model.x[dominated_item_type_id][bin_type_id]) {
+                        for (int variable_id: slots) {
+                            milp_model.model.elements_variables.push_back(variable_id);
+                            milp_model.model.elements_coefficients.push_back(1.0);
+                        }
+                    }
+                }
+                milp_model.model.elements_variables.push_back(z_variable_id);
+                milp_model.model.elements_coefficients.push_back(-(double)dominated_item_type.copies);
+                milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+                milp_model.model.constraints_upper_bounds.push_back(0.0);
+            }
+        }
+    }
+
+    // Constraints: bin instance load ordering (symmetry breaking).
+    // Bin instances of the same type are interchangeable. Breaking this
+    // symmetry per item type is unsound in general: two item types' counts
+    // cannot always be simultaneously sorted non-increasing by a single
+    // shared bin-instance permutation (e.g. instance A = (5, 3), instance
+    // B = (3, 5) for two item types: no ordering of A, B makes both item
+    // types' counts non-increasing together). A single aggregate key --
+    // total length used -- is always totally orderable regardless of item
+    // mix, so it is used instead. Valid for every objective (does not
+    // involve the 'y' variables).
+    // sum_{i,c} length_i * x_{i,t,k,c} >= sum_{i,c} length_i * x_{i,t,k+1,c}
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        BinPos number_of_bin_instances = bin_type_upper_bounds[bin_type_id];
+        for (BinPos bin_instance_pos = 0;
+                bin_instance_pos < number_of_bin_instances - 1;
+                ++bin_instance_pos) {
+            // Initialize new row.
+            milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
+            // Add row elements.
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                const ItemType& item_type = instance.item_type(item_type_id);
+                if (milp_model.x[item_type_id][bin_type_id].empty())
+                    continue;
+                double length = (double)item_type.length / multiplier_length;
+                for (int variable_id: milp_model.x[item_type_id][bin_type_id][bin_instance_pos]) {
+                    milp_model.model.elements_variables.push_back(variable_id);
+                    milp_model.model.elements_coefficients.push_back(length);
+                }
+                for (int variable_id: milp_model.x[item_type_id][bin_type_id][bin_instance_pos + 1]) {
+                    milp_model.model.elements_variables.push_back(variable_id);
+                    milp_model.model.elements_coefficients.push_back(-length);
+                }
+            }
+            // Add row bounds.
+            milp_model.model.constraints_lower_bounds.push_back(0.0);
+            milp_model.model.constraints_upper_bounds.push_back(std::numeric_limits<double>::infinity());
         }
     }
 
@@ -433,8 +729,11 @@ Solution retrieve_solution(
                     ++item_type_id) {
                 if (milp_model.x[item_type_id][bin_type_id].empty())
                     continue;
-                double value = milp_solution[milp_model.x[item_type_id][bin_type_id][bin_instance_pos]];
-                ItemPos copies = (ItemPos)std::llround(value);
+                ItemPos copies = 0;
+                for (int variable_id: milp_model.x[item_type_id][bin_type_id][bin_instance_pos]) {
+                    if (milp_solution[variable_id] > 0.5)
+                        ++copies;
+                }
                 if (copies > 0)
                     bin_items.push_back({item_type_id, copies});
             }
@@ -512,7 +811,14 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
 
     // Determine, for each bin type, the number of bin instances of that type
     // to consider in the MILP. For 'VariableSizedBinPacking', how many bins
-    // of each type to use is a decision, so this is only an upper bound. For
+    // of each type to use is a decision, so this is only an upper bound,
+    // estimated below via a tree search - which, per
+    // 'compute_bin_instance_upper_bound', is itself capped by the instance's
+    // own (finite) bin type copies whenever the caller gives one (e.g.
+    // rectangle's Benders decomposition, which derives a bound valid for
+    // every iteration from true 2D geometry, upfront): the tree search then
+    // only ever tightens that cap further using this specific call's
+    // (possibly cut-augmented) area-based view, never loosens it. For
     // 'Knapsack', 'Feasibility' and 'BinPacking', the bins (and, for
     // 'BinPacking', their order) are already fixed by the instance, so the
     // exact instance counts must be used rather than an estimated bound.
@@ -579,7 +885,7 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
                         }
                     } else if (instance.objective() == Objective::Knapsack) {
                         if (!strictly_greater(
-                                    highs_output->mip_dual_bound,
+                                    highs_output->mip_dual_bound * milp_model.multiplier_profit,
                                     output.solution_pool.best().profit())) {
                             highs_input->user_interrupt = 1;
                         }
@@ -607,6 +913,10 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
         highs_status = highs.startCallback(HighsCallbackType::kCallbackMipImprovingSolution);
         highs_status = highs.startCallback(HighsCallbackType::kCallbackMipInterrupt);
         mathoptsolverscmake::solve(highs);
+        if (parameters.timer.needs_to_end()) {
+            algorithm_formatter.end();
+            return output;
+        }
         // 'getSolution().col_value' (what 'get_solution' returns) is not
         // cleared by HiGHS when the model is infeasible, so emptiness alone
         // cannot be used to detect that case: the model status must be
@@ -621,7 +931,7 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
             if (instance.objective() == Objective::VariableSizedBinPacking) {
                 algorithm_formatter.update_variable_sized_bin_packing_bound(bound);
             } else if (instance.objective() == Objective::Knapsack) {
-                algorithm_formatter.update_knapsack_bound(bound);
+                algorithm_formatter.update_knapsack_bound(bound * milp_model.multiplier_profit);
             } else if (instance.objective() == Objective::BinPacking) {
                 algorithm_formatter.update_bin_packing_bound((BinPos)std::ceil(bound - 1e-6));
             }

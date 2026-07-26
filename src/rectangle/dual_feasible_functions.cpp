@@ -668,12 +668,10 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
 
 DualFeasibleFunctionsCut packingsolver::rectangle::find_most_violated_dual_feasible_function_cut(
         const Instance& instance,
+        BinTypeId bin_type_id,
         const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items)
 {
-    if (instance.number_of_bin_types() != 1) {
-        throw std::invalid_argument(FUNC_SIGNATURE);
-    }
-    const BinType& bin_type = instance.bin_type(0);
+    const BinType& bin_type = instance.bin_type(bin_type_id);
 
     DualFeasibleFunctionsTables tables = compute_dual_feasible_functions_tables(instance, bin_type);
 

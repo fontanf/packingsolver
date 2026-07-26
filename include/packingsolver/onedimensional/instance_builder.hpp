@@ -78,11 +78,19 @@ public:
             BinTypeId bin_type_id,
             double capacity);
 
-    /** Set an item type's consumption of a bin type's resource. */
+    /**
+     * Set an item type's consumption of a bin type's resource for the
+     * 'item_copy'-th (0-indexed) copy of the item type; see
+     * 'BinType::item_resource_consumptions' for the exact semantics of a
+     * copy past the last one explicitly set (it repeats the last one set).
+     * Setting only 'item_copy == 0' gives the same, uniform consumption
+     * regardless of how many copies are already packed - the common case.
+     */
     void add_resource_consumption(
             BinTypeId bin_type_id,
             ResourceId resource_id,
             ItemTypeId item_type_id,
+            ItemPos item_copy,
             double consumption);
 
     /**
@@ -155,6 +163,15 @@ public:
             EligibilityId eligibility_id);
 
     /**
+     * Declare that no unit of 'dominated_item_type_id' may be used unless
+     * 'dominating_item_type_id' uses all of its copies; see 'Precedence'
+     * for the exact semantics.
+     */
+    void add_item_type_precedence(
+            ItemTypeId dominated_item_type_id,
+            ItemTypeId dominating_item_type_id);
+
+    /**
      * Add an item type from another item type.
      *
      * This method is used in the column generation procedure.
@@ -223,6 +240,18 @@ private:
 
     /** Mapping from original item type IDs to sub-instance item type IDs. */
     std::vector<ItemTypeId> orig_to_sub_item_type_ids_;
+
+    /**
+     * Item type precedences pending completion, indexed by the *original*
+     * instance's precedence id, collected by
+     * 'add_item_type(original_instance, ...)': each entry is
+     * (sub_dominated_item_type_id, sub_dominating_item_type_id), '-1' on
+     * either side until the corresponding item type of that original
+     * precedence gets copied over (which may happen in either order, or
+     * never). 'build()' finalizes every entry with both sides present via
+     * 'add_item_type_precedence' (see there), and drops the rest.
+     */
+    std::vector<std::pair<ItemTypeId, ItemTypeId>> pending_precedences_by_original_id_;
 
 };
 

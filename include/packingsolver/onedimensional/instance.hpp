@@ -14,6 +14,22 @@ namespace onedimensional
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Item type precedence: no unit of 'dominated_item_type_id' may be used
+ * unless 'dominating_item_type_id' uses all of its own copies (used by
+ * 'milp_assignment'; see its "Constraints: item type precedence" for the
+ * exact semantics and soundness scope). Added via
+ * 'InstanceBuilder::add_item_type_precedence'.
+ */
+struct Precedence
+{
+    /** Dominated item type of this precedence. */
+    ItemTypeId dominated_item_type_id = -1;
+
+    /** Dominating item type of this precedence. */
+    ItemTypeId dominating_item_type_id = -1;
+};
+
+/**
  * Item type structure for a problem of type 'onedimensional'.
  */
 struct ItemType
@@ -57,6 +73,18 @@ struct ItemType
      *   bin type supporting eligibility id 'eligibility_id'.
      */
     EligibilityId eligibility_id = -1;
+
+    /**
+     * Ids of the precedences (see 'Instance::precedences') in which this
+     * item type is the dominated party.
+     */
+    std::vector<PrecedenceId> dominated_precedence_ids;
+
+    /**
+     * Ids of the precedences (see 'Instance::precedences') in which this
+     * item type is the dominating party.
+     */
+    std::vector<PrecedenceId> dominating_precedence_ids;
 
     Length space() const { return length; }
 
@@ -115,11 +143,25 @@ struct BinType
     std::vector<double> resource_capacities;
 
     /**
-     * Resource consumption of each item type for each resource of this bin
-     * type, indexed by [resource_id][item_type_id]. A resource_id or
-     * item_type_id past the end of these vectors implicitly consumes 0.
+     * Resource consumption schedule of each item type for each resource of
+     * this bin type, indexed by [resource_id][item_type_id][copy]: the
+     * consumption charged for the 'copy'-th (0-indexed) unit of the item
+     * type packed in a bin of this type. A 'copy' past the end of the
+     * schedule repeats its last entry (so a length-1 schedule means
+     * "the same consumption regardless of how many copies are already
+     * packed" - the common case); a resource_id or item_type_id past the
+     * end of these vectors implicitly consumes 0 regardless of 'copy'.
+     *
+     * A non-uniform schedule lets a resource express "at least N copies of
+     * this item type" as a plain capacity/consumption row: an all-ones
+     * schedule of length N followed by a single trailing 0 makes the total
+     * consumption equal to 'min(count, N)', which only keeps growing while
+     * count < N. Combined across item types in one resource, this is what
+     * lets combinatorial cuts (e.g. the rectangle Benders decomposition's
+     * no-good cuts and pairwise-incompatibility cuts) be expressed exactly
+     * as resources instead of needing a dedicated mechanism.
      */
-    std::vector<std::vector<double>> item_resource_consumptions;
+    std::vector<std::vector<std::vector<double>>> item_resource_consumptions;
 
     /*
      * Computed attributes.
@@ -133,17 +175,26 @@ struct BinType
     /** Get the number of resources of this bin type. */
     inline ResourceId number_of_resources() const { return resource_capacities.size(); }
 
-    /** Get the consumption of an item type for a resource. */
+    /**
+     * Get the consumption of the 'copy'-th (0-indexed) unit of an item type
+     * for a resource.
+     */
     inline double item_resource_consumption(
             ItemTypeId item_type_id,
-            ResourceId resource_id) const
+            ResourceId resource_id,
+            ItemPos copy) const
     {
         if (resource_id >= (ResourceId)item_resource_consumptions.size())
             return 0.0;
-        const std::vector<double>& consumptions = item_resource_consumptions[resource_id];
+        const std::vector<std::vector<double>>& consumptions = item_resource_consumptions[resource_id];
         if (item_type_id >= (ItemTypeId)consumptions.size())
             return 0.0;
-        return consumptions[item_type_id];
+        const std::vector<double>& schedule = consumptions[item_type_id];
+        if (schedule.empty())
+            return 0.0;
+        return (copy < (ItemPos)schedule.size())?
+            schedule[copy]:
+            schedule.back();
     }
 
 };
@@ -268,6 +319,9 @@ public:
             ItemTypeId item_type_id,
             BinTypeId bin_type_id) const;
 
+    /** Get the item type precedences; see 'Precedence'. */
+    inline const std::vector<Precedence>& precedences() const { return precedences_; }
+
     /*
      * Export
      */
@@ -307,6 +361,9 @@ private:
 
     /** Item types. */
     std::vector<ItemType> item_types_;
+
+    /** Item type precedences; see 'precedences'. */
+    std::vector<Precedence> precedences_;
 
     /*
      * Private attributes computed by the 'build' method

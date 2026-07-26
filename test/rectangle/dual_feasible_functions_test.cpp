@@ -68,7 +68,7 @@ TEST(RectangleDualFeasibleFunctions, CutCheckerFindsViolationOnNonSquareBin)
 
     std::vector<std::pair<ItemTypeId, ItemPos>> selected_items = {{item_type_id, 4}};
     DualFeasibleFunctionsCut cut = find_most_violated_dual_feasible_function_cut(
-            instance, selected_items);
+            instance, bin_type_id, selected_items);
 
     EXPECT_TRUE(cut.found);
     EXPECT_GT(cut.violation, 0.0);
@@ -88,7 +88,7 @@ TEST(RectangleDualFeasibleFunctions, CutCheckerNoViolationForFeasibleSelection)
 
     std::vector<std::pair<ItemTypeId, ItemPos>> selected_items = {{item_type_id, 2}};
     DualFeasibleFunctionsCut cut = find_most_violated_dual_feasible_function_cut(
-            instance, selected_items);
+            instance, bin_type_id, selected_items);
 
     EXPECT_FALSE(cut.found);
 }

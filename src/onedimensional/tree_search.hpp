@@ -117,6 +117,13 @@ public:
         /** Resource consumption in the last bin, indexed by resource_id. */
         std::vector<double> last_bin_resource_consumption;
 
+        /**
+         * Number of copies of each item type already placed in the last
+         * bin, indexed by item_type_id - needed to look up the correct
+         * entry of a per-copy resource consumption schedule.
+         */
+        std::vector<ItemPos> last_bin_item_number_of_copies;
+
     };
 
     struct Parameters

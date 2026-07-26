@@ -422,6 +422,15 @@ public:
 
     /**
      * Return 'true' iff item type 'item_type_id' fits (in either
+     * orientation, if allowed, and is eligible for) bin type
+     * 'bin_type_id'.
+     */
+    bool item_type_fits_bin_type(
+            ItemTypeId item_type_id,
+            BinTypeId bin_type_id) const;
+
+    /**
+     * Return 'true' iff item type 'item_type_id' fits (in either
      * orientation, if allowed) in at least one bin type.
      */
     bool fits_some_bin(ItemTypeId item_type_id) const;
