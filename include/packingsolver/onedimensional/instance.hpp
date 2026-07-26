@@ -108,6 +108,19 @@ struct BinType
     /** Fixed items pre-placed in every bin of this type. */
     std::vector<FixedItem> fixed_items;
 
+    /**
+     * Resource capacities, indexed by resource_id (a resource_id is local to
+     * this bin type).
+     */
+    std::vector<double> resource_capacities;
+
+    /**
+     * Resource consumption of each item type for each resource of this bin
+     * type, indexed by [resource_id][item_type_id]. A resource_id or
+     * item_type_id past the end of these vectors implicitly consumes 0.
+     */
+    std::vector<std::vector<double>> item_resource_consumptions;
+
     /*
      * Computed attributes.
      */
@@ -116,6 +129,22 @@ struct BinType
     std::vector<ItemTypeId> item_type_ids;
 
     inline Volume space() const { return length; }
+
+    /** Get the number of resources of this bin type. */
+    inline ResourceId number_of_resources() const { return resource_capacities.size(); }
+
+    /** Get the consumption of an item type for a resource. */
+    inline double item_resource_consumption(
+            ItemTypeId item_type_id,
+            ResourceId resource_id) const
+    {
+        if (resource_id >= (ResourceId)item_resource_consumptions.size())
+            return 0.0;
+        const std::vector<double>& consumptions = item_resource_consumptions[resource_id];
+        if (item_type_id >= (ItemTypeId)consumptions.size())
+            return 0.0;
+        return consumptions[item_type_id];
+    }
 
 };
 

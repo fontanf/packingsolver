@@ -62,6 +62,10 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     const Node& parent = *pparent;
     Node node;
     const ItemType& item_type = instance().item_type(insertion.item_type_id);
+    BinTypeId bin_type_id = (insertion.new_bin)?
+        bin_type_ids_[insertion.new_bin_pos]:
+        bin_type_ids_[parent.number_of_bins - 1];
+    const BinType& bin_type = instance().bin_type(bin_type_id);
 
     node.parent = pparent;
 
@@ -76,6 +80,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_weight = item_type.weight;
         node.last_bin_maximum_number_of_items = item_type.maximum_stackability;
         node.last_bin_remaining_weight = item_type.maximum_weight_after;
+        node.last_bin_resource_consumption.assign(bin_type.number_of_resources(), 0.0);
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            node.last_bin_resource_consumption[resource_id]
+                = bin_type.item_resource_consumption(insertion.item_type_id, resource_id);
+        }
     } else {  // Same bin.
         node.number_of_bins = parent.number_of_bins;
         node.last_bin_length = parent.last_bin_length + item_type.length - item_type.nesting_length;
@@ -88,6 +99,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_remaining_weight = std::min(
                 parent.last_bin_remaining_weight - item_type.weight,
                 item_type.maximum_weight_after);
+        node.last_bin_resource_consumption = parent.last_bin_resource_consumption;
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            node.last_bin_resource_consumption[resource_id]
+                += bin_type.item_resource_consumption(insertion.item_type_id, resource_id);
+        }
     }
 
     BinPos i = node.number_of_bins - 1;
@@ -180,6 +198,15 @@ void BranchingScheme::insertion_item_same_bin(
     // Check maximum weight above.
     if (item_type.weight > parent->last_bin_remaining_weight * PSTOL)
         return;
+    // Check resource capacity.
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        double consumption = parent->last_bin_resource_consumption[resource_id]
+            + bin_type.item_resource_consumption(item_type_id, resource_id);
+        if (consumption > bin_type.resource_capacities[resource_id] * PSTOL)
+            return;
+    }
 
     Insertion insertion;
     insertion.item_type_id = item_type_id;
@@ -202,6 +229,14 @@ void BranchingScheme::insertion_item_new_bin(
     // Check maximum weight.
     if (item_type.weight > bin_type.maximum_weight * PSTOL)
         return;
+    // Check resource capacity.
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        double consumption = bin_type.item_resource_consumption(item_type_id, resource_id);
+        if (consumption > bin_type.resource_capacities[resource_id] * PSTOL)
+            return;
+    }
 
     Insertion insertion;
     insertion.item_type_id = item_type_id;
@@ -366,6 +401,10 @@ Solution BranchingScheme::to_solution(
     if (!solution.maximum_weight_after_feasible()) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": solution doesn't satisfy maximum weight after.");
+    }
+    if (!solution.resource_feasible()) {
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": solution doesn't satisfy resource capacity.");
     }
     if (!solution.bin_type_order_feasible()) {
         throw std::logic_error(

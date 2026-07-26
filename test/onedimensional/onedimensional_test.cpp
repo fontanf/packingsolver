@@ -24,6 +24,27 @@ TEST(OneDimensional, BinCopies)
     EXPECT_EQ(solution.bin_copies(0), 2);
 }
 
+TEST(OneDimensional, ResourceConsumptionCopiedFromOriginalInstance)
+{
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100);
+    packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 10);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(10);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 5);
+    const Instance instance = instance_builder.build();
+
+    InstanceBuilder sub_instance_builder;
+    packingsolver::BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+    packingsolver::ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance, item_type_id);
+    const Instance sub_instance = sub_instance_builder.build();
+
+    EXPECT_EQ(sub_instance.bin_type(sub_bin_type_id).number_of_resources(), 1);
+    EXPECT_EQ(
+            sub_instance.bin_type(sub_bin_type_id).item_resource_consumption(sub_item_type_id, 0),
+            5.0);
+}
+
 TEST(OneDimensional, Users_2023_08_01)
 {
     InstanceBuilder instance_builder;
