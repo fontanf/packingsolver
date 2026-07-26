@@ -80,13 +80,15 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_weight = item_type.weight;
         node.last_bin_maximum_number_of_items = item_type.maximum_stackability;
         node.last_bin_remaining_weight = item_type.maximum_weight_after;
+        node.last_bin_item_number_of_copies.assign(instance().number_of_item_types(), 0);
         node.last_bin_resource_consumption.assign(bin_type.number_of_resources(), 0.0);
         for (ResourceId resource_id = 0;
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
             node.last_bin_resource_consumption[resource_id]
-                = bin_type.item_resource_consumption(insertion.item_type_id, resource_id);
+                = bin_type.item_resource_consumption(insertion.item_type_id, resource_id, 0);
         }
+        node.last_bin_item_number_of_copies[insertion.item_type_id] = 1;
     } else {  // Same bin.
         node.number_of_bins = parent.number_of_bins;
         node.last_bin_length = parent.last_bin_length + item_type.length - item_type.nesting_length;
@@ -99,13 +101,16 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_remaining_weight = std::min(
                 parent.last_bin_remaining_weight - item_type.weight,
                 item_type.maximum_weight_after);
+        node.last_bin_item_number_of_copies = parent.last_bin_item_number_of_copies;
+        ItemPos item_copy = node.last_bin_item_number_of_copies[insertion.item_type_id];
         node.last_bin_resource_consumption = parent.last_bin_resource_consumption;
         for (ResourceId resource_id = 0;
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
             node.last_bin_resource_consumption[resource_id]
-                += bin_type.item_resource_consumption(insertion.item_type_id, resource_id);
+                += bin_type.item_resource_consumption(insertion.item_type_id, resource_id, item_copy);
         }
+        node.last_bin_item_number_of_copies[insertion.item_type_id]++;
     }
 
     BinPos i = node.number_of_bins - 1;
@@ -199,13 +204,16 @@ void BranchingScheme::insertion_item_same_bin(
     if (item_type.weight > parent->last_bin_remaining_weight * PSTOL)
         return;
     // Check resource capacity.
-    for (ResourceId resource_id = 0;
-            resource_id < bin_type.number_of_resources();
-            ++resource_id) {
-        double consumption = parent->last_bin_resource_consumption[resource_id]
-            + bin_type.item_resource_consumption(item_type_id, resource_id);
-        if (consumption > bin_type.resource_capacities[resource_id] * PSTOL)
-            return;
+    {
+        ItemPos item_copy = parent->last_bin_item_number_of_copies[item_type_id];
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            double consumption = parent->last_bin_resource_consumption[resource_id]
+                + bin_type.item_resource_consumption(item_type_id, resource_id, item_copy);
+            if (consumption > bin_type.resource_capacities[resource_id] * PSTOL)
+                return;
+        }
     }
 
     Insertion insertion;
@@ -229,11 +237,12 @@ void BranchingScheme::insertion_item_new_bin(
     // Check maximum weight.
     if (item_type.weight > bin_type.maximum_weight * PSTOL)
         return;
-    // Check resource capacity.
+    // Check resource capacity (this item is the first copy of its type in
+    // the new bin).
     for (ResourceId resource_id = 0;
             resource_id < bin_type.number_of_resources();
             ++resource_id) {
-        double consumption = bin_type.item_resource_consumption(item_type_id, resource_id);
+        double consumption = bin_type.item_resource_consumption(item_type_id, resource_id, 0);
         if (consumption > bin_type.resource_capacities[resource_id] * PSTOL)
             return;
     }

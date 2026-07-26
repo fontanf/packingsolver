@@ -1,5 +1,7 @@
 #include "packingsolver/rectangle/instance.hpp"
 
+#include <algorithm>
+
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
 
@@ -214,21 +216,38 @@ std::ostream& packingsolver::rectangle::operator<<(
     return os;
 }
 
-bool Instance::fits_some_bin(
-        ItemTypeId item_type_id) const
+bool Instance::item_type_fits_bin_type(
+        ItemTypeId item_type_id,
+        BinTypeId bin_type_id) const
 {
     const ItemType& item_type = this->item_type(item_type_id);
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < number_of_bin_types();
-            ++bin_type_id) {
-        const BinType& bin_type = this->bin_type(bin_type_id);
-        if ((item_type.rect.x <= bin_type.rect.x
+    const BinType& bin_type = this->bin_type(bin_type_id);
+    if (!((item_type.rect.x <= bin_type.rect.x
                     && item_type.rect.y <= bin_type.rect.y)
                 || (!item_type.oriented
                     && item_type.rect.y <= bin_type.rect.x
-                    && item_type.rect.x <= bin_type.rect.y)) {
+                    && item_type.rect.x <= bin_type.rect.y))) {
+        return false;
+    }
+    if (item_type.eligibility_id != -1
+            && std::find(
+                bin_type.eligibility_ids.begin(),
+                bin_type.eligibility_ids.end(),
+                item_type.eligibility_id)
+            == bin_type.eligibility_ids.end()) {
+        return false;
+    }
+    return true;
+}
+
+bool Instance::fits_some_bin(
+        ItemTypeId item_type_id) const
+{
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        if (item_type_fits_bin_type(item_type_id, bin_type_id))
             return true;
-        }
     }
     return false;
 }

@@ -66,11 +66,11 @@ struct DualFeasibleFunctionsCut
 
 /**
  * Look for the most violated dual-feasible-function inequality for a given
- * selection of items assigned to a single bin.
+ * selection of items assigned to a single bin of the given bin type.
  *
  * The returned cut, if any, is valid for any selection of items from
- * 'instance' assigned to a single bin of its (unique) bin type, not only
- * for 'selected_items' - so it may be added as a standalone, permanently
+ * 'instance' assigned to a single bin of type 'bin_type_id', not only for
+ * 'selected_items' - so it may be added as a standalone, permanently
  * reusable constraint (e.g. in a Benders decomposition master problem),
  * not just a one-off no-good cut on this exact selection.
  *
@@ -79,6 +79,7 @@ struct DualFeasibleFunctionsCut
  */
 DualFeasibleFunctionsCut find_most_violated_dual_feasible_function_cut(
         const Instance& instance,
+        BinTypeId bin_type_id,
         const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items);
 
 }

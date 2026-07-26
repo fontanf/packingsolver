@@ -31,7 +31,7 @@ TEST(OneDimensional, ResourceConsumptionCopiedFromOriginalInstance)
     packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100);
     packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 10);
     packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(10);
-    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 5);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 0, 5);
     const Instance instance = instance_builder.build();
 
     InstanceBuilder sub_instance_builder;
@@ -41,7 +41,7 @@ TEST(OneDimensional, ResourceConsumptionCopiedFromOriginalInstance)
 
     EXPECT_EQ(sub_instance.bin_type(sub_bin_type_id).number_of_resources(), 1);
     EXPECT_EQ(
-            sub_instance.bin_type(sub_bin_type_id).item_resource_consumption(sub_item_type_id, 0),
+            sub_instance.bin_type(sub_bin_type_id).item_resource_consumption(sub_item_type_id, 0, 0),
             5.0);
 }
 

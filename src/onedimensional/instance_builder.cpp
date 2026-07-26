@@ -107,6 +107,7 @@ void InstanceBuilder::add_resource_consumption(
         BinTypeId bin_type_id,
         ResourceId resource_id,
         ItemTypeId item_type_id,
+        ItemPos item_copy,
         double consumption)
 {
     if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
@@ -125,11 +126,20 @@ void InstanceBuilder::add_resource_consumption(
                 "resource_id: " + std::to_string(resource_id) + "; "
                 "bin_type.resource_capacities.size(): " + std::to_string(bin_type.resource_capacities.size()) + ".");
     }
+    if (item_copy < 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_copy'; "
+                "item_copy: " + std::to_string(item_copy) + ".");
+    }
 
-    std::vector<double>& consumptions = bin_type.item_resource_consumptions[resource_id];
-    if (item_type_id >= (ItemTypeId)consumptions.size())
-        consumptions.resize(item_type_id + 1, 0.0);
-    consumptions[item_type_id] = consumption;
+    std::vector<std::vector<double>>& item_consumptions = bin_type.item_resource_consumptions[resource_id];
+    if (item_type_id >= (ItemTypeId)item_consumptions.size())
+        item_consumptions.resize(item_type_id + 1);
+    std::vector<double>& schedule = item_consumptions[item_type_id];
+    if (item_copy >= (ItemPos)schedule.size())
+        schedule.resize(item_copy + 1, 0.0);
+    schedule[item_copy] = consumption;
 }
 
 BinTypeId InstanceBuilder::add_bin_type(
@@ -331,6 +341,31 @@ void InstanceBuilder::set_item_type_eligibility(
     instance_.item_types_[item_type_id].eligibility_id = eligibility_id;
 }
 
+void InstanceBuilder::add_item_type_precedence(
+        ItemTypeId dominated_item_type_id,
+        ItemTypeId dominating_item_type_id)
+{
+    if (dominated_item_type_id < 0 || dominated_item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'dominated_item_type_id'; "
+                "dominated_item_type_id: " + std::to_string(dominated_item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+    if (dominating_item_type_id < 0 || dominating_item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'dominating_item_type_id'; "
+                "dominating_item_type_id: " + std::to_string(dominating_item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+
+    PrecedenceId precedence_id = instance_.precedences_.size();
+    instance_.precedences_.push_back({dominated_item_type_id, dominating_item_type_id});
+    instance_.item_types_[dominated_item_type_id].dominated_precedence_ids.push_back(precedence_id);
+    instance_.item_types_[dominating_item_type_id].dominating_precedence_ids.push_back(precedence_id);
+}
+
 ItemTypeId InstanceBuilder::add_item_type(
         const Instance& original_instance,
         ItemTypeId original_item_type_id)
@@ -370,15 +405,36 @@ ItemTypeId InstanceBuilder::add_item_type(
         for (ResourceId resource_id = 0;
                 resource_id < original_bin_type.number_of_resources();
                 ++resource_id) {
-            double consumption = original_bin_type.item_resource_consumption(original_item_type_id, resource_id);
-            if (consumption != 0.0) {
+            const std::vector<std::vector<double>>& item_consumptions
+                = original_bin_type.item_resource_consumptions[resource_id];
+            if (original_item_type_id >= (ItemTypeId)item_consumptions.size())
+                continue;
+            const std::vector<double>& schedule = item_consumptions[original_item_type_id];
+            for (ItemPos item_copy = 0;
+                    item_copy < (ItemPos)schedule.size();
+                    ++item_copy) {
                 add_resource_consumption(
                         sub_bin_type_id,
                         resource_id,
                         item_type_id,
-                        consumption);
+                        item_copy,
+                        schedule[item_copy]);
             }
         }
+    }
+    // Record this item type's side of every precedence it is involved in
+    // (as dominated or dominating), keyed by the *original* precedence id;
+    // 'build()' finalizes every precedence whose other side also ends up
+    // recorded - see 'pending_precedences_by_original_id_''s doc comment.
+    for (PrecedenceId original_precedence_id: item_type.dominated_precedence_ids) {
+        if ((PrecedenceId)pending_precedences_by_original_id_.size() <= original_precedence_id)
+            pending_precedences_by_original_id_.resize(original_precedence_id + 1, {-1, -1});
+        pending_precedences_by_original_id_[original_precedence_id].first = item_type_id;
+    }
+    for (PrecedenceId original_precedence_id: item_type.dominating_precedence_ids) {
+        if ((PrecedenceId)pending_precedences_by_original_id_.size() <= original_precedence_id)
+            pending_precedences_by_original_id_.resize(original_precedence_id + 1, {-1, -1});
+        pending_precedences_by_original_id_[original_precedence_id].second = item_type_id;
     }
     return item_type_id;
 }
@@ -681,12 +737,32 @@ void InstanceBuilder::read(
                 if (json_resource.contains("consumptions")) {
                     for (const auto& json_consumption: json_resource["consumptions"]) {
                         ItemTypeId item_type_id = json_consumption["item_type_id"];
-                        double consumption = json_consumption["consumption"];
-                        add_resource_consumption(
-                                bin_type_id,
-                                resource_id,
-                                item_type_id,
-                                consumption);
+                        if (json_consumption.contains("consumption_schedule")) {
+                            // Per-copy consumption schedule (a copy past
+                            // the end of the schedule repeats its last
+                            // entry); see 'BinType::item_resource_consumptions'.
+                            std::vector<double> schedule = json_consumption["consumption_schedule"];
+                            for (ItemPos item_copy = 0;
+                                    item_copy < (ItemPos)schedule.size();
+                                    ++item_copy) {
+                                add_resource_consumption(
+                                        bin_type_id,
+                                        resource_id,
+                                        item_type_id,
+                                        item_copy,
+                                        schedule[item_copy]);
+                            }
+                        } else {
+                            // Uniform consumption, regardless of how many
+                            // copies are already packed.
+                            double consumption = json_consumption["consumption"];
+                            add_resource_consumption(
+                                    bin_type_id,
+                                    resource_id,
+                                    item_type_id,
+                                    0,
+                                    consumption);
+                        }
                     }
                 }
             }
@@ -720,6 +796,20 @@ void InstanceBuilder::read(
 
 Instance InstanceBuilder::build()
 {
+    // Finalize item type precedences pending from 'add_item_type(original_
+    // instance, ...)' calls, in a single pass now that every item type has
+    // been added: only precedences whose dominated *and* dominating item
+    // type were both copied into this sub-instance are kept (one whose
+    // other item type was never added is simply dropped, since it would
+    // otherwise reference an item type that doesn't exist here).
+    for (const std::pair<ItemTypeId, ItemTypeId>& pending: pending_precedences_by_original_id_) {
+        ItemTypeId dominated_item_type_id = pending.first;
+        ItemTypeId dominating_item_type_id = pending.second;
+        if (dominated_item_type_id == -1 || dominating_item_type_id == -1)
+            continue;
+        add_item_type_precedence(dominated_item_type_id, dominating_item_type_id);
+    }
+
     // Compute item type attributes.
     Length bin_types_length_max = compute_bin_types_length_max();
     instance_.all_item_types_infinite_copies_ = true;

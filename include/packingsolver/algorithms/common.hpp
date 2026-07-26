@@ -42,6 +42,7 @@ using DefectTypeId = int64_t;
 using QualityRule = int64_t;
 using EligibilityId = int64_t;
 using ResourceId = int64_t;
+using PrecedenceId = int64_t;
 
 using NodeId = int64_t;
 using Depth = int16_t;
