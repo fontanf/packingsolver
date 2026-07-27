@@ -300,7 +300,7 @@ void InstanceBuilder::add_trims(
                 FUNC_SIGNATURE + ": "
                 "requires 'right_trim >= 0'.");
     }
-    if (right_trim > bin_type.rect.h - left_trim) {
+    if (right_trim >= bin_type.rect.w - left_trim) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "requires 'right_trim < w - left_trim'.");
