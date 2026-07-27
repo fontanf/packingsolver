@@ -236,7 +236,8 @@ void optimize_dual_feasible_functions(
         ItemType item_type = instance.item_type(item_type_id);
         ItemTypeId rectangle_item_type_id = rectangle_instance_builder.add_item_type(
                 item_type.rect.w,
-                item_type.rect.h);
+                item_type.rect.h,
+                item_type.oriented);
         rectangle_instance_builder.set_item_type_profit(
                 rectangle_item_type_id,
                 item_type.profit);
