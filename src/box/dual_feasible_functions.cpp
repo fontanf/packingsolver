@@ -229,6 +229,17 @@ AxisTables compute_axis_tables(
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
         for (Length v: possible_axis_values(item_type, axis_id)) {
+            // A dimension exceeding the bin's own capacity on this axis can
+            // never be validly placed along it at all (this happens for an
+            // item whose *other* dimension - the one feeding this axis's
+            // table only because rotation is allowed - is bigger than the
+            // bin itself here), so folding it via 'bin_length - v' would
+            // produce a negative breakpoint, pushing it outside the CCM
+            // functions' valid domain of [1, bin_length/2] and corrupting
+            // the bound. Simply skip it: the item's other, valid dimension
+            // still contributes its own breakpoint normally.
+            if (v > bin_length)
+                continue;
             if (v == bin_length) {
             } else if (v <= bin_length / 2) {
                 tables.thresholds.push_back(v);
@@ -256,7 +267,13 @@ AxisTables compute_axis_tables(
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
         for (Length v: possible_axis_values(item_type, axis_id))
-            if (v > bin_length / 2)
+            // Same reasoning as above: a value exceeding the bin's own
+            // capacity can never be validly placed, so it must not become a
+            // "big value" either - 'bin_length - big_value' feeds directly
+            // into greedy_maximum_cardinality() below as a capacity, and
+            // going negative there would corrupt the excluded-cardinality
+            // bookkeeping f_ccm_1 relies on.
+            if (v > bin_length / 2 && v <= bin_length)
                 big_values.push_back(v);
     }
     sort(big_values.begin(), big_values.end());
@@ -300,6 +317,17 @@ Length f_ccm_1_axis(
         ItemPos full_cardinality,
         const std::map<Length, ItemPos>& excluded_cardinality)
 {
+    if (length >= capacity) {
+        // The item alone already spans the bin's full length on this axis
+        // (this only happens for a rotation - possibly one that doesn't
+        // even fit this axis at all, folded down to 'capacity' by the
+        // caller): no room is left for anything else alongside it, so
+        // nothing is excluded, exactly like the bin's own f_bin evaluation
+        // (which uses this same 'value == full_cardinality' shortcut).
+        // Bypassing the map also avoids depending on an excluded-cardinality
+        // entry that may not exist for 'capacity' itself.
+        return f_ccm_1(capacity, k, capacity, full_cardinality);
+    }
     if (length > capacity / 2) {
         ItemPos excluded = excluded_cardinality.at(length);
         return f_ccm_1(capacity, k, length, full_cardinality - excluded);
@@ -329,6 +357,15 @@ Volume item_coefficient(
     auto eval_axis = [&](int axis_id, Length length) -> Length
     {
         Length capacity = bin_lengths[axis_id];
+        // A rotation can present a dimension exceeding the bin's own
+        // capacity on this axis (impossible to place, but still evaluated
+        // here since the item's *other* dimension on this rotation might
+        // still be fine on the other axes). Every dual feasible function
+        // is non-decreasing and must saturate at its value for
+        // length == capacity; without this clamp, f_ccm_2 in particular can
+        // return a value exceeding 'capacity' itself for length > capacity,
+        // corrupting the bound.
+        length = (std::min)(length, capacity);
         switch (families[axis_id]) {
         case 0: return f_ccm_0(capacity, k[axis_id], length);
         case 1: return f_ccm_1_axis(capacity, k[axis_id], length, full_cardinality[axis_id], *excluded_cardinality[axis_id]);
