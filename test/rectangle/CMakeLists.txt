@@ -2,6 +2,7 @@ add_executable(PackingSolver_rectangle_test)
 target_sources(PackingSolver_rectangle_test PRIVATE
     rectangle_test.cpp
     benders_decomposition_test.cpp
+    dual_feasible_functions_test.cpp
     sequential_value_correction_test.cpp
     tree_search/test.cpp
     tree_search/defects_test.cpp

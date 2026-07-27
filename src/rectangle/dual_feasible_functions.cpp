@@ -232,6 +232,17 @@ DualFeasibleFunctionsTables compute_dual_feasible_functions_tables(
             std::vector<Length>{item_type.rect.x}:
             std::vector<Length>{item_type.rect.x, item_type.rect.y};
         for (Length d: width_candidates) {
+            // A dimension exceeding the bin's own capacity on this axis can
+            // never be validly placed along it at all (this happens for a
+            // non-oriented item whose *other* dimension - the one feeding
+            // this axis's table only because rotation is allowed - is
+            // bigger than the bin itself here), so folding it via
+            // 'capacity - d' would produce a negative breakpoint, pushing k
+            // outside the CCM functions' valid domain of [1, capacity/2]
+            // and corrupting the bound. Simply skip it: the item's other,
+            // valid dimension still contributes its own breakpoint normally.
+            if (d > bin_type.rect.x)
+                continue;
             if (d == bin_type.rect.x) {
             } else if (d <= bin_type.rect.x / 2) {
                 tables.widths.push_back(d);
@@ -243,6 +254,8 @@ DualFeasibleFunctionsTables compute_dual_feasible_functions_tables(
             std::vector<Length>{item_type.rect.y}:
             std::vector<Length>{item_type.rect.x, item_type.rect.y};
         for (Length d: height_candidates) {
+            if (d > bin_type.rect.y)
+                continue;
             if (d == bin_type.rect.y) {
             } else if (d <= bin_type.rect.y / 2) {
                 tables.heights.push_back(d);
