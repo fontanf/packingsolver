@@ -577,6 +577,93 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
+    // "Packing and removing some items" reduction (see 'Reduction'):
+    // applied once, upfront, wrapping the whole dispatch logic below
+    // uniformly for every algorithm (mirroring how e.g. setcoveringsolver's
+    // 'Reduction' wraps its own algorithms generically). Gated on
+    // 'Reduction::applies' directly, rather than constructing a
+    // 'Reduction' unconditionally and letting its constructor no-op: when
+    // it would not apply anyway (wrong objective, multiple bin types,
+    // 'parameters.reduction_parameters.reduce' itself 'false', ...), this
+    // skips it entirely instead of paying for (and discarding) a full
+    // pass building its working representation - see 'applies''s own doc
+    // comment. 'reduced_parameters.reduction_parameters.reduce' is set to
+    // 'false' below to avoid re-running the reduction recursively on the
+    // already-reduced instance: 'applies' only checks instance-level
+    // characteristics (objective, single bin type, ...), which the
+    // reduced instance still satisfies just as well as the original one,
+    // so without this it would gate 'true' again there too - a pass that
+    // can only ever find nothing new (the reduction already ran to a
+    // fixpoint), just at the cost of a wasted full pass to confirm it.
+    if (Reduction::applies(instance, parameters.reduction_parameters)) {
+        ReductionParameters reduction_parameters = parameters.reduction_parameters;
+        reduction_parameters.timer = parameters.timer;
+        Reduction reduction(instance, reduction_parameters);
+
+        if (reduction.proven_infeasible()) {
+            // The reduction alone already proves the instance infeasible
+            // (a bin type's dedicated bins exhausted its copies while real
+            // items were still left over - see 'Reduction::instance()''s
+            // doc): 'reduction.instance()' is not meaningful to solve at
+            // all, so skip straight to reporting the answer.
+            algorithm_formatter.update_is_proven_infeasible();
+            algorithm_formatter.end();
+            return output;
+        }
+        // Forwards a solution/bound found for the reduced instance to the
+        // original 'algorithm_formatter', in original-instance coordinates.
+        // Most bounds need no reduction-specific translation at all:
+        // removing items via this reduction never changes them (cost,
+        // feasibility, ...), so 'reduced_output's bounds already are the
+        // original instance's bounds, in exactly 'Output's own field
+        // layout. The one exception is the dedicated bins set aside
+        // outside the reduced instance (see
+        // 'Reduction::number_of_dedicated_bins'): entirely absent from the
+        // reduced instance, so no solve on it can ever count them - add
+        // them back onto the bin-count bounds, in a local copy, before
+        // letting 'update_bounds' read off the one relevant to the current
+        // objective.
+        auto report_reduced_output = [&reduction, &instance, &algorithm_formatter](
+                const rectangle::Output& reduced_output)
+            {
+                algorithm_formatter.update_solution(
+                        reduction.unreduce_solution(reduced_output.solution_pool.best()),
+                        reduced_output.solution_pool.best_label());
+                rectangle::Output translated_output(reduced_output);
+                BinPos number_of_dedicated_bins = reduction.number_of_dedicated_bins();
+                if (number_of_dedicated_bins > 0) {
+                    translated_output.bin_packing_bound += number_of_dedicated_bins;
+                    translated_output.variable_sized_bin_packing_bound
+                        += number_of_dedicated_bins * instance.bin_type(0).cost;
+                }
+                algorithm_formatter.update_bounds(translated_output);
+            };
+
+        OptimizeParameters reduced_parameters = parameters;
+        reduced_parameters.verbosity_level = 0;
+        reduced_parameters.reduction_parameters.reduce = false;
+        // Forward every solution/bound the recursive solve finds to the
+        // original 'algorithm_formatter' as soon as it is found, rather
+        // than only once at the very end: this is what lets an anytime
+        // run on the reduced instance report live progress (in original-
+        // instance coordinates) the same way a direct, unreduced run
+        // would.
+        reduced_parameters.new_solution_callback = report_reduced_output;
+        Output reduced_output = optimize(reduction.instance(), reduced_parameters);
+        // Also report the final result explicitly: some sub-solves (e.g. a
+        // reduced instance left with zero items, fully captured into
+        // dedicated bins) never call 'new_solution_callback' at all, since
+        // there is nothing to search for or improve on - this guarantees
+        // the answer is still reported once regardless. Harmless to call
+        // again even when the callback already reported this exact result,
+        // since 'update_solution'/'update_bounds' are themselves no-ops
+        // for anything that doesn't improve on what is already recorded.
+        report_reduced_output(reduced_output);
+
+        algorithm_formatter.end();
+        return output;
+    }
+
     optimize_trivial_bound(instance, algorithm_formatter);
 
     if (instance.objective() == Objective::BinPacking
