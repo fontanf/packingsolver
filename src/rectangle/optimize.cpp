@@ -6,6 +6,7 @@
 #include "rectangle/tree_search_maximal_spaces.hpp"
 #include "rectangle/benders_decomposition.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
+#include "rectangle/conservative_scales.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
 #include "algorithms/dichotomic_search.hpp"
@@ -230,6 +231,29 @@ void optimize_dual_feasible_functions(
             algorithm_formatter.update_bounds(dff_output);
         };
     dual_feasible_functions(instance, dff_parameters);
+}
+
+void optimize_conservative_scales(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter,
+        rectangle::Output* local_output)
+{
+    ConservativeScalesParameters cs_parameters;
+    cs_parameters.verbosity_level = 0;
+    cs_parameters.timer = parameters.timer;
+    cs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    cs_parameters.new_solution_callback
+        = [&algorithm_formatter, local_output](
+                const rectangle::Output& cs_output)
+        {
+            if (local_output != nullptr) {
+                local_output->update_bounds(cs_output);
+            } else {
+                algorithm_formatter.update_bounds(cs_output);
+            }
+        };
+    conservative_scales(instance, cs_parameters);
 }
 
 void optimize_tree_search(
@@ -873,6 +897,28 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             local_output = std::make_unique<rectangle::Output>(instance);
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
             wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
+                    exception_ptr,
+                    instance,
+                    parameters,
+                    algorithm_formatter,
+                    local_output);
+        });
+        local_outputs.push_back(std::move(local_output));
+    }
+    // Conservative scales.
+    if ((instance.objective() == Objective::BinPacking
+                || instance.objective() == Objective::Feasibility)
+            && instance.number_of_bin_types() == 1
+            && instance.all_item_types_oriented()
+            && (parameters.use_conservative_scales
+                || instance.number_of_items() <= 100)) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        std::unique_ptr<rectangle::Output> local_output;
+        if (deterministic)
+            local_output = std::make_unique<rectangle::Output>(instance);
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+            wrapper<decltype(&optimize_conservative_scales), optimize_conservative_scales>(
                     exception_ptr,
                     instance,
                     parameters,

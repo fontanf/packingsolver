@@ -435,6 +435,9 @@ public:
      */
     bool fits_some_bin(ItemTypeId item_type_id) const;
 
+    /** Return 'true' iff every item type is oriented (cannot be rotated). */
+    bool all_item_types_oriented() const;
+
     /*
      * Export
      */
