@@ -252,6 +252,17 @@ bool Instance::fits_some_bin(
     return false;
 }
 
+bool Instance::all_item_types_oriented() const
+{
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        if (!item_type(item_type_id).oriented)
+            return false;
+    }
+    return true;
+}
+
 std::ostream& Instance::format(
         std::ostream& os,
         int verbosity_level) const

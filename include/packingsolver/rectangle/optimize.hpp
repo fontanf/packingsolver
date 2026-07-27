@@ -168,6 +168,12 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     bool use_dual_feasible_functions = false;
 
+    /**
+     * Force running the conservative scales bound/infeasibility check even
+     * if the instance has more items than the default criterion allows.
+     */
+    bool use_conservative_scales = false;
+
     /** Use tree search algorithm. */
     bool use_tree_search = false;
 
