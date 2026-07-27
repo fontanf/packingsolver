@@ -164,3 +164,54 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangleguillotine" / "users" / "2025-01-29" / "parameters.csv",
                 fs::path("data") / "rectangleguillotine" / "users" / "2025-01-29" / "solution.csv",
             }}));
+
+TEST(RectangleGuillotine, AddTrimsAcceptsValidRightTrim)
+{
+    // Bin 50x100 (width < height, so a bug comparing right_trim against the
+    // bin's height instead of its width would go unnoticed here too if it
+    // wrongly *rejected* something valid - this trim leaves 20 of usable
+    // width (50 - 10 - 20 = 20 > 0), well within either dimension.
+    InstanceBuilder instance_builder;
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(50, 100);
+    EXPECT_NO_THROW(instance_builder.add_trims(
+            bin_type_id,
+            10, TrimType::Hard,
+            20, TrimType::Hard,
+            0, TrimType::Hard,
+            0, TrimType::Hard));
+}
+
+TEST(RectangleGuillotine, AddTrimsRejectsRightTrimExceedingWidthNotHeight)
+{
+    // Bin 50x100. left_trim=0, right_trim=60: the right trim alone already
+    // exceeds the bin's *width* (50), which must be rejected - but a bug
+    // comparing against the bin's *height* (100) instead would wrongly
+    // accept it (60 <= 100), since width and height differ here.
+    InstanceBuilder instance_builder;
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(50, 100);
+    EXPECT_THROW(
+            instance_builder.add_trims(
+                    bin_type_id,
+                    0, TrimType::Hard,
+                    60, TrimType::Hard,
+                    0, TrimType::Hard,
+                    0, TrimType::Hard),
+            std::invalid_argument);
+}
+
+TEST(RectangleGuillotine, AddTrimsRejectsTrimsConsumingWholeWidth)
+{
+    // Bin 50x100. left_trim=0, right_trim=50: consumes the entire width,
+    // leaving zero usable space - must be rejected, matching how the other
+    // three trims each reject consuming their entire dimension.
+    InstanceBuilder instance_builder;
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(50, 100);
+    EXPECT_THROW(
+            instance_builder.add_trims(
+                    bin_type_id,
+                    0, TrimType::Hard,
+                    50, TrimType::Hard,
+                    0, TrimType::Hard,
+                    0, TrimType::Hard),
+            std::invalid_argument);
+}
