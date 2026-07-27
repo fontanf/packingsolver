@@ -13,6 +13,7 @@ target_sources(PackingSolver_rectangle PRIVATE
     benders_decomposition.cpp
     dual_feasible_functions.cpp
     conservative_scales.cpp
+    reduction.cpp
     block.cpp
     tree_search_maximal_spaces.cpp)
 target_include_directories(PackingSolver_rectangle PUBLIC
@@ -25,6 +26,7 @@ target_link_libraries(PackingSolver_rectangle PUBLIC
     TreeSearchSolver::treesearchsolver
     Shape::shape
     MathOptSolversCMake::mathopt
+    MultipleChoiceSubsetSumSolver::dynamic_programming_bellman
     Threads::Threads)
 # Resource limits: the portable RSS reader in
 # include/packingsolver/algorithms/thread_pool.hpp uses GetProcessMemoryInfo on

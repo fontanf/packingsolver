@@ -270,8 +270,12 @@ DualFeasibleFunctionsTables compute_dual_feasible_functions_tables(
     // e.g. an item that is "big" in both orientations, on both axes, needs
     // this breakpoint to be recognized as such if no item dimension is
     // exactly at half the bin's capacity).
-    tables.widths.push_back(bin_type.rect.x / 2);
-    tables.heights.push_back(bin_type.rect.y / 2);
+    // A breakpoint of 0 is never valid (f_ccm_0/f_ccm_1/f_ccm_2 all divide
+    // by k), which capacity / 2 degenerates to when capacity is 1.
+    if (bin_type.rect.x / 2 > 0)
+        tables.widths.push_back(bin_type.rect.x / 2);
+    if (bin_type.rect.y / 2 > 0)
+        tables.heights.push_back(bin_type.rect.y / 2);
     sort(tables.widths.begin(), tables.widths.end());
     sort(tables.heights.begin(), tables.heights.end());
     tables.widths.erase(unique(tables.widths.begin(), tables.widths.end()), tables.widths.end());
