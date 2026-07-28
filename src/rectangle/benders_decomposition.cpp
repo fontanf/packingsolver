@@ -114,6 +114,71 @@ bool item_type_fits_footprint_of(
 }
 
 /**
+ * Lift a no-good cut in place: for every item type not already in the cut
+ * that both fits this bin type and dominates (via
+ * 'item_type_fits_footprint_of' - wherever the dominated item type could be
+ * placed, in any orientation it is allowed to use, the dominating one could
+ * be placed too) one or more item types already in the cut, add it with a
+ * threshold equal to the *sum* of the thresholds of every item type in the
+ * cut it dominates, leaving the cut's capacity (right-hand side) unchanged.
+ *
+ * This is sound by the same exchange argument used for item type
+ * precedences (see 'compute_item_type_precedences'), applied once per
+ * dominated item type and composed: since the original selection is proven
+ * infeasible, replacing any number (from 0 up to its own threshold) of
+ * copies of a dominated item type with copies of a dominating one can only
+ * ever require as much or more room, never less, so the result stays
+ * infeasible too - and since each dominated item type's copies are
+ * substituted using *disjoint* copies of the dominating item type, this
+ * composes across every item type it dominates, up to their combined
+ * threshold (not just the largest, or only one at a time).
+ *
+ * A single merged entry per dominating item type is required, not one per
+ * pairing: 'ResourceCut::consumption' has at most one entry per item type
+ * (a later entry for the same item type silently overwrites an earlier
+ * one when turned into the actual resource, see 'add_cut_as_resource'), so
+ * naively adding multiple entries for the same dominating item type would
+ * arbitrarily keep only the last one, understating or (worse) overstating
+ * what is actually sound depending on iteration order.
+ */
+void lift_no_good_cut(
+        ResourceCut& resource_cut,
+        const Instance& instance,
+        BinTypeId bin_type_id)
+{
+    // Copy first: the item types being lifted in were never part of the
+    // original infeasibility proof, so they must not themselves be used as
+    // a basis for further lifting.
+    std::vector<std::pair<ItemTypeId, ItemPos>> original_thresholds;
+    original_thresholds.reserve(resource_cut.consumption.size());
+    std::vector<bool> in_cut(instance.number_of_item_types(), false);
+    for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource_cut.consumption) {
+        original_thresholds.push_back({entry.first, (ItemPos)entry.second.size() - 1});
+        in_cut[entry.first] = true;
+    }
+
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        if (in_cut[item_type_id])
+            continue;
+        if (!instance.item_type_fits_bin_type(item_type_id, bin_type_id))
+            continue;
+        const ItemType& item_type = instance.item_type(item_type_id);
+        ItemPos combined_threshold = 0;
+        for (const std::pair<ItemTypeId, ItemPos>& dominated: original_thresholds) {
+            const ItemType& dominated_item_type = instance.item_type(dominated.first);
+            if (item_type_fits_footprint_of(item_type, dominated_item_type))
+                combined_threshold += dominated.second;
+        }
+        if (combined_threshold > 0) {
+            resource_cut.consumption.push_back(
+                    {item_type_id, threshold_schedule(combined_threshold)});
+        }
+    }
+}
+
+/**
  * Per-bin-type resources capturing geometric information the onedimensional
  * master (which only knows about item/bin area) cannot see on its own.
  * Computed once, upfront: these do not depend on any particular Benders
@@ -658,6 +723,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                     resource_cut.consumption.push_back({p.first, threshold_schedule(p.second)});
                 }
                 resource_cut.capacity = (double)cut_size - 1;
+                lift_no_good_cut(resource_cut, instance, master_bin.bin_type_id);
                 no_good_cuts_by_bin_type[master_bin.bin_type_id].push_back(resource_cut);
                 // As long as every cut added so far is backed by a proof of
                 // infeasibility, the master's feasible region has never
