@@ -51,15 +51,16 @@ jobs:
       if: matrix.archive_ext == 'tar.gz'
       shell: bash
       run: |
-        mkdir -p dist
-        mv install ${{ matrix.asset_name }}
+        mkdir -p dist "${{ matrix.asset_name }}"
+        cp install/bin/packingsolver_* "${{ matrix.asset_name }}/"
         tar -czf dist/${{ matrix.asset_name }}.tar.gz ${{ matrix.asset_name }}
     - name: Package (zip)
       if: matrix.archive_ext == 'zip'
       shell: pwsh
       run: |
         New-Item -ItemType Directory -Force -Path dist
-        Rename-Item -Path install -NewName ${{ matrix.asset_name }}
+        New-Item -ItemType Directory -Force -Path ${{ matrix.asset_name }}
+        Copy-Item -Path install/bin/packingsolver_*.exe -Destination ${{ matrix.asset_name }}
         Compress-Archive -Path ${{ matrix.asset_name }} -DestinationPath dist/${{ matrix.asset_name }}.zip
     - name: Upload artifact
       uses: actions/upload-artifact@v4
