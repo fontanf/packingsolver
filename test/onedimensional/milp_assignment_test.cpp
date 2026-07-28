@@ -84,6 +84,17 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_mandatory_bin_type" / "parameters.csv",
                 fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_mandatory_bin_type" / "solution.csv",
             }, {
+                // Single bin type: exercises reusing
+                // 'compute_bin_instance_upper_bound''s packing as a MILP
+                // warm start (see 'output.solution_pool.best()' in
+                // 'milp_assignment.cpp'). Two items of length 6 and two of
+                // length 4 pair up exactly (6 + 4 = 10) in a length-10 bin,
+                // so the optimum is 2 bins.
+                fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_single_bin_type" / "items.csv",
+                fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_single_bin_type" / "bins.csv",
+                fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_single_bin_type" / "parameters.csv",
+                fs::path("data") / "onedimensional" / "tests" / "variable_sized_bin_packing_single_bin_type" / "solution.csv",
+            }, {
                 fs::path("data") / "onedimensional" / "tests" / "knapsack_multiple_bins" / "items.csv",
                 fs::path("data") / "onedimensional" / "tests" / "knapsack_multiple_bins" / "bins.csv",
                 fs::path("data") / "onedimensional" / "tests" / "knapsack_multiple_bins" / "parameters.csv",
@@ -103,6 +114,17 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_type_order" / "bins.csv",
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_type_order" / "parameters.csv",
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_type_order" / "solution.csv",
+            }, {
+                // Single bin type, 'BinPacking' objective: exercises the
+                // same MILP warm start as
+                // 'variable_sized_bin_packing_single_bin_type', but through
+                // the 'BinPacking'-objective code path (fixed bin counts,
+                // no 'compute_bin_instance_upper_bound' loop over bin
+                // types). Same 6+4=10 pairing, optimum is 2 bins.
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_single_bin_type" / "items.csv",
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_single_bin_type" / "bins.csv",
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_single_bin_type" / "parameters.csv",
+                fs::path("data") / "onedimensional" / "tests" / "bin_packing_single_bin_type" / "solution.csv",
             }, {
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_weight_capacity" / "items.csv",
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_weight_capacity" / "bins.csv",
