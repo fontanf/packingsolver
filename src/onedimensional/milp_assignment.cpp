@@ -931,6 +931,133 @@ Solution retrieve_solution(
     return solution;
 }
 
+/**
+ * Bin type upper bounds for the 'VariableSizedBinPacking' objective: how
+ * many bins of each type to use is a decision, so each one is only an
+ * estimated upper bound, computed independently per bin type via
+ * 'compute_bin_instance_upper_bound'. Stops early (returning whatever has
+ * been computed so far) if the timer ends partway through, since the
+ * caller checks 'algorithm_formatter.end_boolean()' right after calling
+ * this and bails out of 'milp_assignment' entirely in that case.
+ */
+std::vector<BinPos> compute_bin_type_upper_bounds_variable_sized_bin_packing(
+        const Instance& instance,
+        const MilpAssignmentParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    std::vector<BinPos> bin_type_upper_bounds(instance.number_of_bin_types());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        bin_type_upper_bounds[bin_type_id] = compute_bin_instance_upper_bound(
+                instance,
+                bin_type_id,
+                parameters,
+                algorithm_formatter);
+        if (algorithm_formatter.end_boolean())
+            break;
+    }
+    return bin_type_upper_bounds;
+}
+
+/**
+ * Bin type upper bounds for the 'BinPacking' objective: the instance's own
+ * bin counts are already exact (unlike 'VariableSizedBinPacking', it has
+ * nothing to bound), but its own objective - minimize the number of bins -
+ * is exactly what a tree search over the instance itself (every bin type
+ * together, with their real, possibly limited copies - not a per-bin-type
+ * sub-instance with unlimited copies, since bin supply is already fixed
+ * and part of what is being solved for here) already optimizes: it might
+ * find a good feasible solution and/or bound before the MILP below does,
+ * and might even reveal that fewer bin types or bins are actually needed.
+ *
+ * If it finds a *complete* solution, its own per-bin-type bin counts are
+ * then used as the returned bounds, tighter than (and replacing) the
+ * instance's own bin type copies. This is sound because bin types must be
+ * used in the order they are provided (see the "bin usage order"
+ * constraint in 'build_milp_model'): any feasible solution's bin-type
+ * breakdown is therefore a deterministic function of its own total bin
+ * count alone (exhaust type 0's copies before touching type 1, and so
+ * on), and that function only ever needs *more* of an earlier type as the
+ * total grows. So a solution using fewer bins overall (in particular, any
+ * optimal one, since this solution's total is a valid upper bound on it)
+ * can never need more of any given type than this one, already known
+ * feasible, does - and since tree search enumerates bin positions in that
+ * exact same fixed, per-type order, this solution's own per-type bin
+ * counts are already exactly that breakdown. This is also what turns an
+ * unlimited ('copies == -1') bin type into a finite, usable bound for the
+ * MILP below.
+ */
+std::vector<BinPos> compute_bin_type_upper_bounds_bin_packing(
+        const Instance& instance,
+        const MilpAssignmentParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    std::vector<BinPos> bin_type_upper_bounds(instance.number_of_bin_types());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        bin_type_upper_bounds[bin_type_id] = instance.bin_type(bin_type_id).copies;
+    }
+
+    OptimizeParameters sub_parameters;
+    sub_parameters.verbosity_level = 0;
+    sub_parameters.timer = parameters.timer;
+    sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    sub_parameters.optimization_mode = OptimizationMode::NotAnytimeDeterministic;
+    sub_parameters.use_tree_search = true;
+    sub_parameters.not_anytime_tree_search_queue_size = parameters.bin_count_subproblem_tree_search_queue_size;
+    auto sub_output = optimize(instance, sub_parameters);
+    algorithm_formatter.update_solution(sub_output.solution_pool.best(), "tree search");
+    algorithm_formatter.update_bin_packing_bound(sub_output.bin_packing_bound);
+    if (algorithm_formatter.end_boolean())
+        return bin_type_upper_bounds;
+
+    if (sub_output.solution_pool.best().full()) {
+        const Solution& sub_solution = sub_output.solution_pool.best();
+        std::vector<BinPos> solution_bin_type_counts(instance.number_of_bin_types(), 0);
+        for (BinPos solution_bin_pos = 0;
+                solution_bin_pos < sub_solution.number_of_different_bins();
+                ++solution_bin_pos) {
+            const SolutionBin& solution_bin = sub_solution.bin(solution_bin_pos);
+            solution_bin_type_counts[solution_bin.bin_type_id] += solution_bin.copies;
+        }
+        bin_type_upper_bounds = solution_bin_type_counts;
+    }
+
+    return bin_type_upper_bounds;
+}
+
+/**
+ * Bin type upper bounds, dispatching on the objective: see
+ * 'compute_bin_type_upper_bounds_variable_sized_bin_packing' and
+ * 'compute_bin_type_upper_bounds_bin_packing'. For 'Knapsack' and
+ * 'Feasibility', the bins are already fixed by the instance, so the exact
+ * instance counts are used directly - there is nothing to bound.
+ */
+std::vector<BinPos> compute_bin_type_upper_bounds(
+        const Instance& instance,
+        const MilpAssignmentParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (instance.objective() == Objective::VariableSizedBinPacking) {
+        return compute_bin_type_upper_bounds_variable_sized_bin_packing(
+                instance, parameters, algorithm_formatter);
+    }
+    if (instance.objective() == Objective::BinPacking) {
+        return compute_bin_type_upper_bounds_bin_packing(
+                instance, parameters, algorithm_formatter);
+    }
+
+    std::vector<BinPos> bin_type_upper_bounds(instance.number_of_bin_types());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        bin_type_upper_bounds[bin_type_id] = instance.bin_type(bin_type_id).copies;
+    }
+    return bin_type_upper_bounds;
+}
+
 }
 
 MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
@@ -953,58 +1080,13 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
     }
 
     // Determine, for each bin type, the number of bin instances of that type
-    // to consider in the MILP. For 'VariableSizedBinPacking', how many bins
-    // of each type to use is a decision, so this is only an upper bound,
-    // estimated below via a tree search - which, per
-    // 'compute_bin_instance_upper_bound', is itself capped by the instance's
-    // own (finite) bin type copies whenever the caller gives one (e.g.
-    // rectangle's Benders decomposition, which derives a bound valid for
-    // every iteration from true 2D geometry, upfront): the tree search then
-    // only ever tightens that cap further using this specific call's
-    // (possibly cut-augmented) area-based view, never loosens it. For
-    // 'Knapsack', 'Feasibility' and 'BinPacking', the bins (and, for
-    // 'BinPacking', their order) are already fixed by the instance, so the
-    // exact instance counts must be used rather than an estimated bound.
-    std::vector<BinPos> bin_type_upper_bounds(instance.number_of_bin_types());
-    if (instance.objective() == Objective::VariableSizedBinPacking) {
-        for (BinTypeId bin_type_id = 0;
-                bin_type_id < instance.number_of_bin_types();
-                ++bin_type_id) {
-            bin_type_upper_bounds[bin_type_id] = compute_bin_instance_upper_bound(
-                    instance,
-                    bin_type_id,
-                    parameters,
-                    algorithm_formatter);
-            if (algorithm_formatter.end_boolean()) {
-                algorithm_formatter.end();
-                return output;
-            }
-        }
-    } else {
-        for (BinTypeId bin_type_id = 0;
-                bin_type_id < instance.number_of_bin_types();
-                ++bin_type_id) {
-            bin_type_upper_bounds[bin_type_id] = instance.bin_type(bin_type_id).copies;
-        }
-        // 'BinPacking' already knows its exact bin counts above (unlike
-        // 'VariableSizedBinPacking', it has nothing to bound), but with a
-        // single bin type its own objective - minimize the number of bins -
-        // is exactly what 'compute_bin_instance_upper_bound''s sub-solve
-        // already optimizes, so it is still worth calling purely for the
-        // bound/solution reporting it does internally (see
-        // 'output.solution_pool.best()' below).
-        if (instance.objective() == Objective::BinPacking
-                && instance.number_of_bin_types() == 1) {
-            compute_bin_instance_upper_bound(
-                    instance,
-                    0,
-                    parameters,
-                    algorithm_formatter);
-            if (algorithm_formatter.end_boolean()) {
-                algorithm_formatter.end();
-                return output;
-            }
-        }
+    // to consider in the MILP; see 'compute_bin_type_upper_bounds' and the
+    // functions it dispatches to.
+    std::vector<BinPos> bin_type_upper_bounds = compute_bin_type_upper_bounds(
+            instance, parameters, algorithm_formatter);
+    if (algorithm_formatter.end_boolean()) {
+        algorithm_formatter.end();
+        return output;
     }
 
     MilpModel milp_model = build_milp_model(instance, bin_type_upper_bounds);
