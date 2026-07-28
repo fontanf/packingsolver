@@ -72,10 +72,11 @@
        text-anchor="middle"
        font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif"
        font-size="56px"
+       font-weight="600"
        id="text20"><tspan
          fill="#1f2937"
          id="tspan16">Packing</tspan><tspan
-         fill="#0A0BC3"
+         fill="#4F46E5"
          id="tspan18">Solver</tspan></text>
     <!-- Rectangles -->
     <rect
