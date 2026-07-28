@@ -36,12 +36,12 @@ struct MilpAssignmentParameters: packingsolver::Parameters<Instance, Solution, O
         = mathoptsolverscmake::SolverName::Highs;
 
     /**
-     * Size of the tree search queue used to bound, for each bin type, the
-     * number of bin instances of that type to consider in the MILP.
-     *
-     * Only used for the 'VariableSizedBinPacking' objective (for the
-     * 'Knapsack', 'Feasibility' and 'BinPacking' objectives, the number of
-     * bin instances of each type is given directly by the instance).
+     * Size of the tree search queue used:
+     * - for 'VariableSizedBinPacking', to bound, for each bin type, the
+     *   number of bin instances of that type to consider in the MILP;
+     * - for 'BinPacking', for a quick tree search pass over the whole
+     *   instance itself, ahead of the (potentially slower) MILP.
+     * Not used for 'Knapsack' or 'Feasibility'.
      */
     NodeId bin_count_subproblem_tree_search_queue_size = 1024;
 };

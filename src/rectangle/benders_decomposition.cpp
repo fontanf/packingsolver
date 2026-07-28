@@ -242,6 +242,77 @@ std::vector<StaticBinTypeResources> compute_static_bin_type_resources(
 
 /**
  * Upper bound, for each bin type, on the number of bin instances of that
+ * type an optimal 'BinPacking' solution could ever need: a quick tree
+ * search directly on the whole original instance (every bin type
+ * together, with their real, possibly limited copies - this *is* the
+ * problem being solved, not a relaxation of it) might find a good
+ * feasible solution and/or bound before the main Benders loop below does.
+ *
+ * If it finds a *complete* solution, its own per-bin-type bin counts are
+ * then used as the returned bounds, tighter than (and replacing) the
+ * instance's own bin type copies. This is sound because, for
+ * 'BinPacking', bin types must be used in the order they are provided
+ * (see 'onedimensional::milp_assignment''s "bin usage order" constraint,
+ * which the Benders master inherits unchanged via
+ * 'build_master_instance', since it solves this same objective on a
+ * onedimensional relaxation): any feasible solution's bin-type breakdown
+ * is therefore a deterministic function of its own total bin count alone
+ * (exhaust type 0's copies before touching type 1, and so on), and that
+ * function only ever needs *more* of an earlier type as the total grows -
+ * so a solution using fewer bins overall (in particular, any optimal one,
+ * since this solution's total is a valid upper bound on it) can never
+ * need more of any given type than this one, already known feasible,
+ * does. Rectangle's own tree search enumerates bin positions in that
+ * exact same fixed, per-type order, so this solution's own per-type bin
+ * counts are already exactly that breakdown - nothing else needs to be
+ * derived from it.
+ *
+ * When the instance has a single bin type and every item type fits it,
+ * this solution already solves the exact same problem as the instance
+ * itself, so it is reported via 'algorithm_formatter' regardless (in case
+ * the main Benders loop below never finds as good a one, or times out
+ * before finding any solution at all) - this holds independently of
+ * whether it happens to be complete.
+ */
+std::vector<BinPos> compute_bin_type_upper_bounds_bin_packing(
+        const Instance& instance,
+        const BendersDecompositionParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    std::vector<BinPos> bin_type_upper_bounds(instance.number_of_bin_types());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        bin_type_upper_bounds[bin_type_id] = instance.bin_type(bin_type_id).copies;
+    }
+
+    OptimizeParameters sub_parameters;
+    sub_parameters.verbosity_level = 0;
+    sub_parameters.timer = parameters.timer;
+    sub_parameters.optimization_mode = OptimizationMode::NotAnytimeDeterministic;
+    sub_parameters.use_tree_search = true;
+    sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
+    auto sub_output = optimize(instance, sub_parameters);
+    algorithm_formatter.update_solution(sub_output.solution_pool.best(), "tree search");
+    algorithm_formatter.update_bin_packing_bound(sub_output.bin_packing_bound);
+
+    const Solution& sub_solution = sub_output.solution_pool.best();
+    if (sub_solution.full()) {
+        std::vector<BinPos> solution_bin_type_counts(instance.number_of_bin_types(), 0);
+        for (BinPos solution_bin_pos = 0;
+                solution_bin_pos < sub_solution.number_of_different_bins();
+                ++solution_bin_pos) {
+            const SolutionBin& solution_bin = sub_solution.bin(solution_bin_pos);
+            solution_bin_type_counts[solution_bin.bin_type_id] += solution_bin.copies;
+        }
+        bin_type_upper_bounds = solution_bin_type_counts;
+    }
+
+    return bin_type_upper_bounds;
+}
+
+/**
+ * Upper bound, for each bin type, on the number of bin instances of that
  * type any solution could ever use: the minimum number of bins of that
  * type needed to pack, via true 2D geometric packing (not just an area
  * check - the master itself only sees area, but this bound must remain
@@ -261,27 +332,27 @@ std::vector<StaticBinTypeResources> compute_static_bin_type_resources(
  * derived from true geometry already dominates whatever any amount of
  * (sound) cuts could ever require.
  *
- * Only meaningful for the 'VariableSizedBinPacking' objective, the only
- * one where the number of bin instances of a type is a decision rather
- * than fixed by the instance; for every other objective, the instance's
- * own bin type copies are already exact and are returned unchanged. Not
- * called at all for 'Knapsack' (see the call site): its master already
- * uses the instance's own bin type copies directly, so computing this
- * would be pure wasted work.
+ * When the instance has a single bin type and every item type fits it,
+ * the sub-solve above (all item types, packed using only that one bin
+ * type) is solving the exact same problem as the instance itself: its
+ * solution is therefore a genuine feasible solution to the whole
+ * instance, not just a bound on this one bin type - converted back onto
+ * 'instance' (via 'Solution::append''s bin/item type id remapping) and
+ * reported via 'algorithm_formatter', in case the main Benders loop below
+ * never finds as good a one, or times out before finding any solution at
+ * all.
  */
-std::vector<BinPos> compute_bin_type_upper_bounds(
+std::vector<BinPos> compute_bin_type_upper_bounds_variable_sized_bin_packing(
         const Instance& instance,
-        const BendersDecompositionParameters& parameters)
+        const BendersDecompositionParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
 {
     std::vector<BinPos> bin_type_upper_bounds(instance.number_of_bin_types());
+
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance.bin_type(bin_type_id);
-        if (instance.objective() != Objective::VariableSizedBinPacking) {
-            bin_type_upper_bounds[bin_type_id] = bin_type.copies;
-            continue;
-        }
 
         InstanceBuilder sub_instance_builder;
         sub_instance_builder.set_objective(Objective::BinPacking);
@@ -290,16 +361,20 @@ std::vector<BinPos> compute_bin_type_upper_bounds(
         sub_instance_builder.set_bin_type_copies(sub_bin_type_id, -1);
         sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
 
-        bool has_fitting_item = false;
+        // Maps 'sub_instance's (compacted) item type ids back to
+        // 'instance's own: item types that don't fit this bin type are
+        // skipped while building 'sub_instance', so its item type ids
+        // only line up 1:1 with 'instance's when every item type fits.
+        std::vector<ItemTypeId> sub_item_type_ids;
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
             if (!instance.item_type_fits_bin_type(item_type_id, bin_type_id))
                 continue;
             sub_instance_builder.add_item_type(instance, item_type_id);
-            has_fitting_item = true;
+            sub_item_type_ids.push_back(item_type_id);
         }
-        if (!has_fitting_item) {
+        if (sub_item_type_ids.empty()) {
             bin_type_upper_bounds[bin_type_id] = 0;
             continue;
         }
@@ -313,10 +388,52 @@ std::vector<BinPos> compute_bin_type_upper_bounds(
         sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
         auto sub_output = optimize(sub_instance, sub_parameters);
 
+        if (instance.number_of_bin_types() == 1
+                && (ItemTypeId)sub_item_type_ids.size() == instance.number_of_item_types()) {
+            Solution solution(instance);
+            solution.append(sub_output.solution_pool.best(), {bin_type_id}, sub_item_type_ids);
+            algorithm_formatter.update_solution(solution, "single bin type upper bound");
+        }
+
         BinPos bin_type_upper_bound = sub_output.solution_pool.best().number_of_bins();
         if (bin_type.copies != -1)
             bin_type_upper_bound = std::min(bin_type_upper_bound, bin_type.copies);
         bin_type_upper_bounds[bin_type_id] = bin_type_upper_bound;
+    }
+    return bin_type_upper_bounds;
+}
+
+/**
+ * Upper bound, for each bin type, on the number of bin instances of that
+ * type any solution could ever use, dispatching on the objective: see
+ * 'compute_bin_type_upper_bounds_bin_packing' and
+ * 'compute_bin_type_upper_bounds_variable_sized_bin_packing'. Not called
+ * at all for 'Knapsack' (see the call site): its master already uses the
+ * instance's own bin type copies directly, so computing this would be
+ * pure wasted work. For 'Feasibility', the instance's own bin type
+ * copies are already exact - there is nothing to bound (unlike
+ * 'BinPacking', it has no "minimize the number of bins" objective to
+ * drive a tree-search-based tightening from).
+ */
+std::vector<BinPos> compute_bin_type_upper_bounds(
+        const Instance& instance,
+        const BendersDecompositionParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    if (instance.objective() == Objective::BinPacking) {
+        return compute_bin_type_upper_bounds_bin_packing(
+                instance, parameters, algorithm_formatter);
+    }
+    if (instance.objective() == Objective::VariableSizedBinPacking) {
+        return compute_bin_type_upper_bounds_variable_sized_bin_packing(
+                instance, parameters, algorithm_formatter);
+    }
+
+    std::vector<BinPos> bin_type_upper_bounds(instance.number_of_bin_types());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        bin_type_upper_bounds[bin_type_id] = instance.bin_type(bin_type_id).copies;
     }
     return bin_type_upper_bounds;
 }
@@ -541,7 +658,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
     // own bin type copies directly for it (see there).
     std::vector<BinPos> bin_type_upper_bounds;
     if (instance.objective() != Objective::Knapsack) {
-        bin_type_upper_bounds = compute_bin_type_upper_bounds(instance, parameters);
+        bin_type_upper_bounds = compute_bin_type_upper_bounds(instance, parameters, algorithm_formatter);
 
         // Check end.
         if (parameters.timer.needs_to_end()) {
