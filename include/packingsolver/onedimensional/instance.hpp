@@ -9,6 +9,23 @@ namespace packingsolver
 namespace onedimensional
 {
 
+/** File format for 'Instance::write'. */
+enum class InstanceFormat
+{
+    /**
+     * Three CSV files (items, bins, parameters), matching
+     * 'InstanceBuilder::read_item_types'/'read_bin_types'/'read_parameters'.
+     * Cannot represent resources, eligibility, or item type precedences;
+     * 'write' throws if the instance has any of these.
+     */
+    Csv,
+    /**
+     * A single JSON file, matching 'InstanceBuilder::read' - the only
+     * format that can represent every feature of the instance.
+     */
+    Json,
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// Item type, Bin type, Defect //////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -331,8 +348,19 @@ public:
             std::ostream& os,
             int verbosity_level = 1) const;
 
-    /** Write the instance to a file. */
-    void write(const std::string& instance_path) const;
+    /**
+     * Write the instance to a file, in the given format (default 'Csv',
+     * matching the previous behavior). See 'InstanceFormat'.
+     */
+    void write(
+            const std::string& instance_path,
+            InstanceFormat format = InstanceFormat::Csv) const;
+
+    /** Write the instance as three CSV files; see 'InstanceFormat::Csv'. */
+    void write_csv(const std::string& instance_path) const;
+
+    /** Write the instance as a single JSON file; see 'InstanceFormat::Json'. */
+    void write_json(const std::string& instance_path) const;
 
 private:
 
