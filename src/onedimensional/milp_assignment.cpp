@@ -78,13 +78,7 @@ BinPos compute_bin_instance_upper_bound(
     sub_parameters.timer = parameters.timer;
     sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     sub_parameters.optimization_mode = OptimizationMode::NotAnytimeDeterministic;
-    if (instance.objective() == Objective::VariableSizedBinPacking
-            || instance.number_of_bin_types() == 1) {
-        sub_parameters.use_column_generation = true;
-    } else {
-        sub_parameters.use_tree_search = true;
-        sub_parameters.not_anytime_tree_search_queue_size = parameters.bin_count_subproblem_tree_search_queue_size;
-    }
+    sub_parameters.use_column_generation = true;
     auto sub_output = optimize(sub_instance, sub_parameters);
 
     bool is_whole_instance = (instance.number_of_bin_types() == 1)
@@ -1005,8 +999,12 @@ std::vector<BinPos> compute_bin_type_upper_bounds_bin_packing(
     sub_parameters.timer = parameters.timer;
     sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     sub_parameters.optimization_mode = OptimizationMode::NotAnytimeDeterministic;
-    sub_parameters.use_tree_search = true;
-    sub_parameters.not_anytime_tree_search_queue_size = parameters.bin_count_subproblem_tree_search_queue_size;
+    if (instance.number_of_bin_types() == 1) {
+        sub_parameters.use_column_generation = true;
+    } else {
+        sub_parameters.use_tree_search = true;
+        sub_parameters.not_anytime_tree_search_queue_size = parameters.bin_count_subproblem_tree_search_queue_size;
+    }
     auto sub_output = optimize(instance, sub_parameters);
     algorithm_formatter.update_solution(sub_output.solution_pool.best(), "tree search");
     algorithm_formatter.update_bin_packing_bound(sub_output.bin_packing_bound);

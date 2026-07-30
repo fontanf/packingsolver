@@ -8,6 +8,8 @@
 #include "onedimensional/milp_assignment.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
 
+#include <algorithm>
+
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
 
@@ -114,49 +116,66 @@ bool item_type_fits_footprint_of(
 }
 
 /**
- * Lift a no-good cut in place: for every item type not already in the cut
- * that both fits this bin type and dominates (via
- * 'item_type_fits_footprint_of' - wherever the dominated item type could be
- * placed, in any orientation it is allowed to use, the dominating one could
- * be placed too) one or more item types already in the cut, add it with a
- * threshold equal to the *sum* of the thresholds of every item type in the
- * cut it dominates, leaving the cut's capacity (right-hand side) unchanged.
+ * Lift a no-good cut: for every item type not already in the cut that
+ * both fits this bin type and dominates (via 'item_type_fits_footprint_of'
+ * - the dominated item type, in any orientation it is allowed to use,
+ * fits within the dominating one's footprint, i.e. wherever the dominated
+ * item type could be placed, the dominating one could occupy at least
+ * that much space too) one or more item types already in the cut, return
+ * one *additional, separate* cut - the original cut's entries plus that
+ * one item type added with a threshold equal to the sum of the
+ * thresholds of every item type in the cut it dominates, capacity
+ * unchanged.
  *
- * This is sound by the same exchange argument used for item type
- * precedences (see 'compute_item_type_precedences'), applied once per
- * dominated item type and composed: since the original selection is proven
- * infeasible, replacing any number (from 0 up to its own threshold) of
- * copies of a dominated item type with copies of a dominating one can only
- * ever require as much or more room, never less, so the result stays
- * infeasible too - and since each dominated item type's copies are
- * substituted using *disjoint* copies of the dominating item type, this
- * composes across every item type it dominates, up to their combined
- * threshold (not just the largest, or only one at a time).
+ * Each lifted item type becomes its own separate cut/row rather than all
+ * being merged into 'original_cut' as one shared row: a single dominator
+ * added alone is sound (see below), but combining *several different*
+ * dominating item types into one shared row is not, even though each
+ * individually passes the same check. Counterexample: with a base cut
+ * {0:1, 7:1, 19:1, 30:1, 49:1} (capacity 4), two unrelated item types A
+ * and B might each independently dominate exactly {0, 7, 19, 49} (not
+ * 30), each getting threshold 4 on its own. Merged into one row, a
+ * selection of 3 copies of A plus 2 copies of B (5 total, each
+ * individually still under its own threshold of 4) trips
+ * 'sum(min(count, threshold)) = 3 + 2 = 5 > capacity = 4' *without* item
+ * 30 present and *without* either A or B alone reaching a complete
+ * covering of {0, 7, 19, 49} - i.e. without any actual disjoint
+ * substitution of the original 5-item selection existing. The row's
+ * capacity was only ever calibrated for *one* additional "pathway" (the
+ * original items themselves) reaching the combined threshold; adding a
+ * second, independent pathway to the same shared budget lets the sum
+ * cross it via a combination neither pathway individually justifies.
  *
- * A single merged entry per dominating item type is required, not one per
- * pairing: 'ResourceCut::consumption' has at most one entry per item type
- * (a later entry for the same item type silently overwrites an earlier
- * one when turned into the actual resource, see 'add_cut_as_resource'), so
- * naively adding multiple entries for the same dominating item type would
- * arbitrarily keep only the last one, understating or (worse) overstating
- * what is actually sound depending on iteration order.
+ * A single dominator D (with combined threshold t = sum of the
+ * thresholds of everything it dominates) added *alone* avoids this: the
+ * row can only exceed 'capacity = (sum of original thresholds) - 1' via
+ * either (a) every original item present (the base case), or (b) D
+ * reaching its own full threshold t (fully covering everything it
+ * dominates) *together with* every original item it does *not* dominate
+ * also present - both of which correspond to an actual complete,
+ * disjoint substitution of the original selection, sound by the reverse
+ * of the exchange argument used for item type precedences (see
+ * 'compute_item_type_precedences' - there, a smaller-or-equal,
+ * higher-or-equal-profit substitute is swapped *in* because it always
+ * fits in the freed space; here it must be swapped the other way:
+ * substituting a *larger*-or-equal item type in place of a dominated one
+ * can only ever require as much or more room, never less, for the result
+ * to still be provably infeasible).
  */
-void lift_no_good_cut(
-        ResourceCut& resource_cut,
+std::vector<ResourceCut> lift_no_good_cut(
+        const ResourceCut& original_cut,
         const Instance& instance,
         BinTypeId bin_type_id)
 {
-    // Copy first: the item types being lifted in were never part of the
-    // original infeasibility proof, so they must not themselves be used as
-    // a basis for further lifting.
     std::vector<std::pair<ItemTypeId, ItemPos>> original_thresholds;
-    original_thresholds.reserve(resource_cut.consumption.size());
+    original_thresholds.reserve(original_cut.consumption.size());
     std::vector<bool> in_cut(instance.number_of_item_types(), false);
-    for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource_cut.consumption) {
+    for (const std::pair<ItemTypeId, std::vector<double>>& entry: original_cut.consumption) {
         original_thresholds.push_back({entry.first, (ItemPos)entry.second.size() - 1});
         in_cut[entry.first] = true;
     }
 
+    std::vector<ResourceCut> lifted_cuts;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -168,14 +187,226 @@ void lift_no_good_cut(
         ItemPos combined_threshold = 0;
         for (const std::pair<ItemTypeId, ItemPos>& dominated: original_thresholds) {
             const ItemType& dominated_item_type = instance.item_type(dominated.first);
-            if (item_type_fits_footprint_of(item_type, dominated_item_type))
+            // 'item_type' (the candidate being lifted in) must be at
+            // least as large as 'dominated_item_type' - i.e. the
+            // dominated one must fit within *its* footprint, not the
+            // other way around - so that substituting it in can only
+            // ever require as much or more room.
+            if (item_type_fits_footprint_of(dominated_item_type, item_type))
                 combined_threshold += dominated.second;
         }
         if (combined_threshold > 0) {
-            resource_cut.consumption.push_back(
+            ResourceCut lifted_cut = original_cut;
+            lifted_cut.consumption.push_back(
                     {item_type_id, threshold_schedule(combined_threshold)});
+            lifted_cuts.push_back(std::move(lifted_cut));
         }
     }
+    return lifted_cuts;
+}
+
+/**
+ * Result of checking whether a selection of items fits together in a
+ * single bin of a given type: 'Unknown' means the feasibility subproblem
+ * neither found a complete packing nor exhausted the search space within
+ * its budget (see 'BendersDecompositionParameters::subproblem_queue_size')
+ * - i.e. it is genuinely inconclusive, not evidence of infeasibility.
+ */
+enum class SelectionFeasibility
+{
+    Feasible,
+    ProvenInfeasible,
+    Unknown,
+};
+
+/**
+ * Check whether 'selected_items' (copies of item types, possibly zero for
+ * some) all fit together in a single bin of the given type; see
+ * 'SelectionFeasibility'.
+ */
+SelectionFeasibility selection_feasibility(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items,
+        const BendersDecompositionParameters& parameters)
+{
+    InstanceBuilder sub_instance_builder;
+    sub_instance_builder.set_objective(Objective::Feasibility);
+    sub_instance_builder.set_parameters(instance.parameters());
+    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+    sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
+    sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+    bool any_items = false;
+    for (const std::pair<ItemTypeId, ItemPos>& p: selected_items) {
+        if (p.second <= 0)
+            continue;
+        any_items = true;
+        ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance, p.first);
+        sub_instance_builder.set_item_type_copies(sub_item_type_id, p.second);
+    }
+    if (!any_items)
+        return SelectionFeasibility::Feasible;
+    Instance sub_instance = sub_instance_builder.build();
+
+    OptimizeParameters sub_parameters;
+    sub_parameters.verbosity_level = 0;
+    sub_parameters.timer = parameters.timer;
+    sub_parameters.optimization_mode
+        = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytimeDeterministic;
+    sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
+    auto sub_output = optimize(sub_instance, sub_parameters);
+    if (sub_output.solution_pool.best().full())
+        return SelectionFeasibility::Feasible;
+    if (sub_output.is_proven_infeasible)
+        return SelectionFeasibility::ProvenInfeasible;
+    return SelectionFeasibility::Unknown;
+}
+
+/**
+ * Aggregate a list of item units (flattened, one entry per copy) into
+ * (item_type_id, count) pairs, skipping any unit marked 'removed'.
+ */
+std::vector<std::pair<ItemTypeId, ItemPos>> aggregate_units(
+        const Instance& instance,
+        const std::vector<ItemTypeId>& units,
+        const std::vector<bool>& removed)
+{
+    std::vector<ItemPos> counts(instance.number_of_item_types(), 0);
+    for (size_t unit_pos = 0; unit_pos < units.size(); ++unit_pos) {
+        if (!removed[unit_pos])
+            counts[units[unit_pos]]++;
+    }
+    std::vector<std::pair<ItemTypeId, ItemPos>> result;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        if (counts[item_type_id] > 0)
+            result.push_back({item_type_id, counts[item_type_id]});
+    }
+    return result;
+}
+
+/**
+ * A minimal infeasible subset found by 'enumerate_minimal_infeasible_subsets'
+ * below, together with whether every geometric feasibility check along its
+ * derivation (from the original selection down to this exact subset) was a
+ * genuine proof of infeasibility ('SelectionFeasibility::ProvenInfeasible')
+ * rather than merely inconclusive ('SelectionFeasibility::Unknown', treated
+ * as infeasible too - see 'enumerate_minimal_infeasible_subsets_dfs' - so
+ * that the search still gets to shrink the master's feasible region on the
+ * strength of a good guess, not just on hard proof). 'proven' is what
+ * decides whether the cut built from 'items' may be trusted for bound
+ * purposes at the call site (see 'all_cuts_proven_infeasible').
+ */
+struct MinimalInfeasibleSubset
+{
+    std::vector<std::pair<ItemTypeId, ItemPos>> items;
+    bool proven;
+};
+
+/**
+ * DFS step of 'enumerate_minimal_infeasible_subsets' below.
+ *
+ * Try removing, one at a time, every unit from 'next_unit_pos' onwards -
+ * only ever considering units at or past the position of the last unit
+ * removed to reach this node (the standard way to enumerate every subset
+ * along exactly one path, without generating the same one twice).
+ * Recursing into any resulting selection that is not 'Feasible' (see
+ * 'SelectionFeasibility') - both 'ProvenInfeasible' and 'Unknown' count,
+ * since an inconclusive subproblem is still worth speculatively treating
+ * as infeasible for the sake of finding a smaller (stronger) cut, it just
+ * taints 'path_proven' from that point on. If no removal was found
+ * infeasible (including if there is nothing left to try removing), the
+ * current selection - as 'removed' stands on entry to this call - can be
+ * reduced no further along any explored branch, so it is itself a minimal
+ * infeasible subset, recorded as a new cut with 'path_proven' as it
+ * stands on entry (accumulated from the original selection's own proof
+ * status down through every reduction step taken to reach here).
+ */
+void enumerate_minimal_infeasible_subsets_dfs(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<ItemTypeId>& units,
+        std::vector<bool>& removed,
+        size_t next_unit_pos,
+        bool path_proven,
+        const BendersDecompositionParameters& parameters,
+        Counter maximum_number_of_cuts,
+        std::vector<MinimalInfeasibleSubset>& cuts)
+{
+    bool any_child_infeasible = false;
+    for (size_t unit_pos = next_unit_pos;
+            unit_pos < units.size() && (Counter)cuts.size() < maximum_number_of_cuts;
+            ++unit_pos) {
+        removed[unit_pos] = true;
+        std::vector<std::pair<ItemTypeId, ItemPos>> child_selection =
+            aggregate_units(instance, units, removed);
+        SelectionFeasibility child_feasibility = selection_feasibility(
+                instance, bin_type_id, child_selection, parameters);
+        if (child_feasibility != SelectionFeasibility::Feasible) {
+            any_child_infeasible = true;
+            enumerate_minimal_infeasible_subsets_dfs(
+                    instance, bin_type_id, units, removed, unit_pos + 1,
+                    path_proven && (child_feasibility == SelectionFeasibility::ProvenInfeasible),
+                    parameters, maximum_number_of_cuts, cuts);
+        }
+        removed[unit_pos] = false;
+    }
+
+    if (!any_child_infeasible && (Counter)cuts.size() < maximum_number_of_cuts)
+        cuts.push_back({aggregate_units(instance, units, removed), path_proven});
+}
+
+/**
+ * Enumerate up to 'maximum_number_of_cuts' minimal infeasible subsets of a
+ * selection (items that do not all fit in a single bin of the given type),
+ * via the DFS in 'enumerate_minimal_infeasible_subsets_dfs'. Each one is a
+ * strictly stronger no-good cut than the original selection itself would
+ * be: forbidding a subset forbids every combination that contains it,
+ * which is strictly more than forbidding only the original (larger)
+ * selection. Unlike the domination-based lift above, this needs no
+ * exchange argument at all - it reuses the exact same geometric
+ * feasibility check that established the original selection's own
+ * infeasibility (proven or not, see 'selection_proven_infeasible' and
+ * 'MinimalInfeasibleSubset') in the first place, just on fewer items each
+ * time.
+ *
+ * Items are flattened into individual units and sorted by increasing area
+ * first: trying to remove small items before large ones tends to converge
+ * on minimal subsets built from the largest ("most essential") items,
+ * which are usually the actual reason the selection cannot fit, rather
+ * than on subsets that still include removable small padding.
+ */
+std::vector<MinimalInfeasibleSubset> enumerate_minimal_infeasible_subsets(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& selected_items,
+        bool selection_proven_infeasible,
+        const BendersDecompositionParameters& parameters,
+        Counter maximum_number_of_cuts)
+{
+    std::vector<ItemTypeId> units;
+    for (const std::pair<ItemTypeId, ItemPos>& p: selected_items) {
+        for (ItemPos copy = 0; copy < p.second; ++copy)
+            units.push_back(p.first);
+    }
+    std::stable_sort(
+            units.begin(),
+            units.end(),
+            [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2)
+            {
+                return instance.item_type(item_type_id_1).rect.area()
+                    < instance.item_type(item_type_id_2).rect.area();
+            });
+
+    std::vector<bool> removed(units.size(), false);
+    std::vector<MinimalInfeasibleSubset> cuts;
+    enumerate_minimal_infeasible_subsets_dfs(
+            instance, bin_type_id, units, removed, 0, selection_proven_infeasible,
+            parameters, maximum_number_of_cuts, cuts);
+    return cuts;
 }
 
 /**
@@ -641,6 +872,94 @@ std::vector<std::pair<ItemTypeId, ItemPos>> aggregate_bin_items(
     return result;
 }
 
+/**
+ * Total resource consumption a bin's item type counts (dense, indexed by
+ * item_type_id) contribute to a cut, replaying its per-item-type,
+ * per-copy consumption schedule exactly as
+ * 'onedimensional::BinType::item_resource_consumption' does (see there):
+ * cumulative, not just the marginal contribution of the last copy.
+ */
+double resource_cut_consumption(
+        const ResourceCut& resource_cut,
+        const std::vector<ItemPos>& item_type_counts)
+{
+    double consumption = 0.0;
+    for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource_cut.consumption) {
+        ItemPos count = item_type_counts[entry.first];
+        for (ItemPos copy = 0; copy < count; ++copy) {
+            consumption += (copy < (ItemPos)entry.second.size())?
+                entry.second[copy]:
+                entry.second.back();
+        }
+    }
+    return consumption;
+}
+
+/**
+ * 'true' iff 'cut' (a resource on bin type 'bin_type_id') is violated by
+ * some bin of that type in 'solution' - see 'resource_cut_consumption'.
+ */
+bool cut_violates_solution(
+        const Instance& instance,
+        const Solution& solution,
+        BinTypeId bin_type_id,
+        const ResourceCut& cut)
+{
+    for (BinPos solution_bin_pos = 0;
+            solution_bin_pos < solution.number_of_different_bins();
+            ++solution_bin_pos) {
+        const SolutionBin& solution_bin = solution.bin(solution_bin_pos);
+        if (solution_bin.bin_type_id != bin_type_id)
+            continue;
+        std::vector<ItemPos> item_type_counts(instance.number_of_item_types(), 0);
+        for (const SolutionItem& item: solution_bin.items)
+            item_type_counts[item.item_type_id]++;
+        if (strictly_greater(resource_cut_consumption(cut, item_type_counts), cut.capacity))
+            return true;
+    }
+    return false;
+}
+
+/**
+ * Check that no accumulated cut (dual-feasible-function or no-good)
+ * excludes 'solution' - the algorithm's own current best known feasible
+ * solution to 'instance' itself, not the master's relaxation.
+ *
+ * Only meaningful once every no-good cut added so far is backed by a
+ * genuine proof of infeasibility (dual-feasible-function cuts always
+ * are; see 'all_cuts_proven_infeasible' at the call site): in that
+ * regime, every cut is sound (derived from - and only from - a
+ * combination proven infeasible in true 2D geometry), so the best known
+ * solution, itself a genuinely feasible packing, must satisfy every one
+ * of them. A violation here is therefore not a fluke: it is a proof that
+ * some cut (or its lifting) is unsound.
+ */
+void check_cuts_against_best_solution(
+        const Instance& instance,
+        const Solution& solution,
+        const std::vector<std::vector<ResourceCut>>& dff_cuts_by_bin_type,
+        const std::vector<std::vector<ResourceCut>>& no_good_cuts_by_bin_type)
+{
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        for (const ResourceCut& cut: dff_cuts_by_bin_type[bin_type_id]) {
+            if (cut_violates_solution(instance, solution, bin_type_id, cut)) {
+                throw std::logic_error(
+                        FUNC_SIGNATURE + ": a dual-feasible-function cut excludes "
+                        "the current best solution.");
+            }
+        }
+        for (const ResourceCut& cut: no_good_cuts_by_bin_type[bin_type_id]) {
+            if (cut_violates_solution(instance, solution, bin_type_id, cut)) {
+                throw std::logic_error(
+                        FUNC_SIGNATURE + ": a no-good cut excludes "
+                        "the current best solution.");
+            }
+        }
+    }
+}
+
 }
 
 BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
@@ -831,23 +1150,53 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             }
 
             if (!sub_solution.full()) {
-                // Otherwise, add the corresponding no-good cut.
+                // Add a no-good cut for every minimal infeasible subset of
+                // the selection found (see
+                // 'enumerate_minimal_infeasible_subsets') - each one
+                // strictly stronger than a single cut built from the whole
+                // selection. Added regardless of whether the underlying
+                // feasibility subproblem(s) actually *proved* infeasibility
+                // or merely ran out of search budget without a definitive
+                // answer either way (see 'sub_output.is_proven_infeasible',
+                // 'SelectionFeasibility::Unknown'): an unproven cut may
+                // still speculatively shrink the master's feasible region
+                // and help it converge faster, at the cost of the region
+                // possibly no longer being a strict superset of the true
+                // one - which is exactly what 'MinimalInfeasibleSubset::proven'
+                // (ANDed into 'all_cuts_proven_infeasible' below) exists to
+                // track, so the master's *bound* is never trusted while
+                // that risk is live (see the gate on 'all_cuts_proven_infeasible'
+                // above, and 'check_cuts_against_best_solution').
                 all_bins_feasible = false;
-                ResourceCut resource_cut;
-                ItemPos cut_size = 0;
-                for (const std::pair<ItemTypeId, ItemPos>& p: selected_items) {
-                    cut_size += p.second;
-                    resource_cut.consumption.push_back({p.first, threshold_schedule(p.second)});
+                std::vector<MinimalInfeasibleSubset> minimal_selections
+                    = enumerate_minimal_infeasible_subsets(
+                            instance,
+                            master_bin.bin_type_id,
+                            selected_items,
+                            sub_output.is_proven_infeasible,
+                            parameters,
+                            parameters.maximum_number_of_no_good_cuts_per_bin);
+                for (const MinimalInfeasibleSubset& minimal_selection: minimal_selections) {
+                    ResourceCut resource_cut;
+                    ItemPos cut_size = 0;
+                    for (const std::pair<ItemTypeId, ItemPos>& p: minimal_selection.items) {
+                        cut_size += p.second;
+                        resource_cut.consumption.push_back({p.first, threshold_schedule(p.second)});
+                    }
+                    resource_cut.capacity = (double)cut_size - 1;
+
+                    // The base cut, plus every lifted variant, are added
+                    // as separate rows (see 'lift_no_good_cut' - merging
+                    // several different dominating item types into one
+                    // shared row is unsound).
+                    std::vector<ResourceCut> cuts_to_add
+                        = lift_no_good_cut(resource_cut, instance, master_bin.bin_type_id);
+                    cuts_to_add.push_back(resource_cut);
+                    for (const ResourceCut& cut_to_add: cuts_to_add)
+                        no_good_cuts_by_bin_type[master_bin.bin_type_id].push_back(cut_to_add);
+                    all_cuts_proven_infeasible
+                        = all_cuts_proven_infeasible && minimal_selection.proven;
                 }
-                resource_cut.capacity = (double)cut_size - 1;
-                lift_no_good_cut(resource_cut, instance, master_bin.bin_type_id);
-                no_good_cuts_by_bin_type[master_bin.bin_type_id].push_back(resource_cut);
-                // As long as every cut added so far is backed by a proof of
-                // infeasibility, the master's feasible region has never
-                // been shrunk beyond what the true problem allows, so the
-                // current MILP relaxation bound remains a valid bound.
-                all_cuts_proven_infeasible
-                    = all_cuts_proven_infeasible && sub_output.is_proven_infeasible;
             }
         }
 
@@ -856,6 +1205,19 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             std::stringstream ss;
             ss << "BD it " << output.number_of_iterations;
             algorithm_formatter.update_solution(solution, ss.str());
+        }
+
+        // Every feasibility subproblem encountered so far (in this
+        // iteration and every previous one) has been solved to proven
+        // optimality: every cut accumulated so far is therefore sound (see
+        // 'check_cuts_against_best_solution'), so none of them should ever
+        // exclude the best solution found so far.
+        if (all_cuts_proven_infeasible) {
+            check_cuts_against_best_solution(
+                    instance,
+                    output.solution_pool.best(),
+                    dff_cuts_by_bin_type,
+                    no_good_cuts_by_bin_type);
         }
 
         if (need_to_end)
