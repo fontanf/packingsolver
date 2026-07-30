@@ -32,6 +32,14 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
 
     /** Size of the queue for the knapsack subproblem. */
     NodeId subproblem_queue_size = 512;
+
+    /**
+     * Maximum number of minimal-infeasible-subset no-good cuts to generate
+     * per infeasible bin found (see 'enumerate_minimal_infeasible_subsets'
+     * in 'benders_decomposition.cpp'); bounds how much the search for
+     * additional cuts can cost per Benders iteration.
+     */
+    Counter maximum_number_of_no_good_cuts_per_bin = 8;
 };
 
 BendersDecompositionOutput benders_decomposition(
