@@ -9,58 +9,18 @@
 
 #include "packingsolver/irregular/solution.hpp"
 
+#include "shape/basic_shapes.hpp"
 #include "shape/convex_partition.hpp"
 #include "shape/intersection_tree.hpp"
 
 #include <vector>
-
-////////////////////////////////////////////////////////////////////////////////
-// Basic shapes decomposition
-////////////////////////////////////////////////////////////////////////////////
 
 namespace packingsolver
 {
 namespace irregular
 {
 
-enum class BasicShapeType
-{
-    ConvexPolygon,
-    CircularSegment,
-};
-
-/**
- * A basic shape in the sense of Chernov et al. 2012:
- * - ConvexPolygon: shape is the polygon K
- * - CircularSegment: D = C ∩ T; shape is the CCW triangle T formed by the
- *   chord and the two tangent lines at the arc endpoints; circle_center and
- *   circle_radius define C.  Phi^KD = max{Phi^KC, Phi^KT}.
- */
-struct BasicShape
-{
-    BasicShapeType type = BasicShapeType::ConvexPolygon;
-    Shape shape;
-    Point circle_center = {0, 0};
-    LengthDbl circle_radius = 0;
-};
-
-struct BasicShapesDecomposition
-{
-    std::vector<BasicShape> basic_shapes;
-};
-
-/**
- * Decompose a shape whose boundary consists of line segments and convex
- * circular arcs into basic objects: convex polygons and circular segments.
- *
- * Each convex arc is cut off as a circular segment (arc + chord), leaving a
- * pure polygon which is then split into convex parts.  If a chord would cross
- * another boundary element the arc is subdivided at its midpoint and the
- * halves are retried.
- */
-BasicShapesDecomposition decompose_into_basic_shapes(const Shape& shape);
-
-/** Apply mirror and rotation to a BasicShape (both the polygon and circle center). */
+/** Apply mirror and rotation to a BasicShape (both the shape and circle center). */
 inline BasicShape apply_placement(
         const BasicShape& basic_shape,
         bool mirror,
@@ -104,7 +64,7 @@ inline InstanceBasicShapeDecomposition compute_instance_basic_shape_decompositio
                 item_shape_pos < (ItemShapePos)item_type.shapes.size();
                 ++item_shape_pos) {
             const BasicShapesDecomposition decomp = decompose_into_basic_shapes(
-                    item_type.shapes[item_shape_pos].shape_scaled.shape);
+                    item_type.shapes[item_shape_pos].shape_scaled);
             for (const BasicShape& basic_shape: decomp.basic_shapes)
                 ibsd.item_types[item_type_id][item_shape_pos].push_back(basic_shape);
         }
