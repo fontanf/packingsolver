@@ -13,7 +13,6 @@ target_sources(PackingSolver_irregular PRIVATE
     periodic_packing.cpp
     tree_search.cpp
     tree_search_periodic_packing.cpp
-    utils.cpp
     linear_programming.cpp
     milp_raster.cpp
     trivial.cpp
