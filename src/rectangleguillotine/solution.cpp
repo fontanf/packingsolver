@@ -488,9 +488,9 @@ bool Solution::operator<(const Solution& solution) const
 
     switch (instance().objective()) {
     case Objective::Default: {
-        if (solution.profit() < profit())
+        if (strictly_lesser_profit(solution.profit(), profit()))
             return false;
-        if (solution.profit() > profit())
+        if (strictly_greater_profit(solution.profit(), profit()))
             return true;
         return solution.waste() < waste();
     } case Objective::BinPacking: {
@@ -526,17 +526,17 @@ bool Solution::operator<(const Solution& solution) const
             return true;
         return solution.cutting_cost() < cutting_cost();
     } case Objective::Knapsack: {
-        return strictly_greater(solution.profit(), profit());
+        return strictly_greater_profit(solution.profit(), profit());
     } case Objective::Feasibility: {
         if (solution.full() != full())
             return solution.full();
-        return strictly_greater(solution.profit(), profit());
+        return strictly_greater_profit(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
         if (!solution.full())
             return false;
         if (!full())
             return true;
-        return strictly_lesser(solution.cost(), cost());
+        return strictly_lesser_cost(solution.cost(), cost());
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "

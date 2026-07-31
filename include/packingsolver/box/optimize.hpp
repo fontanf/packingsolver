@@ -40,13 +40,13 @@ struct Output: packingsolver::Output<Instance, Solution>
     {
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
-            return equal(knapsack_bound, solution_pool.best().profit());
+            return equal_profit(knapsack_bound, solution_pool.best().profit());
         case Objective::BinPacking:
             return solution_pool.best().full()
                 && bin_packing_bound == solution_pool.best().number_of_bins();
         case Objective::VariableSizedBinPacking:
             return solution_pool.best().full()
-                && equal(variable_sized_bin_packing_bound, solution_pool.best().cost());
+                && equal_cost(variable_sized_bin_packing_bound, solution_pool.best().cost());
         case Objective::OpenDimensionX:
             return solution_pool.best().full()
                 && open_dimension_x_bound == solution_pool.best().x_max();

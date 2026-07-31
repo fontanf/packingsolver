@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <set>
 #include <iomanip>
+#include <cmath>
 
 namespace packingsolver
 {
@@ -61,6 +62,69 @@ inline bool strictly_greater(double v1, double v2)
 inline bool equal(double v1, double v2)
 {
     return std::abs(v1 - v2) <= 1e-6;
+}
+
+/**
+ * Relative-gap comparisons for profit and cost.
+ *
+ * strictly_greater/strictly_lesser/equal above use an absolute 1e-6
+ * tolerance, which is only meaningful for values whose magnitude is itself
+ * close to 1. Profit and cost can be sums over thousands of items (e.g. a
+ * knapsack solution's total profit in the tens of millions): summing the
+ * same complete set of items in a different order between two otherwise
+ * equally good solutions can shift the double-precision result by far more
+ * than 1e-6 in absolute terms while being relatively identical, which an
+ * absolute-tolerance (or worse, exact) comparison would wrongly treat as
+ * one solution being strictly better than the other.
+ *
+ * The *_profit functions compare a maximized quantity via
+ * (v1 - v2) / max(v1, v2); the *_cost functions compare a minimized
+ * quantity via (v1 - v2) / min(v1, v2). Falls back to a plain (absolute)
+ * comparison when the relevant denominator is 0 or not finite (relative gap
+ * is undefined there, and would otherwise silently produce a NaN from an
+ * inf/inf division -- since a NaN compares false against +/-1e-6 either
+ * way, that NaN would make an unset bound, which defaults to
+ * +infinity/-infinity, compare as "equal" to any finite value instead of
+ * "not yet meaningfully comparable").
+ */
+inline bool strictly_greater_profit(double v1, double v2)
+{
+    if (v1 == v2)
+        return false;
+    double denominator = std::max(v1, v2);
+    return (denominator != 0.0 && std::isfinite(denominator))?
+        (v1 - v2) / denominator > 1e-6:
+        v1 - v2 > 1e-6;
+}
+
+inline bool strictly_lesser_profit(double v1, double v2)
+{
+    return strictly_greater_profit(v2, v1);
+}
+
+inline bool equal_profit(double v1, double v2)
+{
+    return !strictly_greater_profit(v1, v2) && !strictly_greater_profit(v2, v1);
+}
+
+inline bool strictly_greater_cost(double v1, double v2)
+{
+    if (v1 == v2)
+        return false;
+    double denominator = std::min(v1, v2);
+    return (denominator != 0.0 && std::isfinite(denominator))?
+        (v1 - v2) / denominator > 1e-6:
+        v1 - v2 > 1e-6;
+}
+
+inline bool strictly_lesser_cost(double v1, double v2)
+{
+    return strictly_greater_cost(v2, v1);
+}
+
+inline bool equal_cost(double v1, double v2)
+{
+    return !strictly_greater_cost(v1, v2) && !strictly_greater_cost(v2, v1);
 }
 
 template<typename T>
