@@ -682,7 +682,7 @@ Instance InstanceBuilder::build()
                 continue;
             item_shape.shape_inflated = inflate(
                     item_shape.shape_scaled,
-                    instance_.parameters().scale_value * instance_.parameters().item_item_minimum_spacing);
+                    instance_.item_spacing_scaled());
             if (!item_shape.shape_inflated.shape.check()) {
                 throw std::runtime_error(
                         FUNC_SIGNATURE + ": "
@@ -809,7 +809,7 @@ Instance InstanceBuilder::build()
                 border.shape_scaled.shape = shape_border;
                 border.shape_inflated = inflate(
                         shape_border,
-                        instance_.parameters().scale_value * bin_type.item_bin_minimum_spacing);
+                        instance_.bin_spacing_scaled(bin_type_id));
                 bin_type.borders.push_back(border);
             }
         }

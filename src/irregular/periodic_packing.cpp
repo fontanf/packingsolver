@@ -3,6 +3,7 @@
 #include "shape/no_fit_polygon.hpp"
 #include "shape/boolean_operations.hpp"
 #include "shape/shapes_intersections.hpp"
+#include "shape/offset.hpp"
 
 #include <limits>
 #include <algorithm>
@@ -443,11 +444,11 @@ bool check_periodic_packing(
  * and the computed lattice vectors.
  *
  * This is the second half of the computation: given the combined forbidden
- * region already assembled by the caller (either find_periodic_packing_lattice
- * below, which computes it from scratch, or
- * find_periodic_packing_lattice_two_shapes_cached, which derives it cheaply
- * from precomputed NFPs), search the two strategies and validate each
- * candidate against the actual shapes.
+ * region already assembled by the caller (either
+ * compute_periodic_packings(shape, ...) below, which computes it from a
+ * single shape's self-NFP, or find_periodic_packing_lattice_two_shapes_cached,
+ * which derives it cheaply from precomputed NFPs), search the two strategies
+ * and validate each candidate against the actual shapes.
  */
 std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
         const std::vector<ShapeWithHoles>& shapes,
@@ -503,26 +504,10 @@ std::vector<PeriodicPacking> find_periodic_packing_lattice_from_combined_nfp(
     return result;
 }
 
-std::vector<PeriodicPacking> find_periodic_packing_lattice(
-        const std::vector<ShapeWithHoles>& shapes)
-{
-    int n = (int)shapes.size();
-    std::vector<ShapeWithHoles> combined_nfp;
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            MultiShapeWithHoles nfp_ij = shape::no_fit_polygon(shapes[i], shapes[j]);
-            if (nfp_ij.shapes_with_holes.empty())
-                continue;
-            for (const ShapeWithHoles& swh: shape::compute_union(nfp_ij.shapes_with_holes).shapes_with_holes)
-                combined_nfp.push_back(swh);
-        }
-    }
-    return find_periodic_packing_lattice_from_combined_nfp(shapes, combined_nfp);
-}
-
 /**
- * Same as find_periodic_packing_lattice, specialized for exactly two shapes,
- * given the four pairwise NFPs already computed in each shape's own natural
+ * Same as find_periodic_packing_lattice_from_combined_nfp's combined-NFP
+ * assembly, specialized for exactly two shapes, given the four pairwise NFPs
+ * already computed in each shape's own natural
  * (position-independent) frame, plus the two shapes' current positions.
  *
  * NFP(A + a, B + b) = NFP(A, B) + (a - b): translating either operand only
@@ -584,14 +569,31 @@ void add_if_unique(
 }  // namespace
 
 std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings(
-        const ShapeWithHoles& shape)
+        const ShapeWithHoles& shape,
+        LengthDbl item_item_minimum_spacing)
 {
     AxisAlignedBoundingBox aabb = shape.compute_min_max();
     Point position = {-aabb.x_min, -aabb.y_min};
     ShapeWithHoles shifted = shape;
     shifted.shift(position.x, position.y);
+
+    // The forbidden region for tiling a single shape against copies of
+    // itself is exactly its self-NFP: NFP(A, B) inflated by d ==
+    // NFP(A inflated by d', B inflated by d'') for any split d' + d'' = d
+    // (Minkowski sum is associative and a disk is symmetric under negation),
+    // so it is equivalent -- and exact, no polygon approximation needed --
+    // to compute the raw self-NFP and inflate its result by the full
+    // spacing amount instead of inflating the shape beforehand.
+    std::vector<ShapeWithHoles> combined_nfp;
+    MultiShapeWithHoles nfp = shape::no_fit_polygon(shifted, shifted);
+    for (const ShapeWithHoles& swh: shape::compute_union(nfp.shapes_with_holes).shapes_with_holes) {
+        combined_nfp.push_back(item_item_minimum_spacing > 0.0?
+                shape::inflate(swh, item_item_minimum_spacing):
+                swh);
+    }
+
     std::vector<PeriodicPacking> result;
-    for (PeriodicPacking pp: find_periodic_packing_lattice({shifted})) {
+    for (PeriodicPacking pp: find_periodic_packing_lattice_from_combined_nfp({shifted}, combined_nfp)) {
         pp.positions = {position};
         add_if_unique(result, std::move(pp));
     }
@@ -604,8 +606,8 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
  * shape_0 is pre-shifted to have its BL corner at the origin. For each
  * boundary vertex of NFP(shape_0, shape_r) that places shape_r with a
  * non-negative AABB (x_min >= 0 and y_min >= 0), the two shapes are passed
- * to find_periodic_packing_lattice to search for horizontal and vertical
- * lattice vectors.
+ * to find_periodic_packing_lattice_two_shapes_cached to search for horizontal
+ * and vertical lattice vectors.
  *
  * Returns all valid PeriodicPackings found across all candidate placements,
  * each with positions = {position_0, t_r} where t_r is the translation
@@ -613,13 +615,31 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
  */
 std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings(
         const ShapeWithHoles& shape_0,
-        const ShapeWithHoles& shape_r)
+        const ShapeWithHoles& shape_r,
+        LengthDbl item_item_minimum_spacing)
 {
     AxisAlignedBoundingBox aabb_0 = shape_0.compute_min_max();
     Point position_0 = {-aabb_0.x_min, -aabb_0.y_min};
 
     AxisAlignedBoundingBox aabb_r = shape_r.compute_min_max();
     Point min_position_r = {-aabb_r.x_min, -aabb_r.y_min};
+
+    // NFP(A, B) inflated by d == NFP(A inflated by d', B inflated by d'') for
+    // any split d' + d'' = d -- see the comment in
+    // compute_periodic_packings(shape, ...) above. So rather than inflating
+    // shape_0/shape_r before each NFP below (shape_0/shape_r themselves stay
+    // raw throughout, used for position bookkeeping and the final
+    // real-overlap check in check_periodic_packing), compute each raw NFP
+    // once and inflate its result by the full spacing amount instead.
+    auto inflated_union = [&](const MultiShapeWithHoles& nfp) {
+        std::vector<ShapeWithHoles> result;
+        for (const ShapeWithHoles& swh: shape::compute_union(nfp.shapes_with_holes).shapes_with_holes) {
+            result.push_back(item_item_minimum_spacing > 0.0?
+                    shape::inflate(swh, item_item_minimum_spacing):
+                    swh);
+        }
+        return result;
+    };
 
     // NFP(shape_0, shape_r) shifted by position_0 gives translations t_r such
     // that (shape_r + t_r) just touches (shape_0 shifted by position_0).
@@ -630,20 +650,17 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
     // instead of recomputing no_fit_polygon(shape_0, shape_r) once per
     // candidate: NFP(A + a, B + b) = NFP(A, B) + (a - b), so only the
     // relative offset changes, never the NFP shape itself.
-    std::vector<ShapeWithHoles> nfp_0r_union_natural =
-        shape::compute_union(nfp_0r.shapes_with_holes).shapes_with_holes;
+    std::vector<ShapeWithHoles> nfp_0r_union_natural = inflated_union(nfp_0r);
     std::vector<ShapeWithHoles> nfp_0r_union = nfp_0r_union_natural;
     for (ShapeWithHoles& swh: nfp_0r_union) swh.shift(position_0.x, position_0.y);
 
-    // The other three pairwise NFPs needed by find_periodic_packing_lattice
-    // for a two-shape placement are likewise position-independent, so
-    // compute each once here rather than once per candidate below.
-    std::vector<ShapeWithHoles> nfp_00_union = shape::compute_union(
-            shape::no_fit_polygon(shape_0, shape_0).shapes_with_holes).shapes_with_holes;
-    std::vector<ShapeWithHoles> nfp_r0_union = shape::compute_union(
-            shape::no_fit_polygon(shape_r, shape_0).shapes_with_holes).shapes_with_holes;
-    std::vector<ShapeWithHoles> nfp_rr_union = shape::compute_union(
-            shape::no_fit_polygon(shape_r, shape_r).shapes_with_holes).shapes_with_holes;
+    // The other three pairwise NFPs needed by
+    // find_periodic_packing_lattice_two_shapes_cached for a two-shape
+    // placement are likewise position-independent, so compute each once
+    // here rather than once per candidate below.
+    std::vector<ShapeWithHoles> nfp_00_union = inflated_union(shape::no_fit_polygon(shape_0, shape_0));
+    std::vector<ShapeWithHoles> nfp_r0_union = inflated_union(shape::no_fit_polygon(shape_r, shape_0));
+    std::vector<ShapeWithHoles> nfp_rr_union = inflated_union(shape::no_fit_polygon(shape_r, shape_r));
 
     // Collect all boundary vertices as candidate placements for shape_r.
     std::vector<Point> candidates;
@@ -767,13 +784,15 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
 {
     std::vector<PeriodicItemPacking> output;
 
+    LengthDbl item_item_minimum_spacing = instance.item_spacing_scaled();
+
     for (int rot_0_pos = 0;
             rot_0_pos < (int)rotations.size();
             ++rot_0_pos) {
         const ItemTypeRotation& rot_0 = rotations[rot_0_pos];
         ShapeWithHoles shape_0 = get_item_combined_shape(instance, item_type_id, rot_0);
 
-        for (const PeriodicPacking& pp_same: compute_periodic_packings(shape_0)) {
+        for (const PeriodicPacking& pp_same: compute_periodic_packings(shape_0, item_item_minimum_spacing)) {
             PeriodicItemPacking item_packing;
             item_packing.vector_1 = pp_same.vector_1;
             item_packing.vector_2 = pp_same.vector_2;
@@ -819,7 +838,7 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
                     const ShapeWithHoles& shape_second)
             {
                 for (const PeriodicPacking& pp_two:
-                        compute_periodic_packings(shape_first, shape_second)) {
+                        compute_periodic_packings(shape_first, shape_second, item_item_minimum_spacing)) {
                     PeriodicItemPacking item_packing;
                     item_packing.vector_1 = pp_two.vector_1;
                     item_packing.vector_2 = pp_two.vector_2;
