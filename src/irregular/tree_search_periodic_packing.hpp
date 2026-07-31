@@ -361,9 +361,58 @@ private:
     std::vector<PeriodicBlock> blocks_;
     Parameters parameters_;
 
-    /** Bin bounding-box dimensions (scaled). */
-    LengthDbl bin_bx_ = 0.0;
-    LengthDbl bin_by_ = 0.0;
+    /** The (single) bin type packed into, looked up fresh each time: cheap inline accessors on Instance, no need to cache. */
+    inline const BinType& bin_type() const { return instance_.bin_type(instance_.bin_type_id(0)); }
+
+    /**
+     * Usable bin bounding-box dimensions (scaled): shrunk on every side by
+     * instance_.bin_spacing_scaled() (so a block placed anywhere within
+     * [bin_x_min(), bin_x_min() + bin_bx()] x [bin_y_min(), bin_y_min() +
+     * bin_by()] automatically stays that far from the real bin border), then
+     * grown by one extra instance_.item_spacing_scaled().
+     *
+     * That extra item_spacing_scaled() is not real bin space: it exactly
+     * cancels the trailing item_spacing_scaled() margin that
+     * PeriodicBlock::bx/by (see compute_periodic_blocks_for_item_type /
+     * add_aabb_grid_blocks_for_item_type) bakes into every block's own
+     * reported footprint, past whichever block ends up last against a wall
+     * in a run -- since cut_spaces() always starts the next leftover space
+     * at exactly bl_corner + bx, only one block in any wall-to-wall run ever
+     * actually needs that margin (the others get it from being followed by
+     * another block instead), but no block knows in advance whether it will
+     * end up being that one. Growing bin_bx()/by() by the same amount they
+     * were shrunk keeps the arithmetic exact for a run of any length: n
+     * blocks of true widths w_1..w_n require true width
+     * sum(w_k) + (n - 1) * item_spacing_scaled() to fit with correct spacing
+     * between all of them, and expanding
+     * sum_k(w_k + item_spacing_scaled()) <= bin_bx() confirms that is
+     * exactly what gets enforced.
+     *
+     * Defined out of line (tree_search_periodic_packing.cpp) as a thin
+     * forwarder to the free function usable_bin_bx()/by(), shared with
+     * compute_periodic_blocks_for_item_type() and
+     * add_aabb_grid_blocks_for_item_type(), which need the same value
+     * before any BranchingSchemePeriodicPacking exists.
+     */
+    LengthDbl bin_bx() const;
+    LengthDbl bin_by() const;
+
+    /**
+     * Lower-left corner of the usable region above, already in the bin
+     * type's own (scaled) frame -- i.e. bin_type().aabb_scaled.x_min/y_min
+     * plus the item_bin_minimum_spacing inset. Node placements are tracked
+     * directly in this frame (not a separate origin-at-zero local frame), so
+     * a placed block/item's coordinates already match what it will get in
+     * the final solution, up to the unscaling done at output time.
+     */
+    inline LengthDbl bin_x_min() const
+    {
+        return bin_type().aabb_scaled.x_min + instance_.bin_spacing_scaled(instance_.bin_type_id(0));
+    }
+    inline LengthDbl bin_y_min() const
+    {
+        return bin_type().aabb_scaled.y_min + instance_.bin_spacing_scaled(instance_.bin_type_id(0));
+    }
 
     mutable NodeId node_id_ = 0;
     mutable std::vector<Insertion> insertions_;

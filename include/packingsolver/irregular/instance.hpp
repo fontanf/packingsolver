@@ -381,6 +381,12 @@ public:
     /** Get parameters. */
     const Parameters& parameters() const { return parameters_; }
 
+    /** Get the scaled item_item_minimum_spacing. */
+    inline LengthDbl item_spacing_scaled() const
+    {
+        return parameters().scale_value * parameters().item_item_minimum_spacing;
+    }
+
     /** Get the feasibility callback. */
     inline const FeasibilityCallback& feasibility_callback() const { return feasibility_callback_; }
 
@@ -399,6 +405,12 @@ public:
 
     /** Get bin type i. */
     inline const BinType& bin_type(BinTypeId bin_type_id) const { return bin_types_[bin_type_id]; }
+
+    /** Get the scaled item_bin_minimum_spacing of bin type 'bin_type_id'. */
+    inline LengthDbl bin_spacing_scaled(BinTypeId bin_type_id) const
+    {
+        return parameters().scale_value * bin_type(bin_type_id).item_bin_minimum_spacing;
+    }
 
     /** Get the number of bins. */
     inline BinPos number_of_bins() const { return bin_type_ids_.size(); }

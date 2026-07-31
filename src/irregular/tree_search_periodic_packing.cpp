@@ -94,6 +94,38 @@ static void add_block_if_not_dominated(
 }
 
 /**
+ * Usable bin bounding-box dimension (scaled) along one axis: shrunk on
+ * every side by instance.bin_spacing_scaled(bin_type_id), then grown back
+ * by one extra instance.item_spacing_scaled(). See
+ * BranchingSchemePeriodicPacking::bin_bx()/by()'s comment for why: that
+ * extra margin exactly cancels the trailing item_spacing_scaled() every
+ * generated block's own bx/by bakes in (see compute_periodic_blocks_for_item_type
+ * / add_aabb_grid_blocks_for_item_type below), so a chain of blocks that
+ * truly fits the bin is not rejected just because each block, considered in
+ * isolation, over-counts by one spacing past its own last copy.
+ *
+ * Shared by those two block-construction functions (which run before any
+ * BranchingSchemePeriodicPacking exists, since they build the blocks_ its
+ * constructor needs) and by the class's own bin_bx()/by() methods, which
+ * just forward here.
+ */
+static LengthDbl usable_bin_bx(const Instance& instance, BinTypeId bin_type_id)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    return bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min
+        - 2.0 * instance.bin_spacing_scaled(bin_type_id)
+        + instance.item_spacing_scaled();
+}
+
+static LengthDbl usable_bin_by(const Instance& instance, BinTypeId bin_type_id)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    return bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min
+        - 2.0 * instance.bin_spacing_scaled(bin_type_id)
+        + instance.item_spacing_scaled();
+}
+
+/**
  * Add plain AABB-grid blocks for a single item type and its rotations, as a
  * fallback alongside the periodic-packing-derived blocks: for a rotation
  * whose shape has no valid periodic packing (e.g. the NFP-based lattice
@@ -119,9 +151,9 @@ static void add_aabb_grid_blocks_for_item_type(
         return;
 
     BinTypeId bin_type_id = instance.bin_type_id(0);
-    const BinType& bin_type = instance.bin_type(bin_type_id);
-    LengthDbl bin_bx = bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min;
-    LengthDbl bin_by = bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min;
+    LengthDbl item_spacing = instance.item_spacing_scaled();
+    LengthDbl bin_bx = usable_bin_bx(instance, bin_type_id);
+    LengthDbl bin_by = usable_bin_by(instance, bin_type_id);
 
     for (const ItemTypeRotation& rotation: rotations) {
         ShapeWithHoles shape = get_item_combined_shape(instance, item_type_id, rotation);
@@ -132,13 +164,26 @@ static void add_aabb_grid_blocks_for_item_type(
                 || shape::strictly_greater(item_by, bin_by))
             continue;
 
+        // Each item occupies a pitch_x x pitch_y cell (its own size plus a
+        // trailing item_spacing gap), so an n-copy grid reports a footprint
+        // of n * pitch_x: n - 1 gaps between consecutive copies, plus one
+        // more trailing gap past the last copy. That trailing gap is never
+        // needed by the items *within* this block, but the branching scheme
+        // treats block.bx/by as this block's whole reserved footprint, so
+        // whatever ends up placed flush against this block's high edge --
+        // another block, most commonly -- is guaranteed to land at least
+        // item_spacing away from this block's actual items (mirroring how
+        // bin_bx()/bin_by() attribute the full item_bin_minimum_spacing to
+        // one side only, rather than splitting it between both neighbors).
+        LengthDbl pitch_x = item_bx + item_spacing;
+        LengthDbl pitch_y = item_by + item_spacing;
         int max_nx = 0;
         while (max_nx < item_type.copies
-                && !shape::strictly_greater((max_nx + 1) * item_bx, bin_bx))
+                && !shape::strictly_greater((max_nx + 1) * pitch_x, bin_bx))
             ++max_nx;
         int max_ny = 0;
         while (max_ny < item_type.copies
-                && !shape::strictly_greater((max_ny + 1) * item_by, bin_by))
+                && !shape::strictly_greater((max_ny + 1) * pitch_y, bin_by))
             ++max_ny;
 
         for (int nx = 1; nx <= max_nx; ++nx) {
@@ -150,8 +195,8 @@ static void add_aabb_grid_blocks_for_item_type(
                 PeriodicBlock block;
                 block.nx = nx;
                 block.ny = ny;
-                block.bx = nx * item_bx;
-                block.by = ny * item_by;
+                block.bx = nx * pitch_x;
+                block.by = ny * pitch_y;
                 block.number_of_items = total_cells;
                 block.item_area = total_cells * item_type.area_scaled;
                 block.item_profit = total_cells * item_type.profit;
@@ -164,8 +209,8 @@ static void add_aabb_grid_blocks_for_item_type(
                         placed_item.item_type_id = item_type_id;
                         placed_item.angle = rotation.angle;
                         placed_item.mirror = rotation.mirror;
-                        placed_item.bl_corner.x = i * item_bx - aabb.x_min;
-                        placed_item.bl_corner.y = j * item_by - aabb.y_min;
+                        placed_item.bl_corner.x = i * pitch_x - aabb.x_min;
+                        placed_item.bl_corner.y = j * pitch_y - aabb.y_min;
                         block.items.push_back(placed_item);
                     }
                 }
@@ -186,9 +231,9 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks_for
         return {};
 
     BinTypeId bin_type_id = instance.bin_type_id(0);
-    const BinType& bin_type = instance.bin_type(bin_type_id);
-    LengthDbl bin_bx = bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min;
-    LengthDbl bin_by = bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min;
+    LengthDbl item_spacing = instance.item_spacing_scaled();
+    LengthDbl bin_bx = usable_bin_bx(instance, bin_type_id);
+    LengthDbl bin_by = usable_bin_by(instance, bin_type_id);
 
     std::vector<PeriodicBlock> blocks;
 
@@ -279,8 +324,18 @@ std::vector<PeriodicBlock> packingsolver::irregular::compute_periodic_blocks_for
                         tiling_y_max = std::max(tiling_y_max, cy + unit_by);
                     }
                 }
-                LengthDbl block_bx = tiling_x_max - tiling_x_min;
-                LengthDbl block_by = tiling_y_max - tiling_y_min;
+                // The + item_spacing here is a trailing margin past the
+                // tiling's own tight footprint, not needed by the items
+                // within this block (packing.vector_1/vector_2 already keep
+                // periodic copies item_spacing apart, that's what
+                // compute_periodic_packings solved for) but reserved so that
+                // whatever the branching scheme places flush against this
+                // block's high edge -- another block, most commonly -- ends
+                // up at least item_spacing away from this block's actual
+                // items (see add_aabb_grid_blocks_for_item_type's comment
+                // for the same convention applied to its grid blocks).
+                LengthDbl block_bx = tiling_x_max - tiling_x_min + item_spacing;
+                LengthDbl block_by = tiling_y_max - tiling_y_min + item_spacing;
 
                 // Stop growing ny once the block no longer fits in the bin.
                 if (shape::strictly_greater(block_by, bin_by))
@@ -407,9 +462,6 @@ BranchingSchemePeriodicPacking::BranchingSchemePeriodicPacking(
     parameters_(parameters)
 {
     BinTypeId bin_type_id = instance_.bin_type_id(0);
-    const BinType& bin_type = instance_.bin_type(bin_type_id);
-    bin_bx_ = bin_type.aabb_scaled.x_max - bin_type.aabb_scaled.x_min;
-    bin_by_ = bin_type.aabb_scaled.y_max - bin_type.aabb_scaled.y_min;
 
     std::vector<PeriodicItemPacking> packings = assemble_periodic_packings(instance_);
 
@@ -423,6 +475,16 @@ BranchingSchemePeriodicPacking::BranchingSchemePeriodicPacking(
     blocks_ = compute_periodic_blocks(instance_, packings, item_type_rotations);
 }
 
+LengthDbl BranchingSchemePeriodicPacking::bin_bx() const
+{
+    return usable_bin_bx(instance_, instance_.bin_type_id(0));
+}
+
+LengthDbl BranchingSchemePeriodicPacking::bin_by() const
+{
+    return usable_bin_by(instance_, instance_.bin_type_id(0));
+}
+
 const std::shared_ptr<BranchingSchemePeriodicPacking::Node>
 BranchingSchemePeriodicPacking::root() const
 {
@@ -430,9 +492,9 @@ BranchingSchemePeriodicPacking::root() const
     node->id = node_id_++;
     node->item_number_of_copies.assign(instance_.number_of_item_types(), 0);
     EmptySpace space;
-    space.bl_corner = {0.0, 0.0};
-    space.bx = bin_bx_;
-    space.by = bin_by_;
+    space.bl_corner = {bin_x_min(), bin_y_min()};
+    space.bx = bin_bx();
+    space.by = bin_by();
     node->empty_spaces.push_back(space);
     ItemPos number_of_blocks = (ItemPos)blocks_.size();
     node->valid_block_ids.resize(number_of_blocks);
@@ -452,10 +514,10 @@ BranchingSchemePeriodicPacking::find_best_space(const Node& parent) const
             space_idx < (ItemPos)parent.empty_spaces.size();
             ++space_idx) {
         const EmptySpace& space = parent.empty_spaces[space_idx];
-        LengthDbl dist_x_start = space.xs();
-        LengthDbl dist_x_end = bin_bx_ - space.xe();
-        LengthDbl dist_y_start = space.ys();
-        LengthDbl dist_y_end = bin_by_ - space.ye();
+        LengthDbl dist_x_start = space.xs() - bin_x_min();
+        LengthDbl dist_x_end = (bin_x_min() + bin_bx()) - space.xe();
+        LengthDbl dist_y_start = space.ys() - bin_y_min();
+        LengthDbl dist_y_end = (bin_y_min() + bin_by()) - space.ye();
         bool dir_x = shape::strictly_lesser(dist_x_end, dist_x_start);
         bool dir_y = shape::strictly_lesser(dist_y_end, dist_y_start);
         LengthDbl distance = std::min(dist_x_start, dist_x_end)
@@ -495,10 +557,10 @@ BranchingSchemePeriodicPacking::compute_space_contact_info(
 
     LengthDbl xl = space.xs(), xh = space.xe();
     LengthDbl yl = space.ys(), yh = space.ye();
-    info.xl_wall = !shape::strictly_greater(xl, info.tol_x);
-    info.yl_wall = !shape::strictly_greater(yl, info.tol_y);
-    info.xh_wall = !shape::strictly_greater(bin_bx_ - xh, info.tol_x);
-    info.yh_wall = !shape::strictly_greater(bin_by_ - yh, info.tol_y);
+    info.xl_wall = !shape::strictly_greater(xl - bin_x_min(), info.tol_x);
+    info.yl_wall = !shape::strictly_greater(yl - bin_y_min(), info.tol_y);
+    info.xh_wall = !shape::strictly_greater((bin_x_min() + bin_bx()) - xh, info.tol_x);
+    info.yh_wall = !shape::strictly_greater((bin_y_min() + bin_by()) - yh, info.tol_y);
 
     for (const Node::PlacedBlock& pb: placed_blocks) {
         const PeriodicBlock& block = blocks_[pb.block_id];
@@ -643,7 +705,7 @@ double BranchingSchemePeriodicPacking::compute_insertion_guide(
 {
     const PeriodicBlock& block = blocks_[insertion.block_id];
 
-    double node_fill_rate = (double)parent.item_area / (bin_bx_ * bin_by_);
+    double node_fill_rate = (double)parent.item_area / (bin_bx() * bin_by());
     double v = block.item_profit;
     double f = block.fill_rate();
     double n = (double)block.number_of_items;
@@ -666,7 +728,7 @@ double BranchingSchemePeriodicPacking::compute_insertion_guide(
 
 double BranchingSchemePeriodicPacking::active_delta(const Node& node) const
 {
-    double fill_rate = (double)node.item_area / (bin_bx_ * bin_by_);
+    double fill_rate = (double)node.item_area / (bin_bx() * bin_by());
     return (fill_rate < parameters_.configuration_switch_threshold)?
         parameters_.delta:
         parameters_.delta_2;
@@ -1005,20 +1067,18 @@ Solution BranchingSchemePeriodicPacking::to_solution(
 
     SolutionBuilder solution_builder(instance_);
     BinTypeId bin_type_id = instance_.bin_type_id(0);
-    const BinType& bin_type = instance_.bin_type(bin_type_id);
     BinPos bin_pos = solution_builder.add_bin(bin_type_id, 1);
 
-    // Node placements are in a local frame with the bin's bottom-left corner
-    // at (0, 0); shift back by the bin's actual origin (which need not be
-    // (0, 0), e.g. for a bin polygon not anchored at the origin) before
-    // converting to unscaled, absolute solution coordinates.
+    // Node placements are tracked directly in the bin type's own (scaled)
+    // frame (see bin_x_min()/bin_y_min()'s comment in the header), so all
+    // that is left here is to unscale them into absolute solution coordinates.
     double scale = 1.0 / instance_.parameters().scale_value;
     for (const Node::PlacedBlock& pb: greedy_node.placed_blocks) {
         const PeriodicBlock& block = blocks_[pb.block_id];
         for (const SolutionItem& solution_item: block.items) {
             Point item_bl_corner;
-            item_bl_corner.x = (bin_type.aabb_scaled.x_min + pb.bl_corner.x + solution_item.bl_corner.x) * scale;
-            item_bl_corner.y = (bin_type.aabb_scaled.y_min + pb.bl_corner.y + solution_item.bl_corner.y) * scale;
+            item_bl_corner.x = (pb.bl_corner.x + solution_item.bl_corner.x) * scale;
+            item_bl_corner.y = (pb.bl_corner.y + solution_item.bl_corner.y) * scale;
             solution_builder.add_item(
                     bin_pos,
                     solution_item.item_type_id,

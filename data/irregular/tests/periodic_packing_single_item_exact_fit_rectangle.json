@@ -1,0 +1,129 @@
+{
+    "bin_types": [
+        {
+            "copies": 1,
+            "copies_min": 0,
+            "cost": 96.0,
+            "elements": [
+                {
+                    "end": {
+                        "x": 12.0,
+                        "y": 0.0
+                    },
+                    "start": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 12.0,
+                        "y": 8.0
+                    },
+                    "start": {
+                        "x": 12.0,
+                        "y": 0.0
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 0.0,
+                        "y": 8.0
+                    },
+                    "start": {
+                        "x": 12.0,
+                        "y": 8.0
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 0.0,
+                        "y": 0.0
+                    },
+                    "start": {
+                        "x": 0.0,
+                        "y": 8.0
+                    },
+                    "type": "LineSegment"
+                }
+            ],
+            "is_path": false,
+            "item_bin_minimum_spacing": 1.0,
+            "type": "general"
+        }
+    ],
+    "item_types": [
+        {
+            "allowed_rotations": [
+                {
+                    "end": 0.0,
+                    "mirror": false,
+                    "start": 0.0
+                }
+            ],
+            "copies": 1,
+            "profit": 1.0,
+            "shapes": [
+                {
+                    "elements": [
+                        {
+                            "end": {
+                                "x": 10.0,
+                                "y": 0.0
+                            },
+                            "start": {
+                                "x": 0.0,
+                                "y": 0.0
+                            },
+                            "type": "LineSegment"
+                        },
+                        {
+                            "end": {
+                                "x": 10.0,
+                                "y": 6.0
+                            },
+                            "start": {
+                                "x": 10.0,
+                                "y": 0.0
+                            },
+                            "type": "LineSegment"
+                        },
+                        {
+                            "end": {
+                                "x": 0.0,
+                                "y": 6.0
+                            },
+                            "start": {
+                                "x": 10.0,
+                                "y": 6.0
+                            },
+                            "type": "LineSegment"
+                        },
+                        {
+                            "end": {
+                                "x": 0.0,
+                                "y": 0.0
+                            },
+                            "start": {
+                                "x": 0.0,
+                                "y": 6.0
+                            },
+                            "type": "LineSegment"
+                        }
+                    ],
+                    "is_path": false,
+                    "type": "general"
+                }
+            ]
+        }
+    ],
+    "objective": "Knapsack",
+    "parameters": {
+        "item_item_minimum_spacing": 0.0,
+        "leftover_mode": "BottomLeft",
+        "open_dimension_xy_aspect_ratio": -1.0
+    }
+}

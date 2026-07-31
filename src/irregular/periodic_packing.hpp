@@ -32,11 +32,13 @@ bool equal(
         const PeriodicPacking& packing_2);
 
 std::vector<PeriodicPacking> compute_periodic_packings(
-        const ShapeWithHoles& shape);
+        const ShapeWithHoles& shape,
+        LengthDbl item_item_minimum_spacing = 0.0);
 
 std::vector<PeriodicPacking> compute_periodic_packings(
         const ShapeWithHoles& shape_0,
-        const ShapeWithHoles& shape_r);
+        const ShapeWithHoles& shape_r,
+        LengthDbl item_item_minimum_spacing = 0.0);
 
 /**
  * Compute periodic packings for a single item type (self-pairing and, when
