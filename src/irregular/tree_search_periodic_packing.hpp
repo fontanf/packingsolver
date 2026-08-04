@@ -481,6 +481,14 @@ private:
             LengthDbl bx,
             LengthDbl by);
 
+    /**
+     * Remove empty spaces that fit no currently valid block: otherwise
+     * find_best_space could pick one of these (e.g. because it is closest to
+     * a bin corner) and find no insertion there, wrongly making the node
+     * infertile even though other, larger spaces remain usable.
+     */
+    void remove_unusable_spaces(Node& node) const;
+
     Profit compute_guide_greedy(const Node& node) const;
 
     double active_delta(const Node& node) const;

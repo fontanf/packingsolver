@@ -1,0 +1,29 @@
+{
+    "objective": "Knapsack",
+    "bin_types": [
+        {
+            "type": "rectangle",
+            "width": 20,
+            "height": 10,
+            "copies": 1,
+            "defects": [
+                {
+                    "type": "rectangle",
+                    "x": 5,
+                    "y": 0,
+                    "width": 5,
+                    "height": 10
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "type": "rectangle",
+            "width": 10,
+            "height": 10,
+            "copies": 2,
+            "profit": 1
+        }
+    ]
+}

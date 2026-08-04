@@ -108,4 +108,24 @@ INSTANTIATE_TEST_SUITE_P(
                 // NFP-based (not just AABB) bin-wall spacing check.
                 fs::path("data") / "irregular" / "tests" / "periodic_packing_single_item_exact_fit_triangle.json",
                 fs::path("data") / "irregular" / "tests" / "periodic_packing_single_item_exact_fit_triangle_solution.json"
+            }, {
+                // Bin 20x10, a defect covering the 5-wide middle strip
+                // (x in [5,10)), a 10x10 item with 2 copies (a single copy
+                // would make the bin's tracked width collapse via the
+                // solver's "max reachable length" domain reduction - since
+                // one copy could never reach past x=10 anyway - which would
+                // place the defect at the truncated bin's far edge instead
+                // of its middle, defeating the point of this test). Cutting
+                // the initial empty space around the (AABB-approximated)
+                // defect leaves a 5x10 space (too narrow for the item) and
+                // a 10x10 space (an exact fit) - and the 5x10 one, being
+                // closer to the bin's origin, is exactly the kind of
+                // unusable-but-preferred space 'remove_unusable_spaces'
+                // must discard, otherwise the search would wrongly consider
+                // the root infertile despite the still-usable 10x10 space
+                // (and, without the defect cut being applied at all, would
+                // instead silently pack both copies, one of them
+                // overlapping the defect). Only 1 of the 2 copies fits.
+                fs::path("data") / "irregular" / "tests" / "knapsack_defect_blocks_middle.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_defect_blocks_middle_solution.json"
             }}));

@@ -9,7 +9,8 @@ target_sources(PackingSolver_rectangle_test PRIVATE
     tree_search/defects_test.cpp
     tree_search/unloading_test.cpp
     tree_search/integration_test.cpp
-    tree_search/tree_search_test.cpp)
+    tree_search/tree_search_test.cpp
+    tree_search/tree_search_maximal_spaces_test.cpp)
 target_include_directories(PackingSolver_rectangle_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(PackingSolver_rectangle_test

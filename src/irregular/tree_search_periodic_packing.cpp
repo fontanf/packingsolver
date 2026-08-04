@@ -496,9 +496,22 @@ BranchingSchemePeriodicPacking::root() const
     space.bx = bin_bx();
     space.by = bin_by();
     node->empty_spaces.push_back(space);
+    // Cut out defects (approximated by their inflated AABB) from the initial
+    // empty space.
+    const std::vector<Defect>& defects = bin_type().defects;
+    for (const Defect& defect: defects) {
+        AxisAlignedBoundingBox aabb = defect.shape_inflated.compute_min_max();
+        cut_spaces(
+                node->empty_spaces,
+                {aabb.x_min, aabb.y_min},
+                aabb.x_max - aabb.x_min,
+                aabb.y_max - aabb.y_min);
+    }
     ItemPos number_of_blocks = (ItemPos)blocks_.size();
     node->valid_block_ids.resize(number_of_blocks);
     std::iota(node->valid_block_ids.begin(), node->valid_block_ids.end(), (ItemPos)0);
+    if (!defects.empty())
+        remove_unusable_spaces(*node);
     return node;
 }
 
@@ -947,11 +960,11 @@ void BranchingSchemePeriodicPacking::apply_insertion(
 
     // Update empty spaces.
     cut_spaces(node.empty_spaces, insertion.bl_corner, block.bx, block.by);
+    remove_unusable_spaces(node);
+}
 
-    // Remove empty spaces that no longer fit any currently valid block:
-    // otherwise find_best_space could pick one of these (e.g. because it is
-    // closest to a bin corner) and find no insertion there, wrongly making
-    // the node infertile even though other, larger spaces remain usable.
+void BranchingSchemePeriodicPacking::remove_unusable_spaces(Node& node) const
+{
     for (ItemPos space_idx = 0; space_idx < (ItemPos)node.empty_spaces.size(); ) {
         const EmptySpace& space = node.empty_spaces[space_idx];
         bool has_fitting_block = false;
