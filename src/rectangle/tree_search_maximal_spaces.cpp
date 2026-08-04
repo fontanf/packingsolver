@@ -72,13 +72,18 @@ const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximal
     node->id = node_id_++;
     node->item_number_of_copies.assign(instance_.number_of_item_types(), 0);
     BinTypeId bin_type_id = instance_.bin_type_id(0);
+    const BinType& bin_type = instance_.bin_type(bin_type_id);
     EmptySpace space;
     space.bl_corner = {0, 0};
     space.rect = bin_rect_;
     node->empty_spaces.push_back(space);
+    for (const Defect& defect: bin_type.defects)
+        cut_spaces(node->empty_spaces, defect.pos, defect.rect);
     ItemPos number_of_blocks = (ItemPos)blocks_[bin_type_id].size();
     node->valid_block_ids.resize(number_of_blocks);
     std::iota(node->valid_block_ids.begin(), node->valid_block_ids.end(), (ItemPos)0);
+    if (!bin_type.defects.empty())
+        remove_unusable_spaces(*node, bin_type_id);
     return node;
 }
 
@@ -447,25 +452,30 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     }
 
     cut_spaces(node.empty_spaces, insertion.bl_corner, block.rect);
-    {
-        const std::vector<Block>& bin_blocks = blocks_[bin_type_id];
-        ItemPos space_idx = 0;
-        while (space_idx < (ItemPos)node.empty_spaces.size()) {
-            bool has_fitting_block = false;
-            for (ItemPos block_id: node.valid_block_ids) {
-                const Block& candidate = bin_blocks[block_id];
-                if (candidate.rect.x <= node.empty_spaces[space_idx].rect.x
-                        && candidate.rect.y <= node.empty_spaces[space_idx].rect.y) {
-                    has_fitting_block = true;
-                    break;
-                }
+    remove_unusable_spaces(node, bin_type_id);
+}
+
+void BranchingSchemeMaximalSpaces::remove_unusable_spaces(
+        Node& node,
+        BinTypeId bin_type_id) const
+{
+    const std::vector<Block>& bin_blocks = blocks_[bin_type_id];
+    ItemPos space_idx = 0;
+    while (space_idx < (ItemPos)node.empty_spaces.size()) {
+        bool has_fitting_block = false;
+        for (ItemPos block_id: node.valid_block_ids) {
+            const Block& candidate = bin_blocks[block_id];
+            if (candidate.rect.x <= node.empty_spaces[space_idx].rect.x
+                    && candidate.rect.y <= node.empty_spaces[space_idx].rect.y) {
+                has_fitting_block = true;
+                break;
             }
-            if (!has_fitting_block) {
-                node.empty_spaces[space_idx] = node.empty_spaces.back();
-                node.empty_spaces.pop_back();
-            } else {
-                ++space_idx;
-            }
+        }
+        if (!has_fitting_block) {
+            node.empty_spaces[space_idx] = node.empty_spaces.back();
+            node.empty_spaces.pop_back();
+        } else {
+            ++space_idx;
         }
     }
 }
