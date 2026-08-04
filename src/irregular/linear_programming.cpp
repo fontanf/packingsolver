@@ -555,6 +555,7 @@ Solution linear_programming_anchor(
             lp_initial_solution[x[item_pos]] = solution_item.bl_corner.x * sv;
             lp_initial_solution[y[item_pos]] = solution_item.bl_corner.y * sv;
         }
+        lp_model.variables_initial_values = lp_initial_solution;
         //lp_model.format_solution(std::cout, lp_initial_solution, 4);
         //lp_model.check_solution(lp_initial_solution, 1);
 
@@ -571,7 +572,6 @@ Solution linear_programming_anchor(
             highs.setOptionValue("parallel", "off");
             //mathoptsolverscmake::set_log_file(highs, "highs.log");
             mathoptsolverscmake::load(highs, lp_model);
-            mathoptsolverscmake::set_solution(highs, lp_initial_solution);
             //std::cout << "LP solve start" << std::endl;
             mathoptsolverscmake::solve(highs);
             //std::cout << "LP solve end" << std::endl;
@@ -1098,6 +1098,7 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
             lp_initial_solution[y[item_pos]] = solution_item.bl_corner.y * sv;
             lp_initial_solution[lambda_var[item_pos]] = current_lambda[item_pos];
         }
+        lp_model.variables_initial_values = lp_initial_solution;
 
         lp_model.feasibility_tolerance = 1e-6;
         lp_model.integrality_tolerance = 1e-10;
@@ -1121,7 +1122,6 @@ LinearProgrammingMinimizeShrinkageOutput packingsolver::irregular::linear_progra
             highs.setOptionValue("parallel", "off");
             mathoptsolverscmake::load(highs, lp_model);
             //mathoptsolverscmake::write_mps(highs, "lp.mps");
-            mathoptsolverscmake::set_solution(highs, lp_initial_solution);
             lp_model.write_solution(lp_initial_solution, "initial_solution.txt");
             mathoptsolverscmake::solve(highs);
             if (highs.getModelStatus() == HighsModelStatus::kInfeasible
