@@ -15,6 +15,7 @@
 #endif
 
 #include <algorithm>
+#include <sstream>
 
 using namespace packingsolver;
 using namespace packingsolver::onedimensional;
@@ -164,10 +165,120 @@ struct MilpModel
     std::vector<std::vector<std::vector<std::vector<int>>>> x;
 };
 
-/** Build the classical assignment MILP model of the instance. */
+/**
+ * Build a full initial (warm-start) MILP solution vector from any solution
+ * to 'instance' (e.g. one obtained via 'compute_bin_instance_upper_bound'
+ * and converted back onto 'instance', though nothing here assumes that
+ * origin or that it covers only a single bin type). Returns an empty
+ * vector if the solution doesn't fit within the MILP's modeled
+ * bin-instance bounds for some bin type - either because it needs more bin
+ * instances than that type's own 'copies' allows, or fewer than
+ * 'copies_min' mandates.
+ */
+std::vector<double> build_initial_solution(
+        const Instance& instance,
+        const MilpModel& milp_model,
+        const Solution& solution)
+{
+    // Bin instances used per bin type, checked against the MILP's own
+    // per-type bounds.
+    std::vector<BinPos> number_of_bin_instances(instance.number_of_bin_types(), 0);
+    for (BinPos solution_bin_pos = 0;
+            solution_bin_pos < solution.number_of_different_bins();
+            ++solution_bin_pos) {
+        const SolutionBin& solution_bin = solution.bin(solution_bin_pos);
+        number_of_bin_instances[solution_bin.bin_type_id] += solution_bin.copies;
+    }
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        if (bin_type.copies != -1 && number_of_bin_instances[bin_type_id] > bin_type.copies)
+            return {};
+        if (number_of_bin_instances[bin_type_id] < bin_type.copies_min)
+            return {};
+        if (number_of_bin_instances[bin_type_id] > (BinPos)milp_model.y[bin_type_id].size())
+            return {};
+    }
+
+    // Total item length of each distinct bin (the sort key below).
+    std::vector<Length> total_item_lengths(solution.number_of_different_bins(), 0);
+    for (BinPos solution_bin_pos = 0;
+            solution_bin_pos < solution.number_of_different_bins();
+            ++solution_bin_pos) {
+        const SolutionBin& solution_bin = solution.bin(solution_bin_pos);
+        for (const SolutionItem& solution_item: solution_bin.items)
+            total_item_lengths[solution_bin_pos] += instance.item_type(solution_item.item_type_id).length;
+    }
+
+    // One entry per physical bin instance (a distinct bin's assignment may
+    // be shared by several physical instances via 'SolutionBin::copies'),
+    // grouped by bin type and sorted (within each type) by descending
+    // total item length, to satisfy the MILP's bin-instance load-ordering
+    // (symmetry-breaking) constraint.
+    std::vector<std::vector<BinPos>> solution_bin_positions(instance.number_of_bin_types());
+    for (BinPos solution_bin_pos = 0;
+            solution_bin_pos < solution.number_of_different_bins();
+            ++solution_bin_pos) {
+        const SolutionBin& solution_bin = solution.bin(solution_bin_pos);
+        for (BinPos copy = 0; copy < solution_bin.copies; ++copy)
+            solution_bin_positions[solution_bin.bin_type_id].push_back(solution_bin_pos);
+    }
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        std::stable_sort(
+                solution_bin_positions[bin_type_id].begin(),
+                solution_bin_positions[bin_type_id].end(),
+                [&total_item_lengths](BinPos solution_bin_pos_1, BinPos solution_bin_pos_2)
+                {
+                    return total_item_lengths[solution_bin_pos_1] > total_item_lengths[solution_bin_pos_2];
+                });
+    }
+
+    std::vector<double> initial_solution(milp_model.model.variables_lower_bounds.size(), 0.0);
+    std::vector<ItemPos> item_counts(instance.number_of_item_types(), 0);
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const std::vector<BinPos>& positions = solution_bin_positions[bin_type_id];
+        for (BinPos bin_instance_pos = 0;
+                bin_instance_pos < (BinPos)positions.size();
+                ++bin_instance_pos) {
+            int y_variable_id = milp_model.y[bin_type_id][bin_instance_pos];
+            if (y_variable_id != -1)
+                initial_solution[y_variable_id] = 1.0;
+            const SolutionBin& solution_bin = solution.bin(positions[bin_instance_pos]);
+            std::fill(item_counts.begin(), item_counts.end(), 0);
+            for (const SolutionItem& solution_item: solution_bin.items)
+                ++item_counts[solution_item.item_type_id];
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                ItemPos copies = item_counts[item_type_id];
+                if (copies == 0)
+                    continue;
+                if (milp_model.x[item_type_id][bin_type_id].empty())
+                    continue;
+                const std::vector<int>& slots = milp_model.x[item_type_id][bin_type_id][bin_instance_pos];
+                for (ItemPos copy = 0; copy < copies && copy < (ItemPos)slots.size(); ++copy)
+                    initial_solution[slots[copy]] = 1.0;
+            }
+        }
+    }
+    return initial_solution;
+}
+
+/**
+ * Build the classical assignment MILP model of the instance. If 'incumbent'
+ * is non-empty (it has at least one bin - it need not be full, e.g. for the
+ * 'Knapsack' objective), it is also used to fill in the model's
+ * 'variables_initial_values' (warm start); see 'build_initial_solution'.
+ */
 MilpModel build_milp_model(
         const Instance& instance,
-        const std::vector<BinPos>& bin_type_upper_bounds)
+        const std::vector<BinPos>& bin_type_upper_bounds,
+        const Solution& incumbent)
 {
     bool is_knapsack = (instance.objective() == Objective::Knapsack);
     bool is_bin_packing = (instance.objective() == Objective::BinPacking);
@@ -735,111 +846,14 @@ MilpModel build_milp_model(
         }
     }
 
+    if (incumbent.number_of_bins() > 0) {
+        std::vector<double> initial_solution = build_initial_solution(
+                instance, milp_model, incumbent);
+        if (!initial_solution.empty())
+            milp_model.model.variables_initial_values = initial_solution;
+    }
+
     return milp_model;
-}
-
-/**
- * Build a full initial (warm-start) MILP solution vector from any solution
- * to 'instance' (e.g. one obtained via 'compute_bin_instance_upper_bound'
- * and converted back onto 'instance', though nothing here assumes that
- * origin or that it covers only a single bin type). Returns an empty
- * vector if the solution doesn't fit within the MILP's modeled
- * bin-instance bounds for some bin type - either because it needs more bin
- * instances than that type's own 'copies' allows, or fewer than
- * 'copies_min' mandates.
- */
-std::vector<double> build_initial_solution(
-        const Instance& instance,
-        const MilpModel& milp_model,
-        const Solution& solution)
-{
-    // Bin instances used per bin type, checked against the MILP's own
-    // per-type bounds.
-    std::vector<BinPos> number_of_bin_instances(instance.number_of_bin_types(), 0);
-    for (BinPos solution_bin_pos = 0;
-            solution_bin_pos < solution.number_of_different_bins();
-            ++solution_bin_pos) {
-        const SolutionBin& solution_bin = solution.bin(solution_bin_pos);
-        number_of_bin_instances[solution_bin.bin_type_id] += solution_bin.copies;
-    }
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
-            ++bin_type_id) {
-        const BinType& bin_type = instance.bin_type(bin_type_id);
-        if (bin_type.copies != -1 && number_of_bin_instances[bin_type_id] > bin_type.copies)
-            return {};
-        if (number_of_bin_instances[bin_type_id] < bin_type.copies_min)
-            return {};
-        if (number_of_bin_instances[bin_type_id] > (BinPos)milp_model.y[bin_type_id].size())
-            return {};
-    }
-
-    // Total item length of each distinct bin (the sort key below).
-    std::vector<Length> total_item_lengths(solution.number_of_different_bins(), 0);
-    for (BinPos solution_bin_pos = 0;
-            solution_bin_pos < solution.number_of_different_bins();
-            ++solution_bin_pos) {
-        const SolutionBin& solution_bin = solution.bin(solution_bin_pos);
-        for (const SolutionItem& solution_item: solution_bin.items)
-            total_item_lengths[solution_bin_pos] += instance.item_type(solution_item.item_type_id).length;
-    }
-
-    // One entry per physical bin instance (a distinct bin's assignment may
-    // be shared by several physical instances via 'SolutionBin::copies'),
-    // grouped by bin type and sorted (within each type) by descending
-    // total item length, to satisfy the MILP's bin-instance load-ordering
-    // (symmetry-breaking) constraint.
-    std::vector<std::vector<BinPos>> solution_bin_positions(instance.number_of_bin_types());
-    for (BinPos solution_bin_pos = 0;
-            solution_bin_pos < solution.number_of_different_bins();
-            ++solution_bin_pos) {
-        const SolutionBin& solution_bin = solution.bin(solution_bin_pos);
-        for (BinPos copy = 0; copy < solution_bin.copies; ++copy)
-            solution_bin_positions[solution_bin.bin_type_id].push_back(solution_bin_pos);
-    }
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
-            ++bin_type_id) {
-        std::stable_sort(
-                solution_bin_positions[bin_type_id].begin(),
-                solution_bin_positions[bin_type_id].end(),
-                [&total_item_lengths](BinPos solution_bin_pos_1, BinPos solution_bin_pos_2)
-                {
-                    return total_item_lengths[solution_bin_pos_1] > total_item_lengths[solution_bin_pos_2];
-                });
-    }
-
-    std::vector<double> initial_solution(milp_model.model.variables_lower_bounds.size(), 0.0);
-    std::vector<ItemPos> item_counts(instance.number_of_item_types(), 0);
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
-            ++bin_type_id) {
-        const std::vector<BinPos>& positions = solution_bin_positions[bin_type_id];
-        for (BinPos bin_instance_pos = 0;
-                bin_instance_pos < (BinPos)positions.size();
-                ++bin_instance_pos) {
-            int y_variable_id = milp_model.y[bin_type_id][bin_instance_pos];
-            if (y_variable_id != -1)
-                initial_solution[y_variable_id] = 1.0;
-            const SolutionBin& solution_bin = solution.bin(positions[bin_instance_pos]);
-            std::fill(item_counts.begin(), item_counts.end(), 0);
-            for (const SolutionItem& solution_item: solution_bin.items)
-                ++item_counts[solution_item.item_type_id];
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance.number_of_item_types();
-                    ++item_type_id) {
-                ItemPos copies = item_counts[item_type_id];
-                if (copies == 0)
-                    continue;
-                if (milp_model.x[item_type_id][bin_type_id].empty())
-                    continue;
-                const std::vector<int>& slots = milp_model.x[item_type_id][bin_type_id][bin_instance_pos];
-                for (ItemPos copy = 0; copy < copies && copy < (ItemPos)slots.size(); ++copy)
-                    initial_solution[slots[copy]] = 1.0;
-            }
-        }
-    }
-    return initial_solution;
 }
 
 /** Build a 'Solution' from the values of a MILP solution. */
@@ -1056,6 +1070,49 @@ std::vector<BinPos> compute_bin_type_upper_bounds(
     return bin_type_upper_bounds;
 }
 
+/**
+ * Build the 'Feasibility' sub-instance for a candidate bin count of the
+ * sequential feasibility scheme (see 'milp_assignment'): the first
+ * 'number_of_bins' bins of 'instance', in the order bin types must be used
+ * (mirrors the "bin usage order" constraint of the full 'BinPacking' MILP
+ * model in 'build_milp_model', and the analogous sub-instance construction
+ * in 'irregular::sequential_feasibility'). Bin types are added in the same
+ * order as 'instance's own, starting from the first one, so the
+ * sub-instance's bin type ids line up 1:1 with 'instance's - no remapping
+ * is needed to append a sub-solution back onto 'instance'.
+ */
+Instance build_sequential_feasibility_sub_instance(
+        const Instance& instance,
+        BinPos number_of_bins)
+{
+    InstanceBuilder sub_instance_builder;
+    sub_instance_builder.set_objective(Objective::Feasibility);
+    sub_instance_builder.set_parameters(instance.parameters());
+    BinPos remaining_bins = number_of_bins;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types() && remaining_bins > 0;
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        BinPos copies = (bin_type.copies == -1)?
+            remaining_bins:
+            std::min(bin_type.copies, remaining_bins);
+        BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+        // Reset 'copies_min' to 0 before 'copies': 'add_bin_type' copied the
+        // original bin type's own 'copies_min', which could otherwise be
+        // larger than the subset 'copies' computed above and make
+        // 'set_bin_type_copies' reject it.
+        sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+        sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
+        remaining_bins -= copies;
+    }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        sub_instance_builder.add_item_type(instance, item_type_id);
+    }
+    return sub_instance_builder.build();
+}
+
 }
 
 MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
@@ -1087,24 +1144,77 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
         return output;
     }
 
-    MilpModel milp_model = build_milp_model(instance, bin_type_upper_bounds);
+    // Sequential feasibility scheme (see 'MilpAssignmentParameters::
+    // use_sequential_feasibility'): try candidate bin counts in increasing
+    // order starting at 'lower_bound + 1', each as a 'Feasibility' MILP
+    // (solved by a recursive call to 'milp_assignment' itself, which
+    // already fully supports that objective), stopping as soon as one is
+    // feasible. If the tree search pass above already found a full
+    // solution, candidates are only tried strictly below its bin count
+    // (testing it would be redundant, it is already known feasible) and,
+    // once every one of them has turned out infeasible, that solution is
+    // then proven optimal. Otherwise (no known upper bound yet) candidates
+    // keep increasing until one is found feasible or the timer ends.
+    if (instance.objective() == Objective::BinPacking
+            && parameters.use_sequential_feasibility) {
+        BinPos lower_bound = output.bin_packing_bound;
+        for (BinPos number_of_bins = lower_bound + 1; ; ++number_of_bins) {
+            if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
+                break;
+
+            if (output.solution_pool.best().full()
+                    && number_of_bins >= output.solution_pool.best().number_of_bins()) {
+                // Every candidate strictly below the best known solution's
+                // bin count has been proven infeasible: that solution is
+                // optimal.
+                algorithm_formatter.update_bin_packing_bound(
+                        output.solution_pool.best().number_of_bins());
+                break;
+            }
+
+            Instance sub_instance = build_sequential_feasibility_sub_instance(
+                    instance, number_of_bins);
+
+            MilpAssignmentParameters sub_parameters;
+            sub_parameters.solver = parameters.solver;
+            sub_parameters.verbosity_level = 0;
+            sub_parameters.timer = parameters.timer;
+            sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            MilpAssignmentOutput sub_output = milp_assignment(sub_instance, sub_parameters);
+
+            if (sub_output.solution_pool.best().full()) {
+                Solution solution(instance);
+                solution.append(sub_output.solution_pool.best(), {}, {});
+                std::stringstream ss;
+                ss << "MILP-A SF " << (number_of_bins - lower_bound)
+                    << " " << sub_output.solution_pool.best_label();
+                algorithm_formatter.update_solution(solution, ss.str());
+                algorithm_formatter.update_bin_packing_bound(number_of_bins);
+                break;
+            }
+            if (!sub_output.is_proven_infeasible) {
+                // Cut short by the timer with no definitive answer for this
+                // bin count: stop without claiming a proof either way.
+                break;
+            }
+        }
+
+        algorithm_formatter.end();
+        return output;
+    }
+
+    MilpModel milp_model = build_milp_model(
+            instance, bin_type_upper_bounds, output.solution_pool.best());
 
     // Solve.
     std::vector<double> milp_solution;
+    int number_of_nodes = 0;
     if (parameters.solver == mathoptsolverscmake::SolverName::Highs) {
 #ifdef HIGHS_FOUND
         Highs highs;
         mathoptsolverscmake::reduce_printout(highs);
         mathoptsolverscmake::set_time_limit(highs, parameters.timer.remaining_time());
         mathoptsolverscmake::load(highs, milp_model.model);
-        if (output.solution_pool.best().full()) {
-            std::vector<double> initial_solution = build_initial_solution(
-                    instance,
-                    milp_model,
-                    output.solution_pool.best());
-            if (!initial_solution.empty())
-                mathoptsolverscmake::set_solution(highs, initial_solution);
-        }
         highs.setCallback([
                 &instance,
                 &milp_model,
@@ -1124,7 +1234,7 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
                                 highs_output->mip_solution);
                         algorithm_formatter.update_solution(
                                 solution,
-                                "node " + std::to_string(highs_output->mip_node_count));
+                                "MILP-A n " + std::to_string(highs_output->mip_node_count));
                     }
                     if (instance.objective() == Objective::VariableSizedBinPacking) {
                         if (output.solution_pool.best().full()
@@ -1176,6 +1286,7 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
              || highs.getModelStatus() == HighsModelStatus::kUnboundedOrInfeasible);
         if (!proven_infeasible)
             milp_solution = mathoptsolverscmake::get_solution(highs);
+        number_of_nodes = mathoptsolverscmake::get_number_of_nodes(highs);
         if (!milp_solution.empty()) {
             double bound = mathoptsolverscmake::get_bound(highs);
             if (instance.objective() == Objective::VariableSizedBinPacking) {
@@ -1201,7 +1312,9 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
 
     if (!milp_solution.empty()) {
         Solution solution = retrieve_solution(instance, milp_model, milp_solution);
-        algorithm_formatter.update_solution(solution, "final");
+        algorithm_formatter.update_solution(
+                solution,
+                "MILP-A n " + std::to_string(number_of_nodes));
     }
 
     algorithm_formatter.end();
