@@ -13,6 +13,7 @@ target_sources(PackingSolver_rectangle PRIVATE
     benders_decomposition.cpp
     dual_feasible_functions.cpp
     conservative_scales.cpp
+    bar_relaxation.cpp
     reduction.cpp
     block.cpp
     tree_search_maximal_spaces.cpp)

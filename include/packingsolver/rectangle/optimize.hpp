@@ -178,6 +178,12 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      */
     bool use_conservative_scales = false;
 
+    /**
+     * Force running the bar relaxation bound even if the instance's bin
+     * type is larger than the default criterion allows.
+     */
+    bool use_bar_relaxation = false;
+
     /** Use tree search algorithm. */
     bool use_tree_search = false;
 
