@@ -7,6 +7,7 @@
 #include "rectangle/benders_decomposition.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
 #include "rectangle/conservative_scales.hpp"
+#include "rectangle/bar_relaxation.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
 #include "packingsolver/onedimensional/optimize.hpp"
 #include "algorithms/dichotomic_search.hpp"
@@ -254,6 +255,30 @@ void optimize_conservative_scales(
             }
         };
     conservative_scales(instance, cs_parameters);
+}
+
+void optimize_bar_relaxation(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter,
+        rectangle::Output* local_output)
+{
+    BarRelaxationParameters br_parameters;
+    br_parameters.verbosity_level = 0;
+    br_parameters.timer = parameters.timer;
+    br_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    br_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    br_parameters.new_solution_callback
+        = [&algorithm_formatter, local_output](
+                const rectangle::Output& br_output)
+        {
+            if (local_output != nullptr) {
+                local_output->update_bounds(br_output);
+            } else {
+                algorithm_formatter.update_bounds(br_output);
+            }
+        };
+    bar_relaxation(instance, br_parameters);
 }
 
 void optimize_tree_search(
@@ -707,6 +732,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
     bool use_benders_decomposition = parameters.use_benders_decomposition;
+    bool use_bar_relaxation = parameters.use_bar_relaxation;
     if (instance.number_of_bins() <= 1) {
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
@@ -715,10 +741,14 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         if (instance.objective() != Objective::Knapsack
                 && instance.objective() != Objective::Feasibility)
             use_tree_search_maximal_spaces = false;
+        if (instance.objective() != Objective::Knapsack
+                && instance.objective() != Objective::Feasibility)
+            use_bar_relaxation = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_tree_search_maximal_spaces
-                && !use_benders_decomposition) {
+                && !use_benders_decomposition
+                && !use_bar_relaxation) {
             if ((instance.objective() == Objective::Knapsack
                         || instance.objective() == Objective::Feasibility)
                     && mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2
@@ -727,12 +757,20 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             } else {
                 use_tree_search = true;
             }
+            if ((instance.objective() == Objective::Knapsack
+                        || instance.objective() == Objective::Feasibility)
+                    && instance.number_of_bin_types() == 1
+                    && instance.bin_type(0).rect.x <= 100
+                    && instance.bin_type(0).rect.y <= 100) {
+                use_bar_relaxation = true;
+            }
         }
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
         use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
         use_benders_decomposition = false;
+        use_bar_relaxation = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -762,7 +800,8 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation
-                && !use_benders_decomposition) {
+                && !use_benders_decomposition
+                && !use_bar_relaxation) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -787,12 +826,17 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         use_dichotomic_search = false;
         if (instance.objective() == Objective::BinPackingWithLeftovers)
             use_benders_decomposition = false;
+        if (instance.objective() == Objective::BinPackingWithLeftovers
+                || instance.number_of_bin_types() > 1) {
+            use_bar_relaxation = false;
+        }
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation
-                && !use_benders_decomposition) {
+                && !use_benders_decomposition
+                && !use_bar_relaxation) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -833,7 +877,8 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 && !use_sequential_value_correction
                 && !use_dichotomic_search
                 && !use_column_generation
-                && !use_benders_decomposition) {
+                && !use_benders_decomposition
+                && !use_bar_relaxation) {
             if (mean_item_type_copies(instance)
                     > parameters.many_item_type_copies_factor
                     * mean_number_of_items_in_bins) {
@@ -1006,6 +1051,23 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             local_output = std::make_unique<rectangle::Output>(instance);
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
             wrapper<decltype(&optimize_conservative_scales), optimize_conservative_scales>(
+                    exception_ptr,
+                    instance,
+                    parameters,
+                    algorithm_formatter,
+                    local_output);
+        });
+        local_outputs.push_back(std::move(local_output));
+    }
+    // Bar relaxation.
+    if (use_bar_relaxation) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        std::unique_ptr<rectangle::Output> local_output;
+        if (deterministic)
+            local_output = std::make_unique<rectangle::Output>(instance);
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+            wrapper<decltype(&optimize_bar_relaxation), optimize_bar_relaxation>(
                     exception_ptr,
                     instance,
                     parameters,
