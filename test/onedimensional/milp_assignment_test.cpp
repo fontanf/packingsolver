@@ -110,6 +110,26 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "onedimensional" / "tests" / "feasibility_infeasible" / "parameters.csv",
                 fs::path(""),
             }, {
+                // Two item types, one copy each, that can't share a bin
+                // instance (6 + 8 = 14 > 10), against a bin type with 3
+                // instances: exercises the bin-instance symmetry-breaking
+                // variable elimination in 'build_milp_model' across
+                // multiple item types sharing one bin type.
+                fs::path("data") / "onedimensional" / "tests" / "feasibility_incompatible_items" / "items.csv",
+                fs::path("data") / "onedimensional" / "tests" / "feasibility_incompatible_items" / "bins.csv",
+                fs::path("data") / "onedimensional" / "tests" / "feasibility_incompatible_items" / "parameters.csv",
+                fs::path("data") / "onedimensional" / "tests" / "feasibility_incompatible_items" / "solution.csv",
+            }, {
+                // A single item type with 4 copies, each bin instance
+                // fitting at most 3 by length, against a bin type with 3
+                // instances: exercises the same symmetry-breaking variable
+                // elimination with multiple copies of one item type spread
+                // across more than one bin instance.
+                fs::path("data") / "onedimensional" / "tests" / "feasibility_item_copies_across_bins" / "items.csv",
+                fs::path("data") / "onedimensional" / "tests" / "feasibility_item_copies_across_bins" / "bins.csv",
+                fs::path("data") / "onedimensional" / "tests" / "feasibility_item_copies_across_bins" / "parameters.csv",
+                fs::path("data") / "onedimensional" / "tests" / "feasibility_item_copies_across_bins" / "solution.csv",
+            }, {
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_type_order" / "items.csv",
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_type_order" / "bins.csv",
                 fs::path("data") / "onedimensional" / "tests" / "bin_packing_type_order" / "parameters.csv",

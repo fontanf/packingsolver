@@ -201,21 +201,54 @@ std::vector<double> build_initial_solution(
             return {};
     }
 
-    // Total item length of each distinct bin (the sort key below).
-    std::vector<Length> total_item_lengths(solution.number_of_different_bins(), 0);
+    // Sort key for each distinct solution bin (used below), matching the
+    // pigeonhole-based bound on 'x_{i,t,k,c}' in 'build_milp_model': the
+    // (copies, item_type_id) of whichever of its item types is smallest in
+    // that order (i.e. the one that would top out its cumulative-supply
+    // bound soonest, so it needs the lowest-ranked, earliest bin instance),
+    // and, to break ties between bins sharing that same item type, its
+    // count of that type in this bin, descending (a bin with more copies of
+    // that type needs a lower-ranked instance to leave room for the bound
+    // to hold - see 'build_milp_model'). Bins with no items sort last
+    // (unconstrained).
+    struct BinSortKey
+    {
+        bool empty = true;
+        ItemPos item_type_copies = 0;
+        ItemTypeId item_type_id = 0;
+        ItemPos item_type_count = 0;
+    };
+    std::vector<BinSortKey> bin_sort_keys(solution.number_of_different_bins());
+    std::vector<ItemPos> sort_key_item_counts(instance.number_of_item_types());
     for (BinPos solution_bin_pos = 0;
             solution_bin_pos < solution.number_of_different_bins();
             ++solution_bin_pos) {
         const SolutionBin& solution_bin = solution.bin(solution_bin_pos);
+        std::fill(sort_key_item_counts.begin(), sort_key_item_counts.end(), 0);
         for (const SolutionItem& solution_item: solution_bin.items)
-            total_item_lengths[solution_bin_pos] += instance.item_type(solution_item.item_type_id).length;
+            ++sort_key_item_counts[solution_item.item_type_id];
+        BinSortKey& key = bin_sort_keys[solution_bin_pos];
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            if (sort_key_item_counts[item_type_id] == 0)
+                continue;
+            ItemPos copies = instance.item_type(item_type_id).copies;
+            if (key.empty
+                    || copies < key.item_type_copies
+                    || (copies == key.item_type_copies && item_type_id < key.item_type_id)) {
+                key.empty = false;
+                key.item_type_copies = copies;
+                key.item_type_id = item_type_id;
+                key.item_type_count = sort_key_item_counts[item_type_id];
+            }
+        }
     }
 
     // One entry per physical bin instance (a distinct bin's assignment may
     // be shared by several physical instances via 'SolutionBin::copies'),
-    // grouped by bin type and sorted (within each type) by descending
-    // total item length, to satisfy the MILP's bin-instance load-ordering
-    // (symmetry-breaking) constraint.
+    // grouped by bin type and sorted (within each type) by the key above,
+    // to satisfy 'build_milp_model's pigeonhole-based bound on 'x_{i,t,k,c}'.
     std::vector<std::vector<BinPos>> solution_bin_positions(instance.number_of_bin_types());
     for (BinPos solution_bin_pos = 0;
             solution_bin_pos < solution.number_of_different_bins();
@@ -230,9 +263,19 @@ std::vector<double> build_initial_solution(
         std::stable_sort(
                 solution_bin_positions[bin_type_id].begin(),
                 solution_bin_positions[bin_type_id].end(),
-                [&total_item_lengths](BinPos solution_bin_pos_1, BinPos solution_bin_pos_2)
+                [&bin_sort_keys](BinPos solution_bin_pos_1, BinPos solution_bin_pos_2)
                 {
-                    return total_item_lengths[solution_bin_pos_1] > total_item_lengths[solution_bin_pos_2];
+                    const BinSortKey& key_1 = bin_sort_keys[solution_bin_pos_1];
+                    const BinSortKey& key_2 = bin_sort_keys[solution_bin_pos_2];
+                    if (key_1.empty != key_2.empty)
+                        return !key_1.empty;
+                    if (key_1.empty)
+                        return false;
+                    if (key_1.item_type_copies != key_2.item_type_copies)
+                        return key_1.item_type_copies < key_2.item_type_copies;
+                    if (key_1.item_type_id != key_2.item_type_id)
+                        return key_1.item_type_id < key_2.item_type_id;
+                    return key_1.item_type_count > key_2.item_type_count;
                 });
     }
 
@@ -370,6 +413,66 @@ MilpModel build_milp_model(
         }
     }
 
+    // Cumulative supply, per bin type, for the pigeonhole-based symmetry
+    // breaking below: order item types globally by ascending number of
+    // copies (ties broken by item type id) - a fixed order independent of
+    // bin type, only which item types are eligible for a given bin type
+    // varies. 'item_cumulative_supply[item_type_id][bin_type_id]' is then
+    // the total number of copies of item types up to and including
+    // 'item_type_id' in that order, restricted to types eligible for
+    // 'bin_type_id'.
+    //
+    // Bin instances of the same type are interchangeable: relabel them, for
+    // any feasible solution, by increasing order of the smallest "global
+    // label" they contain, where labels 1..copies_i of item type i's own
+    // copies occupy the block right after the previous (in the above order)
+    // eligible item type's own block. Since a used instance's labels are all
+    // taken from distinct items and instance ranks are relabelled by
+    // increasing minimum label, rank r's bin only ever contains labels >= r;
+    // as item type i's own labels top out at 'item_cumulative_supply[i][t]',
+    // no bin instance ranked (0-indexed) 'k' can hold more than
+    // 'max(0, item_cumulative_supply[i][t] - k)' copies of it - so
+    // 'x_{i,t,k,c}' (at least 'c + 1' copies) never needs to exist once
+    // 'c + 1' exceeds that bound. This holds for every eligible item type
+    // simultaneously (no single "primary" type needed), and needs no
+    // separate bin-instance ordering constraint: fixing (here, simply not
+    // creating) the excluded variables is already a sound and complete
+    // account of it.
+    std::vector<ItemTypeId> item_type_order(instance.number_of_item_types());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        item_type_order[item_type_id] = item_type_id;
+    }
+    std::sort(
+            item_type_order.begin(),
+            item_type_order.end(),
+            [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2)
+            {
+                ItemPos copies_1 = instance.item_type(item_type_id_1).copies;
+                ItemPos copies_2 = instance.item_type(item_type_id_2).copies;
+                if (copies_1 != copies_2)
+                    return copies_1 < copies_2;
+                return item_type_id_1 < item_type_id_2;
+            });
+    std::vector<std::vector<ItemPos>> item_cumulative_supply(instance.number_of_item_types());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        item_cumulative_supply[item_type_id].resize(instance.number_of_bin_types(), 0);
+    }
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        ItemPos cumulative_supply = 0;
+        for (ItemTypeId item_type_id: item_type_order) {
+            if (!instance.item_type_fits_bin_type(item_type_id, bin_type_id))
+                continue;
+            cumulative_supply += instance.item_type(item_type_id).copies;
+            item_cumulative_supply[item_type_id][bin_type_id] = cumulative_supply;
+        }
+    }
+
     // Variables: x_{i,t,k,c}.
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
@@ -382,13 +485,17 @@ MilpModel build_milp_model(
                 continue;
             BinPos number_of_bin_instances = bin_type_upper_bounds[bin_type_id];
             ItemPos copies_bound = item_copies_bound[item_type_id][bin_type_id];
+            ItemPos cumulative_supply = item_cumulative_supply[item_type_id][bin_type_id];
             milp_model.x[item_type_id][bin_type_id] = std::vector<std::vector<int>>(number_of_bin_instances);
             for (BinPos bin_instance_pos = 0;
                     bin_instance_pos < number_of_bin_instances;
                     ++bin_instance_pos) {
                 std::vector<int>& slots = milp_model.x[item_type_id][bin_type_id][bin_instance_pos];
-                slots.resize(copies_bound);
-                for (ItemPos copy = 0; copy < copies_bound; ++copy) {
+                ItemPos pigeonhole_bound = std::max(
+                        (ItemPos)0,
+                        cumulative_supply - (ItemPos)bin_instance_pos);
+                slots.resize(std::min(copies_bound, pigeonhole_bound));
+                for (ItemPos copy = 0; copy < (ItemPos)slots.size(); ++copy) {
                     slots[copy] = milp_model.model.variables_lower_bounds.size();
                     milp_model.model.variables_lower_bounds.push_back(0.0);
                     milp_model.model.variables_upper_bounds.push_back(1.0);
@@ -729,49 +836,6 @@ MilpModel build_milp_model(
                 milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
                 milp_model.model.constraints_upper_bounds.push_back(0.0);
             }
-        }
-    }
-
-    // Constraints: bin instance load ordering (symmetry breaking).
-    // Bin instances of the same type are interchangeable. Breaking this
-    // symmetry per item type is unsound in general: two item types' counts
-    // cannot always be simultaneously sorted non-increasing by a single
-    // shared bin-instance permutation (e.g. instance A = (5, 3), instance
-    // B = (3, 5) for two item types: no ordering of A, B makes both item
-    // types' counts non-increasing together). A single aggregate key --
-    // total length used -- is always totally orderable regardless of item
-    // mix, so it is used instead. Valid for every objective (does not
-    // involve the 'y' variables).
-    // sum_{i,c} length_i * x_{i,t,k,c} >= sum_{i,c} length_i * x_{i,t,k+1,c}
-    for (BinTypeId bin_type_id = 0;
-            bin_type_id < instance.number_of_bin_types();
-            ++bin_type_id) {
-        BinPos number_of_bin_instances = bin_type_upper_bounds[bin_type_id];
-        for (BinPos bin_instance_pos = 0;
-                bin_instance_pos < number_of_bin_instances - 1;
-                ++bin_instance_pos) {
-            // Initialize new row.
-            milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
-            // Add row elements.
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance.number_of_item_types();
-                    ++item_type_id) {
-                const ItemType& item_type = instance.item_type(item_type_id);
-                if (milp_model.x[item_type_id][bin_type_id].empty())
-                    continue;
-                double length = (double)item_type.length / multiplier_length;
-                for (int variable_id: milp_model.x[item_type_id][bin_type_id][bin_instance_pos]) {
-                    milp_model.model.elements_variables.push_back(variable_id);
-                    milp_model.model.elements_coefficients.push_back(length);
-                }
-                for (int variable_id: milp_model.x[item_type_id][bin_type_id][bin_instance_pos + 1]) {
-                    milp_model.model.elements_variables.push_back(variable_id);
-                    milp_model.model.elements_coefficients.push_back(-length);
-                }
-            }
-            // Add row bounds.
-            milp_model.model.constraints_lower_bounds.push_back(0.0);
-            milp_model.model.constraints_upper_bounds.push_back(std::numeric_limits<double>::infinity());
         }
     }
 
