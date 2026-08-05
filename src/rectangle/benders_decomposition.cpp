@@ -812,6 +812,7 @@ onedimensional::Instance build_master_instance(
         const ItemType& item_type = instance.item_type(item_type_id);
         ItemTypeId master_item_type_id = master_instance_builder.add_item_type(item_type.area());
         master_instance_builder.set_item_type_copies(master_item_type_id, item_type.copies);
+        master_instance_builder.set_item_type_copies_min(master_item_type_id, item_type.copies_min);
         if (instance.objective() == Objective::Knapsack) {
             master_instance_builder.set_item_type_profit(master_item_type_id, item_type.profit);
         }
