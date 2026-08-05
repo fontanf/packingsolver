@@ -155,6 +155,11 @@ public:
             ItemTypeId item_type_id,
             ItemPos copies);
 
+    /** Set the minimum number of copies to pack of an item type. */
+    void set_item_type_copies_min(
+            ItemTypeId item_type_id,
+            ItemPos copies_min);
+
     /**
      * For each item type, set its profit to its area.
      *

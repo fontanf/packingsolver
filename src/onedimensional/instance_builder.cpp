@@ -262,6 +262,7 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.length = length;
     item_type.profit = length;
     item_type.copies = 1;
+    item_type.copies_min = -1;
     instance_.item_types_.push_back(item_type);
     return instance_.item_types_.size() - 1;
 }
@@ -475,6 +476,27 @@ void InstanceBuilder::set_item_type_copies(
     instance_.item_types_[item_type_id].copies = copies;
 }
 
+void InstanceBuilder::set_item_type_copies_min(
+        ItemTypeId item_type_id,
+        ItemPos copies_min)
+{
+    if (item_type_id < 0 || item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+    if (copies_min < -1) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "item 'copies_min' must be >= -1; "
+                "copies_min: " + std::to_string(copies_min) + ".");
+    }
+
+    instance_.item_types_[item_type_id].copies_min = copies_min;
+}
+
 void InstanceBuilder::set_item_types_unweighted()
 {
     for (ItemTypeId item_type_id = 0;
@@ -631,6 +653,7 @@ void InstanceBuilder::read_item_types(
         Profit profit = -1;
         Weight weight = 0;
         ItemPos copies = 1;
+        ItemPos copies_min = -1;
         Length nesting_length = 0;
         ItemPos maximum_stackability = std::numeric_limits<ItemPos>::max();
         Weight maximum_weight_after = std::numeric_limits<Weight>::infinity();
@@ -644,6 +667,8 @@ void InstanceBuilder::read_item_types(
                 weight = (Weight)std::stod(line[i]);
             } else if (labels[i] == "COPIES") {
                 copies = (ItemPos)std::stol(line[i]);
+            } else if (labels[i] == "COPIES_MIN") {
+                copies_min = (ItemPos)std::stol(line[i]);
             } else if (labels[i] == "NESTING_LENGTH") {
                 nesting_length = (Length)std::stol(line[i]);
             } else if (labels[i] == "MAXIMUM_STACKABILITY") {
@@ -665,6 +690,7 @@ void InstanceBuilder::read_item_types(
         ItemTypeId item_type_id = add_item_type(x);
         set_item_type_profit(item_type_id, profit);
         set_item_type_copies(item_type_id, copies);
+        set_item_type_copies_min(item_type_id, copies_min);
         set_item_type_weight(
                 item_type_id,
                 weight);
@@ -779,6 +805,8 @@ void InstanceBuilder::read(
             set_item_type_weight(item_type_id, json_item_type["weight"]);
         if (json_item_type.contains("copies"))
             set_item_type_copies(item_type_id, json_item_type["copies"]);
+        if (json_item_type.contains("copies_min"))
+            set_item_type_copies_min(item_type_id, json_item_type["copies_min"]);
         if (json_item_type.contains("nesting_length"))
             set_item_type_nesting_length(item_type_id, json_item_type["nesting_length"]);
         if (json_item_type.contains("maximum_stackability"))
@@ -816,7 +844,19 @@ Instance InstanceBuilder::build()
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
-        const ItemType& item_type = instance_.item_type(item_type_id);
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        // Resolve copies_min.
+        if (item_type.copies_min == -1) {
+            item_type.copies_min = (instance_.objective() == Objective::Knapsack)?
+                0: item_type.copies;
+        }
+        if (item_type.copies_min > item_type.copies) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "'copies_min' (" + std::to_string(item_type.copies_min) + ") "
+                    "> 'copies' (" + std::to_string(item_type.copies) + ").");
+        }
         // Update number_of_items_.
         instance_.number_of_items_ += item_type.copies;
         // Update item_profit_.

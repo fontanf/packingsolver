@@ -258,6 +258,7 @@ ItemTypeId InstanceBuilder::add_item_type(
     }
     item_type.profit = item_type.area_orig;
     item_type.copies = 1;
+    item_type.copies_min = -1;
     instance_.item_types_.push_back(item_type);
     return instance_.item_types_.size() - 1;
 }
@@ -352,6 +353,27 @@ void InstanceBuilder::set_item_type_copies(
     }
 
     instance_.item_types_[item_type_id].copies = copies;
+}
+
+void InstanceBuilder::set_item_type_copies_min(
+        ItemTypeId item_type_id,
+        ItemPos copies_min)
+{
+    if (item_type_id < 0 || item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+    if (copies_min < -1) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "item 'copies_min' must be >= -1; "
+                "copies_min: " + std::to_string(copies_min) + ".");
+    }
+
+    instance_.item_types_[item_type_id].copies_min = copies_min;
 }
 
 void InstanceBuilder::set_item_types_unweighted()
@@ -530,6 +552,8 @@ void InstanceBuilder::read(
             set_item_type_profit(item_type_id, json_item["profit"]);
         if (json_item.contains("copies"))
             set_item_type_copies(item_type_id, json_item["copies"]);
+        if (json_item.contains("copies_min"))
+            set_item_type_copies_min(item_type_id, json_item["copies_min"]);
 
         // Read allowed rotations.
         if (json_item.contains("allowed_rotations")) {
@@ -672,6 +696,19 @@ Instance InstanceBuilder::build()
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
         ItemType& item_type = instance_.item_types_[item_type_id];
+
+        // Resolve copies_min.
+        if (item_type.copies_min == -1) {
+            item_type.copies_min = (instance_.objective() == Objective::Knapsack)?
+                0: item_type.copies;
+        }
+        if (item_type.copies_min > item_type.copies) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "'copies_min' (" + std::to_string(item_type.copies_min) + ") "
+                    "> 'copies' (" + std::to_string(item_type.copies) + ").");
+        }
 
         // Compute inflated shapes.
         for (ShapePos shape_pos = 0;

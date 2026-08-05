@@ -408,6 +408,15 @@ void Solution::update_indicators(
 
     cutting_cost_ += instance().parameters().waste_cost * (waste() - waste_before_bin);
 
+    // Update number_of_infeasible_item_copies_min_.
+    this->number_of_infeasible_item_copies_min_ = 0;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance().number_of_item_types();
+            ++item_type_id) {
+        if (item_copies_[item_type_id] < instance().item_type(item_type_id).copies_min)
+            this->number_of_infeasible_item_copies_min_++;
+    }
+
     // Feasibility callback.
     callback_feasible_ = instance().feasibility_callback()(*this);
 
@@ -426,7 +435,8 @@ void Solution::update_indicators(
         && defects_feasible_
         && cut_through_defects_feasible_
         && item_copies_feasible_
-        && callback_feasible_;
+        && callback_feasible_
+        && (number_of_infeasible_item_copies_min_ == 0);
 }
 
 void Solution::append(
@@ -494,48 +504,22 @@ bool Solution::operator<(const Solution& solution) const
             return true;
         return solution.waste() < waste();
     } case Objective::BinPacking: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         return solution.number_of_bins() < number_of_bins();
     } case Objective::BinPackingWithLeftovers: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         if (solution.waste() != waste())
             return solution.waste() < waste();
         return solution.second_leftover_value() > second_leftover_value();
     } case Objective::OpenDimensionX: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         return solution.width() < width();
     } case Objective::OpenDimensionY: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         return solution.height() < height();
     } case Objective::BinPackingCuttingCost: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         return solution.cutting_cost() < cutting_cost();
     } case Objective::Knapsack: {
         return strictly_greater_profit(solution.profit(), profit());
     } case Objective::Feasibility: {
-        if (solution.full() != full())
-            return solution.full();
         return strictly_greater_profit(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         return strictly_lesser_cost(solution.cost(), cost());
     } default: {
         std::stringstream ss;

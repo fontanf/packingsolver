@@ -204,6 +204,7 @@ void Instance::write(
         "HEIGHT,"
         "PROFIT,"
         "COPIES,"
+        "COPIES_MIN,"
         "ORIENTED,"
         "STACK_ID" << std::endl;
     for (ItemTypeId item_type_id = 0;
@@ -216,6 +217,7 @@ void Instance::write(
             << item_type.rect.h << ","
             << item_type.profit << ","
             << item_type.copies << ","
+            << item_type.copies_min << ","
             << item_type.oriented << ","
             << item_type.stack_id << std::endl;
     }
