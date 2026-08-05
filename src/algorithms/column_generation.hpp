@@ -125,23 +125,13 @@ columngenerationsolver::Model get_model(
     }
     if (instance.objective() == Objective::VariableSizedBinPacking
             || instance.objective() == Objective::BinPacking
-            || instance.objective() == Objective::Feasibility) {
+            || instance.objective() == Objective::Feasibility
+            || instance.objective() == Objective::Knapsack) {
         for (ItemTypeId item_type_id = 0;
                 item_type_id < instance.number_of_item_types();
                 ++item_type_id) {
             columngenerationsolver::Row row;
-            row.lower_bound = instance.item_type(item_type_id).copies;
-            row.upper_bound = instance.item_type(item_type_id).copies;
-            row.coefficient_lower_bound = 0;
-            row.coefficient_upper_bound = instance.item_type(item_type_id).copies;
-            model.rows.push_back(row);
-        }
-    } else if (instance.objective() == Objective::Knapsack) {
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            columngenerationsolver::Row row;
-            row.lower_bound = 0;
+            row.lower_bound = instance.item_type(item_type_id).copies_min;
             row.upper_bound = instance.item_type(item_type_id).copies;
             row.coefficient_lower_bound = 0;
             row.coefficient_upper_bound = instance.item_type(item_type_id).copies;

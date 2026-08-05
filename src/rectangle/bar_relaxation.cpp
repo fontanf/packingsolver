@@ -427,22 +427,11 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
         const ItemType& item_type = instance.item_type(item_type_id);
         columngenerationsolver::Row row;
         row.name = "item_" + std::to_string(item_type_id);
-        // Knapsack: at most 'copies' (a subset may be left unpacked).
-        // Feasibility/BinPacking/VariableSizedBinPacking: exactly 'copies'
-        // (every item must be packed).
-        switch (instance.objective()) {
-        case Objective::Knapsack: {
-            row.lower_bound = 0.0;
-            break;
-        } case Objective::Feasibility:
-          case Objective::BinPacking:
-          case Objective::VariableSizedBinPacking: {
-            row.lower_bound = (double)item_type.copies;
-            break;
-        } default: {
-            throw std::invalid_argument(FUNC_SIGNATURE);
-        }
-        }
+        // Knapsack: at least 'copies_min' (0 unless explicitly forced) and at
+        // most 'copies' (a subset may be left unpacked).
+        // Feasibility/BinPacking/VariableSizedBinPacking: 'copies_min' equals
+        // 'copies' (every item must be packed), so this is still exact.
+        row.lower_bound = (double)item_type.copies_min;
         row.upper_bound = (double)item_type.copies;
         row.coefficient_lower_bound = -1.0;
         row.coefficient_upper_bound = (double)item_type.copies;

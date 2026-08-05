@@ -316,18 +316,18 @@ Solution solve_milp_raster_for_cell_size(
         }
     }
 
-    // Copy constraints: for each item type, total placements across all bins <= copies - copies_fixed.
+    // Copy constraints: for each item type, remaining_copies_min - copies_fixed
+    // <= total placements across all bins <= copies - copies_fixed.
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
         ItemPos remaining_copies = item_type.copies - item_type.copies_fixed;
+        ItemPos remaining_copies_min = (std::max)(
+                (ItemPos)0,
+                item_type.copies_min - item_type.copies_fixed);
         model.constraints_starts.push_back(model.elements_variables.size());
-        if (instance.objective() == Objective::Feasibility) {
-            model.constraints_lower_bounds.push_back(remaining_copies);
-        } else {
-            model.constraints_lower_bounds.push_back(0.0);
-        }
+        model.constraints_lower_bounds.push_back((double)remaining_copies_min);
         model.constraints_upper_bounds.push_back((double)remaining_copies);
         for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
             BinTypeId bin_type_id = instance.bin_type_id(bin_pos);

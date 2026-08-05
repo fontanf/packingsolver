@@ -173,7 +173,8 @@ struct MilpModel
  * vector if the solution doesn't fit within the MILP's modeled
  * bin-instance bounds for some bin type - either because it needs more bin
  * instances than that type's own 'copies' allows, or fewer than
- * 'copies_min' mandates.
+ * 'copies_min' mandates - or if some item type's packed copies fall short
+ * of its own 'copies_min'.
  */
 std::vector<double> build_initial_solution(
         const Instance& instance,
@@ -198,6 +199,13 @@ std::vector<double> build_initial_solution(
         if (number_of_bin_instances[bin_type_id] < bin_type.copies_min)
             return {};
         if (number_of_bin_instances[bin_type_id] > (BinPos)milp_model.y[bin_type_id].size())
+            return {};
+    }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (solution.item_copies(item_type_id) < item_type.copies_min)
             return {};
     }
 
@@ -539,8 +547,10 @@ MilpModel build_milp_model(
     }
 
     // Constraints: demand.
-    // 'VariableSizedBinPacking', 'BinPacking' and 'Feasibility': sum_{t,k,c} x_{i,t,k,c} = copies_i
-    // 'Knapsack':                                                sum_{t,k,c} x_{i,t,k,c} <= copies_i
+    // copies_min_i <= sum_{t,k,c} x_{i,t,k,c} <= copies_i
+    // 'VariableSizedBinPacking', 'BinPacking' and 'Feasibility': copies_min_i == copies_i
+    // (every item must be packed); 'Knapsack': copies_min_i is 0 unless
+    // explicitly forced.
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -559,7 +569,7 @@ MilpModel build_milp_model(
             }
         }
         // Add row bounds.
-        milp_model.model.constraints_lower_bounds.push_back(is_knapsack? 0.0: (double)item_type.copies);
+        milp_model.model.constraints_lower_bounds.push_back((double)item_type.copies_min);
         milp_model.model.constraints_upper_bounds.push_back((double)item_type.copies);
     }
 

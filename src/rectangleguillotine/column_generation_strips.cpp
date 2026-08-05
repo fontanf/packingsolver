@@ -540,19 +540,18 @@ GetModelOutput get_model(
     }
 
     // Row bounds.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        columngenerationsolver::Row row;
+        row.lower_bound = instance.item_type(item_type_id).copies_min;
+        row.upper_bound = instance.item_type(item_type_id).copies;
+        row.coefficient_lower_bound = 0;
+        row.coefficient_upper_bound = instance.item_type(item_type_id).copies;
+        model.rows.push_back(row);
+    }
+
     if (instance.objective() == Objective::Knapsack) {
-
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            columngenerationsolver::Row row;
-            row.lower_bound = 0;
-            row.upper_bound = instance.item_type(item_type_id).copies;
-            row.coefficient_lower_bound = 0;
-            row.coefficient_upper_bound = instance.item_type(item_type_id).copies;
-            model.rows.push_back(row);
-        }
-
         columngenerationsolver::Row row;
         row.lower_bound = 0;
         row.upper_bound = (double)(bin_type.rect.w
@@ -563,18 +562,6 @@ GetModelOutput get_model(
         row.coefficient_lower_bound = 0;
         row.coefficient_upper_bound = 1;
         model.rows.push_back(row);
-
-    } else {
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            columngenerationsolver::Row row;
-            row.lower_bound = instance.item_type(item_type_id).copies;
-            row.upper_bound = instance.item_type(item_type_id).copies;
-            row.coefficient_lower_bound = 0;
-            row.coefficient_upper_bound = instance.item_type(item_type_id).copies;
-            model.rows.push_back(row);
-        }
     }
 
     if (instance.parameters().number_of_stages == 1
