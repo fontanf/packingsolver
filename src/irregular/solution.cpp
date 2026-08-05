@@ -106,9 +106,23 @@ void Solution::update_indicators(
         }
     }
 
+    // Update number_of_infeasible_item_copies_min_ and item_copies_feasible_.
+    this->number_of_infeasible_item_copies_min_ = 0;
+    this->item_copies_feasible_ = true;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance().number_of_item_types();
+            ++item_type_id) {
+        if (item_copies_[item_type_id] < instance().item_type(item_type_id).copies_min)
+            this->number_of_infeasible_item_copies_min_++;
+        if (item_copies_[item_type_id] > instance().item_type(item_type_id).copies)
+            this->item_copies_feasible_ = false;
+    }
+
     // Feasibility callback.
     callback_feasible_ = instance().feasibility_callback()(*this);
-    feasible_ = callback_feasible_;
+    feasible_ = item_copies_feasible_
+        && callback_feasible_
+        && (number_of_infeasible_item_copies_min_ == 0);
 }
 
 void Solution::append(
@@ -346,52 +360,32 @@ Solution::OverlappingItems Solution::compute_overlapping_items(
 
 bool Solution::operator<(const Solution& solution) const
 {
+    // Check feasibility.
+    if (!solution.feasible_)
+        return false;
+    if (!feasible_)
+        return true;
+
     switch (instance().objective()) {
     case Objective::BinPacking: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         return solution.number_of_bins() < number_of_bins();
     } case Objective::BinPackingWithLeftovers: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         if (solution.number_of_bins() != number_of_bins())
             return solution.number_of_bins() < number_of_bins();
         return shape::strictly_greater(
                 std::sqrt(solution.leftover_value_scaled()),
                 std::sqrt(leftover_value_scaled()));
     } case Objective::OpenDimensionX: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         return solution.x_max() < x_max();
     } case Objective::OpenDimensionY: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         return solution.y_max() < y_max();
     } case Objective::OpenDimensionXY: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         return solution.open_dimension_xy_area() < open_dimension_xy_area();
     } case Objective::Knapsack: {
         return strictly_greater_profit(solution.profit(), profit());
     } case Objective::Feasibility: {
-        if (solution.full() != full())
-            return solution.full();
         return strictly_greater_profit(solution.profit(), profit());
     } case Objective::VariableSizedBinPacking: {
-        if (!solution.full())
-            return false;
-        if (!full())
-            return true;
         return strictly_lesser_cost(solution.cost(), cost());
     } default: {
         std::stringstream ss;

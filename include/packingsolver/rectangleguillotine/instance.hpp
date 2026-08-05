@@ -286,6 +286,15 @@ struct ItemType
     /** Number of copies of the item type. */
     ItemPos copies;
 
+    /**
+     * Minimum number of copies of the item type to pack.
+     *
+     * Set to '-1' before 'InstanceBuilder::build()' resolves it: '0' for
+     * objective 'Knapsack' (packing an item type is optional), 'copies' for
+     * every other objective (every copy of every item type must be packed).
+     */
+    ItemPos copies_min = -1;
+
     /** Dimensions of the item type. */
     Rectangle rect;
 

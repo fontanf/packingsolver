@@ -266,6 +266,7 @@ void Instance::write_csv(
         "X,"
         "PROFIT,"
         "COPIES,"
+        "COPIES_MIN,"
         "WEIGHT,"
         "NESTING_LENGTH,"
         "MAXIMUM_STACKABILITY,"
@@ -279,6 +280,7 @@ void Instance::write_csv(
             << item_type.length << ","
             << item_type.profit << ","
             << item_type.copies << ","
+            << item_type.copies_min << ","
             << item_type.weight << ","
             << item_type.nesting_length << ","
             << item_type.maximum_stackability << ","
@@ -384,6 +386,7 @@ void Instance::write_json(
         json_item_type["profit"] = item_type.profit;
         json_item_type["weight"] = item_type.weight;
         json_item_type["copies"] = item_type.copies;
+        json_item_type["copies_min"] = item_type.copies_min;
         json_item_type["nesting_length"] = item_type.nesting_length;
         if (item_type.maximum_stackability != std::numeric_limits<ItemPos>::max())
             json_item_type["maximum_stackability"] = item_type.maximum_stackability;

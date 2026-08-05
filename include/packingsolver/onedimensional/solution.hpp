@@ -69,7 +69,15 @@ public:
         instance_(&instance),
         bin_copies_(instance.number_of_bin_types(), 0),
         item_copies_(instance.number_of_item_types(), 0)
-    { }
+    {
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < instance.number_of_item_types();
+                ++item_type_id) {
+            if (instance.item_type(item_type_id).copies_min > 0)
+                number_of_infeasible_item_copies_min_++;
+        }
+        feasible_ = (number_of_infeasible_item_copies_min_ == 0);
+    }
 
     void append(
             const Solution& solution,
@@ -171,6 +179,12 @@ public:
     /** Get the number of copies of an item type in the solution. */
     inline ItemPos item_copies(ItemTypeId item_type_id) const { return item_copies_[item_type_id]; }
 
+    /**
+     * Get the number of item types for which fewer than 'copies_min' copies
+     * have been packed.
+     */
+    inline ItemPos number_of_infeasible_item_copies_min() const { return number_of_infeasible_item_copies_min_; }
+
     /** Get a bin. */
     inline const SolutionBin& bin(BinPos bin_pos) const { return bins_[bin_pos]; }
 
@@ -239,6 +253,12 @@ private:
 
     /** Number of copies of each item type in the solution. */
     std::vector<ItemPos> item_copies_;
+
+    /**
+     * Number of item types for which fewer than 'copies_min' copies have
+     * been packed.
+     */
+    ItemPos number_of_infeasible_item_copies_min_ = 0;
 
     /** 'true' iff the solution satisfies the bin length capacity constraint. */
     bool capacity_feasible_ = true;

@@ -826,6 +826,7 @@ void Instance::write(
         const ItemType& item_type = this->item_type(item_type_id);
         json["item_types"][item_type_id]["profit"] = item_type.profit;
         json["item_types"][item_type_id]["copies"] = item_type.copies;
+        json["item_types"][item_type_id]["copies_min"] = item_type.copies_min;
         for (AnglePos angle_pos = 0;
                 angle_pos < (AnglePos)item_type.allowed_rotations.size();
                 ++angle_pos) {

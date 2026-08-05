@@ -315,6 +315,7 @@ ItemTypeId InstanceBuilder::add_item_type(
     item_type.rect.y = y;
     item_type.profit = x * y;
     item_type.copies = 1;
+    item_type.copies_min = -1;
     item_type.group_id = 0;
     item_type.oriented = oriented;
     instance_.item_types_.push_back(item_type);
@@ -425,6 +426,27 @@ void InstanceBuilder::set_item_type_copies(
     }
 
     instance_.item_types_[item_type_id].copies = copies;
+}
+
+void InstanceBuilder::set_item_type_copies_min(
+        ItemTypeId item_type_id,
+        ItemPos copies_min)
+{
+    if (item_type_id < 0 || item_type_id >= (ItemTypeId)instance_.item_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_type_id'; "
+                "item_type_id: " + std::to_string(item_type_id) + "; "
+                "instance_.item_types_.size(): " + std::to_string(instance_.item_types_.size()) + ".");
+    }
+    if (copies_min < -1) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "item 'copies_min' must be >= -1; "
+                "copies_min: " + std::to_string(copies_min) + ".");
+    }
+
+    instance_.item_types_[item_type_id].copies_min = copies_min;
 }
 
 void InstanceBuilder::set_item_types_unweighted()
@@ -704,6 +726,7 @@ void InstanceBuilder::read_item_types(
         Profit profit = -1;
         Weight weight = 0;
         ItemPos copies = 1;
+        ItemPos copies_min = -1;
         bool oriented = false;
         GroupId group_id = 0;
 
@@ -718,6 +741,8 @@ void InstanceBuilder::read_item_types(
                 weight = (Weight)std::stod(line[i]);
             } else if (labels[i] == "COPIES") {
                 copies = (ItemPos)std::stol(line[i]);
+            } else if (labels[i] == "COPIES_MIN") {
+                copies_min = (ItemPos)std::stol(line[i]);
             } else if (labels[i] == "ORIENTED") {
                 oriented = (bool)std::stol(line[i]);
             } else if (labels[i] == "GROUP_ID") {
@@ -745,6 +770,7 @@ void InstanceBuilder::read_item_types(
                 oriented);
         this->set_item_type_profit(item_type_id, profit);
         this->set_item_type_copies(item_type_id, copies);
+        this->set_item_type_copies_min(item_type_id, copies_min);
         this->set_item_type_group(
                 item_type_id,
                 group_id);
@@ -768,7 +794,19 @@ Instance InstanceBuilder::build()
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
-        const ItemType& item_type = instance_.item_type(item_type_id);
+        ItemType& item_type = instance_.item_types_[item_type_id];
+        // Resolve copies_min.
+        if (item_type.copies_min == -1) {
+            item_type.copies_min = (instance_.objective() == Objective::Knapsack)?
+                0: item_type.copies;
+        }
+        if (item_type.copies_min > item_type.copies) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has "
+                    "'copies_min' (" + std::to_string(item_type.copies_min) + ") "
+                    "> 'copies' (" + std::to_string(item_type.copies) + ").");
+        }
         // Update number_of_items_.
         instance_.number_of_items_ += item_type.copies;
         // Update item_profit_.

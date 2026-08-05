@@ -450,6 +450,7 @@ void Instance::write(
         "HEIGHT,"
         "PROFIT,"
         "COPIES,"
+        "COPIES_MIN,"
         "ORIENTED,"
         "GROUP_ID,"
         "WEIGHT" << std::endl;
@@ -463,6 +464,7 @@ void Instance::write(
             << item_type.rect.y << ","
             << item_type.profit << ","
             << item_type.copies << ","
+            << item_type.copies_min << ","
             << item_type.oriented << ","
             << item_type.group_id << ","
             << item_type.weight << std::endl;
