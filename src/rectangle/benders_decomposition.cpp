@@ -4,6 +4,7 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/optimize.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
+#include "rectangle/bar_relaxation.hpp"
 
 #include "onedimensional/milp_assignment.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
@@ -116,93 +117,142 @@ bool item_type_fits_footprint_of(
 }
 
 /**
- * Lift a no-good cut: for every item type not already in the cut that
- * both fits this bin type and dominates (via 'item_type_fits_footprint_of'
- * - the dominated item type, in any orientation it is allowed to use,
- * fits within the dominating one's footprint, i.e. wherever the dominated
- * item type could be placed, the dominating one could occupy at least
- * that much space too) one or more item types already in the cut, return
- * one *additional, separate* cut - the original cut's entries plus that
- * one item type added with a threshold equal to the sum of the
- * thresholds of every item type in the cut it dominates, capacity
- * unchanged.
+ * Lift a no-good cut via the sequential lifting procedure of Balas (1975)
+ * and Wolsey (1975), as adapted by Côté, Haouari & Iori (2021), Section 7.3
+ * ("Lifting the Cut", their Algorithm 2): starting from 'S := C' (the
+ * original cut's item types, each worth profit 1 per copy up to its
+ * threshold), visit every item type not already in the cut, in id order,
+ * and compute how many "covering units" it is worth by solving a 2D
+ * knapsack that forces one copy of it into the bin alongside the best
+ * achievable selection from 'S'. The paper solves that knapsack exactly
+ * (2D-KP); this uses the bar relaxation ('bar_relaxation.hpp', Scheithauer
+ * 1999) instead, the same substitution the paper itself makes for the same
+ * reason (2D-KP is NP-hard, the bar relaxation is not) via its "2D-UKP".
  *
- * Each lifted item type becomes its own separate cut/row rather than all
- * being merged into 'original_cut' as one shared row: a single dominator
- * added alone is sound (see below), but combining *several different*
- * dominating item types into one shared row is not, even though each
- * individually passes the same check. Counterexample: with a base cut
- * {0:1, 7:1, 19:1, 30:1, 49:1} (capacity 4), two unrelated item types A
- * and B might each independently dominate exactly {0, 7, 19, 49} (not
- * 30), each getting threshold 4 on its own. Merged into one row, a
- * selection of 3 copies of A plus 2 copies of B (5 total, each
- * individually still under its own threshold of 4) trips
- * 'sum(min(count, threshold)) = 3 + 2 = 5 > capacity = 4' *without* item
- * 30 present and *without* either A or B alone reaching a complete
- * covering of {0, 7, 19, 49} - i.e. without any actual disjoint
- * substitution of the original 5-item selection existing. The row's
- * capacity was only ever calibrated for *one* additional "pathway" (the
- * original items themselves) reaching the combined threshold; adding a
- * second, independent pathway to the same shared budget lets the sum
- * cross it via a combination neither pathway individually justifies.
+ * Concretely, for candidate j*: let 'm' be the running total of 'S' (sum of
+ * each entry's threshold, i.e. the original cut's capacity + 1, plus every
+ * previously lifted item's own coefficient). Solve a Knapsack instance on
+ * this bin type with every item type in 'S' at its tracked (copies,
+ * profit) - profit 1 per copy for the original cut's items, or a lifted
+ * item's own coefficient for exactly 1 copy (see below) - plus j* forced
+ * into exactly 1 copy via 'copies_min' (a hard bound, not a profit
+ * incentive: bar_relaxation is only a linear relaxation, so a sufficiently
+ * high profit only guarantees j* wins the *aggregate* trade-off against
+ * everything 'S' could contribute in total - it says nothing about the
+ * *marginal*, per-unit-of-shared-capacity trade-off the LP actually
+ * optimizes over, which a single very dense item already in 'S', e.g. a
+ * previously-lifted one with a large coefficient on a small footprint,
+ * could still win, leaving j* selected fractionally below 1 - so
+ * 'copies_min' is the only mechanism that actually guarantees j*'s
+ * quantity reaches 1 at the optimum), at profit 0 (j*'s own real profit is
+ * irrelevant here - only 'S''s achievable profit alongside its forced
+ * presence matters). The reported bound is then exactly 'S''s contribution
+ * alongside that forced copy - a valid (since the bar relaxation is itself
+ * a relaxation) upper bound on the exact 2D-KP value the paper calls for.
+ * The lift coefficient is then 'alpha = max(0, m - 1 - that bound)',
+ * floored to the nearest integer below it (never above: the true,
+ * exact-2D-KP-based coefficient is itself an integer at least as large as
+ * any valid upper-bound-based estimate of it, so rounding down can only
+ * make this estimate more conservative, never unsound). If alpha > 0, j*
+ * joins 'S' - contributing exactly 1 copy at profit 'alpha' to every
+ * future candidate's knapsack (not 'alpha' copies at profit 1: unlike the
+ * original cut's items, which really do represent that many physical
+ * units, j* is a single physical item whose *equivalent covering worth*
+ * happens to be 'alpha') - and is appended to the same, single cut being
+ * built, with its own row contribution capped at 'alpha' via
+ * 'threshold_schedule' exactly as for the original items.
  *
- * A single dominator D (with combined threshold t = sum of the
- * thresholds of everything it dominates) added *alone* avoids this: the
- * row can only exceed 'capacity = (sum of original thresholds) - 1' via
- * either (a) every original item present (the base case), or (b) D
- * reaching its own full threshold t (fully covering everything it
- * dominates) *together with* every original item it does *not* dominate
- * also present - both of which correspond to an actual complete,
- * disjoint substitution of the original selection, sound by the reverse
- * of the exchange argument used for item type precedences (see
- * 'compute_item_type_precedences' - there, a smaller-or-equal,
- * higher-or-equal-profit substitute is swapped *in* because it always
- * fits in the freed space; here it must be swapped the other way:
- * substituting a *larger*-or-equal item type in place of a dominated one
- * can only ever require as much or more room, never less, for the result
- * to still be provably infeasible).
+ * Unlike a purely geometric domination check (fits within the footprint of
+ * some subset of 'S', therefore forces at least that much room), this
+ * needs no notion of "dominates": the relaxation bound already accounts
+ * for every item type in 'S' at once, so nothing here is unsound the way
+ * merging several independently-computed dominators into one shared row
+ * would be. It also generalizes cleanly to non-geometric infeasibility
+ * (e.g. a weight or axle-load limit the original cut's infeasibility proof
+ * actually turned on): the bar relaxation is a valid upper bound on the
+ * exact 2D knapsack value regardless of which other constraints made 'C'
+ * infeasible in the first place, since dropping constraints from a
+ * relaxation can only raise that bound, never lower it below the truth.
  */
-std::vector<ResourceCut> lift_no_good_cut(
+ResourceCut lift_no_good_cut(
         const ResourceCut& original_cut,
         const Instance& instance,
-        BinTypeId bin_type_id)
+        BinTypeId bin_type_id,
+        const BendersDecompositionParameters& parameters)
 {
-    std::vector<std::pair<ItemTypeId, ItemPos>> original_thresholds;
-    original_thresholds.reserve(original_cut.consumption.size());
+    struct SEntry
+    {
+        ItemTypeId item_type_id;
+        ItemPos copies;
+        double profit;
+    };
+
     std::vector<bool> in_cut(instance.number_of_item_types(), false);
+    std::vector<SEntry> s_entries;
+    double m = original_cut.capacity + 1.0;
     for (const std::pair<ItemTypeId, std::vector<double>>& entry: original_cut.consumption) {
-        original_thresholds.push_back({entry.first, (ItemPos)entry.second.size() - 1});
+        ItemPos threshold = (ItemPos)entry.second.size() - 1;
+        s_entries.push_back({entry.first, threshold, 1.0});
         in_cut[entry.first] = true;
     }
 
-    std::vector<ResourceCut> lifted_cuts;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        if (in_cut[item_type_id])
+    ResourceCut lifted_cut = original_cut;
+    for (ItemTypeId candidate_id = 0;
+            candidate_id < instance.number_of_item_types();
+            ++candidate_id) {
+        if (in_cut[candidate_id])
             continue;
-        if (!instance.item_type_fits_bin_type(item_type_id, bin_type_id))
+        if (!instance.item_type_fits_bin_type(candidate_id, bin_type_id))
             continue;
-        const ItemType& item_type = instance.item_type(item_type_id);
-        ItemPos combined_threshold = 0;
-        for (const std::pair<ItemTypeId, ItemPos>& dominated: original_thresholds) {
-            const ItemType& dominated_item_type = instance.item_type(dominated.first);
-            // 'item_type' (the candidate being lifted in) must be at
-            // least as large as 'dominated_item_type' - i.e. the
-            // dominated one must fit within *its* footprint, not the
-            // other way around - so that substituting it in can only
-            // ever require as much or more room.
-            if (item_type_fits_footprint_of(dominated_item_type, item_type))
-                combined_threshold += dominated.second;
+        if (parameters.timer.needs_to_end())
+            break;
+
+        InstanceBuilder sub_instance_builder;
+        sub_instance_builder.set_objective(Objective::Knapsack);
+        sub_instance_builder.set_parameters(instance.parameters());
+        BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+        sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
+        sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+        for (const SEntry& s_entry: s_entries) {
+            ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance, s_entry.item_type_id);
+            sub_instance_builder.set_item_type_profit(sub_item_type_id, s_entry.profit);
+            sub_instance_builder.set_item_type_copies(sub_item_type_id, s_entry.copies);
         }
-        if (combined_threshold > 0) {
-            ResourceCut lifted_cut = original_cut;
+        // j* forced into exactly 1 copy via 'copies_min', at profit 0 (see
+        // the function-level comment above for why a profit incentive
+        // cannot substitute for this).
+        ItemTypeId sub_candidate_id = sub_instance_builder.add_item_type(instance, candidate_id);
+        sub_instance_builder.set_item_type_profit(sub_candidate_id, 0.0);
+        sub_instance_builder.set_item_type_copies(sub_candidate_id, 1);
+        sub_instance_builder.set_item_type_copies_min(sub_candidate_id, 1);
+        Instance sub_instance = sub_instance_builder.build();
+
+        BarRelaxationParameters bar_relaxation_parameters;
+        bar_relaxation_parameters.verbosity_level = 0;
+        bar_relaxation_parameters.timer = parameters.timer;
+        BarRelaxationOutput bar_relaxation_output = bar_relaxation(sub_instance, bar_relaxation_parameters);
+
+        // j* contributes 0 to the objective by construction, so the
+        // reported bound is exactly 'S''s contribution alongside it -
+        // no arithmetic needed to back a forced profit back out.
+        double s_contribution = bar_relaxation_output.knapsack_bound;
+        double alpha = m - 1.0 - s_contribution;
+        // '+ 1e-6' guards against floating-point noise from the LP solve
+        // rounding an exact integer value down (e.g. 3 computed as
+        // 2.9999999997): never enough to round a genuinely fractional
+        // value up to the next integer, which would overstate alpha and
+        // make the cut unsound.
+        ItemPos alpha_rounded = (alpha > 0.0)?
+            (ItemPos)std::floor(alpha + 1e-6) : 0;
+
+        if (alpha_rounded > 0) {
             lifted_cut.consumption.push_back(
-                    {item_type_id, threshold_schedule(combined_threshold)});
-            lifted_cuts.push_back(std::move(lifted_cut));
+                    {candidate_id, threshold_schedule(alpha_rounded)});
+            s_entries.push_back({candidate_id, 1, (double)alpha_rounded});
+            m += alpha_rounded;
         }
     }
-    return lifted_cuts;
+    return lifted_cut;
 }
 
 /**
@@ -1186,15 +1236,11 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                     }
                     resource_cut.capacity = (double)cut_size - 1;
 
-                    // The base cut, plus every lifted variant, are added
-                    // as separate rows (see 'lift_no_good_cut' - merging
-                    // several different dominating item types into one
-                    // shared row is unsound).
-                    std::vector<ResourceCut> cuts_to_add
-                        = lift_no_good_cut(resource_cut, instance, master_bin.bin_type_id);
-                    cuts_to_add.push_back(resource_cut);
-                    for (const ResourceCut& cut_to_add: cuts_to_add)
-                        no_good_cuts_by_bin_type[master_bin.bin_type_id].push_back(cut_to_add);
+                    // Sequentially lifted into a single, stronger cut (see
+                    // 'lift_no_good_cut').
+                    ResourceCut lifted_cut = lift_no_good_cut(
+                            resource_cut, instance, master_bin.bin_type_id, parameters);
+                    no_good_cuts_by_bin_type[master_bin.bin_type_id].push_back(std::move(lifted_cut));
                     all_cuts_proven_infeasible
                         = all_cuts_proven_infeasible && minimal_selection.proven;
                 }
