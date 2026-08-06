@@ -65,16 +65,24 @@ void Solution::update_indicators(
         }
 
         // Update bin.resource_consumption.
-        for (ResourceId resource_id = 0;
-                resource_id < bin_type.number_of_resources();
-                ++resource_id) {
+        for (ResourceId resource_id: item_type.resource_ids[bin.bin_type_id]) {
+            const Resource& resource = bin_type.resource(resource_id);
+            double previous_consumption = bin.resource_consumption[resource_id];
             bin.resource_consumption[resource_id]
-                += bin_type.item_resource_consumption(
+                += resource.item_consumption(
                         item.item_type_id,
-                        resource_id,
                         item_type_copies_in_bin[item.item_type_id]);
-            if (bin.resource_consumption[resource_id] > bin_type.resource_capacities[resource_id]) {
-                resource_feasible_ = false;
+            if (bin.resource_consumption[resource_id] > resource.capacity) {
+                if (resource.penalize) {
+                    // Charge the penalty only once per bin, the first time
+                    // consumption crosses the capacity (it never decreases
+                    // afterwards, so this check would otherwise keep firing
+                    // for every subsequent item added to the same bin).
+                    if (previous_consumption <= resource.capacity)
+                        item_profit_ -= resource.penalty;
+                } else {
+                    resource_feasible_ = false;
+                }
             }
         }
         ++item_type_copies_in_bin[item.item_type_id];

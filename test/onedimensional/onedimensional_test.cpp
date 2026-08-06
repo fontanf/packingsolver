@@ -41,7 +41,7 @@ TEST(OneDimensional, ResourceConsumptionCopiedFromOriginalInstance)
 
     EXPECT_EQ(sub_instance.bin_type(sub_bin_type_id).number_of_resources(), 1);
     EXPECT_EQ(
-            sub_instance.bin_type(sub_bin_type_id).item_resource_consumption(sub_item_type_id, 0, 0),
+            sub_instance.bin_type(sub_bin_type_id).resource(0).item_consumption(sub_item_type_id, 0),
             5.0);
 }
 
@@ -105,8 +105,8 @@ TEST(OneDimensional, WriteJsonRoundTripWithResource)
     EXPECT_EQ(read_instance.objective(), packingsolver::Objective::BinPacking);
     ASSERT_EQ(read_instance.number_of_bin_types(), 1);
     EXPECT_EQ(read_instance.bin_type(0).number_of_resources(), 1);
-    EXPECT_EQ(read_instance.bin_type(0).resource_capacities[0], 10.0);
-    EXPECT_EQ(read_instance.bin_type(0).item_resource_consumption(0, 0, 0), 5.0);
+    EXPECT_EQ(read_instance.bin_type(0).resource(0).capacity, 10.0);
+    EXPECT_EQ(read_instance.bin_type(0).resource(0).item_consumption(0, 0), 5.0);
 }
 
 TEST(OneDimensional, WriteCsvThrowsOnResource)

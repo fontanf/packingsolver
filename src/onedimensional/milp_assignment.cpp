@@ -160,7 +160,7 @@ struct MilpModel
      * added by callers (e.g. the rectangle Benders decomposition's no-good
      * cuts and pairwise-incompatibility cuts) be expressed as plain
      * resources instead of needing their own mechanism - see
-     * 'BinType::item_resource_consumptions'.
+     * 'Resource::item_consumptions'.
      */
     std::vector<std::vector<std::vector<std::vector<int>>>> x;
 };
@@ -318,6 +318,148 @@ std::vector<double> build_initial_solution(
         }
     }
     return initial_solution;
+}
+
+/**
+ * Add the MILP encoding of a 'penalize' resource (see 'Resource::penalize')
+ * to 'milp_model', for every bin instance of 'bin_type_id' - one binary
+ * "excess" variable psi_k per bin instance k, subtracting the resource's
+ * penalty from the objective whenever it is 1, plus the constraints forcing
+ * it to 1 whenever the resource's threshold is reached.
+ *
+ * Only a Jepsen et al. (2008)-style "at least 2 of a set of item-type units
+ * are packed together" shape is supported: 'resource.capacity == 1'
+ * (threshold 2), and every item type it involves capped at a contribution of
+ * 1 per copy up to some bound N, via a 'threshold_schedule(N)' schedule (N
+ * ones followed by a single trailing 0 - see 'threshold_schedule' in the
+ * rectangle Benders decomposition, or 'Resource::item_consumptions' for the
+ * general semantics). Throws if the resource does not have this shape.
+ *
+ * Since every copy of an item type is already its own separate binary
+ * variable (see 'build_milp_model's own "Variables: x_{i,t,k,c}" section:
+ * 'x_{i,t,k,c} == 1' iff at least 'c + 1' copies of item type i are packed,
+ * so under the "dominated copies" ordering, 'x_{i,t,k,0} + ... + x_{i,t,k,N-1}'
+ * is exactly the number - from 0 to N - of type i's copies present), each of
+ * the resource's first N copies of each item type is already a plain 0/1
+ * "is this particular unit present" indicator, exactly like Wang et al.
+ * (2025)'s individual items. "At least two (of any mix of units, whether
+ * from the same item type or different ones) are packed together" is then
+ * exactly their G2KP formulation's pairwise/clique linearization (their
+ * constraint (5c)), applied to the flattened list of every (item type,
+ * copy) unit the resource involves: for every pair of units {u, v} in that
+ * list,
+ *     x_u + x_v - psi_k <= 1,
+ * which forces 'psi_k' to 1 exactly when both are packed together, with no
+ * slack/tolerance needed (unlike a general excess-vs-capacity row, which
+ * would need an upper bound on the resource's own maximum possible
+ * consumption to relax by) - this holds for any finite set of 0/1
+ * variables, regardless of whether some of them happen to be different
+ * copies of the same item type. A pair is skipped if either unit has no
+ * variable at all for this bin instance (excluded by eligibility or by the
+ * "pigeonhole" bound): such a pair can never be packed together there, so
+ * the row would be vacuous anyway.
+ */
+void add_penalize_resource_constraints(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        ResourceId resource_id,
+        const Resource& resource,
+        BinPos number_of_bin_instances,
+        double multiplier_profit,
+        MilpModel& milp_model)
+{
+    if (resource.capacity != 1.0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "'penalize' resource " + std::to_string(resource_id) + " of bin type " +
+                std::to_string(bin_type_id) + " has capacity " + std::to_string(resource.capacity) +
+                " != 1; only 'at least 2 of a set of item-type units' penalize resources "
+                "(capacity == 1, every item type's consumption a 'threshold_schedule(N)' "
+                "for some N) are currently supported by the MILP model.");
+    }
+
+    // Every (item type, copy) unit the resource involves, flattened.
+    std::vector<std::pair<ItemTypeId, ItemPos>> resource_units;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        if (resource.item_consumption(item_type_id, 0) == 0.0)
+            continue;
+        // Validate the 'threshold_schedule(N)' shape: N ones then a single
+        // trailing 0 - anything else (e.g. an uncapped uniform consumption,
+        // or a non-0/1 value) is not expressible as 0/1 "unit" presence.
+        // Bounded by the item type's own total copies: no valid schedule
+        // needs to cap beyond that, and an uncapped (all-1) schedule would
+        // otherwise make this scan run forever ('item_consumption' repeats
+        // a schedule's last entry for every copy past its end).
+        ItemPos copies_bound = instance.item_type(item_type_id).copies;
+        ItemPos threshold = 0;
+        while (threshold <= copies_bound
+                && resource.item_consumption(item_type_id, threshold) == 1.0) {
+            ++threshold;
+        }
+        if (resource.item_consumption(item_type_id, threshold) != 0.0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "'penalize' resource " + std::to_string(resource_id) + " of bin type " +
+                    std::to_string(bin_type_id) + " does not use a 'threshold_schedule(N)' "
+                    "consumption for item type " + std::to_string(item_type_id) + "; only "
+                    "'at least 2 of a set of item-type units' penalize resources are "
+                    "currently supported by the MILP model.");
+        }
+        for (ItemPos copy = 0; copy < threshold; ++copy)
+            resource_units.push_back({item_type_id, copy});
+    }
+    if (resource_units.size() < 2)
+        return;
+
+    for (BinPos bin_instance_pos = 0;
+            bin_instance_pos < number_of_bin_instances;
+            ++bin_instance_pos) {
+        // Presence variable of every unit in the resource, for this bin
+        // instance, or -1 if that unit has no variable there at all.
+        std::vector<int> presence_variable_ids;
+        for (const auto& unit: resource_units) {
+            ItemTypeId item_type_id = unit.first;
+            ItemPos copy = unit.second;
+            const std::vector<std::vector<int>>& x_bin_type
+                = milp_model.x[item_type_id][bin_type_id];
+            int presence_variable_id = (!x_bin_type.empty()
+                    && copy < (ItemPos)x_bin_type[bin_instance_pos].size())?
+                x_bin_type[bin_instance_pos][copy]:
+                -1;
+            presence_variable_ids.push_back(presence_variable_id);
+        }
+
+        // psi_k variable.
+        int psi_variable_id = milp_model.model.variables_lower_bounds.size();
+        milp_model.model.variables_lower_bounds.push_back(0.0);
+        milp_model.model.variables_upper_bounds.push_back(1.0);
+        milp_model.model.variables_types.push_back(mathoptsolverscmake::VariableType::Binary);
+        milp_model.model.objective_coefficients.push_back(-resource.penalty / multiplier_profit);
+
+        // Pairwise constraints.
+        for (std::size_t a = 0; a < presence_variable_ids.size(); ++a) {
+            if (presence_variable_ids[a] == -1)
+                continue;
+            for (std::size_t b = a + 1; b < presence_variable_ids.size(); ++b) {
+                if (presence_variable_ids[b] == -1)
+                    continue;
+                // Initialize new row.
+                milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
+                // Add row elements.
+                milp_model.model.elements_variables.push_back(presence_variable_ids[a]);
+                milp_model.model.elements_coefficients.push_back(1.0);
+                milp_model.model.elements_variables.push_back(presence_variable_ids[b]);
+                milp_model.model.elements_coefficients.push_back(1.0);
+                milp_model.model.elements_variables.push_back(psi_variable_id);
+                milp_model.model.elements_coefficients.push_back(-1.0);
+                // Add row bounds.
+                milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+                milp_model.model.constraints_upper_bounds.push_back(1.0);
+            }
+        }
+    }
 }
 
 /**
@@ -666,7 +808,7 @@ MilpModel build_milp_model(
     // Without a 'y' variable: sum_{i,c} consumption_{i,r,c} * x_{i,t,k,c} <= capacity_{t,r}
     //
     // The consumption of the 'c'-th copy of an item type can depend on 'c'
-    // (see 'BinType::item_resource_consumptions'): a schedule that is 1 for
+    // (see 'Resource::item_consumptions'): a schedule that is 1 for
     // the first 'a' copies and 0 after makes the row's contribution from
     // that item type equal to 'min(count, a)', which keeps growing only
     // while count < a. This is what lets combinatorial cuts (no-good cuts,
@@ -675,6 +817,12 @@ MilpModel build_milp_model(
     // "cost per unit" resource could only cap the *combined* total of the
     // item types involved, wrongly excluding unrelated combinations using
     // more of one item type and none of another.
+    //
+    // 'penalize' resources (see 'Resource::penalize') are handled
+    // separately, below, only for the 'Knapsack' objective: a 'penalize'
+    // resource never blocks packing and never affects any other objective
+    // (see 'Solution::update_indicators'), so it is simply skipped when
+    // '!is_knapsack' - there would be nothing for it to constrain or cost.
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance.number_of_bin_types();
             ++bin_type_id) {
@@ -683,7 +831,21 @@ MilpModel build_milp_model(
         for (ResourceId resource_id = 0;
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
-            double capacity = bin_type.resource_capacities[resource_id];
+            const Resource& resource = bin_type.resource(resource_id);
+            if (resource.penalize) {
+                if (!is_knapsack)
+                    continue;
+                add_penalize_resource_constraints(
+                        instance,
+                        bin_type_id,
+                        resource_id,
+                        resource,
+                        number_of_bin_instances,
+                        multiplier_profit,
+                        milp_model);
+                continue;
+            }
+            double capacity = resource.capacity;
             for (BinPos bin_instance_pos = 0;
                     bin_instance_pos < number_of_bin_instances;
                     ++bin_instance_pos) {
@@ -697,7 +859,7 @@ MilpModel build_milp_model(
                         continue;
                     const std::vector<int>& slots = milp_model.x[item_type_id][bin_type_id][bin_instance_pos];
                     for (ItemPos copy = 0; copy < (ItemPos)slots.size(); ++copy) {
-                        double consumption = bin_type.item_resource_consumption(item_type_id, resource_id, copy);
+                        double consumption = resource.item_consumption(item_type_id, copy);
                         if (consumption == 0.0)
                             continue;
                         milp_model.model.elements_variables.push_back(slots[copy]);

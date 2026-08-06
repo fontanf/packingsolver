@@ -71,6 +71,19 @@ BranchingScheme::Node BranchingScheme::child_tmp(
 
     node.item_type_id = insertion.item_type_id;
 
+    // Compute item_number_of_copies, number_of_items, items_area,
+    // squared_item_length and profit. 'node.profit' is further adjusted
+    // below by any 'penalize' resource whose consumption crosses its
+    // capacity for the first time as a result of this insertion (see
+    // 'Resource::penalize'), mirroring 'Solution::update_indicators' so the
+    // search optimizes the same objective the final solution will report.
+    node.item_number_of_copies = parent.item_number_of_copies;
+    node.item_number_of_copies[insertion.item_type_id]++;
+    node.number_of_items = parent.number_of_items + 1;
+    node.item_length = parent.item_length + item_type.length;
+    node.squared_item_length = parent.squared_item_length + item_type.length * item_type.length;
+    node.profit = parent.profit + item_type.profit;
+
     // Update number_of_bins and last_bin_direction.
     if (insertion.new_bin) {  // New bin.
         node.number_of_bins = insertion.new_bin_pos + 1;
@@ -82,11 +95,14 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_remaining_weight = item_type.maximum_weight_after;
         node.last_bin_item_number_of_copies.assign(instance().number_of_item_types(), 0);
         node.last_bin_resource_consumption.assign(bin_type.number_of_resources(), 0.0);
-        for (ResourceId resource_id = 0;
-                resource_id < bin_type.number_of_resources();
-                ++resource_id) {
-            node.last_bin_resource_consumption[resource_id]
-                = bin_type.item_resource_consumption(insertion.item_type_id, resource_id, 0);
+        for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            const Resource& resource = bin_type.resource(resource_id);
+            double consumption = resource.item_consumption(insertion.item_type_id, 0);
+            node.last_bin_resource_consumption[resource_id] = consumption;
+            // The bin is empty before this insertion, so any crossing here
+            // is necessarily the first one.
+            if (resource.penalize && consumption > resource.capacity)
+                node.profit -= resource.penalty;
         }
         node.last_bin_item_number_of_copies[insertion.item_type_id] = 1;
     } else {  // Same bin.
@@ -104,25 +120,21 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         node.last_bin_item_number_of_copies = parent.last_bin_item_number_of_copies;
         ItemPos item_copy = node.last_bin_item_number_of_copies[insertion.item_type_id];
         node.last_bin_resource_consumption = parent.last_bin_resource_consumption;
-        for (ResourceId resource_id = 0;
-                resource_id < bin_type.number_of_resources();
-                ++resource_id) {
+        for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            const Resource& resource = bin_type.resource(resource_id);
+            double previous_consumption = node.last_bin_resource_consumption[resource_id];
             node.last_bin_resource_consumption[resource_id]
-                += bin_type.item_resource_consumption(insertion.item_type_id, resource_id, item_copy);
+                += resource.item_consumption(insertion.item_type_id, item_copy);
+            if (resource.penalize
+                    && node.last_bin_resource_consumption[resource_id] > resource.capacity
+                    && previous_consumption <= resource.capacity) {
+                node.profit -= resource.penalty;
+            }
         }
         node.last_bin_item_number_of_copies[insertion.item_type_id]++;
     }
 
     BinPos i = node.number_of_bins - 1;
-
-    // Compute item_number_of_copies, number_of_items, items_area,
-    // squared_item_length and profit.
-    node.item_number_of_copies = parent.item_number_of_copies;
-    node.item_number_of_copies[insertion.item_type_id]++;
-    node.number_of_items = parent.number_of_items + 1;
-    node.item_length = parent.item_length + item_type.length;
-    node.squared_item_length = parent.squared_item_length + item_type.length * item_type.length;
-    node.profit = parent.profit + item_type.profit;
 
     // Compute current_length, guide_length and width using uncovered_items.
     node.current_length = previous_bins_length_[i] + node.last_bin_length;
@@ -203,15 +215,18 @@ void BranchingScheme::insertion_item_same_bin(
     // Check maximum weight above.
     if (item_type.weight > parent->last_bin_remaining_weight * PSTOL)
         return;
-    // Check resource capacity.
+    // Check resource capacity. 'penalize' resources never block an
+    // insertion (see 'Resource::penalize'); the corresponding penalty is
+    // applied to 'node.profit' in 'child_tmp' instead.
     {
         ItemPos item_copy = parent->last_bin_item_number_of_copies[item_type_id];
-        for (ResourceId resource_id = 0;
-                resource_id < bin_type.number_of_resources();
-                ++resource_id) {
+        for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            const Resource& resource = bin_type.resource(resource_id);
+            if (resource.penalize)
+                continue;
             double consumption = parent->last_bin_resource_consumption[resource_id]
-                + bin_type.item_resource_consumption(item_type_id, resource_id, item_copy);
-            if (consumption > bin_type.resource_capacities[resource_id] * PSTOL)
+                + resource.item_consumption(item_type_id, item_copy);
+            if (consumption > resource.capacity * PSTOL)
                 return;
         }
     }
@@ -238,12 +253,15 @@ void BranchingScheme::insertion_item_new_bin(
     if (item_type.weight > bin_type.maximum_weight * PSTOL)
         return;
     // Check resource capacity (this item is the first copy of its type in
-    // the new bin).
-    for (ResourceId resource_id = 0;
-            resource_id < bin_type.number_of_resources();
-            ++resource_id) {
-        double consumption = bin_type.item_resource_consumption(item_type_id, resource_id, 0);
-        if (consumption > bin_type.resource_capacities[resource_id] * PSTOL)
+    // the new bin). 'penalize' resources never block an insertion (see
+    // 'Resource::penalize'); the corresponding penalty is applied to
+    // 'node.profit' in 'child_tmp' instead.
+    for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (resource.penalize)
+            continue;
+        double consumption = resource.item_consumption(item_type_id, 0);
+        if (consumption > resource.capacity * PSTOL)
             return;
     }
 
@@ -260,7 +278,40 @@ bool BranchingScheme::dominates(
 {
     if (node_1->item_type_id != node_2->item_type_id)
         return false;
-    return node_1->current_length <= node_2->current_length;
+    // 'last_bin_resource_consumption' only tracks the current (last) bin,
+    // and is only meaningfully comparable - index-for-index - between nodes
+    // on the exact same bin: 'bin_type_ids_' is a fixed, position-indexed
+    // sequence, so this also guarantees both nodes are packing into the
+    // same bin type (same resources, same capacities), which the argument
+    // below relies on (the same future insertion would otherwise not
+    // consume the same resources by the same amounts on both nodes).
+    if (node_1->number_of_bins != node_2->number_of_bins)
+        return false;
+    if (node_1->current_length > node_2->current_length)
+        return false;
+    // Without 'penalize' resources, 'profit' is a deterministic function of
+    // 'item_number_of_copies' alone (already forced equal by 'NodeHasher'
+    // before 'dominates' is even called), so comparing it here used to be
+    // redundant. A 'penalize' resource breaks that invariant: which items
+    // ended up sharing a bin - not just how many of each were packed
+    // overall - now affects profit (see 'Resource::penalize'), so it must
+    // be compared explicitly.
+    if (node_1->profit < node_2->profit)
+        return false;
+    // Every resource's consumption in the current bin: node_1 having no
+    // more than node_2's leaves it at least as much remaining capacity for
+    // every future insertion into this bin, for both hard and 'penalize'
+    // resources alike (a 'penalize' resource already crossed on node_1 is
+    // already accounted for above, via 'profit').
+    for (ResourceId resource_id = 0;
+            resource_id < (ResourceId)node_1->last_bin_resource_consumption.size();
+            ++resource_id) {
+        if (node_1->last_bin_resource_consumption[resource_id]
+                > node_2->last_bin_resource_consumption[resource_id]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
