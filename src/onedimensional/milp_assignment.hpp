@@ -27,6 +27,7 @@ struct MilpAssignmentOutput: Output
     /** Constructor. */
     MilpAssignmentOutput(const Instance& instance):
         Output(instance) { }
+
 };
 
 struct MilpAssignmentParameters: packingsolver::Parameters<Instance, Solution, Output>
@@ -68,12 +69,22 @@ struct MilpAssignmentParameters: packingsolver::Parameters<Instance, Solution, O
      *
      * Not used for other objectives.
      */
-    bool use_sequential_feasibility = false;
+    bool use_sequential_feasibility = true;
 };
 
+/**
+ * 'lower_bound': a known lower bound on the number of bins already
+ * established by the caller (e.g. a bound computed by another algorithm
+ * before this one runs), used only by the 'use_sequential_feasibility'
+ * scheme to seed its starting candidate bin count instead of always
+ * starting from scratch. Combined (via 'max') with 'output.bin_packing_bound'
+ * itself, so it is never unsound to pass a stale or overly conservative
+ * value.
+ */
 MilpAssignmentOutput milp_assignment(
         const Instance& instance,
-        const MilpAssignmentParameters& parameters = {});
+        const MilpAssignmentParameters& parameters = {},
+        BinPos lower_bound = 0);
 
 }
 }

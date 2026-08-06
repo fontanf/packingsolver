@@ -215,6 +215,17 @@ void Solution::append_bins(
     }
 }
 
+void Solution::append_empty_bin(
+        BinTypeId bin_type_id,
+        BinPos copies)
+{
+    SolutionBin new_bin;
+    new_bin.bin_type_id = bin_type_id;
+    new_bin.copies = copies;
+    bins_.push_back(new_bin);
+    update_indicators(bins_.size() - 1);
+}
+
 bool Solution::operator<(const Solution& solution) const
 {
     // Check feasibility.

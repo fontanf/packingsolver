@@ -508,7 +508,8 @@ void optimize_milp_assignment(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter,
-        onedimensional::Output* local_output)
+        onedimensional::Output* local_output,
+        BinPos lower_bound)
 {
     MilpAssignmentParameters ma_parameters;
     ma_parameters.verbosity_level = 0;
@@ -525,7 +526,7 @@ void optimize_milp_assignment(
             algorithm_formatter.update_bounds(ps_output);
         }
     };
-    milp_assignment(instance, ma_parameters);
+    milp_assignment(instance, ma_parameters, lower_bound);
 }
 
 }
@@ -812,13 +813,20 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
         std::unique_ptr<onedimensional::Output> local_output;
         if (deterministic)
             local_output = std::make_unique<onedimensional::Output>(instance);
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+        // Snapshot the bound established so far (currently just
+        // 'optimize_trivial_bound', which already ran synchronously above):
+        // seeds the sequential feasibility scheme's starting candidate
+        // instead of it always restarting from scratch.
+        BinPos milp_assignment_lower_bound = output.bin_packing_bound;
+        std::cout << "milp_assignment_lower_bound " << milp_assignment_lower_bound << std::endl;
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get(), milp_assignment_lower_bound]() {
             wrapper<decltype(&optimize_milp_assignment), optimize_milp_assignment>(
                     exception_ptr,
                     instance,
                     parameters,
                     algorithm_formatter,
-                    local_output);
+                    local_output,
+                    milp_assignment_lower_bound);
         });
         local_outputs.push_back(std::move(local_output));
     }

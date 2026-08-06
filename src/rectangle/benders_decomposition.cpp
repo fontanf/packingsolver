@@ -180,6 +180,7 @@ ResourceCut lift_no_good_cut(
         BinTypeId bin_type_id,
         const BendersDecompositionParameters& parameters)
 {
+    //std::cout << "lift_no_good_cut" << std::endl;
     struct SEntry
     {
         ItemTypeId item_type_id;
@@ -252,6 +253,7 @@ ResourceCut lift_no_good_cut(
             m += alpha_rounded;
         }
     }
+    //std::cout << "lift_no_good_cut end" << std::endl;
     return lifted_cut;
 }
 
@@ -1052,6 +1054,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
     for (output.number_of_iterations = 0;
             ;
             ++output.number_of_iterations) {
+        //std::cout << "iteration " << output.number_of_iterations << std::endl;
 
         // Check maximum number of iterations.
         if (parameters.maximum_number_of_iterations >= 0
@@ -1063,12 +1066,14 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
         onedimensional::Instance master_instance = build_master_instance(
                 instance, static_resources, item_type_precedences, bin_type_upper_bounds,
                 dff_cuts_by_bin_type, no_good_cuts_by_bin_type);
-        onedimensional::MilpAssignmentParameters master_parameters;
-        master_parameters.solver = parameters.solver;
-        master_parameters.verbosity_level = 0;
+        onedimensional::OptimizeParameters master_parameters;
+        master_parameters.verbosity_level = 1;
         master_parameters.timer = parameters.timer;
-        onedimensional::MilpAssignmentOutput master_output = onedimensional::milp_assignment(
+        master_parameters.use_milp_assignment = true;
+        //std::cout << "milp_assignment" << std::endl;
+        onedimensional::Output master_output = onedimensional::optimize(
                 master_instance, master_parameters);
+        //std::cout << "milp_assignment end" << std::endl;
 
         // Check end.
         if (parameters.timer.needs_to_end())
@@ -1141,8 +1146,10 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 dff_cuts_by_bin_type[master_bin.bin_type_id].push_back(resource_cut);
             }
         }
-        if (dff_violation_found)
+        if (dff_violation_found) {
+            //std::cout << "dff_violation_found" << std::endl;
             continue;
+        }
 
         // Pass 2: no bin had a dual-feasible-function violation; run the
         // actual geometric feasibility subproblem for every bin, adding one
