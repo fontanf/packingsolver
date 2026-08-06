@@ -262,9 +262,9 @@ Solution packingsolver::rectangleguillotine::minimize_number_of_stages(
                 instance, bin.bin_type_id, item_placements);
 
         if (bin_solution.number_of_different_bins() > 0) {
-            result.append(bin_solution, 0, bin.copies);
+            result.append_bin(bin_solution, 0, bin.copies);
         } else {
-            result.append(solution, bin_pos, bin.copies);
+            result.append_bin(solution, bin_pos, bin.copies);
         }
     }
 
@@ -581,7 +581,7 @@ Solution packingsolver::rectangleguillotine::sort_subplates(
                 bin.first_cut_orientation,
                 cut_thickness,
                 solution_builder);
-        result.append(solution_builder.build(), 0, bin.copies);
+        result.append_bin(solution_builder.build(), 0, bin.copies);
     }
 
     return result;

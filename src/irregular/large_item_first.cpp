@@ -211,7 +211,7 @@ LargeItemFirstOutput packingsolver::irregular::large_item_first(
 
     // Reconstruct and report the solution in the original instance.
     Solution solution(instance);
-    solution.append(
+    solution.append_bins(
             phase2_output.solution_pool.best(),
             phase2_to_orig_bin_type_ids,
             {});

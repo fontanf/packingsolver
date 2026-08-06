@@ -191,7 +191,7 @@ bool pack_item(
     bin_data[bin_pos].lambda.push_back(0.0);
 
     Solution bin_solution(instance);
-    bin_solution.append(solution, bin_pos, 1);
+    bin_solution.append_bin(solution, bin_pos, 1);
 
     bool bin_feasible = false;
     while (!bin_feasible) {
@@ -225,9 +225,9 @@ bool pack_item(
     Solution new_solution(instance);
     for (BinPos bp = 0; bp < solution.number_of_bins(); ++bp) {
         if (bp == bin_pos) {
-            new_solution.append(bin_solution, 0, 1);
+            new_solution.append_bin(bin_solution, 0, 1);
         } else {
-            new_solution.append(solution, bp, 1);
+            new_solution.append_bin(solution, bp, 1);
         }
     }
     solution = std::move(new_solution);

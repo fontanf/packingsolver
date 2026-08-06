@@ -338,13 +338,13 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
                     auto bppl_solution = bppl_solution_pool.best();
 
                     Solution kp_solution_tmp(bppl_instance);
-                    kp_solution_tmp.append(kp_solution, 0, 1);
+                    kp_solution_tmp.append_bin(kp_solution, 0, 1);
                     if (!(bppl_solution < kp_solution_tmp))
                         kp_solution = bppl_solution;
                 }
 
                 Solution kp_solution_orig(instance);
-                kp_solution_orig.append(kp_solution, 0, 1, {bin_type_id}, kp2orig);
+                kp_solution_orig.append_bin(kp_solution, 0, 1, {bin_type_id}, kp2orig);
                 solutions_cur[bin_type_id].first = kp_solution_orig;
                 solutions_cur[bin_type_id].second = kp_solution.profit();
                 output.all_patterns.push_back(kp_solution_orig);
@@ -359,7 +359,7 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
 
                     // Update current solution.
                     Solution solution_tmp = solution;
-                    solution_tmp.append(
+                    solution_tmp.append_bin(
                             kp_solution_orig,
                             0,
                             number_of_copies);
@@ -458,7 +458,7 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
             // Update partial_fixed_copies, then current solution.
             for (const auto& fixed_item: instance.bin_type(bin_type_id_best).fixed_items)
                 partial_fixed_copies[fixed_item.item_type_id] += number_of_copies;
-            solution.append(
+            solution.append_bin(
                     kp_solution_best,
                     0,
                     number_of_copies);

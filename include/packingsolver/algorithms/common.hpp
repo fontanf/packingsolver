@@ -457,7 +457,7 @@ Solution group_identical_bins(const Solution& solution)
 
     Solution grouped_solution(solution.instance());
     for (const BinGroup& group: groups)
-        grouped_solution.append(solution, group.original_bin_pos, group.total_copies);
+        grouped_solution.append_bin(solution, group.original_bin_pos, group.total_copies);
     return grouped_solution;
 }
 

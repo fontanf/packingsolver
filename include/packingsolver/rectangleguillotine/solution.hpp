@@ -99,14 +99,16 @@ public:
         feasible_ = (number_of_infeasible_item_copies_min_ == 0);
     }
 
-    void append(
+    /** Append a single bin of 'solution' (at 'bin_pos') to this solution. */
+    void append_bin(
             const Solution& solution,
             BinPos bin_pos,
             BinPos copies,
             const std::vector<BinTypeId>& bin_type_ids = {},
             const std::vector<ItemTypeId>& item_type_ids = {});
 
-    void append(
+    /** Append every bin of 'solution' to this solution. */
+    void append_bins(
             const Solution& solution,
             const std::vector<BinTypeId>& bin_type_ids,
             const std::vector<ItemTypeId>& item_type_ids);
