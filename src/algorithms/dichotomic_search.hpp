@@ -241,7 +241,7 @@ DichotomicSearchOutput<Instance, Solution, Output> dichotomic_search(
             // Save solution.
             Solution solution(instance);
             //std::cout << bpp_solution.number_of_items() << " " << bpp_solution.number_of_bins() << std::endl;
-            solution.append(bpp_solution, bin_types_bpp2ps, item_types_bpp2ps);
+            solution.append_bins(bpp_solution, bin_types_bpp2ps, item_types_bpp2ps);
             //std::cout << solution.number_of_items() << " " << solution.number_of_bins() << std::endl;
             //std::cout << &instance << std::endl;
             std::stringstream ss;

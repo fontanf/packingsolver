@@ -439,7 +439,7 @@ void Solution::update_indicators(
         && (number_of_infeasible_item_copies_min_ == 0);
 }
 
-void Solution::append(
+void Solution::append_bin(
         const Solution& solution,
         BinPos bin_pos,
         BinPos copies,
@@ -479,13 +479,13 @@ void Solution::append(
     update_indicators(bins_.size() - 1);
 }
 
-void Solution::append(
+void Solution::append_bins(
         const Solution& solution,
         const std::vector<BinTypeId>& bin_type_ids,
         const std::vector<ItemTypeId>& item_type_ids)
 {
     for (BinPos bin_pos = 0; bin_pos < solution.number_of_bins(); ++bin_pos)
-        append(solution, bin_pos, 1, bin_type_ids, item_type_ids);
+        append_bin(solution, bin_pos, 1, bin_type_ids, item_type_ids);
 }
 
 bool Solution::operator<(const Solution& solution) const

@@ -52,7 +52,7 @@ static Solution compute_shifted_solution(
 
         if (!shape::strictly_greater(dx, 0.0) && !shape::strictly_greater(dy, 0.0)) {
             //std::cout << "skip" << std::endl;
-            result.append(solution, bin_pos, solution_bin.copies);
+            result.append_bin(solution, bin_pos, solution_bin.copies);
             continue;
         }
 
@@ -82,9 +82,9 @@ static Solution compute_shifted_solution(
                 && overlapping.items_outside_bin.empty();
 
         if (feasible) {
-            result.append(shifted_bin, 0, solution_bin.copies);
+            result.append_bin(shifted_bin, 0, solution_bin.copies);
         } else {
-            result.append(solution, bin_pos, solution_bin.copies);
+            result.append_bin(solution, bin_pos, solution_bin.copies);
         }
     }
 

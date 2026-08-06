@@ -639,7 +639,7 @@ LinearProgrammingAnchorOutput packingsolver::irregular::linear_programming_ancho
             ++bin_pos) {
         const SolutionBin& solution_bin = initial_solution.bin(bin_pos);
         Solution initial_solution_cur(instance);
-        initial_solution_cur.append(initial_solution, bin_pos, 1);
+        initial_solution_cur.append_bin(initial_solution, bin_pos, 1);
         Solution new_solution_cur = ::linear_programming_anchor(
                 instance,
                 initial_solution_cur,
@@ -647,7 +647,7 @@ LinearProgrammingAnchorOutput packingsolver::irregular::linear_programming_ancho
                 y_weight,
                 parameters,
                 icd);
-        solution.append(
+        solution.append_bin(
                 new_solution_cur,
                 0,
                 solution_bin.copies);

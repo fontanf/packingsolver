@@ -1147,10 +1147,10 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                     bin_pos < solution_best.number_of_different_bins() - 2;
                     ++bin_pos) {
                 const SolutionBin& solution_bin = solution_best.bin(bin_pos);
-                solution.append(solution_best, bin_pos, solution_bin.copies);
+                solution.append_bin(solution_best, bin_pos, solution_bin.copies);
             }
             // Add last optimized bin.
-            solution.append(
+            solution.append_bin(
                     last_bin_output.solution_pool.best(),
                     0,
                     last_bin.copies,

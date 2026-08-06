@@ -89,7 +89,7 @@ BinPos compute_bin_instance_upper_bound(
         // 'bin_type_id' in 'instance'; 'sub_item_type_ids' maps its item
         // type ids back likewise.
         Solution solution(instance);
-        solution.append(sub_output.solution_pool.best(), {bin_type_id}, sub_item_type_ids);
+        solution.append_bins(sub_output.solution_pool.best(), {bin_type_id}, sub_item_type_ids);
         algorithm_formatter.update_solution(solution, "single bin type");
         if (instance.objective() == Objective::BinPacking) {
             algorithm_formatter.update_bin_packing_bound(sub_output.bin_packing_bound);
@@ -1258,7 +1258,7 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
 
             if (sub_output.solution_pool.best().full()) {
                 Solution solution(instance);
-                solution.append(sub_output.solution_pool.best(), {}, {});
+                solution.append_bins(sub_output.solution_pool.best(), {}, {});
                 std::stringstream ss;
                 ss << "MILP-A SF " << (number_of_bins - lower_bound)
                     << " " << sub_output.solution_pool.best_label();

@@ -672,7 +672,7 @@ std::vector<BinPos> compute_bin_type_upper_bounds_variable_sized_bin_packing(
         if (instance.number_of_bin_types() == 1
                 && (ItemTypeId)sub_item_type_ids.size() == instance.number_of_item_types()) {
             Solution solution(instance);
-            solution.append(sub_output.solution_pool.best(), {bin_type_id}, sub_item_type_ids);
+            solution.append_bins(sub_output.solution_pool.best(), {bin_type_id}, sub_item_type_ids);
             algorithm_formatter.update_solution(solution, "single bin type upper bound");
         }
 
@@ -1186,7 +1186,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             const Solution& sub_solution = sub_output.solution_pool.best();
 
             if (sub_solution.number_of_bins() > 0) {
-                solution.append(
+                solution.append_bin(
                         sub_solution,
                         0,  // bin_pos
                         1,  // copies

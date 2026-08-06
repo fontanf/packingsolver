@@ -186,7 +186,7 @@ std::vector<std::shared_ptr<const Column>> solution_to_columns(
             ++bin_pos) {
         BinTypeId bin_type_id = solution.bin(bin_pos).bin_type_id;
         Solution extra_solution(instance);
-        extra_solution.append(solution, bin_pos, 1);
+        extra_solution.append_bin(solution, bin_pos, 1);
         Column column;
         if (instance.objective() == Objective::VariableSizedBinPacking
                 || instance.objective() == Objective::BinPacking) {
@@ -294,7 +294,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             Column column;
 
             Solution extra_solution(instance_);
-            extra_solution.append(
+            extra_solution.append_bin(
                     kp_entry.solution,
                     0,
                     1,
@@ -399,7 +399,7 @@ Output column_generation(
                 BinPos value = std::round(pair.second);
                 if (value < 0.5)
                     continue;
-                solution.append(
+                solution.append_bin(
                         *std::static_pointer_cast<Solution>(column.extra),
                         0,
                         value);

@@ -139,12 +139,12 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
         Solution solution(instance);
         if (instance.objective() == Objective::BinPacking
                 || instance.objective() == Objective::BinPackingWithLeftovers) {
-            solution.append(
+            solution.append_bins(
                     sub_solution_pool.best(),
                     sub_to_orig_bin_type_ids,
                     {});
         } else {
-            solution.append(
+            solution.append_bin(
                     sub_solution_pool.best(),
                     0,  // bin_pos
                     1,  // copies
