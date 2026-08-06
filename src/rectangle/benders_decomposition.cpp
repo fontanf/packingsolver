@@ -23,7 +23,7 @@ namespace
  * bin type.
  *
  * A per-item-type consumption is a per-copy schedule (see
- * 'onedimensional::BinType::item_resource_consumptions'), not a single
+ * 'onedimensional::Resource::item_consumptions'), not a single
  * scalar: a dual-feasible-function cut is a plain linear inequality on item
  * counts, so a uniform (length-1) schedule is exact for it; a no-good cut
  * or pairwise-incompatibility cut instead needs "at least N copies of this

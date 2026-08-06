@@ -348,11 +348,16 @@ void Instance::write_json(
             for (ResourceId resource_id = 0;
                     resource_id < bin_type.number_of_resources();
                     ++resource_id) {
+                const Resource& resource = bin_type.resource(resource_id);
                 nlohmann::json json_resource;
-                json_resource["capacity"] = bin_type.resource_capacities[resource_id];
+                json_resource["capacity"] = resource.capacity;
+                if (resource.penalize) {
+                    json_resource["penalize"] = resource.penalize;
+                    json_resource["penalty"] = resource.penalty;
+                }
                 nlohmann::json json_consumptions = nlohmann::json::array();
                 const std::vector<std::vector<double>>& consumptions
-                    = bin_type.item_resource_consumptions[resource_id];
+                    = resource.item_consumptions;
                 for (ItemTypeId item_type_id = 0;
                         item_type_id < (ItemTypeId)consumptions.size();
                         ++item_type_id) {

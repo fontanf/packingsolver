@@ -73,15 +73,20 @@ public:
             BinTypeId bin_type_id,
             EligibilityId eligibility_id);
 
-    /** Add a resource to a bin type. Returns the resource's id (local to this bin type). */
+    /**
+     * Add a resource to a bin type. Returns the resource's id (local to this
+     * bin type). See 'Resource' for the meaning of 'penalize'/'penalty'.
+     */
     ResourceId add_bin_type_resource(
             BinTypeId bin_type_id,
-            double capacity);
+            double capacity,
+            bool penalize = false,
+            double penalty = 0.0);
 
     /**
      * Set an item type's consumption of a bin type's resource for the
      * 'item_copy'-th (0-indexed) copy of the item type; see
-     * 'BinType::item_resource_consumptions' for the exact semantics of a
+     * 'Resource::item_consumptions' for the exact semantics of a
      * copy past the last one explicitly set (it repeats the last one set).
      * Setting only 'item_copy == 0' gives the same, uniform consumption
      * regardless of how many copies are already packed - the common case.
