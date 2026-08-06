@@ -1149,11 +1149,11 @@ std::vector<BinPos> compute_bin_type_upper_bounds(
  * sequential feasibility scheme (see 'milp_assignment'): the first
  * 'number_of_bins' bins of 'instance', in the order bin types must be used
  * (mirrors the "bin usage order" constraint of the full 'BinPacking' MILP
- * model in 'build_milp_model', and the analogous sub-instance construction
- * in 'irregular::sequential_feasibility'). Bin types are added in the same
- * order as 'instance's own, starting from the first one, so the
- * sub-instance's bin type ids line up 1:1 with 'instance's - no remapping
- * is needed to append a sub-solution back onto 'instance'.
+ * model in 'build_milp_model'). Bin types are added in the same order as
+ * 'instance's own, starting from the first one, so the sub-instance's bin
+ * type ids line up 1:1 with 'instance's - no remapping is needed to relate
+ * a sub-solution back to 'instance' (see 'enforce_bin_type_order', used
+ * against this 1:1 correspondence once the sub-instance has been solved).
  */
 Instance build_sequential_feasibility_sub_instance(
         const Instance& instance,
@@ -1191,7 +1191,8 @@ Instance build_sequential_feasibility_sub_instance(
 
 MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
         const Instance& instance,
-        const MilpAssignmentParameters& parameters)
+        const MilpAssignmentParameters& parameters,
+        BinPos lower_bound)
 {
     MilpAssignmentOutput output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
@@ -1208,43 +1209,21 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
                 "currently supported.");
     }
 
-    // Determine, for each bin type, the number of bin instances of that type
-    // to consider in the MILP; see 'compute_bin_type_upper_bounds' and the
-    // functions it dispatches to.
-    std::vector<BinPos> bin_type_upper_bounds = compute_bin_type_upper_bounds(
-            instance, parameters, algorithm_formatter);
-    if (algorithm_formatter.end_boolean()) {
-        algorithm_formatter.end();
-        return output;
-    }
-
     // Sequential feasibility scheme (see 'MilpAssignmentParameters::
     // use_sequential_feasibility'): try candidate bin counts in increasing
-    // order starting at 'lower_bound + 1', each as a 'Feasibility' MILP
-    // (solved by a recursive call to 'milp_assignment' itself, which
-    // already fully supports that objective), stopping as soon as one is
-    // feasible. If the tree search pass above already found a full
-    // solution, candidates are only tried strictly below its bin count
-    // (testing it would be redundant, it is already known feasible) and,
-    // once every one of them has turned out infeasible, that solution is
-    // then proven optimal. Otherwise (no known upper bound yet) candidates
-    // keep increasing until one is found feasible or the timer ends.
+    // order starting at 'sequential_feasibility_lower_bound' (the better of
+    // 'output.bin_packing_bound' and the 'lower_bound' argument - see its
+    // own doc comment; both are genuine lower bounds, not proof that
+    // anything below them is infeasible, so the bound itself must be tried
+    // too, not skipped), each as a 'Feasibility' MILP (solved by a recursive
+    // call to 'milp_assignment' itself, which already fully supports that
+    // objective), stopping as soon as one is feasible or the timer ends.
     if (instance.objective() == Objective::BinPacking
             && parameters.use_sequential_feasibility) {
-        BinPos lower_bound = output.bin_packing_bound;
-        for (BinPos number_of_bins = lower_bound + 1; ; ++number_of_bins) {
+        BinPos sequential_feasibility_lower_bound = std::max(output.bin_packing_bound, lower_bound);
+        for (BinPos number_of_bins = sequential_feasibility_lower_bound; ; ++number_of_bins) {
             if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
                 break;
-
-            if (output.solution_pool.best().full()
-                    && number_of_bins >= output.solution_pool.best().number_of_bins()) {
-                // Every candidate strictly below the best known solution's
-                // bin count has been proven infeasible: that solution is
-                // optimal.
-                algorithm_formatter.update_bin_packing_bound(
-                        output.solution_pool.best().number_of_bins());
-                break;
-            }
 
             Instance sub_instance = build_sequential_feasibility_sub_instance(
                     instance, number_of_bins);
@@ -1258,9 +1237,9 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
 
             if (sub_output.solution_pool.best().full()) {
                 Solution solution(instance);
-                solution.append_bins(sub_output.solution_pool.best(), {}, {});
+                solution.append_bins(packingsolver::enforce_bin_type_order(sub_output.solution_pool.best()), {}, {});
                 std::stringstream ss;
-                ss << "MILP-A SF " << (number_of_bins - lower_bound)
+                ss << "MILP-A SF " << (number_of_bins - sequential_feasibility_lower_bound)
                     << " " << sub_output.solution_pool.best_label();
                 algorithm_formatter.update_solution(solution, ss.str());
                 algorithm_formatter.update_bin_packing_bound(number_of_bins);
@@ -1275,6 +1254,50 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
 
         algorithm_formatter.end();
         return output;
+    }
+
+    // Determine, for each bin type, the number of bin instances of that type
+    // to consider in the MILP; see 'compute_bin_type_upper_bounds' and the
+    // functions it dispatches to.
+    std::vector<BinPos> bin_type_upper_bounds = compute_bin_type_upper_bounds(
+            instance, parameters, algorithm_formatter);
+    if (algorithm_formatter.end_boolean()) {
+        algorithm_formatter.end();
+        return output;
+    }
+
+    // If some mandatory item type ('copies_min' > 0) has no eligible,
+    // capacity-fitting bin instance among 'bin_type_upper_bounds', the
+    // instance is trivially infeasible: 'build_milp_model' would otherwise
+    // give that item's "demand" constraint row zero variables (and, if no
+    // other item/bin pair creates any variable either - e.g. a single-item,
+    // single-bin-type 'Feasibility' sub-instance from the sequential
+    // feasibility scheme - the whole MILP ends up with zero columns, which
+    // HiGHS reports as 'kModelEmpty' rather than 'kInfeasible'). Detect and
+    // report this case directly instead of building and solving a model
+    // that can't answer it.
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        if (item_type.copies_min == 0)
+            continue;
+        bool has_eligible_bin = false;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            if (bin_type_upper_bounds[bin_type_id] == 0)
+                continue;
+            if (instance.item_type_fits_bin_type(item_type_id, bin_type_id)) {
+                has_eligible_bin = true;
+                break;
+            }
+        }
+        if (!has_eligible_bin) {
+            algorithm_formatter.update_is_proven_infeasible();
+            algorithm_formatter.end();
+            return output;
+        }
     }
 
     MilpModel milp_model = build_milp_model(

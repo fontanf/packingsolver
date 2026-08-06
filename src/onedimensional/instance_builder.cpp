@@ -889,6 +889,18 @@ Instance InstanceBuilder::build()
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance_.bin_type(bin_type_id);
+        // 'copies_min' only makes sense for 'VariableSizedBinPacking' (which
+        // bin types are mandatory to include). For 'BinPacking', bin type
+        // usage is entirely determined by the "bin usage order" constraint
+        // (see 'milp_assignment.cpp'), not by any per-type minimum.
+        if (instance_.objective() == Objective::BinPacking
+                && bin_type.copies_min > 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "bin type " + std::to_string(bin_type_id) + " has "
+                    "'copies_min' (" + std::to_string(bin_type.copies_min) + ") "
+                    "> 0, which is not supported for objective 'BinPacking'.");
+        }
         // Update bin_type.copies.
         if (bin_type.copies == -1)
             instance_.bin_types_[bin_type_id].copies = instance_.number_of_items();

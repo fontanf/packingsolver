@@ -461,4 +461,73 @@ Solution group_identical_bins(const Solution& solution)
     return grouped_solution;
 }
 
+/**
+ * Given a solution that may violate the "bin usage order" constraint (every
+ * bin type used before the last one actually used must be used up entirely -
+ * see e.g. 'onedimensional::Solution::bin_type_order_feasible'), return an
+ * equivalent solution that satisfies it: every bin type used before the last
+ * one actually used in 'solution' gets all of its 'copies' included (even
+ * the empty ones).
+ *
+ * Bin instances of the same type are interchangeable (identical capacity),
+ * so 'solution's own non-empty bins of a given type are simply carried
+ * over, in order, into that many of the type's slots; any remaining slots
+ * (for types before the last used one) are left empty. The domain-specific
+ * Solution must provide 'append_bin' (see 'group_identical_bins') and
+ * 'append_empty_bin(bin_type_id, copies)'.
+ *
+ * Useful when assembling a solution from a source that has no reason to
+ * respect this order on its own - e.g. 'onedimensional::milp_assignment's
+ * sequential feasibility scheme, whose recursive 'Feasibility' sub-MILP
+ * calls create no 'y' variable and so silently drop any bin instance that
+ * ends up empty, which could otherwise make a candidate look satisfiable by
+ * skipping mandatory earlier bin types.
+ */
+template <typename Solution>
+Solution enforce_bin_type_order(const Solution& solution)
+{
+    const auto& instance = solution.instance();
+
+    BinTypeId last_used_bin_type_id = -1;
+    for (BinPos bin_pos = 0;
+            bin_pos < solution.number_of_different_bins();
+            ++bin_pos) {
+        last_used_bin_type_id = std::max(
+                last_used_bin_type_id,
+                solution.bin(bin_pos).bin_type_id);
+    }
+    if (last_used_bin_type_id == -1)
+        return solution;
+
+    // Flatten 'solution's non-empty bins into one entry per physical bin
+    // instance (a bin with 'copies' > 1 stands for that many identical
+    // physical bins), grouped by bin type.
+    std::vector<std::vector<BinPos>> solution_bin_positions(instance.number_of_bin_types());
+    for (BinPos bin_pos = 0;
+            bin_pos < solution.number_of_different_bins();
+            ++bin_pos) {
+        const auto& bin = solution.bin(bin_pos);
+        for (BinPos copy = 0; copy < bin.copies; ++copy)
+            solution_bin_positions[bin.bin_type_id].push_back(bin_pos);
+    }
+
+    Solution new_solution(instance);
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id <= last_used_bin_type_id;
+            ++bin_type_id) {
+        const std::vector<BinPos>& positions = solution_bin_positions[bin_type_id];
+        // Every bin type strictly before the last used one must have all of
+        // its copies present (even empty ones); the last used type itself
+        // only needs however many 'solution' actually placed.
+        BinPos target_copies = (bin_type_id < last_used_bin_type_id)?
+            instance.bin_type(bin_type_id).copies:
+            (BinPos)positions.size();
+        for (BinPos copy = 0; copy < (BinPos)positions.size() && copy < target_copies; ++copy)
+            new_solution.append_bin(solution, positions[copy], 1);
+        if (target_copies > (BinPos)positions.size())
+            new_solution.append_empty_bin(bin_type_id, target_copies - (BinPos)positions.size());
+    }
+    return new_solution;
+}
+
 }
