@@ -1,0 +1,22 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "x": 20,
+            "y": 20,
+            "resources": [
+                {
+                    "capacity": 1,
+                    "penalize": true,
+                    "penalty": 100,
+                    "consumptions": [
+                        { "item_type_id": 0, "consumption_schedule": [1, 1, 0] }
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        { "x": 5, "y": 5, "oriented": true, "profit": 10, "copies": 2 }
+    ]
+}

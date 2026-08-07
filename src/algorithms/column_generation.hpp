@@ -1450,7 +1450,7 @@ Output column_generation(
     columngenerationsolver::Model cgs_model
         = get_model<Instance, InstanceBuilder, Solution, Output>(instance, output, pricing_function);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
-    cgslds_parameters.verbosity_level = 1;
+    cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = parameters.internal_diving;

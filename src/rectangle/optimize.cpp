@@ -5,6 +5,7 @@
 #include "rectangle/tree_search.hpp"
 #include "rectangle/tree_search_maximal_spaces.hpp"
 #include "rectangle/benders_decomposition.hpp"
+#include "rectangle/benders_decomposition_contiguity.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
 #include "rectangle/conservative_scales.hpp"
 #include "rectangle/bar_relaxation.hpp"
@@ -607,6 +608,37 @@ void optimize_benders_decomposition(
     benders_decomposition(instance, bd_parameters);
 }
 
+void optimize_benders_decomposition_contiguity(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter,
+        rectangle::Output* local_output)
+{
+    BendersDecompositionContiguityParameters bdc_parameters;
+    bdc_parameters.verbosity_level = 0;
+    bdc_parameters.timer = parameters.timer;
+    bdc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    bdc_parameters.optimization_mode = parameters.optimization_mode;
+    if (parameters.optimization_mode != OptimizationMode::Anytime)
+        bdc_parameters.maximum_number_of_iterations = parameters.not_anytime_benders_decomposition_contiguity_number_of_iterations;
+    bdc_parameters.new_solution_callback = [&algorithm_formatter, local_output](
+            const rectangle::Output& ps_output)
+    {
+        const BendersDecompositionContiguityOutput& psbdc_output
+            = static_cast<const BendersDecompositionContiguityOutput&>(ps_output);
+        std::stringstream ss;
+        ss << "BDC " << psbdc_output.number_of_iterations;
+        if (local_output != nullptr) {
+            local_output->solution_pool.add(psbdc_output.solution_pool.best(), ss.str());
+            local_output->update_bounds(psbdc_output);
+        } else {
+            algorithm_formatter.update_solution(psbdc_output.solution_pool.best(), ss.str());
+            algorithm_formatter.update_bounds(psbdc_output);
+        }
+    };
+    benders_decomposition_contiguity(instance, bdc_parameters);
+}
+
 }
 
 packingsolver::rectangle::Output packingsolver::rectangle::optimize(
@@ -761,6 +793,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
     bool use_benders_decomposition = parameters.use_benders_decomposition;
+    bool use_benders_decomposition_contiguity = parameters.use_benders_decomposition_contiguity;
     bool use_bar_relaxation = parameters.use_bar_relaxation;
     if (instance.number_of_bins() <= 1) {
         use_sequential_single_knapsack = false;
@@ -793,7 +826,8 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         if (!use_tree_search
                 && !use_tree_search_maximal_spaces
                 && !use_benders_decomposition
-                && !use_bar_relaxation) {
+                && !use_bar_relaxation
+                && !use_benders_decomposition_contiguity) {
             if ((instance.objective() == Objective::Knapsack
                         || instance.objective() == Objective::Feasibility)
                     && instance.parameters().unloading_constraint == UnloadingConstraint::None) {
@@ -829,6 +863,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
         use_benders_decomposition = false;
+        use_benders_decomposition_contiguity = false;
         use_bar_relaxation = false;
         // Automatic selection.
         if (!use_tree_search
@@ -854,6 +889,11 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         // Disable algorithms which are not available for this objective.
         use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
+        // Unlike 'use_benders_decomposition', 'benders_decomposition_contiguity'
+        // requires a single bin type used exactly once (see its own
+        // validation) - this branch is only reached when
+        // 'instance.number_of_bins() > 1'.
+        use_benders_decomposition_contiguity = false;
         // Automatic selection.
         if (!use_tree_search
                 && !use_sequential_single_knapsack
@@ -891,6 +931,9 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             use_column_generation = false;
         }
         use_dichotomic_search = false;
+        // 'benders_decomposition_contiguity' only supports 'Knapsack'/
+        // 'Feasibility' (see its own validation).
+        use_benders_decomposition_contiguity = false;
         if (instance.objective() == Objective::BinPackingWithLeftovers)
             use_benders_decomposition = false;
         if (instance.objective() == Objective::BinPackingWithLeftovers
@@ -932,6 +975,9 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     } else if (instance.objective() == Objective::VariableSizedBinPacking) {
         // Disable algorithms which are not available for this objective.
         use_tree_search_maximal_spaces = false;
+        // 'benders_decomposition_contiguity' only supports 'Knapsack'/
+        // 'Feasibility' (see its own validation).
+        use_benders_decomposition_contiguity = false;
         if (instance.number_of_bin_types() == 1) {
             if (use_dichotomic_search) {
                 use_dichotomic_search = false;
@@ -1039,6 +1085,23 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             local_output = std::make_unique<rectangle::Output>(instance);
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
             wrapper<decltype(&optimize_benders_decomposition), optimize_benders_decomposition>(
+                    exception_ptr,
+                    instance,
+                    parameters,
+                    algorithm_formatter,
+                    local_output);
+        });
+        local_outputs.push_back(std::move(local_output));
+    }
+    // Bender's decomposition (contiguity master).
+    if (use_benders_decomposition_contiguity) {
+        exception_ptr_list.push_front(std::exception_ptr());
+        std::exception_ptr& exception_ptr = exception_ptr_list.front();
+        std::unique_ptr<rectangle::Output> local_output;
+        if (deterministic)
+            local_output = std::make_unique<rectangle::Output>(instance);
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+            wrapper<decltype(&optimize_benders_decomposition_contiguity), optimize_benders_decomposition_contiguity>(
                     exception_ptr,
                     instance,
                     parameters,

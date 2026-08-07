@@ -15,11 +15,18 @@ struct RectangleTreeSearchTestParams
     fs::path defects_path;
     fs::path parameters_path;
     fs::path certificate_path;
+
+    /**
+     * Path to a JSON instance file; if non-empty, used instead of
+     * 'items_path'/'bins_path'/'defects_path'/'parameters_path' (needed for
+     * features with no CSV representation, e.g. resources).
+     */
+    fs::path instance_path;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const RectangleTreeSearchTestParams& test_params)
 {
-    os << test_params.items_path;
+    os << (!test_params.instance_path.empty()? test_params.instance_path: test_params.items_path);
     return os;
 }
 
@@ -29,10 +36,14 @@ TEST_P(RectangleTreeSearchTest, RectangleTreeSearch)
 {
     RectangleTreeSearchTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
-    instance_builder.read_item_types(test_params.items_path.string());
-    instance_builder.read_bin_types(test_params.bins_path.string());
-    instance_builder.read_defects(test_params.defects_path.string());
-    instance_builder.read_parameters(test_params.parameters_path.string());
+    if (!test_params.instance_path.empty()) {
+        instance_builder.read(test_params.instance_path.string());
+    } else {
+        instance_builder.read_item_types(test_params.items_path.string());
+        instance_builder.read_bin_types(test_params.bins_path.string());
+        instance_builder.read_defects(test_params.defects_path.string());
+        instance_builder.read_parameters(test_params.parameters_path.string());
+    }
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
@@ -93,4 +104,36 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_empty_bin" / "parameters.csv",
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_empty_bin" / "solution.csv",
+            }, {
+                // Resources have no CSV representation, so this fixture is
+                // read from JSON instead (see 'instance_path' above). Same
+                // fixture as 'benders_decomposition_test.cpp': a capacity-1
+                // resource with each item consuming 1 caps every bin to a
+                // single item, even though the bin is geometrically large
+                // enough to fit several - forcing 3 bins for 3 items.
+                fs::path(),
+                fs::path(),
+                fs::path(),
+                fs::path(),
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_resource_capacity" / "solution.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_resource_capacity" / "instance.json",
+            }, {
+                // Knapsack objective, item profit 10, resource capacity 1
+                // with penalty 100, uniform (single-entry, non-
+                // 'threshold_schedule(N)') consumption schedule - unlike
+                // 'benders_decomposition_contiguity_test.cpp''s own
+                // 'knapsack_penalize_resource' fixture, whose MILP-encoded
+                // 'penalize' resource requires the 'threshold_schedule(N)'
+                // shape instead, this uniform shape is exactly what
+                // 'tree_search'/'Solution::update_indicators' expect.
+                // Packing a 2nd item in the single available bin crosses
+                // the resource once (-100), so the solver should prefer
+                // packing just 1 item (profit 10) over 2 (profit
+                // 20 - 100 = -80).
+                fs::path(),
+                fs::path(),
+                fs::path(),
+                fs::path(),
+                fs::path("data") / "rectangle" / "tests" / "knapsack_penalize_resource_uniform" / "solution.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_penalize_resource_uniform" / "instance.json",
             }}));

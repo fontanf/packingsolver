@@ -124,4 +124,22 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(),
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_resource_capacity" / "solution.csv",
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_resource_capacity" / "instance.json",
+            }, {
+                // Same fixture as 'benders_decomposition_contiguity_test.cpp'
+                // ('knapsack_resource_capacity_one_item'): a capacity-1
+                // resource with each item consuming 1 caps the (single) bin
+                // to just 1 item, even though it is geometrically large
+                // enough to fit all 3 - unlike
+                // 'bin_packing_resource_capacity' above (multiple bins,
+                // 'BinPacking'), this is a single-bin 'Knapsack' instance,
+                // checking that the master's own resource handling (see
+                // 'build_master_instance' in 'benders_decomposition.cpp')
+                // agrees with 'benders_decomposition_contiguity''s own
+                // bespoke resource constraints on the same instance.
+                fs::path(),
+                fs::path(),
+                fs::path(),
+                fs::path(),
+                fs::path("data") / "rectangle" / "tests" / "knapsack_resource_capacity_one_item" / "solution.csv",
+                fs::path("data") / "rectangle" / "tests" / "knapsack_resource_capacity_one_item" / "instance.json",
             }}));
