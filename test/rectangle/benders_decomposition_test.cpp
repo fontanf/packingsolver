@@ -15,13 +15,20 @@ struct RectangleBendersDecompositionTestParams
     fs::path defects_path;
     fs::path parameters_path;
     fs::path certificate_path;
+
+    /**
+     * Path to a JSON instance file; if non-empty, used instead of
+     * 'items_path'/'bins_path'/'defects_path'/'parameters_path' (needed for
+     * features with no CSV representation, e.g. resources).
+     */
+    fs::path instance_path;
 };
 
 inline std::ostream& operator<<(
         std::ostream& os,
         const RectangleBendersDecompositionTestParams& test_params)
 {
-    os << test_params.items_path;
+    os << (!test_params.instance_path.empty()? test_params.instance_path: test_params.items_path);
     return os;
 }
 
@@ -31,10 +38,14 @@ TEST_P(RectangleBendersDecompositionTest, RectangleBendersDecomposition)
 {
     RectangleBendersDecompositionTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
-    instance_builder.read_item_types(test_params.items_path.string());
-    instance_builder.read_bin_types(test_params.bins_path.string());
-    instance_builder.read_defects(test_params.defects_path.string());
-    instance_builder.read_parameters(test_params.parameters_path.string());
+    if (!test_params.instance_path.empty()) {
+        instance_builder.read(test_params.instance_path.string());
+    } else {
+        instance_builder.read_item_types(test_params.items_path.string());
+        instance_builder.read_bin_types(test_params.bins_path.string());
+        instance_builder.read_defects(test_params.defects_path.string());
+        instance_builder.read_parameters(test_params.parameters_path.string());
+    }
     Instance instance = instance_builder.build();
 
     OptimizeParameters optimize_parameters;
@@ -99,4 +110,18 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangle" / "tests" / "knapsack_area_domination_mismatch" / "parameters.csv",
                 fs::path("data") / "rectangle" / "tests" / "knapsack_area_domination_mismatch" / "solution.csv",
+            }, {
+                // A capacity-1 resource with each item consuming 1 caps
+                // every bin to a single item, even though the bin is
+                // geometrically large enough to fit several - forcing 3
+                // bins for 3 items. Enforced entirely by the master's own
+                // MILP (see 'build_master_instance' in
+                // 'benders_decomposition.cpp'), so the geometric slave
+                // subproblem never even needs to consider the resource.
+                fs::path(),
+                fs::path(),
+                fs::path(),
+                fs::path(),
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_resource_capacity" / "solution.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_resource_capacity" / "instance.json",
             }}));

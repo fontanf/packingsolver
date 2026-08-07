@@ -341,6 +341,69 @@ void InstanceBuilder::add_defect(
     bin_type.defects.push_back(defect);
 }
 
+ResourceId InstanceBuilder::add_bin_type_resource(
+        BinTypeId bin_type_id,
+        double capacity,
+        bool penalize,
+        double penalty)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    ResourceId resource_id = bin_type.resources.size();
+    Resource resource;
+    resource.capacity = capacity;
+    resource.penalize = penalize;
+    resource.penalty = penalty;
+    bin_type.resources.push_back(resource);
+    return resource_id;
+}
+
+void InstanceBuilder::add_resource_consumption(
+        BinTypeId bin_type_id,
+        ResourceId resource_id,
+        ItemTypeId item_type_id,
+        ItemPos item_copy,
+        double consumption)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    if (resource_id < 0 || resource_id >= (ResourceId)bin_type.resources.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'resource_id'; "
+                "resource_id: " + std::to_string(resource_id) + "; "
+                "bin_type.resources.size(): " + std::to_string(bin_type.resources.size()) + ".");
+    }
+    if (item_copy < 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_copy'; "
+                "item_copy: " + std::to_string(item_copy) + ".");
+    }
+
+    std::vector<std::vector<double>>& item_consumptions = bin_type.resources[resource_id].item_consumptions;
+    if (item_type_id >= (ItemTypeId)item_consumptions.size())
+        item_consumptions.resize(item_type_id + 1);
+    std::vector<double>& schedule = item_consumptions[item_type_id];
+    if (item_copy >= (ItemPos)schedule.size())
+        schedule.resize(item_copy + 1, 0.0);
+    schedule[item_copy] = consumption;
+}
+
 BinTypeId InstanceBuilder::add_bin_type(
         const Instance& original_instance,
         BinTypeId original_bin_type_id)
@@ -372,6 +435,18 @@ BinTypeId InstanceBuilder::add_bin_type(
                 defect.pos.y,
                 defect.rect.w,
                 defect.rect.h);
+    }
+    // Copy resources (their consumptions are copied in 'add_item_type',
+    // which assumes the corresponding bin types have already been added).
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        add_bin_type_resource(
+                bin_type_id,
+                resource.capacity,
+                resource.penalize,
+                resource.penalty);
     }
     return bin_type_id;
 }
@@ -535,6 +610,36 @@ ItemTypeId InstanceBuilder::add_item_type(
     orig_to_sub_item_type_ids_[original_item_type_id] = item_type_id;
     set_item_type_profit(item_type_id, item_type.profit);
     set_item_type_copies(item_type_id, item_type.copies);
+    // Copy the consumption of this item type for the resources of
+    // already-added bin types. Assumes the relevant bin types have already
+    // been added via 'add_bin_type(original_instance, ...)'.
+    for (BinTypeId original_bin_type_id = 0;
+            original_bin_type_id < (BinTypeId)orig_to_sub_bin_type_ids_.size();
+            ++original_bin_type_id) {
+        BinTypeId sub_bin_type_id = orig_to_sub_bin_type_ids_[original_bin_type_id];
+        if (sub_bin_type_id == -1)
+            continue;
+        const BinType& original_bin_type = original_instance.bin_type(original_bin_type_id);
+        for (ResourceId resource_id = 0;
+                resource_id < original_bin_type.number_of_resources();
+                ++resource_id) {
+            const std::vector<std::vector<double>>& item_consumptions
+                = original_bin_type.resource(resource_id).item_consumptions;
+            if (original_item_type_id >= (ItemTypeId)item_consumptions.size())
+                continue;
+            const std::vector<double>& schedule = item_consumptions[original_item_type_id];
+            for (ItemPos item_copy = 0;
+                    item_copy < (ItemPos)schedule.size();
+                    ++item_copy) {
+                add_resource_consumption(
+                        sub_bin_type_id,
+                        resource_id,
+                        item_type_id,
+                        item_copy,
+                        schedule[item_copy]);
+            }
+        }
+    }
     return item_type_id;
 }
 
@@ -988,6 +1093,210 @@ void InstanceBuilder::read_item_types(
     }
 }
 
+void InstanceBuilder::read(
+        const std::string& instance_path)
+{
+    std::ifstream file(instance_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + instance_path + "\".");
+    }
+
+    nlohmann::json j;
+    file >> j;
+
+    if (!j.contains("objective")) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "missing \"objective\" field.");
+    }
+    {
+        std::string objective_string = j["objective"];
+        std::stringstream objective_ss(objective_string);
+        Objective objective;
+        objective_ss >> objective;
+        if (objective_ss.fail()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "unrecognized \"objective\" value \""
+                    + objective_string + "\".");
+        }
+        set_objective(objective);
+    }
+    if (j.contains("number_of_stages")) {
+        if (j["number_of_stages"].is_string()) {
+            set_number_of_stages_unlimited();
+        } else {
+            set_number_of_stages(j["number_of_stages"]);
+        }
+    }
+    if (j.contains("cut_type")) {
+        std::string cut_type_string = j["cut_type"];
+        std::stringstream ss(cut_type_string);
+        CutType cut_type;
+        ss >> cut_type;
+        set_cut_type(cut_type);
+    }
+    if (j.contains("first_stage_orientation")) {
+        std::string first_stage_orientation_string = j["first_stage_orientation"];
+        std::stringstream ss(first_stage_orientation_string);
+        CutOrientation first_stage_orientation;
+        ss >> first_stage_orientation;
+        set_first_stage_orientation(first_stage_orientation);
+    }
+    if (j.contains("minimum_distance_1_cuts"))
+        set_minimum_distance_1_cuts(j["minimum_distance_1_cuts"]);
+    if (j.contains("maximum_distance_1_cuts"))
+        set_maximum_distance_1_cuts(j["maximum_distance_1_cuts"]);
+    if (j.contains("minimum_distance_2_cuts"))
+        set_minimum_distance_2_cuts(j["minimum_distance_2_cuts"]);
+    if (j.contains("maximum_distance_2_cuts"))
+        set_maximum_distance_2_cuts(j["maximum_distance_2_cuts"]);
+    if (j.contains("minimum_waste_length"))
+        set_minimum_waste_length(j["minimum_waste_length"]);
+    if (j.contains("maximum_number_1_cuts"))
+        set_maximum_number_1_cuts(j["maximum_number_1_cuts"]);
+    if (j.contains("maximum_number_2_cuts"))
+        set_maximum_number_2_cuts(j["maximum_number_2_cuts"]);
+    if (j.contains("cut_through_defects"))
+        set_cut_through_defects(j["cut_through_defects"]);
+    if (j.contains("cut_thickness"))
+        set_cut_thickness(j["cut_thickness"]);
+    if (j.contains("cutting_costs")) {
+        Counter stage_id = 0;
+        for (const auto& json_cutting_cost: j["cutting_costs"]) {
+            set_fixed_cutting_cost(stage_id, json_cutting_cost["fixed"]);
+            set_variable_cutting_cost(stage_id, json_cutting_cost["variable"]);
+            ++stage_id;
+        }
+    }
+    if (j.contains("waste_cost"))
+        set_waste_cost(j["waste_cost"]);
+
+    // Read bin types.
+    for (const auto& json_bin_type: j["bin_types"]) {
+        Length width = json_bin_type["width"];
+        Length height = json_bin_type["height"];
+        BinTypeId bin_type_id = add_bin_type(width, height);
+        if (json_bin_type.contains("cost"))
+            set_bin_type_cost(bin_type_id, json_bin_type["cost"]);
+        if (json_bin_type.contains("copies"))
+            set_bin_type_copies(bin_type_id, json_bin_type["copies"]);
+        if (json_bin_type.contains("copies_min"))
+            set_bin_type_copies_min(bin_type_id, json_bin_type["copies_min"]);
+
+        {
+            Length bottom_trim = json_bin_type.value("bottom_trim", 0);
+            Length top_trim = json_bin_type.value("top_trim", 0);
+            Length left_trim = json_bin_type.value("left_trim", 0);
+            Length right_trim = json_bin_type.value("right_trim", 0);
+            TrimType bottom_trim_type = TrimType::Hard;
+            TrimType top_trim_type = TrimType::Soft;
+            TrimType left_trim_type = TrimType::Hard;
+            TrimType right_trim_type = TrimType::Soft;
+            if (json_bin_type.contains("bottom_trim_type")) {
+                std::string s = json_bin_type["bottom_trim_type"];
+                std::stringstream ss(s);
+                ss >> bottom_trim_type;
+            }
+            if (json_bin_type.contains("top_trim_type")) {
+                std::string s = json_bin_type["top_trim_type"];
+                std::stringstream ss(s);
+                ss >> top_trim_type;
+            }
+            if (json_bin_type.contains("left_trim_type")) {
+                std::string s = json_bin_type["left_trim_type"];
+                std::stringstream ss(s);
+                ss >> left_trim_type;
+            }
+            if (json_bin_type.contains("right_trim_type")) {
+                std::string s = json_bin_type["right_trim_type"];
+                std::stringstream ss(s);
+                ss >> right_trim_type;
+            }
+            add_trims(
+                    bin_type_id,
+                    left_trim,
+                    left_trim_type,
+                    right_trim,
+                    right_trim_type,
+                    bottom_trim,
+                    bottom_trim_type,
+                    top_trim,
+                    top_trim_type);
+        }
+
+        // Read defects.
+        if (json_bin_type.contains("defects")) {
+            for (const auto& json_defect: json_bin_type["defects"]) {
+                add_defect(
+                        bin_type_id,
+                        json_defect["x"],
+                        json_defect["y"],
+                        json_defect["width"],
+                        json_defect["height"]);
+            }
+        }
+
+        // Read resources.
+        if (json_bin_type.contains("resources")) {
+            for (const auto& json_resource: json_bin_type["resources"]) {
+                double capacity = json_resource["capacity"];
+                bool penalize = json_resource.value("penalize", false);
+                double penalty = json_resource.value("penalty", 0.0);
+                ResourceId resource_id = add_bin_type_resource(bin_type_id, capacity, penalize, penalty);
+                if (json_resource.contains("consumptions")) {
+                    for (const auto& json_consumption: json_resource["consumptions"]) {
+                        ItemTypeId item_type_id = json_consumption["item_type_id"];
+                        if (json_consumption.contains("consumption_schedule")) {
+                            // Per-copy consumption schedule (a copy past
+                            // the end of the schedule repeats its last
+                            // entry); see 'Resource::item_consumptions'.
+                            std::vector<double> schedule = json_consumption["consumption_schedule"];
+                            for (ItemPos item_copy = 0;
+                                    item_copy < (ItemPos)schedule.size();
+                                    ++item_copy) {
+                                add_resource_consumption(
+                                        bin_type_id,
+                                        resource_id,
+                                        item_type_id,
+                                        item_copy,
+                                        schedule[item_copy]);
+                            }
+                        } else {
+                            // Uniform consumption, regardless of how many
+                            // copies are already packed.
+                            double consumption = json_consumption["consumption"];
+                            add_resource_consumption(
+                                    bin_type_id,
+                                    resource_id,
+                                    item_type_id,
+                                    0,
+                                    consumption);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Read item types.
+    for (const auto& json_item_type: j["item_types"]) {
+        Length width = json_item_type["width"];
+        Length height = json_item_type["height"];
+        bool oriented = json_item_type.value("oriented", false);
+        StackId stack_id = json_item_type.value("stack_id", (StackId)-1);
+        ItemTypeId item_type_id = add_item_type(width, height, oriented, stack_id);
+        if (json_item_type.contains("profit"))
+            set_item_type_profit(item_type_id, json_item_type["profit"]);
+        if (json_item_type.contains("copies"))
+            set_item_type_copies(item_type_id, json_item_type["copies"]);
+        if (json_item_type.contains("copies_min"))
+            set_item_type_copies_min(item_type_id, json_item_type["copies_min"]);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Build /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -1184,6 +1493,31 @@ Instance InstanceBuilder::build()
             instance_.largest_bin_cost_ = bin_type.cost;
         // Update number_of_defects_.
         instance_.number_of_defects_ += bin_type.defects.size();
+    }
+
+    // Compute item_type.resource_ids (see its own doc comment).
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        instance_.item_types_[item_type_id].resource_ids.resize(instance_.number_of_bin_types());
+    }
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance_.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance_.bin_types_[bin_type_id];
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const Resource& resource = bin_type.resource(resource_id);
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < (ItemTypeId)resource.item_consumptions.size();
+                    ++item_type_id) {
+                if (!resource.item_consumptions[item_type_id].empty()) {
+                    instance_.item_types_[item_type_id].resource_ids[bin_type_id]
+                        .push_back(resource_id);
+                }
+            }
+        }
     }
 
     if (instance_.objective() == Objective::OpenDimensionX

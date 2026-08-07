@@ -1,6 +1,7 @@
 #include "packingsolver/onedimensional/instance.hpp"
 
 #include <algorithm>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
 

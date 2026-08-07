@@ -67,6 +67,9 @@ struct SolutionBin
      * node at depth >= number_of_stages with two or more item children.
      */
     bool cut_type_is_roadef2018 = false;
+
+    /** Resource consumption, indexed by resource_id. */
+    std::vector<double> resource_consumption;
 };
 
 bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
@@ -147,6 +150,9 @@ public:
     bool cut_through_defects_feasible() const { return cut_through_defects_feasible_; }
 
     bool item_copies_feasible() const { return item_copies_feasible_; }
+
+    /** Return 'true' iff the solution satisfies the resource capacity constraints. */
+    bool resource_feasible() const { return resource_feasible_; }
 
     bool callback_feasible() const { return callback_feasible_; }
 
@@ -320,6 +326,9 @@ private:
 
     /** Feasibility for item copy limits. */
     bool item_copies_feasible_ = true;
+
+    /** 'true' iff the solution satisfies the resource capacity constraints. */
+    bool resource_feasible_ = true;
 
     /** Feasibility according to the user feasibility callback. */
     bool callback_feasible_ = true;

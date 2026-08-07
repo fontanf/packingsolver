@@ -59,6 +59,7 @@ void Solution::update_indicators(
     full_area_ += bin.copies * bin_type.area();
     area_ = full_area_;
     second_leftover_value_ = 0;
+    bin.resource_consumption.assign(bin_type.number_of_resources(), 0.0);
 
     width_ = 0;
     height_ = 0;
@@ -72,6 +73,10 @@ void Solution::update_indicators(
             bin_type.rect.h - bin_type.top_trim);
     Counter subplate1curr_number_of_2_cuts = 0;
     Length subpalte1curr_end = -1;
+    // Number of copies of each item type already placed in this bin, so
+    // far, at the point each item below is processed - needed to look up
+    // the correct entry of a per-copy resource consumption schedule.
+    std::vector<ItemPos> item_type_copies_in_bin(instance().number_of_item_types(), 0);
     for (const SolutionNode& node: bin.nodes) {
         if (node.f != -1 && node.item_type_id >= 0) {
             number_of_items_ += bin.copies;
@@ -82,6 +87,31 @@ void Solution::update_indicators(
                     > instance().item_type(node.item_type_id).copies) {
                 item_copies_feasible_ = false;
             }
+
+            // Update bin.resource_consumption.
+            const ItemType& item_type = instance().item_type(node.item_type_id);
+            for (ResourceId resource_id: item_type.resource_ids[bin.bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                double previous_consumption = bin.resource_consumption[resource_id];
+                bin.resource_consumption[resource_id]
+                    += resource.item_consumption(
+                            node.item_type_id,
+                            item_type_copies_in_bin[node.item_type_id]);
+                if (bin.resource_consumption[resource_id] > resource.capacity) {
+                    if (resource.penalize) {
+                        // Charge the penalty only once per bin, the first
+                        // time consumption crosses the capacity (it never
+                        // decreases afterwards, so this check would
+                        // otherwise keep firing for every subsequent item
+                        // added to the same bin).
+                        if (previous_consumption <= resource.capacity)
+                            profit_ -= resource.penalty;
+                    } else {
+                        resource_feasible_ = false;
+                    }
+                }
+            }
+            ++item_type_copies_in_bin[node.item_type_id];
         }
 
         // Subtract residual area.
@@ -435,6 +465,7 @@ void Solution::update_indicators(
         && defects_feasible_
         && cut_through_defects_feasible_
         && item_copies_feasible_
+        && resource_feasible_
         && callback_feasible_
         && (number_of_infeasible_item_copies_min_ == 0);
 }
