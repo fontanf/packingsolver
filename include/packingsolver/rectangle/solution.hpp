@@ -43,6 +43,9 @@ struct SolutionBin
      * items.
      */
     std::vector<Weight> weight_weighted_sum;
+
+    /** Resource consumption, indexed by resource_id. */
+    std::vector<double> resource_consumption;
 };
 
 bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
@@ -158,6 +161,9 @@ public:
 
     /** Return 'true' iff no item type has been packed more than 'copies' times. */
     inline bool item_copies_feasible() const { return item_copies_feasible_; }
+
+    /** Return 'true' iff the solution satisfies the resource capacity constraints. */
+    inline bool resource_feasible() const { return resource_feasible_; }
 
     /** Get the total weight of the items of the solution. */
     inline Weight item_weight() const { return item_weight_; }
@@ -305,6 +311,9 @@ private:
 
     /** 'true' iff no item type has been packed more than 'copies' times. */
     bool item_copies_feasible_ = true;
+
+    /** 'true' iff the solution satisfies the resource capacity constraints. */
+    bool resource_feasible_ = true;
 
     /** Overweight for the middle axle weight constraints. */
     double middle_axle_overweight_ = 0;

@@ -853,6 +853,41 @@ onedimensional::Instance build_master_instance(
         for (const ResourceCut& cut: no_good_cuts_by_bin_type[bin_type_id]) {
             add_cut_as_resource(master_instance_builder, master_bin_type_id, cut);
         }
+
+        // Copy the original instance's own user-defined resources (as
+        // opposed to the cuts above, which are also encoded as resources
+        // but generated internally by this algorithm). Bin type and item
+        // type ids are numerically identical between 'instance' and the
+        // master (see the doc comment below), so no remapping is needed.
+        // Resources are enforced directly by the master's own MILP this
+        // way: the geometric slave subproblem never needs to know about
+        // them at all, since the master never proposes a bin assignment
+        // that violates one in the first place.
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const Resource& resource = bin_type.resource(resource_id);
+            ResourceId master_resource_id = master_instance_builder.add_bin_type_resource(
+                    master_bin_type_id,
+                    resource.capacity,
+                    resource.penalize,
+                    resource.penalty);
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < (ItemTypeId)resource.item_consumptions.size();
+                    ++item_type_id) {
+                const std::vector<double>& schedule = resource.item_consumptions[item_type_id];
+                for (ItemPos item_copy = 0;
+                        item_copy < (ItemPos)schedule.size();
+                        ++item_copy) {
+                    master_instance_builder.add_resource_consumption(
+                            master_bin_type_id,
+                            master_resource_id,
+                            item_type_id,
+                            item_copy,
+                            schedule[item_copy]);
+                }
+            }
+        }
     }
 
     // Fresh eligibility ids, local to this master instance, one per item
@@ -1193,10 +1228,17 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             const Solution& sub_solution = sub_output.solution_pool.best();
 
             if (sub_solution.number_of_bins() > 0) {
+                // 'master_bin.copies' identical physical bins share this
+                // exact item selection (that is what 'copies' > 1 on a
+                // single master 'SolutionBin' entry means): since the
+                // geometric check above only verifies one representative
+                // instance (checking it 'master_bin.copies' times would be
+                // redundant, they are all identical), every one of them
+                // must be reported here, not just the one verified.
                 solution.append_bin(
                         sub_solution,
                         0,  // bin_pos
-                        1,  // copies
+                        master_bin.copies,
                         {master_bin.bin_type_id},
                         sub_to_orig);
             }

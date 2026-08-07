@@ -58,7 +58,7 @@ TEST(OneDimensional, WriteCsvRoundTrip)
     const Instance instance = instance_builder.build();
 
     fs::path path = fs::temp_directory_path() / fs::unique_path();
-    instance.write(path.string(), InstanceFormat::Csv);
+    instance.write(path.string(), packingsolver::InstanceFormat::Csv);
 
     InstanceBuilder read_instance_builder;
     read_instance_builder.read_item_types(path.string() + "_items.csv");
@@ -94,7 +94,7 @@ TEST(OneDimensional, WriteJsonRoundTripWithResource)
 
     fs::path path = fs::temp_directory_path() / fs::unique_path();
     std::string json_path = path.string() + ".json";
-    instance.write(json_path, InstanceFormat::Json);
+    instance.write(json_path, packingsolver::InstanceFormat::Json);
 
     InstanceBuilder read_instance_builder;
     read_instance_builder.read(json_path);
@@ -120,7 +120,7 @@ TEST(OneDimensional, WriteCsvThrowsOnResource)
 
     fs::path path = fs::temp_directory_path() / fs::unique_path();
     EXPECT_THROW(
-            instance.write(path.string(), InstanceFormat::Csv),
+            instance.write(path.string(), packingsolver::InstanceFormat::Csv),
             std::invalid_argument);
 }
 
@@ -136,7 +136,7 @@ TEST(OneDimensional, WriteCsvThrowsOnEligibility)
 
     fs::path path = fs::temp_directory_path() / fs::unique_path();
     EXPECT_THROW(
-            instance.write(path.string(), InstanceFormat::Csv),
+            instance.write(path.string(), packingsolver::InstanceFormat::Csv),
             std::invalid_argument);
 }
 
@@ -152,7 +152,7 @@ TEST(OneDimensional, WriteCsvThrowsOnPrecedence)
 
     fs::path path = fs::temp_directory_path() / fs::unique_path();
     EXPECT_THROW(
-            instance.write(path.string(), InstanceFormat::Csv),
+            instance.write(path.string(), packingsolver::InstanceFormat::Csv),
             std::invalid_argument);
 }
 

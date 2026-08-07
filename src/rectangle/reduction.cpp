@@ -1270,26 +1270,25 @@ bool Reduction::applies(
     //   companions checked in isolation says nothing about whether it
     //   still holds once other items, chosen later and never part of that
     //   check, join the same bin.
-    bool weight_matters = instance.number_of_bin_types() == 1
-            && instance.bin_type(0).maximum_weight != std::numeric_limits<Weight>::infinity();
-    if (weight_matters) {
-        weight_matters = false;
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            if (instance.item_type(item_type_id).weight != 0) {
-                weight_matters = true;
-                break;
-            }
-        }
-    }
+    // - Resources: the exact same whole-bin argument as weight - a
+    //   resource's capacity is a per-bin aggregate over every item sharing
+    //   it, invisible to the per-group geometric checks here, and
+    //   'reduction_to_instance' does carry resources over (so a downstream
+    //   solve on the reduced instance would not silently ignore them), but
+    //   that is exactly the problem: with real companion items removed
+    //   from the reduced instance (only reinserted afterwards, by
+    //   'unreduce_solution'), a resource-aware downstream solve would
+    //   itself only ever see the validated-enlarged item's own
+    //   consumption, never its companions', so it could not correctly
+    //   enforce the resource's capacity across the bin either.
     return (instance.objective() == Objective::BinPacking
                 || instance.objective() == Objective::VariableSizedBinPacking
                 || instance.objective() == Objective::Feasibility)
             && instance.number_of_bin_types() == 1
             && instance.number_of_defects() == 0
             && instance.unloading_constraint() == UnloadingConstraint::None
-            && !weight_matters
+            && !instance.weight_matters()
+            && !instance.resources_matter()
             && parameters.reduce;
 }
 

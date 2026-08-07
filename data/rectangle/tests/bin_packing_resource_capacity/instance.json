@@ -1,0 +1,21 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {
+            "x": 20,
+            "y": 20,
+            "copies": 10,
+            "resources": [
+                {
+                    "capacity": 1,
+                    "consumptions": [
+                        { "item_type_id": 0, "consumption": 1 }
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        { "x": 5, "y": 5, "oriented": true, "copies": 3 }
+    ]
+}

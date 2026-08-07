@@ -1,6 +1,9 @@
 #include "packingsolver/rectangle/instance.hpp"
 
 #include <algorithm>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
@@ -263,6 +266,27 @@ bool Instance::all_item_types_oriented() const
     return true;
 }
 
+bool Instance::weight_matters() const
+{
+    if (number_of_bin_types() != 1)
+        return false;
+    if (bin_type(0).maximum_weight == std::numeric_limits<Weight>::infinity())
+        return false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        if (item_type(item_type_id).weight != 0)
+            return true;
+    }
+    return false;
+}
+
+bool Instance::resources_matter() const
+{
+    return number_of_bin_types() == 1
+        && bin_type(0).number_of_resources() > 0;
+}
+
 std::ostream& Instance::format(
         std::ostream& os,
         int verbosity_level) const
@@ -434,8 +458,56 @@ std::ostream& Instance::format(
 }
 
 void Instance::write(
+        const std::string& instance_path,
+        InstanceFormat format) const
+{
+    switch (format) {
+    case InstanceFormat::Csv:
+        write_csv(instance_path);
+        break;
+    case InstanceFormat::Json:
+        write_json(instance_path);
+        break;
+    }
+}
+
+void Instance::write_csv(
         const std::string& instance_path) const
 {
+    // Check every feature of the instance can actually be represented in
+    // the CSV format before writing anything (so a rejected write doesn't
+    // leave partial files behind).
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        if (this->item_type(item_type_id).eligibility_id != -1) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "item type " + std::to_string(item_type_id) + " has an "
+                    "eligibility id, which the CSV format cannot represent; "
+                    "use 'InstanceFormat::Json' instead.");
+        }
+    }
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        if (bin_type.number_of_resources() > 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "bin type " + std::to_string(bin_type_id) + " has "
+                    "resources, which the CSV format cannot represent; use "
+                    "'InstanceFormat::Json' instead.");
+        }
+        if (!bin_type.eligibility_ids.empty()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "bin type " + std::to_string(bin_type_id) + " has "
+                    "eligibility ids, which the CSV format cannot "
+                    "represent; use 'InstanceFormat::Json' instead.");
+        }
+    }
+
     // Export items.
     std::string items_path = instance_path + "_items.csv";
     std::ofstream f_items(items_path);
@@ -548,4 +620,111 @@ void Instance::write(
         << "unloading_constraint," << unloading_constraint() << std::endl
         << "leftover_mode," << parameters().leftover_mode << std::endl;
 
+}
+
+void Instance::write_json(
+        const std::string& instance_path) const
+{
+    nlohmann::json j;
+
+    {
+        std::stringstream ss;
+        ss << objective();
+        j["objective"] = ss.str();
+    }
+    {
+        std::stringstream ss;
+        ss << unloading_constraint();
+        j["unloading_constraint"] = ss.str();
+    }
+    {
+        std::stringstream ss;
+        ss << parameters().leftover_mode;
+        j["leftover_mode"] = ss.str();
+    }
+
+    j["bin_types"] = nlohmann::json::array();
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = this->bin_type(bin_type_id);
+        nlohmann::json json_bin_type;
+        json_bin_type["x"] = bin_type.rect.x;
+        json_bin_type["y"] = bin_type.rect.y;
+        json_bin_type["cost"] = bin_type.cost;
+        json_bin_type["copies"] = bin_type.copies;
+        json_bin_type["copies_min"] = bin_type.copies_min;
+        json_bin_type["maximum_weight"] = bin_type.maximum_weight;
+        json_bin_type["eligibility_ids"] = bin_type.eligibility_ids;
+
+        if (!bin_type.defects.empty()) {
+            json_bin_type["defects"] = nlohmann::json::array();
+            for (const Defect& defect: bin_type.defects) {
+                nlohmann::json json_defect;
+                json_defect["x"] = defect.pos.x;
+                json_defect["y"] = defect.pos.y;
+                json_defect["width"] = defect.rect.x;
+                json_defect["height"] = defect.rect.y;
+                json_bin_type["defects"].push_back(json_defect);
+            }
+        }
+
+        if (bin_type.number_of_resources() > 0) {
+            json_bin_type["resources"] = nlohmann::json::array();
+            for (ResourceId resource_id = 0;
+                    resource_id < bin_type.number_of_resources();
+                    ++resource_id) {
+                const Resource& resource = bin_type.resource(resource_id);
+                nlohmann::json json_resource;
+                json_resource["capacity"] = resource.capacity;
+                json_resource["penalize"] = resource.penalize;
+                json_resource["penalty"] = resource.penalty;
+                json_resource["consumptions"] = nlohmann::json::array();
+                for (ItemTypeId item_type_id = 0;
+                        item_type_id < (ItemTypeId)resource.item_consumptions.size();
+                        ++item_type_id) {
+                    const std::vector<double>& schedule = resource.item_consumptions[item_type_id];
+                    if (schedule.empty())
+                        continue;
+                    nlohmann::json json_consumption;
+                    json_consumption["item_type_id"] = item_type_id;
+                    if (schedule.size() == 1) {
+                        json_consumption["consumption"] = schedule[0];
+                    } else {
+                        json_consumption["consumption_schedule"] = schedule;
+                    }
+                    json_resource["consumptions"].push_back(json_consumption);
+                }
+                json_bin_type["resources"].push_back(json_resource);
+            }
+        }
+
+        j["bin_types"].push_back(json_bin_type);
+    }
+
+    j["item_types"] = nlohmann::json::array();
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = this->item_type(item_type_id);
+        nlohmann::json json_item_type;
+        json_item_type["x"] = item_type.rect.x;
+        json_item_type["y"] = item_type.rect.y;
+        json_item_type["profit"] = item_type.profit;
+        json_item_type["copies"] = item_type.copies;
+        json_item_type["copies_min"] = item_type.copies_min;
+        json_item_type["oriented"] = item_type.oriented;
+        json_item_type["group_id"] = item_type.group_id;
+        json_item_type["weight"] = item_type.weight;
+        json_item_type["eligibility_id"] = item_type.eligibility_id;
+        j["item_types"].push_back(json_item_type);
+    }
+
+    std::ofstream file(instance_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + instance_path + "\".");
+    }
+    file << j.dump(4) << std::endl;
 }
