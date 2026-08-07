@@ -11,6 +11,9 @@ target_sources(PackingSolver_rectangle PRIVATE
     post_process.cpp
     tree_search.cpp
     benders_decomposition.cpp
+    benders_decomposition_contiguity.cpp
+    onedimentional_contiguity/milp.cpp
+    onedimentional_contiguity/tree_search.cpp
     dual_feasible_functions.cpp
     conservative_scales.cpp
     bar_relaxation.cpp
