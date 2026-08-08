@@ -85,6 +85,69 @@ void InstanceBuilder::set_bin_type_maximum_weight(
     instance_.bin_types_[bin_type_id].maximum_weight = maximum_weight;
 }
 
+ResourceId InstanceBuilder::add_bin_type_resource(
+        BinTypeId bin_type_id,
+        double capacity,
+        bool penalize,
+        double penalty)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    ResourceId resource_id = bin_type.resources.size();
+    Resource resource;
+    resource.capacity = capacity;
+    resource.penalize = penalize;
+    resource.penalty = penalty;
+    bin_type.resources.push_back(resource);
+    return resource_id;
+}
+
+void InstanceBuilder::add_resource_consumption(
+        BinTypeId bin_type_id,
+        ResourceId resource_id,
+        ItemTypeId item_type_id,
+        ItemPos item_copy,
+        double consumption)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    if (resource_id < 0 || resource_id >= (ResourceId)bin_type.resources.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'resource_id'; "
+                "resource_id: " + std::to_string(resource_id) + "; "
+                "bin_type.resources.size(): " + std::to_string(bin_type.resources.size()) + ".");
+    }
+    if (item_copy < 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_copy'; "
+                "item_copy: " + std::to_string(item_copy) + ".");
+    }
+
+    std::vector<std::vector<double>>& item_consumptions = bin_type.resources[resource_id].item_consumptions;
+    if (item_type_id >= (ItemTypeId)item_consumptions.size())
+        item_consumptions.resize(item_type_id + 1);
+    std::vector<double>& schedule = item_consumptions[item_type_id];
+    if (item_copy >= (ItemPos)schedule.size())
+        schedule.resize(item_copy + 1, 0.0);
+    schedule[item_copy] = consumption;
+}
+
 BinTypeId InstanceBuilder::add_bin_type(
         const Instance& original_instance,
         BinTypeId original_bin_type_id)
@@ -103,6 +166,18 @@ BinTypeId InstanceBuilder::add_bin_type(
     set_bin_type_maximum_weight(
             bin_type_id,
             bin_type.maximum_weight);
+    // Copy resources (their consumptions are copied in 'add_item_type',
+    // which assumes the corresponding bin types have already been added).
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        add_bin_type_resource(
+                bin_type_id,
+                resource.capacity,
+                resource.penalize,
+                resource.penalty);
+    }
     return bin_type_id;
 }
 
@@ -301,6 +376,36 @@ ItemTypeId InstanceBuilder::add_item_type(
     set_item_type_weight(
             item_type_id,
             item_type.weight);
+    // Copy the consumption of this item type for the resources of
+    // already-added bin types. Assumes the relevant bin types have already
+    // been added via 'add_bin_type(original_instance, ...)'.
+    for (BinTypeId original_bin_type_id = 0;
+            original_bin_type_id < (BinTypeId)orig_to_sub_bin_type_ids_.size();
+            ++original_bin_type_id) {
+        BinTypeId sub_bin_type_id = orig_to_sub_bin_type_ids_[original_bin_type_id];
+        if (sub_bin_type_id == -1)
+            continue;
+        const BinType& original_bin_type = original_instance.bin_type(original_bin_type_id);
+        for (ResourceId resource_id = 0;
+                resource_id < original_bin_type.number_of_resources();
+                ++resource_id) {
+            const std::vector<std::vector<double>>& item_consumptions
+                = original_bin_type.resource(resource_id).item_consumptions;
+            if (original_item_type_id >= (ItemTypeId)item_consumptions.size())
+                continue;
+            const std::vector<double>& schedule = item_consumptions[original_item_type_id];
+            for (ItemPos item_copy = 0;
+                    item_copy < (ItemPos)schedule.size();
+                    ++item_copy) {
+                add_resource_consumption(
+                        sub_bin_type_id,
+                        resource_id,
+                        item_type_id,
+                        item_copy,
+                        schedule[item_copy]);
+            }
+        }
+    }
     return item_type_id;
 }
 
@@ -644,6 +749,118 @@ void InstanceBuilder::read_item_types(
     }
 }
 
+void InstanceBuilder::read(
+        const std::string& instance_path)
+{
+    std::ifstream file(instance_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + instance_path + "\".");
+    }
+
+    nlohmann::json j;
+    file >> j;
+
+    if (!j.contains("objective")) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "missing \"objective\" field.");
+    }
+    {
+        std::string objective_string = j["objective"];
+        std::stringstream objective_ss(objective_string);
+        Objective objective;
+        objective_ss >> objective;
+        if (objective_ss.fail()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "unrecognized \"objective\" value \""
+                    + objective_string + "\".");
+        }
+        set_objective(objective);
+    }
+
+    // Read bin types.
+    for (const auto& json_bin_type: j["bin_types"]) {
+        Length x = json_bin_type["x"];
+        Length y = json_bin_type["y"];
+        Length z = json_bin_type["z"];
+        BinTypeId bin_type_id = add_bin_type(x, y, z);
+        if (json_bin_type.contains("cost"))
+            set_bin_type_cost(bin_type_id, json_bin_type["cost"]);
+        if (json_bin_type.contains("copies"))
+            set_bin_type_copies(bin_type_id, json_bin_type["copies"]);
+        if (json_bin_type.contains("copies_min"))
+            set_bin_type_copies_min(bin_type_id, json_bin_type["copies_min"]);
+        if (json_bin_type.contains("maximum_weight"))
+            set_bin_type_maximum_weight(bin_type_id, json_bin_type["maximum_weight"]);
+
+        // Read resources.
+        if (json_bin_type.contains("resources")) {
+            for (const auto& json_resource: json_bin_type["resources"]) {
+                double capacity = json_resource["capacity"];
+                bool penalize = json_resource.value("penalize", false);
+                double penalty = json_resource.value("penalty", 0.0);
+                ResourceId resource_id = add_bin_type_resource(bin_type_id, capacity, penalize, penalty);
+                if (json_resource.contains("consumptions")) {
+                    for (const auto& json_consumption: json_resource["consumptions"]) {
+                        ItemTypeId item_type_id = json_consumption["item_type_id"];
+                        if (json_consumption.contains("consumption_schedule")) {
+                            // Per-copy consumption schedule (a copy past
+                            // the end of the schedule repeats its last
+                            // entry); see 'Resource::item_consumptions'.
+                            std::vector<double> schedule = json_consumption["consumption_schedule"];
+                            for (ItemPos item_copy = 0;
+                                    item_copy < (ItemPos)schedule.size();
+                                    ++item_copy) {
+                                add_resource_consumption(
+                                        bin_type_id,
+                                        resource_id,
+                                        item_type_id,
+                                        item_copy,
+                                        schedule[item_copy]);
+                            }
+                        } else {
+                            // Uniform consumption, regardless of how many
+                            // copies are already packed.
+                            double consumption = json_consumption["consumption"];
+                            add_resource_consumption(
+                                    bin_type_id,
+                                    resource_id,
+                                    item_type_id,
+                                    0,
+                                    consumption);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Read item types.
+    for (const auto& json_item_type: j["item_types"]) {
+        Length x = json_item_type["x"];
+        Length y = json_item_type["y"];
+        Length z = json_item_type["z"];
+        ItemTypeId item_type_id = add_item_type(x, y, z);
+        if (json_item_type.contains("profit"))
+            set_item_type_profit(item_type_id, json_item_type["profit"]);
+        if (json_item_type.contains("copies"))
+            set_item_type_copies(item_type_id, json_item_type["copies"]);
+        if (json_item_type.contains("copies_min"))
+            set_item_type_copies_min(item_type_id, json_item_type["copies_min"]);
+        if (json_item_type.contains("weight"))
+            set_item_type_weight(item_type_id, json_item_type["weight"]);
+        if (json_item_type.contains("rotations")) {
+            for (const auto& json_rotation: json_item_type["rotations"]) {
+                std::string rotation_string = json_rotation;
+                add_item_type_rotation(item_type_id, rotation_from_string(rotation_string));
+            }
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Build /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -779,6 +996,31 @@ Instance InstanceBuilder::build()
         }
         for (const FixedItem& fixed_item: bin_type.fixed_items)
             instance_.item_types_[fixed_item.item_type_id].copies_fixed += bin_type.copies;
+    }
+
+    // Compute item_type.resource_ids (see its own doc comment).
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        instance_.item_types_[item_type_id].resource_ids.resize(instance_.number_of_bin_types());
+    }
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance_.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance_.bin_types_[bin_type_id];
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const Resource& resource = bin_type.resource(resource_id);
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < (ItemTypeId)resource.item_consumptions.size();
+                    ++item_type_id) {
+                if (!resource.item_consumptions[item_type_id].empty()) {
+                    instance_.item_types_[item_type_id].resource_ids[bin_type_id]
+                        .push_back(resource_id);
+                }
+            }
+        }
     }
 
     return std::move(instance_);

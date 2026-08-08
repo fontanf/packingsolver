@@ -38,6 +38,9 @@ struct SolutionBin
 
     /** Item profit. */
     Profit profit = 0.0;
+
+    /** Resource consumption, indexed by resource_id. */
+    std::vector<double> resource_consumption;
 };
 
 bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
@@ -103,6 +106,9 @@ public:
 
     /** Overall feasibility. */
     inline bool feasible() const { return feasible_; }
+
+    /** Feasibility with respect to non-'penalize' resource capacities. */
+    inline bool resource_feasible() const { return resource_feasible_; }
 
     /*
      * Getters: bins
@@ -264,6 +270,9 @@ private:
 
     /** Overall feasibility. */
     bool feasible_ = true;
+
+    /** Feasibility with respect to non-'penalize' resource capacities. */
+    bool resource_feasible_ = true;
 
     /** Bins. */
     std::vector<SolutionBin> bins_;

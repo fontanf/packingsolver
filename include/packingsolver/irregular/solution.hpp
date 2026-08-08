@@ -32,6 +32,9 @@ struct SolutionBin
 
     /** Maximum y of the items in this bin. */
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+
+    /** Resource consumption, indexed by resource_id. */
+    std::vector<double> resource_consumption;
 };
 
 bool operator==(const SolutionBin& solution_bin_1, const SolutionBin& solution_bin_2);
@@ -90,6 +93,9 @@ public:
 
     /** Overall feasibility. */
     inline bool feasible() const { return feasible_; }
+
+    /** Feasibility with respect to non-'penalize' resource capacities. */
+    inline bool resource_feasible() const { return resource_feasible_; }
 
     /*
      * Getters: bins
@@ -254,6 +260,9 @@ private:
 
     /** Overall feasibility. */
     bool feasible_ = true;
+
+    /** Feasibility with respect to non-'penalize' resource capacities. */
+    bool resource_feasible_ = true;
 
     /** bins. */
     std::vector<SolutionBin> bins_;

@@ -395,6 +395,12 @@ bool Instance::fits_some_bin(
     return false;
 }
 
+bool Instance::resources_matter() const
+{
+    return number_of_bin_types() == 1
+        && bin_type(0).number_of_resources() > 0;
+}
+
 std::ostream& Instance::format(
         std::ostream& os,
         int verbosity_level) const

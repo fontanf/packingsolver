@@ -172,6 +172,16 @@ struct ItemType
 
     /** Number of fixed copies of the item type (pre-placed in bin types). */
     ItemPos copies_fixed = 0;
+
+    /**
+     * For each bin type (indexed by bin_type_id - a resource's id is only
+     * ever local to one bin type, see 'BinType::resources'), the ids of
+     * that bin type's resources this item type has a non-zero consumption
+     * for. Lets algorithms that need every resource a given item type
+     * (in a given bin type) might affect skip the rest, instead of scanning
+     * every resource of the bin type for every item.
+     */
+    std::vector<std::vector<ResourceId>> resource_ids;
 };
 
 std::ostream& operator<<(
@@ -213,6 +223,9 @@ struct BinType
     /** Fixed items pre-placed in every bin of this type. */
     std::vector<FixedItem> fixed_items;
 
+    /** Resources of this bin type; a resource's id is its index in this vector. */
+    std::vector<Resource> resources;
+
     /*
      * Computed attributes
      */
@@ -224,6 +237,12 @@ struct BinType
     inline Volume volume() const { return box.volume(); }
 
     inline Volume space() const { return volume(); }
+
+    /** Get the number of resources of this bin type. */
+    inline ResourceId number_of_resources() const { return resources.size(); }
+
+    /** Get a resource of this bin type. */
+    inline const Resource& resource(ResourceId resource_id) const { return resources[resource_id]; }
 
 };
 
@@ -363,6 +382,13 @@ public:
      */
     bool fits_some_bin(ItemTypeId item_type_id) const;
 
+    /**
+     * Return 'true' iff some bin type has at least one resource - i.e. iff
+     * it has an actual, non-trivial per-bin capacity constraint that
+     * algorithms need to track.
+     */
+    bool resources_matter() const;
+
     /*
      * Export
      */
@@ -372,8 +398,19 @@ public:
             std::ostream& os,
             int verbosity_level = 1) const;
 
-    /** Write the instance to a file. */
-    void write(const std::string& instance_path) const;
+    /**
+     * Write the instance to a file, in the given format (default 'Csv',
+     * matching the previous behavior). See 'InstanceFormat'.
+     */
+    void write(
+            const std::string& instance_path,
+            InstanceFormat format = InstanceFormat::Csv) const;
+
+    /** Write the instance as CSV files; see 'InstanceFormat::Csv'. */
+    void write_csv(const std::string& instance_path) const;
+
+    /** Write the instance as a single JSON file; see 'InstanceFormat::Json'. */
+    void write_json(const std::string& instance_path) const;
 
     /** Write the items to a file. */
     void write_item_types(const std::string& items_path) const;
