@@ -88,7 +88,82 @@ BinTypeId InstanceBuilder::add_bin_type(
                 fixed_item.angle,
                 fixed_item.mirror);
     }
+    // Copy resources (their consumptions are copied in 'add_item_type',
+    // which assumes the corresponding bin types have already been added).
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        add_bin_type_resource(
+                bin_type_id,
+                resource.capacity,
+                resource.penalize,
+                resource.penalty);
+    }
     return bin_type_id;
+}
+
+ResourceId InstanceBuilder::add_bin_type_resource(
+        BinTypeId bin_type_id,
+        double capacity,
+        bool penalize,
+        double penalty)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    ResourceId resource_id = bin_type.resources.size();
+    Resource resource;
+    resource.capacity = capacity;
+    resource.penalize = penalize;
+    resource.penalty = penalty;
+    bin_type.resources.push_back(resource);
+    return resource_id;
+}
+
+void InstanceBuilder::add_resource_consumption(
+        BinTypeId bin_type_id,
+        ResourceId resource_id,
+        ItemTypeId item_type_id,
+        ItemPos item_copy,
+        double consumption)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+
+    BinType& bin_type = instance_.bin_types_[bin_type_id];
+    if (resource_id < 0 || resource_id >= (ResourceId)bin_type.resources.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'resource_id'; "
+                "resource_id: " + std::to_string(resource_id) + "; "
+                "bin_type.resources.size(): " + std::to_string(bin_type.resources.size()) + ".");
+    }
+    if (item_copy < 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'item_copy'; "
+                "item_copy: " + std::to_string(item_copy) + ".");
+    }
+
+    std::vector<std::vector<double>>& item_consumptions = bin_type.resources[resource_id].item_consumptions;
+    if (item_type_id >= (ItemTypeId)item_consumptions.size())
+        item_consumptions.resize(item_type_id + 1);
+    std::vector<double>& schedule = item_consumptions[item_type_id];
+    if (item_copy >= (ItemPos)schedule.size())
+        schedule.resize(item_copy + 1, 0.0);
+    schedule[item_copy] = consumption;
 }
 
 void InstanceBuilder::set_bin_type_cost(
@@ -316,6 +391,38 @@ ItemTypeId InstanceBuilder::add_item_type(
     if ((ItemTypeId)orig_to_sub_item_type_ids_.size() <= original_item_type_id)
         orig_to_sub_item_type_ids_.resize(original_item_type_id + 1, -1);
     orig_to_sub_item_type_ids_[original_item_type_id] = item_type_id;
+
+    // Copy the consumption of this item type for the resources of
+    // already-added bin types. Assumes the relevant bin types have already
+    // been added via 'add_bin_type(original_instance, ...)'.
+    for (BinTypeId original_bin_type_id = 0;
+            original_bin_type_id < (BinTypeId)orig_to_sub_bin_type_ids_.size();
+            ++original_bin_type_id) {
+        BinTypeId sub_bin_type_id = orig_to_sub_bin_type_ids_[original_bin_type_id];
+        if (sub_bin_type_id == -1)
+            continue;
+        const BinType& original_bin_type = original_instance.bin_type(original_bin_type_id);
+        for (ResourceId resource_id = 0;
+                resource_id < original_bin_type.number_of_resources();
+                ++resource_id) {
+            const std::vector<std::vector<double>>& item_consumptions
+                = original_bin_type.resource(resource_id).item_consumptions;
+            if (original_item_type_id >= (ItemTypeId)item_consumptions.size())
+                continue;
+            const std::vector<double>& schedule = item_consumptions[original_item_type_id];
+            for (ItemPos item_copy = 0;
+                    item_copy < (ItemPos)schedule.size();
+                    ++item_copy) {
+                add_resource_consumption(
+                        sub_bin_type_id,
+                        resource_id,
+                        item_type_id,
+                        item_copy,
+                        schedule[item_copy]);
+            }
+        }
+    }
+
     return item_type_id;
 }
 
@@ -975,6 +1082,31 @@ Instance InstanceBuilder::build()
                 FUNC_SIGNATURE + ": "
                 "the instance has objective OpenDimensionY and contains " + std::to_string(instance_.number_of_bins()) + " bins; "
                 "an instance with objective OpenDimensionY must contain exactly one bin.");
+    }
+
+    // Compute item_type.resource_ids (see its own doc comment).
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance_.number_of_item_types();
+            ++item_type_id) {
+        instance_.item_types_[item_type_id].resource_ids.resize(instance_.number_of_bin_types());
+    }
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance_.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance_.bin_types_[bin_type_id];
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const Resource& resource = bin_type.resource(resource_id);
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < (ItemTypeId)resource.item_consumptions.size();
+                    ++item_type_id) {
+                if (!resource.item_consumptions[item_type_id].empty()) {
+                    instance_.item_types_[item_type_id].resource_ids[bin_type_id]
+                        .push_back(resource_id);
+                }
+            }
+        }
     }
 
     return std::move(instance_);

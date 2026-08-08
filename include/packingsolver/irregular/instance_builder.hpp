@@ -79,6 +79,29 @@ public:
             LengthDbl item_defect_minimum_spacing);
 
     /**
+     * Add a resource to a bin type. Returns the resource's id (local to this
+     * bin type). See 'Resource' for the meaning of 'penalize'/'penalty'.
+     */
+    ResourceId add_bin_type_resource(
+            BinTypeId bin_type_id,
+            double capacity,
+            bool penalize = false,
+            double penalty = 0.0);
+
+    /**
+     * Set an item type's consumption of a bin type's resource for the
+     * 'item_copy'-th copy of the item type placed in the bin (0-indexed). See
+     * 'Resource::item_consumptions' for the exact semantics of a
+     * per-copy schedule.
+     */
+    void add_resource_consumption(
+            BinTypeId bin_type_id,
+            ResourceId resource_id,
+            ItemTypeId item_type_id,
+            ItemPos item_copy,
+            double consumption);
+
+    /**
      * Add a bin type from another bin type.
      *
      * This method is used in the column generation procedure.

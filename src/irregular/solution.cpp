@@ -36,8 +36,13 @@ void Solution::update_indicators(
     number_of_bins_ += bin.copies;
     bin_cost_ += bin.copies * bin_type.cost;
     bin_area_ += bin.copies * bin_type.area_orig;
+    bin.resource_consumption.assign(bin_type.number_of_resources(), 0.0);
     AxisAlignedBoundingBox bin_aabb = bin_type.shape_orig.compute_min_max();
 
+    // Number of copies of each item type already placed in this bin, so
+    // far, at the point each item below is processed - needed to look up
+    // the correct entry of a per-copy resource consumption schedule.
+    std::vector<ItemPos> item_type_copies_in_bin(instance().number_of_item_types(), 0);
     for (const SolutionItem& item: bin.items) {
         const ItemType& item_type = instance().item_type(item.item_type_id);
 
@@ -53,6 +58,29 @@ void Solution::update_indicators(
         bin.y_min = std::min(bin.y_min, item.bl_corner.y + aabb.y_min);
         bin.x_max = std::max(bin.x_max, item.bl_corner.x + aabb.x_max);
         bin.y_max = std::max(bin.y_max, item.bl_corner.y + aabb.y_max);
+
+        // Update bin.resource_consumption.
+        for (ResourceId resource_id: item_type.resource_ids[bin.bin_type_id]) {
+            const Resource& resource = bin_type.resource(resource_id);
+            double previous_consumption = bin.resource_consumption[resource_id];
+            bin.resource_consumption[resource_id]
+                += resource.item_consumption(
+                        item.item_type_id,
+                        item_type_copies_in_bin[item.item_type_id]);
+            if (bin.resource_consumption[resource_id] > resource.capacity) {
+                if (resource.penalize) {
+                    // Charge the penalty only once per bin, the first time
+                    // consumption crosses the capacity (it never decreases
+                    // afterwards, so this check would otherwise keep firing
+                    // for every subsequent item added to the same bin).
+                    if (previous_consumption <= resource.capacity)
+                        this->item_profit_ -= resource.penalty;
+                } else {
+                    this->resource_feasible_ = false;
+                }
+            }
+        }
+        ++item_type_copies_in_bin[item.item_type_id];
     }
 
     // x_min_/y_min_/x_max_/y_max_ and the leftover value track the last bin only.
@@ -122,6 +150,7 @@ void Solution::update_indicators(
     callback_feasible_ = instance().feasibility_callback()(*this);
     feasible_ = item_copies_feasible_
         && callback_feasible_
+        && resource_feasible_
         && (number_of_infeasible_item_copies_min_ == 0);
 }
 

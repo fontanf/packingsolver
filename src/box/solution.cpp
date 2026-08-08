@@ -30,9 +30,14 @@ void Solution::update_indicators(
     bin_weight_ += bin.copies * bin_type.maximum_weight;
     bin_cost_ += bin.copies * bin_type.cost;
     number_of_bins_ += bin.copies;
+    bin.resource_consumption.assign(bin_type.number_of_resources(), 0.0);
     x_max_ = 0;
     y_max_ = 0;
 
+    // Number of copies of each item type already placed in this bin, so
+    // far, at the point each item below is processed - needed to look up
+    // the correct entry of a per-copy resource consumption schedule.
+    std::vector<ItemPos> item_type_copies_in_bin(instance().number_of_item_types(), 0);
     for (const SolutionItem& item: bin.items) {
         const ItemType& item_type = instance().item_type(item.item_type_id);
         Box box = item_type.box.rotate(item.rotation);
@@ -48,6 +53,29 @@ void Solution::update_indicators(
         item_volume_ += bin.copies * item_type.box.volume();
         item_weight_ += bin.copies * item_type.weight;
         item_profit_ += bin.copies * item_type.profit;
+
+        // Update bin.resource_consumption.
+        for (ResourceId resource_id: item_type.resource_ids[bin.bin_type_id]) {
+            const Resource& resource = bin_type.resource(resource_id);
+            double previous_consumption = bin.resource_consumption[resource_id];
+            bin.resource_consumption[resource_id]
+                += resource.item_consumption(
+                        item.item_type_id,
+                        item_type_copies_in_bin[item.item_type_id]);
+            if (bin.resource_consumption[resource_id] > resource.capacity) {
+                if (resource.penalize) {
+                    // Charge the penalty only once per bin, the first time
+                    // consumption crosses the capacity (it never decreases
+                    // afterwards, so this check would otherwise keep firing
+                    // for every subsequent item added to the same bin).
+                    if (previous_consumption <= resource.capacity)
+                        this->item_profit_ -= resource.penalty;
+                } else {
+                    this->resource_feasible_ = false;
+                }
+            }
+        }
+        ++item_type_copies_in_bin[item.item_type_id];
 
         if (bin_pos == (BinPos)bins_.size() - 1) {
             if (x_max_ < xe)
@@ -77,6 +105,7 @@ void Solution::update_indicators(
     callback_feasible_ = instance().feasibility_callback()(*this);
     feasible_ = item_copies_feasible_
         && callback_feasible_
+        && resource_feasible_
         && (number_of_infeasible_item_copies_min_ == 0);
 }
 
