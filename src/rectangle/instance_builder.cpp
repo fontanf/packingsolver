@@ -942,7 +942,11 @@ void InstanceBuilder::read(
             set_bin_type_copies(bin_type_id, json_bin_type["copies"]);
         if (json_bin_type.contains("copies_min"))
             set_bin_type_copies_min(bin_type_id, json_bin_type["copies_min"]);
-        if (json_bin_type.contains("maximum_weight"))
+        // A JSON 'null' (as written by an older version that serialized
+        // infinity directly, instead of omitting the field - see
+        // 'Instance::write_json') means the same as the field being absent:
+        // no maximum weight.
+        if (json_bin_type.contains("maximum_weight") && !json_bin_type["maximum_weight"].is_null())
             set_bin_type_maximum_weight(bin_type_id, json_bin_type["maximum_weight"]);
         if (json_bin_type.contains("eligibility_ids")) {
             for (const auto& json_eligibility_id: json_bin_type["eligibility_ids"])

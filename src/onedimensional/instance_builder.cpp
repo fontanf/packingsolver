@@ -756,7 +756,9 @@ void InstanceBuilder::read(
             set_bin_type_copies(bin_type_id, json_bin_type["copies"]);
         if (json_bin_type.contains("copies_min"))
             set_bin_type_copies_min(bin_type_id, json_bin_type["copies_min"]);
-        if (json_bin_type.contains("maximum_weight"))
+        // A JSON 'null' means the same as the field being absent: no
+        // maximum weight.
+        if (json_bin_type.contains("maximum_weight") && !json_bin_type["maximum_weight"].is_null())
             set_bin_type_maximum_weight(bin_type_id, json_bin_type["maximum_weight"]);
         if (json_bin_type.contains("eligibility_ids")) {
             for (const auto& json_eligibility_id: json_bin_type["eligibility_ids"])
@@ -821,7 +823,9 @@ void InstanceBuilder::read(
             set_item_type_nesting_length(item_type_id, json_item_type["nesting_length"]);
         if (json_item_type.contains("maximum_stackability"))
             set_item_type_maximum_stackability(item_type_id, json_item_type["maximum_stackability"]);
-        if (json_item_type.contains("maximum_weight_after"))
+        // A JSON 'null' means the same as the field being absent: no
+        // maximum weight after.
+        if (json_item_type.contains("maximum_weight_after") && !json_item_type["maximum_weight_after"].is_null())
             set_item_type_maximum_weight_after(item_type_id, json_item_type["maximum_weight_after"]);
         if (json_item_type.contains("eligibility_id"))
             set_item_type_eligibility(item_type_id, json_item_type["eligibility_id"]);
