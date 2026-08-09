@@ -654,7 +654,12 @@ void Instance::write_json(
         json_bin_type["cost"] = bin_type.cost;
         json_bin_type["copies"] = bin_type.copies;
         json_bin_type["copies_min"] = bin_type.copies_min;
-        json_bin_type["maximum_weight"] = bin_type.maximum_weight;
+        // Infinity (the default - no maximum weight) has no JSON
+        // representation and would serialize as 'null'; omit the field
+        // instead, matching the default the reader falls back to when it's
+        // absent.
+        if (bin_type.maximum_weight != std::numeric_limits<Weight>::infinity())
+            json_bin_type["maximum_weight"] = bin_type.maximum_weight;
         json_bin_type["eligibility_ids"] = bin_type.eligibility_ids;
 
         if (!bin_type.defects.empty()) {
