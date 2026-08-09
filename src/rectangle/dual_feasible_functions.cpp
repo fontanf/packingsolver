@@ -676,6 +676,11 @@ DualFeasibleFunctionsOutput packingsolver::rectangle::dual_feasible_functions(
         if (bound > instance.number_of_bins())
             algorithm_formatter.update_is_proven_infeasible();
     } else if (instance.objective() == Objective::Knapsack) {
+        // This bound ignores resources entirely. A 'penalize' resource with
+        // a negative penalty *increases* the reported profit when
+        // triggered (see 'Resource'), so add back the worst case - every
+        // such resource triggering at once - to keep the bound valid.
+        knapsack_bound += negative_penalty_sum(instance);
         algorithm_formatter.update_knapsack_bound(knapsack_bound);
     }
 

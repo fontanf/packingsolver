@@ -81,6 +81,11 @@ void optimize_trivial_bound(
                 remaining_capacity = 0;
             }
         }
+        // This bound ignores resources entirely. A 'penalize' resource with
+        // a negative penalty *increases* the reported profit when
+        // triggered (see 'Resource'), so add back the worst case - every
+        // such resource triggering at once - to keep the bound valid.
+        bound += negative_penalty_sum(instance);
         algorithm_formatter.update_knapsack_bound(bound);
         return;
     }
@@ -200,8 +205,13 @@ void optimize_onedimensional_bound(
                 onedim_output.bin_packing_bound);
         break;
     } case Objective::Knapsack: {
+        // The 1D relaxation this bound comes from doesn't carry over
+        // resources at all. A 'penalize' resource with a negative penalty
+        // *increases* the reported profit when triggered (see 'Resource'),
+        // so add back the worst case - every such resource triggering at
+        // once - to keep the bound valid.
         algorithm_formatter.update_knapsack_bound(
-                onedim_output.knapsack_bound);
+                onedim_output.knapsack_bound + negative_penalty_sum(instance));
         break;
     } case Objective::VariableSizedBinPacking: {
         algorithm_formatter.update_variable_sized_bin_packing_bound(

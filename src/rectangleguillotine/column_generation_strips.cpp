@@ -2141,7 +2141,14 @@ void column_generation_strips_vertical(
         // below) has objective OpenDimensionX too.
         if (instance.objective() == Objective::Knapsack) {
             double multiplier_profit = largest_power_of_two_lesser_or_equal(instance.largest_item_profit());
-            algorithm_formatter.update_knapsack_bound(cgslds_output.bound * multiplier_profit);
+            // This bound ignores resources entirely (the pricing solver
+            // used here doesn't consume 'cuts'/resources). A 'penalize'
+            // resource with a negative penalty *increases* the reported
+            // profit when triggered (see 'Resource'), so add back the
+            // worst case - every such resource triggering at once - to
+            // keep the bound valid.
+            algorithm_formatter.update_knapsack_bound(
+                    cgslds_output.bound * multiplier_profit + negative_penalty_sum(instance));
         } else if (instance.objective() == Objective::OpenDimensionX) {
             const BinType& bin_type = instance.bin_type(0);
             double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
