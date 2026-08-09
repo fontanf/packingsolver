@@ -61,7 +61,8 @@ int main(int argc, char *argv[])
         desc.add_options()
             (",h", "Produce help message")
 
-            ("items,i", po::value<std::string>()->required(), "Items path")
+            ("input,", po::value<std::string>(), "Input path (JSON format; alternative to --items/--bins/--parameters, required for instances using resources)")
+            ("items,i", po::value<std::string>(), "Items path")
             ("bins,b", po::value<std::string>(), "Bins path")
             ("parameters", po::value<std::string>(), "Parameters path")
 
@@ -127,52 +128,60 @@ int main(int argc, char *argv[])
 
         InstanceBuilder instance_builder;
 
-        std::string instance_path = vm["items"].as<std::string>();
-        if (fs::is_regular_file(instance_path)) {
-            instance_path = "";
-        } else if (fs::is_regular_file(instance_path + "_items.csv")) {
-            instance_path = instance_path + "_";
-        } else if (fs::is_regular_file(instance_path + "items.csv")) {
-            instance_path = instance_path;
-        } else if (fs::is_regular_file(instance_path + "/items.csv")) {
-            instance_path = instance_path + "/";
+        if (vm.count("input")) {
+            instance_builder.read(vm["input"].as<std::string>());
+        } else if (vm.count("items")) {
+            std::string instance_path = vm["items"].as<std::string>();
+            if (fs::is_regular_file(instance_path)) {
+                instance_path = "";
+            } else if (fs::is_regular_file(instance_path + "_items.csv")) {
+                instance_path = instance_path + "_";
+            } else if (fs::is_regular_file(instance_path + "items.csv")) {
+                instance_path = instance_path;
+            } else if (fs::is_regular_file(instance_path + "/items.csv")) {
+                instance_path = instance_path + "/";
+            } else {
+                throw std::invalid_argument(FUNC_SIGNATURE);
+            }
+
+            if (instance_path.empty()) {
+                instance_builder.read_item_types(vm["items"].as<std::string>());
+            } else {
+                instance_builder.read_item_types(instance_path + "items.csv");
+            }
+
+            if (vm.count("bins")) {
+                instance_builder.read_bin_types(vm["bins"].as<std::string>());
+            } else {
+                instance_builder.read_bin_types(instance_path + "bins.csv");
+            }
+
+            if (vm.count("bin-infinite-x"))
+                instance_builder.set_bin_types_infinite_x();
+            if (vm.count("bin-infinite-y"))
+                instance_builder.set_bin_types_infinite_y();
+            if (vm.count("bin-infinite-copies"))
+                instance_builder.set_bin_types_infinite_copies();
+            if (vm.count("item-infinite-copies"))
+                instance_builder.set_item_types_infinite_copies();
+            if (vm.count("no-item-rotation"))
+                instance_builder.set_item_types_oriented();
+            if (vm.count("unweighted"))
+                instance_builder.set_item_types_unweighted();
+            if (vm.count("bin-unweighted"))
+                instance_builder.set_bin_types_unweighted();
+            if (vm.count("item-profits-auto"))
+                instance_builder.set_item_types_profits_auto();
+
+            if (vm.count("parameters")) {
+                instance_builder.read_parameters(vm["parameters"].as<std::string>());
+            } else if (fs::is_regular_file(instance_path + "parameters.csv")) {
+                instance_builder.read_parameters(instance_path + "parameters.csv");
+            }
         } else {
-            throw std::invalid_argument(FUNC_SIGNATURE);
-        }
-
-        if (instance_path.empty()) {
-            instance_builder.read_item_types(vm["items"].as<std::string>());
-        } else {
-            instance_builder.read_item_types(instance_path + "items.csv");
-        }
-
-        if (vm.count("bins")) {
-            instance_builder.read_bin_types(vm["bins"].as<std::string>());
-        } else {
-            instance_builder.read_bin_types(instance_path + "bins.csv");
-        }
-
-        if (vm.count("bin-infinite-x"))
-            instance_builder.set_bin_types_infinite_x();
-        if (vm.count("bin-infinite-y"))
-            instance_builder.set_bin_types_infinite_y();
-        if (vm.count("bin-infinite-copies"))
-            instance_builder.set_bin_types_infinite_copies();
-        if (vm.count("item-infinite-copies"))
-            instance_builder.set_item_types_infinite_copies();
-        if (vm.count("no-item-rotation"))
-            instance_builder.set_item_types_oriented();
-        if (vm.count("unweighted"))
-            instance_builder.set_item_types_unweighted();
-        if (vm.count("bin-unweighted"))
-            instance_builder.set_bin_types_unweighted();
-        if (vm.count("item-profits-auto"))
-            instance_builder.set_item_types_profits_auto();
-
-        if (vm.count("parameters")) {
-            instance_builder.read_parameters(vm["parameters"].as<std::string>());
-        } else if (fs::is_regular_file(instance_path + "parameters.csv")) {
-            instance_builder.read_parameters(instance_path + "parameters.csv");
+            std::cout << "Missing --input or --items." << std::endl
+                << desc << std::endl;
+            return 1;
         }
 
         if (vm.count("objective"))
