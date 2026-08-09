@@ -580,7 +580,13 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
     {
         switch (instance.objective()) {
         case Objective::Knapsack: {
-            algorithm_formatter.update_knapsack_bound(cgs_output.bound);
+            // This bound ignores resources entirely. A 'penalize' resource
+            // with a negative penalty *increases* the reported profit when
+            // triggered (see 'Resource'), so add back the worst case -
+            // every such resource triggering at once - to keep the bound
+            // valid.
+            algorithm_formatter.update_knapsack_bound(
+                    cgs_output.bound + negative_penalty_sum(instance));
             break;
         } case Objective::Feasibility: {
             // By the extended reals convention, the optimal value of an

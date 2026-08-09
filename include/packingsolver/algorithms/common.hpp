@@ -315,6 +315,47 @@ struct Resource
     }
 };
 
+/**
+ * Sum, over all 'penalize' resources with a negative 'penalty', of
+ * '-resource.penalty' (i.e. the magnitude of the profit gain each one could
+ * contribute if triggered).
+ *
+ * A negative penalty *increases* the reported profit when its resource's
+ * capacity is exceeded (see 'Resource'). A Knapsack bound computed without
+ * modeling resources at all (e.g. a closed-form area/weight relaxation) is
+ * only a valid upper bound on the profit actually reported once resources
+ * are taken into account if this worst-case gain - every negative-penalty
+ * resource triggering at once - is added back to it.
+ */
+inline Profit negative_penalty_sum(const std::vector<Resource>& resources)
+{
+    Profit sum = 0.0;
+    for (const Resource& resource: resources)
+        if (resource.penalize && resource.penalty < 0.0)
+            sum -= resource.penalty;
+    return sum;
+}
+
+/**
+ * Same as 'negative_penalty_sum(const std::vector<Resource>&)', summed over
+ * every bin type of 'instance', each weighted by its number of copies: since
+ * a 'penalize' resource is tracked per bin (see 'Resource'), each copy of a
+ * bin type can trigger it independently, so the worst case scales with the
+ * number of available copies.
+ */
+template <typename Instance>
+inline Profit negative_penalty_sum(const Instance& instance)
+{
+    Profit sum = 0.0;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const auto& bin_type = instance.bin_type(bin_type_id);
+        sum += bin_type.copies * negative_penalty_sum(bin_type.resources);
+    }
+    return sum;
+}
+
 template <typename Instance, typename Solution>
 class SolutionPool
 {

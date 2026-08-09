@@ -86,6 +86,11 @@ void optimize_trivial_bound(
                 remaining_capacity = 0;
             }
         }
+        // This bound ignores resources entirely. A 'penalize' resource with
+        // a negative penalty *increases* the reported profit when
+        // triggered (see 'Resource'), so add back the worst case - every
+        // such resource triggering at once - to keep the bound valid.
+        bound += negative_penalty_sum(instance);
         algorithm_formatter.update_knapsack_bound(bound);
         return;
     }
