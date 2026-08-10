@@ -228,6 +228,17 @@ public:
 
         /** Overweight for the rear axle weight constraints. */
         double rear_axle_overweight = 0;
+
+        /**
+         * For each item type, number of copies of that item type already in
+         * the last (current) bin - needed to look up the correct entry of a
+         * per-copy resource consumption schedule (see 'Resource::
+         * item_consumption').
+         */
+        std::vector<ItemPos> last_bin_item_number_of_copies;
+
+        /** Resource consumption of the last (current) bin, indexed by resource_id. */
+        std::vector<double> last_bin_resource_consumption;
     };
 
     struct Parameters
@@ -401,6 +412,22 @@ public:
             return true;
         if (node_1->number_of_bins > node_2->number_of_bins)
             return false;
+
+        // Same number of bins, so both nodes' last bin is of the same type
+        // (see 'bin_type_ids_') and their 'last_bin_resource_consumption'
+        // vectors line up 1:1. 'node_1' can only dominate 'node_2' if it
+        // never consumes more of any resource in that bin (a 'penalize'
+        // resource already crossed on 'node_1' is not worse than one not
+        // yet crossed on 'node_2', so this treats hard and 'penalize'
+        // resources alike).
+        for (ResourceId resource_id = 0;
+                resource_id < (ResourceId)node_1->last_bin_resource_consumption.size();
+                ++resource_id) {
+            if (node_1->last_bin_resource_consumption[resource_id]
+                    > node_2->last_bin_resource_consumption[resource_id]) {
+                return false;
+            }
+        }
 
         //if (unbounded_knapsack_ && node_1->profit < node_2->profit)
         //    return false;

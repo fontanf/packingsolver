@@ -513,6 +513,43 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     }
     assert(node.item_area <= instance.bin_area());
 
+    // Update last_bin_item_number_of_copies and last_bin_resource_consumption.
+    // 'node.profit' is further adjusted below by any 'penalize' resource
+    // whose consumption crosses its capacity for the first time as a result
+    // of this insertion (see 'Resource::penalize'), mirroring 'Solution::
+    // update_indicators' so the search optimizes the same objective the
+    // final solution will report.
+    // Skipped entirely when the bin type has no resources at all, so
+    // instances that don't use resources don't pay for allocating/copying
+    // these per-node vectors.
+    if (bin_type.number_of_resources() > 0) {
+        if (insertion.df < 0) {  // New bin.
+            node.last_bin_item_number_of_copies.assign(instance.number_of_item_types(), 0);
+            node.last_bin_resource_consumption.assign(bin_type.number_of_resources(), 0.0);
+        } else {  // Same bin.
+            node.last_bin_item_number_of_copies = parent.last_bin_item_number_of_copies;
+            node.last_bin_resource_consumption = parent.last_bin_resource_consumption;
+        }
+        for (ItemTypeId item_type_id: {insertion.item_type_id_1, insertion.item_type_id_2}) {
+            if (item_type_id == -1)
+                continue;
+            const ItemType& item_type = instance.item_type(item_type_id);
+            ItemPos item_copy = node.last_bin_item_number_of_copies[item_type_id];
+            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                double previous_consumption = node.last_bin_resource_consumption[resource_id];
+                node.last_bin_resource_consumption[resource_id]
+                    += resource.item_consumption(item_type_id, item_copy);
+                if (resource.penalize
+                        && node.last_bin_resource_consumption[resource_id] > resource.capacity
+                        && previous_consumption <= resource.capacity) {
+                    node.profit -= resource.penalty;
+                }
+            }
+            node.last_bin_item_number_of_copies[item_type_id]++;
+        }
+    }
+
     // Compute bincurr_number_of_1_cuts.
     if (node.df < 0) {
         if (node.x1_curr == w) {
@@ -1791,6 +1828,36 @@ void BranchingScheme::update(
         }
         return;
     }
+
+    // Check resource capacity. 'penalize' resources never block an
+    // insertion (see 'Resource::penalize'); only their non-'penalize'
+    // counterparts do. Skipped entirely when the bin type has no resources
+    // (see 'child_tmp'), so instances that don't use resources don't pay
+    // for allocating/copying these vectors.
+    if (bin_type.number_of_resources() > 0) {
+        std::vector<double> resource_consumption = (insertion.df < 0)?
+            std::vector<double>(bin_type.number_of_resources(), 0.0):
+            parent.last_bin_resource_consumption;
+        std::vector<ItemPos> item_number_of_copies = (insertion.df < 0)?
+            std::vector<ItemPos>(instance.number_of_item_types(), 0):
+            parent.last_bin_item_number_of_copies;
+        for (ItemTypeId item_type_id: {insertion.item_type_id_1, insertion.item_type_id_2}) {
+            if (item_type_id == -1)
+                continue;
+            const ItemType& item_type = instance.item_type(item_type_id);
+            ItemPos item_copy = item_number_of_copies[item_type_id];
+            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                if (resource.penalize)
+                    continue;
+                resource_consumption[resource_id] += resource.item_consumption(item_type_id, item_copy);
+                if (resource_consumption[resource_id] > resource.capacity * PSTOL)
+                    return;
+            }
+            item_number_of_copies[item_type_id]++;
+        }
+    }
+
     children.push_back(child(pparent, insertion));
 }
 

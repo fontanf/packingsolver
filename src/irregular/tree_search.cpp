@@ -1266,6 +1266,48 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.item_convex_hull_area = parent.item_convex_hull_area
         + item_types_convex_hull_area_[trapezoid_set.item_type_id];
 
+    // Update last_bin_item_number_of_copies and last_bin_resource_consumption.
+    // 'node.profit' is further adjusted below by any 'penalize' resource
+    // whose consumption crosses its capacity for the first time as a result
+    // of this insertion (see 'Resource::penalize'), mirroring 'Solution::
+    // update_indicators' so the search optimizes the same objective the
+    // final solution will report.
+    // Skipped entirely when the bin type has no resources at all, so
+    // instances that don't use resources don't pay for allocating/copying
+    // these per-node vectors.
+    if (bin_type.number_of_resources() > 0) {
+        if (insertion.new_bin_direction != Direction::Any) {  // New bin.
+            node.last_bin_item_number_of_copies.assign(instance_.number_of_item_types(), 0);
+            node.last_bin_resource_consumption.assign(bin_type.number_of_resources(), 0.0);
+            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                double consumption = resource.item_consumption(trapezoid_set.item_type_id, 0);
+                node.last_bin_resource_consumption[resource_id] = consumption;
+                // The bin is empty before this insertion, so any crossing here
+                // is necessarily the first one.
+                if (resource.penalize && consumption > resource.capacity)
+                    node.profit -= resource.penalty;
+            }
+            node.last_bin_item_number_of_copies[trapezoid_set.item_type_id] = 1;
+        } else {  // Same bin.
+            node.last_bin_item_number_of_copies = parent.last_bin_item_number_of_copies;
+            ItemPos item_copy = node.last_bin_item_number_of_copies[trapezoid_set.item_type_id];
+            node.last_bin_resource_consumption = parent.last_bin_resource_consumption;
+            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                double previous_consumption = node.last_bin_resource_consumption[resource_id];
+                node.last_bin_resource_consumption[resource_id]
+                    += resource.item_consumption(trapezoid_set.item_type_id, item_copy);
+                if (resource.penalize
+                        && node.last_bin_resource_consumption[resource_id] > resource.capacity
+                        && previous_consumption <= resource.capacity) {
+                    node.profit -= resource.penalty;
+                }
+            }
+            node.last_bin_item_number_of_copies[trapezoid_set.item_type_id]++;
+        }
+    }
+
     // Compute, guide_area and width using uncovered_trapezoids.
     node.xs_max = (insertion.new_bin_direction == Direction::Any)?  // Same bin
         std::max(parent.xs_max, insertion.x + trapezoid_set.x_min):
@@ -1917,6 +1959,34 @@ void BranchingScheme::insertion_trapezoid_set(
     insertion.y = supporting_shape.elements.front().start.y - supported_shape.elements.front().start.y;
     insertion.new_bin_direction = new_bin_direction;
     insertion.new_bin_pos = new_bin_pos;
+
+    // Check resource capacity. 'penalize' resources never block an
+    // insertion (see 'Resource::penalize'); only their non-'penalize'
+    // counterparts do. Skipped entirely when the bin type has no resources
+    // (see 'child_tmp').
+    if (bin_type.number_of_resources() > 0) {
+        if (new_bin_direction == Direction::Any) {  // Same bin.
+            ItemPos item_copy = parent->last_bin_item_number_of_copies[trapezoid_set.item_type_id];
+            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                if (resource.penalize)
+                    continue;
+                double consumption = parent->last_bin_resource_consumption[resource_id]
+                    + resource.item_consumption(trapezoid_set.item_type_id, item_copy);
+                if (consumption > resource.capacity * PSTOL)
+                    return;
+            }
+        } else {  // New bin.
+            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                if (resource.penalize)
+                    continue;
+                double consumption = resource.item_consumption(trapezoid_set.item_type_id, 0);
+                if (consumption > resource.capacity * PSTOL)
+                    return;
+            }
+        }
+    }
 
     //if (parent->parent != nullptr
     //        && new_bin_direction == Direction::Any) {
