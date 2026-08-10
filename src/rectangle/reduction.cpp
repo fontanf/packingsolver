@@ -1154,6 +1154,34 @@ Instance Reduction::reduction_to_instance(
         instance_builder.set_item_type_group(new_item_type_id, original_item_type.group_id);
         instance_builder.set_item_type_weight(new_item_type_id, original_item_type.weight);
         instance_builder.set_item_type_eligibility(new_item_type_id, original_item_type.eligibility_id);
+        // Copy resource consumptions (the bin types themselves, including
+        // their resources, were already copied above via 'add_bin_type(
+        // *original_instance_, bin_type_id)'; bin type ids line up 1:1 with
+        // 'original_instance_'s own since none are skipped in that loop).
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < original_instance_->number_of_bin_types();
+                ++bin_type_id) {
+            const BinType& original_bin_type = original_instance_->bin_type(bin_type_id);
+            for (ResourceId resource_id = 0;
+                    resource_id < original_bin_type.number_of_resources();
+                    ++resource_id) {
+                const std::vector<std::vector<double>>& item_consumptions
+                    = original_bin_type.resource(resource_id).item_consumptions;
+                if (item_type_id >= (ItemTypeId)item_consumptions.size())
+                    continue;
+                const std::vector<double>& schedule = item_consumptions[item_type_id];
+                for (ItemPos item_copy = 0;
+                        item_copy < (ItemPos)schedule.size();
+                        ++item_copy) {
+                    instance_builder.add_resource_consumption(
+                            bin_type_id,
+                            resource_id,
+                            new_item_type_id,
+                            item_copy,
+                            schedule[item_copy]);
+                }
+            }
+        }
         reduced_to_original_item_type_ids_.push_back(item_type_id);
     }
 

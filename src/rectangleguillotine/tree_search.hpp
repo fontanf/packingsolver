@@ -244,6 +244,17 @@ public:
          * above a defect in the current 2-level sub-plate.
          */
         std::vector<JRX> subplate2curr_items_above_defect = {};
+
+        /**
+         * For each item type, number of copies of that item type already in
+         * the last (current) bin - needed to look up the correct entry of a
+         * per-copy resource consumption schedule (see 'Resource::
+         * item_consumption').
+         */
+        std::vector<ItemPos> last_bin_item_number_of_copies = {};
+
+        /** Resource consumption of the last (current) bin, indexed by resource_id. */
+        std::vector<double> last_bin_resource_consumption = {};
     };
 
     struct Parameters
@@ -369,6 +380,24 @@ public:
         if (instance().objective() == Objective::BinPackingCuttingCost)
             if (node_1->cutting_cost > node_2->cutting_cost)
                 return false;
+        // If both nodes are on the same (current) bin, that bin's resource
+        // consumption must also be dominated component-wise: a 'penalize'
+        // resource already crossed on 'node_1' is not worse than one not
+        // yet crossed on 'node_2', so this treats hard and 'penalize'
+        // resources alike. When 'node_1' is on an earlier bin ('front(*
+        // node_1).i < front(*node_2).i', handled by the geometric dominance
+        // below), it has not even reached 'node_2's current bin yet, so
+        // there is nothing comparable to check here.
+        if (node_1->number_of_bins == node_2->number_of_bins) {
+            for (ResourceId resource_id = 0;
+                    resource_id < (ResourceId)node_1->last_bin_resource_consumption.size();
+                    ++resource_id) {
+                if (node_1->last_bin_resource_consumption[resource_id]
+                        > node_2->last_bin_resource_consumption[resource_id]) {
+                    return false;
+                }
+            }
+        }
         return dominates(front(*node_1), front(*node_2));
     }
 

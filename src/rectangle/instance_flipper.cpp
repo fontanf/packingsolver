@@ -55,6 +55,18 @@ Instance InstanceFlipper::flip(const Instance& instance)
                     defect.rect.y,
                     defect.rect.x);
         }
+        // Copy resources (their consumptions are copied below, once item
+        // types have been added).
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const Resource& resource = bin_type.resource(resource_id);
+            flipped_instance_builder.add_bin_type_resource(
+                    flipped_bin_type_id,
+                    resource.capacity,
+                    resource.penalize,
+                    resource.penalty);
+        }
     }
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
@@ -76,6 +88,34 @@ Instance InstanceFlipper::flip(const Instance& instance)
         flipped_instance_builder.set_item_type_weight(
                 flipped_item_type_id,
                 item_type.weight);
+    }
+    // Copy resource consumptions, now that both bin and item types have
+    // been added (bin type ids and item type ids line up 1:1 with
+    // 'instance's own, so no remapping is needed).
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const Resource& resource = bin_type.resource(resource_id);
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < (ItemTypeId)resource.item_consumptions.size();
+                    ++item_type_id) {
+                const std::vector<double>& schedule = resource.item_consumptions[item_type_id];
+                for (ItemPos item_copy = 0;
+                        item_copy < (ItemPos)schedule.size();
+                        ++item_copy) {
+                    flipped_instance_builder.add_resource_consumption(
+                            bin_type_id,
+                            resource_id,
+                            item_type_id,
+                            item_copy,
+                            schedule[item_copy]);
+                }
+            }
+        }
     }
     return flipped_instance_builder.build();
 }

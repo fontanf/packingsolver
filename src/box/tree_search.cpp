@@ -329,6 +329,48 @@ BranchingScheme::Node BranchingScheme::child_tmp(
     node.item_weight = parent.item_weight + item_type.weight;
     node.profit = parent.profit + item_type.profit;
 
+    // Update last_bin_item_number_of_copies and last_bin_resource_consumption.
+    // 'node.profit' is further adjusted below by any 'penalize' resource
+    // whose consumption crosses its capacity for the first time as a result
+    // of this insertion (see 'Resource::penalize'), mirroring 'Solution::
+    // update_indicators' so the search optimizes the same objective the
+    // final solution will report.
+    // Skipped entirely when the bin type has no resources at all, so
+    // instances that don't use resources don't pay for allocating/copying
+    // these per-node vectors.
+    if (bin_type.number_of_resources() > 0) {
+        if (insertion.new_bin > 0) {  // New bin.
+            node.last_bin_item_number_of_copies.assign(instance.number_of_item_types(), 0);
+            node.last_bin_resource_consumption.assign(bin_type.number_of_resources(), 0.0);
+            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                double consumption = resource.item_consumption(insertion.item_type_id, 0);
+                node.last_bin_resource_consumption[resource_id] = consumption;
+                // The bin is empty before this insertion, so any crossing here
+                // is necessarily the first one.
+                if (resource.penalize && consumption > resource.capacity)
+                    node.profit -= resource.penalty;
+            }
+            node.last_bin_item_number_of_copies[insertion.item_type_id] = 1;
+        } else {  // Same bin.
+            node.last_bin_item_number_of_copies = parent.last_bin_item_number_of_copies;
+            ItemPos item_copy = node.last_bin_item_number_of_copies[insertion.item_type_id];
+            node.last_bin_resource_consumption = parent.last_bin_resource_consumption;
+            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                double previous_consumption = node.last_bin_resource_consumption[resource_id];
+                node.last_bin_resource_consumption[resource_id]
+                    += resource.item_consumption(insertion.item_type_id, item_copy);
+                if (resource.penalize
+                        && node.last_bin_resource_consumption[resource_id] > resource.capacity
+                        && previous_consumption <= resource.capacity) {
+                    node.profit -= resource.penalty;
+                }
+            }
+            node.last_bin_item_number_of_copies[insertion.item_type_id]++;
+        }
+    }
+
     // Compute current_volume, guide_volume and width using uncovered_items.
     node.xs_max = (insertion.new_bin == 0)?
         std::max(parent.xs_max, insertion.x):
@@ -537,6 +579,34 @@ void BranchingScheme::insertion_item(
     if (last_bin_weight > bin_type.maximum_weight * PSTOL) {
         //std::cout << "maximum_weight" << std::endl;
         return;
+    }
+
+    // Check resource capacity. 'penalize' resources never block an
+    // insertion (see 'Resource::penalize'); only their non-'penalize'
+    // counterparts do. Skipped entirely when the bin type has no resources
+    // (see 'child_tmp').
+    if (bin_type.number_of_resources() > 0) {
+        if (new_bin == 0) {  // Same bin.
+            ItemPos item_copy = parent->last_bin_item_number_of_copies[item_type_id];
+            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                if (resource.penalize)
+                    continue;
+                double consumption = parent->last_bin_resource_consumption[resource_id]
+                    + resource.item_consumption(item_type_id, item_copy);
+                if (consumption > resource.capacity * PSTOL)
+                    return;
+            }
+        } else {  // New bin.
+            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+                const Resource& resource = bin_type.resource(resource_id);
+                if (resource.penalize)
+                    continue;
+                double consumption = resource.item_consumption(item_type_id, 0);
+                if (consumption > resource.capacity * PSTOL)
+                    return;
+            }
+        }
     }
 
     // Check contact with y and z uncovered items.

@@ -168,6 +168,17 @@ public:
 
         /** Width or height. */
         Length length = 0;
+
+        /**
+         * For each item type, number of copies of that item type already in
+         * the last (current) bin - needed to look up the correct entry of a
+         * per-copy resource consumption schedule (see 'Resource::
+         * item_consumption').
+         */
+        std::vector<ItemPos> last_bin_item_number_of_copies;
+
+        /** Resource consumption of the last (current) bin, indexed by resource_id. */
+        std::vector<double> last_bin_resource_consumption;
     };
 
     struct Parameters
