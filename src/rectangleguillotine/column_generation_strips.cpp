@@ -41,10 +41,13 @@ public:
     { }
 
     virtual std::vector<std::shared_ptr<const Column>> initialize_pricing(
-            const std::vector<std::pair<std::shared_ptr<const Column>, Value>>& fixed_columns);
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
+            const std::vector<std::shared_ptr<const columngenerationsolver::Cut>>&,
+            const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&) override;
 
     virtual PricingOutput solve_pricing(
-            const std::vector<Value>& duals);
+            const std::vector<columngenerationsolver::Value>& duals,
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&) override;
 
     void set_all_columns_2e_patterns_generated() { all_columns_2e_patterns_generated_ = true; }
 
@@ -649,7 +652,9 @@ GetModelOutput get_model(
 }
 
 std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initialize_pricing(
-        const std::vector<std::pair<std::shared_ptr<const Column>, Value>>& fixed_columns)
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
+        const std::vector<std::shared_ptr<const columngenerationsolver::Cut>>&,
+        const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&)
 {
     const BinType& bin_type = instance_.bin_type(0);
     double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
@@ -793,7 +798,9 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
                 // (OpenDimensionX); accumulate 'reduced_cost_bound' via max
                 // for the former, min for the latter, so it always tracks
                 // the most improving reduced cost found so far.
-                Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
+                Value rc = column.objective_coefficient;
+                for (const columngenerationsolver::LinearTerm& element: column.elements)
+                    rc -= duals[element.row] * element.coefficient;
                 if (instance_.objective() == Objective::Knapsack) {
                     reduced_cost_bound = (std::max)(reduced_cost_bound, rc);
                 } else if (instance_.objective() == Objective::OpenDimensionX) {
@@ -984,7 +991,9 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             // accumulate 'reduced_cost_bound' via max for the former, min
             // for the latter, so it always tracks the most improving
             // reduced cost found so far.
-            Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
+            Value rc = column.objective_coefficient;
+            for (const columngenerationsolver::LinearTerm& element: column.elements)
+                rc -= duals[element.row] * element.coefficient;
             if (instance_.objective() == Objective::Knapsack) {
                 reduced_cost_bound = (std::max)(reduced_cost_bound, rc);
             } else if (instance_.objective() == Objective::OpenDimensionX) {
@@ -1265,7 +1274,9 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
             // accumulate 'reduced_cost_bound' via max for the former, min
             // for the latter, so it always tracks the most improving
             // reduced cost found so far.
-            Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
+            Value rc = column.objective_coefficient;
+            for (const columngenerationsolver::LinearTerm& element: column.elements)
+                rc -= duals[element.row] * element.coefficient;
             if (instance_.objective() == Objective::Knapsack) {
                 reduced_cost_bound = (std::max)(reduced_cost_bound, rc);
             } else if (instance_.objective() == Objective::OpenDimensionX) {
@@ -1505,7 +1516,9 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             // accumulate 'reduced_cost_bound' via max for the former, min
             // for the latter, so it always tracks the most improving
             // reduced cost found so far.
-            Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
+            Value rc = column.objective_coefficient;
+            for (const columngenerationsolver::LinearTerm& element: column.elements)
+                rc -= duals[element.row] * element.coefficient;
             if (instance_.objective() == Objective::Knapsack) {
                 reduced_cost_bound = (std::max)(reduced_cost_bound, rc);
             } else if (instance_.objective() == Objective::OpenDimensionX) {
@@ -1858,7 +1871,9 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         Length width_next = actual_used_width - 1;
         if (instance_.objective() == Objective::Knapsack
                 && strictly_greater(width_dual, 0.0)) {
-            Value rc = columngenerationsolver::compute_reduced_cost(column, duals);
+            Value rc = column.objective_coefficient;
+            for (const columngenerationsolver::LinearTerm& element: column.elements)
+                rc -= duals[element.row] * element.coefficient;
             if (!strictly_greater(rc, 0.0)) {
                 double bound = actual_used_width
                     + rc * multiplier_length / width_dual
@@ -1901,7 +1916,8 @@ void ColumnGenerationPricingSolver::generate_duals_zero(
 }
 
 PricingOutput ColumnGenerationPricingSolver::solve_pricing(
-            const std::vector<Value>& duals)
+        const std::vector<columngenerationsolver::Value>& duals,
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&)
 {
     //std::cout << "solve_pricing" << std::endl;
 
@@ -2001,7 +2017,9 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
     // accept a generated column.
     bool has_good_column = false;
     for (const auto& column: output.columns) {
-        Value rc = columngenerationsolver::compute_reduced_cost(*column, duals);
+        Value rc = column->objective_coefficient;
+        for (const columngenerationsolver::LinearTerm& element: column->elements)
+            rc -= duals[element.row] * element.coefficient;
         if (instance_.objective() == Objective::Knapsack) {
             if (strictly_greater(rc, 0)) {
                 has_good_column = true;
