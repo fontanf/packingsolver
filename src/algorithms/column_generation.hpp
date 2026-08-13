@@ -45,7 +45,6 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
-#include "columngenerationsolver/algorithms/heuristic_tree_search.hpp"
 #include "columngenerationsolver/algorithms/limited_discrepancy_search.hpp"
 
 #include <sstream>
@@ -77,10 +76,13 @@ public:
     { }
 
     virtual std::vector<std::shared_ptr<const Column>> initialize_pricing(
-            const std::vector<std::pair<std::shared_ptr<const Column>, Value>>& fixed_columns);
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
+            const std::vector<std::shared_ptr<const columngenerationsolver::Cut>>&,
+            const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&) override;
 
     virtual PricingOutput solve_pricing(
-            const std::vector<Value>& duals);
+            const std::vector<columngenerationsolver::Value>& duals,
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&) override;
 
 private:
 
@@ -147,7 +149,9 @@ columngenerationsolver::Model get_model(
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
 std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::initialize_pricing(
-        const std::vector<std::pair<std::shared_ptr<const Column>, Value>>& fixed_columns)
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
+        const std::vector<std::shared_ptr<const columngenerationsolver::Cut>>&,
+        const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&)
 {
     //std::cout << "initialize_pricing " << fixed_columns.size() << std::endl;
     std::fill(fixed_bin_types_.begin(), fixed_bin_types_.end(), 0);
@@ -216,7 +220,8 @@ std::vector<std::shared_ptr<const Column>> solution_to_columns(
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
 PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::solve_pricing(
-            const std::vector<Value>& duals)
+        const std::vector<Value>& duals,
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, Value>>&)
 {
     double multiplier_cost = largest_power_of_two_lesser_or_equal(instance_.largest_bin_cost());
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
@@ -383,6 +388,7 @@ Output column_generation(
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = parameters.internal_diving;
+    cgslds_parameters.rounding_heuristic = true;
     cgslds_parameters.dummy_column_objective_coefficient
         = 2 * (double)instance.largest_item_copies();
     if (parameters.optimization_mode != OptimizationMode::Anytime)
