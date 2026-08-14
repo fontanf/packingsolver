@@ -67,8 +67,10 @@ public:
 
     ColumnGenerationPricingSolver(
             const Instance& instance,
+            const Output& output,
             const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function):
         instance_(instance),
+        output_(output),
         pricing_function_(pricing_function),
         fixed_bin_types_(instance.number_of_bin_types()),
         filled_demands_(instance.number_of_item_types()),
@@ -88,6 +90,8 @@ private:
 
     const Instance& instance_;
 
+    const Output& output_;
+
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output> pricing_function_;
 
     std::vector<BinPos> fixed_bin_types_;
@@ -102,6 +106,7 @@ private:
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
 columngenerationsolver::Model get_model(
         const Instance& instance,
+        const Output& output,
         const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function)
 {
     columngenerationsolver::Model model;
@@ -143,7 +148,7 @@ columngenerationsolver::Model get_model(
 
     // Pricing solver.
     model.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
-            new ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>(instance, pricing_function));
+            new ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>(instance, output, pricing_function));
     return model;
 }
 
@@ -353,9 +358,20 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             bin_fixed_copies[fixed_item.item_type_id]--;
     }
 
+    // 'reduced_cost_bound' is a per-bin bound on the reduced cost, so the
+    // Lagrangian overcost is that times the largest number of bins any
+    // solution could ever use. If a feasible BinPacking solution has
+    // already been found, its own number of bins is a tighter such cap
+    // than the generic 'min(number_of_items, number_of_bins)' one (no
+    // solution using more bins than the best one found so far could ever
+    // be optimal).
+    BinPos maximum_number_of_bins = (std::min)((BinPos)instance_.number_of_items(), instance_.number_of_bins());
+    if (instance_.objective() == Objective::BinPacking
+            && output_.solution_pool.best().feasible()) {
+        maximum_number_of_bins = output_.solution_pool.best().number_of_bins();
+    }
     output.overcost
-        = (std::min)((BinPos)instance_.number_of_items(), instance_.number_of_bins())
-        * reduced_cost_bound;
+        = maximum_number_of_bins * reduced_cost_bound;
 
     //std::cout << "solve_pricing end" << std::endl;
     return output;
@@ -382,7 +398,7 @@ Output column_generation(
     algorithm_formatter.print_header();
 
     columngenerationsolver::Model cgs_model
-        = get_model<Instance, InstanceBuilder, Solution, Output>(instance, pricing_function);
+        = get_model<Instance, InstanceBuilder, Solution, Output>(instance, output, pricing_function);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
