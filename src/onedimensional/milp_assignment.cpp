@@ -1383,7 +1383,20 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
     if (instance.objective() == Objective::BinPacking
             && parameters.use_sequential_feasibility) {
         BinPos sequential_feasibility_lower_bound = std::max(output.bin_packing_bound, lower_bound);
-        for (BinPos number_of_bins = sequential_feasibility_lower_bound; ; ++number_of_bins) {
+        // No candidate bin count can ever exceed the total number of bins
+        // the instance actually offers: past that point,
+        // 'build_sequential_feasibility_sub_instance' would just keep
+        // returning the same (fully-used) sub-instance over and over,
+        // looping forever if it keeps coming back inconclusive (see below).
+        BinPos sequential_feasibility_bins_available = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            sequential_feasibility_bins_available += instance.bin_type(bin_type_id).copies;
+        }
+        for (BinPos number_of_bins = sequential_feasibility_lower_bound;
+                number_of_bins <= sequential_feasibility_bins_available;
+                ++number_of_bins) {
             if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
                 break;
 
@@ -1397,21 +1410,36 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
             sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
             MilpAssignmentOutput sub_output = milp_assignment(sub_instance, sub_parameters);
 
-            if (sub_output.solution_pool.best().full()) {
+            if (sub_output.solution_pool.best().feasible()) {
+                // Found a feasible solution: report it as a new upper bound.
+                // Its bin count is not claimed optimal here - proving that
+                // would require having proven every smaller candidate
+                // infeasible ourselves, but 'sequential_feasibility_lower_bound'
+                // is only ever a starting point handed to us (from
+                // 'output.bin_packing_bound' or the 'lower_bound' argument),
+                // not something this loop has itself established; the bound
+                // only ever advances below via our own infeasibility proofs.
                 Solution solution(instance);
                 solution.append_bins(packingsolver::enforce_bin_type_order(sub_output.solution_pool.best()), {}, {});
                 std::stringstream ss;
                 ss << "MILP-A SF " << (number_of_bins - sequential_feasibility_lower_bound)
                     << " " << sub_output.solution_pool.best_label();
                 algorithm_formatter.update_solution(solution, ss.str());
-                algorithm_formatter.update_bin_packing_bound(number_of_bins);
                 break;
             }
-            if (!sub_output.is_proven_infeasible) {
-                // Cut short by the timer with no definitive answer for this
-                // bin count: stop without claiming a proof either way.
-                break;
+            if (sub_output.is_proven_infeasible) {
+                // A proof that 'number_of_bins' is infeasible is valid on
+                // its own (infeasible with 'number_of_bins' bins available
+                // implies infeasible with fewer too, since fewer bins is
+                // strictly more restrictive), regardless of whether earlier,
+                // smaller candidates were themselves conclusively tested -
+                // so the lower bound can always be tightened here.
+                algorithm_formatter.update_bin_packing_bound(number_of_bins + 1);
             }
+            // Otherwise inconclusive (e.g. cut short by the timer) for this
+            // bin count: keep trying larger candidates anyway - a feasible
+            // solution found there is still a useful upper bound, even
+            // though it can no longer be proven optimal.
         }
 
         algorithm_formatter.end();

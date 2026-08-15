@@ -92,6 +92,11 @@ public:
             const std::vector<BinTypeId>& bin_type_ids,
             const std::vector<ItemTypeId>& item_type_ids);
 
+    /** Append 'copies' empty (no items) bins of bin type 'bin_type_id' to this solution. */
+    void append_empty_bin(
+            BinTypeId bin_type_id,
+            BinPos copies);
+
     /*
      * Getters
      */

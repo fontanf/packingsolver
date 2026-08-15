@@ -816,8 +816,17 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
         use_column_generation_strips = false;
-        if (instance.number_of_bin_types() > 1) {
+        // 'column_generation' doesn't build item-type rows for
+        // 'BinPackingWithLeftovers' at all (see 'get_model' in
+        // 'algorithms/column_generation.hpp'); for 'BinPacking' with more
+        // than one bin type, it instead falls back to its own sequential
+        // feasibility scheme (see 'ColumnGenerationParameters::
+        // use_sequential_feasibility'), so no restriction is needed there.
+        if (instance.objective() == Objective::BinPackingWithLeftovers
+                && instance.number_of_bin_types() > 1) {
             use_column_generation = false;
+        }
+        if (instance.number_of_bin_types() > 1) {
             use_sequential_strips_onedimensional = false;
         }
         use_dichotomic_search = false;
@@ -835,7 +844,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    if (instance.number_of_bin_types() == 1
+                    if (instance.objective() == Objective::BinPacking
                             && instance.number_of_stacks() == instance.number_of_item_types()) {
                         use_column_generation = true;
                     }
@@ -847,7 +856,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    if (instance.number_of_bin_types() == 1
+                    if (instance.objective() == Objective::BinPacking
                             && instance.number_of_stacks() == instance.number_of_item_types()) {
                         use_column_generation = true;
                     }

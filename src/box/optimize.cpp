@@ -659,8 +659,16 @@ packingsolver::box::Output packingsolver::box::optimize(
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
         use_tree_search_maximal_spaces = false;
-        if (instance.number_of_bin_types() > 1)
+        // 'column_generation' doesn't build item-type rows for
+        // 'BinPackingWithLeftovers' at all (see 'get_model' in
+        // 'algorithms/column_generation.hpp'); for 'BinPacking' with more
+        // than one bin type, it instead falls back to its own sequential
+        // feasibility scheme (see 'ColumnGenerationParameters::
+        // use_sequential_feasibility'), so no restriction is needed there.
+        if (instance.objective() == Objective::BinPackingWithLeftovers
+                && instance.number_of_bin_types() > 1) {
             use_column_generation = false;
+        }
         use_dichotomic_search = false;
         // Automatic selection.
         if (!use_tree_search
@@ -675,7 +683,7 @@ packingsolver::box::Output packingsolver::box::optimize(
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    if (instance.number_of_bin_types() == 1)
+                    if (instance.objective() == Objective::BinPacking)
                         use_column_generation = true;
                 }
             } else {
@@ -688,7 +696,7 @@ packingsolver::box::Output packingsolver::box::optimize(
                 } else {
                     use_tree_search = true;
                     use_sequential_value_correction = true;
-                    if (instance.number_of_bin_types() == 1)
+                    if (instance.objective() == Objective::BinPacking)
                         use_column_generation = true;
                 }
             }
