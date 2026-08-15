@@ -1,5 +1,7 @@
 #include "packingsolver/rectangleguillotine/solution.hpp"
 
+#include "rectangleguillotine/solution_builder.hpp"
+
 #include "optimizationtools/utils/utils.hpp"
 
 #include <fstream>
@@ -517,6 +519,18 @@ void Solution::append_bins(
 {
     for (BinPos bin_pos = 0; bin_pos < solution.number_of_bins(); ++bin_pos)
         append_bin(solution, bin_pos, 1, bin_type_ids, item_type_ids);
+}
+
+void Solution::append_empty_bin(
+        BinTypeId bin_type_id,
+        BinPos copies)
+{
+    CutOrientation first_cut_orientation = (instance().parameters().first_stage_orientation != CutOrientation::Any)?
+        instance().parameters().first_stage_orientation:
+        CutOrientation::Vertical;
+    SolutionBuilder solution_builder(instance());
+    solution_builder.add_bin(bin_type_id, copies, first_cut_orientation);
+    append_bins(solution_builder.build(), {}, {});
 }
 
 bool Solution::operator<(const Solution& solution) const

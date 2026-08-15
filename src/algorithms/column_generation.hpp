@@ -200,6 +200,19 @@ std::vector<std::shared_ptr<const Column>> solution_to_columns(
         if (instance.objective() == Objective::VariableSizedBinPacking
                 || instance.objective() == Objective::BinPacking) {
             column.objective_coefficient = extra_solution.cost() / multiplier_cost;
+        } else if (instance.objective() == Objective::Feasibility) {
+            // Unlike 'BinPacking'/'VariableSizedBinPacking', a real bin
+            // cost isn't the right anti-degeneracy signal here (see
+            // 'ColumnGenerationParameters::use_sequential_feasibility''s
+            // own doc comment): it would bias the search toward whichever
+            // bin type is cheapest, not whichever is actually needed for
+            // feasibility, and it isn't on the same, exactly-known scale
+            // as 'dummy_column_objective_coefficient' expects (see its own
+            // computation above). A uniform 1 per column instead makes the
+            // master LP minimize the plain number of bins used - exactly
+            // the anti-degeneracy signal wanted, with no such bias, and an
+            // exact (not merely bounded) cost scale.
+            column.objective_coefficient = 1;
         } else if (instance.objective() == Objective::Knapsack) {
             column.objective_coefficient = extra_solution.profit() / multiplier_profit;
         }
@@ -315,6 +328,9 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             if (instance_.objective() == Objective::VariableSizedBinPacking
                     || instance_.objective() == Objective::BinPacking) {
                 column.objective_coefficient = extra_solution.cost() / multiplier_cost;
+            } else if (instance_.objective() == Objective::Feasibility) {
+                // See 'solution_to_columns''s own identical branch above.
+                column.objective_coefficient = 1;
             } else if (instance_.objective() == Objective::Knapsack) {
                 column.objective_coefficient = extra_solution.profit() / multiplier_profit;
             }
@@ -344,9 +360,11 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                         reduced_cost_bound,
                         bin_type.cost / multiplier_cost - duals[bin_type_id] - kp_output.knapsack_bound);
             } else if (instance_.objective() == Objective::Feasibility) {
+                // Consistent with 'column.objective_coefficient' above: 1
+                // per column, not the bin's real cost.
                 reduced_cost_bound = (std::min)(
                         reduced_cost_bound,
-                        -duals[bin_type_id] - kp_output.knapsack_bound);
+                        1 - duals[bin_type_id] - kp_output.knapsack_bound);
             } else if (instance_.objective() == Objective::Knapsack) {
                 reduced_cost_bound = (std::max)(
                         reduced_cost_bound,
@@ -384,18 +402,223 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
     int internal_diving = 1;
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
+
+    /**
+     * Sequential feasibility scheme for the 'BinPacking' objective - the
+     * column generation counterpart of 'onedimensional::milp_assignment's
+     * own 'use_sequential_feasibility' scheme (see its doc comment).
+     *
+     * 'column_generation' converts its master's cost-minimizing LP bound
+     * into a bin count by dividing by a single bin type's cost (see the
+     * 'BinPacking' branch of its own 'new_bound_callback'), which is only
+     * sound when every bin type costs the same. Whenever there is more than
+     * one bin type, 'column_generation' therefore always uses this scheme
+     * instead, regardless of this parameter.
+     *
+     * When there is a single bin type, the direct approach is sound too, so
+     * this parameter is only needed to opt into the sequential feasibility
+     * scheme there as well. Defaults to 'true', so it is used whenever
+     * possible (any bin count for the 'BinPacking' objective); set to
+     * 'false' to force the direct approach for a single bin type instead.
+     *
+     * Each 'Feasibility' sub-problem's master LP minimizes the plain number
+     * of bins used (every real column gets objective coefficient 1,
+     * regardless of bin type - see 'solution_to_columns' and
+     * 'ColumnGenerationPricingSolver::solve_pricing') instead of leaving it
+     * at the default 0 - only the row bounds differ from the direct
+     * approach's own 'BinPacking' LP (the bin-type row is capped at the
+     * candidate bin count instead of the instance's own bin availability).
+     * Without this, every real column ties at objective coefficient 0 (only
+     * the dummy columns used to cover otherwise-unfillable rows cost
+     * anything), making the LP objective completely flat: every combination
+     * of real columns ties at value 0, so the LP bound stays 0 regardless of
+     * how close to integer-feasible the relaxation is, and the LP solver has
+     * no reason to settle on an "efficient" fractional vertex over any other
+     * tied-optimal one. 'limited_discrepancy_search''s own branching rule
+     * doesn't look at cost directly (it picks by branching priority and
+     * fractional value alone), but it still branches on whatever fractional
+     * solution the LP handed it - an arbitrary, unshaped one when the
+     * objective is flat. A uniform coefficient of 1 doesn't have this
+     * problem (the total still varies with how many bins are used), turning
+     * this into a genuine "minimize bins used" problem and giving the LP
+     * relaxation the same well-behaved, informative solution and bound the
+     * direct approach's own search already relies on - and unlike using the
+     * bin's real cost (which 'BinPacking' needs, since there it's the actual
+     * objective), it doesn't bias the search toward whichever bin type is
+     * cheapest when there is more than one, only toward using fewer of them,
+     * and it keeps the real column cost on an exact, known scale for
+     * 'ColumnGenerationParameters::dummy_column_objective_coefficient' to be
+     * safely set relative to (see its own computation below) instead of a
+     * merely bounded one. This doesn't change what counts as feasible - the
+     * row bounds are untouched, so this remains a pure feasibility question
+     * ("does this many bins suffice?"), not a request for the minimal-cost
+     * solution.
+     *
+     * Not used for other objectives.
+     */
+    bool use_sequential_feasibility = true;
 };
 
+/**
+ * Build the 'Feasibility' sub-instance for a candidate bin count of
+ * 'column_generation's own sequential feasibility scheme (see
+ * 'ColumnGenerationParameters::use_sequential_feasibility'): the first
+ * 'number_of_bins' bins of 'instance', in the order bin types must be used
+ * (mirrors 'onedimensional::milp_assignment's own sequential feasibility
+ * scheme). Bin types are added in the same order as 'instance''s own,
+ * starting from the first one, so the sub-instance's bin type ids line up
+ * 1:1 with 'instance''s - no remapping is needed to relate a sub-solution
+ * back to 'instance' (see 'packingsolver::enforce_bin_type_order', used
+ * against this 1:1 correspondence once the sub-instance has been solved).
+ */
+template <typename Instance, typename InstanceBuilder>
+Instance build_sequential_feasibility_sub_instance(
+        const Instance& instance,
+        BinPos number_of_bins)
+{
+    InstanceBuilder sub_instance_builder;
+    sub_instance_builder.set_objective(Objective::Feasibility);
+    sub_instance_builder.set_parameters(instance.parameters());
+    BinPos remaining_bins = number_of_bins;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types() && remaining_bins > 0;
+            ++bin_type_id) {
+        const auto& bin_type = instance.bin_type(bin_type_id);
+        BinPos copies = (std::min)(bin_type.copies, remaining_bins);
+        BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+        // Reset 'copies_min' to 0 before 'copies': 'add_bin_type' copied the
+        // original bin type's own 'copies_min', which could otherwise be
+        // larger than the subset 'copies' computed above and make
+        // 'set_bin_type_copies' reject it.
+        sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+        sub_instance_builder.set_bin_type_copies(sub_bin_type_id, copies);
+        remaining_bins -= copies;
+    }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        sub_instance_builder.add_item_type(instance, item_type_id);
+    }
+    return sub_instance_builder.build();
+}
+
+/**
+ * 'lower_bound': a known lower bound on the number of bins already
+ * established by the caller (e.g. a bound computed by another algorithm
+ * before this one runs), used only by the 'ColumnGenerationParameters::
+ * use_sequential_feasibility' scheme to seed its starting candidate bin
+ * count instead of always starting from scratch. Combined (via 'max') with
+ * 'output.bin_packing_bound' itself, so it is never unsound to pass a stale
+ * or overly conservative value.
+ *
+ * 'column_pool': columns are packing patterns for a single bin of a given
+ * bin type, so they stay valid regardless of how many bins of that type are
+ * available - meaning a column found while solving one instance can be
+ * reused unchanged as a starting point for another instance with the same
+ * bin and item types (this is exactly the relationship between successive
+ * candidates of the sequential feasibility scheme above). If non-null,
+ * seeded with '*column_pool' before solving and updated in place with every
+ * column found by this call on return, so passing the same pointer to a
+ * sequence of calls (as the sequential feasibility scheme does) lets each
+ * one pick up where the previous one left off instead of starting its
+ * pricing from scratch.
+ */
 template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter, typename Output = packingsolver::Output<Instance, Solution>>
 Output column_generation(
         const Instance& instance,
         const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function,
-        const ColumnGenerationParameters<Instance, Solution, Output>& parameters = {})
+        const ColumnGenerationParameters<Instance, Solution, Output>& parameters = {},
+        BinPos lower_bound = 0,
+        std::vector<std::shared_ptr<const Column>>* column_pool = nullptr)
 {
     Output output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();
+
+    // Sequential feasibility scheme (see 'ColumnGenerationParameters::
+    // use_sequential_feasibility'): try candidate bin counts in increasing
+    // order starting at 'sequential_feasibility_lower_bound', each as a
+    // 'Feasibility' sub-instance containing only the first 'k' bins (see
+    // 'build_sequential_feasibility_sub_instance'), solved via a direct
+    // recursive call to 'column_generation' itself (never anything else -
+    // in particular, this never falls back to a domain's other,
+    // non-column-generation algorithms). Stops at the first 'k' found
+    // feasible, which is then optimal (every smaller candidate has been
+    // shown infeasible).
+    if (instance.objective() == Objective::BinPacking
+            && (instance.number_of_bin_types() > 1
+                    || parameters.use_sequential_feasibility)) {
+        BinPos sequential_feasibility_lower_bound = (std::max)(output.bin_packing_bound, lower_bound);
+        // No candidate bin count can ever exceed the total number of bins
+        // the instance actually offers: past that point,
+        // 'build_sequential_feasibility_sub_instance' would just keep
+        // returning the same (fully-used) sub-instance over and over,
+        // looping forever if it keeps coming back inconclusive (see below).
+        BinPos sequential_feasibility_bins_available = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            sequential_feasibility_bins_available += instance.bin_type(bin_type_id).copies;
+        }
+        // Columns are reused from one candidate bin count to the next (see
+        // 'column_pool''s own doc comment above): every candidate shares the
+        // same bin and item types, only the number of bins available of
+        // each type changes.
+        std::vector<std::shared_ptr<const Column>> sequential_feasibility_column_pool;
+        for (BinPos number_of_bins = sequential_feasibility_lower_bound;
+                number_of_bins <= sequential_feasibility_bins_available;
+                ++number_of_bins) {
+            if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
+                break;
+
+            Instance sub_instance = build_sequential_feasibility_sub_instance<Instance, InstanceBuilder>(
+                    instance, number_of_bins);
+
+            ColumnGenerationParameters<Instance, Solution, Output> sub_parameters;
+            sub_parameters.verbosity_level = 0;
+            sub_parameters.timer = parameters.timer;
+            sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            sub_parameters.optimization_mode = parameters.optimization_mode;
+            sub_parameters.internal_diving = parameters.internal_diving;
+            sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            Output sub_output = column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, Output>(
+                    sub_instance, pricing_function, sub_parameters, 0, &sequential_feasibility_column_pool);
+
+            if (sub_output.solution_pool.best().feasible()) {
+                // Found a feasible solution: report it as a new upper bound.
+                // Its bin count is not claimed optimal here - proving that
+                // would require having proven every smaller candidate
+                // infeasible ourselves, but 'sequential_feasibility_lower_bound'
+                // is only ever a starting point handed to us (from
+                // 'output.bin_packing_bound' or the 'lower_bound' argument),
+                // not something this loop has itself established; the bound
+                // only ever advances below via our own infeasibility proofs.
+                Solution solution(instance);
+                solution.append_bins(packingsolver::enforce_bin_type_order(sub_output.solution_pool.best()), {}, {});
+                std::stringstream ss;
+                ss << "SF " << (number_of_bins - sequential_feasibility_lower_bound);
+                algorithm_formatter.update_solution(solution, ss.str());
+                break;
+            }
+            if (sub_output.is_proven_infeasible) {
+                // A proof that 'number_of_bins' is infeasible is valid on
+                // its own (infeasible with 'number_of_bins' bins available
+                // implies infeasible with fewer too, since fewer bins is
+                // strictly more restrictive), regardless of whether earlier,
+                // smaller candidates were themselves conclusively tested -
+                // so the lower bound can always be tightened here.
+                algorithm_formatter.update_bin_packing_bound(number_of_bins + 1);
+            }
+            // Otherwise inconclusive (e.g. cut short by the timer) for this
+            // bin count: keep trying larger candidates anyway - a feasible
+            // solution found there is still a useful upper bound, even
+            // though it can no longer be proven optimal.
+        }
+
+        algorithm_formatter.end();
+        return output;
+    }
 
     columngenerationsolver::Model cgs_model
         = get_model<Instance, InstanceBuilder, Solution, Output>(instance, output, pricing_function);
@@ -405,8 +628,35 @@ Output column_generation(
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = parameters.internal_diving;
     cgslds_parameters.rounding_heuristic = true;
-    cgslds_parameters.dummy_column_objective_coefficient
-        = 2 * (double)instance.largest_item_copies();
+    // For 'BinPacking'/'VariableSizedBinPacking', real columns' objective
+    // coefficient is normalized by the largest power of two <= the
+    // instance's own largest bin cost (see 'multiplier_cost' above and in
+    // 'solve_pricing'), so it always lands in [1, 2) for the costliest
+    // column and lower for every other one - regardless of how large the
+    // instance's actual costs are. The dummy coefficient needs to stay
+    // comfortably above that same ceiling for every real column to stay
+    // strictly cheaper than falling back to a dummy (otherwise the LP has
+    // no real pressure to prefer real columns, and the retry loop below has
+    // to inflate the coefficient a few times before it does); the
+    // 'largest_item_copies()' term alone doesn't guarantee that (e.g. it's
+    // only 1, giving a dummy coefficient of 2, for a same-copy instance
+    // with no repeated item type at all).
+    //
+    // 'Feasibility' instead gives every real column an exact objective
+    // coefficient of 1 (see 'solve_pricing'), not merely a bounded one, so
+    // it starts already comfortably past
+    // 'columngenerationsolver::column_generation''s own infeasibility
+    // threshold (dummy coefficient > 100 * highest real column cost, i.e.
+    // > 100 here) rather than the same small floor as the other objectives:
+    // unlike 'BinPacking'/'VariableSizedBinPacking', which are usually
+    // trivially feasible, roughly half of the sequential feasibility
+    // scheme's own candidates are genuinely infeasible by construction (it
+    // stops as soon as one isn't), so starting low would mean paying for
+    // several '*= 4' retries - each a full LP re-solve - just to reach that
+    // same threshold on every one of them.
+    cgslds_parameters.dummy_column_objective_coefficient = (std::max)(
+            2 * (double)instance.largest_item_copies(),
+            (instance.objective() == Objective::Feasibility)? 200.0: 8.0);
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         cgslds_parameters.automatic_stop = true;
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
@@ -457,7 +707,12 @@ Output column_generation(
     };
     cgslds_parameters.column_generation_parameters.solver_name
         = parameters.linear_programming_solver_name;
-    columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
+    if (column_pool != nullptr)
+        cgslds_parameters.column_pool = *column_pool;
+    columngenerationsolver::LimitedDiscrepancySearchOutput cgslds_search_output
+        = columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
+    if (column_pool != nullptr)
+        *column_pool = cgslds_search_output.columns;
 
     algorithm_formatter.end();
     return output;

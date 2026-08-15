@@ -504,7 +504,8 @@ void optimize_column_generation(
         const Instance& instance,
         const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter,
-        rectangle::Output* local_output)
+        rectangle::Output* local_output,
+        BinPos lower_bound)
 {
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, rectangle::Output> pricing_function
         = [&parameters](const Instance& kp_instance)
@@ -541,7 +542,8 @@ void optimize_column_generation(
             algorithm_formatter.update_bounds(ps_output);
         }
     };
-    column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, rectangle::Output>(instance, pricing_function, cg_parameters);
+    column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, rectangle::Output>(
+            instance, pricing_function, cg_parameters, lower_bound);
 }
 
 void optimize_tree_search_maximal_spaces(
@@ -831,8 +833,16 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
         use_tree_search_maximal_spaces = false;
-        if (instance.number_of_bin_types() > 1)
+        // 'column_generation' doesn't build item-type rows for
+        // 'BinPackingWithLeftovers' at all (see 'get_model' in
+        // 'algorithms/column_generation.hpp'); for 'BinPacking' with more
+        // than one bin type, it instead falls back to its own sequential
+        // feasibility scheme (see 'ColumnGenerationParameters::
+        // use_sequential_feasibility'), so no restriction is needed there.
+        if (instance.objective() == Objective::BinPackingWithLeftovers
+                && instance.number_of_bin_types() > 1) {
             use_column_generation = false;
+        }
         use_dichotomic_search = false;
         if (instance.objective() == Objective::BinPackingWithLeftovers)
             use_benders_decomposition = false;
@@ -855,8 +865,9 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    if (instance.number_of_bin_types() == 1)
+                    if (instance.objective() == Objective::BinPacking) {
                         use_column_generation = true;
+                    }
                 }
             } else {
                 use_tree_search = true;
@@ -865,8 +876,9 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                     use_sequential_single_knapsack = true;
                 } else {
                     use_sequential_value_correction = true;
-                    if (instance.number_of_bin_types() == 1)
+                    if (instance.objective() == Objective::BinPacking) {
                         use_column_generation = true;
+                    }
                 }
             }
         }
@@ -1037,13 +1049,20 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         std::unique_ptr<rectangle::Output> local_output;
         if (deterministic)
             local_output = std::make_unique<rectangle::Output>(instance);
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+        // Snapshot the bound established so far (only used by
+        // 'column_generation''s own sequential feasibility scheme, for the
+        // 'BinPacking' objective - see 'ColumnGenerationParameters::
+        // use_sequential_feasibility'): seeds its starting candidate instead
+        // of it always restarting from scratch.
+        BinPos column_generation_lower_bound = output.bin_packing_bound;
+        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get(), column_generation_lower_bound]() {
             wrapper<decltype(&optimize_column_generation), optimize_column_generation>(
                     exception_ptr,
                     instance,
                     parameters,
                     algorithm_formatter,
-                    local_output);
+                    local_output,
+                    column_generation_lower_bound);
         });
         local_outputs.push_back(std::move(local_output));
     }

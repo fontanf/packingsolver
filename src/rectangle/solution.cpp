@@ -165,6 +165,17 @@ void Solution::append_bins(
     }
 }
 
+void Solution::append_empty_bin(
+        BinTypeId bin_type_id,
+        BinPos copies)
+{
+    SolutionBin bin;
+    bin.bin_type_id = bin_type_id;
+    bin.copies = copies;
+    bins_.push_back(bin);
+    update_indicators(bins_.size() - 1);
+}
+
 double Solution::least_load() const
 {
     if (number_of_bins() == 0)

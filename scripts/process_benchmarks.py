@@ -209,18 +209,27 @@ elif benchmark == "rectangleguillotine_bin_packing_3nho":
         out_rows = []
 
         # Initialize extra rows.
+        instance_classes = ["01", "02", "03", "04", "05",
+                            "06", "07", "08", "09", "10"]
         extra_rows = [
                 {
                     "Path": ("Class_" + instance_class
                               + ".2bp_" + number_of_items),
                     bksv_field: 0,
                 }
-                for instance_class in ["01", "02", "03", "04", "05",
-                                       "06", "07", "08", "09", "10"]
+                for instance_class in instance_classes
                 for number_of_items in ["20", "40", "60", "80", "100"]
+                ] + [
+                {
+                    "Path": "Class_" + instance_class,
+                    bksv_field: 0,
+                }
+                for instance_class in instance_classes
                 ] + [{
                         "Path": "Total",
                         bksv_field: 0}]
+        number_of_classes = len(instance_classes)
+        class_row_offset = 5 * number_of_classes
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
@@ -247,6 +256,7 @@ elif benchmark == "rectangleguillotine_bin_packing_3nho":
             number_of_items = int(row["Path"].split('_')[2])
             extra_rows_to_update = [
                     ((instance_class - 1) * 5 + int(number_of_items / 20 - 1)),
+                    class_row_offset + (instance_class - 1),
                     -1]
 
             # Update "Best known solution value" column of extra rows.
@@ -297,18 +307,27 @@ elif benchmark == "rectangleguillotine_bin_packing_3nhr":
         out_rows = []
 
         # Initialize extra rows.
+        instance_classes = ["01", "02", "03", "04", "05",
+                            "06", "07", "08", "09", "10"]
         extra_rows = [
                 {
                     "Path": ("Class_" + instance_class
                               + ".2bp_" + number_of_items),
                     bksv_field: 0,
                 }
-                for instance_class in ["01", "02", "03", "04", "05",
-                                       "06", "07", "08", "09", "10"]
+                for instance_class in instance_classes
                 for number_of_items in ["20", "40", "60", "80", "100"]
+                ] + [
+                {
+                    "Path": "Class_" + instance_class,
+                    bksv_field: 0,
+                }
+                for instance_class in instance_classes
                 ] + [{
                         "Path": "Total",
                         bksv_field: 0}]
+        number_of_classes = len(instance_classes)
+        class_row_offset = 5 * number_of_classes
         for fieldname in [bksv_field] + result_columns:
             for row in extra_rows:
                 row[fieldname] = 0
@@ -335,6 +354,7 @@ elif benchmark == "rectangleguillotine_bin_packing_3nhr":
             number_of_items = int(row["Path"].split('_')[2])
             extra_rows_to_update = [
                     ((instance_class - 1) * 5 + int(number_of_items / 20 - 1)),
+                    class_row_offset + (instance_class - 1),
                     -1]
 
             # Update "Best known solution value" column of extra rows.
@@ -1674,27 +1694,42 @@ elif benchmark == "rectangle_bin_packing_oriented":
         out_fieldnames = reader.fieldnames
         for output_directory in output_directories:
             out_fieldnames.append(output_directory + " / Solution value")
+            out_fieldnames.append(output_directory + " / Bound")
+            out_fieldnames.append(output_directory + " / Time")
 
         result_columns = [fieldname for fieldname in reader.fieldnames
                           if "Solution value" in fieldname]
+        bound_columns = [output_directory + " / Bound"
+                         for output_directory in output_directories]
+        time_columns = [output_directory + " / Time"
+                        for output_directory in output_directories]
 
         # Initialize extra rows.
         out_rows = []
 
         # Initialize extra rows.
+        instance_classes = ["01", "02", "03", "04", "05",
+                            "06", "07", "08", "09", "10"]
         extra_rows = [
                 {
                     "Path": ("Class_" + instance_class
                               + ".2bp_" + number_of_items),
                     bksv_field: 0,
                 }
-                for instance_class in ["01", "02", "03", "04", "05",
-                                       "06", "07", "08", "09", "10"]
+                for instance_class in instance_classes
                 for number_of_items in ["20", "40", "60", "80", "100"]
+                ] + [
+                {
+                    "Path": "Class_" + instance_class,
+                    bksv_field: 0,
+                }
+                for instance_class in instance_classes
                 ] + [{
                         "Path": "Total",
                         bksv_field: 0}]
-        for fieldname in [bksv_field] + result_columns:
+        number_of_classes = len(instance_classes)
+        class_row_offset = 5 * number_of_classes
+        for fieldname in [bksv_field] + result_columns + bound_columns + time_columns:
             for row in extra_rows:
                 row[fieldname] = 0
 
@@ -1714,12 +1749,17 @@ elif benchmark == "rectangle_bin_packing_oriented":
                 json_data = json.load(json_output_file)
                 row[output_directory + " / Solution value"] = (
                         json_data["Output"]["Solution"]["NumberOfBins"])
+                row[output_directory + " / Bound"] = (
+                        json_data["Output"]["BinPackingBound"])
+                row[output_directory + " / Time"] = (
+                        json_data["Output"]["Time"])
 
             # Get extra rows to update.
             instance_class = int(row["Path"].split('_')[1].split('.')[0])
             number_of_items = int(row["Path"].split('_')[2])
             extra_rows_to_update = [
                     ((instance_class - 1) * 5 + int(number_of_items / 20 - 1)),
+                    class_row_offset + (instance_class - 1),
                     -1]
 
             # Update "Best known solution value" column of extra rows.
@@ -1732,6 +1772,20 @@ elif benchmark == "rectangle_bin_packing_oriented":
                 row[result_column] = number_of_bins
                 for row_id in extra_rows_to_update:
                     extra_rows[row_id][result_column] += number_of_bins
+
+            # Update bound columns of extra rows.
+            for bound_column in bound_columns:
+                bound = int(row[bound_column])
+                row[bound_column] = bound
+                for row_id in extra_rows_to_update:
+                    extra_rows[row_id][bound_column] += bound
+
+            # Update time columns of extra rows.
+            for time_column in time_columns:
+                time = float(row[time_column])
+                row[time_column] = time
+                for row_id in extra_rows_to_update:
+                    extra_rows[row_id][time_column] += time
 
             # Add current row.
             out_rows.append(row)
@@ -1763,27 +1817,42 @@ elif benchmark == "rectangle_bin_packing_rotation":
         out_fieldnames = reader.fieldnames
         for output_directory in output_directories:
             out_fieldnames.append(output_directory + " / Solution value")
+            out_fieldnames.append(output_directory + " / Bound")
+            out_fieldnames.append(output_directory + " / Time")
 
         result_columns = [fieldname for fieldname in reader.fieldnames
                           if "Solution value" in fieldname]
+        bound_columns = [output_directory + " / Bound"
+                         for output_directory in output_directories]
+        time_columns = [output_directory + " / Time"
+                        for output_directory in output_directories]
 
         # Initialize extra rows.
         out_rows = []
 
         # Initialize extra rows.
+        instance_classes = ["01", "02", "03", "04", "05",
+                            "06", "07", "08", "09", "10"]
         extra_rows = [
                 {
                     "Path": ("Class_" + instance_class
                               + ".2bp_" + number_of_items),
                     bksv_field: 0,
                 }
-                for instance_class in ["01", "02", "03", "04", "05",
-                                       "06", "07", "08", "09", "10"]
+                for instance_class in instance_classes
                 for number_of_items in ["20", "40", "60", "80", "100"]
+                ] + [
+                {
+                    "Path": "Class_" + instance_class,
+                    bksv_field: 0,
+                }
+                for instance_class in instance_classes
                 ] + [{
                         "Path": "Total",
                         bksv_field: 0}]
-        for fieldname in [bksv_field] + result_columns:
+        number_of_classes = len(instance_classes)
+        class_row_offset = 5 * number_of_classes
+        for fieldname in [bksv_field] + result_columns + bound_columns + time_columns:
             for row in extra_rows:
                 row[fieldname] = 0
 
@@ -1803,12 +1872,17 @@ elif benchmark == "rectangle_bin_packing_rotation":
                 json_data = json.load(json_output_file)
                 row[output_directory + " / Solution value"] = (
                         json_data["Output"]["Solution"]["NumberOfBins"])
+                row[output_directory + " / Bound"] = (
+                        json_data["Output"]["BinPackingBound"])
+                row[output_directory + " / Time"] = (
+                        json_data["Output"]["Time"])
 
             # Get extra rows to update.
             instance_class = int(row["Path"].split('_')[1].split('.')[0])
             number_of_items = int(row["Path"].split('_')[2])
             extra_rows_to_update = [
                     ((instance_class - 1) * 5 + int(number_of_items / 20 - 1)),
+                    class_row_offset + (instance_class - 1),
                     -1]
 
             # Update "Best known solution value" column of extra rows.
@@ -1821,6 +1895,20 @@ elif benchmark == "rectangle_bin_packing_rotation":
                 row[result_column] = number_of_bins
                 for row_id in extra_rows_to_update:
                     extra_rows[row_id][result_column] += number_of_bins
+
+            # Update bound columns of extra rows.
+            for bound_column in bound_columns:
+                bound = int(row[bound_column])
+                row[bound_column] = bound
+                for row_id in extra_rows_to_update:
+                    extra_rows[row_id][bound_column] += bound
+
+            # Update time columns of extra rows.
+            for time_column in time_columns:
+                time = float(row[time_column])
+                row[time_column] = time
+                for row_id in extra_rows_to_update:
+                    extra_rows[row_id][time_column] += time
 
             # Add current row.
             out_rows.append(row)

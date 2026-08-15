@@ -5,6 +5,7 @@ target_sources(PackingSolver_rectangle_test PRIVATE
     conservative_scales_test.cpp
     dual_feasible_functions_test.cpp
     bar_relaxation_test.cpp
+    column_generation_test.cpp
     reduction_test.cpp
     sequential_value_correction_test.cpp
     tree_search/test.cpp
