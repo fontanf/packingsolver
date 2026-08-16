@@ -46,6 +46,7 @@ public:
             const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&) override;
 
     virtual PricingOutput solve_pricing(
+            bool solve_feasibility,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&) override;
 
@@ -60,26 +61,31 @@ public:
 private:
 
     void generate_1e_patterns(
+            bool solve_feasibility,
             const std::vector<Value>& duals,
             PricingOutput& output,
             Value& reduced_cost_bound);
 
     void generate_1n_patterns(
+            bool solve_feasibility,
             const std::vector<Value>& duals,
             PricingOutput& output,
             Value& reduced_cost_bound);
 
     void generate_1ro_patterns(
+            bool solve_feasibility,
             const std::vector<Value>& duals,
             PricingOutput& output,
             Value& reduced_cost_bound);
 
     void generate_2ho_patterns(
+            bool solve_feasibility,
             const std::vector<Value>& duals,
             PricingOutput& output,
             Value& reduced_cost_bound);
 
     void generate_lower_stage_patterns(
+            bool solve_feasibility,
             const std::vector<Value>& duals,
             PricingOutput& output,
             Value& reduced_cost_bound);
@@ -93,6 +99,12 @@ private:
      * values happen to be, since a real-profit-optimal column does not
      * always become reduced-cost-optimal at the dual values actually
      * visited by the search.
+     *
+     * Only called during the optimality phase (see 'solve_pricing'): during
+     * the feasibility phase, real profit is zeroed throughout, so there is
+     * no real-profit-optimal column to guarantee coverage of - calling this
+     * there would search with every item's profit forced to 0, finding
+     * nothing useful.
      */
     void generate_duals_zero(
             PricingOutput& output);
@@ -686,6 +698,7 @@ std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initia
 }
 
 void ColumnGenerationPricingSolver::generate_1e_patterns(
+        bool solve_feasibility,
         const std::vector<Value>& duals,
         PricingOutput& output,
         Value& reduced_cost_bound)
@@ -721,7 +734,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+                profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
             }
             if (profit <= 0)
                 continue;
@@ -798,7 +811,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
                 // (OpenDimensionX); accumulate 'reduced_cost_bound' via max
                 // for the former, min for the latter, so it always tracks
                 // the most improving reduced cost found so far.
-                Value rc = column.objective_coefficient;
+                Value rc = (solve_feasibility? 0: column.objective_coefficient);
                 for (const columngenerationsolver::LinearTerm& element: column.elements)
                     rc -= duals[element.row] * element.coefficient;
                 if (instance_.objective() == Objective::Knapsack) {
@@ -826,7 +839,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+                profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
             }
             if (profit <= 0)
                 continue;
@@ -851,6 +864,7 @@ void ColumnGenerationPricingSolver::generate_1e_patterns(
 }
 
 void ColumnGenerationPricingSolver::generate_1n_patterns(
+        bool solve_feasibility,
         const std::vector<Value>& duals,
         PricingOutput& output,
         Value& reduced_cost_bound)
@@ -886,7 +900,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+                profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -991,7 +1005,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             // accumulate 'reduced_cost_bound' via max for the former, min
             // for the latter, so it always tracks the most improving
             // reduced cost found so far.
-            Value rc = column.objective_coefficient;
+            Value rc = (solve_feasibility? 0: column.objective_coefficient);
             for (const columngenerationsolver::LinearTerm& element: column.elements)
                 rc -= duals[element.row] * element.coefficient;
             if (instance_.objective() == Objective::Knapsack) {
@@ -1017,7 +1031,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+                profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -1042,6 +1056,7 @@ void ColumnGenerationPricingSolver::generate_1n_patterns(
 }
 
 void ColumnGenerationPricingSolver::generate_1ro_patterns(
+        bool solve_feasibility,
         const std::vector<Value>& duals,
         PricingOutput& output,
         Value& reduced_cost_bound)
@@ -1067,7 +1082,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
         if (instance_.objective() == Objective::OpenDimensionX) {
             profit = duals[item_type_id];
         } else if (instance_.objective() == Objective::Knapsack) {
-            profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+            profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
         }
         if (!strictly_greater(profit, 0.0))
             continue;
@@ -1274,7 +1289,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
             // accumulate 'reduced_cost_bound' via max for the former, min
             // for the latter, so it always tracks the most improving
             // reduced cost found so far.
-            Value rc = column.objective_coefficient;
+            Value rc = (solve_feasibility? 0: column.objective_coefficient);
             for (const columngenerationsolver::LinearTerm& element: column.elements)
                 rc -= duals[element.row] * element.coefficient;
             if (instance_.objective() == Objective::Knapsack) {
@@ -1305,7 +1320,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+                profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -1341,6 +1356,7 @@ void ColumnGenerationPricingSolver::generate_1ro_patterns(
 }
 
 void ColumnGenerationPricingSolver::generate_2ho_patterns(
+        bool solve_feasibility,
         const std::vector<Value>& duals,
         PricingOutput& output,
         Value& reduced_cost_bound)
@@ -1376,7 +1392,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+                profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -1516,7 +1532,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             // accumulate 'reduced_cost_bound' via max for the former, min
             // for the latter, so it always tracks the most improving
             // reduced cost found so far.
-            Value rc = column.objective_coefficient;
+            Value rc = (solve_feasibility? 0: column.objective_coefficient);
             for (const columngenerationsolver::LinearTerm& element: column.elements)
                 rc -= duals[element.row] * element.coefficient;
             if (instance_.objective() == Objective::Knapsack) {
@@ -1542,7 +1558,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+                profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -1582,6 +1598,7 @@ void ColumnGenerationPricingSolver::generate_2ho_patterns(
 }
 
 void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
+        bool solve_feasibility,
         const std::vector<Value>& duals,
         PricingOutput& output,
         Value& reduced_cost_bound)
@@ -1633,7 +1650,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+                profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
             }
             if (!strictly_greater(profit, 0.0))
                 continue;
@@ -1708,7 +1725,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
             if (instance_.objective() == Objective::OpenDimensionX) {
                 profit = duals[item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit - duals[item_type_id] * multiplier_profit;
+                profit = (solve_feasibility? 0: item_type.profit) - duals[item_type_id] * multiplier_profit;
             }
             ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance_, item_type_id);
             sub_instance_builder.set_item_type_profit(sub_item_type_id, profit);
@@ -1844,7 +1861,10 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
                 - width_dual * actual_used_width / multiplier_length;
             reduced_cost_bound = (std::max)(reduced_cost_bound, rc_bound);
         } else if (instance_.objective() == Objective::OpenDimensionX) {
-            Value rc_bound = (double)(actual_used_width + cut_thickness) / multiplier_length
+            // The width term is this column's real objective (see
+            // 'column.objective_coefficient' above): zeroed during the
+            // feasibility phase, same as everywhere else.
+            Value rc_bound = (solve_feasibility? 0: (double)(actual_used_width + cut_thickness) / multiplier_length)
                 - sub_output.knapsack_bound;
             reduced_cost_bound = (std::min)(reduced_cost_bound, rc_bound);
         }
@@ -1871,7 +1891,7 @@ void ColumnGenerationPricingSolver::generate_lower_stage_patterns(
         Length width_next = actual_used_width - 1;
         if (instance_.objective() == Objective::Knapsack
                 && strictly_greater(width_dual, 0.0)) {
-            Value rc = column.objective_coefficient;
+            Value rc = (solve_feasibility? 0: column.objective_coefficient);
             for (const columngenerationsolver::LinearTerm& element: column.elements)
                 rc -= duals[element.row] * element.coefficient;
             if (!strictly_greater(rc, 0.0)) {
@@ -1898,24 +1918,27 @@ void ColumnGenerationPricingSolver::generate_duals_zero(
             0.0);
     Value reduced_cost_bound = 0.0;
 
+    // 'solve_feasibility = false': see this function's own doc comment -
+    // only ever called during the optimality phase.
     if (instance_.parameters().number_of_stages == 2
             && instance_.parameters().cut_type == CutType::Exact) {
-        generate_1e_patterns(duals, output, reduced_cost_bound);
+        generate_1e_patterns(false, duals, output, reduced_cost_bound);
     } else if (instance_.parameters().number_of_stages == 2
             && instance_.parameters().cut_type == CutType::NonExact) {
-        generate_1n_patterns(duals, output, reduced_cost_bound);
+        generate_1n_patterns(false, duals, output, reduced_cost_bound);
     } else if (instance_.parameters().number_of_stages == 2
             && instance_.parameters().cut_type == CutType::Roadef2018
             && instance_.all_item_types_oriented()) {
-        generate_1ro_patterns(duals, output, reduced_cost_bound);
+        generate_1ro_patterns(false, duals, output, reduced_cost_bound);
     } else if (instance_.parameters().cut_type == CutType::Homogenous) {
-        generate_2ho_patterns(duals, output, reduced_cost_bound);
+        generate_2ho_patterns(false, duals, output, reduced_cost_bound);
     } else {
-        generate_lower_stage_patterns(duals, output, reduced_cost_bound);
+        generate_lower_stage_patterns(false, duals, output, reduced_cost_bound);
     }
 }
 
 PricingOutput ColumnGenerationPricingSolver::solve_pricing(
+        bool solve_feasibility,
         const std::vector<columngenerationsolver::Value>& duals,
         const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&)
 {
@@ -1963,7 +1986,10 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
     }
 
     if (first_pricing_) {
-        generate_duals_zero(output);
+        // See 'generate_duals_zero''s own doc comment: meaningless during
+        // the feasibility phase, since real profit is zeroed there anyway.
+        if (!solve_feasibility)
+            generate_duals_zero(output);
         first_pricing_ = false;
     }
 
@@ -1980,7 +2006,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                 || (instance_.parameters().number_of_stages == 2
                     && instance_.parameters().cut_type == CutType::Roadef2018)
                 || instance_.parameters().number_of_stages >= 3) {
-            generate_1e_patterns(duals, output, reduced_cost_bound);
+            generate_1e_patterns(solve_feasibility, duals, output, reduced_cost_bound);
         }
     }
 
@@ -1991,7 +2017,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                 || (instance_.parameters().number_of_stages == 2
                     && instance_.parameters().cut_type == CutType::Roadef2018)
                 || instance_.parameters().number_of_stages >= 3) {
-            generate_1n_patterns(duals, output, reduced_cost_bound);
+            generate_1n_patterns(solve_feasibility, duals, output, reduced_cost_bound);
         }
     }
 
@@ -2000,14 +2026,14 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         if (instance_.parameters().number_of_stages == 2
                 && instance_.parameters().cut_type == CutType::Roadef2018
                 && instance_.all_item_types_oriented()) {
-            generate_1ro_patterns(duals, output, reduced_cost_bound);
+            generate_1ro_patterns(solve_feasibility, duals, output, reduced_cost_bound);
         }
     }
 
     // Generate two-staged homogenous patterns without rotations.
     if (!all_columns_3h_patterns_generated_) {
         if (instance_.parameters().number_of_stages >= 3) {
-            generate_2ho_patterns(duals, output, reduced_cost_bound);
+            generate_2ho_patterns(solve_feasibility, duals, output, reduced_cost_bound);
         }
     }
 
@@ -2017,7 +2043,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
     // accept a generated column.
     bool has_good_column = false;
     for (const auto& column: output.columns) {
-        Value rc = column->objective_coefficient;
+        Value rc = (solve_feasibility? 0: column->objective_coefficient);
         for (const columngenerationsolver::LinearTerm& element: column->elements)
             rc -= duals[element.row] * element.coefficient;
         if (instance_.objective() == Objective::Knapsack) {
@@ -2050,7 +2076,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
                 || (instance_.parameters().number_of_stages == 3
                     && instance_.parameters().cut_type == CutType::Roadef2018)
                 || (instance_.parameters().number_of_stages >= 4)) {
-            generate_lower_stage_patterns(duals, output, reduced_cost_bound);
+            generate_lower_stage_patterns(solve_feasibility, duals, output, reduced_cost_bound);
         }
     } else {
         reduced_cost_bound = std::numeric_limits<Value>::infinity();
@@ -2088,7 +2114,6 @@ void column_generation_strips_vertical(
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = 0;
-    cgslds_parameters.dummy_column_objective_coefficient = 2;
     cgslds_parameters.automatic_stop = (parameters.optimization_mode != OptimizationMode::Anytime);
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter, local_output](
             const columngenerationsolver::Output& cgs_output)

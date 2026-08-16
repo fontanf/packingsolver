@@ -495,6 +495,19 @@ void optimize_column_generation(
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.internal_diving = 0;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    // Unlike the other domains, this one already has its own dedicated,
+    // purpose-built sequential feasibility scheme for 'BinPacking' (see
+    // 'optimize_milp_assignment'/'MilpAssignmentParameters::
+    // use_sequential_feasibility'), so column generation's own doesn't need
+    // to run here too - it would only add a second, less specialized search
+    // for the same thing, called with no proper 'lower_bound' to seed it
+    // from (unlike 'optimize_milp_assignment''s own call site below). This
+    // matters beyond the top-level solve: this function also runs as a
+    // supposedly cheap sub-step of other domains' own bound computations
+    // (e.g. 'rectangle::optimize_onedimensional_bound'), where a slow,
+    // from-scratch sequential search would be a disproportionate cost for
+    // what's meant to be a fast approximate bound.
+    cg_parameters.use_sequential_feasibility = false;
     cg_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const onedimensional::Output& ps_output)
     {

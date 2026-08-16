@@ -57,7 +57,13 @@ public:
         return {};
     }
 
+    // 'solve_feasibility' unused: every dynamically priced column here
+    // already carries a fixed 'objective_coefficient' of 0 (see
+    // 'price_bars' below - only the static 'n_{i,t}'/'k_t' columns carry
+    // the real objective), so this pricing search's own reduced cost is
+    // identical in both phases and needs no phase-specific adjustment.
     columngenerationsolver::PricingSolver::PricingOutput solve_pricing(
+            bool solve_feasibility,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&) override;
 
@@ -221,6 +227,7 @@ double BarRelaxationPricingSolver::price_bars(
 }
 
 columngenerationsolver::PricingSolver::PricingOutput BarRelaxationPricingSolver::solve_pricing(
+        bool,
         const std::vector<columngenerationsolver::Value>& duals,
         const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&)
 {
@@ -561,24 +568,6 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
     cgs_parameters.timer = parameters.timer;
     cgs_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgs_parameters.solver_name = parameters.linear_programming_solver_name;
-    // The dummy column cost must dominate the real objective's scale for the
-    // escalation loop to converge quickly: item profits for Knapsack, bin
-    // costs for the cost-minimizing objectives (Feasibility has no real
-    // objective at all, so its choice is immaterial - only whether dummy
-    // columns can be eliminated matters there).
-    switch (instance.objective()) {
-    case Objective::Knapsack: {
-        cgs_parameters.dummy_column_objective_coefficient = (std::max)(1.0, instance.largest_item_profit());
-        break;
-    } case Objective::Feasibility:
-      case Objective::BinPacking:
-      case Objective::VariableSizedBinPacking: {
-        cgs_parameters.dummy_column_objective_coefficient = (std::max)(1.0, instance.largest_bin_cost());
-        break;
-    } default: {
-        throw std::invalid_argument(FUNC_SIGNATURE);
-    }
-    }
     cgs_parameters.new_bound_callback = [&instance, &algorithm_formatter](
             const columngenerationsolver::Output& cgs_output)
     {
