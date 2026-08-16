@@ -83,6 +83,7 @@ public:
             const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&) override;
 
     virtual PricingOutput solve_pricing(
+            bool solve_feasibility,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&) override;
 
@@ -202,16 +203,13 @@ std::vector<std::shared_ptr<const Column>> solution_to_columns(
             column.objective_coefficient = extra_solution.cost() / multiplier_cost;
         } else if (instance.objective() == Objective::Feasibility) {
             // Unlike 'BinPacking'/'VariableSizedBinPacking', a real bin
-            // cost isn't the right anti-degeneracy signal here (see
+            // cost isn't the right signal here (see
             // 'ColumnGenerationParameters::use_sequential_feasibility''s
-            // own doc comment): it would bias the search toward whichever
-            // bin type is cheapest, not whichever is actually needed for
-            // feasibility, and it isn't on the same, exactly-known scale
-            // as 'dummy_column_objective_coefficient' expects (see its own
-            // computation above). A uniform 1 per column instead makes the
-            // master LP minimize the plain number of bins used - exactly
-            // the anti-degeneracy signal wanted, with no such bias, and an
-            // exact (not merely bounded) cost scale.
+            // own doc comment): it would bias the optimality phase toward
+            // whichever bin type is cheapest, not whichever is actually
+            // needed for feasibility. A uniform 1 per column instead makes
+            // that phase minimize the plain number of bins used, with no
+            // such bias.
             column.objective_coefficient = 1;
         } else if (instance.objective() == Objective::Knapsack) {
             column.objective_coefficient = extra_solution.profit() / multiplier_profit;
@@ -238,6 +236,7 @@ std::vector<std::shared_ptr<const Column>> solution_to_columns(
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
 PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::solve_pricing(
+        bool solve_feasibility,
         const std::vector<Value>& duals,
         const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, Value>>&)
 {
@@ -278,7 +277,16 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                     || instance_.objective() == Objective::Feasibility) {
                 profit = duals[instance_.number_of_bin_types() + item_type_id];
             } else if (instance_.objective() == Objective::Knapsack) {
-                profit = item_type.profit
+                // During the feasibility phase (see 'solve_feasibility'
+                // above), the pricing search must ignore real profit
+                // entirely and search purely on duals (matching
+                // 'columngenerationsolver::PricingSolver::
+                // compute_reduced_cost''s own zeroing of
+                // 'column.objective_coefficient') - a column's real profit
+                // is the sum of its items' own real profits, so zeroing it
+                // decomposes cleanly to zeroing each item's contribution
+                // here.
+                profit = (solve_feasibility? 0: item_type.profit)
                     - duals[instance_.number_of_bin_types() + item_type_id]
                     * multiplier_profit;
             }
@@ -356,15 +364,21 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
             if (instance_.objective() == Objective::VariableSizedBinPacking
                     || instance_.objective() == Objective::BinPacking) {
+                // Real bin cost zeroed during the feasibility phase, same
+                // reasoning as the item profit above; 'kp_output.
+                // knapsack_bound' already reflects that phase's own (dual-
+                // only, since items carry no real cost for this objective)
+                // pricing search, so it needs no separate adjustment here.
                 reduced_cost_bound = (std::min)(
                         reduced_cost_bound,
-                        bin_type.cost / multiplier_cost - duals[bin_type_id] - kp_output.knapsack_bound);
+                        (solve_feasibility? 0: bin_type.cost / multiplier_cost) - duals[bin_type_id] - kp_output.knapsack_bound);
             } else if (instance_.objective() == Objective::Feasibility) {
                 // Consistent with 'column.objective_coefficient' above: 1
-                // per column, not the bin's real cost.
+                // per column, not the bin's real cost - zeroed during the
+                // feasibility phase like every other real objective term.
                 reduced_cost_bound = (std::min)(
                         reduced_cost_bound,
-                        1 - duals[bin_type_id] - kp_output.knapsack_bound);
+                        (solve_feasibility? 0: 1) - duals[bin_type_id] - kp_output.knapsack_bound);
             } else if (instance_.objective() == Objective::Knapsack) {
                 reduced_cost_bound = (std::max)(
                         reduced_cost_bound,
@@ -428,31 +442,20 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
      * at the default 0 - only the row bounds differ from the direct
      * approach's own 'BinPacking' LP (the bin-type row is capped at the
      * candidate bin count instead of the instance's own bin availability).
-     * Without this, every real column ties at objective coefficient 0 (only
-     * the dummy columns used to cover otherwise-unfillable rows cost
-     * anything), making the LP objective completely flat: every combination
-     * of real columns ties at value 0, so the LP bound stays 0 regardless of
-     * how close to integer-feasible the relaxation is, and the LP solver has
-     * no reason to settle on an "efficient" fractional vertex over any other
-     * tied-optimal one. 'limited_discrepancy_search''s own branching rule
-     * doesn't look at cost directly (it picks by branching priority and
-     * fractional value alone), but it still branches on whatever fractional
-     * solution the LP handed it - an arbitrary, unshaped one when the
-     * objective is flat. A uniform coefficient of 1 doesn't have this
-     * problem (the total still varies with how many bins are used), turning
-     * this into a genuine "minimize bins used" problem and giving the LP
-     * relaxation the same well-behaved, informative solution and bound the
-     * direct approach's own search already relies on - and unlike using the
-     * bin's real cost (which 'BinPacking' needs, since there it's the actual
-     * objective), it doesn't bias the search toward whichever bin type is
-     * cheapest when there is more than one, only toward using fewer of them,
-     * and it keeps the real column cost on an exact, known scale for
-     * 'ColumnGenerationParameters::dummy_column_objective_coefficient' to be
-     * safely set relative to (see its own computation below) instead of a
-     * merely bounded one. This doesn't change what counts as feasible - the
-     * row bounds are untouched, so this remains a pure feasibility question
-     * ("does this many bins suffice?"), not a request for the minimal-cost
-     * solution.
+     * 'columngenerationsolver::column_generation' itself already searches
+     * for feasibility (a dummy-column-free relaxation) with every real
+     * column's objective coefficient zeroed, regardless of what it is set
+     * to here, so this doesn't change how feasibility itself gets
+     * established; it only shapes the follow-up optimality phase, reached
+     * once a candidate bin count is confirmed feasible, into a genuine
+     * "minimize bins used" problem instead of a flat one where every
+     * feasible combination ties - and unlike using the bin's real cost
+     * (which 'BinPacking' needs, since there it's the actual objective), it
+     * doesn't bias that phase toward whichever bin type is cheapest when
+     * there is more than one, only toward using fewer of them. This doesn't
+     * change what counts as feasible - the row bounds are untouched, so
+     * this remains a pure feasibility question ("does this many bins
+     * suffice?"), not a request for the minimal-cost solution.
      *
      * Not used for other objectives.
      */
@@ -628,35 +631,6 @@ Output column_generation(
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = parameters.internal_diving;
     cgslds_parameters.rounding_heuristic = true;
-    // For 'BinPacking'/'VariableSizedBinPacking', real columns' objective
-    // coefficient is normalized by the largest power of two <= the
-    // instance's own largest bin cost (see 'multiplier_cost' above and in
-    // 'solve_pricing'), so it always lands in [1, 2) for the costliest
-    // column and lower for every other one - regardless of how large the
-    // instance's actual costs are. The dummy coefficient needs to stay
-    // comfortably above that same ceiling for every real column to stay
-    // strictly cheaper than falling back to a dummy (otherwise the LP has
-    // no real pressure to prefer real columns, and the retry loop below has
-    // to inflate the coefficient a few times before it does); the
-    // 'largest_item_copies()' term alone doesn't guarantee that (e.g. it's
-    // only 1, giving a dummy coefficient of 2, for a same-copy instance
-    // with no repeated item type at all).
-    //
-    // 'Feasibility' instead gives every real column an exact objective
-    // coefficient of 1 (see 'solve_pricing'), not merely a bounded one, so
-    // it starts already comfortably past
-    // 'columngenerationsolver::column_generation''s own infeasibility
-    // threshold (dummy coefficient > 100 * highest real column cost, i.e.
-    // > 100 here) rather than the same small floor as the other objectives:
-    // unlike 'BinPacking'/'VariableSizedBinPacking', which are usually
-    // trivially feasible, roughly half of the sequential feasibility
-    // scheme's own candidates are genuinely infeasible by construction (it
-    // stops as soon as one isn't), so starting low would mean paying for
-    // several '*= 4' retries - each a full LP re-solve - just to reach that
-    // same threshold on every one of them.
-    cgslds_parameters.dummy_column_objective_coefficient = (std::max)(
-            2 * (double)instance.largest_item_copies(),
-            (instance.objective() == Objective::Feasibility)? 200.0: 8.0);
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         cgslds_parameters.automatic_stop = true;
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
