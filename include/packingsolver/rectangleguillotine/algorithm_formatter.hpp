@@ -43,7 +43,7 @@ public:
             const Solution& solution,
             const std::string& s);
 
-    /** Mark the instance as proven infeasible (Feasibility objective only). */
+    /** Mark the instance as proven infeasible. */
     void update_is_proven_infeasible();
 
     /** Update the knapsack bound. */

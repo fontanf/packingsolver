@@ -868,7 +868,7 @@ const packingsolver::box::TreeSearchMaximalSpacesOutput packingsolver::box::tree
 
     std::vector<BranchingSchemeMaximalSpaces> branching_schemes;
     std::vector<treesearchsolver::IterativeBeamSearchParameters<BranchingSchemeMaximalSpaces>> ibs_parameters_list;
-    std::vector<packingsolver::Output<Instance, Solution>> local_outputs;
+    std::vector<Output> local_outputs;
     {
         BranchingSchemeMaximalSpaces::Parameters branching_scheme_parameters;
         branching_schemes.push_back(BranchingSchemeMaximalSpaces(instance, all_blocks, max_reachable_lengths, branching_scheme_parameters));
@@ -883,7 +883,7 @@ const packingsolver::box::TreeSearchMaximalSpacesOutput packingsolver::box::tree
             ibs_parameters.maximum_size_of_the_queue = parameters.not_anytime_tree_search_queue_size;
         }
         ibs_parameters_list.push_back(ibs_parameters);
-        local_outputs.push_back(packingsolver::Output<Instance, Solution>(instance));
+        local_outputs.push_back(Output(instance));
     }
 
     bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
@@ -905,10 +905,31 @@ const packingsolver::box::TreeSearchMaximalSpacesOutput packingsolver::box::tree
                 std::stringstream ss;
                 ss << "n " << tssibs_output.maximum_size_of_the_queue;
                 local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
+
+                if (tssibs_output.optimal) {
+                    // 'Solution::operator<' always ranks a feasible solution
+                    // above an infeasible one, regardless of objective, so
+                    // 'solution_pool.best()' can only be infeasible here if
+                    // no feasible solution was found anywhere in this
+                    // now-exhaustive search: a genuine infeasibility proof,
+                    // independent of objective.
+                    if (!solution.feasible()) {
+                        // For every non-Knapsack objective (Feasibility
+                        // included), 'copies_min' defaults to 'copies', so
+                        // this already subsumes "not everything got packed"
+                        // - no separate 'full()' check needed.
+                        local_outputs[(size_t)scheme_idx].is_proven_infeasible = true;
+                    } else if (solution.instance().objective() == packingsolver::Objective::Knapsack) {
+                        local_outputs[(size_t)scheme_idx].knapsack_bound
+                            = solution.profit();
+                    }
+                }
+
                 if (!deterministic) {
                     algorithm_formatter.update_solution(
                             local_outputs[(size_t)scheme_idx].solution_pool.best(),
                             local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+                    algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
                 }
             };
         exception_ptr_list.push_front(std::exception_ptr());
@@ -938,6 +959,7 @@ const packingsolver::box::TreeSearchMaximalSpacesOutput packingsolver::box::tree
             algorithm_formatter.update_solution(
                     local_outputs[(size_t)scheme_idx].solution_pool.best(),
                     local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
         }
     }
 
