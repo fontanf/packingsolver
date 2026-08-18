@@ -571,6 +571,23 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
     cgs_parameters.new_bound_callback = [&instance, &algorithm_formatter](
             const columngenerationsolver::Output& cgs_output)
     {
+        // By the extended reals convention, the optimal value of an
+        // infeasible problem is +inf for a minimization objective
+        // (VariableSizedBinPacking, BinPacking, Feasibility) or -inf for a
+        // maximization one (Knapsack, the only Maximize objective here).
+        // This can happen for any objective (e.g. not enough bin copies to
+        // satisfy the item / bin count bounds, or item_type.copies_min too
+        // large to fit), so it is checked once up front here, before
+        // computing any objective-specific bound below - in particular
+        // before BinPacking's own, since converting +inf to its integer
+        // 'BinPos' bound would be undefined behavior.
+        bool bound_proves_infeasible = (instance.objective() == Objective::Knapsack)?
+            (cgs_output.bound == -std::numeric_limits<double>::infinity()):
+            (cgs_output.bound == std::numeric_limits<double>::infinity());
+        if (bound_proves_infeasible) {
+            algorithm_formatter.update_is_proven_infeasible();
+            return;
+        }
         switch (instance.objective()) {
         case Objective::Knapsack: {
             // This bound ignores resources entirely. A 'penalize' resource
@@ -582,10 +599,6 @@ BarRelaxationOutput packingsolver::rectangle::bar_relaxation(
                     cgs_output.bound + negative_penalty_sum(instance));
             break;
         } case Objective::Feasibility: {
-            // By the extended reals convention, the optimal value of an
-            // infeasible minimization problem is +inf.
-            if (cgs_output.bound == std::numeric_limits<double>::infinity())
-                algorithm_formatter.update_is_proven_infeasible();
             break;
         } case Objective::VariableSizedBinPacking: {
             algorithm_formatter.update_variable_sized_bin_packing_bound(cgs_output.bound);

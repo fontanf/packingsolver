@@ -298,6 +298,12 @@ void AlgorithmFormatter::update_bin_packing_bound(
     mutex_.lock();
     if (number_of_bins > output_.bin_packing_bound) {
         output_.bin_packing_bound = number_of_bins;
+        // A proven bound above the number of bins actually available means
+        // no feasible solution exists. Set before the JSON push/callback/
+        // 'is_proven_optimal' check below so they see the complete,
+        // up-to-date state in a single update instead of a separate one.
+        if (output_.bin_packing_bound > instance_.number_of_bins())
+            output_.is_proven_infeasible = true;
         if (parameters_.write_json_output)
             output_.json["IntermediaryOutputs"].push_back(output_.to_json());
         parameters_.new_solution_callback(output_);
@@ -359,6 +365,8 @@ void AlgorithmFormatter::update_open_dimension_y_bound(
 void AlgorithmFormatter::update_bounds(
         const Output& output)
 {
+    if (output.is_proven_infeasible)
+        update_is_proven_infeasible();
     switch (instance_.objective()) {
     case Objective::Knapsack:
         update_knapsack_bound(output.knapsack_bound);
@@ -374,10 +382,6 @@ void AlgorithmFormatter::update_bounds(
         break;
     case Objective::OpenDimensionY:
         update_open_dimension_y_bound(output.open_dimension_y_bound);
-        break;
-    case Objective::Feasibility:
-        if (output.is_proven_infeasible)
-            update_is_proven_infeasible();
         break;
     default:
         break;

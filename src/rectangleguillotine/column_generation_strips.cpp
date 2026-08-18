@@ -2174,6 +2174,16 @@ void column_generation_strips_vertical(
     {
         const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
             = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
+        // By the extended reals convention, the optimal value of an
+        // infeasible maximization problem is -inf: item_type.copies_min too
+        // large to fit, for instance. OpenDimensionX has no such notion (an
+        // open-ended bin can always fit every item), so this is checked only
+        // for Knapsack, the sole objective handled below where it applies.
+        if (instance.objective() == Objective::Knapsack
+                && cgslds_output.bound == -std::numeric_limits<double>::infinity()) {
+            algorithm_formatter.update_is_proven_infeasible();
+            return;
+        }
         // 'cgslds_output.bound' is scaled differently depending on the
         // objective: by multiplier_profit for Knapsack (a profit upper
         // bound, matching the objective_coefficient scaling in
@@ -2241,7 +2251,9 @@ void column_generation_strips_horizontal(
             // (and leaves every other objective untouched), so
             // 'flipped_output''s bound must be routed back according to the
             // true (unflipped) 'instance' objective, not the flipped one.
-            if (instance.objective() == Objective::Knapsack) {
+            if (flipped_output.is_proven_infeasible) {
+                algorithm_formatter.update_is_proven_infeasible();
+            } else if (instance.objective() == Objective::Knapsack) {
                 algorithm_formatter.update_knapsack_bound(
                         flipped_output.knapsack_bound);
             } else if (instance.objective() == Objective::OpenDimensionX) {

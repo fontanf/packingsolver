@@ -577,7 +577,10 @@ std::vector<BinPos> compute_bin_type_upper_bounds_bin_packing(
     sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
     auto sub_output = optimize(instance, sub_parameters);
     algorithm_formatter.update_solution(sub_output.solution_pool.best(), "tree search");
-    algorithm_formatter.update_bin_packing_bound(sub_output.bin_packing_bound);
+    // Via 'update_bounds' rather than 'update_bin_packing_bound' directly,
+    // so that a proven-infeasible 'sub_output' (its own 'bin_packing_bound'
+    // would otherwise carry no such signal) is correctly propagated too.
+    algorithm_formatter.update_bounds(sub_output);
 
     const Solution& sub_solution = sub_output.solution_pool.best();
     if (sub_solution.full()) {
@@ -1115,7 +1118,13 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             break;
 
         if (all_cuts_proven_infeasible) {
-            if (instance.objective() == Objective::Knapsack) {
+            // 'master_output' is a 'onedimensional::Output', a different
+            // type from this 'rectangle::AlgorithmFormatter''s own, so it
+            // can't be forwarded via 'update_bounds' - checked manually
+            // instead.
+            if (master_output.is_proven_infeasible) {
+                algorithm_formatter.update_is_proven_infeasible();
+            } else if (instance.objective() == Objective::Knapsack) {
                 algorithm_formatter.update_knapsack_bound(master_output.knapsack_bound);
             } else if (instance.objective() == Objective::BinPacking) {
                 algorithm_formatter.update_bin_packing_bound(master_output.bin_packing_bound);

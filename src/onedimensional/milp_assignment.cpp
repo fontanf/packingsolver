@@ -62,6 +62,13 @@ BinPos compute_bin_instance_upper_bound(
     // 'instance's when every item type fits (the common case is that they
     // don't, e.g. for other bin types in a multi-bin-type instance).
     std::vector<ItemTypeId> sub_item_type_ids;
+    // Sum of every compatible item type's own copies: since compatibility
+    // means a single copy always fits this bin type on its own, packing one
+    // item per bin trivially fits every compatible copy - a valid, if
+    // typically very loose, fallback upper bound that does not depend on
+    // 'sub_output' below being a complete packing (see its own use further
+    // down).
+    ItemPos total_compatible_item_copies = 0;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -69,6 +76,7 @@ BinPos compute_bin_instance_upper_bound(
             continue;
         sub_instance_builder.add_item_type(instance, item_type_id);
         sub_item_type_ids.push_back(item_type_id);
+        total_compatible_item_copies += instance.item_type(item_type_id).copies;
     }
     if (sub_item_type_ids.empty())
         return 0;
@@ -99,6 +107,20 @@ BinPos compute_bin_instance_upper_bound(
             algorithm_formatter.update_variable_sized_bin_packing_bound(
                     (Profit)sub_output.bin_packing_bound * bin_type.cost);
         }
+    }
+
+    // This function's own soundness argument (see its doc comment) requires
+    // a *complete* packing of every compatible item type: 'sub_instance'
+    // always has a feasible solution (unlimited bin copies), but the search
+    // for it shares this function's own timer with its caller, so it can be
+    // cut short before finishing. In that case, 'sub_output''s bin count
+    // would undercount what packing everything actually needs, making it an
+    // unsound (too tight) bound - fall back to one that does not depend on
+    // completeness instead.
+    if (!sub_output.solution_pool.best().full()) {
+        return (bin_type.copies != -1)?
+            bin_type.copies:
+            total_compatible_item_copies;
     }
 
     BinPos bound = sub_output.solution_pool.best().number_of_bins();
@@ -1257,7 +1279,10 @@ std::vector<BinPos> compute_bin_type_upper_bounds_bin_packing(
     }
     auto sub_output = optimize(instance, sub_parameters);
     algorithm_formatter.update_solution(sub_output.solution_pool.best(), "tree search");
-    algorithm_formatter.update_bin_packing_bound(sub_output.bin_packing_bound);
+    // Via 'update_bounds' rather than 'update_bin_packing_bound' directly,
+    // so that a proven-infeasible 'sub_output' (its own 'bin_packing_bound'
+    // would otherwise carry no such signal) is correctly propagated too.
+    algorithm_formatter.update_bounds(sub_output);
     if (algorithm_formatter.end_boolean())
         return bin_type_upper_bounds;
 
@@ -1583,11 +1608,29 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
             } else if (instance.objective() == Objective::BinPacking) {
                 algorithm_formatter.update_bin_packing_bound((BinPos)std::ceil(bound - 1e-6));
             }
-        } else if (instance.objective() == Objective::Feasibility
-                && proven_infeasible) {
-            // The MILP exactly encodes the instance's fixed set of bins (no
-            // upper-bound approximation), so its infeasibility is a genuine
-            // proof that the instance itself is infeasible.
+        } else if (proven_infeasible) {
+            // For Feasibility/Knapsack, the MILP exactly encodes the
+            // instance's fixed set of bins (no upper-bound approximation -
+            // see 'compute_bin_type_upper_bounds''s own doc comment), so its
+            // infeasibility is a genuine proof that the instance itself is
+            // infeasible. For BinPacking, 'compute_bin_type_upper_bounds_
+            // bin_packing' can instead tighten the bounds to an
+            // already-found *complete* solution's own per-bin-type counts -
+            // but per that function's own doc comment, any solution using
+            // fewer or equal total bins (in particular any optimal one)
+            // provably never needs more of a given type than that solution
+            // does, so that solution itself remains a feasible point of the
+            // MILP built with those tightened bounds: this MILP cannot
+            // become infeasible in that case (short of an actual model bug),
+            // so whenever it does, the bounds in use must be the untightened
+            // (exact) ones instead, making the infeasibility genuine here
+            // too. For VariableSizedBinPacking, 'compute_bin_instance_
+            // upper_bound' computes each bin type's bound independently, but
+            // always soundly regardless of how it was derived (falling back
+            // to a completeness-independent bound - the bin type's own real
+            // capacity, or one bin per compatible item copy when
+            // unlimited - whenever its own sub-search wasn't a complete
+            // packing), so its own infeasibility is genuine too.
             algorithm_formatter.update_is_proven_infeasible();
         }
 #else

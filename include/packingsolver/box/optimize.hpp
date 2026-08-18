@@ -32,12 +32,16 @@ struct Output: packingsolver::Output<Instance, Solution>
     /** Open dimension Z bound. */
     Length open_dimension_z_bound = 0;
 
-    /** True if the instance has been proven infeasible (Feasibility objective only). */
+    /** True if the instance has been proven infeasible. */
     bool is_proven_infeasible = false;
 
     /** Return 'true' iff the current bound proves the best solution optimal. */
     bool is_proven_optimal() const
     {
+        // A proven-infeasible instance is done being searched regardless of
+        // objective: there is no better bound to wait for.
+        if (is_proven_infeasible)
+            return true;
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
             return equal_profit(knapsack_bound, solution_pool.best().profit());
@@ -57,9 +61,8 @@ struct Output: packingsolver::Output<Instance, Solution>
             return solution_pool.best().full()
                 && open_dimension_z_bound == solution_pool.best().z_max();
         case Objective::Feasibility:
-            return (solution_pool.best().full()
-                    && solution_pool.best().feasible())
-                || is_proven_infeasible;
+            return solution_pool.best().full()
+                && solution_pool.best().feasible();
         default:
             return false;
         }
@@ -76,6 +79,8 @@ struct Output: packingsolver::Output<Instance, Solution>
      */
     void update_bounds(const Output& output)
     {
+        if (output.is_proven_infeasible)
+            is_proven_infeasible = true;
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
             if (output.knapsack_bound < knapsack_bound)
@@ -101,10 +106,6 @@ struct Output: packingsolver::Output<Instance, Solution>
             if (output.open_dimension_z_bound > open_dimension_z_bound)
                 open_dimension_z_bound = output.open_dimension_z_bound;
             break;
-        case Objective::Feasibility:
-            if (output.is_proven_infeasible)
-                is_proven_infeasible = true;
-            break;
         default:
             break;
         }
@@ -127,6 +128,7 @@ struct Output: packingsolver::Output<Instance, Solution>
     {
         packingsolver::Output<Instance, Solution>::format(os);
         int width = format_width();
+        os << std::setw(width) << std::left << "Is proven infeasible: " << is_proven_infeasible << std::endl;
         switch (solution_pool.best().instance().objective()) {
         case Objective::Knapsack:
             write_bound(os, width, solution_pool.best().profit(), knapsack_bound);
@@ -147,7 +149,6 @@ struct Output: packingsolver::Output<Instance, Solution>
             write_bound(os, width, solution_pool.best().z_max(), open_dimension_z_bound);
             break;
         case Objective::Feasibility:
-            os << std::setw(width) << std::left << "Is proven infeasible: " << is_proven_infeasible << std::endl;
             break;
         default:
             break;

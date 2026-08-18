@@ -660,7 +660,23 @@ Output column_generation(
     {
         const columngenerationsolver::LimitedDiscrepancySearchOutput& cgslds_output
             = static_cast<const columngenerationsolver::LimitedDiscrepancySearchOutput&>(cgs_output);
-        if (instance.objective() == Objective::VariableSizedBinPacking) {
+        // By the extended reals convention, the optimal value of an
+        // infeasible problem is +inf for a minimization objective
+        // (VariableSizedBinPacking, BinPacking, Feasibility) or -inf for a
+        // maximization one (Knapsack, the only Maximize objective here -
+        // see 'get_model''s own 'objective_sense' assignment above). This
+        // can happen for any objective (e.g. not enough bin copies to
+        // satisfy the item / bin count bounds, or item_type.copies_min too
+        // large to fit), so it is checked once up front here, before
+        // computing any objective-specific bound below - in particular
+        // before 'BinPacking''s own, since converting +inf to its integer
+        // 'BinPos' bound would be undefined behavior.
+        bool bound_proves_infeasible = (instance.objective() == Objective::Knapsack)?
+            (cgslds_output.bound == -std::numeric_limits<double>::infinity()):
+            (cgslds_output.bound == std::numeric_limits<double>::infinity());
+        if (bound_proves_infeasible) {
+            algorithm_formatter.update_is_proven_infeasible();
+        } else if (instance.objective() == Objective::VariableSizedBinPacking) {
             double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
             algorithm_formatter.update_variable_sized_bin_packing_bound(
                     cgslds_output.bound * multiplier_cost);
@@ -672,11 +688,6 @@ Output column_generation(
             double multiplier_cost = largest_power_of_two_lesser_or_equal(instance.largest_bin_cost());
             algorithm_formatter.update_bin_packing_bound(std::ceil(
                     cgslds_output.bound * multiplier_cost / instance.bin_type(0).cost - 0.001));
-        } else if (instance.objective() == Objective::Feasibility) {
-            // By the extended reals convention, the optimal value of an
-            // infeasible minimization problem is +inf.
-            if (cgslds_output.bound == std::numeric_limits<double>::infinity())
-                algorithm_formatter.update_is_proven_infeasible();
         }
     };
     cgslds_parameters.column_generation_parameters.solver_name

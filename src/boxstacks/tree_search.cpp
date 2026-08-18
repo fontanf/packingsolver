@@ -1785,10 +1785,33 @@ const packingsolver::boxstacks::TreeSearchOutput packingsolver::boxstacks::tree_
                     << " " << tssibs_output.maximum_size_of_the_queue;
                 local_outputs[(size_t)scheme_idx].solution_pool.add(solution, ss.str());
 
+                if (tssibs_output.optimal) {
+                    // 'Solution::operator<' always ranks a feasible solution
+                    // above an infeasible one, regardless of objective, so
+                    // 'solution_pool.best()' can only be infeasible here if
+                    // no feasible solution was found anywhere in this
+                    // now-exhaustive search: a genuine infeasibility proof,
+                    // independent of objective.
+                    if (!solution.feasible()) {
+                        // For every non-Knapsack objective (Feasibility
+                        // included), 'copies_min' defaults to 'copies', so
+                        // this already subsumes "not everything got packed"
+                        // - no separate 'full()' check needed.
+                        local_outputs[(size_t)scheme_idx].is_proven_infeasible = true;
+                    } else if (solution.instance().objective() == packingsolver::Objective::BinPacking) {
+                        local_outputs[(size_t)scheme_idx].bin_packing_bound
+                            = solution.number_of_bins();
+                    } else if (solution.instance().objective() == packingsolver::Objective::Knapsack) {
+                        local_outputs[(size_t)scheme_idx].knapsack_bound
+                            = solution.profit();
+                    }
+                }
+
                 if (!deterministic) {
                     algorithm_formatter.update_solution(
                             local_outputs[(size_t)scheme_idx].solution_pool.best(),
                             local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+                    algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
                 }
             };
         exception_ptr_list.push_front(std::exception_ptr());
@@ -1818,6 +1841,7 @@ const packingsolver::boxstacks::TreeSearchOutput packingsolver::boxstacks::tree_
             algorithm_formatter.update_solution(
                     local_outputs[(size_t)scheme_idx].solution_pool.best(),
                     local_outputs[(size_t)scheme_idx].solution_pool.best_label());
+            algorithm_formatter.update_bounds(local_outputs[(size_t)scheme_idx]);
         }
     }
 

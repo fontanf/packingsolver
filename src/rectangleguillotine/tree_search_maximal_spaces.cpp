@@ -893,7 +893,7 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
         ibs_parameters.maximum_size_of_the_queue = parameters.not_anytime_tree_search_queue_size;
     }
 
-    packingsolver::Output<Instance, Solution> local_output(instance);
+    Output local_output(instance);
 
     bool deterministic = (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic);
     // Always record into 'local_output' first (this is also what the
@@ -910,10 +910,30 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
             std::stringstream ss;
             ss << "n " << tssibs_output.maximum_size_of_the_queue;
             local_output.solution_pool.add(solution, ss.str());
+
+            if (tssibs_output.optimal) {
+                // 'Solution::operator<' always ranks a feasible solution
+                // above an infeasible one, regardless of objective, so
+                // 'solution_pool.best()' can only be infeasible here if no
+                // feasible solution was found anywhere in this
+                // now-exhaustive search: a genuine infeasibility proof,
+                // independent of objective.
+                if (!solution.feasible()) {
+                    // For every non-Knapsack objective (Feasibility
+                    // included), 'copies_min' defaults to 'copies', so this
+                    // already subsumes "not everything got packed" - no
+                    // separate 'full()' check needed.
+                    local_output.is_proven_infeasible = true;
+                } else if (solution.instance().objective() == packingsolver::Objective::Knapsack) {
+                    local_output.knapsack_bound = solution.profit();
+                }
+            }
+
             if (!deterministic) {
                 algorithm_formatter.update_solution(
                         local_output.solution_pool.best(),
                         local_output.solution_pool.best_label());
+                algorithm_formatter.update_bounds(local_output);
             }
         };
 
@@ -937,8 +957,10 @@ const packingsolver::rectangleguillotine::TreeSearchMaximalSpacesOutput packings
     }
     if (exception_ptr)
         std::rethrow_exception(exception_ptr);
-    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic)
+    if (parameters.optimization_mode == OptimizationMode::NotAnytimeDeterministic) {
         algorithm_formatter.update_solution(local_output.solution_pool.best(), local_output.solution_pool.best_label());
+        algorithm_formatter.update_bounds(local_output);
+    }
 
     algorithm_formatter.end();
     return output;
