@@ -80,4 +80,17 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path(""),
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_y" / "parameters.csv",
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_y" / "solution.csv",
+            }, {
+                // BinPacking with two bin types where the smaller one
+                // (tried first, since bin types must be used in increasing
+                // size order) can never fit the item: the optimal solution
+                // must leave that bin empty rather than skip it, since bin
+                // usage order is fixed for this objective. Same instance as
+                // 'sequential_value_correction_test.cpp', to check both
+                // algorithms agree on it.
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_empty_bin" / "items.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_empty_bin" / "bins.csv",
+                fs::path(""),
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_empty_bin" / "parameters.csv",
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_empty_bin" / "solution.csv",
             }}));

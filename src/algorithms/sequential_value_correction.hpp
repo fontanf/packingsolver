@@ -395,9 +395,33 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
                 }
             }
 
-            // If no item has been packed, stop.
-            if (bin_type_id_best == -1)
-                break;
+            if (bin_type_id_best == -1) {
+                // Only 'BinPacking', as a problem constraint, requires bin
+                // types to be used in a fixed order. But this heuristic's
+                // own construction procedure - the 'else' branch above -
+                // uses that same single fixed-position candidate
+                // ('bin_type_ids_by_position[solution.number_of_bins()]')
+                // for every objective handled there, not just 'BinPacking':
+                // an implementation detail, not a reflection of an actual
+                // ordering constraint for those other objectives. So the
+                // same failure mode applies to all of them: that one fixed
+                // position being useless does not mean packing is done - a
+                // later position's (different) bin type may still be able
+                // to pack the remaining items, or add more profit
+                // (Knapsack), and the optimal solution can legitimately
+                // require this position's bin to stay empty. Leave it empty
+                // and move on to the next position instead of giving up
+                // early.
+                //
+                // Only excluded: VariableSizedBinPacking, whose own branch
+                // above already tries every not-yet-exhausted bin type as a
+                // candidate every iteration, so none of them being useful
+                // here genuinely does mean none ever will be.
+                if (instance.objective() == Objective::VariableSizedBinPacking)
+                    break;
+                solution.append_empty_bin(bin_type_ids[0], 1);
+                continue;
+            }
             const Solution& kp_solution_best = solutions_cur[bin_type_id_best].first;
 
             // Compute the number of copies of the selected Knapsack solution
