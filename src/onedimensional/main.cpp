@@ -85,6 +85,7 @@ int main(int argc, char *argv[])
 
             ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
+            ("use-dual-feasible-functions,", po::value<bool>(), "force running the dual feasible functions bound/infeasibility check even if the instance has more items than the default criterion allows")
             ("use-tree-search,", po::value<bool>(), "enable tree search algorithm")
             ("use-sequential-single-knapsack,", po::value<bool>(), "enable sequential-single-knapsack")
             ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
@@ -181,6 +182,8 @@ int main(int argc, char *argv[])
         if (vm.count("memory-limit"))
             parameters.memory_limit_megabytes = vm["memory-limit"].as<Megabytes>();
 
+        if (vm.count("use-dual-feasible-functions"))
+            parameters.use_dual_feasible_functions = vm["use-dual-feasible-functions"].as<bool>();
         if (vm.count("use-tree-search"))
             parameters.use_tree_search = vm["use-tree-search"].as<bool>();
         if (vm.count("use-sequential-single-knapsack"))

@@ -7,6 +7,7 @@ target_sources(PackingSolver_onedimensional PRIVATE
     solution_builder.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    dual_feasible_functions.cpp
     milp_assignment.cpp
     post_process.cpp
     tree_search.cpp)
