@@ -422,7 +422,7 @@ Solution solve_milp_raster_for_cell_size(
                 &output,
                 &algorithm_formatter,
                 &retrieve_solution](
-                    const int,
+                    const int callback_type,
                     const std::string& message,
                     const HighsCallbackOutput* highs_output,
                     HighsCallbackInput* highs_input,
@@ -438,6 +438,18 @@ Solution solve_milp_raster_for_cell_size(
                                 algorithm_formatter.update_solution(solution, "node " + std::to_string(highs_output->mip_node_count));
                             }
                         }
+                    }
+
+                    // HiGHS only allows requesting an interrupt from the
+                    // dedicated 'kCallbackMipInterrupt' callback: it asserts
+                    // internally that 'user_interrupt' is never set from an
+                    // "informational" callback type such as this one's other
+                    // registration, 'kCallbackMipImprovingSolution' (see
+                    // 'HighsCallback::callbackAction' in HiGHS itself).
+                    if (callback_type != HighsCallbackType::kCallbackMipInterrupt)
+                        return;
+
+                    if (instance.objective() == Objective::Knapsack) {
                         if (!shape::strictly_greater(highs_output->mip_dual_bound, output.solution_pool.best().profit()))
                             highs_input->user_interrupt = 1;
                     }

@@ -1533,7 +1533,7 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
                 &parameters,
                 &output,
                 &algorithm_formatter](
-                    const int,
+                    const int callback_type,
                     const std::string&,
                     const HighsCallbackOutput* highs_output,
                     HighsCallbackInput* highs_input,
@@ -1548,33 +1548,48 @@ MilpAssignmentOutput packingsolver::onedimensional::milp_assignment(
                                 solution,
                                 "MILP-A n " + std::to_string(highs_output->mip_node_count));
                     }
+
+                    // Update the bound from the solver's own current dual
+                    // bound. Safe regardless of callback type (unlike
+                    // requesting an interrupt below, this has no HiGHS-side
+                    // restriction), so it is done on every invocation for
+                    // the most up-to-date reporting - including from
+                    // 'kCallbackMipImprovingSolution', not just
+                    // 'kCallbackMipInterrupt'.
                     if (instance.objective() == Objective::VariableSizedBinPacking) {
-                        if (output.solution_pool.best().full()
-                                && !strictly_lesser(
-                                    highs_output->mip_dual_bound,
-                                    output.solution_pool.best().cost())) {
-                            highs_input->user_interrupt = 1;
-                        }
+                        algorithm_formatter.update_variable_sized_bin_packing_bound(
+                                highs_output->mip_dual_bound);
                     } else if (instance.objective() == Objective::Knapsack) {
-                        if (!strictly_greater(
-                                    highs_output->mip_dual_bound * milp_model.multiplier_profit,
-                                    output.solution_pool.best().profit())) {
-                            highs_input->user_interrupt = 1;
-                        }
+                        algorithm_formatter.update_knapsack_bound(
+                                highs_output->mip_dual_bound * milp_model.multiplier_profit);
                     } else if (instance.objective() == Objective::BinPacking) {
-                        if (output.solution_pool.best().full()
-                                && !strictly_lesser(
-                                    highs_output->mip_dual_bound,
-                                    (double)output.solution_pool.best().number_of_bins())) {
-                            highs_input->user_interrupt = 1;
-                        }
-                    } else {
-                        // 'Feasibility': the demand constraints are
-                        // equalities, so any incumbent is already a full
-                        // solution; no need to search further.
-                        if (output.solution_pool.best().full())
-                            highs_input->user_interrupt = 1;
+                        // The '-0.001' guards against floating-point noise
+                        // from the solve nudging the ceiling up past the
+                        // true value, which would make the bound unsound
+                        // (same convention as 'algorithms/column_generation.hpp').
+                        algorithm_formatter.update_bin_packing_bound(
+                                (BinPos)std::ceil(highs_output->mip_dual_bound - 0.001));
                     }
+
+                    // HiGHS only allows requesting an interrupt from the
+                    // dedicated 'kCallbackMipInterrupt' callback: it asserts
+                    // internally that 'user_interrupt' is never set from an
+                    // "informational" callback type such as this one's other
+                    // registration, 'kCallbackMipImprovingSolution' (see
+                    // 'HighsCallback::callbackAction' in HiGHS itself).
+                    if (callback_type != HighsCallbackType::kCallbackMipInterrupt)
+                        return;
+
+                    // 'is_proven_optimal' already encodes, per objective,
+                    // exactly the "found solution matches the current
+                    // bound" condition that used to be checked ad hoc here -
+                    // including 'Feasibility', whose own case
+                    // ('best().full() && best().feasible()') is exactly
+                    // "the demand constraints (equalities) are met by an
+                    // already-found incumbent", the same condition the
+                    // former inline check captured.
+                    if (output.is_proven_optimal())
+                        highs_input->user_interrupt = 1;
 
                     // Check end.
                     if (parameters.timer.needs_to_end())
