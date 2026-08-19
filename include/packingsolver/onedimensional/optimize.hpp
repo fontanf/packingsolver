@@ -131,6 +131,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
 
+    /** Use dual feasible functions bound/infeasibility check. */
+    bool use_dual_feasible_functions = false;
+
     /** Use tree search algorithm. */
     bool use_tree_search = false;
 

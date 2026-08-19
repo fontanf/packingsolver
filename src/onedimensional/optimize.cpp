@@ -5,6 +5,7 @@
 #include "onedimensional/solution_builder.hpp"
 #include "onedimensional/tree_search.hpp"
 #include "onedimensional/milp_assignment.hpp"
+#include "onedimensional/dual_feasible_functions.hpp"
 #include "algorithms/dichotomic_search.hpp"
 #include "algorithms/sequential_value_correction.hpp"
 #include "algorithms/column_generation.hpp"
@@ -201,6 +202,23 @@ void optimize_trivial_bound(
                 total_cost - kp_output.solution_pool.best().profit());
         return;
     }
+}
+
+void optimize_dual_feasible_functions(
+        const Instance& instance,
+        const OptimizeParameters& parameters,
+        AlgorithmFormatter& algorithm_formatter)
+{
+    DualFeasibleFunctionsParameters dff_parameters;
+    dff_parameters.verbosity_level = 0;
+    dff_parameters.timer = parameters.timer;
+    dff_parameters.new_solution_callback
+        = [&algorithm_formatter](
+                const onedimensional::Output& dff_output)
+        {
+            algorithm_formatter.update_bounds(dff_output);
+        };
+    dual_feasible_functions(instance, dff_parameters);
 }
 
 void optimize_dynamic_programming(
@@ -559,6 +577,28 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
     algorithm_formatter.print_header();
 
     optimize_trivial_bound(instance, parameters, algorithm_formatter);
+
+    if (instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::Feasibility
+            || instance.objective() == Objective::Knapsack) {
+        if (instance.number_of_bin_types() == 1
+                && (parameters.use_dual_feasible_functions
+                    || instance.number_of_items() <= 100)) {
+            optimize_dual_feasible_functions(
+                    instance,
+                    parameters,
+                    algorithm_formatter);
+        }
+    }
+
+    if (algorithm_formatter.end_boolean()) {
+        algorithm_formatter.end();
+        return output;
+    }
+    if (parameters.timer.needs_to_end()) {
+        algorithm_formatter.end();
+        return output;
+    }
 
     if (instance.number_of_bins() == 1
             && instance.objective() == Objective::Knapsack) {
