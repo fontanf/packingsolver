@@ -503,16 +503,11 @@ struct Output: optimizationtools::Output
 
     virtual int format_width() const
     {
-        switch (solution_pool.best().instance().objective()) {
-        case Objective::Feasibility:
-            // Fits "Is proven infeasible: ", the only line printed for this
-            // objective besides "Time (s): ".
-            return 23;
-        default:
-            // Fits "Primal bound: ", the longest of the "Primal bound" /
-            // "Dual bound" / "Gap" lines printed for every other objective.
-            return 15;
-        }
+        // Fits "Is proven infeasible: ", now printed for every objective
+        // (not just 'Feasibility'), and "Primal bound: ", the longest of
+        // the "Primal bound" / "Dual bound" / "Gap" lines printed for every
+        // other objective.
+        return 23;
     }
 
     virtual void format(std::ostream& os) const
