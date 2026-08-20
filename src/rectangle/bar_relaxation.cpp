@@ -65,7 +65,8 @@ public:
     columngenerationsolver::PricingSolver::PricingOutput solve_pricing(
             bool solve_feasibility,
             const std::vector<columngenerationsolver::Value>& duals,
-            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&) override;
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
+            columngenerationsolver::Counter pricing_level) override;
 
 private:
 
@@ -229,7 +230,8 @@ double BarRelaxationPricingSolver::price_bars(
 columngenerationsolver::PricingSolver::PricingOutput BarRelaxationPricingSolver::solve_pricing(
         bool,
         const std::vector<columngenerationsolver::Value>& duals,
-        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&)
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
+        columngenerationsolver::Counter)
 {
     columngenerationsolver::PricingSolver::PricingOutput output;
     double overcost = 0.0;
