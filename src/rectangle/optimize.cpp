@@ -500,6 +500,72 @@ void optimize_dichotomic_search(
     }
 }
 
+/**
+ * 'NextLeftoverBinTypeFunction' for rectangle (see its own doc comment):
+ * shrinks the bin type along whichever axis 'LeftoverMode' fixes ('X':
+ * width, 'Y': height), keeping the other dimension unchanged, by just
+ * enough to remove at least 'leftover' of area. 'defects' that would fall
+ * (even partially) past the new size are dropped along with it - they no
+ * longer exist in a region that isn't part of the bin anymore.
+ *
+ * 'LeftoverMode::Area' isn't supported: there, leftover can come from
+ * either axis shrinking, with no single well-defined bin type to shrink
+ * to for a given target - unlike 'X'/'Y', where the other axis staying
+ * fixed pins down exactly one.
+ *
+ * Bin types with resources or fixed items aren't supported either: as
+ * with rectangleguillotine's own version of this function, neither has
+ * an unambiguous, generically correct way to shrink alongside the bin.
+ */
+BinTypeId next_leftover_bin_type(
+        InstanceBuilder& sub_instance_builder,
+        const Instance& instance,
+        BinTypeId original_bin_type_id,
+        double leftover)
+{
+    const BinType& bin_type = instance.bin_type(original_bin_type_id);
+    if (instance.parameters().leftover_mode == LeftoverMode::Area) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "'LeftoverMode::Area' is not supported by "
+                "'BinPackingWithLeftovers' column generation.");
+    }
+    if (bin_type.number_of_resources() > 0 || !bin_type.fixed_items.empty()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "bin type " + std::to_string(original_bin_type_id) + " has "
+                "resources or fixed items, which 'BinPackingWithLeftovers' "
+                "column generation does not support.");
+    }
+
+    bool shrink_x = (instance.parameters().leftover_mode == LeftoverMode::X);
+    Length available_side = (shrink_x)? bin_type.rect.y: bin_type.rect.x;
+    if (available_side <= 0)
+        return -1;
+
+    Length reduction = (leftover <= 0.0)?
+        0:
+        (Length)std::ceil(leftover / available_side);
+    Length new_x = (shrink_x)? bin_type.rect.x - reduction: bin_type.rect.x;
+    Length new_y = (shrink_x)? bin_type.rect.y: bin_type.rect.y - reduction;
+    if ((shrink_x && new_x < 1) || (!shrink_x && new_y < 1))
+        return -1;
+
+    BinTypeId new_bin_type_id = sub_instance_builder.add_bin_type(new_x, new_y);
+    sub_instance_builder.set_bin_type_cost(new_bin_type_id, bin_type.cost);
+    for (const Defect& defect: bin_type.defects) {
+        if (defect.x_end() > new_x || defect.y_end() > new_y)
+            continue;
+        sub_instance_builder.add_defect(
+                new_bin_type_id,
+                defect.pos.x,
+                defect.pos.y,
+                defect.rect.x,
+                defect.rect.y);
+    }
+    return new_bin_type_id;
+}
+
 void optimize_column_generation(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -525,12 +591,13 @@ void optimize_column_generation(
             return optimize(kp_instance, kp_parameters);
         };
 
-    ColumnGenerationParameters<Instance, Solution, rectangle::Output> cg_parameters;
+    ColumnGenerationParameters<Instance, InstanceBuilder, Solution, rectangle::Output> cg_parameters;
     cg_parameters.verbosity_level = 0;
     cg_parameters.timer = parameters.timer;
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    cg_parameters.next_leftover_bin_type = next_leftover_bin_type;
     cg_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const rectangle::Output& ps_output)
     {
@@ -749,7 +816,13 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
-        use_column_generation = false;
+        // 'BinPackingWithLeftovers' is the one objective column
+        // generation's sequential feasibility scheme supports down to a
+        // single bin (see its own section in 'algorithms/column_generation.hpp')
+        // - every other objective's direct approach needs more than one
+        // bin to be meaningful.
+        if (instance.objective() != Objective::BinPackingWithLeftovers)
+            use_column_generation = false;
         if (instance.objective() != Objective::Knapsack
                 && instance.objective() != Objective::Feasibility)
             use_tree_search_maximal_spaces = false;
@@ -760,7 +833,8 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         if (!use_tree_search
                 && !use_tree_search_maximal_spaces
                 && !use_benders_decomposition
-                && !use_bar_relaxation) {
+                && !use_bar_relaxation
+                && !use_column_generation) {
             if ((instance.objective() == Objective::Knapsack
                         || instance.objective() == Objective::Feasibility)
                     && mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2

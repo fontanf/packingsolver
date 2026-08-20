@@ -619,6 +619,70 @@ void optimize_dichotomic_search(
     }
 }
 
+/**
+ * 'NextLeftoverBinTypeFunction' for rectangleguillotine (see its own doc
+ * comment): shrinks the bin type's width (keeping its height and every
+ * trim unchanged), by just enough to remove at least 'leftover' of usable
+ * area. Only the item-packable region is affected, so 'defects' that
+ * would fall (even partially) past the new width are dropped along with
+ * it - they no longer exist in a region that isn't part of the bin
+ * anymore.
+ *
+ * Bin types with resources or fixed items aren't supported: neither has
+ * an unambiguous, generically correct way to shrink alongside the bin
+ * (a resource's capacity may or may not scale with area; a fixed item
+ * that no longer fits can't simply be dropped the way a defect can).
+ */
+BinTypeId next_leftover_bin_type(
+        InstanceBuilder& sub_instance_builder,
+        const Instance& instance,
+        BinTypeId original_bin_type_id,
+        double leftover)
+{
+    const BinType& bin_type = instance.bin_type(original_bin_type_id);
+    if (bin_type.number_of_resources() > 0 || !bin_type.fixed_items.empty()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "bin type " + std::to_string(original_bin_type_id) + " has "
+                "resources or fixed items, which 'BinPackingWithLeftovers' "
+                "column generation does not support.");
+    }
+
+    Length available_height = bin_type.rect.h - bin_type.top_trim - bin_type.bottom_trim;
+    Length min_usable_width = bin_type.left_trim + bin_type.right_trim + 1;
+    if (available_height <= 0)
+        return -1;
+
+    Length width_reduction = (leftover <= 0.0)?
+        0:
+        (Length)std::ceil(leftover / available_height);
+    Length new_width = bin_type.rect.w - width_reduction;
+    if (new_width < min_usable_width)
+        return -1;
+
+    BinTypeId new_bin_type_id = sub_instance_builder.add_bin_type(
+            new_width,
+            bin_type.rect.h);
+    sub_instance_builder.set_bin_type_cost(new_bin_type_id, bin_type.cost);
+    sub_instance_builder.add_trims(
+            new_bin_type_id,
+            bin_type.left_trim, bin_type.left_trim_type,
+            bin_type.right_trim, bin_type.right_trim_type,
+            bin_type.bottom_trim, bin_type.bottom_trim_type,
+            bin_type.top_trim, bin_type.top_trim_type);
+    for (const Defect& defect: bin_type.defects) {
+        if (defect.right() > new_width)
+            continue;
+        sub_instance_builder.add_defect(
+                new_bin_type_id,
+                defect.pos.x,
+                defect.pos.y,
+                defect.rect.w,
+                defect.rect.h);
+    }
+    return new_bin_type_id;
+}
+
 void optimize_column_generation(
         const Instance& instance,
         const OptimizeParameters& parameters,
@@ -644,12 +708,13 @@ void optimize_column_generation(
             return optimize(kp_instance, kp_parameters);
         };
 
-    ColumnGenerationParameters<Instance, Solution, rectangleguillotine::Output> cg_parameters;
+    ColumnGenerationParameters<Instance, InstanceBuilder, Solution, rectangleguillotine::Output> cg_parameters;
     cg_parameters.verbosity_level = 0;
     cg_parameters.timer = parameters.timer;
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    cg_parameters.next_leftover_bin_type = next_leftover_bin_type;
     cg_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const rectangleguillotine::Output& ps_output)
     {

@@ -60,6 +60,34 @@ using PricingOutput = columngenerationsolver::PricingSolver::PricingOutput;
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
 using ColumnGenerationPricingFunction = std::function<Output(const Instance&)>;
 
+/**
+ * Used by the 'BinPackingWithLeftovers' sequential feasibility scheme (see
+ * its own section of 'column_generation'): given a bin type of 'instance'
+ * (identified by 'original_bin_type_id') and a target 'leftover' (in that
+ * bin type's own 'BinType::space()' unit), add a bin type to
+ * 'sub_instance_builder' whose leftover relative to the original -
+ * 'instance.bin_type(original_bin_type_id).space() - <returned bin
+ * type>.space()' - is at least 'leftover', and return its id. 'leftover
+ * == 0' must always succeed (with an unmodified copy of the original bin
+ * type), since the scheme starts every search there.
+ *
+ * Returns '-1' if no such bin type can be built (e.g. 'leftover' would
+ * shrink the bin down to nothing usable): the caller then tries one fewer
+ * bin instead of shrinking this one any further.
+ *
+ * A domain may return a bin type with more than 'leftover' worth of
+ * leftover (e.g. snapped to whatever granularity its own geometry
+ * requires) - the scheme reads back 'space()' of the bin type actually
+ * returned to track real progress, rather than assuming 'leftover' itself
+ * was matched exactly.
+ */
+template <typename Instance, typename InstanceBuilder>
+using NextLeftoverBinTypeFunction = std::function<BinTypeId(
+        InstanceBuilder& sub_instance_builder,
+        const Instance& instance,
+        BinTypeId original_bin_type_id,
+        double leftover)>;
+
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
 class ColumnGenerationPricingSolver: public columngenerationsolver::PricingSolver
 {
@@ -498,7 +526,7 @@ BinPos ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output
     return cached_maximum_number_of_bins_;
 }
 
-template <typename Instance, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
+template <typename Instance, typename InstanceBuilder, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
 struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
@@ -549,6 +577,13 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
      * Not used for other objectives.
      */
     bool use_sequential_feasibility = true;
+
+    /**
+     * Required for the 'BinPackingWithLeftovers' objective (see
+     * 'NextLeftoverBinTypeFunction' and the 'BinPackingWithLeftovers'
+     * section of 'column_generation'); unused otherwise.
+     */
+    NextLeftoverBinTypeFunction<Instance, InstanceBuilder> next_leftover_bin_type = nullptr;
 };
 
 /**
@@ -619,7 +654,7 @@ template <typename Instance, typename InstanceBuilder, typename Solution, typena
 Output column_generation(
         const Instance& instance,
         const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function,
-        const ColumnGenerationParameters<Instance, Solution, Output>& parameters = {},
+        const ColumnGenerationParameters<Instance, InstanceBuilder, Solution, Output>& parameters = {},
         BinPos lower_bound = 0,
         std::vector<std::shared_ptr<const Column>>* column_pool = nullptr)
 {
@@ -667,7 +702,7 @@ Output column_generation(
             Instance sub_instance = build_sequential_feasibility_sub_instance<Instance, InstanceBuilder>(
                     instance, number_of_bins);
 
-            ColumnGenerationParameters<Instance, Solution, Output> sub_parameters;
+            ColumnGenerationParameters<Instance, InstanceBuilder, Solution, Output> sub_parameters;
             sub_parameters.verbosity_level = 0;
             sub_parameters.timer = parameters.timer;
             sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
@@ -706,6 +741,183 @@ Output column_generation(
             // bin count: keep trying larger candidates anyway - a feasible
             // solution found there is still a useful upper bound, even
             // though it can no longer be proven optimal.
+        }
+
+        algorithm_formatter.end();
+        return output;
+    }
+
+    // Sequential feasibility scheme for 'BinPackingWithLeftovers' - the
+    // column generation counterpart of 'rectangleguillotine::
+    // sequential_feasibility's own tree-search-based scheme for the same
+    // objective. Tries candidate '(number_of_bins, leftover)' pairs, each
+    // as a 'Feasibility' sub-instance with 'number_of_bins - 1' bins at
+    // their full catalog size plus one more bin shrunk to have at least
+    // 'leftover' less space than its own original bin type (see
+    // 'ColumnGenerationParameters::next_leftover_bin_type'), solved via a
+    // direct recursive call to 'column_generation' itself. Starts at
+    // 'leftover = 0' (the original instance, unmodified - "find a first
+    // feasible solution... on the original instance"), and increases it
+    // every time a candidate is found feasible, until either a candidate
+    // is found infeasible (the previous one is then the answer) or the
+    // current bin type can no longer be shrunk at all (try one fewer bin
+    // instead, resetting the leftover search on whichever bin type ends
+    // up last then).
+    //
+    // Unlike the 'BinPacking' scheme above, bin geometry - not just
+    // availability - changes between candidates here: the shrinking last
+    // bin's own columns are stale every iteration (computed for a bin of
+    // a different size) and must not be reused, but every other bin's
+    // columns are completely unaffected by that change and stay just as
+    // safely reusable as in the 'BinPacking' scheme - see the column pool
+    // filtering below.
+    if (instance.objective() == Objective::BinPackingWithLeftovers) {
+        if (!parameters.next_leftover_bin_type) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "'BinPackingWithLeftovers' requires "
+                    "'ColumnGenerationParameters::next_leftover_bin_type' "
+                    "to be set.");
+        }
+
+        BinPos current_number_of_bins = 0;
+        for (BinTypeId bin_type_id = 0;
+                bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            current_number_of_bins += instance.bin_type(bin_type_id).copies;
+        }
+        double leftover = 0.0;
+        std::vector<std::shared_ptr<const Column>> sequential_feasibility_column_pool;
+
+        for (Counter it = 0;; ++it) {
+            if (algorithm_formatter.end_boolean() || parameters.timer.needs_to_end())
+                break;
+            if (current_number_of_bins <= 0)
+                break;
+
+            // Build the sub-instance: the first 'current_number_of_bins - 1'
+            // bins at full catalog size (same bin type order/allocation as
+            // 'build_sequential_feasibility_sub_instance', so their columns
+            // stay reusable across candidates the same way), plus one more
+            // bin shrunk via 'next_leftover_bin_type'.
+            InstanceBuilder sub_instance_builder;
+            sub_instance_builder.set_objective(Objective::Feasibility);
+            sub_instance_builder.set_parameters(instance.parameters());
+            BinPos remaining_bins = current_number_of_bins;
+            BinTypeId original_last_bin_type_id = -1;
+            // Maps each bin type id of 'sub_instance' back to the bin type
+            // id of 'instance' it stands for, needed below to translate a
+            // sub-solution back into a full 'Solution' against 'instance'
+            // (unlike 'build_sequential_feasibility_sub_instance''s own
+            // sub-instances, this one's bin types are not 1:1 with
+            // 'instance''s own - the leftover bin type added by
+            // 'next_leftover_bin_type' below is a synthetic one with no
+            // counterpart there).
+            std::vector<BinTypeId> sub_to_original_bin_type_ids;
+            for (BinTypeId bin_type_id = 0;
+                    bin_type_id < instance.number_of_bin_types() && remaining_bins > 0;
+                    ++bin_type_id) {
+                const auto& bin_type = instance.bin_type(bin_type_id);
+                BinPos copies = (std::min)(bin_type.copies, remaining_bins);
+                bool provides_last_bin = (remaining_bins - copies == 0);
+                BinPos full_copies = (provides_last_bin)? copies - 1: copies;
+                if (full_copies > 0) {
+                    BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+                    sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+                    sub_instance_builder.set_bin_type_copies(sub_bin_type_id, full_copies);
+                    sub_to_original_bin_type_ids.push_back(bin_type_id);
+                }
+                if (provides_last_bin)
+                    original_last_bin_type_id = bin_type_id;
+                remaining_bins -= copies;
+            }
+
+            BinTypeId leftover_bin_type_id = parameters.next_leftover_bin_type(
+                    sub_instance_builder, instance, original_last_bin_type_id, leftover);
+            if (leftover_bin_type_id == -1) {
+                // This bin type cannot be shrunk any further: try one
+                // fewer bin, starting the leftover search over on
+                // whichever bin type turns out to provide the new last
+                // bin.
+                current_number_of_bins--;
+                leftover = 0.0;
+                continue;
+            }
+            sub_instance_builder.set_bin_type_copies_min(leftover_bin_type_id, 0);
+            sub_instance_builder.set_bin_type_copies(leftover_bin_type_id, 1);
+            // The leftover bin type maps back to its own original bin
+            // type too: 'Solution::append_bin' expands a bin's residual
+            // (unused) space out to the *mapped-to* bin type's real
+            // dimensions, so mapping it back to the original (full-size)
+            // bin type is exactly what turns "items only placed within
+            // the shrunk candidate width" into "the rest of the real bin
+            // counted as leftover/waste" in the final solution.
+            sub_to_original_bin_type_ids.push_back(original_last_bin_type_id);
+            for (ItemTypeId item_type_id = 0;
+                    item_type_id < instance.number_of_item_types();
+                    ++item_type_id) {
+                sub_instance_builder.add_item_type(instance, item_type_id);
+            }
+            Instance sub_instance = sub_instance_builder.build();
+
+            // Drop stale columns for the shrinking last bin type before
+            // reusing the pool - everything else is unaffected (see
+            // above).
+            sequential_feasibility_column_pool.erase(
+                    std::remove_if(
+                        sequential_feasibility_column_pool.begin(),
+                        sequential_feasibility_column_pool.end(),
+                        [leftover_bin_type_id](const std::shared_ptr<const Column>& column)
+                        {
+                            for (const columngenerationsolver::LinearTerm& element: column->elements)
+                                if (element.row == leftover_bin_type_id)
+                                    return true;
+                            return false;
+                        }),
+                    sequential_feasibility_column_pool.end());
+
+            ColumnGenerationParameters<Instance, InstanceBuilder, Solution, Output> sub_parameters;
+            sub_parameters.verbosity_level = 0;
+            sub_parameters.timer = parameters.timer;
+            sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            sub_parameters.optimization_mode = parameters.optimization_mode;
+            sub_parameters.internal_diving = parameters.internal_diving;
+            sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            Output sub_output = column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, Output>(
+                    sub_instance, pricing_function, sub_parameters, 0, &sequential_feasibility_column_pool);
+
+            if (!sub_output.solution_pool.best().feasible()) {
+                // Infeasible: the previous candidate (already recorded
+                // below, or nothing yet if this is the very first
+                // iteration) is the answer.
+                break;
+            }
+
+            Solution solution(instance);
+            solution.append_bins(
+                    packingsolver::enforce_bin_type_order(sub_output.solution_pool.best()),
+                    sub_to_original_bin_type_ids, {});
+            std::stringstream ss;
+            ss << "SF it " << it;
+            algorithm_formatter.update_solution(solution, ss.str());
+
+            // Progress for the next iteration: read back how much
+            // leftover was actually achieved (the domain callback may
+            // have snapped to more than requested) and grow the target
+            // from there, so requesting the same amount again can never
+            // happen.
+            double achieved_leftover
+                = instance.bin_type(original_last_bin_type_id).space()
+                - sub_instance.bin_type(leftover_bin_type_id).space();
+            leftover = (std::max)(achieved_leftover * 1.01, achieved_leftover + 1.0);
+
+            if (solution.number_of_bins() < current_number_of_bins) {
+                // The solver used fewer bins than offered: no need to
+                // shrink further at this bin count, drop straight to one
+                // fewer bin instead.
+                current_number_of_bins = solution.number_of_bins();
+                leftover = 0.0;
+            }
         }
 
         algorithm_formatter.end();

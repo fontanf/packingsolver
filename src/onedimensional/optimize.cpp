@@ -506,7 +506,7 @@ void optimize_column_generation(
             return optimize(kp_instance, kp_parameters);
         };
 
-    ColumnGenerationParameters<Instance, Solution, onedimensional::Output> cg_parameters;
+    ColumnGenerationParameters<Instance, InstanceBuilder, Solution, onedimensional::Output> cg_parameters;
     cg_parameters.verbosity_level = 0;
     cg_parameters.timer = parameters.timer;
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
