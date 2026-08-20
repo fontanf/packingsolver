@@ -48,7 +48,8 @@ public:
     virtual PricingOutput solve_pricing(
             bool solve_feasibility,
             const std::vector<columngenerationsolver::Value>& duals,
-            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&) override;
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
+            columngenerationsolver::Counter pricing_level) override;
 
     void set_all_columns_2e_patterns_generated() { all_columns_2e_patterns_generated_ = true; }
 
@@ -1940,7 +1941,8 @@ void ColumnGenerationPricingSolver::generate_duals_zero(
 PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         bool solve_feasibility,
         const std::vector<columngenerationsolver::Value>& duals,
-        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&)
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
+        columngenerationsolver::Counter)
 {
     //std::cout << "solve_pricing" << std::endl;
 

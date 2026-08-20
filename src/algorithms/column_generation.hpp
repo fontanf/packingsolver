@@ -85,7 +85,8 @@ public:
     virtual PricingOutput solve_pricing(
             bool solve_feasibility,
             const std::vector<columngenerationsolver::Value>& duals,
-            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&) override;
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
+            columngenerationsolver::Counter pricing_level) override;
 
 private:
 
@@ -238,7 +239,8 @@ template <typename Instance, typename InstanceBuilder, typename Solution, typena
 PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::solve_pricing(
         bool solve_feasibility,
         const std::vector<Value>& duals,
-        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, Value>>&)
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, Value>>&,
+        columngenerationsolver::Counter)
 {
     double multiplier_cost = largest_power_of_two_lesser_or_equal(instance_.largest_bin_cost());
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
