@@ -47,6 +47,7 @@
 
 #include "columngenerationsolver/algorithms/limited_discrepancy_search.hpp"
 
+#include <algorithm>
 #include <sstream>
 
 namespace packingsolver
@@ -89,6 +90,14 @@ public:
 
 private:
 
+    /**
+     * Upper bound on the number of bins any 'VariableSizedBinPacking'
+     * solution at least as good as the current incumbent could use; see
+     * its definition for the derivation. Cached against the incumbent's
+     * cost - see 'has_cached_maximum_number_of_bins_'.
+     */
+    BinPos maximum_number_of_bins_for_variable_sized_bin_packing();
+
     const Instance& instance_;
 
     const Output& output_;
@@ -101,6 +110,20 @@ private:
 
     /** Fixed copies already covered by selected LP columns (per item type). */
     std::vector<double> filled_fixed_demands_;
+
+    /**
+     * Cache for the 'VariableSizedBinPacking' 'maximum_number_of_bins'
+     * computation below: 'true' once it has been computed at least once,
+     * so it is only recomputed when the incumbent's cost has actually
+     * improved since.
+     */
+    bool has_cached_maximum_number_of_bins_ = false;
+
+    /** Incumbent cost the cached value below was computed from. */
+    Profit cached_maximum_number_of_bins_cost_ = -1;
+
+    /** See 'has_cached_maximum_number_of_bins_'. */
+    BinPos cached_maximum_number_of_bins_ = -1;
 
 };
 
@@ -396,17 +419,81 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
     // already been found, its own number of bins is a tighter such cap
     // than the generic 'min(number_of_items, number_of_bins)' one (no
     // solution using more bins than the best one found so far could ever
-    // be optimal).
+    // be optimal). For VariableSizedBinPacking, the incumbent's own bin
+    // count isn't directly comparable this way (bins have different
+    // costs), but its total cost still bounds how many bins any
+    // at-least-as-good solution could afford - see
+    // 'maximum_number_of_bins_for_variable_sized_bin_packing'.
     BinPos maximum_number_of_bins = (std::min)((BinPos)instance_.number_of_items(), instance_.number_of_bins());
     if (instance_.objective() == Objective::BinPacking
             && output_.solution_pool.best().feasible()) {
         maximum_number_of_bins = output_.solution_pool.best().number_of_bins();
+    } else if (instance_.objective() == Objective::VariableSizedBinPacking
+            && output_.solution_pool.best().feasible()) {
+        maximum_number_of_bins = (std::min)(
+                maximum_number_of_bins,
+                maximum_number_of_bins_for_variable_sized_bin_packing());
     }
     output.overcost
         = maximum_number_of_bins * reduced_cost_bound;
 
     //std::cout << "solve_pricing end" << std::endl;
     return output;
+}
+
+template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
+BinPos ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::maximum_number_of_bins_for_variable_sized_bin_packing()
+{
+    Profit best_cost = output_.solution_pool.best().cost();
+    if (has_cached_maximum_number_of_bins_
+            && best_cost == cached_maximum_number_of_bins_cost_) {
+        return cached_maximum_number_of_bins_;
+    }
+
+    // Any solution at least as good as the incumbent must have total
+    // cost <= 'best_cost'. Maximizing the number of bins selected
+    // subject only to that cost budget (each bin type bounded by its own
+    // 'copies', with 'copies_min' bins mandatory) is a
+    // maximum-cardinality-under-a-single-capacity problem: take the
+    // mandatory copies of every bin type first (forced regardless of
+    // cost), then greedily fill the remaining budget with the cheapest
+    // bin types first. Sorting by increasing cost and greedily filling
+    // is optimal for maximizing the count of bins selected subject to a
+    // sum constraint - same argument as 'greedy_maximum_cardinality' in
+    // the dual feasible functions bound.
+    BinPos count = 0;
+    Profit remaining_budget = best_cost;
+    std::vector<std::pair<Profit, BinPos>> optional_bin_types;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance_.number_of_bin_types();
+            ++bin_type_id) {
+        const auto& bin_type = instance_.bin_type(bin_type_id);
+        count += bin_type.copies_min;
+        remaining_budget -= bin_type.cost * bin_type.copies_min;
+        BinPos optional_copies = bin_type.copies - bin_type.copies_min;
+        if (optional_copies > 0)
+            optional_bin_types.push_back({bin_type.cost, optional_copies});
+    }
+    if (remaining_budget < 0)
+        remaining_budget = 0;
+    std::sort(optional_bin_types.begin(), optional_bin_types.end());
+    for (const auto& p: optional_bin_types) {
+        Profit cost = p.first;
+        BinPos copies = p.second;
+        if (cost <= 0) {
+            count += copies;
+            continue;
+        }
+        BinPos affordable = (BinPos)(remaining_budget / cost);
+        BinPos take = (std::min)(copies, affordable);
+        count += take;
+        remaining_budget -= take * cost;
+    }
+
+    cached_maximum_number_of_bins_ = (std::min)(count, (BinPos)instance_.number_of_items());
+    cached_maximum_number_of_bins_cost_ = best_cost;
+    has_cached_maximum_number_of_bins_ = true;
+    return cached_maximum_number_of_bins_;
 }
 
 template <typename Instance, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
