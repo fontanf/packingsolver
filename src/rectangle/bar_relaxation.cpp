@@ -50,7 +50,7 @@ public:
     { }
 
     std::vector<std::shared_ptr<const columngenerationsolver::Column>> initialize_pricing(
-            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>&,
             const std::vector<std::shared_ptr<const columngenerationsolver::Cut>>&,
             const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&) override
     {

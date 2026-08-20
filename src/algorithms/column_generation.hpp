@@ -45,17 +45,78 @@
 
 #include "packingsolver/algorithms/common.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
 #include "columngenerationsolver/algorithms/limited_discrepancy_search.hpp"
 
 #include <algorithm>
+#include <array>
+#include <set>
 #include <sstream>
+#include <unordered_map>
 
 namespace packingsolver
 {
 
 using Value = columngenerationsolver::Value;
 using Column = columngenerationsolver::Column;
+using Cut = columngenerationsolver::Cut;
+using CutIdx = columngenerationsolver::CutIdx;
 using PricingOutput = columngenerationsolver::PricingSolver::PricingOutput;
+
+/**
+ * Data specific to a subset-row cut of cardinality three (Jepsen, Petersen,
+ * Spoorendonk & Pisinger 2008; used for the SR cuts of wang2025_bin_packing):
+ * given three item types, at most one generated column/pattern may contain
+ * two or more of them, i.e. sum_{p: pattern p contains >= 2 of the triplet}
+ * xi_p <= 1.
+ *
+ * Stored in 'Cut::extra' (tagged by 'Cut::name == subset_row_cut_name'):
+ * 'columngenerationsolver::Cut' is a concrete, uniform type - cut families
+ * are told apart by 'extra', not by subclassing (see 'Cut' in
+ * columngenerationsolver). 'item_type_ids' is always kept sorted (by
+ * 'build_subset_row_cut' below), so two cuts over the same triple compare
+ * equal by simple array comparison - see 'ColumnGenerationPricingSolver::
+ * equal' below.
+ */
+struct SubsetRowCutExtra
+{
+    std::array<ItemTypeId, 3> item_type_ids;
+};
+
+/** Tag used to recognize a subset-row cut among 'Cut::extra' payloads. */
+const std::string subset_row_cut_name = "subset_row";
+
+/**
+ * Build a subset-row cut over the given item type triple.
+ *
+ * Coefficient computation is not attached to the cut itself (see 'Cut' in
+ * columngenerationsolver): 'ColumnGenerationPricingSolver::coefficient'
+ * below reads 'SubsetRowCutExtra' back out of 'Cut::extra' and checks item
+ * presence via the packed solution stashed in every column's 'extra' field
+ * (see 'solution_to_columns' and 'solve_pricing' below, the only two places
+ * that build a 'Column' for this template - both always set 'extra') with
+ * an O(1) 'Solution::item_copies' lookup per item type. Works unmodified
+ * for every domain that uses this column generation template. Enforcing
+ * the cut during pricing (as opposed to just rejecting cut-violating
+ * columns after the fact) is handled separately in 'solve_pricing' below,
+ * for domains whose 'InstanceBuilder' supports resources.
+ */
+inline std::shared_ptr<Cut> build_subset_row_cut(
+        ItemTypeId item_type_id_1,
+        ItemTypeId item_type_id_2,
+        ItemTypeId item_type_id_3)
+{
+    auto extra = std::make_shared<SubsetRowCutExtra>();
+    extra->item_type_ids = {item_type_id_1, item_type_id_2, item_type_id_3};
+    std::sort(extra->item_type_ids.begin(), extra->item_type_ids.end());
+
+    auto cut = std::make_shared<Cut>();
+    cut->name = subset_row_cut_name;
+    cut->upper_bound = 1.0;
+    cut->extra = extra;
+    return cut;
+}
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
 using ColumnGenerationPricingFunction = std::function<Output(const Instance&)>;
@@ -86,8 +147,38 @@ public:
     virtual PricingOutput solve_pricing(
             bool solve_feasibility,
             const std::vector<columngenerationsolver::Value>& duals,
-            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>& cut_duals,
             columngenerationsolver::Counter pricing_level) override;
+
+    /**
+     * Subset-row cut (Jepsen et al. 2008) separation - see
+     * 'SubsetRowCutExtra' above.
+     *
+     * Fully generic: only relies on the row layout built by 'get_model'
+     * (bin type rows first, then item type rows), so this works unmodified
+     * for every domain that uses this column generation template, not just
+     * rectangle.
+     *
+     * Candidate triples are restricted to those built from a pair of item
+     * types directly co-occurring in some positive-valued column of
+     * 'solution', extended by a third item type that co-occurs with either
+     * one of the pair in some (possibly different) column: a triple with
+     * no such pairwise evidence anywhere contributes nothing to any cut's
+     * violation yet, so this is a sound (if not exhaustive) pruning of the
+     * full O(n^3) triple search space.
+     */
+    virtual std::vector<std::shared_ptr<const Cut>> separate_cuts(
+            const columngenerationsolver::Solution& solution) override;
+
+    /** Coefficient of a subset-row cut on a column - see 'Cut' in columngenerationsolver. */
+    virtual Value coefficient(
+            const Cut& cut,
+            const Column& column) const override;
+
+    /** Recognize two 'Cut' instances built over the same item type triple - see 'Cut' in columngenerationsolver. */
+    virtual bool equal(
+            const Cut& cut_1,
+            const Cut& cut_2) const override;
 
 private:
 
@@ -262,7 +353,7 @@ template <typename Instance, typename InstanceBuilder, typename Solution, typena
 PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::solve_pricing(
         bool solve_feasibility,
         const std::vector<Value>& duals,
-        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, Value>>&,
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, Value>>& cut_duals,
         columngenerationsolver::Counter)
 {
     double multiplier_cost = largest_power_of_two_lesser_or_equal(instance_.largest_bin_cost());
@@ -335,6 +426,78 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             kp_instance_builder.set_item_type_copies(kp_item_type_id, copies);
             kp2vbpp.push_back(item_type_id);
         }
+        // Apply active subset-row cuts as penalizing resources on the
+        // pricing sub-instance's bin type (see 'Resource' in
+        // 'packingsolver/algorithms/common.hpp'), so that the tree search
+        // actually searches for the best *reduced-cost* pattern instead of
+        // just the best raw-profit one.
+        if (!cut_duals.empty()) {
+            std::vector<ItemTypeId> vbpp2kp(instance_.number_of_item_types(), -1);
+            for (ItemTypeId kp_item_type_id = 0;
+                    kp_item_type_id < (ItemTypeId)kp2vbpp.size();
+                    ++kp_item_type_id) {
+                vbpp2kp[kp2vbpp[kp_item_type_id]] = kp_item_type_id;
+            }
+            for (const auto& cut_dual: cut_duals) {
+                if (cut_dual.first->name != subset_row_cut_name)
+                    continue;
+                const SubsetRowCutExtra& extra
+                    = *std::static_pointer_cast<SubsetRowCutExtra>(cut_dual.first->extra);
+                // The SR cut is a one-sided '<=' row (see
+                // 'build_subset_row_cut': only 'upper_bound' is set, so
+                // 'lower_bound' stays at its default of -infinity), so its
+                // dual has a fixed sign, set by the master's objective
+                // sense (see 'get_model'): non-positive when minimizing
+                // (BinPacking/VariableSizedBinPacking/Feasibility),
+                // non-negative when maximizing (Knapsack) - the standard
+                // convention for any '<=' row. 'Resource' always computes
+                // 'profit -= penalty', so 'penalty' must be converted into
+                // the non-negative quantity that reproduces the pricing
+                // contribution derived from the reduced cost formula at
+                // the top of this file: minimizing wants 'profit +=
+                // cut_dual' (i.e. 'penalty = -cut_dual'); maximizing wants
+                // 'profit -= cut_dual * multiplier_profit' (i.e. 'penalty
+                // = cut_dual * multiplier_profit', scaled the same way the
+                // item duals just above are).
+                // The penalty can only ever trigger once 2 of the 3 item
+                // types are simultaneously present in a generated column
+                // (see 'coefficient' above), so if this bin type's pricing
+                // sub-instance excludes 2 or more of them already (e.g.
+                // because their remaining demand is 0 this round - see the
+                // 'copies <= 0' skip above), no column from it could ever
+                // reach that count and the resource would be a dead weight
+                // in the tree search state for no benefit.
+                std::vector<ItemTypeId> present_kp_item_type_ids;
+                for (ItemTypeId item_type_id: extra.item_type_ids) {
+                    if (item_type_id < 0 || item_type_id >= (ItemTypeId)vbpp2kp.size())
+                        continue;
+                    ItemTypeId kp_item_type_id = vbpp2kp[item_type_id];
+                    if (kp_item_type_id == -1)
+                        continue;
+                    present_kp_item_type_ids.push_back(kp_item_type_id);
+                }
+                if (present_kp_item_type_ids.size() < 2)
+                    continue;
+
+                double penalty = (instance_.objective() == Objective::Knapsack)?
+                    cut_dual.second * multiplier_profit:
+                    -cut_dual.second;
+                ResourceId resource_id = kp_instance_builder.add_bin_type_resource(
+                        kp_bin_type_id,
+                        /* capacity */ 1.0,
+                        /* penalize */ true,
+                        /* penalty */ penalty);
+                for (ItemTypeId kp_item_type_id: present_kp_item_type_ids) {
+                    kp_instance_builder.add_resource_consumption(
+                            kp_bin_type_id,
+                            resource_id,
+                            kp_item_type_id,
+                            0,
+                            1.0);
+                }
+            }
+        }
+
         Instance kp_instance = kp_instance_builder.build();
 
         // Solve knapsack instance.
@@ -498,6 +661,317 @@ BinPos ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output
     return cached_maximum_number_of_bins_;
 }
 
+template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
+std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::separate_cuts(
+        const columngenerationsolver::Solution& solution)
+{
+    // A cut per separation round is plenty to make progress without
+    // overwhelming the master LP; a co-packing candidate triple that is
+    // still violated next round will simply be found again.
+    const CutIdx maximum_number_of_cuts = 1;
+    // Safety cap on the total number of candidate triples considered, in
+    // case some column happens to cover an unusually large number of item
+    // types.
+    const ItemPos maximum_number_of_candidate_triples = 10000;
+
+    // Extract, for each non-negligible column, the sorted list of item
+    // type ids it covers (rows past the bin type rows with coefficient >
+    // 0.5 - see 'get_model' for the row layout), restricted to item types
+    // with exactly 1 copy in the instance.
+    //
+    // The cut sum_{p: >=2 of the triplet present} xi_p <= 1 is only a valid
+    // inequality when each of the triplet's 3 items has demand exactly 1:
+    // that is what makes the underlying Chvatal-Gomory rounding argument
+    // (summing the 3 row equalities with multiplier 1/2 each) produce
+    // floor(3/2) = 1 on the right-hand side and match "item type present"
+    // to the rounded left-hand-side coefficient. With copies > 1, a single
+    // column's master variable is not bounded by 1 (a pattern can
+    // legitimately be selected many times), so restricting it to <= 1
+    // whenever it happens to cover 2 of the triplet's *types* - regardless
+    // of copy count - can cut off the true optimum. Excluding item types
+    // with copies > 1 from candidate triples entirely keeps every
+    // generated cut within the regime the derivation actually covers.
+    struct ColumnItems
+    {
+        Value value;
+        std::vector<ItemTypeId> item_type_ids;
+    };
+    std::vector<ColumnItems> column_items;
+    for (const auto& p: solution.columns()) {
+        if (p.second < 1e-6)
+            continue;
+        ColumnItems entry;
+        entry.value = p.second;
+        for (const columngenerationsolver::LinearTerm& element: p.first->elements) {
+            if (element.row < instance_.number_of_bin_types())
+                continue;
+            if (element.coefficient <= 0.5)
+                continue;
+            ItemTypeId item_type_id = element.row - instance_.number_of_bin_types();
+            if (instance_.item_type(item_type_id).copies != 1)
+                continue;
+            entry.item_type_ids.push_back(item_type_id);
+        }
+        std::sort(entry.item_type_ids.begin(), entry.item_type_ids.end());
+        column_items.push_back(std::move(entry));
+    }
+
+    // Drop item types present in fewer than 2 (non-negligible) columns.
+    // Split a candidate triple's violation into: 'A', the mass of columns
+    // containing both of the other two item types (independent of this
+    // one), and 'B', the mass of columns containing this item type and
+    // exactly one of the other two. An item type present in only one
+    // column can contribute at most that column's value to 'B', so it can
+    // never beat a third item type reachable via a richer pair as the
+    // "extra" beyond 'A' - and using it as a seed pair member instead is
+    // only ever needed when its one column has exactly two items (the only
+    // way to reach that specific pair), a low-value case not worth
+    // special-casing.
+    {
+        std::vector<int> number_of_columns(instance_.number_of_item_types(), 0);
+        for (const ColumnItems& entry: column_items) {
+            for (ItemTypeId item_type_id: entry.item_type_ids)
+                number_of_columns[item_type_id]++;
+        }
+        for (ColumnItems& entry: column_items) {
+            entry.item_type_ids.erase(
+                    std::remove_if(
+                            entry.item_type_ids.begin(),
+                            entry.item_type_ids.end(),
+                            [&number_of_columns](ItemTypeId item_type_id)
+                            {
+                                return number_of_columns[item_type_id] < 2;
+                            }),
+                    entry.item_type_ids.end());
+        }
+    }
+
+    // Build, in a single pass:
+    // - a co-occurrence graph (item_type_id -> set of item type ids that
+    //   appear together with it in at least one non-negligible column),
+    //   used below to generate candidate triples;
+    // - for each pair of item types that co-occurs in some column,
+    //   'pair_weight' (the total value of columns containing both) and
+    //   'pair_columns' (the sorted list of indices - into 'column_items' -
+    //   of those columns), used further down to compute each candidate
+    //   triple's violation without rescanning every column.
+    std::vector<std::vector<ItemTypeId>> neighbors(instance_.number_of_item_types());
+    using ItemTypeIdPair = std::pair<ItemTypeId, ItemTypeId>;
+    struct ItemTypeIdPairHasher
+    {
+        std::size_t operator()(const ItemTypeIdPair& pair) const
+        {
+            std::size_t hash = 0;
+            optimizationtools::hash_combine(hash, std::hash<ItemTypeId>{}(pair.first));
+            optimizationtools::hash_combine(hash, std::hash<ItemTypeId>{}(pair.second));
+            return hash;
+        }
+    };
+    std::unordered_map<ItemTypeIdPair, Value, ItemTypeIdPairHasher> pair_weight;
+    std::unordered_map<ItemTypeIdPair, std::vector<ItemPos>, ItemTypeIdPairHasher> pair_columns;
+    for (ItemPos column_pos = 0; column_pos < (ItemPos)column_items.size(); ++column_pos) {
+        const ColumnItems& entry = column_items[column_pos];
+        for (ItemPos pos_1 = 0; pos_1 < (ItemPos)entry.item_type_ids.size(); ++pos_1) {
+            for (ItemPos pos_2 = pos_1 + 1; pos_2 < (ItemPos)entry.item_type_ids.size(); ++pos_2) {
+                ItemTypeId item_type_id_1 = entry.item_type_ids[pos_1];
+                ItemTypeId item_type_id_2 = entry.item_type_ids[pos_2];
+                neighbors[item_type_id_1].push_back(item_type_id_2);
+                neighbors[item_type_id_2].push_back(item_type_id_1);
+                // 'item_type_ids' is sorted, so item_type_id_1 < item_type_id_2.
+                ItemTypeIdPair pair(item_type_id_1, item_type_id_2);
+                pair_weight[pair] += entry.value;
+                pair_columns[pair].push_back(column_pos);
+            }
+        }
+    }
+    for (std::vector<ItemTypeId>& item_neighbors: neighbors) {
+        std::sort(item_neighbors.begin(), item_neighbors.end());
+        item_neighbors.erase(
+                std::unique(item_neighbors.begin(), item_neighbors.end()),
+                item_neighbors.end());
+    }
+
+    // Generate candidate triples: for every pair (item_type_id_1,
+    // item_type_id_2) directly co-occurring in some column, extend it with
+    // every third item type that co-occurs with either one in *some*
+    // (possibly different) column. A triple's violation only needs a
+    // column to cover 2 of its 3 item types, not all 3, so this also
+    // catches triples whose pairwise evidence is split across different
+    // columns (e.g. item_type_id_1/item_type_id_2 co-packed in one column,
+    // item_type_id_1/item_type_id_3 in another) - which enumerating only
+    // full triples already present within a single column would miss.
+    std::set<std::array<ItemTypeId, 3>> candidate_triples;
+    bool candidates_capped = false;
+    auto add_candidate = [&](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2, ItemTypeId item_type_id_3)
+    {
+        if (item_type_id_3 == item_type_id_1 || item_type_id_3 == item_type_id_2)
+            return;
+        std::array<ItemTypeId, 3> triple = {item_type_id_1, item_type_id_2, item_type_id_3};
+        std::sort(triple.begin(), triple.end());
+        candidate_triples.insert(triple);
+        if ((ItemPos)candidate_triples.size() >= maximum_number_of_candidate_triples)
+            candidates_capped = true;
+    };
+    for (const ColumnItems& entry: column_items) {
+        if (candidates_capped)
+            break;
+        for (ItemPos pos_1 = 0;
+                pos_1 < (ItemPos)entry.item_type_ids.size() && !candidates_capped;
+                ++pos_1) {
+            for (ItemPos pos_2 = pos_1 + 1;
+                    pos_2 < (ItemPos)entry.item_type_ids.size() && !candidates_capped;
+                    ++pos_2) {
+                ItemTypeId item_type_id_1 = entry.item_type_ids[pos_1];
+                ItemTypeId item_type_id_2 = entry.item_type_ids[pos_2];
+                for (ItemTypeId item_type_id_3: neighbors[item_type_id_1]) {
+                    add_candidate(item_type_id_1, item_type_id_2, item_type_id_3);
+                    if (candidates_capped)
+                        break;
+                }
+                for (ItemTypeId item_type_id_3: neighbors[item_type_id_2]) {
+                    if (candidates_capped)
+                        break;
+                    add_candidate(item_type_id_1, item_type_id_2, item_type_id_3);
+                }
+            }
+        }
+    }
+
+    // Compute the violation of each candidate triple {a, b, c} (a < b < c)
+    // as pair_weight(a,b) + pair_weight(a,c) + pair_weight(b,c) - 2 *
+    // triple_weight(a,b,c), where triple_weight is the total value of
+    // columns containing all 3 (obtained via a 3-way merge of the -
+    // already sorted - 'pair_columns' index lists, rather than rescanning
+    // every column). This is exactly the inclusion-exclusion count of
+    // "columns containing >= 2 of the 3": a column with exactly 2 present
+    // is counted once (by the one relevant pair_weight term), a column
+    // with all 3 present is counted 3 times by the pair terms and then
+    // corrected back down to 1 by the subtraction. The triple's cut (sum
+    // <= 1) is violated iff that exceeds 1.
+    //
+    // No need to skip triples already covered by an active cut: 'solution'
+    // is the master LP's current (feasible) relaxation, which already
+    // enforces every active cut's row to within its feasibility tolerance,
+    // and this violation is exactly that row's value minus its upper bound
+    // (same 'coefficient' definition, same columns) - so an already-active
+    // triple's violation comes out <= 0 here on its own. Re-adding it would
+    // only ever produce a redundant row, and 'columngenerationsolver'
+    // already relies on 'PricingSolver::equal' (not on 'separate_cuts'
+    // never repeating itself) to recognize a cut it previously removed for
+    // being inactive.
+    auto pair_weight_of = [&pair_weight](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2) -> Value
+    {
+        auto it = pair_weight.find({item_type_id_1, item_type_id_2});
+        return (it == pair_weight.end())? 0.0: it->second;
+    };
+    static const std::vector<ItemPos> empty_columns;
+    auto pair_columns_of = [&pair_columns](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2) -> const std::vector<ItemPos>&
+    {
+        auto it = pair_columns.find({item_type_id_1, item_type_id_2});
+        return (it == pair_columns.end())? empty_columns: it->second;
+    };
+
+    struct ViolatedTriple
+    {
+        std::array<ItemTypeId, 3> item_type_ids;
+        Value violation;
+    };
+    std::vector<ViolatedTriple> violated_triples;
+    for (const std::array<ItemTypeId, 3>& triple: candidate_triples) {
+        ItemTypeId item_type_id_a = triple[0];
+        ItemTypeId item_type_id_b = triple[1];
+        ItemTypeId item_type_id_c = triple[2];
+
+        // 3-way merge intersection of the pair column-index lists to
+        // compute triple_weight (the columns containing all 3).
+        const std::vector<ItemPos>& columns_ab = pair_columns_of(item_type_id_a, item_type_id_b);
+        const std::vector<ItemPos>& columns_ac = pair_columns_of(item_type_id_a, item_type_id_c);
+        const std::vector<ItemPos>& columns_bc = pair_columns_of(item_type_id_b, item_type_id_c);
+        Value triple_weight = 0.0;
+        ItemPos pos_ab = 0;
+        ItemPos pos_ac = 0;
+        ItemPos pos_bc = 0;
+        while (pos_ab < (ItemPos)columns_ab.size()
+                && pos_ac < (ItemPos)columns_ac.size()
+                && pos_bc < (ItemPos)columns_bc.size()) {
+            ItemPos column_ab = columns_ab[pos_ab];
+            ItemPos column_ac = columns_ac[pos_ac];
+            ItemPos column_bc = columns_bc[pos_bc];
+            if (column_ab == column_ac && column_ac == column_bc) {
+                triple_weight += column_items[column_ab].value;
+                ++pos_ab;
+                ++pos_ac;
+                ++pos_bc;
+            } else {
+                ItemPos column_max = (std::max)({column_ab, column_ac, column_bc});
+                if (column_ab < column_max)
+                    ++pos_ab;
+                if (column_ac < column_max)
+                    ++pos_ac;
+                if (column_bc < column_max)
+                    ++pos_bc;
+            }
+        }
+
+        Value violation
+            = pair_weight_of(item_type_id_a, item_type_id_b)
+            + pair_weight_of(item_type_id_a, item_type_id_c)
+            + pair_weight_of(item_type_id_b, item_type_id_c)
+            - 2.0 * triple_weight
+            - 1.0;
+        if (violation > 1e-6)
+            violated_triples.push_back({triple, violation});
+    }
+
+    std::sort(
+            violated_triples.begin(),
+            violated_triples.end(),
+            [](const ViolatedTriple& violated_triple_1, const ViolatedTriple& violated_triple_2)
+            {
+                return violated_triple_1.violation > violated_triple_2.violation;
+            });
+
+    std::vector<std::shared_ptr<const Cut>> new_cuts;
+    for (const ViolatedTriple& violated_triple: violated_triples) {
+        if ((CutIdx)new_cuts.size() >= maximum_number_of_cuts)
+            break;
+        new_cuts.push_back(build_subset_row_cut(
+                violated_triple.item_type_ids[0],
+                violated_triple.item_type_ids[1],
+                violated_triple.item_type_ids[2]));
+    }
+    return new_cuts;
+}
+
+template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
+Value ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::coefficient(
+        const Cut& cut,
+        const Column& column) const
+{
+    // Only ever builds subset-row cuts - see 'build_subset_row_cut' above.
+    const SubsetRowCutExtra& extra = *std::static_pointer_cast<SubsetRowCutExtra>(cut.extra);
+    const Solution& extra_solution = *std::static_pointer_cast<Solution>(column.extra);
+    int number_of_items_present = 0;
+    for (ItemTypeId item_type_id: extra.item_type_ids) {
+        if (extra_solution.item_copies(item_type_id) > 0)
+            number_of_items_present++;
+    }
+    return (number_of_items_present >= 2)? 1.0: 0.0;
+}
+
+template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
+bool ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::equal(
+        const Cut& cut_1,
+        const Cut& cut_2) const
+{
+    // Both cuts are always subset-row cuts - see 'build_subset_row_cut'
+    // above - and 'item_type_ids' is always kept sorted, so a plain array
+    // comparison recognizes two cuts built over the same triple.
+    const SubsetRowCutExtra& extra_1 = *std::static_pointer_cast<SubsetRowCutExtra>(cut_1.extra);
+    const SubsetRowCutExtra& extra_2 = *std::static_pointer_cast<SubsetRowCutExtra>(cut_2.extra);
+    return extra_1.item_type_ids == extra_2.item_type_ids;
+}
+
 template <typename Instance, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
 struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
@@ -549,6 +1023,16 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
      * Not used for other objectives.
      */
     bool use_sequential_feasibility = true;
+
+    /**
+     * Enable subset-row cutting planes (see 'SubsetRowCutExtra' and
+     * 'ColumnGenerationPricingSolver::separate_cuts'/'solve_pricing' above)
+     * at the root of the limited discrepancy search. Off by default: cuts
+     * only tighten the bound if the pricing solver also enforces them
+     * during search, otherwise they only add master LP overhead for
+     * comparatively little benefit.
+     */
+    bool use_cutting_planes = false;
 };
 
 /**
@@ -715,7 +1199,7 @@ Output column_generation(
     columngenerationsolver::Model cgs_model
         = get_model<Instance, InstanceBuilder, Solution, Output>(instance, output, pricing_function);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
-    cgslds_parameters.verbosity_level = 0;
+    cgslds_parameters.verbosity_level = 1;
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = parameters.internal_diving;
@@ -781,6 +1265,10 @@ Output column_generation(
     };
     cgslds_parameters.column_generation_parameters.solver_name
         = parameters.linear_programming_solver_name;
+    // '1': enabled at the root node only (see 'ColumnGenerationParameters::
+    // use_cutting_planes' above).
+    cgslds_parameters.cutting_planes
+        = (parameters.use_cutting_planes)? 1: 0;
     if (column_pool != nullptr)
         cgslds_parameters.column_pool = *column_pool;
     columngenerationsolver::LimitedDiscrepancySearchOutput cgslds_search_output
