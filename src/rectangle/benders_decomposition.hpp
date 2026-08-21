@@ -27,8 +27,14 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
     /** Optimization mode. */
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
 
-    /** Maximum number of iterations. */
-    Counter maximum_number_of_iterations = -1;
+    /**
+     * Maximum number of iterations, in non-'Anytime' optimization modes
+     * only (-1: unlimited). 'Anytime' mode instead relies on the timer (or
+     * full convergence, i.e. every bin of the master's candidate found
+     * geometrically feasible) to stop, since it is expected to keep
+     * improving for as long as it is given to run.
+     */
+    Counter not_anytime_maximum_number_of_iterations = 10;
 
     /** Size of the queue for the knapsack subproblem. */
     NodeId subproblem_queue_size = 512;
