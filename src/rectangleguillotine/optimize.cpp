@@ -756,6 +756,25 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
                     && instance.parameters().minimum_waste_length == 0
                     && instance.parameters().maximum_number_1_cuts == -1
                     && instance.parameters().maximum_number_2_cuts == -1
+                    // 'column_generation_strips''s pricing solver
+                    // (ColumnGenerationPricingSolver::solve_pricing) falls
+                    // back to 'generate_lower_stage_patterns' whenever
+                    // rotation is allowed (!all_item_types_oriented())
+                    // for these exact (number_of_stages, cut_type)
+                    // combinations. That fallback issues a full recursive
+                    // 'column_generation_strips' call - its own
+                    // from-scratch limited discrepancy search - per
+                    // candidate first-level strip width, at every node
+                    // where the cheap pattern generators
+                    // (generate_1e/1n/1ro/2ho_patterns) found no improving
+                    // column, and dominates run time (see issue #522) -
+                    // don't default into it.
+                    && !(instance.parameters().number_of_stages == 3
+                            && instance.parameters().cut_type == CutType::Homogenous
+                            && !instance.all_item_types_oriented())
+                    && !(instance.parameters().number_of_stages == 2
+                            && instance.parameters().cut_type == CutType::Roadef2018
+                            && !instance.all_item_types_oriented())
                     ) {
                 use_column_generation_strips = true;
             } else {
