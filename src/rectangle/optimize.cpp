@@ -583,8 +583,10 @@ void optimize_benders_decomposition(
     bd_parameters.timer = parameters.timer;
     bd_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     bd_parameters.optimization_mode = parameters.optimization_mode;
-    if (parameters.optimization_mode != OptimizationMode::Anytime)
-        bd_parameters.maximum_number_of_iterations = parameters.not_anytime_benders_decomposition_number_of_iterations;
+    // Only applied by 'benders_decomposition' itself in non-'Anytime' modes
+    // (see 'BendersDecompositionParameters::not_anytime_maximum_number_of_iterations'),
+    // so it is harmless to always set it here.
+    bd_parameters.not_anytime_maximum_number_of_iterations = parameters.not_anytime_benders_decomposition_number_of_iterations;
     bd_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const rectangle::Output& ps_output)
     {
