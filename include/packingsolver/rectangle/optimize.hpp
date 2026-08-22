@@ -206,6 +206,17 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Use Benders decomposition algorithm. */
     bool use_benders_decomposition = false;
 
+    /**
+     * Use the contiguity-master Benders decomposition algorithm (see
+     * 'benders_decomposition_contiguity.hpp'). Only supported for the
+     * 'Knapsack' and 'Feasibility' objectives, on an instance with a single
+     * bin type used exactly once; never enabled automatically - but, like the
+     * other 'use_*' flags here, setting it does suppress the automatic
+     * fallback to 'tree_search'/'bar_relaxation' that would otherwise apply
+     * when no algorithm has been explicitly requested.
+     */
+    bool use_benders_decomposition_contiguity = false;
+
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 
@@ -275,6 +286,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 
     /** Number of iterations of the Benders decomposition algorithm. */
     Counter not_anytime_benders_decomposition_number_of_iterations = 32;
+
+    /** Number of iterations of the contiguity-master Benders decomposition algorithm. */
+    Counter not_anytime_benders_decomposition_contiguity_number_of_iterations = 32;
 
     /**
      * Size of the queue in the tree search algorithm for the bin packing subproblem of

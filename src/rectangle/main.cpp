@@ -103,6 +103,7 @@ int main(int argc, char *argv[])
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
             ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
             ("use-benders-decomposition,", po::value<bool>(), "enable Benders decomposition algorithm")
+            ("use-benders-decomposition-contiguity,", po::value<bool>(), "enable contiguity-master Benders decomposition algorithm")
             ("sequential-value-correction-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
             ("sequential-value-correction-subproblem-tree-search-maximal-spaces-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem maximal spaces queue size")
             ("column-generation-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set column generation subproblem queue size")
@@ -233,6 +234,8 @@ int main(int argc, char *argv[])
             parameters.use_dichotomic_search = vm["use-dichotomic-search"].as<bool>();
         if (vm.count("use-benders-decomposition"))
             parameters.use_benders_decomposition = vm["use-benders-decomposition"].as<bool>();
+        if (vm.count("use-benders-decomposition-contiguity"))
+            parameters.use_benders_decomposition_contiguity = vm["use-benders-decomposition-contiguity"].as<bool>();
 
         if (vm.count("sequential-value-correction-subproblem-tree-search-queue-size"))
             parameters.sequential_value_correction_subproblem_tree_search_queue_size = vm["sequential-value-correction-subproblem-tree-search-queue-size"].as<NodeId>();
