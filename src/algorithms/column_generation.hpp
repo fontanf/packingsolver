@@ -1032,7 +1032,7 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
      * during search, otherwise they only add master LP overhead for
      * comparatively little benefit.
      */
-    bool use_cutting_planes = false;
+    int use_cutting_planes = 0;
 };
 
 /**
@@ -1157,6 +1157,7 @@ Output column_generation(
             sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
             sub_parameters.optimization_mode = parameters.optimization_mode;
             sub_parameters.internal_diving = parameters.internal_diving;
+            sub_parameters.use_cutting_planes = parameters.use_cutting_planes;
             sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             Output sub_output = column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, Output>(
                     sub_instance, pricing_function, sub_parameters, 0, &sequential_feasibility_column_pool);
@@ -1267,8 +1268,7 @@ Output column_generation(
         = parameters.linear_programming_solver_name;
     // '1': enabled at the root node only (see 'ColumnGenerationParameters::
     // use_cutting_planes' above).
-    cgslds_parameters.cutting_planes
-        = (parameters.use_cutting_planes)? 1: 0;
+    cgslds_parameters.cutting_planes = parameters.use_cutting_planes;
     if (column_pool != nullptr)
         cgslds_parameters.column_pool = *column_pool;
     columngenerationsolver::LimitedDiscrepancySearchOutput cgslds_search_output
