@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <map>
 #include <sstream>
 
@@ -96,7 +97,17 @@ TEST(RectangleReduction, TallItemWithNarrowCompanionsExactFit)
     // Bin 10x10. Item 0 (4x8) is tall (8 > 10/2) but not wide (4 <= 5):
     // its companion strip is (4, 2). Items 1 (1x2) and 2 (3x2) - neither
     // wide nor tall themselves - exactly tile that strip side by side
-    // (1 + 3 = 4).
+    // (1 + 3 = 4). Item 0 is validated-tall-enlarged to (4, 10), consuming
+    // both companions - at which point it is the *only* item type left in
+    // the working representation, so 'compute_shrunk_bin_sizes' (now
+    // recomputed every round from the then-current, still-remaining item
+    // set - see the constructor's own comment) finds nothing left that
+    // could ever share a bin with it: the recomputed shrunk bin exactly
+    // equals item 0's own (4, 10), so 'reduce_full_bin_items' claims it
+    // as a dedicated bin instead of leaving it as an ordinary item type in
+    // the reduced instance - an equivalent, more aggressive encoding of
+    // the exact same physical solution (one bin holding item 0 and its
+    // two companions), not a different one.
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPacking);
     BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10);
@@ -110,13 +121,10 @@ TEST(RectangleReduction, TallItemWithNarrowCompanionsExactFit)
     Instance instance = instance_builder.build();
 
     Reduction reduction(instance);
-    ASSERT_EQ(reduction.instance().number_of_item_types(), 1);
-    EXPECT_EQ(reduction.instance().item_type(0).rect.x, 4);
-    EXPECT_EQ(reduction.instance().item_type(0).rect.y, 10);
+    ASSERT_EQ(reduction.instance().number_of_item_types(), 0);
+    EXPECT_EQ(reduction.number_of_dedicated_bins(), 1);
 
     SolutionBuilder reduced_solution_builder(reduction.instance());
-    BinPos bin_pos = reduced_solution_builder.add_bin(0, 1);
-    reduced_solution_builder.add_item(bin_pos, 0, Point{0, 0}, false);
     Solution reduced_solution = reduced_solution_builder.build();
 
     Solution solution = reduction.unreduce_solution(reduced_solution);
@@ -370,10 +378,17 @@ TEST(RectangleReduction, PerfectPairLimitedByFiniteBinCopies)
     // Bin 10x10 with only 1 copy available (Feasibility objective). Items 0
     // and 1 (5x10 each, 2 copies each) would tile the bin exactly, twice
     // over (needing 2 dedicated bins), but only 1 bin copy exists in total:
-    // the reduction must not reserve more dedicated bins than the bin type
-    // actually has copies for, leaving both item types for the underlying
-    // solver instead (which, with only 1 bin available for 2 copies of
-    // each item, correctly proves the instance infeasible).
+    // 'reduce_perfect_pairs' must not reserve more dedicated bins than the
+    // bin type actually has copies for, leaving both item types present
+    // (which, with only 1 bin available for 2 copies of each item, lets
+    // the underlying solver correctly prove the instance infeasible).
+    //
+    // Items 0 and 1 are also literally identical (same size, oriented, no
+    // resources), so once 'reduce_perfect_pairs' leaves both untouched,
+    // 'merge_identical_items' consolidates them into a single item type
+    // with 4 copies - a second, independent reduction exercised by this
+    // same instance, not a contradiction of the "must not over-reserve"
+    // point above.
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::Feasibility);
     BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10);
@@ -386,7 +401,8 @@ TEST(RectangleReduction, PerfectPairLimitedByFiniteBinCopies)
 
     Reduction reduction(instance);
     EXPECT_EQ(reduction.number_of_dedicated_bins(), 0);
-    EXPECT_EQ(reduction.instance().number_of_item_types(), 2);
+    ASSERT_EQ(reduction.instance().number_of_item_types(), 1);
+    EXPECT_EQ(reduction.instance().item_type(0).copies, 4);
     EXPECT_EQ(reduction.instance().bin_type(0).copies, 1);
 }
 
@@ -732,8 +748,19 @@ TEST(RectangleReduction, TallCompanionlessEnlargementIndependentOfBlockedWideStr
     // strip's own, otherwise-conclusive, empty-margin proof - item 0 must
     // still get tall-companionless-enlarged to (6x10) independently of
     // the wide strip's outcome, at which point it exactly matches item 1
-    // (4x10) as a 'PerfectPair' (6+4=10), leaving item 2 untouched in the
-    // reduced instance.
+    // (4x10) as a 'PerfectPair' (6+4=10), leaving item 2 alone in the
+    // working representation afterwards. At that point item 2 is the
+    // *only* item type left, so the next round's recomputed
+    // 'compute_shrunk_bin_sizes' (now recomputed every round from the
+    // then-current, still-remaining item set - see the constructor's own
+    // comment) finds nothing left that could ever share a bin with it:
+    // the recomputed shrunk bin exactly equals item 2's own (4, 2), so
+    // 'reduce_full_bin_items' claims it as a second dedicated bin too,
+    // instead of leaving it as an ordinary item type in the (now empty)
+    // reduced instance - an equivalent, more aggressive encoding of the
+    // exact same physical solution (item 2 was always going to end up
+    // alone in its own second bin regardless, since the perfect pair's
+    // own dedicated bin already has no room left for it).
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPacking);
     BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10);
@@ -747,14 +774,10 @@ TEST(RectangleReduction, TallCompanionlessEnlargementIndependentOfBlockedWideStr
     Instance instance = instance_builder.build();
 
     Reduction reduction(instance);
-    ASSERT_EQ(reduction.instance().number_of_item_types(), 1);
-    EXPECT_EQ(reduction.instance().item_type(0).rect.x, 4);
-    EXPECT_EQ(reduction.instance().item_type(0).rect.y, 2);
-    EXPECT_EQ(reduction.number_of_dedicated_bins(), 1);
+    ASSERT_EQ(reduction.instance().number_of_item_types(), 0);
+    EXPECT_EQ(reduction.number_of_dedicated_bins(), 2);
 
     SolutionBuilder reduced_solution_builder(reduction.instance());
-    BinPos bin_pos = reduced_solution_builder.add_bin(0, 1);
-    reduced_solution_builder.add_item(bin_pos, 0, Point{0, 0}, false);
     Solution reduced_solution = reduced_solution_builder.build();
 
     Solution solution = reduction.unreduce_solution(reduced_solution);
@@ -908,7 +931,19 @@ TEST(RectangleReduction, ShrunkBinViaMultipleCopiesOfSameItem)
     // - the target height (9) is unreachable from any smaller number of
     // copies. Item 0 gets validated-tall-enlarged to 5x9 with all three
     // copies of item 1 as its real companions, rather than to the bin's
-    // true height (10).
+    // true height (10). At that point item 0 is the *only* item type left
+    // in the working representation, so the next round's recomputed
+    // 'compute_shrunk_bin_sizes' (now recomputed every round from the
+    // then-current, still-remaining item set - see the constructor's own
+    // comment) finds nothing left that could ever share a bin with it:
+    // the recomputed shrunk width collapses to item 0's own width (5, its
+    // only remaining candidate on that axis, well short of the bin's true
+    // 20), which together with the unchanged shrunk height (9) exactly
+    // equals item 0's own (5, 9) - so 'reduce_full_bin_items' claims it as
+    // a dedicated bin instead of leaving it as an ordinary item type in
+    // the reduced instance, an equivalent, more aggressive encoding of
+    // the exact same physical solution (one bin holding item 0 and its
+    // three companions).
     InstanceBuilder instance_builder;
     instance_builder.set_objective(Objective::BinPacking);
     BinTypeId bin_type_id = instance_builder.add_bin_type(20, 10);
@@ -920,14 +955,10 @@ TEST(RectangleReduction, ShrunkBinViaMultipleCopiesOfSameItem)
     Instance instance = instance_builder.build();
 
     Reduction reduction(instance);
-    ASSERT_EQ(reduction.instance().number_of_item_types(), 1);
-    EXPECT_EQ(reduction.instance().item_type(0).rect.x, 5);
-    EXPECT_EQ(reduction.instance().item_type(0).rect.y, 9);
-    EXPECT_EQ(reduction.number_of_dedicated_bins(), 0);
+    ASSERT_EQ(reduction.instance().number_of_item_types(), 0);
+    EXPECT_EQ(reduction.number_of_dedicated_bins(), 1);
 
     SolutionBuilder reduced_solution_builder(reduction.instance());
-    BinPos bin_pos = reduced_solution_builder.add_bin(0, 1);
-    reduced_solution_builder.add_item(bin_pos, 0, Point{0, 0}, false);
     Solution reduced_solution = reduced_solution_builder.build();
 
     Solution solution = reduction.unreduce_solution(reduced_solution);
@@ -1081,4 +1112,218 @@ TEST(RectangleReduction, ReductionStillAppliesWithFiniteWeightButZeroItemWeights
     Reduction reduction(instance);
     EXPECT_EQ(reduction.instance().number_of_item_types(), 0);
     EXPECT_EQ(reduction.number_of_dedicated_bins(), 2);
+}
+
+TEST(RectangleReduction, MergeIdenticalItems)
+{
+    // Bin 100x100 (much larger than either item, so no wide/tall/both/
+    // full-bin/perfect-pair reduction ever triggers - this exercises
+    // 'merge_identical_items' in isolation). Two item types, both 4x4,
+    // oriented, no profit/weight/group/eligibility/resources set (so
+    // identical on every property 'items_mergeable' checks): they merge
+    // into a single item type with the combined copies.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPacking);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
+    instance_builder.set_bin_type_copies(bin_type_id, -1);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(0, 3);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(1, 2);
+    Instance instance = instance_builder.build();
+
+    Reduction reduction(instance);
+    ASSERT_EQ(reduction.instance().number_of_item_types(), 1);
+    EXPECT_EQ(reduction.instance().item_type(0).rect.x, 4);
+    EXPECT_EQ(reduction.instance().item_type(0).rect.y, 4);
+    EXPECT_EQ(reduction.instance().item_type(0).copies, 5);
+}
+
+TEST(RectangleReduction, MergeIdenticalItemsDifferentProfitStillMerges)
+{
+    // Same as 'MergeIdenticalItems', but the two item types have different
+    // profit - not compared by 'items_mergeable' for this ('BinPacking')
+    // objective (see its own doc comment: profit is never the actual
+    // objective here, and 'unreduce_solution' always restores each placed
+    // copy's own true original profit regardless of merging - unlike for
+    // 'Knapsack', see 'MergeIdenticalItemsKnapsackRequiresMatchingProfit'),
+    // so these two still merge. This is exactly what happens in practice
+    // on real instances: companion absorption enlarges a "wide"/"tall"
+    // item's 'rect' without touching its profit, so two originally
+    // different-sized (and so different-profit) item types can end up with
+    // the same footprint after enlargement, and should still merge.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPacking);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
+    instance_builder.set_bin_type_copies(bin_type_id, -1);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(0, 3);
+    instance_builder.set_item_type_profit(0, 5);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(1, 2);
+    instance_builder.set_item_type_profit(1, 10);
+    Instance instance = instance_builder.build();
+
+    Reduction reduction(instance);
+    ASSERT_EQ(reduction.instance().number_of_item_types(), 1);
+    EXPECT_EQ(reduction.instance().item_type(0).copies, 5);
+
+    // Confirm 'unreduce_solution' still restores each copy's own true
+    // original profit: build a reduced solution using all 5 copies, then
+    // check the unreduced solution's total profit is the original
+    // per-type total (3 * 5 + 2 * 10 = 35), not 5 times either single
+    // merged profit value (25 or 50).
+    SolutionBuilder reduced_solution_builder(reduction.instance());
+    BinPos bin_pos = reduced_solution_builder.add_bin(0, 1);
+    for (ItemPos copy = 0; copy < 5; ++copy)
+        reduced_solution_builder.add_item(bin_pos, 0, Point{4 * (Length)copy, 0}, false);
+    Solution reduced_solution = reduced_solution_builder.build();
+
+    Solution solution = reduction.unreduce_solution(reduced_solution);
+    EXPECT_TRUE(solution.full());
+    EXPECT_EQ(solution.profit(), 35);
+}
+
+TEST(RectangleReduction, MergeIdenticalItemsKnapsackRequiresMatchingProfit)
+{
+    // Bin 100x100 (large enough that no other reduction ever triggers - see
+    // 'MergeIdenticalItems''s own comment), 'Knapsack' objective. Item
+    // types 0 and 1 (both 4x4, oriented, same profit 5) are identical
+    // including profit and merge; item type 2 (also 4x4, oriented, but
+    // profit 10) is identical on every *other* property but must stay
+    // separate: unlike every other objective this class handles (see
+    // 'MergeIdenticalItemsDifferentProfitStillMerges'), 'Knapsack'
+    // optimizes profit directly over a solve that may legitimately leave
+    // copies unplaced, so merging different-profit item types would report
+    // one uniform profit for every copy and let the solve choose a
+    // suboptimal subset on wrong information.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Knapsack);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
+    instance_builder.set_bin_type_copies(bin_type_id, 1);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(0, 3);
+    instance_builder.set_item_type_profit(0, 5);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(1, 2);
+    instance_builder.set_item_type_profit(1, 5);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(2, 1);
+    instance_builder.set_item_type_profit(2, 10);
+    Instance instance = instance_builder.build();
+
+    Reduction reduction(instance);
+    ASSERT_EQ(reduction.instance().number_of_item_types(), 2);
+    // Whichever survivor absorbed the other has 5 copies (3+2); the one
+    // with the different profit stays alone with 1.
+    ItemPos copies_0 = reduction.instance().item_type(0).copies;
+    ItemPos copies_1 = reduction.instance().item_type(1).copies;
+    EXPECT_EQ(std::min(copies_0, copies_1), 1);
+    EXPECT_EQ(std::max(copies_0, copies_1), 5);
+}
+
+TEST(RectangleReduction, MergeIdenticalItemsWithDefects)
+{
+    // Bin 100x100 with a defect: 'companion_absorption_applies' is 'false'
+    // (defects break every companion-bin geometric check), but
+    // 'merge_identical_items' does not care about defects at all - it
+    // merges two identical, defect-independent item types regardless.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPacking);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
+    instance_builder.set_bin_type_copies(bin_type_id, -1);
+    instance_builder.add_defect(bin_type_id, 50, 50, 1, 1);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(0, 2);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(1, 2);
+    Instance instance = instance_builder.build();
+
+    Reduction reduction(instance);
+    ASSERT_EQ(reduction.instance().number_of_item_types(), 1);
+    EXPECT_EQ(reduction.instance().item_type(0).copies, 4);
+}
+
+TEST(RectangleReduction, MergeIdenticalItemsRespectsResources)
+{
+    // Bin 100x100 with one resource. Item types 0 and 1 (both 4x4,
+    // oriented) have the exact same per-copy consumption schedule and
+    // merge; item type 2 (also 4x4, oriented) has a different schedule and
+    // must stay separate - 'resources_matter()' makes
+    // 'companion_absorption_applies' 'false' here too, but
+    // 'merge_identical_items' still runs, now actually checking resource
+    // schedules for equality instead of being blocked outright.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPacking);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(100, 100);
+    instance_builder.set_bin_type_copies(bin_type_id, -1);
+    ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 1000);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(0, 1);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, 0, 0, 1);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(1, 1);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, 1, 0, 1);
+    instance_builder.add_item_type(4, 4, true);
+    instance_builder.set_item_type_copies(2, 1);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, 2, 0, 2);
+    Instance instance = instance_builder.build();
+
+    ASSERT_TRUE(instance.resources_matter());
+    Reduction reduction(instance);
+    ASSERT_EQ(reduction.instance().number_of_item_types(), 2);
+    // Whichever survivor absorbed the other has 2 copies; the one with the
+    // different schedule stays alone with 1.
+    ItemPos copies_0 = reduction.instance().item_type(0).copies;
+    ItemPos copies_1 = reduction.instance().item_type(1).copies;
+    EXPECT_EQ(std::min(copies_0, copies_1), 1);
+    EXPECT_EQ(std::max(copies_0, copies_1), 2);
+}
+
+TEST(RectangleReduction, MergeIdenticalItemsUnreduceSolutionRoundTrip)
+{
+    // Bin 20x20 (taller than the items, unlike the bin's true width -
+    // deliberately, so neither the wide/tall/both companion checks nor
+    // 'reduce_perfect_pairs' find anything: with only these two items in
+    // the whole instance, the "shrunk" bin - see 'compute_shrunk_bin_sizes'
+    // - would collapse to exactly 10x20 (the max achievable combination),
+    // at which point a 20x10 bin's two 5x10 items would look like a
+    // "perfect pair" reaching the shrunk width with each item's height
+    // already matching the shrunk height, consuming them into a dedicated
+    // bin before 'merge_identical_items' ever got a chance to run - not
+    // what this test means to exercise). Item types 0 and 1 (both 5x10,
+    // oriented, 1 copy each) are identical and merge into a single reduced
+    // item type with 2 copies. Placing both reduced copies side by side
+    // and unreducing must recover a valid solution using original item
+    // type ids 0 and 1, each exactly once, at the same positions.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPacking);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(20, 20);
+    instance_builder.set_bin_type_copies(bin_type_id, -1);
+    instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_copies(0, 1);
+    instance_builder.add_item_type(5, 10, true);
+    instance_builder.set_item_type_copies(1, 1);
+    Instance instance = instance_builder.build();
+
+    Reduction reduction(instance);
+    ASSERT_EQ(reduction.instance().number_of_item_types(), 1);
+    ASSERT_EQ(reduction.instance().item_type(0).copies, 2);
+
+    SolutionBuilder reduced_solution_builder(reduction.instance());
+    BinPos bin_pos = reduced_solution_builder.add_bin(0, 1);
+    reduced_solution_builder.add_item(bin_pos, 0, Point{0, 0}, false);
+    reduced_solution_builder.add_item(bin_pos, 0, Point{5, 0}, false);
+    Solution reduced_solution = reduced_solution_builder.build();
+
+    Solution solution = reduction.unreduce_solution(reduced_solution);
+    EXPECT_TRUE(solution.full());
+    ASSERT_EQ(solution.bin(0).items.size(), 2);
+    expect_geometrically_valid(solution);
+
+    std::vector<ItemTypeId> used_original_ids;
+    for (const SolutionItem& item: solution.bin(0).items)
+        used_original_ids.push_back(item.item_type_id);
+    std::sort(used_original_ids.begin(), used_original_ids.end());
+    EXPECT_EQ(used_original_ids, std::vector<ItemTypeId>({0, 1}));
 }

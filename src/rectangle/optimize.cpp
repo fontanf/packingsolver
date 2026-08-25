@@ -620,22 +620,17 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     // "Packing and removing some items" reduction (see 'Reduction'):
     // applied once, upfront, wrapping the whole dispatch logic below
     // uniformly for every algorithm (mirroring how e.g. setcoveringsolver's
-    // 'Reduction' wraps its own algorithms generically). Gated on
-    // 'Reduction::applies' directly, rather than constructing a
+    // 'Reduction' wraps its own algorithms generically). Gated directly on
+    // 'parameters.reduction_parameters.reduce', rather than constructing a
     // 'Reduction' unconditionally and letting its constructor no-op: when
-    // it would not apply anyway (wrong objective, multiple bin types,
-    // 'parameters.reduction_parameters.reduce' itself 'false', ...), this
-    // skips it entirely instead of paying for (and discarding) a full
-    // pass building its working representation - see 'applies''s own doc
-    // comment. 'reduced_parameters.reduction_parameters.reduce' is set to
-    // 'false' below to avoid re-running the reduction recursively on the
-    // already-reduced instance: 'applies' only checks instance-level
-    // characteristics (objective, single bin type, ...), which the
-    // reduced instance still satisfies just as well as the original one,
-    // so without this it would gate 'true' again there too - a pass that
-    // can only ever find nothing new (the reduction already ran to a
-    // fixpoint), just at the cost of a wasted full pass to confirm it.
-    if (Reduction::applies(instance, parameters.reduction_parameters)) {
+    // it is 'false', this skips the reduction entirely instead of paying
+    // for (and discarding) a full pass building its working
+    // representation. 'reduced_parameters.reduction_parameters.reduce' is
+    // set to 'false' below to avoid re-running the reduction recursively
+    // on the already-reduced instance - a pass that can only ever find
+    // nothing new (the reduction already ran to a fixpoint), just at the
+    // cost of a wasted full pass to confirm it.
+    if (parameters.reduction_parameters.reduce) {
         ReductionParameters reduction_parameters = parameters.reduction_parameters;
         reduction_parameters.timer = parameters.timer;
         Reduction reduction(instance, reduction_parameters);

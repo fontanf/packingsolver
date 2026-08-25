@@ -29,6 +29,48 @@ struct ReductionParameters: optimizationtools::Parameters
     /** Boolean indicating if the reduction should be performed. */
     bool reduce = true;
 
+    /**
+     * Enable/disable the wide/tall item enlargement sub-operation of
+     * companion absorption (gates 'Reduction::reduce_group', called for
+     * both 'EnlargementCase::Wide' and 'EnlargementCase::Tall' - see
+     * 'Reduction''s class-level doc comment). Still subject to
+     * 'Reduction::companion_absorption_applies' regardless of this flag.
+     */
+    bool enlarge_wide_tall_items = true;
+
+    /**
+     * Enable/disable the "both" item enlargement sub-operation of
+     * companion absorption (gates 'Reduction::reduce_both_groups'). Still
+     * subject to 'Reduction::companion_absorption_applies' regardless of
+     * this flag.
+     */
+    bool enlarge_both_items = true;
+
+    /**
+     * Enable/disable the full-bin-item dedicated-bin sub-operation of
+     * companion absorption (gates 'Reduction::reduce_full_bin_items').
+     * Still subject to 'Reduction::companion_absorption_applies'
+     * regardless of this flag.
+     */
+    bool reduce_full_bin_items = true;
+
+    /**
+     * Enable/disable the perfect-pair dedicated-bin sub-operation of
+     * companion absorption (gates 'Reduction::reduce_perfect_pairs').
+     * Still subject to 'Reduction::companion_absorption_applies'
+     * regardless of this flag.
+     */
+    bool reduce_perfect_pairs = true;
+
+    /**
+     * Enable/disable merging identical item types (gates
+     * 'Reduction::merge_identical_items'). Unlike the four flags above,
+     * not subject to 'Reduction::companion_absorption_applies' - see
+     * 'Reduction''s class-level doc comment for why this operation's
+     * soundness does not depend on the same preconditions.
+     */
+    bool merge_identical_items = true;
+
     /** Maximum number of rounds of the outer fixpoint loop. */
     Counter maximum_number_of_rounds = 999;
 
@@ -42,80 +84,95 @@ struct ReductionParameters: optimizationtools::Parameters
 /**
  * "Packing and removing some items" reduction (Côté, Haouari & Iori 2019,
  * "A Primal Decomposition Algorithm for the Two-dimensional Bin Packing
- * Problem", Section 4.2).
+ * Problem", Section 4.2), plus an identical-item-type merge (see
+ * 'merge_identical_items').
  *
- * Only meaningful for the 'BinPacking', 'VariableSizedBinPacking' and
- * 'Feasibility' objectives (every item must be packed there, which is what
- * makes the reduction sound - see below), and only for instances with a
- * single bin type (the paper's 2D-BPP has one bin size; classifying an item
- * as "wide"/"tall" depends on which bin's dimensions it is compared to, and
- * a reduction valid for one bin type isn't obviously valid for another).
+ * Only runs at all when 'parameters.reduce' is 'true' - unlike every
+ * previous version of this class, there is no shared objective/instance
+ * precondition beyond that: this class runs two largely independent
+ * operations, each gated by its own, narrower precondition (see
+ * 'companion_absorption_applies()' and 'merge_identical_items()'
+ * respectively), because their soundness rests on different arguments:
  *
- * Also skipped whenever the instance has defects, a finite bin weight
- * capacity together with non-trivial item weights, or a non-'None'
- * unloading constraint - every check this class performs (the companion-bin
- * 'Objective::Feasibility' solves, and the direct dimension-only matches in
- * 'reduce_full_bin_items'/'reduce_perfect_pairs') reasons purely about
- * geometry, which none of these three respect: a defect sitting where a
- * companion needs to go is invisible to a plain empty-rectangle check;
- * total bin weight and unloading order are *whole-bin* properties over
- * every item that ends up sharing a bin, but a validated-enlarged item's
- * real companions are invisibly removed from the reduced instance and only
- * reinserted by 'unreduce_solution' after the downstream solve has already
- * finished, so that solve can never verify either one still holds once it
- * additionally places other items - never part of the isolated companion
- * check - into that same bin.
+ * - Companion absorption (wide/tall/both, full-bin items, perfect pairs):
+ *   only for the 'BinPacking', 'VariableSizedBinPacking' and 'Feasibility'
+ *   objectives (every item must be packed there, which is what makes this
+ *   operation sound: it only preserves the number of bins used - and the
+ *   feasibility of the built solution - because nothing it removes could
+ *   ever legitimately be left unpacked, *not* true for 'Knapsack', where an
+ *   item may legitimately be left unpacked), only for instances with a
+ *   single bin type (the paper's 2D-BPP has one bin size; classifying an
+ *   item as "wide"/"tall" depends on which bin's dimensions it is compared
+ *   to, and a reduction valid for one bin type isn't obviously valid for
+ *   another), and skipped whenever the instance has defects, a finite bin
+ *   weight capacity together with non-trivial item weights, a non-'None'
+ *   unloading constraint, or resources - every check this part performs
+ *   (the companion-bin 'Objective::Feasibility' solves, and the direct
+ *   dimension-only matches in 'reduce_full_bin_items'/
+ *   'reduce_perfect_pairs') reasons purely about geometry, which none of
+ *   these four respect: a defect sitting where a companion needs to go is
+ *   invisible to a plain empty-rectangle check; bin weight, unloading
+ *   order, and resource capacity are all *whole-bin* properties over every
+ *   item that ends up sharing a bin, but a validated-enlarged item's real
+ *   companions are invisibly removed from the reduced instance and only
+ *   reinserted by 'unreduce_solution' after the downstream solve has
+ *   already finished, so that solve can never verify any of the three
+ *   still hold once it additionally places other items - never part of the
+ *   isolated companion check - into that same bin. See
+ *   'companion_absorption_applies()'.
  *
- * For every excluded case, this is a no-op: 'instance()' returns a copy of
- * the original instance, and 'unreduce_solution' is the identity function.
+ *   The idea: an item type whose width exceeds half the bin's width (a
+ *   "wide" item) can only ever share its row of the bin with items narrow
+ *   enough to fit in the leftover width. If *every* narrow-enough item type
+ *   can be proven (via an actual 'Objective::Feasibility' solve, small
+ *   time/node budget) to fit alongside the wide items, in the leftover
+ *   "companion" strips beside them, then those narrow items can be removed
+ *   from the instance entirely (their placement is fully determined by
+ *   wherever their paired wide item ends up) and the wide items enlarged to
+ *   the full bin width - a much smaller equivalent instance. The symmetric
+ *   case is applied for items taller than half the bin's height, and a
+ *   third case for items that are both wider than half the bin's width
+ *   *and* taller than half its height (paired with a full bin instead of a
+ *   strip). See 'reduction.cpp' for the exact algorithm (which follows the
+ *   paper's sorted, incrementally-growing candidate search, but uses
+ *   PackingSolver's own 'Objective::Feasibility' solver as the
+ *   packing-check primitive instead of the paper's bespoke greedy
+ *   heuristic).
  *
- * The idea: an item type whose width exceeds half the bin's width (a "wide"
- * item) can only ever share its row of the bin with items narrow enough to
- * fit in the leftover width. If *every* narrow-enough item type can be
- * proven (via an actual 'Objective::Feasibility' solve, small time/node
- * budget) to fit alongside the wide items, in the leftover "companion"
- * strips beside them, then those narrow items can be removed from the
- * instance entirely (their placement is fully determined by wherever their
- * paired wide item ends up) and the wide items enlarged to the full bin
- * width - a much smaller equivalent instance. The symmetric case is
- * applied for items taller than half the bin's height, and a third case
- * for items that are both wider than half the bin's width *and* taller
- * than half its height (paired with a full bin instead of a strip). See
- * 'reduction.cpp' for the exact algorithm (which follows the paper's
- * sorted, incrementally-growing candidate search, but uses PackingSolver's
- * own 'Objective::Feasibility' solver as the packing-check primitive
- * instead of the paper's bespoke greedy heuristic).
+ * - Merging identical item types (see 'merge_identical_items'): unlike
+ *   companion absorption, a merged item type's copies stay fully visible
+ *   and independently placed in the reduced instance (nothing is hidden
+ *   from the downstream solve), so none of the whole-bin arguments above
+ *   apply, and nothing about them depends on every item necessarily being
+ *   packed either - the downstream solve still sees, and can still
+ *   correctly enforce, every copy's true weight/resource
+ *   consumption/unloading group/minimum-vs-maximum copies, and defects are
+ *   irrelevant to it either way (they constrain *where* an item goes, not
+ *   *which* interchangeable copy goes there). This operation therefore
+ *   runs for *any* objective, regardless of defects, weight, resources,
+ *   unloading constraint, or the number of bin types - as long as its own
+ *   per-pair check (rect, plus every property that could make two items
+ *   behave differently: orientation, weight, group, eligibility,
+ *   mandatory-vs-optional copies, and - per bin type - resource
+ *   consumption schedule) finds them truly interchangeable - and, for
+ *   'Knapsack' specifically, profit too: every other objective here
+ *   ignores profit as a merge criterion (it is never the actual
+ *   objective, and 'unreduce_solution' always restores each copy's true
+ *   original profit regardless of merging), but 'Knapsack' optimizes
+ *   profit directly over a solve that may legitimately leave copies
+ *   unplaced, so merging two different-profit item types would report one
+ *   uniform profit for every copy and let the solve itself choose a
+ *   suboptimal subset on wrong information - restoring true profits
+ *   afterwards cannot undo that.
  *
- * Soundness: every removed item is guaranteed packed whenever its paired
- * big item is packed. This only preserves the number of bins used (and the
- * feasibility of the built solution) if the big item is itself guaranteed
- * to be packed - true for 'BinPacking'/'VariableSizedBinPacking' (every
- * item must be packed) and 'Feasibility' (same), but *not* true for
- * 'Knapsack' (an item may legitimately be left unpacked there), which is
- * why 'Knapsack' is excluded.
+ * For every excluded case, this class no-ops entirely: 'instance()' returns
+ * a copy of the original instance, and 'unreduce_solution' is the identity
+ * function.
  */
 class Reduction
 {
 
 public:
-
-    /**
-     * 'true' iff the reduction is meaningful for 'instance'/'parameters' -
-     * everything the class-level doc comment's "Only meaningful for..."/
-     * "Also skipped whenever..." paragraphs describe (the objective,
-     * single-bin-type, defect-free, unloading-constraint-free, weight
-     * conditions, together with 'parameters.reduce' itself). Exposed as
-     * its own static method - rather than left as an internal, constructor-
-     * only check - so that a caller about to construct a 'Reduction' (see
-     * 'optimize()') can decide not to at all when it would just no-op:
-     * constructing one always does at least a full pass over every item
-     * type (to build the working representation and, even in the
-     * no-op case, immediately rebuild an identical 'Instance' from it),
-     * work worth skipping entirely rather than paying for and discarding.
-     */
-    static bool applies(
-            const Instance& instance,
-            const ReductionParameters& parameters);
 
     /** Constructor. */
     Reduction(
@@ -168,6 +225,17 @@ public:
     bool proven_infeasible() const { return proven_infeasible_; }
 
 private:
+
+    /**
+     * 'true' iff companion absorption (wide/tall/both, full-bin items,
+     * perfect pairs) is meaningful for 'instance' - the class-level doc
+     * comment's "Companion absorption" paragraph (including the objective
+     * check; unlike 'merge_identical_items', this operation is only sound
+     * for 'BinPacking'/'VariableSizedBinPacking'/'Feasibility'). Does not
+     * check 'parameters.reduce' - the constructor only calls this after
+     * already checking it.
+     */
+    static bool companion_absorption_applies(const Instance& instance);
 
     /*
      * Private types
@@ -255,6 +323,18 @@ private:
     struct ReductionItemType
     {
         bool removed = false;
+
+        /**
+         * Item type id (original instance's id space) this one was merged
+         * into (see 'merge_identical_items'), or '-1' if it was not merged
+         * away. Only ever set alongside 'removed = true', but distinct from
+         * every other reason 'removed' can be 'true' (absorbed as a
+         * companion, or consumed into a dedicated bin): those hide the item
+         * from the reduced instance entirely, whereas a merged-away item's
+         * own 'copies' still contribute to the survivor's - see
+         * 'reduction_to_instance'.
+         */
+        ItemTypeId merged_into = -1;
 
         /** Current (possibly enlarged) dimensions. */
         Rectangle rect;
@@ -968,6 +1048,83 @@ private:
             Length bin_w,
             Length bin_h);
 
+    /**
+     * Merge every group of pairwise-'items_mergeable' item types in
+     * 'reduction_item_types' into a single survivor (the lowest item type
+     * id in the group) with the group's combined copies - see the
+     * class-level doc comment's "Merging identical item types" paragraph
+     * for why this is sound regardless of defects/weight/resources/
+     * unloading constraint/number of bin types. Unlike companion
+     * absorption, a merged-away item type's own 'copies'/
+     * 'companions_by_copy' are left untouched (only 'removed' and
+     * 'merged_into' are set) - 'reduction_to_instance' reads them directly
+     * when it later expands the survivor back into a per-copy origin list
+     * (see 'CopyOrigin'), so there is nothing to consolidate here.
+     *
+     * Returns 'true' iff at least one merge happened (unlike the other
+     * 'reduce_*' methods, this is not currently used to drive a fixpoint
+     * loop - merging item types never changes any 'rect'/'copies' value
+     * that could make a previously-failed companion-absorption check
+     * succeed - but is still reported for consistency and in case a future
+     * change relies on it).
+     */
+    bool merge_identical_items(
+            std::vector<ReductionItemType>& reduction_item_types);
+
+    /**
+     * 'true' iff item types 'item_type_id_1' and 'item_type_id_2' are
+     * interchangeable: same current (possibly already-enlarged) 'rect', and
+     * every original-instance property that could make them behave
+     * differently downstream - orientation, weight, group, eligibility,
+     * and, for every bin type/resource, the exact same per-copy
+     * consumption schedule (an empty/absent schedule only matches another
+     * empty/absent one, even though both mean "zero consumption" - a
+     * missed merge opportunity in that corner case, never an unsound one).
+     * Does *not* compare profit, except for 'Knapsack' - see this method's
+     * own doc comment in 'reduction.cpp' for why a mismatch is harmless
+     * for every other objective this class handles, but not for
+     * 'Knapsack', where profit is the actual objective and copies are
+     * optional.
+     *
+     * Also requires each candidate's own current (post-companion-
+     * absorption) copies to be either entirely mandatory (its effective
+     * 'copies_min' equals its 'copies' - see 'effective_copies_min') or
+     * entirely optional (effective 'copies_min' is 0) - a mix, or a
+     * genuinely partial requirement (0 < copies_min < copies, only
+     * possible for 'Knapsack', the one objective companion absorption
+     * never touches) would make 'reduction_to_instance''s per-copy origin
+     * list (see 'CopyOrigin') pick an arbitrary split between the two
+     * original item types that may not respect either one's own true
+     * minimum - see 'reduction.cpp' for a concrete counterexample.
+     *
+     * Does not look at 'removed'/'merged_into' - callers are responsible
+     * for only comparing candidates that are not already merged away.
+     */
+    bool items_mergeable(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id_1,
+            ItemTypeId item_type_id_2) const;
+
+    /**
+     * 'item_type_id''s own minimum copies requirement, adjusted for
+     * whatever companion absorption has already consumed from its
+     * 'copies' (mirrors how 'reduction_to_instance' already adjusts a bin
+     * type's own 'copies_min' by 'number_of_dedicated_bins' - see there):
+     * 'max(0, original.copies_min - (original.copies -
+     * reduction_item_types[item_type_id].copies))'. For every objective
+     * except 'Knapsack', 'original.copies_min' always equals
+     * 'original.copies' (see 'InstanceBuilder::build'), so this always
+     * equals 'reduction_item_types[item_type_id].copies' exactly - the
+     * "still fully mandatory" case 'items_mergeable' and
+     * 'reduction_to_instance' both rely on. For 'Knapsack' (the one
+     * objective companion absorption never touches, so nothing is ever
+     * consumed from its 'copies'), this always equals
+     * 'original.copies_min' directly.
+     */
+    ItemPos effective_copies_min(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ItemTypeId item_type_id) const;
+
     /** Build the final reduced 'Instance' from the working representation. */
     Instance reduction_to_instance(
             const std::vector<ReductionItemType>& reduction_item_types);
@@ -993,19 +1150,41 @@ private:
      * thresholds). Symmetric for height. Only meaningful for instances
      * with a single bin type and finite item copies (an infinite-copies
      * item type can already saturate any capacity on its own, and can't be
-     * flattened into individual units below); returns the instance's own
-     * (unchanged) bin dimensions for every other case.
+     * flattened into individual units below); returns 'false' and leaves
+     * the bin's own (unchanged) dimensions in 'shrunk_bin_sizes' for every
+     * other case; returns 'true' when equation (7) actually ran.
+     *
+     * Computed over 'reduction_item_types''s *current* rect/copies,
+     * skipping already-'removed' item types entirely - not over
+     * 'original_instance_''s original, full population. This is
+     * deliberately recomputed every round (see the constructor's own
+     * comment at the call site) rather than once, upfront: a 'removed'
+     * item type (absorbed as a companion, consumed into a dedicated bin,
+     * ...) is no longer independently available to combine with anything
+     * else, so excluding it only ever lowers (or leaves unchanged) the
+     * genuinely achievable combination on either axis - it does not
+     * understate it, even though the item itself has not physically left
+     * the bin: its own contribution is either already folded into a
+     * survivor's current (possibly enlarged) dimensions, which this
+     * function does still count via that survivor's own current entry,
+     * or it is captured inside a dedicated bin that is entirely outside
+     * this bound's concern (dedicated bins are never shared with
+     * anything else - see 'number_of_dedicated_bins'). Once an item type
+     * is the *only* one left, this bound naturally collapses to exactly
+     * its own current dimensions - correctly proving nothing else
+     * remains that could ever share a bin with it, which
+     * 'reduce_full_bin_items' below then acts on.
      *
      * Computed via 'multiplechoicesubsetsumsolver' (as in
      * 'boxstacks::TreeSearch''s own "lift length" computation): one group
-     * per item copy, containing one candidate value per orientation the
-     * item type is allowed to present on this axis (its declared
-     * dimension, plus its rotated one too if not 'oriented') - the solver
-     * picks *at most* one candidate per group (a group can contribute
-     * nothing at all, i.e. that copy sits out of this particular
-     * combination), maximizing the total not exceeding the bin's true
-     * dimension on that axis. This is what lets a non-oriented item
-     * participate soundly, unlike a plain (single-choice) subset sum:
+     * per remaining item copy, containing one candidate value per
+     * orientation the item type is allowed to present on this axis (its
+     * declared dimension, plus its rotated one too if not 'oriented') -
+     * the solver picks *at most* one candidate per group (a group can
+     * contribute nothing at all, i.e. that copy sits out of this
+     * particular combination), maximizing the total not exceeding the
+     * bin's true dimension on that axis. This is what lets a non-oriented
+     * item participate soundly, unlike a plain (single-choice) subset sum:
      * each axis's computation independently picks whichever orientation
      * of a given copy contributes more, without needing that choice to
      * also be consistent with what the *other* axis's own (separately
@@ -1015,7 +1194,24 @@ private:
      * neither individually is ever exceeded by anything real, which is
      * all equation (7) needs.
      */
-    static ShrunkBinSizes compute_shrunk_bin_sizes(const Instance& instance);
+    bool compute_shrunk_bin_sizes(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            ShrunkBinSizes& shrunk_bin_sizes) const;
+
+    /**
+     * Maximum achievable combination of not-yet-'removed' item widths (or
+     * heights) not exceeding 'capacity' - the inner multiple-choice
+     * subset-sum maximization of equation (7), shared by
+     * 'compute_shrunk_bin_sizes''s width/height calls, via
+     * 'multiplechoicesubsetsumsolver'. Takes 'original_instance' alongside
+     * 'reduction_item_types' only for each item type's own 'oriented'
+     * flag, which 'ReductionItemType' does not duplicate.
+     */
+    static Length max_achievable_dimension_sum(
+            const std::vector<ReductionItemType>& reduction_item_types,
+            const Instance& original_instance,
+            Length capacity,
+            bool width_axis);
 
     /*
      * Private attributes
@@ -1072,13 +1268,36 @@ private:
     std::vector<ReductionItemType> final_item_types_;
 
     /**
-     * For each item type of the reduced instance, the corresponding item
-     * type id in the original instance (removing items shifts ids, so this
-     * is never the identity mapping in general). Indexed by the reduced
-     * instance's own item type ids: populated once, alongside
-     * 'final_item_types_' (see 'reduction_to_instance').
+     * Where one particular copy of a reduced instance item type came from:
+     * the corresponding item type id in the *original* instance, and that
+     * original item type's own local copy index (needed to index its
+     * 'companions_by_copy', if any - see 'ReductionItemType''s own doc
+     * comment).
      */
-    std::vector<ItemTypeId> reduced_to_original_item_type_ids_;
+    struct CopyOrigin
+    {
+        /** Item type id, original instance's id space. */
+        ItemTypeId item_type_id;
+
+        /** 'item_type_id''s own local copy index (0-indexed). */
+        ItemPos copy_index;
+    };
+
+    /**
+     * For each item type of the reduced instance, one entry per copy (in
+     * the order copies will be encountered while scanning a reduced
+     * solution) giving where that specific copy came from (see
+     * 'CopyOrigin'). Every entry names the *same* original item type id
+     * unless that reduced item type absorbed one or more others via
+     * 'merge_identical_items', in which case its copies are the
+     * concatenation, in order, of every merged-together original item
+     * type's own copy range - any consistent order works, since merged
+     * item types are interchangeable by construction (see
+     * 'items_mergeable'). Indexed by the reduced instance's own item type
+     * ids: populated once, alongside 'final_item_types_' (see
+     * 'reduction_to_instance').
+     */
+    std::vector<std::vector<CopyOrigin>> reduced_copy_origins_;
 
     /**
      * Places 'item_type_id' (original instance's id space) at 'bl_corner'

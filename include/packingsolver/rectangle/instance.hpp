@@ -476,9 +476,9 @@ public:
      * Return 'true' iff the instance has a single bin type with a finite
      * maximum weight and at least one item type with a nonzero weight -
      * i.e. iff its weight capacity is an actual, non-trivial per-bin
-     * aggregate constraint (see 'Reduction::applies' for why this matters
-     * there: a per-bin aggregate is invisible to per-group geometric-only
-     * reasoning).
+     * aggregate constraint (see 'Reduction::companion_absorption_applies'
+     * for why this matters there: a per-bin aggregate is invisible to
+     * per-group geometric-only reasoning).
      */
     bool weight_matters() const;
 
@@ -486,7 +486,7 @@ public:
      * Return 'true' iff the instance has a single bin type with at least
      * one resource - i.e. iff it has an actual, non-trivial per-bin
      * aggregate constraint beyond geometry and weight (see
-     * 'weight_matters' and 'Reduction::applies').
+     * 'weight_matters' and 'Reduction::companion_absorption_applies').
      */
     bool resources_matter() const;
 

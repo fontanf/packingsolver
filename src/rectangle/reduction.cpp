@@ -1066,6 +1066,143 @@ BinPos Reduction::number_of_dedicated_bins() const
     return total;
 }
 
+bool Reduction::items_mergeable(
+        const std::vector<ReductionItemType>& reduction_item_types,
+        ItemTypeId item_type_id_1,
+        ItemTypeId item_type_id_2) const
+{
+    const ReductionItemType& item_1 = reduction_item_types[item_type_id_1];
+    const ReductionItemType& item_2 = reduction_item_types[item_type_id_2];
+    if (item_1.rect.x != item_2.rect.x || item_1.rect.y != item_2.rect.y)
+        return false;
+
+    const ItemType& original_item_type_1 = original_instance_->item_type(item_type_id_1);
+    const ItemType& original_item_type_2 = original_instance_->item_type(item_type_id_2);
+    // Profit is only compared for 'Knapsack': for every other objective
+    // this class handles, profit is never the actual objective, and
+    // 'unreduce_solution' always restores the true original item type id
+    // (and so its true profit) for every placed copy regardless of which
+    // one a reduced-instance solve actually used, so a profit mismatch
+    // cannot affect correctness there - only, at most, the search guide's
+    // scoring while solving the reduced instance. This matters in
+    // practice: companion absorption enlarges a "wide"/"tall" item's
+    // 'rect' without touching its profit, so two originally different item
+    // types absorbed into the same footprint end up identical on every
+    // other property here but not on profit.
+    //
+    // For 'Knapsack', profit *is* the actual objective, and copies are
+    // optional (a solve may legitimately leave some unplaced) - merging
+    // two different-profit item types would report a single, uniform
+    // profit for every copy in the reduced instance (see
+    // 'reduction_to_instance', which always takes the survivor's own
+    // profit), so the solve itself would optimize against the wrong
+    // values and could pick a suboptimal subset of copies to place; no
+    // amount of restoring true profits afterwards, in 'unreduce_solution',
+    // can undo a choice already made on wrong information. So a profit
+    // mismatch there must block the merge outright, not just risk a worse
+    // search guide.
+    if (original_instance_->objective() == Objective::Knapsack
+            && original_item_type_1.profit != original_item_type_2.profit)
+        return false;
+    if (original_item_type_1.oriented != original_item_type_2.oriented
+            || original_item_type_1.weight != original_item_type_2.weight
+            || original_item_type_1.group_id != original_item_type_2.group_id
+            || original_item_type_1.eligibility_id != original_item_type_2.eligibility_id)
+        return false;
+
+    static const std::vector<double> empty_schedule;
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < original_instance_->number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = original_instance_->bin_type(bin_type_id);
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const std::vector<std::vector<double>>& item_consumptions
+                = bin_type.resource(resource_id).item_consumptions;
+            const std::vector<double>& schedule_1
+                = (item_type_id_1 < (ItemTypeId)item_consumptions.size())?
+                    item_consumptions[item_type_id_1]: empty_schedule;
+            const std::vector<double>& schedule_2
+                = (item_type_id_2 < (ItemTypeId)item_consumptions.size())?
+                    item_consumptions[item_type_id_2]: empty_schedule;
+            if (schedule_1 != schedule_2)
+                return false;
+        }
+    }
+
+    // Each candidate's own current copies must be either entirely
+    // mandatory or entirely optional, and both candidates must agree on
+    // which - see this method's own doc comment in 'reduction.hpp' for
+    // the general argument. Concrete counterexample for why a mix is
+    // unsound: item type A, 3 copies, 'copies_min' 3 (fully mandatory -
+    // only possible for 'Knapsack'), merged with identical-footprint item
+    // type B, 5 copies, 'copies_min' 0 (fully optional). The merged
+    // survivor would get 8 copies with a combined 'copies_min' of 3 (see
+    // 'reduction_to_instance'), which only forces *some* 3 of the 8
+    // copies to be placed - nothing ties those specific 3 back to A's own
+    // copies, since 'reduction_to_instance''s per-copy origin list (see
+    // 'CopyOrigin') assigns origins in a fixed, arbitrary order (survivor
+    // first, then each merged-in type), unrelated to which copies a
+    // downstream 'Knapsack' solve actually chooses to place. A solution
+    // that places 3 copies drawn entirely from B's share (fully
+    // satisfying the reduced instance's own 'copies_min' of 3) would
+    // 'unreduce_solution' into leaving all 3 of A's genuinely mandatory
+    // copies unplaced - violating A's true requirement, even though the
+    // reduced-instance solve was itself entirely valid. Both-mandatory or
+    // both-optional merges do not have this problem: a combined
+    // 'copies_min' equal to the full merged copies count (both
+    // mandatory) forces every copy to be placed regardless of origin,
+    // and a combined 'copies_min' of zero (both optional) forces nothing
+    // regardless of origin either way.
+    ItemPos effective_copies_min_1 = effective_copies_min(reduction_item_types, item_type_id_1);
+    ItemPos effective_copies_min_2 = effective_copies_min(reduction_item_types, item_type_id_2);
+    bool item_1_fully_mandatory = (effective_copies_min_1 == item_1.copies);
+    bool item_2_fully_mandatory = (effective_copies_min_2 == item_2.copies);
+    bool item_1_fully_optional = (effective_copies_min_1 == 0);
+    bool item_2_fully_optional = (effective_copies_min_2 == 0);
+    if (!(item_1_fully_mandatory || item_1_fully_optional)
+            || !(item_2_fully_mandatory || item_2_fully_optional))
+        return false;
+    if (item_1_fully_mandatory != item_2_fully_mandatory)
+        return false;
+
+    return true;
+}
+
+ItemPos Reduction::effective_copies_min(
+        const std::vector<ReductionItemType>& reduction_item_types,
+        ItemTypeId item_type_id) const
+{
+    const ItemType& original_item_type = original_instance_->item_type(item_type_id);
+    ItemPos consumed = original_item_type.copies - reduction_item_types[item_type_id].copies;
+    return std::max((ItemPos)0, original_item_type.copies_min - consumed);
+}
+
+bool Reduction::merge_identical_items(
+        std::vector<ReductionItemType>& reduction_item_types)
+{
+    bool found = false;
+    for (ItemTypeId item_type_id_1 = 0;
+            item_type_id_1 < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id_1) {
+        if (reduction_item_types[item_type_id_1].removed)
+            continue;
+        for (ItemTypeId item_type_id_2 = item_type_id_1 + 1;
+                item_type_id_2 < (ItemTypeId)reduction_item_types.size();
+                ++item_type_id_2) {
+            if (reduction_item_types[item_type_id_2].removed)
+                continue;
+            if (!items_mergeable(reduction_item_types, item_type_id_1, item_type_id_2))
+                continue;
+            reduction_item_types[item_type_id_2].removed = true;
+            reduction_item_types[item_type_id_2].merged_into = item_type_id_1;
+            found = true;
+        }
+    }
+    return found;
+}
+
 Instance Reduction::reduction_to_instance(
         const std::vector<ReductionItemType>& reduction_item_types)
 {
@@ -1079,7 +1216,14 @@ Instance Reduction::reduction_to_instance(
     for (ItemTypeId item_type_id = 0;
             item_type_id < (ItemTypeId)reduction_item_types.size();
             ++item_type_id) {
-        if (!reduction_item_types[item_type_id].removed)
+        // A merged-away item type (see 'merge_identical_items') is
+        // 'removed' too, but its copies still need bin capacity in the
+        // reduced instance - just folded into its survivor's own count
+        // below - unlike every other reason an item type can be 'removed'
+        // (absorbed as a companion, or consumed into a dedicated bin),
+        // which genuinely need none.
+        if (!reduction_item_types[item_type_id].removed
+                || reduction_item_types[item_type_id].merged_into != -1)
             remaining_items += original_instance_->item_type(item_type_id).copies;
     }
 
@@ -1139,18 +1283,46 @@ Instance Reduction::reduction_to_instance(
     // survivor or not.
     final_item_types_ = reduction_item_types;
 
-    reduced_to_original_item_type_ids_.clear();
+    reduced_copy_origins_.clear();
     for (ItemTypeId item_type_id = 0;
             item_type_id < (ItemTypeId)reduction_item_types.size();
             ++item_type_id) {
         const ReductionItemType& item = reduction_item_types[item_type_id];
         if (item.removed)
             continue;
+
+        // Per-copy origin list for this survivor: its own copies, then, in
+        // discovery order, every item type merged into it (see
+        // 'merge_identical_items') - any consistent order works, since
+        // merged item types are interchangeable by construction (see
+        // 'items_mergeable').
+        std::vector<CopyOrigin> copy_origins;
+        // Combined minimum copies requirement: the sum of the survivor's
+        // own 'effective_copies_min' and every merged-in constituent's -
+        // sound (regardless of origin order) only because 'items_mergeable'
+        // already restricts every merge to same-category (fully mandatory
+        // with fully mandatory, fully optional with fully optional) pairs -
+        // see 'items_mergeable''s own doc comment.
+        ItemPos total_copies_min = effective_copies_min(reduction_item_types, item_type_id);
+        for (ItemPos copy_index = 0; copy_index < item.copies; ++copy_index)
+            copy_origins.push_back({item_type_id, copy_index});
+        for (ItemTypeId other_item_type_id = 0;
+                other_item_type_id < (ItemTypeId)reduction_item_types.size();
+                ++other_item_type_id) {
+            if (reduction_item_types[other_item_type_id].merged_into != item_type_id)
+                continue;
+            ItemPos merged_copies = reduction_item_types[other_item_type_id].copies;
+            total_copies_min += effective_copies_min(reduction_item_types, other_item_type_id);
+            for (ItemPos copy_index = 0; copy_index < merged_copies; ++copy_index)
+                copy_origins.push_back({other_item_type_id, copy_index});
+        }
+
         const ItemType& original_item_type = original_instance_->item_type(item_type_id);
         ItemTypeId new_item_type_id = instance_builder.add_item_type(
                 item.rect.x, item.rect.y, original_item_type.oriented);
         instance_builder.set_item_type_profit(new_item_type_id, original_item_type.profit);
-        instance_builder.set_item_type_copies(new_item_type_id, item.copies);
+        instance_builder.set_item_type_copies(new_item_type_id, (ItemPos)copy_origins.size());
+        instance_builder.set_item_type_copies_min(new_item_type_id, total_copies_min);
         instance_builder.set_item_type_group(new_item_type_id, original_item_type.group_id);
         instance_builder.set_item_type_weight(new_item_type_id, original_item_type.weight);
         instance_builder.set_item_type_eligibility(new_item_type_id, original_item_type.eligibility_id);
@@ -1182,26 +1354,15 @@ Instance Reduction::reduction_to_instance(
                 }
             }
         }
-        reduced_to_original_item_type_ids_.push_back(item_type_id);
+        reduced_copy_origins_.push_back(std::move(copy_origins));
     }
 
     return instance_builder.build();
 }
 
-namespace
-{
-
-/**
- * Maximum achievable combination of item widths (or heights) not
- * exceeding 'capacity' - the inner multiple-choice subset-sum
- * maximization of equation (7) - via 'multiplechoicesubsetsumsolver': one
- * group per item copy, containing one candidate value per orientation
- * that copy is allowed to present on this axis (see
- * 'Reduction::compute_shrunk_bin_sizes''s own doc comment for why this is
- * sound for non-oriented items too).
- */
-Length max_achievable_dimension_sum(
-        const Instance& instance,
+Length Reduction::max_achievable_dimension_sum(
+        const std::vector<ReductionItemType>& reduction_item_types,
+        const Instance& original_instance,
         Length capacity,
         bool width_axis)
 {
@@ -1209,14 +1370,17 @@ Length max_achievable_dimension_sum(
     mcss_instance_builder.set_capacity(capacity);
     multiplechoicesubsetsumsolver::GroupId mcss_group_id = 0;
     for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
+            item_type_id < (ItemTypeId)reduction_item_types.size();
             ++item_type_id) {
-        const ItemType& item_type = instance.item_type(item_type_id);
-        Length value = (width_axis)? item_type.rect.x: item_type.rect.y;
-        Length rotated_value = (width_axis)? item_type.rect.y: item_type.rect.x;
-        for (ItemPos copy = 0; copy < item_type.copies; ++copy) {
+        const ReductionItemType& item = reduction_item_types[item_type_id];
+        if (item.removed)
+            continue;
+        bool oriented = original_instance.item_type(item_type_id).oriented;
+        Length value = (width_axis)? item.rect.x: item.rect.y;
+        Length rotated_value = (width_axis)? item.rect.y: item.rect.x;
+        for (ItemPos copy = 0; copy < item.copies; ++copy) {
             mcss_instance_builder.add_item(mcss_group_id, value);
-            if (!item_type.oriented && rotated_value != value)
+            if (!oriented && rotated_value != value)
                 mcss_instance_builder.add_item(mcss_group_id, rotated_value);
             ++mcss_group_id;
         }
@@ -1230,50 +1394,51 @@ Length max_achievable_dimension_sum(
     return mcss_output.bound;
 }
 
-}
-
-Reduction::ShrunkBinSizes Reduction::compute_shrunk_bin_sizes(
-        const Instance& instance)
+bool Reduction::compute_shrunk_bin_sizes(
+        const std::vector<ReductionItemType>& reduction_item_types,
+        ShrunkBinSizes& shrunk_bin_sizes) const
 {
-    ShrunkBinSizes result;
-
-    if (instance.number_of_bin_types() != 1) {
-        result.bin_width = 0;
-        result.bin_height = 0;
-        return result;
+    if (original_instance_->number_of_bin_types() != 1) {
+        shrunk_bin_sizes.bin_width = 0;
+        shrunk_bin_sizes.bin_height = 0;
+        return false;
     }
-    const BinType& bin_type = instance.bin_type(0);
-    result.bin_width = bin_type.rect.x;
-    result.bin_height = bin_type.rect.y;
+    const BinType& bin_type = original_instance_->bin_type(0);
+    shrunk_bin_sizes.bin_width = bin_type.rect.x;
+    shrunk_bin_sizes.bin_height = bin_type.rect.y;
 
-    // Infinite item copies can't be flattened into individual groups; the
-    // technique isn't meaningful there anyway (an infinite-copies item
-    // type can already saturate any capacity on its own), so skip it and
-    // return the bin's own, unshrunk dimensions.
     for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
+            item_type_id < (ItemTypeId)reduction_item_types.size();
             ++item_type_id) {
-        if (instance.item_type(item_type_id).copies < 0)
-            return result;
+        if (!reduction_item_types[item_type_id].removed
+                && reduction_item_types[item_type_id].copies < 0)
+            return false;
     }
 
     // Equation (7): shrink the bin width/height to the largest achievable
     // combination of item widths/heights.
-    result.bin_width = max_achievable_dimension_sum(instance, bin_type.rect.x, /* width_axis */ true);
-    result.bin_height = max_achievable_dimension_sum(instance, bin_type.rect.y, /* width_axis */ false);
+    shrunk_bin_sizes.bin_width = max_achievable_dimension_sum(
+            reduction_item_types, *original_instance_, bin_type.rect.x, /* width_axis */ true);
+    shrunk_bin_sizes.bin_height = max_achievable_dimension_sum(
+            reduction_item_types, *original_instance_, bin_type.rect.y, /* width_axis */ false);
 
-    return result;
+    return true;
 }
 
-bool Reduction::applies(
-        const Instance& instance,
-        const ReductionParameters& parameters)
+bool Reduction::companion_absorption_applies(const Instance& instance)
 {
-    // Every check this class performs (the wide/tall/both companion-bin
-    // feasibility solves in 'try_reduce_group', and the direct
-    // dimension-only matches in 'reduce_full_bin_items'/
+    // Only sound for these three objectives - see the class-level doc
+    // comment's "Companion absorption" paragraph.
+    if (instance.objective() != Objective::BinPacking
+            && instance.objective() != Objective::VariableSizedBinPacking
+            && instance.objective() != Objective::Feasibility)
+        return false;
+
+    // Every check companion absorption performs (the wide/tall/both
+    // companion-bin feasibility solves in 'try_reduce_group', and the
+    // direct dimension-only matches in 'reduce_full_bin_items'/
     // 'reduce_perfect_pairs') reasons purely about geometry: whether a set
-    // of item footprints fits together inside an empty rectangle. Three
+    // of item footprints fits together inside an empty rectangle. Four
     // instance features break that:
     //
     // - Defects: the companion-bin sub-instances built in
@@ -1309,15 +1474,14 @@ bool Reduction::applies(
     //   itself only ever see the validated-enlarged item's own
     //   consumption, never its companions', so it could not correctly
     //   enforce the resource's capacity across the bin either.
-    return (instance.objective() == Objective::BinPacking
-                || instance.objective() == Objective::VariableSizedBinPacking
-                || instance.objective() == Objective::Feasibility)
-            && instance.number_of_bin_types() == 1
+    //
+    // Also only for instances with a single bin type - see the class-level
+    // doc comment's "Companion absorption" paragraph.
+    return instance.number_of_bin_types() == 1
             && instance.number_of_defects() == 0
             && instance.unloading_constraint() == UnloadingConstraint::None
             && !instance.weight_matters()
-            && !instance.resources_matter()
-            && parameters.reduce;
+            && !instance.resources_matter();
 }
 
 Reduction::Reduction(
@@ -1328,17 +1492,16 @@ Reduction::Reduction(
 {
     // Working representation: a stable 1:1 copy of the original instance's
     // item types (see 'ReductionItemType'). Always built and compacted
-    // back via 'reduction_to_instance' at the end (even when the
-    // reduction doesn't apply below, in which case it is an identity
-    // rebuild): this keeps 'final_item_types_'/
-    // 'reduced_to_original_item_type_ids_' always populated, so
-    // 'unreduce_solution' never needs a separate no-op code path. Callers
-    // that already know 'applies()' is 'false' are better off not
-    // constructing a 'Reduction' at all (see 'applies''s own doc comment)
-    // - but the constructor still handles that case correctly, both for
-    // simplicity (one code path regardless of caller diligence) and
-    // because 'applies()' and the constructor could otherwise silently
-    // drift out of sync.
+    // back via 'reduction_to_instance' at the end (even when
+    // 'parameters.reduce' is 'false' below, in which case it is an
+    // identity rebuild): this keeps 'final_item_types_'/
+    // 'reduced_copy_origins_' always populated, so 'unreduce_solution'
+    // never needs a separate no-op code path. Callers that already know
+    // 'parameters.reduce' is 'false' are better off not constructing a
+    // 'Reduction' at all - but the constructor still handles that case
+    // correctly, both for simplicity (one code path regardless of caller
+    // diligence) and to avoid a second, redundant place that would need
+    // to stay in sync with it.
     std::vector<ReductionItemType> reduction_item_types(instance.number_of_item_types());
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
@@ -1347,64 +1510,82 @@ Reduction::Reduction(
         reduction_item_types[item_type_id].copies = instance.item_type(item_type_id).copies;
     }
 
-    if (!applies(instance, parameters)) {
+    if (!parameters.reduce) {
         instance_ = reduction_to_instance(reduction_item_types);
         return;
     }
 
-    // Shrunk bin dimensions (equation (7), "shrinking the bins": see
-    // 'compute_shrunk_bin_sizes'), computed once from the *original*,
-    // never-reduced instance's full item set - not per round. This stays
-    // sound throughout every round despite items later being removed: the
-    // bound proves "no item in the original full set is small enough to
-    // extend this achieved sum", and every item ever considered in a later
-    // round is a subset of that same original full set, so the bound only
-    // ever remains valid (if anything, recomputing it from a shrinking
-    // remaining set could tighten it further, but that is a possible
-    // future improvement, not a soundness requirement).
-    //
-    // Used as the effective bin dimensions throughout this whole class
-    // ('is_big', 'could_fit', 'companion_bin_dimensions', enlargement
-    // targets, 'reduce_full_bin_items', 'reduce_perfect_pairs'): any
-    // multi-item combination that fits within the *true* bin capacity is,
-    // by definition of 'shrunk_bin_w'/'shrunk_bin_h' as the maximum
-    // achievable subset-sum from the full original item set, already
-    // bounded by it - so substituting it for the true dimensions never
-    // discards a genuinely achievable candidate, and the true bin's
-    // remaining margin beyond it is provably unusable by any combination
-    // of the actual items.
-    ShrunkBinSizes shrunk_bin_sizes = compute_shrunk_bin_sizes(instance);
-    Length bin_w = shrunk_bin_sizes.bin_width;
-    Length bin_h = shrunk_bin_sizes.bin_height;
+    // Every sub-operation below is independently gated by its own
+    // 'parameters' flag - see 'ReductionParameters''s own doc comments -
+    // on top of 'companion_absorption_applies' for the four companion-
+    // absorption ones (wide/tall, both, full-bin items, perfect pairs;
+    // see 'companion_absorption_applies''s own doc comment for why those
+    // four specifically share one precondition that 'merge_identical_items'
+    // does not).
+    bool companion_absorption_ok = companion_absorption_applies(instance);
+    bool run_wide_tall = companion_absorption_ok && parameters.enlarge_wide_tall_items;
+    bool run_both = companion_absorption_ok && parameters.enlarge_both_items;
+    bool run_full_bin_items = companion_absorption_ok && parameters.reduce_full_bin_items;
+    bool run_perfect_pairs = companion_absorption_ok && parameters.reduce_perfect_pairs;
 
-    // Outer fixpoint loop: repeat {wide, tall, both, full-bin items,
+    // Main reduction loop: repeat {wide, tall, both, full-bin items,
     // perfect pairs} until a full pass finds nothing new (a later case's
     // success can free up items that make an earlier case worth
-    // retrying).
+    // retrying). Runs unconditionally, even when every 'run_*' flag above
+    // is 'false': the first round then finds nothing (every sub-operation
+    // below is skipped) and the loop exits immediately after it, same end
+    // result as skipping the loop outright, without needing a separate
+    // guard here to special-case it.
     for (Counter round_number = 0;
             round_number < parameters.maximum_number_of_rounds;
             ++round_number) {
         if (parameters.timer.needs_to_end())
             break;
+
+        // Shrunk bin dimensions (equation (7), "shrinking the bins": see
+        // 'compute_shrunk_bin_sizes'), recomputed every round from
+        // 'reduction_item_types''s then-current, still-remaining item set
+        // - see 'compute_shrunk_bin_sizes''s own doc comment for why
+        // excluding already-'removed' item types only ever tightens this
+        // bound, never understates it: once an item type is the only one
+        // left, the bound correctly collapses to exactly its own current
+        // dimensions, letting 'reduce_full_bin_items' below claim it as a
+        // dedicated bin even when its dimensions never matched the
+        // *true* bin - a sound, more aggressive equivalent encoding of
+        // the same physical solution, not a different one, since nothing
+        // else remains that could ever share a bin with it anyway.
+        ShrunkBinSizes shrunk_bin_sizes;
+        compute_shrunk_bin_sizes(reduction_item_types, shrunk_bin_sizes);
+        Length bin_w = shrunk_bin_sizes.bin_width;
+        Length bin_h = shrunk_bin_sizes.bin_height;
+
         bool found = false;
-        found |= reduce_group(reduction_item_types, parameters, EnlargementCase::Wide, bin_w, bin_h);
+        if (run_wide_tall)
+            found |= reduce_group(reduction_item_types, parameters, EnlargementCase::Wide, bin_w, bin_h);
         if (parameters.timer.needs_to_end())
             break;
-        found |= reduce_group(reduction_item_types, parameters, EnlargementCase::Tall, bin_w, bin_h);
+        if (run_wide_tall)
+            found |= reduce_group(reduction_item_types, parameters, EnlargementCase::Tall, bin_w, bin_h);
         if (parameters.timer.needs_to_end())
             break;
-        found |= reduce_both_groups(reduction_item_types, parameters, bin_w, bin_h);
+        if (run_both)
+            found |= reduce_both_groups(reduction_item_types, parameters, bin_w, bin_h);
         if (parameters.timer.needs_to_end())
             break;
-        found |= reduce_full_bin_items(
-                reduction_item_types, bin_w, bin_h);
+        if (run_full_bin_items)
+            found |= reduce_full_bin_items(
+                    reduction_item_types, bin_w, bin_h);
         if (parameters.timer.needs_to_end())
             break;
-        found |= reduce_perfect_pairs(
-                reduction_item_types, bin_w, bin_h);
+        if (run_perfect_pairs)
+            found |= reduce_perfect_pairs(
+                    reduction_item_types, bin_w, bin_h);
         if (!found)
             break;
     }
+
+    if (!parameters.timer.needs_to_end() && parameters.merge_identical_items)
+        merge_identical_items(reduction_item_types);
 
     instance_ = reduction_to_instance(reduction_item_types);
 }
@@ -1438,9 +1619,13 @@ Solution Reduction::unreduce_solution(
     SolutionBuilder solution_builder(*original_instance_);
 
     // For each reduced item type, how many of its placements have been
-    // encountered so far while scanning 'solution' (used to pick the right
-    // entry of 'companions_by_copy' - any consistent order works, since
-    // companion-bin instances of the same type are interchangeable).
+    // encountered so far while scanning 'solution' - indexes both
+    // 'reduced_copy_origins_' (to resolve which original item type/copy a
+    // given placement actually is - see 'merge_identical_items') and, once
+    // resolved, that original item type's own 'companions_by_copy' (any
+    // consistent order works for either, since a reduced item type's
+    // copies are interchangeable by construction, whether from companion
+    // enlargement or from a merge).
     std::vector<ItemPos> next_copy_index(instance_.number_of_item_types(), 0);
 
     for (BinPos bin_pos = 0;
@@ -1450,16 +1635,16 @@ Solution Reduction::unreduce_solution(
         for (BinPos copy = 0; copy < solution_bin.copies; ++copy) {
             BinPos new_bin_pos = solution_builder.add_bin(solution_bin.bin_type_id, 1);
             for (const SolutionItem& solution_item: solution_bin.items) {
-                ItemTypeId original_item_type_id =
-                    reduced_to_original_item_type_ids_[solution_item.item_type_id];
+                ItemPos reduced_copy_index = next_copy_index[solution_item.item_type_id]++;
+                const CopyOrigin& origin
+                    = reduced_copy_origins_[solution_item.item_type_id][reduced_copy_index];
+                ItemTypeId original_item_type_id = origin.item_type_id;
                 const ReductionItemType& item_type = final_item_types_[original_item_type_id];
 
                 std::vector<CompanionItem> no_companions;
                 const std::vector<CompanionItem>* companions = &no_companions;
-                if (!item_type.companions_by_copy.empty()) {
-                    ItemPos copy_index = next_copy_index[solution_item.item_type_id]++;
-                    companions = &item_type.companions_by_copy[copy_index];
-                }
+                if (!item_type.companions_by_copy.empty())
+                    companions = &item_type.companions_by_copy[origin.copy_index];
                 place_item_and_companions(
                         solution_builder,
                         new_bin_pos,
