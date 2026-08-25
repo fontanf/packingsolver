@@ -145,6 +145,16 @@ public:
         Area item_area = 0;
         Area block_area = 0;
         Weight weight = 0;
+
+        /**
+         * Resource consumption accumulated over every block placed so far,
+         * indexed by resource_id (elementwise sum of each placed block's own
+         * 'Block::resource_consumption' - exact for a uniform per-copy
+         * consumption schedule, the common case; see 'Resource::
+         * item_consumptions'). Empty iff the bin type has no resources.
+         */
+        std::vector<double> resource_consumption;
+
         ItemPos number_of_items = 0;
         ItemPos number_of_blocks = 0;
         Profit profit = 0;
@@ -460,6 +470,33 @@ private:
     Profit compute_guide_greedy(const Node& node) const;
 
     double active_delta(const Node& node) const;
+
+    /**
+     * 'true' iff placing 'block' on top of 'parent''s accumulated resource
+     * consumption would not push any non-'penalize' resource of
+     * 'bin_type_id' past its capacity (see 'Resource::penalize') -
+     * 'penalize' resources never block an insertion, only a plain
+     * (non-'penalize') resource does. Cheap: just adds the block's own
+     * precomputed 'resource_consumption' to 'parent''s running total,
+     * rather than recomputing it from 'block.item_copies'.
+     */
+    bool block_resource_capacity_ok(
+            const Node& parent,
+            const Block& block,
+            BinTypeId bin_type_id) const;
+
+    /**
+     * 'block.item_profit', reduced by the penalty of every 'penalize'
+     * resource of 'bin_type_id' whose consumption crosses its capacity for
+     * the first time as a result of placing 'block' on top of 'parent''s
+     * accumulated resource consumption (mirrors 'Solution::
+     * update_indicators': the penalty is charged once per bin, the first
+     * time consumption crosses capacity - not once per block/item past it).
+     */
+    Profit insertion_profit(
+            const Node& parent,
+            const Block& block,
+            BinTypeId bin_type_id) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

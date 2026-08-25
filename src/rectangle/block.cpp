@@ -122,6 +122,84 @@ std::vector<std::pair<ItemTypeId, ItemPos>> merge_item_copies(
     return result;
 }
 
+/**
+ * Prefix sums of each item type's consumption schedule, for each resource it
+ * touches - see 'compute_resource_consumption_prefix_sums' in
+ * 'algorithms/common.hpp'. Indexed [item_type_id][resource_id]; only entries
+ * for resources actually in 'item_type.resource_ids[bin_type_id]' are
+ * populated (every other entry stays a default-constructed empty vector,
+ * never read - see 'compute_resource_consumption').
+ */
+std::vector<std::vector<std::vector<double>>> compute_resource_consumption_prefix_sums_by_item_type(
+        const Instance& instance,
+        BinTypeId bin_type_id)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    std::vector<std::vector<std::vector<double>>> prefix_sums(instance.number_of_item_types());
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < instance.number_of_item_types();
+            ++item_type_id) {
+        const ItemType& item_type = instance.item_type(item_type_id);
+        prefix_sums[item_type_id].resize(bin_type.number_of_resources());
+        for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            prefix_sums[item_type_id][resource_id] = compute_resource_consumption_prefix_sums(
+                    bin_type.resource(resource_id), item_type_id);
+        }
+    }
+    return prefix_sums;
+}
+
+/**
+ * Consumption of each resource of 'bin_type_id' that 'item_copies' would add
+ * if placed on its own (each item type's copies starting at copy index 0),
+ * indexed by resource_id. 'prefix_sums' - see
+ * 'compute_resource_consumption_prefix_sums_by_item_type' - makes this O(1)
+ * per (item type, resource) pair in 'item_copies' instead of O(schedule
+ * length).
+ */
+std::vector<double> compute_resource_consumption(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<std::pair<ItemTypeId, ItemPos>>& item_copies,
+        const std::vector<std::vector<std::vector<double>>>& prefix_sums)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    std::vector<double> consumption(bin_type.number_of_resources(), 0.0);
+    for (const auto& item_copy: item_copies) {
+        ItemTypeId item_type_id = item_copy.first;
+        ItemPos count = item_copy.second;
+        const ItemType& item_type = instance.item_type(item_type_id);
+        for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            const Resource& resource = bin_type.resource(resource_id);
+            consumption[resource_id] += sum_item_consumption(
+                    resource, item_type_id, prefix_sums[item_type_id][resource_id], count);
+        }
+    }
+    return consumption;
+}
+
+/**
+ * 'false' iff 'consumption' (see 'compute_resource_consumption') already
+ * exceeds the capacity of some non-'penalize' resource of 'bin_type_id' -
+ * 'penalize' resources never block a block from being generated, only a
+ * plain (non-'penalize') resource does (see 'Resource::penalize').
+ */
+bool resource_capacity_ok(
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const std::vector<double>& consumption)
+{
+    const BinType& bin_type = instance.bin_type(bin_type_id);
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (!resource.penalize && consumption[resource_id] > resource.capacity * PSTOL)
+            return false;
+    }
+    return true;
+}
+
 struct BlockFillRateLess {
     bool operator()(const Block& block_1, const Block& block_2) const
     {
@@ -144,6 +222,12 @@ std::vector<Block> compute_blocks_for_bin(
 {
     const BinType& bin_type = instance.bin_type(bin_type_id);
     Rectangle bin_rect = bin_type.rect;
+
+    // Computed once per bin type and reused for every block generated below
+    // (both the initial simple blocks and every combination of them) -
+    // see 'compute_resource_consumption_prefix_sums_by_item_type'.
+    std::vector<std::vector<std::vector<double>>> resource_consumption_prefix_sums
+        = compute_resource_consumption_prefix_sums_by_item_type(instance, bin_type_id);
 
     std::multiset<Block, BlockFillRateLess> blocks_to_process;
     std::vector<Block> returned_blocks;
@@ -188,6 +272,14 @@ std::vector<Block> compute_blocks_for_bin(
                     block.weight = cx * cy * item_type.weight;
                     block.item_copies = {{item_type_id, cx * cy}};
                     block.number_of_items = cx * cy;
+
+                    if (block.weight > bin_type.maximum_weight)
+                        continue;
+                    block.resource_consumption = compute_resource_consumption(
+                            instance, bin_type_id, block.item_copies, resource_consumption_prefix_sums);
+                    if (!resource_capacity_ok(instance, bin_type_id, block.resource_consumption))
+                        continue;
+
                     block.items.reserve(cx * cy);
                     for (ItemPos ccx = 0; ccx < cx; ++ccx) {
                         for (ItemPos ccy = 0; ccy < cy; ++ccy) {
@@ -232,6 +324,8 @@ std::vector<Block> compute_blocks_for_bin(
                 combined.item_area = block.item_area + existing_block.item_area;
                 combined.item_profit = block.item_profit + existing_block.item_profit;
                 combined.weight = block.weight + existing_block.weight;
+                if (combined.weight > bin_type.maximum_weight)
+                    continue;
                 switch (direction) {
                 case Direction::X:
                     combined.rect.x = block.rect.x + existing_block.rect.x;
@@ -266,6 +360,12 @@ std::vector<Block> compute_blocks_for_bin(
                 if (seen.count(key))
                     continue;
                 combined.item_copies = key.item_copies;
+
+                combined.resource_consumption = compute_resource_consumption(
+                        instance, bin_type_id, combined.item_copies, resource_consumption_prefix_sums);
+                if (!resource_capacity_ok(instance, bin_type_id, combined.resource_consumption))
+                    continue;
+
                 combined.items = block.items;
                 for (const SolutionItem& item: existing_block.items) {
                     SolutionItem shifted = item;

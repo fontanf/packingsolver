@@ -1561,7 +1561,10 @@ const packingsolver::rectangle::TreeSearchOutput packingsolver::rectangle::tree_
     }
 
     std::vector<Direction> directions;
-    if (instance.objective() == Objective::OpenDimensionX) {
+    if (!parameters.directions.empty()) {
+        // Caller-provided override (see 'TreeSearchParameters::directions').
+        directions = parameters.directions;
+    } else if (instance.objective() == Objective::OpenDimensionX) {
         directions = {Direction::X};
     } else if (instance.objective() == Objective::OpenDimensionY) {
         directions = {Direction::Y};

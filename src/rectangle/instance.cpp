@@ -309,8 +309,8 @@ std::ostream& Instance::format(
             << "Number of defects:     " << number_of_defects() << std::endl
             << "Unloading constraint:  " << unloading_constraint() << std::endl
             << "Total item area:       " << item_area() << std::endl
-            << "Total item width:      " << total_item_width() << std::endl
-            << "Total item height:     " << total_item_height() << std::endl
+            << "Mean item width:       " << (double)total_item_width() / number_of_items() << std::endl
+            << "Mean item height:      " << (double)total_item_height() / number_of_items() << std::endl
             << "Smallest item width:   " << smallest_item_width() << std::endl
             << "Smallest item height:  " << smallest_item_height() << std::endl
             << "Total item profit:     " << item_profit() << std::endl

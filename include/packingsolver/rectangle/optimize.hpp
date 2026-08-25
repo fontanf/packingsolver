@@ -209,11 +209,22 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 
+    /** Directions used in the tree search algorithm; see 'TreeSearchParameters::directions'. */
+    std::vector<Direction> tree_search_directions;
+
     /** Threshold to consider that a bin contains "many" items. */
     Counter many_items_in_bins_threshold = 16;
 
-    /** Threshold to consider that a bin contains "many" items. */
-    Counter many_items_in_bins_threshold_2 = 64;
+    /**
+     * Threshold to consider that a bin x (resp. y) section - a full-height
+     * (resp. full-width) strip as wide (resp. as tall) as the mean item -
+     * contains "many" items, i.e. mean bin height (resp. width) / mean item
+     * height (resp. width). Used to choose between 'tree_search' (whose
+     * skyline branching factor grows with how many items pack into a single
+     * such section) and 'tree_search_maximal_spaces' (higher overhead per
+     * node, but does not degrade the same way).
+     */
+    Counter many_items_in_section_threshold = 4;
 
     /** Factor to consider that the number of copies of items is "high". */
     Counter many_item_type_copies_factor = 1;
@@ -268,7 +279,7 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * Size of the queue in the tree search maximal spaces algorithm for the single knapsack
      * subproblem of the sequential single knapsack algorithm.
      */
-    NodeId not_anytime_sequential_single_knapsack_subproblem_tree_search_maximal_spaces_queue_size = 16;
+    NodeId not_anytime_sequential_single_knapsack_subproblem_tree_search_maximal_spaces_queue_size = 1024;
 
     /** Number of iterations of the sequential value correction algorithm. */
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;

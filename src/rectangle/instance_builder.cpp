@@ -1094,6 +1094,8 @@ Instance InstanceBuilder::build()
 
     // Compute bin type attributes.
     instance_.bin_area_ = 0;
+    instance_.total_bin_width_ = 0;
+    instance_.total_bin_height_ = 0;
     instance_.bin_weight_ = 0;
     Volume previous_bins_area = 0;
     for (BinTypeId bin_type_id = 0;
@@ -1105,6 +1107,9 @@ Instance InstanceBuilder::build()
             instance_.bin_types_[bin_type_id].copies = instance_.number_of_items();
         // Update bins_area_sum_.
         instance_.bin_area_ += bin_type.copies * bin_type.area();
+        // Update total_bin_width_ and total_bin_height_.
+        instance_.total_bin_width_ += bin_type.copies * bin_type.rect.x;
+        instance_.total_bin_height_ += bin_type.copies * bin_type.rect.y;
         // Update bin_weight_..
         instance_.bin_weight_ += bin_type.copies * bin_type.maximum_weight;
         // Update previous_bins_area_ and bin_type_ids_.

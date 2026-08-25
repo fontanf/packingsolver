@@ -303,6 +303,7 @@ void optimize_tree_search(
     ts_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     ts_parameters.optimization_mode = parameters.optimization_mode;
     ts_parameters.guides = parameters.tree_search_guides;
+    ts_parameters.directions = parameters.tree_search_directions;
     ts_parameters.not_anytime_tree_search_queue_size = parameters.not_anytime_tree_search_queue_size;
     ts_parameters.json_search_tree_path = parameters.json_search_tree_path;
     ts_parameters.fixed_items = parameters.fixed_items;
@@ -739,6 +740,24 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     // Select algorithms to run.
     ItemPos mean_number_of_items_in_bins
         = largest_bin_space(instance) / mean_item_space(instance);
+    // Expected number of items in a bin x (resp. y) section - a full-height
+    // (resp. full-width) strip as wide (resp. as tall) as the mean item -
+    // rather than in the whole bin: what actually drives 'tree_search''s
+    // skyline branching factor (see 'many_items_in_section_threshold''s own
+    // doc comment).
+    double mean_item_width = (double)instance.total_item_width() / instance.number_of_items();
+    double mean_item_height = (double)instance.total_item_height() / instance.number_of_items();
+    double mean_bin_width = (double)instance.total_bin_width() / instance.number_of_bins();
+    double mean_bin_height = (double)instance.total_bin_height() / instance.number_of_bins();
+    double mean_number_of_items_in_x_section = mean_bin_height / mean_item_height;
+    double mean_number_of_items_in_y_section = mean_bin_width / mean_item_width;
+    // Directions 'tree_search' should run with, when the automatic
+    // selection below picks it over 'tree_search_maximal_spaces' by
+    // restricting to whichever of 'X'/'Y' has few enough items per section
+    // (see 'many_items_in_section_threshold''s own doc comment). Empty
+    // means "no restriction" (let 'tree_search' decide on its own, as
+    // before).
+    std::vector<Direction> tree_search_directions_override;
     bool use_tree_search = parameters.use_tree_search;
     bool use_tree_search_maximal_spaces = parameters.use_tree_search_maximal_spaces;
     bool use_sequential_single_knapsack = parameters.use_sequential_single_knapsack;
@@ -755,6 +774,22 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         if (instance.objective() != Objective::Knapsack
                 && instance.objective() != Objective::Feasibility)
             use_tree_search_maximal_spaces = false;
+        // 'tree_search_maximal_spaces' doesn't implement unloading
+        // constraints at all (unlike 'tree_search'): force it off even if
+        // the caller explicitly requested it, rather than silently running
+        // and ignoring the constraint.
+        if (instance.parameters().unloading_constraint != UnloadingConstraint::None)
+            use_tree_search_maximal_spaces = false;
+        // 'tree_search_maximal_spaces' doesn't implement semi-trailer-truck
+        // axle weight distribution constraints either: same reasoning as
+        // the unloading constraint above.
+        for (BinTypeId bin_type_id = 0;
+                use_tree_search_maximal_spaces
+                        && bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            if (instance.bin_type(bin_type_id).semi_trailer_truck_data.is)
+                use_tree_search_maximal_spaces = false;
+        }
         if (instance.objective() != Objective::Knapsack
                 && instance.objective() != Objective::Feasibility)
             use_bar_relaxation = false;
@@ -765,9 +800,23 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 && !use_bar_relaxation) {
             if ((instance.objective() == Objective::Knapsack
                         || instance.objective() == Objective::Feasibility)
-                    && mean_number_of_items_in_bins > parameters.many_items_in_bins_threshold_2
                     && instance.parameters().unloading_constraint == UnloadingConstraint::None) {
-                use_tree_search_maximal_spaces = true;
+                // Restrict 'tree_search' to whichever direction(s) keep few
+                // enough items per section - its skyline branching factor
+                // stays manageable there - falling back to
+                // 'tree_search_maximal_spaces' only if neither direction
+                // does.
+                std::vector<Direction> restricted_directions;
+                if (mean_number_of_items_in_x_section <= parameters.many_items_in_section_threshold)
+                    restricted_directions.push_back(Direction::X);
+                if (mean_number_of_items_in_y_section <= parameters.many_items_in_section_threshold)
+                    restricted_directions.push_back(Direction::Y);
+                if (!restricted_directions.empty()) {
+                    use_tree_search = true;
+                    tree_search_directions_override = restricted_directions;
+                } else {
+                    use_tree_search_maximal_spaces = true;
+                }
             } else {
                 use_tree_search = true;
             }
@@ -949,11 +998,20 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         std::unique_ptr<rectangle::Output> local_output;
         if (deterministic)
             local_output = std::make_unique<rectangle::Output>(instance);
-        tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get()]() {
+        // 'tree_search_directions_override' (set by the automatic selection
+        // above) takes priority over any direction restriction the caller
+        // already set in 'parameters' - the automatic selection only ever
+        // runs when the caller left both 'use_tree_search' and
+        // 'use_tree_search_maximal_spaces' unset, so there is no explicit
+        // choice here to override.
+        OptimizeParameters tree_search_parameters = parameters;
+        if (!tree_search_directions_override.empty())
+            tree_search_parameters.tree_search_directions = tree_search_directions_override;
+        tasks.push_back([&exception_ptr, &instance, tree_search_parameters, &algorithm_formatter, local_output = local_output.get()]() {
             wrapper<decltype(&optimize_tree_search), optimize_tree_search>(
                     exception_ptr,
                     instance,
-                    parameters,
+                    tree_search_parameters,
                     algorithm_formatter,
                     local_output);
         });

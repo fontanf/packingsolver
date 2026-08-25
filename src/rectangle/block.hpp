@@ -27,8 +27,32 @@ struct Block
     /** Sum of profits of all items inside the block. */
     Profit item_profit = 0;
 
-    /** Sum of weights of all items inside the block. */
+    /**
+     * Sum of weights of all items inside the block. compute_blocks() also
+     * discards any block whose own weight already exceeds its bin type's
+     * 'maximum_weight' (such a block could never be validly placed
+     * regardless of anything else sharing the bin, since weight only ever
+     * adds up) - see 'compute_blocks_for_bin' in 'block.cpp'.
+     */
     Weight weight = 0;
+
+    /**
+     * Consumption of each resource of the block's own bin type, indexed by
+     * resource_id, assuming the block is placed on its own (each item
+     * type's copies starting at copy index 0 - see 'Resource::
+     * item_consumptions'). Computed once by compute_blocks(), which also
+     * discards any block whose consumption of a non-'penalize' resource
+     * already exceeds that resource's capacity on its own (such a block
+     * could never be validly placed regardless of anything else sharing
+     * the bin, since consumption only ever adds up) - see
+     * 'compute_blocks_for_bin' in 'block.cpp'. 'item_profit' is left
+     * unadjusted (a plain, freely-additive sum of raw item profits): a
+     * 'penalize' resource's penalty depends on what else shares the bin (see
+     * 'BranchingSchemeMaximalSpaces::insertion_profit' in
+     * 'tree_search_maximal_spaces.cpp'), which this block-local field alone
+     * cannot capture. Empty iff the bin type has no resources.
+     */
+    std::vector<double> resource_consumption;
 
     bool is_simple = false;
 

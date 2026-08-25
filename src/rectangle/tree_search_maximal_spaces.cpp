@@ -137,7 +137,7 @@ double BranchingSchemeMaximalSpaces::compute_insertion_guide(
     const Block& block = blocks_[bin_type_id][insertion.block_id];
 
     double fill_rate = (double)parent.item_area / bin_rect_.area();
-    double v = block.item_profit;
+    double v = insertion_profit(parent, block, bin_type_id);
     double l = compute_area_loss_factor(info, block);
     double n = (double)block.number_of_items;
     if (fill_rate < parameters_.configuration_switch_threshold) {
@@ -205,6 +205,48 @@ double BranchingSchemeMaximalSpaces::active_delta(const Node& node) const
     }
 }
 
+bool BranchingSchemeMaximalSpaces::block_resource_capacity_ok(
+        const Node& parent,
+        const Block& block,
+        BinTypeId bin_type_id) const
+{
+    const BinType& bin_type = instance_.bin_type(bin_type_id);
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (resource.penalize)
+            continue;
+        double previous_consumption = parent.resource_consumption.empty()?
+            0.0: parent.resource_consumption[resource_id];
+        if (previous_consumption + block.resource_consumption[resource_id] > resource.capacity * PSTOL)
+            return false;
+    }
+    return true;
+}
+
+Profit BranchingSchemeMaximalSpaces::insertion_profit(
+        const Node& parent,
+        const Block& block,
+        BinTypeId bin_type_id) const
+{
+    const BinType& bin_type = instance_.bin_type(bin_type_id);
+    Profit profit = block.item_profit;
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (!resource.penalize)
+            continue;
+        double previous_consumption = parent.resource_consumption.empty()?
+            0.0: parent.resource_consumption[resource_id];
+        double new_consumption = previous_consumption + block.resource_consumption[resource_id];
+        if (new_consumption > resource.capacity && previous_consumption <= resource.capacity)
+            profit -= resource.penalty;
+    }
+    return profit;
+}
+
 const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaximalSpaces::insertions(
         const std::shared_ptr<Node>& parent) const
 {
@@ -221,7 +263,6 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
 
     double delta = active_delta(*parent);
     BinTypeId bin_type_id = instance_.bin_type_id(0);
-    Weight maximum_weight = instance_.bin_type(bin_type_id).maximum_weight;
 
     if (!parent->empty_spaces.empty()) {
         BestSpaceResult best = find_best_space(*parent, bin_type_id);
@@ -235,8 +276,10 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
                 if (block.rect.x > space.rect.x
                         || block.rect.y > space.rect.y)
                     continue;
-                if (parent->weight + block.weight > maximum_weight)
-                    continue;
+                // Weight and resource capacity are already guaranteed by
+                // 'valid_block_ids' (pruned in 'apply_insertion' - both only
+                // ever grow monotonically, so a block ruled out there stays
+                // ruled out for the rest of this subtree).
                 Insertion insertion;
                 insertion.space_id = best.space_idx;
                 insertion.block_id = block_id;
@@ -262,7 +305,6 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
 
     double delta = active_delta(parent);
     BinTypeId bin_type_id = instance_.bin_type_id(0);
-    Weight maximum_weight = instance_.bin_type(bin_type_id).maximum_weight;
 
     if (!parent.empty_spaces.empty()) {
         BestSpaceResult best_space = find_best_space(parent, bin_type_id);
@@ -276,8 +318,9 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
                 if (block.rect.x > space.rect.x
                         || block.rect.y > space.rect.y)
                     continue;
-                if (parent.weight + block.weight > maximum_weight)
-                    continue;
+                // Weight and resource capacity are already guaranteed by
+                // 'valid_block_ids' - see the matching comment in
+                // 'insertions'.
                 Insertion insertion;
                 insertion.space_id = best_space.space_idx;
                 insertion.block_id = block_id;
@@ -414,10 +457,24 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
 
     BinTypeId bin_type_id = instance_.bin_type_id(0);
     const Block& block = blocks_[bin_type_id][insertion.block_id];
-    for (const auto& item_copy: block.item_copies) {
-        node.item_number_of_copies[item_copy.first] += item_copy.second;
-        node.profit += instance_.item_type(item_copy.first).profit * item_copy.second;
+    const BinType& bin_type = instance_.bin_type(bin_type_id);
+
+    // 'insertion_profit' must run against 'node''s resource_consumption
+    // right before this block's own is added below (it detects a
+    // 'penalize' resource's *first* crossing of its capacity).
+    node.profit += insertion_profit(node, block, bin_type_id);
+    if (bin_type.number_of_resources() > 0) {
+        if (node.resource_consumption.empty())
+            node.resource_consumption.assign(bin_type.number_of_resources(), 0.0);
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            node.resource_consumption[resource_id] += block.resource_consumption[resource_id];
+        }
     }
+
+    for (const auto& item_copy: block.item_copies)
+        node.item_number_of_copies[item_copy.first] += item_copy.second;
     node.item_area += block.item_area;
     node.block_area += block.rect.area();
     node.weight += block.weight;
@@ -430,7 +487,16 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
     node.placed_blocks.push_back(std::move(current_pb));
 
     {
+        // Prune every block that node's post-insertion state (item copies
+        // used, weight, resource consumption) has made unusable for the
+        // rest of this node's subtree. Sound because all three only ever
+        // grow monotonically as more blocks get placed (never decrease), so
+        // a block ruled out here can never become usable again below this
+        // node - unlike 'insertions'/'best_insertion''s own weight/resource
+        // checks, which only rule out an insertion for the *current* node
+        // (recomputed on every call), this is a one-time, permanent prune.
         const std::vector<Block>& bin_blocks = blocks_[bin_type_id];
+        Weight maximum_weight = bin_type.maximum_weight;
         ItemPos block_idx = 0;
         while (block_idx < (ItemPos)node.valid_block_ids.size()) {
             const Block& candidate = bin_blocks[node.valid_block_ids[block_idx]];
@@ -442,6 +508,10 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
                     break;
                 }
             }
+            if (feasible && node.weight + candidate.weight > maximum_weight)
+                feasible = false;
+            if (feasible && !block_resource_capacity_ok(node, candidate, bin_type_id))
+                feasible = false;
             if (!feasible) {
                 node.valid_block_ids[block_idx] = node.valid_block_ids.back();
                 node.valid_block_ids.pop_back();

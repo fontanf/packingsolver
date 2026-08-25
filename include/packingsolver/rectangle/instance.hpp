@@ -378,6 +378,12 @@ public:
     /** Get the total area of the bins. */
     inline Area bin_area() const { return bin_area_; }
 
+    /** Get the total width of the bins (weighted by copies). */
+    inline Length total_bin_width() const { return total_bin_width_; }
+
+    /** Get the total height of the bins (weighted by copies). */
+    inline Length total_bin_height() const { return total_bin_height_; }
+
     /** Get the total weight of the bins. */
     inline Weight bin_weight() const { return bin_weight_; }
 
@@ -547,6 +553,12 @@ private:
 
     /** Total bin area. */
     Volume bin_area_ = 0;
+
+    /** Total bin width (weighted by copies). */
+    Length total_bin_width_ = 0;
+
+    /** Total bin height (weighted by copies). */
+    Length total_bin_height_ = 0;
 
     /** Total weight of the bins. */
     Weight bin_weight_ = 0.0;

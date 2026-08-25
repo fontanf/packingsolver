@@ -316,6 +316,61 @@ struct Resource
 };
 
 /**
+ * Prefix sums of 'resource''s per-copy consumption schedule for
+ * 'item_type_id': result[k] = sum of
+ * 'resource.item_consumption(item_type_id, copy)' for 'copy' in [0, k), for
+ * k in [0, schedule.size()] - always has at least one entry (result[0] ==
+ * 0), even for an item type absent from 'resource.item_consumptions' or
+ * with an empty schedule.
+ *
+ * Not stored on 'Resource' itself: only a consumer that bundles several
+ * copies of an item at once (e.g. rectangle::block.cpp's guillotine blocks)
+ * ever needs a *range* sum - every other domain's tree search looks up one
+ * copy at a time via 'Resource::item_consumption' directly, so precomputing
+ * this unconditionally in every domain's 'InstanceBuilder::build' would pay
+ * for something most of them never read. Call this once per (bin type,
+ * item type, resource) a block-bundling consumer actually cares about, and
+ * pass the result to 'sum_item_consumption' for an O(1) range sum instead
+ * of an O(schedule.size()) one - worthwhile whenever the same triple gets
+ * queried many times (e.g. once per generated block).
+ */
+inline std::vector<double> compute_resource_consumption_prefix_sums(
+        const Resource& resource,
+        ItemTypeId item_type_id)
+{
+    if (item_type_id >= (ItemTypeId)resource.item_consumptions.size())
+        return {0.0};
+    const std::vector<double>& schedule = resource.item_consumptions[item_type_id];
+    std::vector<double> prefix_sums(schedule.size() + 1, 0.0);
+    for (std::size_t k = 0; k < schedule.size(); ++k)
+        prefix_sums[k + 1] = prefix_sums[k] + schedule[k];
+    return prefix_sums;
+}
+
+/**
+ * Sum of 'resource.item_consumption(item_type_id, copy)' for 'copy' in
+ * '[0, count)', in O(1) given 'prefix_sums' (see
+ * 'compute_resource_consumption_prefix_sums', called against the same
+ * 'resource'/'item_type_id').
+ */
+inline double sum_item_consumption(
+        const Resource& resource,
+        ItemTypeId item_type_id,
+        const std::vector<double>& prefix_sums,
+        ItemPos count)
+{
+    ItemPos schedule_length = (ItemPos)prefix_sums.size() - 1;
+    if (schedule_length <= 0 || count <= 0)
+        return 0.0;
+    ItemPos head_count = (std::min)(count, schedule_length);
+    double sum = prefix_sums[head_count];
+    ItemPos tail_count = count - head_count;
+    if (tail_count > 0)
+        sum += (double)tail_count * resource.item_consumption(item_type_id, schedule_length - 1);
+    return sum;
+}
+
+/**
  * Sum, over all 'penalize' resources with a negative 'penalty', of
  * '-resource.penalty' (i.e. the magnitude of the profit gain each one could
  * contribute if triggered).
