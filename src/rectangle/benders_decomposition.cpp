@@ -309,7 +309,7 @@ SelectionFeasibility selection_feasibility(
         OptimizationMode::NotAnytimeDeterministic;
     sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
     auto sub_output = optimize(sub_instance, sub_parameters);
-    if (sub_output.solution_pool.best().full())
+    if (sub_output.solution_pool.best().feasible())
         return SelectionFeasibility::Feasible;
     if (sub_output.is_proven_infeasible)
         return SelectionFeasibility::ProvenInfeasible;
@@ -888,7 +888,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 instance, static_resources, item_type_precedences,
                 dff_cuts_by_bin_type, no_good_cuts_by_bin_type);
         onedimensional::OptimizeParameters master_parameters;
-        master_parameters.verbosity_level = 1;
+        master_parameters.verbosity_level = 0;
         master_parameters.timer = parameters.timer;
         master_parameters.optimization_mode
             = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
@@ -1042,7 +1042,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 break;
             }
 
-            if (!sub_solution.full()) {
+            if (!sub_solution.feasible()) {
                 // Add a no-good cut for every minimal infeasible subset of
                 // the selection found (see
                 // 'enumerate_minimal_infeasible_subsets') - each one

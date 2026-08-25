@@ -132,7 +132,7 @@ SequentialFeasibilityOutput packingsolver::rectangleguillotine::sequential_feasi
         SolutionPool<Instance, Solution> sub_solution_pool = solver(sub_instance);
 
         // If no feasible solution found, stop.
-        if (!sub_solution_pool.best().full())
+        if (!sub_solution_pool.best().feasible())
             break;
 
         // Transfer the sub-solution to the main instance.

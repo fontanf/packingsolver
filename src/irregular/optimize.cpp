@@ -322,7 +322,7 @@ void optimize_tree_search(
         last_bin_parameters.use_milp_raster = parameters.use_milp_raster;
         auto last_bin_output = optimize(last_bin_instance, last_bin_parameters);
 
-        if (last_bin_output.solution_pool.best().full()) {
+        if (last_bin_output.solution_pool.best().feasible()) {
 
             // Retrieve solution.
             Solution solution(instance);

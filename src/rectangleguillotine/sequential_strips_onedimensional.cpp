@@ -167,7 +167,7 @@ void run_phase2_and_reconstruct(
         AlgorithmFormatter& algorithm_formatter,
         packingsolver::Output<Instance, Solution>* local_output)
 {
-    if (!phase1_solution.full() || phase1_solution.number_of_bins() == 0)
+    if (!phase1_solution.feasible() || phase1_solution.number_of_bins() == 0)
         return;
 
     const BinType& bin_type = instance.bin_type(0);
