@@ -71,6 +71,35 @@ void InstanceBuilder::set_bin_type_cost(
     bin_type.cost = (cost == -1)? bin_type.rect.x * bin_type.rect.y: cost;
 }
 
+void InstanceBuilder::set_bin_type_rect(
+        BinTypeId bin_type_id,
+        Length x,
+        Length y)
+{
+    if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid 'bin_type_id'; "
+                "bin_type_id: " + std::to_string(bin_type_id) + "; "
+                "instance_.bin_types_.size(): " + std::to_string(instance_.bin_types_.size()) + ".");
+    }
+    if (x <= 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "bin 'x' must be > 0; "
+                "x: " + std::to_string(x) + ".");
+    }
+    if (y <= 0) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "bin 'y' must be > 0; "
+                "y: " + std::to_string(y) + ".");
+    }
+
+    instance_.bin_types_[bin_type_id].rect.x = x;
+    instance_.bin_types_[bin_type_id].rect.y = y;
+}
+
 void InstanceBuilder::set_bin_type_maximum_weight(
         BinTypeId bin_type_id,
         Weight maximum_weight)

@@ -648,7 +648,7 @@ bool Reduction::try_reduce_both_group(
                 continue;
             }
             if (bin_type.copies >= 0
-                    && number_of_dedicated_bins() + big_item.copies > bin_type.copies) {
+                    && reserved_bin_count() + big_item.copies > bin_type.copies) {
                 // Not enough bin copies left to reserve dedicated bins
                 // for this item type: leave it for the underlying solver
                 // instead (sound, just less effective - see
@@ -807,7 +807,7 @@ bool Reduction::try_reduce_both_group(
     if (total_copies_used == 0)
         return false;
     if (bin_type.copies >= 0
-            && number_of_dedicated_bins() + total_copies_used > bin_type.copies) {
+            && reserved_bin_count() + total_copies_used > bin_type.copies) {
         // Not enough bin copies left to reserve dedicated bins for this
         // batch: leave every item type here untouched instead (sound,
         // just less effective - see 'reduce_perfect_pairs''s identical
@@ -939,7 +939,7 @@ bool Reduction::reduce_full_bin_items(
 
         ItemPos copies = item.copies;
         if (bin_type.copies >= 0
-                && number_of_dedicated_bins() + copies > bin_type.copies) {
+                && reserved_bin_count() + copies > bin_type.copies) {
             // Not enough bin copies left to reserve dedicated bins for
             // this item type: leave it for the underlying solver instead
             // (sound, just less effective - see 'reduce_perfect_pairs''s
@@ -957,6 +957,155 @@ bool Reduction::reduce_full_bin_items(
         full_bin_items_.push_back(FullBinItem{
                 item_type_id, rotate, copies, std::move(companions_by_copy)});
         any_reduced = true;
+    }
+
+    return any_reduced;
+}
+
+bool Reduction::reduce_full_span_items(
+        std::vector<ReductionItemType>& reduction_item_types)
+{
+    // If some other dedicated-bin reservation (found earlier this same
+    // round - 'reduce_full_bin_items'/'reduce_perfect_pairs' both run
+    // before this function) already claimed the bin's sole copy (see
+    // 'reduce_full_span_items_applies' - exactly one bin copy is the only
+    // case this function ever runs in), there is no bin left for this
+    // function's own pins to share - nothing to do. Deliberately checks
+    // 'number_of_dedicated_bins()' here, not 'reserved_bin_count()': the
+    // latter would already count this function's own prior pins from an
+    // earlier round, which must never block it from continuing to pin
+    // more into the very bin it already claimed for itself.
+    const BinType& bin_type = original_instance_->bin_type(0);
+    if (bin_type.copies >= 0 && number_of_dedicated_bins() >= bin_type.copies)
+        return false;
+
+    bool any_reduced = false;
+
+    // Repeat within this call too, not just across the constructor's own
+    // outer rounds: shrinking 'true_bin_rect_' on one axis can newly make
+    // some other item type's *other* axis match as well, within the very
+    // same call - see this function's own doc comment in 'reduction.hpp'.
+    bool found_this_pass = true;
+    while (found_this_pass) {
+        found_this_pass = false;
+
+        for (ItemTypeId item_type_id = 0;
+                item_type_id < (ItemTypeId)reduction_item_types.size();
+                ++item_type_id) {
+            ReductionItemType& item = reduction_item_types[item_type_id];
+            bool oriented = original_instance_->item_type(item_type_id).oriented;
+
+            // Matches against 'item.rect' - this item type's *current*
+            // dimensions, possibly already grown by lifting or companion
+            // absorption earlier this same round - deliberately, not its
+            // original ones. Both grown forms remain sound to match and
+            // consume from 'true_bin_rect_' by their *full* current
+            // dimension, for the same underlying reason in each case:
+            // whatever the growth added beyond the item's own true
+            // footprint is margin already proven permanently unusable by
+            // anything else remaining (lifting's own subset-sum argument -
+            // see 'lift_item_dimensions_axis' - or a companion-bin
+            // feasibility check's own real, placed companions - see
+            // 'reduce_group'/'reduce_both_groups'), so treating the whole
+            // grown span as spoken for changes nothing about what could
+            // ever still fit elsewhere; it was never available to begin
+            // with. A companion-enlarged item's own real companions are
+            // carried along (via 'extract_companions' below) and placed
+            // relative to wherever this pin ends up, exactly as
+            // 'place_item_and_companions' already does for every other
+            // case in this class - their own relative offsets do not
+            // depend on this item's absolute position.
+            //
+            // Consume every copy of this item type that currently matches,
+            // one at a time (each consumption changes 'true_bin_rect_',
+            // which - since this item type's own dimensions never change
+            // here - can only ever affect whether its *next* copy still
+            // matches, never retroactively invalidate this one).
+            while (!item.removed && item.copies > 0) {
+                bool matched = false;
+                bool rotate = false;
+                Length matched_width = 0;
+
+                // Height match: spans the bin's current true height, so it
+                // can be pinned at the current origin and the bin shrunk
+                // on the width axis by its own width.
+                if (item.rect.y == true_bin_rect_.y) {
+                    matched = true;
+                    rotate = false;
+                    matched_width = item.rect.x;
+                } else if (!oriented && item.rect.x == true_bin_rect_.y) {
+                    matched = true;
+                    rotate = true;
+                    matched_width = item.rect.y;
+                }
+
+                Point bl_corner = true_bin_origin_;
+                if (matched) {
+                    true_bin_origin_.x += matched_width;
+                    true_bin_rect_.x -= matched_width;
+                } else {
+                    // Width match: spans the bin's current true width, so
+                    // it can be pinned at the current origin and the bin
+                    // shrunk on the height axis by its own height.
+                    Length matched_height = 0;
+                    if (item.rect.x == true_bin_rect_.x) {
+                        matched = true;
+                        rotate = false;
+                        matched_height = item.rect.y;
+                    } else if (!oriented && item.rect.y == true_bin_rect_.x) {
+                        matched = true;
+                        rotate = true;
+                        matched_height = item.rect.x;
+                    }
+                    if (!matched)
+                        break;
+                    true_bin_origin_.y += matched_height;
+                    true_bin_rect_.y -= matched_height;
+                }
+
+                std::vector<std::vector<CompanionItem>> companions_by_copy
+                    = extract_companions(item, 1);
+                item.copies--;
+                if (item.copies == 0)
+                    item.removed = true;
+                full_span_items_.push_back(FullSpanItem{
+                        item_type_id, bl_corner, rotate, std::move(companions_by_copy[0])});
+                any_reduced = true;
+                found_this_pass = true;
+
+                // A strictly negative 'true_bin_rect_' means the item just
+                // placed did not actually fit in whatever room was left
+                // before it - infeasible outright, regardless of what else
+                // remains (there is nothing "exact" about overflowing).
+                // Exactly 0 is different: a perfectly good, exact-fit
+                // placement, *unless* something else still needs positive
+                // room that no longer exists - Proposition 1's "if there is
+                // a solution" premise is only actually violated once a
+                // positive-area item remains with no positive room left for
+                // it. Only possible for 'Feasibility', matching every other
+                // place this class ever sets 'proven_infeasible_' (see
+                // 'reduction_to_instance').
+                bool overflowed = (true_bin_rect_.x < 0 || true_bin_rect_.y < 0);
+                bool exhausted = (true_bin_rect_.x == 0 || true_bin_rect_.y == 0);
+                if (overflowed || exhausted) {
+                    bool anything_remaining = false;
+                    for (const ReductionItemType& other_item: reduction_item_types) {
+                        if (!other_item.removed && other_item.copies > 0) {
+                            anything_remaining = true;
+                            break;
+                        }
+                    }
+                    if (overflowed || anything_remaining) {
+                        // Stop immediately: continuing to pin further items
+                        // against a non-positive bin is meaningless, and
+                        // 'reduction_to_instance' must never be asked to
+                        // build a bin type with a non-positive dimension.
+                        proven_infeasible_ = true;
+                        return any_reduced;
+                    }
+                }
+            }
+        }
     }
 
     return any_reduced;
@@ -1000,7 +1149,7 @@ bool Reduction::reduce_perfect_pairs(
                 continue;
             ItemPos copies = std::min(item_1.copies, item_2.copies);
             if (bin_type.copies >= 0
-                    && number_of_dedicated_bins() + copies > bin_type.copies) {
+                    && reserved_bin_count() + copies > bin_type.copies) {
                 // Not enough bin copies left to reserve dedicated bins
                 // for this pair: leave both item types for the
                 // underlying solver instead (sound, just less
@@ -1064,6 +1213,11 @@ BinPos Reduction::number_of_dedicated_bins() const
         total += pair.copies;
     total += (BinPos)both_groups_.size();
     return total;
+}
+
+BinPos Reduction::reserved_bin_count() const
+{
+    return number_of_dedicated_bins() + (full_span_items_.empty()? 0: 1);
 }
 
 bool Reduction::items_mergeable(
@@ -1175,8 +1329,396 @@ ItemPos Reduction::effective_copies_min(
         ItemTypeId item_type_id) const
 {
     const ItemType& original_item_type = original_instance_->item_type(item_type_id);
+    // For 'Knapsack', 'reduction_item_types[item_type_id].copies' can only
+    // ever have shrunk below 'original_item_type.copies' via
+    // 'remove_negative_profit_items' (companion absorption never runs
+    // there - see 'companion_absorption_applies') - copies trimmed away
+    // that way are simply gone, never placed anywhere, unlike companion-
+    // absorbed copies (folded into another item's own dedicated
+    // placement) - so the "subtract what's already accounted for
+    // elsewhere" formula below does not apply; the requirement instead
+    // stays exactly 'original_item_type.copies_min', just capped by
+    // whatever copies genuinely remain (never below current 'copies',
+    // which would be unsatisfiable). 'remove_negative_profit_items' only
+    // ever trims down to exactly 'copies_min' itself, so this capping is
+    // never actually tightened in practice - it only guards the
+    // invariant.
+    if (original_instance_->objective() == Objective::Knapsack) {
+        return std::min(
+                original_item_type.copies_min,
+                reduction_item_types[item_type_id].copies);
+    }
     ItemPos consumed = original_item_type.copies - reduction_item_types[item_type_id].copies;
     return std::max((ItemPos)0, original_item_type.copies_min - consumed);
+}
+
+bool Reduction::remove_negative_profit_items(
+        std::vector<ReductionItemType>& reduction_item_types) const
+{
+    bool found = false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        ReductionItemType& item = reduction_item_types[item_type_id];
+        if (item.removed)
+            continue;
+        if (original_instance_->item_type(item_type_id).profit >= 0)
+            continue;
+        ItemPos min_copies = effective_copies_min(reduction_item_types, item_type_id);
+        if (item.copies <= min_copies) {
+            // Already at (or, degenerately, past) its own minimum -
+            // nothing optional left to trim.
+            continue;
+        }
+        item.copies = min_copies;
+        if (item.copies == 0)
+            item.removed = true;
+        found = true;
+    }
+    return found;
+}
+
+namespace
+{
+
+/**
+ * 'true' iff 'item_type_2''s own footprint fits within every orientation
+ * 'item_type_1''s own 'oriented' flag allows - the same helper (same
+ * name, same semantics) 'benders_decomposition.cpp' uses for its own
+ * item-type precedence computation, reimplemented locally here since it
+ * is not shared/exported (see 'Reduction::item_type_dominates''s own doc
+ * comment for why this class needs the identical check).
+ */
+bool item_type_fits_footprint_of(
+        const ItemType& item_type_2,
+        const ItemType& item_type_1)
+{
+    std::vector<std::pair<Length, Length>> footprints_1;
+    footprints_1.push_back({item_type_1.rect.x, item_type_1.rect.y});
+    if (!item_type_1.oriented)
+        footprints_1.push_back({item_type_1.rect.y, item_type_1.rect.x});
+
+    for (const std::pair<Length, Length>& footprint: footprints_1) {
+        bool fits = (item_type_2.rect.x <= footprint.first
+                    && item_type_2.rect.y <= footprint.second)
+                || (!item_type_2.oriented
+                    && item_type_2.rect.y <= footprint.first
+                    && item_type_2.rect.x <= footprint.second);
+        if (!fits)
+            return false;
+    }
+    return true;
+}
+
+/** Maximum value in 'schedule', or 0 if empty (no consumption at all). */
+double max_or_zero(const std::vector<double>& schedule)
+{
+    if (schedule.empty())
+        return 0.0;
+    return *std::max_element(schedule.begin(), schedule.end());
+}
+
+/** Minimum value in 'schedule', or 0 if empty (no consumption at all). */
+double min_or_zero(const std::vector<double>& schedule)
+{
+    if (schedule.empty())
+        return 0.0;
+    return *std::min_element(schedule.begin(), schedule.end());
+}
+
+/**
+ * 'true' iff 'item_type_1' and 'item_type_2' (possibly the same one
+ * twice) provably cannot both be packed into a single bin of type
+ * 'bin_type' - the geometric half of this check (a direct generalization
+ * of the single-item "self-incompatible" check: substitute
+ * 'item_type_2 := item_type_1' and it reduces exactly to it, since
+ * '2 * x > bin_x' follows from 'x > bin_x / 2' plus 'x > bin_x / 2') is
+ * the same helper 'benders_decomposition.cpp' uses for its own no-good
+ * cuts, reimplemented locally here since it is not shared/exported.
+ * Extended with a weight and a per-resource check (only ever considering
+ * non-'penalize' resources - a 'penalize' resource never makes a bin
+ * outright infeasible, so it can never prove two items incompatible the
+ * same hard way): either one alone is enough to prove the pigeonhole
+ * argument, so this returns 'true' as soon as any one of the three
+ * (geometric, weight, any one resource) holds.
+ */
+bool items_incompatible(
+        ItemTypeId item_type_id_1,
+        const ItemType& item_type_1,
+        ItemTypeId item_type_id_2,
+        const ItemType& item_type_2,
+        const BinType& bin_type)
+{
+    bool geometrically_incompatible =
+        (!item_type_1.oriented
+                && !item_type_2.oriented
+                && item_type_1.rect.min() + item_type_2.rect.min() > bin_type.rect.max())
+        || (item_type_1.oriented
+                && item_type_2.oriented
+                && item_type_1.rect.x + item_type_2.rect.x > bin_type.rect.x
+                && item_type_1.rect.y + item_type_2.rect.y > bin_type.rect.y)
+        || (!item_type_1.oriented
+                && item_type_2.oriented
+                && item_type_1.rect.max() + item_type_2.rect.x > bin_type.rect.x
+                && item_type_1.rect.max() + item_type_2.rect.y > bin_type.rect.y)
+        || (item_type_1.oriented
+                && !item_type_2.oriented
+                && item_type_1.rect.x + item_type_2.rect.max() > bin_type.rect.x
+                && item_type_1.rect.y + item_type_2.rect.max() > bin_type.rect.y);
+    if (geometrically_incompatible)
+        return true;
+
+    if (item_type_1.weight + item_type_2.weight > bin_type.maximum_weight)
+        return true;
+
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type.resource(resource_id);
+        if (resource.penalize)
+            continue;
+        // Uses the *smallest* value anywhere in each item type's own
+        // per-copy schedule (not just its first entry, which need not be
+        // the smallest for a non-uniform schedule) - proving
+        // incompatibility this way means even the most favorable possible
+        // combined contribution from one occurrence of each already
+        // exceeds capacity, a guaranteed overflow regardless of which
+        // copy index either one actually ends up placed at.
+        const std::vector<std::vector<double>>& item_consumptions = resource.item_consumptions;
+        static const std::vector<double> empty_schedule;
+        const std::vector<double>& schedule_1
+            = (item_type_id_1 < (ItemTypeId)item_consumptions.size())?
+                item_consumptions[item_type_id_1]: empty_schedule;
+        const std::vector<double>& schedule_2
+            = (item_type_id_2 < (ItemTypeId)item_consumptions.size())?
+                item_consumptions[item_type_id_2]: empty_schedule;
+        if (min_or_zero(schedule_1) + min_or_zero(schedule_2) > resource.capacity)
+            return true;
+    }
+
+    return false;
+}
+
+}
+
+bool Reduction::item_type_dominates(
+        ItemTypeId item_type_id_a,
+        ItemTypeId item_type_id_b) const
+{
+    if (item_type_id_a == item_type_id_b)
+        return false;
+
+    const ItemType& item_a = original_instance_->item_type(item_type_id_a);
+    const ItemType& item_b = original_instance_->item_type(item_type_id_b);
+
+    if (item_a.profit < item_b.profit)
+        return false;
+    if (item_a.group_id != item_b.group_id)
+        return false;
+    if (item_a.weight > item_b.weight)
+        return false;
+    if (!item_type_fits_footprint_of(item_a, item_b))
+        return false;
+
+    // Eligibility superset (and, redundantly but harmlessly, geometric
+    // fit, already established above): A must be usable everywhere B is
+    // - see 'benders_decomposition.cpp''s own 'compute_item_type_precedences'
+    // for the same reuse of 'item_type_fits_bin_type' for this purpose.
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < original_instance_->number_of_bin_types();
+            ++bin_type_id) {
+        if (!original_instance_->item_type_fits_bin_type(item_type_id_b, bin_type_id))
+            continue;
+        if (!original_instance_->item_type_fits_bin_type(item_type_id_a, bin_type_id))
+            return false;
+    }
+
+    // Resources: A's own consumption must never exceed B's, for every bin
+    // type/resource - see this method's own doc comment in
+    // 'reduction.hpp' for why the conservative max(A)-vs-min(B) comparison
+    // is sound (if less effective) regardless of copy-index alignment.
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < original_instance_->number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = original_instance_->bin_type(bin_type_id);
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const std::vector<std::vector<double>>& item_consumptions
+                = bin_type.resource(resource_id).item_consumptions;
+            static const std::vector<double> empty_schedule;
+            const std::vector<double>& schedule_a
+                = (item_type_id_a < (ItemTypeId)item_consumptions.size())?
+                    item_consumptions[item_type_id_a]: empty_schedule;
+            const std::vector<double>& schedule_b
+                = (item_type_id_b < (ItemTypeId)item_consumptions.size())?
+                    item_consumptions[item_type_id_b]: empty_schedule;
+            if (max_or_zero(schedule_a) > min_or_zero(schedule_b))
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool Reduction::items_provably_incompatible(
+        ItemTypeId item_type_id_1,
+        ItemTypeId item_type_id_2) const
+{
+    const ItemType& item_type_1 = original_instance_->item_type(item_type_id_1);
+    const ItemType& item_type_2 = original_instance_->item_type(item_type_id_2);
+
+    // Incompatible overall iff provably incompatible in *every* bin type
+    // either one could ever be placed in: a bin type neither is eligible
+    // for is irrelevant (never a place they could coexist anyway); a bin
+    // type only one is eligible for already keeps them apart there on its
+    // own; and a bin type checked 'false' below is a real, uncovered
+    // possibility for them to coexist, which rules out "incompatible"
+    // overall.
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < original_instance_->number_of_bin_types();
+            ++bin_type_id) {
+        bool eligible_1 = original_instance_->item_type_fits_bin_type(item_type_id_1, bin_type_id);
+        bool eligible_2 = original_instance_->item_type_fits_bin_type(item_type_id_2, bin_type_id);
+        if (!eligible_1 || !eligible_2)
+            continue;
+        if (!items_incompatible(
+                item_type_id_1, item_type_1,
+                item_type_id_2, item_type_2,
+                original_instance_->bin_type(bin_type_id)))
+            return false;
+    }
+    return true;
+}
+
+bool Reduction::remove_dominated_items(
+        std::vector<ReductionItemType>& reduction_item_types) const
+{
+    bool found = false;
+    for (ItemTypeId item_type_id_b = 0;
+            item_type_id_b < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id_b) {
+        if (reduction_item_types[item_type_id_b].removed)
+            continue;
+        if (original_instance_->item_type(item_type_id_b).copies_min != 0)
+            continue;
+        for (ItemTypeId item_type_id_a = 0;
+                item_type_id_a < (ItemTypeId)reduction_item_types.size();
+                ++item_type_id_a) {
+            if (item_type_id_a == item_type_id_b)
+                continue;
+            if (reduction_item_types[item_type_id_a].removed)
+                continue;
+            if (!item_type_dominates(item_type_id_a, item_type_id_b))
+                continue;
+            if (!items_provably_incompatible(item_type_id_a, item_type_id_b))
+                continue;
+            reduction_item_types[item_type_id_b].removed = true;
+            found = true;
+            break;
+        }
+    }
+    return found;
+}
+
+bool Reduction::bin_type_dominates(
+        BinTypeId bin_type_id_a,
+        BinTypeId bin_type_id_b) const
+{
+    if (bin_type_id_a == bin_type_id_b)
+        return false;
+
+    const BinType& bin_type_a = original_instance_->bin_type(bin_type_id_a);
+    const BinType& bin_type_b = original_instance_->bin_type(bin_type_id_b);
+
+    // Bins are never placed rotated (unlike items), so a plain per-axis
+    // comparison - no orientation handling - is all that is needed here.
+    // Unlike item dominance (where the *smaller* item wins, since it uses
+    // less of a shared, limited resource for the same-or-better profit),
+    // bin dominance runs the other way: A must be at least as big as B in
+    // both dimensions to be able to hold anything B could - a *smaller*
+    // bin is strictly less capable, never a safe substitute.
+    if (bin_type_a.rect.x < bin_type_b.rect.x || bin_type_a.rect.y < bin_type_b.rect.y)
+        return false;
+    if (bin_type_a.cost > bin_type_b.cost)
+        return false;
+    if (bin_type_a.maximum_weight < bin_type_b.maximum_weight)
+        return false;
+
+    // Every one of these is a genuinely complex per-bin-type feature this
+    // class does not attempt to compare or reconcile across two different
+    // bin types - matching this class's existing precedent elsewhere
+    // (see e.g. 'companion_absorption_applies').
+    if (!bin_type_a.defects.empty() || !bin_type_b.defects.empty())
+        return false;
+    if (!bin_type_a.fixed_items.empty() || !bin_type_b.fixed_items.empty())
+        return false;
+    if (bin_type_a.semi_trailer_truck_data.is || bin_type_b.semi_trailer_truck_data.is)
+        return false;
+
+    // Resources: 'resource_id' carries no meaning across two different bin
+    // types (it is just the next index into that one bin type's own
+    // 'resources' vector - see 'InstanceBuilder::add_bin_type_resource()'),
+    // so there is no sound way to reconcile A's resources against B's - any
+    // resource of A's own blocks dominance. A bin type with no resources at
+    // all is unrestricted along every resource dimension though, so B alone
+    // having resources is fine - except a 'penalize' resource of B's with a
+    // negative 'penalty' (a one-time profit bonus for crossing its
+    // capacity - see 'Resource''s own doc comment and the same exclusion in
+    // 'remove_negative_profit_items()'), which A, having no matching
+    // resource, could never replicate: losing access to that bonus would
+    // make A strictly worse than B for some solutions.
+    if (bin_type_a.number_of_resources() > 0)
+        return false;
+    for (ResourceId resource_id = 0;
+            resource_id < bin_type_b.number_of_resources();
+            ++resource_id) {
+        const Resource& resource = bin_type_b.resource(resource_id);
+        if (resource.penalize && resource.penalty < 0)
+            return false;
+    }
+
+    // Eligibility superset: A must support every eligibility id B does.
+    for (EligibilityId eligibility_id: bin_type_b.eligibility_ids) {
+        if (std::find(
+                    bin_type_a.eligibility_ids.begin(),
+                    bin_type_a.eligibility_ids.end(),
+                    eligibility_id)
+                == bin_type_a.eligibility_ids.end())
+            return false;
+    }
+
+    return true;
+}
+
+std::vector<bool> Reduction::compute_dominated_bin_types() const
+{
+    std::vector<bool> dominated(original_instance_->number_of_bin_types(), false);
+    // See the class-level doc comment's "Removing dominated bin types"
+    // paragraph for why this bound - unlike the equivalent one for items
+    // - is both sound and actually achievable.
+    BinPos enough_copies = (BinPos)original_instance_->number_of_items();
+    for (BinTypeId bin_type_id_b = 0;
+            bin_type_id_b < original_instance_->number_of_bin_types();
+            ++bin_type_id_b) {
+        if (original_instance_->bin_type(bin_type_id_b).copies_min != 0)
+            continue;
+        for (BinTypeId bin_type_id_a = 0;
+                bin_type_id_a < original_instance_->number_of_bin_types();
+                ++bin_type_id_a) {
+            if (bin_type_id_a == bin_type_id_b)
+                continue;
+            if (dominated[bin_type_id_a])
+                continue;
+            if (original_instance_->bin_type(bin_type_id_a).copies < enough_copies)
+                continue;
+            if (!bin_type_dominates(bin_type_id_a, bin_type_id_b))
+                continue;
+            dominated[bin_type_id_b] = true;
+            break;
+        }
+    }
+    return dominated;
 }
 
 bool Reduction::merge_identical_items(
@@ -1204,7 +1746,8 @@ bool Reduction::merge_identical_items(
 }
 
 Instance Reduction::reduction_to_instance(
-        const std::vector<ReductionItemType>& reduction_item_types)
+        const std::vector<ReductionItemType>& reduction_item_types,
+        const std::vector<bool>& bin_type_removed)
 {
     InstanceBuilder instance_builder;
     instance_builder.set_objective(original_instance_->objective());
@@ -1227,10 +1770,48 @@ Instance Reduction::reduction_to_instance(
             remaining_items += original_instance_->item_type(item_type_id).copies;
     }
 
+    // Maps 'original_instance_''s own bin type ids to the reduced
+    // instance's own ('-1' for a bin type 'compute_dominated_bin_types'
+    // found dominated and skipped below) - needed both by the resource-
+    // consumption-copying loop further down (which, unlike the item-type
+    // loop, is keyed by bin type id directly) and by 'unreduce_solution'
+    // (via 'reduced_to_original_bin_type_id_', this vector's own inverse,
+    // populated alongside it below).
+    std::vector<BinTypeId> original_to_reduced_bin_type_id(
+            original_instance_->number_of_bin_types(), -1);
+    reduced_to_original_bin_type_id_.clear();
+
     for (BinTypeId bin_type_id = 0;
             bin_type_id < original_instance_->number_of_bin_types();
             ++bin_type_id) {
+        if (bin_type_id < (BinTypeId)bin_type_removed.size()
+                && bin_type_removed[bin_type_id]) {
+            // Dominated by some other bin type with enough copies to
+            // cover any genuine use of this one (see
+            // 'compute_dominated_bin_types') - skipped entirely, rather
+            // than built with e.g. 0 copies, so it does not even appear
+            // in the reduced instance.
+            continue;
+        }
         BinTypeId new_bin_type_id = instance_builder.add_bin_type(*original_instance_, bin_type_id);
+        original_to_reduced_bin_type_id[bin_type_id] = new_bin_type_id;
+        reduced_to_original_bin_type_id_.push_back(bin_type_id);
+        // Override to this bin's own true, possibly-shrunk dimensions (see
+        // 'true_bin_rect_'/'reduce_full_span_items') - a no-op when
+        // 'reduce_full_span_items' never actually ran ('true_bin_rect_'
+        // still holds this same bin type's own original dimensions then,
+        // set at the top of the constructor). Skipped whenever
+        // 'true_bin_rect_' is non-positive: 'proven_infeasible_' is
+        // already 'true' in that case (see 'reduce_full_span_items''s own
+        // guard), so this instance is never actually solved - using the
+        // original, still-positive dimensions here is just a harmless
+        // placeholder, the same reasoning as the bin-copies-exhausted case
+        // just below.
+        if (reduce_full_span_items_applies(*original_instance_)
+                && true_bin_rect_.x > 0 && true_bin_rect_.y > 0) {
+            instance_builder.set_bin_type_rect(
+                    new_bin_type_id, true_bin_rect_.x, true_bin_rect_.y);
+        }
         if (number_of_dedicated_bins > 0) {
             // Fold the dedicated bins' capacity out of the reduced
             // instance's own bin type copies: they are entirely absent
@@ -1328,11 +1909,15 @@ Instance Reduction::reduction_to_instance(
         instance_builder.set_item_type_eligibility(new_item_type_id, original_item_type.eligibility_id);
         // Copy resource consumptions (the bin types themselves, including
         // their resources, were already copied above via 'add_bin_type(
-        // *original_instance_, bin_type_id)'; bin type ids line up 1:1 with
-        // 'original_instance_'s own since none are skipped in that loop).
+        // *original_instance_, bin_type_id)' - using
+        // 'original_to_reduced_bin_type_id' to translate ids, since
+        // dominated bin types are skipped there and so no longer line up
+        // 1:1 with 'original_instance_'s own).
         for (BinTypeId bin_type_id = 0;
                 bin_type_id < original_instance_->number_of_bin_types();
                 ++bin_type_id) {
+            if (original_to_reduced_bin_type_id[bin_type_id] == -1)
+                continue;
             const BinType& original_bin_type = original_instance_->bin_type(bin_type_id);
             for (ResourceId resource_id = 0;
                     resource_id < original_bin_type.number_of_resources();
@@ -1346,7 +1931,7 @@ Instance Reduction::reduction_to_instance(
                         item_copy < (ItemPos)schedule.size();
                         ++item_copy) {
                     instance_builder.add_resource_consumption(
-                            bin_type_id,
+                            original_to_reduced_bin_type_id[bin_type_id],
                             resource_id,
                             new_item_type_id,
                             item_copy,
@@ -1364,7 +1949,8 @@ Length Reduction::max_achievable_dimension_sum(
         const std::vector<ReductionItemType>& reduction_item_types,
         const Instance& original_instance,
         Length capacity,
-        bool width_axis)
+        bool width_axis,
+        ItemTypeId excluded_item_type_id)
 {
     multiplechoicesubsetsumsolver::InstanceBuilder mcss_instance_builder;
     mcss_instance_builder.set_capacity(capacity);
@@ -1378,7 +1964,10 @@ Length Reduction::max_achievable_dimension_sum(
         bool oriented = original_instance.item_type(item_type_id).oriented;
         Length value = (width_axis)? item.rect.x: item.rect.y;
         Length rotated_value = (width_axis)? item.rect.y: item.rect.x;
-        for (ItemPos copy = 0; copy < item.copies; ++copy) {
+        ItemPos copies = item.copies;
+        if (item_type_id == excluded_item_type_id)
+            --copies;
+        for (ItemPos copy = 0; copy < copies; ++copy) {
             mcss_instance_builder.add_item(mcss_group_id, value);
             if (!oriented && rotated_value != value)
                 mcss_instance_builder.add_item(mcss_group_id, rotated_value);
@@ -1484,6 +2073,192 @@ bool Reduction::companion_absorption_applies(const Instance& instance)
             && !instance.resources_matter();
 }
 
+bool Reduction::lift_item_dimensions_applies(const Instance& instance)
+{
+    // Unlike 'companion_absorption_applies', not restricted by objective,
+    // weight, resources, or unloading constraint - see the class-level
+    // doc comment's "Lifting item dimensions via subset sum" paragraph
+    // for why: this operation never removes or hides any item type from
+    // the reduced instance (a lifted item's own weight/resource
+    // consumption/unloading group is untouched, and every other item type
+    // stays fully present and independently placed), so none of the
+    // whole-bin arguments that block companion absorption apply here.
+    //
+    // Still needs a single bin type - the bin's own true dimension this
+    // operation reasons against would otherwise be ambiguous - and no
+    // defects - a defect sitting inside the margin this operation claims
+    // is "provably empty" would be invisible to its purely 1D subset-sum
+    // argument, the same blind spot as companion absorption's own
+    // geometric checks (see 'companion_absorption_applies').
+    return instance.number_of_bin_types() == 1
+            && instance.number_of_defects() == 0;
+}
+
+bool Reduction::remove_negative_profit_items_applies(const Instance& instance)
+{
+    if (instance.objective() != Objective::Knapsack)
+        return false;
+
+    // A 'penalize' resource with a negative 'penalty' is a one-time
+    // profit bonus the first time a bin's consumption crosses its
+    // capacity - a negative-profit item could still be worth including if
+    // its own consumption helps trigger that crossing, an indirect
+    // benefit this purely per-item check cannot see. See the class-level
+    // doc comment's "Trimming negative-profit item types" paragraph.
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < instance.number_of_bin_types();
+            ++bin_type_id) {
+        const BinType& bin_type = instance.bin_type(bin_type_id);
+        for (ResourceId resource_id = 0;
+                resource_id < bin_type.number_of_resources();
+                ++resource_id) {
+            const Resource& resource = bin_type.resource(resource_id);
+            if (resource.penalize && resource.penalty < 0)
+                return false;
+        }
+    }
+    return true;
+}
+
+bool Reduction::remove_dominated_items_applies(const Instance& instance)
+{
+    return instance.objective() == Objective::Knapsack;
+}
+
+bool Reduction::remove_dominated_bin_types_applies(const Instance& instance)
+{
+    // Not for 'BinPacking': unlike every other objective this class
+    // handles, its bin types must be used in the exact order they are
+    // declared - each one's own copies fully exhausted before the next
+    // is ever touched (see 'tree_search.cpp''s own 'BranchingScheme'
+    // constructor, which builds its bin sequence in declared order for
+    // every objective except 'Knapsack', and 'onedimensional''s own
+    // 'Solution::bin_type_order_feasible()', explicitly scoped to
+    // 'BinPacking' alone - the order is a genuine, enforced constraint on
+    // solution validity only there, not merely a search-strategy detail).
+    // Removing a bin type shifts every later one's position in that fixed
+    // sequence, making it available *earlier* than the original problem
+    // ever allowed - not an equivalent substitution, a different problem
+    // entirely, regardless of how thoroughly one bin type dominates
+    // another.
+    if (instance.objective() == Objective::BinPacking)
+        return false;
+    return instance.number_of_bin_types() > 1;
+}
+
+bool Reduction::reduce_full_span_items_applies(const Instance& instance)
+{
+    // Only 'Feasibility' - see this method's own doc comment in
+    // 'reduction.hpp' for why 'OpenDimensionX'/'OpenDimensionY' are not
+    // (yet) included.
+    if (instance.objective() != Objective::Feasibility)
+        return false;
+
+    // Exactly one bin *copy*, on top of every one of
+    // 'companion_absorption_applies''s own exclusions (checked directly
+    // here rather than by calling it, since that also allows 'BinPacking'/
+    // 'VariableSizedBinPacking', which this operation never does) - see
+    // this method's own doc comment in 'reduction.hpp'.
+    return instance.number_of_bin_types() == 1
+            && instance.bin_type(0).copies == 1
+            && instance.number_of_defects() == 0
+            && instance.unloading_constraint() == UnloadingConstraint::None
+            && !instance.weight_matters()
+            && !instance.resources_matter();
+}
+
+bool Reduction::lift_item_dimensions(
+        std::vector<ReductionItemType>& reduction_item_types,
+        Length bin_w,
+        Length bin_h) const
+{
+    bool found = false;
+    found |= lift_item_dimensions_axis(reduction_item_types, bin_w, /* width_axis */ true);
+    found |= lift_item_dimensions_axis(reduction_item_types, bin_h, /* width_axis */ false);
+    return found;
+}
+
+bool Reduction::lift_item_dimensions_axis(
+        std::vector<ReductionItemType>& reduction_item_types,
+        Length bin_dimension,
+        bool width_axis) const
+{
+    // See this method's own doc comment in 'reduction.hpp' for why any
+    // not-yet-'removed' item type with infinite copies rules this out
+    // entirely for every item type on this axis, not just for itself.
+    for (const ReductionItemType& item: reduction_item_types) {
+        if (!item.removed && item.copies < 0)
+            return false;
+    }
+
+    bool found = false;
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < (ItemTypeId)reduction_item_types.size();
+            ++item_type_id) {
+        ReductionItemType& item = reduction_item_types[item_type_id];
+        if (item.removed)
+            continue;
+        // Requires the item to be 'oriented': growing 'rect.x'/'rect.y'
+        // directly only means anything if the item is fixed at that
+        // declared orientation - a non-oriented item's rotated
+        // presentation swaps which of its two dimensions plays "width"
+        // and which plays "height", so growing one declared field alone
+        // would silently corrupt its footprint on a downstream solve
+        // choosing the *other* orientation (concretely: a non-oriented
+        // 5x10 item whose declared width got lifted to 10 would become a
+        // bogus 10x10 - not "5x10, rotatable" and not "10x5" either, an
+        // item type larger than either of its two true presentations).
+        // Same precondition 'is_big' already requires for 'Wide'/'Tall'
+        // - see its own doc comment.
+        if (!original_instance_->item_type(item_type_id).oriented)
+            continue;
+        // Requires exactly 1 remaining copy: growing 'rect.x'/'rect.y'
+        // applies uniformly to *every* copy of this item type at once,
+        // but 'max_achievable_dimension_sum''s "leave one out" adjustment
+        // (see its own doc comment) only proves the bound for a single
+        // occurrence - each of several copies would need its own row/
+        // column, each with its own claim on the same limited pool of
+        // other items, which a single shared "achievable_other" value
+        // cannot back simultaneously (concretely: 3 copies of a 4x4 item
+        // alongside 2 more 4x4 copies of another type, in a 100x100 bin -
+        // "leave one out" finds only 16 of achievable width from the 4
+        // other copies, so naively lifting the *type* would grow all 3
+        // copies to 84 wide each, needing 252 combined - far more than
+        // any real arrangement, and more than the bin itself, could ever
+        // supply).
+        if (item.copies != 1)
+            continue;
+        Length current_dimension = (width_axis)? item.rect.x: item.rect.y;
+        Length capacity = bin_dimension - current_dimension;
+        if (capacity <= 0) {
+            // Already at (or, degenerately, past) the bin's own shrunk
+            // dimension on this axis - nothing left to lift into.
+            continue;
+        }
+
+        Length achievable_other = max_achievable_dimension_sum(
+                reduction_item_types, *original_instance_, capacity, width_axis, item_type_id);
+        if (achievable_other >= capacity) {
+            // No provable gap: the other item types could, in the worst
+            // case, combine to reach all the way up to the bin's shrunk
+            // dimension alongside this one - nothing to lift safely.
+            continue;
+        }
+
+        // The gap ('capacity - achievable_other') is provably,
+        // permanently unreachable by any combination of the other item
+        // types, so this item type's own dimension can close it exactly.
+        Length new_dimension = bin_dimension - achievable_other;
+        if (width_axis) {
+            item.rect.x = new_dimension;
+        } else {
+            item.rect.y = new_dimension;
+        }
+        found = true;
+    }
+    return found;
+}
+
 Reduction::Reduction(
         const Instance& instance,
         const ReductionParameters& parameters):
@@ -1510,6 +2285,14 @@ Reduction::Reduction(
         reduction_item_types[item_type_id].copies = instance.item_type(item_type_id).copies;
     }
 
+    // Initialized here, ahead of the 'parameters.reduce' check below, so
+    // 'reduction_to_instance' can always safely read it (a no-op override
+    // to the original instance's own bin dimensions when
+    // 'reduce_full_span_items' never actually runs) - see
+    // 'true_bin_rect_''s own doc comment.
+    if (reduce_full_span_items_applies(instance))
+        true_bin_rect_ = instance.bin_type(0).rect;
+
     if (!parameters.reduce) {
         instance_ = reduction_to_instance(reduction_item_types);
         return;
@@ -1518,29 +2301,67 @@ Reduction::Reduction(
     // Every sub-operation below is independently gated by its own
     // 'parameters' flag - see 'ReductionParameters''s own doc comments -
     // on top of 'companion_absorption_applies' for the four companion-
-    // absorption ones (wide/tall, both, full-bin items, perfect pairs;
-    // see 'companion_absorption_applies''s own doc comment for why those
-    // four specifically share one precondition that 'merge_identical_items'
-    // does not).
+    // absorption ones (wide/tall, both, full-bin items, perfect pairs),
+    // 'lift_item_dimensions_applies' for item dimension lifting, and
+    // 'remove_negative_profit_items_applies'/'remove_dominated_items_applies'
+    // for the two 'Knapsack'-only trims below; see each one's own doc
+    // comment for why they share a different precondition from
+    // 'merge_identical_items' - and from each other.
     bool companion_absorption_ok = companion_absorption_applies(instance);
     bool run_wide_tall = companion_absorption_ok && parameters.enlarge_wide_tall_items;
     bool run_both = companion_absorption_ok && parameters.enlarge_both_items;
     bool run_full_bin_items = companion_absorption_ok && parameters.reduce_full_bin_items;
     bool run_perfect_pairs = companion_absorption_ok && parameters.reduce_perfect_pairs;
+    bool run_full_span_items = reduce_full_span_items_applies(instance) && parameters.enlarge_wide_tall_items;
+    bool run_lift_item_dimensions = lift_item_dimensions_applies(instance) && parameters.lift_item_dimensions;
+    bool run_remove_negative_profit_items = remove_negative_profit_items_applies(instance)
+            && parameters.remove_negative_profit_items;
+    bool run_remove_dominated_items = remove_dominated_items_applies(instance)
+            && parameters.remove_dominated_items;
+    bool run_remove_dominated_bin_types = remove_dominated_bin_types_applies(instance)
+            && parameters.remove_dominated_bin_types;
 
-    // Main reduction loop: repeat {wide, tall, both, full-bin items,
-    // perfect pairs} until a full pass finds nothing new (a later case's
-    // success can free up items that make an earlier case worth
-    // retrying). Runs unconditionally, even when every 'run_*' flag above
-    // is 'false': the first round then finds nothing (every sub-operation
-    // below is skipped) and the loop exits immediately after it, same end
-    // result as skipping the loop outright, without needing a separate
-    // guard here to special-case it.
+    // Run once, upfront, rather than inside the main per-round loop below:
+    // neither an item type's own profit nor any of the other original-
+    // instance properties 'remove_dominated_items'/'item_type_dominates'
+    // read ever changes across rounds (nothing else in this class ever
+    // touches them), so there is nothing to re-check repeatedly - unlike
+    // every operation in the loop, none of which is either one's own
+    // precondition or result. Negative-profit trimming runs first: it can
+    // only ever remove or shrink a candidate's own copies, which can only
+    // make 'remove_dominated_items''s own "enough copies" check *harder*
+    // to satisfy for a would-be dominator, never easier - so running it
+    // first is always at least as effective as the other order, never
+    // less (and avoids ever using an already-doomed negative-profit item
+    // type as a dominator in the first place).
+    if (run_remove_negative_profit_items)
+        remove_negative_profit_items(reduction_item_types);
+    if (run_remove_dominated_items)
+        remove_dominated_items(reduction_item_types);
+
+    // Bin types are never touched by anything else in this class (unlike
+    // item types' own working 'rect'/'copies'), so this needs no working
+    // representation and no per-round re-checking either - computed once
+    // here, and only consumed at the very end, by 'reduction_to_instance'.
+    std::vector<bool> bin_type_removed;
+    if (run_remove_dominated_bin_types)
+        bin_type_removed = compute_dominated_bin_types();
+
+    // Main reduction loop: repeat {lift item dimensions, wide, tall,
+    // both, full-bin items, perfect pairs} until a full pass finds
+    // nothing new (a later case's success can free up items that make an
+    // earlier case worth retrying). Runs unconditionally, even when every
+    // 'run_*' flag above is 'false': the first round then finds nothing
+    // (every sub-operation below is skipped) and the loop exits
+    // immediately after it, same end result as skipping the loop
+    // outright, without needing a separate guard here to special-case it.
     for (Counter round_number = 0;
             round_number < parameters.maximum_number_of_rounds;
             ++round_number) {
         if (parameters.timer.needs_to_end())
             break;
+
+        bool found = false;
 
         // Shrunk bin dimensions (equation (7), "shrinking the bins": see
         // 'compute_shrunk_bin_sizes'), recomputed every round from
@@ -1554,12 +2375,27 @@ Reduction::Reduction(
         // *true* bin - a sound, more aggressive equivalent encoding of
         // the same physical solution, not a different one, since nothing
         // else remains that could ever share a bin with it anyway.
+        //
+        // Computed first, ahead of every sub-operation below (including
+        // 'lift_item_dimensions'): 'bin_w'/'bin_h' is itself already the
+        // tightest sound substitute for the bin's own true dimension
+        // throughout this whole class, so every operation that reasons
+        // against "the bin's own dimension" - lifting included - should
+        // use it rather than the true, looser one; shrinking first also
+        // means a companionless lift that reaches exactly 'bin_w'/'bin_h'
+        // on both axes chains directly into 'reduce_full_bin_items'/
+        // 'reduce_perfect_pairs' below in the very same round, instead of
+        // needing an extra round to be picked up.
         ShrunkBinSizes shrunk_bin_sizes;
         compute_shrunk_bin_sizes(reduction_item_types, shrunk_bin_sizes);
         Length bin_w = shrunk_bin_sizes.bin_width;
         Length bin_h = shrunk_bin_sizes.bin_height;
 
-        bool found = false;
+        if (run_lift_item_dimensions)
+            found |= lift_item_dimensions(reduction_item_types, bin_w, bin_h);
+        if (parameters.timer.needs_to_end())
+            break;
+
         if (run_wide_tall)
             found |= reduce_group(reduction_item_types, parameters, EnlargementCase::Wide, bin_w, bin_h);
         if (parameters.timer.needs_to_end())
@@ -1580,6 +2416,18 @@ Reduction::Reduction(
         if (run_perfect_pairs)
             found |= reduce_perfect_pairs(
                     reduction_item_types, bin_w, bin_h);
+        if (parameters.timer.needs_to_end())
+            break;
+        // Runs last: a plain pin is never more valuable than the two
+        // dedicated-bin reductions just above for the same item type, so
+        // giving them first crack at it each round avoids ever burning a
+        // pin on an item that would have formed a strictly better
+        // 'FullBinItem'/'PerfectPair' instead - see this function's own
+        // doc comment in 'reduction.hpp'.
+        if (run_full_span_items)
+            found |= reduce_full_span_items(reduction_item_types);
+        if (proven_infeasible_)
+            break;
         if (!found)
             break;
     }
@@ -1587,7 +2435,7 @@ Reduction::Reduction(
     if (!parameters.timer.needs_to_end() && parameters.merge_identical_items)
         merge_identical_items(reduction_item_types);
 
-    instance_ = reduction_to_instance(reduction_item_types);
+    instance_ = reduction_to_instance(reduction_item_types, bin_type_removed);
 }
 
 void Reduction::place_item_and_companions(
@@ -1628,12 +2476,27 @@ Solution Reduction::unreduce_solution(
     // enlargement or from a merge).
     std::vector<ItemPos> next_copy_index(instance_.number_of_item_types(), 0);
 
+    // Set alongside every bin this loop builds (see 'full_span_items_''s
+    // own placement below) - only ever meaningfully read when
+    // 'full_span_items_' is non-empty, which itself only ever happens when
+    // 'original_instance_' has exactly one bin type with exactly one
+    // copy (see 'reduce_full_span_items_applies'), so 'solution' here
+    // builds at most a single bin overall and this is unambiguous.
+    BinPos single_bin_pos = -1;
     for (BinPos bin_pos = 0;
             bin_pos < solution.number_of_different_bins();
             ++bin_pos) {
         const SolutionBin& solution_bin = solution.bin(bin_pos);
+        // Translate the reduced instance's own bin type id back to
+        // 'original_instance_''s id space - identity unless
+        // 'compute_dominated_bin_types' skipped some bin types when
+        // building 'instance_' (see 'reduced_to_original_bin_type_id_'
+        // own doc comment; always populated by 'reduction_to_instance',
+        // regardless of whether any bin type was actually skipped).
+        BinTypeId original_bin_type_id = reduced_to_original_bin_type_id_[solution_bin.bin_type_id];
         for (BinPos copy = 0; copy < solution_bin.copies; ++copy) {
-            BinPos new_bin_pos = solution_builder.add_bin(solution_bin.bin_type_id, 1);
+            BinPos new_bin_pos = solution_builder.add_bin(original_bin_type_id, 1);
+            single_bin_pos = new_bin_pos;
             for (const SolutionItem& solution_item: solution_bin.items) {
                 ItemPos reduced_copy_index = next_copy_index[solution_item.item_type_id]++;
                 const CopyOrigin& origin
@@ -1653,6 +2516,30 @@ Solution Reduction::unreduce_solution(
                         solution_item.rotate,
                         *companions);
             }
+        }
+    }
+
+    // Place every pinned "full span item" (see 'FullSpanItem'/
+    // 'reduce_full_span_items') into the reduced solution's own single
+    // bin - unlike 'full_bin_items_'/'perfect_pairs_'/'both_groups_'
+    // below, these were never set aside in a *separate* dedicated bin
+    // (only ever meaningful with exactly one bin instance to shrink - see
+    // 'reduce_full_span_items_applies'), so they share whichever single
+    // bin the loop above already built, creating one from scratch only if
+    // 'solution' itself placed nothing there at all (e.g. every item type
+    // ended up pinned, leaving nothing for the downstream solve to
+    // place).
+    if (!full_span_items_.empty()) {
+        BinPos bin_pos = (single_bin_pos != -1)?
+            single_bin_pos: solution_builder.add_bin(0, 1);
+        for (const FullSpanItem& full_span_item: full_span_items_) {
+            place_item_and_companions(
+                    solution_builder,
+                    bin_pos,
+                    full_span_item.item_type_id,
+                    full_span_item.bl_corner,
+                    full_span_item.rotate,
+                    full_span_item.companions);
         }
     }
 

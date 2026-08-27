@@ -76,6 +76,19 @@ public:
             BinTypeId bin_type_id,
             Profit cost);
 
+    /**
+     * Set the dimensions of a bin type, overriding whatever 'add_bin_type'
+     * gave it. Used by 'Reduction::reduction_to_instance' to build a
+     * reduced instance's single bin type at its own true, shrunk size
+     * (see 'Reduction::true_bin_rect_') - every other bin type property
+     * (cost, weight, eligibility, ...) is set independently of dimensions,
+     * so none of them need re-setting here.
+     */
+    void set_bin_type_rect(
+            BinTypeId bin_type_id,
+            Length x,
+            Length y);
+
     /** Set the maximum weight of a bin type. */
     void set_bin_type_maximum_weight(
             BinTypeId bin_type_id,

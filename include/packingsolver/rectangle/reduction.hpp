@@ -35,6 +35,12 @@ struct ReductionParameters: optimizationtools::Parameters
      * both 'EnlargementCase::Wide' and 'EnlargementCase::Tall' - see
      * 'Reduction''s class-level doc comment). Still subject to
      * 'Reduction::companion_absorption_applies' regardless of this flag.
+     *
+     * Also gates 'Reduction::reduce_full_span_items' ("Pinning full-span
+     * items" in the class-level doc comment) - that operation's own
+     * boundary case, so it shares this same flag rather than a separate
+     * one of its own; still subject to its own
+     * 'Reduction::reduce_full_span_items_applies' regardless of this flag.
      */
     bool enlarge_wide_tall_items = true;
 
@@ -71,6 +77,39 @@ struct ReductionParameters: optimizationtools::Parameters
      */
     bool merge_identical_items = true;
 
+    /**
+     * Enable/disable lifting item dimensions via a 1D subset-sum bound
+     * (gates 'Reduction::lift_item_dimensions'). Still subject to
+     * 'Reduction::lift_item_dimensions_applies' regardless of this flag -
+     * see there for how its precondition differs from companion
+     * absorption's.
+     */
+    bool lift_item_dimensions = true;
+
+    /**
+     * Enable/disable trimming negative-profit item types down to their own
+     * 'copies_min' (gates 'Reduction::remove_negative_profit_items').
+     * Still subject to 'Reduction::remove_negative_profit_items_applies'
+     * regardless of this flag - see there for its own precondition.
+     */
+    bool remove_negative_profit_items = true;
+
+    /**
+     * Enable/disable removing dominated item types (gates
+     * 'Reduction::remove_dominated_items'). Still subject to
+     * 'Reduction::remove_dominated_items_applies' regardless of this flag
+     * - see there for its own precondition.
+     */
+    bool remove_dominated_items = true;
+
+    /**
+     * Enable/disable removing dominated bin types (gates
+     * 'Reduction::compute_dominated_bin_types'). Still subject to
+     * 'Reduction::remove_dominated_bin_types_applies' regardless of this
+     * flag - see there for its own precondition.
+     */
+    bool remove_dominated_bin_types = true;
+
     /** Maximum number of rounds of the outer fixpoint loop. */
     Counter maximum_number_of_rounds = 999;
 
@@ -85,14 +124,21 @@ struct ReductionParameters: optimizationtools::Parameters
  * "Packing and removing some items" reduction (Côté, Haouari & Iori 2019,
  * "A Primal Decomposition Algorithm for the Two-dimensional Bin Packing
  * Problem", Section 4.2), plus an identical-item-type merge (see
- * 'merge_identical_items').
+ * 'merge_identical_items'), a companionless, subset-sum-based item
+ * dimension lift (see 'lift_item_dimensions'), a negative-profit item
+ * trim (see 'remove_negative_profit_items'), a dominated-item removal
+ * (see 'remove_dominated_items'), and a dominated-bin-type removal (see
+ * 'compute_dominated_bin_types').
  *
  * Only runs at all when 'parameters.reduce' is 'true' - unlike every
  * previous version of this class, there is no shared objective/instance
- * precondition beyond that: this class runs two largely independent
+ * precondition beyond that: this class runs six largely independent
  * operations, each gated by its own, narrower precondition (see
- * 'companion_absorption_applies()' and 'merge_identical_items()'
- * respectively), because their soundness rests on different arguments:
+ * 'companion_absorption_applies()', 'merge_identical_items()',
+ * 'lift_item_dimensions_applies()', 'remove_negative_profit_items_applies()',
+ * 'remove_dominated_items_applies()' and
+ * 'remove_dominated_bin_types_applies()' respectively), because their
+ * soundness rests on different arguments:
  *
  * - Companion absorption (wide/tall/both, full-bin items, perfect pairs):
  *   only for the 'BinPacking', 'VariableSizedBinPacking' and 'Feasibility'
@@ -165,6 +211,184 @@ struct ReductionParameters: optimizationtools::Parameters
  *   suboptimal subset on wrong information - restoring true profits
  *   afterwards cannot undo that.
  *
+ * - Lifting item dimensions via subset sum (see 'lift_item_dimensions'):
+ *   for a given item type and axis, a cheaper, more broadly applicable
+ *   sibling of companion absorption's own wide/tall enlargement, using a
+ *   purely 1D 'multiplechoicesubsetsumsolver' bound (the same primitive
+ *   'compute_shrunk_bin_sizes' already uses to shrink the *bin*, applied
+ *   here per *item* instead) rather than an actual 2D
+ *   'Objective::Feasibility' companion-bin solve: run *after* shrinking
+ *   the bin each round (see the constructor's own comment), against the
+ *   bin's *shrunk* dimension rather than its true one - itself already
+ *   the tightest sound substitute for it throughout this class - if no
+ *   achievable combination of the *other* item types can ever reach the
+ *   shrunk remaining margin beside this item, that margin is provably,
+ *   permanently empty regardless of which items end up sharing the bin,
+ *   so the item's own dimension can be grown to close it - with zero real
+ *   companions attached (unlike wide/tall, this never removes or hides
+ *   any other item type from the reduced instance). Because nothing is
+ *   ever hidden this way, none of companion absorption's weight/resource/
+ *   unloading-constraint exclusions apply here, and - like
+ *   'merge_identical_items' - nothing about it depends on every item
+ *   necessarily being packed, so it runs for *any* objective too. It does
+ *   still need a single bin type (the bin's own true dimension must be
+ *   unambiguous) and no defects (a defect sitting inside the claimed
+ *   "provably empty" margin would be invisible to this purely 1D
+ *   argument, the same blind spot as companion absorption's own geometric
+ *   checks) - see 'lift_item_dimensions_applies()'.
+ *
+ * - Trimming negative-profit item types (see
+ *   'remove_negative_profit_items'): only for 'Knapsack' - for every other
+ *   objective every item type is mandatory regardless of its own profit
+ *   (see the "Companion absorption" paragraph above), so a negative
+ *   profit changes nothing about whether it must be packed. For
+ *   'Knapsack', copies beyond an item type's own 'copies_min' are
+ *   optional, and a negative-profit copy is never worth choosing to place
+ *   on its own merits - it only ever lowers the objective, and freeing
+ *   its footprint/weight/resource consumption for something else can only
+ *   help or be neutral - so such copies are trimmed away outright,
+ *   leaving only whatever 'copies_min' still mandates. Skipped entirely
+ *   whenever any 'penalize' resource anywhere has a negative 'penalty':
+ *   that is a one-time profit *bonus* the first time a bin's consumption
+ *   crosses the resource's capacity (see 'Resource''s own doc comment in
+ *   'algorithms/common.hpp'), so a negative-profit item could still be
+ *   worth including if its own consumption helps trigger that crossing -
+ *   an indirect benefit this purely per-item check cannot see. See
+ *   'remove_negative_profit_items_applies()'.
+ *
+ * - Removing dominated item types (see 'remove_dominated_items'): also
+ *   only for 'Knapsack', for the same reason as above - every other
+ *   objective needs every copy of every item type packed regardless, so
+ *   there is never a genuine choice between two item types to begin with.
+ *   Item type A dominates item type B when A's own profit is at least
+ *   B's, A's footprint fits within every orientation B's own 'oriented'
+ *   flag allows (see 'item_type_fits_footprint_of', shared with
+ *   'benders_decomposition.cpp''s own item-type precedence computation,
+ *   which relies on the same underlying exchange argument - "swap one
+ *   dominated copy for one dominating copy, which always fits in the same
+ *   freed space and never lowers profit" - just for a softer purpose, a
+ *   precedence hint into a relaxation, not an outright removal), A's own
+ *   weight and resource consumption never exceed B's, A and B share the
+ *   same 'group_id' (so the swap cannot disturb unloading order - see
+ *   'items_mergeable''s own use of the same requirement), and A is
+ *   eligible for every bin type B is (a superset - checked, alongside
+ *   geometric fit, via 'Instance::item_type_fits_bin_type', exactly as
+ *   'benders_decomposition.cpp' does). Unlike a plain precedence hint,
+ *   removing B *outright* additionally needs A and B to be provably
+ *   *incompatible* - unable to ever both be packed into the same bin (see
+ *   'items_provably_incompatible'), derived from geometry (the same
+ *   pigeonhole argument 'benders_decomposition.cpp''s own
+ *   'items_incompatible' uses for its no-good cuts), weight, or resource
+ *   consumption (their combined minimum possible consumption already
+ *   exceeding a non-'penalize' resource's capacity). Plain dominance
+ *   alone is not enough for an outright removal the way it is for a soft
+ *   precedence hint: 2D packing is not an exclusive-choice problem, so A
+ *   being pointwise at least as good as B does not by itself mean a
+ *   solution could never still profitably use *both* - in different
+ *   bins, or side by side in the same one - only provable incompatibility
+ *   rules that out, turning it into a genuine either/or choice that
+ *   dominance can then resolve in A's favor. Only ever applied to item
+ *   types with 'copies_min' 0 (fully optional) - a partially-or-fully
+ *   mandatory item type cannot simply be swapped away. See
+ *   'remove_dominated_items_applies()'.
+ *
+ * - Removing dominated bin types (see 'compute_dominated_bin_types'): the
+ *   bin-type analogue of the previous paragraph, but *not* restricted to
+ *   'Knapsack' - unlike an item, a bin is never itself "optional
+ *   inventory" competing with others for a role; the argument is instead
+ *   about *bin choice*, which stays meaningful for 'VariableSizedBinPacking',
+ *   'Feasibility' and 'Knapsack' (no optimal solution for any of them
+ *   ever includes a genuinely empty bin, so preferring a strictly-as-
+ *   good-or-better bin type wherever a worse one might have been used is
+ *   always at least as good) - but *not* for 'BinPacking': unlike every
+ *   other objective here, its bin types must be used in the exact order
+ *   they are declared, each one's own copies fully exhausted before the
+ *   next is ever touched (see 'rectangle::tree_search.cpp''s own
+ *   'BranchingScheme' constructor, and 'onedimensional''s own
+ *   'Solution::bin_type_order_feasible()', explicitly scoped to
+ *   'BinPacking' alone - the order is a genuine, enforced constraint on
+ *   solution validity only there). Removing a bin type would shift every
+ *   later one's position in that fixed sequence, making it available
+ *   *earlier* than the original problem ever allowed - not an equivalent
+ *   substitution, a different problem entirely, regardless of how
+ *   thoroughly one bin type dominates another. Bin type A dominates bin
+ *   type B when A's own dimensions are at least as big as B's in both
+ *   axes (no rotation - bins, unlike items, are never placed rotated) -
+ *   the opposite direction from item dominance, where the *smaller* one
+ *   wins: a bin needs to be big enough to hold anything the one it
+ *   replaces could, so a smaller bin is strictly less capable, never a
+ *   safe substitute - A's cost is at most B's, A's own maximum weight is
+ *   at least B's, and A is eligible for every eligibility id B is (a
+ *   superset, the bin-type analogue of the same requirement in "Removing
+ *   dominated item types" above). Both bin types must be defect-free, have
+ *   no fixed items, and not be semi-trailer trucks - each is a genuinely
+ *   complex per-bin-type feature this class does not attempt to compare or
+ *   reconcile across two different bin types, matching this class's
+ *   existing precedent elsewhere (see e.g. 'companion_absorption_applies()').
+ *   Resources get a narrower, still-sound rule instead of an outright ban:
+ *   'resource_id' carries no meaning across two different bin types (it is
+ *   just the next index into that one bin type's own 'resources' vector -
+ *   see 'InstanceBuilder::add_bin_type_resource()'), so A's own resources,
+ *   whatever they are, can never be reconciled against B's and always block
+ *   dominance; but a bin type with *no* resources at all is unrestricted
+ *   along every resource dimension, so B having resources A lacks is fine
+ *   by itself - except when one of B's resources is 'penalize' with a
+ *   negative 'penalty': a one-time profit bonus for crossing that
+ *   resource's capacity (see 'Resource''s own doc comment, and the same
+ *   exclusion in "Removing negative-profit items" above) that A, having no
+ *   matching resource, could never replicate - losing access to it would
+ *   make A strictly worse than B for some solutions, so that blocks
+ *   dominance too even though A itself is otherwise unrestricted. Unlike
+ *   item dominance, this needs
+ *   no separate incompatibility argument - two *bins* are never
+ *   simultaneously "used" the way two items can share one bin, so bin-
+ *   type choice genuinely is an exclusive, one-at-a-time decision - but
+ *   it does need A's own copies to be "enough" that its supply could
+ *   never run out before every genuine use of B ever would have:
+ *   conservatively, 'instance.number_of_items()' (no optimal solution for
+ *   any of these objectives ever uses more non-empty bins than there are
+ *   items to put in them, regardless of bin type mix), unlike the
+ *   equivalent bound for items (see "Removing dominated item types"
+ *   above), which is unsatisfiable there because it would have to cover
+ *   B's own copies too - here, 'copies_A' and 'number_of_items()' are
+ *   different quantities (bin copies vs. total item copies), so no such
+ *   self-inclusion contradiction arises. Only ever applied to bin types
+ *   with 'copies_min' 0 (fully optional) - a partially-or-fully mandatory
+ *   bin type cannot simply be dropped. See
+ *   'remove_dominated_bin_types_applies()'.
+ *
+ * - Pinning full-span items (see 'reduce_full_span_items'): Clautiaux,
+ *   Carlier and Moukrim (2007, "A new exact method for the two-dimensional
+ *   orthogonal packing problem", Proposition 1) show that an item type
+ *   whose height (resp. width) exactly equals the bin's own can always be
+ *   shifted to a corner without loss of generality - so it can be pinned
+ *   there and removed, shrinking the bin by its width (resp. height) for
+ *   every item still to be placed. Gated by the same
+ *   'parameters.enlarge_wide_tall_items' flag as the wide/tall companion-
+ *   absorption cases above, since it is that same idea's own boundary
+ *   case: an item already spanning its *entire* target axis has a
+ *   companion region of exactly zero area, so - unlike the general
+ *   wide/tall search, which must still prove a non-degenerate strip is
+ *   empty via an actual candidate scan - nothing could ever occupy it
+ *   regardless of what other items exist, no search needed. Only for
+ *   'Feasibility' (a single fixed bin, matching the source paper's own
+ *   2OPP setting exactly - 'OpenDimensionX'/'OpenDimensionY' would need a
+ *   different mechanism, adding the pinned dimension back onto the open-
+ *   dimension bound instead of shrinking a fixed one, not yet implemented
+ *   here) with exactly one bin type *and* exactly one bin copy (unlike
+ *   every dedicated-bin case above, which can freely claim any one of
+ *   several available copies, this operation shrinks *the* bin directly,
+ *   only ever unambiguous with exactly one instance of it to shrink), plus
+ *   every one of companion absorption's own exclusions (defects, weight,
+ *   resources, unloading constraint) for the identical reason: the pinned
+ *   item is still hidden from the reduced instance entirely, only
+ *   reinserted once the downstream solve has already finished, so none of
+ *   those whole-bin arguments are any safer here than they are there. Runs
+ *   last in each round (after full-bin items and perfect pairs), so a
+ *   plain, no-op-for-anything-else pin never preempts either of those
+ *   strictly more valuable reductions for the same item type earlier in
+ *   the very same round. See 'reduce_full_span_items_applies'.
+ *
  * For every excluded case, this class no-ops entirely: 'instance()' returns
  * a copy of the original instance, and 'unreduce_solution' is the identity
  * function.
@@ -236,6 +460,82 @@ private:
      * already checking it.
      */
     static bool companion_absorption_applies(const Instance& instance);
+
+    /**
+     * 'true' iff lifting item dimensions via subset sum (see
+     * 'lift_item_dimensions') is meaningful for 'instance' - the
+     * class-level doc comment's "Lifting item dimensions via subset sum"
+     * paragraph: only for instances with a single bin type (the bin's own
+     * true dimension must be unambiguous - like companion absorption's
+     * own precondition) and no defects (a defect sitting inside the
+     * claimed "provably empty" margin would be invisible to this purely
+     * 1D argument). Unlike 'companion_absorption_applies', not restricted
+     * by objective, weight, resources, or unloading constraint - see the
+     * class-level doc comment for why none of those apply here. Does not
+     * check 'parameters.reduce' - the constructor only calls this after
+     * already checking it.
+     */
+    static bool lift_item_dimensions_applies(const Instance& instance);
+
+    /**
+     * 'true' iff trimming negative-profit item types (see
+     * 'remove_negative_profit_items') is meaningful for 'instance' - the
+     * class-level doc comment's "Trimming negative-profit item types"
+     * paragraph: only 'Knapsack', and only when no 'penalize' resource
+     * anywhere has a negative 'penalty'. Does not check 'parameters.reduce'
+     * - the constructor only calls this after already checking it.
+     */
+    static bool remove_negative_profit_items_applies(const Instance& instance);
+
+    /**
+     * 'true' iff removing dominated item types (see
+     * 'remove_dominated_items') is meaningful for 'instance' - the
+     * class-level doc comment's "Removing dominated item types" paragraph:
+     * only 'Knapsack'. Does not check 'parameters.reduce' - the
+     * constructor only calls this after already checking it.
+     */
+    static bool remove_dominated_items_applies(const Instance& instance);
+
+    /**
+     * 'true' iff removing dominated bin types (see
+     * 'compute_dominated_bin_types') is meaningful for 'instance' - the
+     * class-level doc comment's "Removing dominated bin types" paragraph:
+     * only when there is more than one bin type (nothing to compare
+     * otherwise), and never for 'BinPacking' (its bin types must be used
+     * in declared order - a hard solution-validity constraint this
+     * operation would break by shifting later bin types' positions in
+     * that fixed sequence). Unlike every other operation in this class,
+     * not restricted to a *specific* objective - it excludes exactly one
+     * ('BinPacking') rather than allowing exactly one or a few. Does not
+     * check 'parameters.reduce' - the constructor only calls this after
+     * already checking it.
+     */
+    static bool remove_dominated_bin_types_applies(const Instance& instance);
+
+    /**
+     * 'true' iff pinning full-span items (see 'reduce_full_span_items')
+     * is meaningful for 'instance' - the class-level doc comment's
+     * "Pinning full-span items" paragraph: only 'Feasibility'
+     * ('OpenDimensionX'/'OpenDimensionY' need a materially different
+     * mechanism - adding the pinned width/height back onto the open-
+     * dimension bound afterwards, rather than shrinking a fixed bin - not
+     * yet implemented here), and, on top of every one of
+     * 'companion_absorption_applies''s own exclusions (defects, weight,
+     * resources, unloading constraint, single bin type - for the exact
+     * same reasons: shrinking the bin still removes this item type from
+     * the reduced instance entirely, only reinserting it once the
+     * downstream solve has already finished, so none of those whole-bin
+     * arguments are any safer here than for companion absorption itself),
+     * exactly one bin *copy*: unlike companion absorption's own dedicated
+     * bins (which can freely claim any one of several available bin
+     * copies), this operation shrinks *the* bin directly, which is only
+     * ever unambiguous when there is exactly one bin instance to shrink -
+     * matching the source paper's own setting (a single fixed bin, not a
+     * bin-packing problem with several copies of it). Does not check
+     * 'parameters.reduce' - the constructor only calls this after already
+     * checking it.
+     */
+    static bool reduce_full_span_items_applies(const Instance& instance);
 
     /*
      * Private types
@@ -930,6 +1230,127 @@ private:
             Length bin_h);
 
     /**
+     * A single copy of an item type pinned to a corner and removed by
+     * 'reduce_full_span_items' because it was found to span one whole
+     * *current* axis of the single bin (its height equal to the bin's
+     * current true height, or its width equal to the bin's current true
+     * width) - Clautiaux, Carlier and Moukrim (2007, "A new exact method
+     * for the two-dimensional orthogonal packing problem", Proposition 1)
+     * show such an item can always be moved to a corner without loss of
+     * generality, so the bin can be shrunk by exactly its matched
+     * dimension for every item still to be placed. Unlike 'FullBinItem'
+     * (which needs *both* axes to match, and is set aside in its own
+     * dedicated bin, since nothing else could ever share a bin with it
+     * regardless), a full-span item only ever claims one axis: the *other*
+     * axis of the bin still has room for every other surviving item type,
+     * so this item must stay in the *same* single bin as everything else
+     * - recorded here with its own fixed absolute position instead, for
+     * 'unreduce_solution' to place directly into the reduced solution's
+     * one bin. See 'reduce_full_span_items_applies' for why this never
+     * needs to consider more than one bin instance.
+     */
+    struct FullSpanItem
+    {
+        /** Item type id (original instance's id space). */
+        ItemTypeId item_type_id;
+
+        /** Bottom-left corner, in the reduced instance's single bin's own coordinate system. */
+        Point bl_corner;
+
+        /** Whether the item is rotated (only possible if 'oriented' is false and the rotated form is what matched). */
+        bool rotate;
+
+        /**
+         * This copy's own companions, captured (moved out of the working
+         * 'ReductionItemType::companions_by_copy') at the moment it was
+         * pinned here - empty if the item type was never enlarged. See
+         * 'FullBinItem::companions_by_copy' for the identical reasoning.
+         */
+        std::vector<CompanionItem> companions;
+    };
+
+    /**
+     * 'number_of_dedicated_bins()' plus, if 'full_span_items_' is
+     * non-empty, one more: the *one* bin instance its pins implicitly
+     * share with the regular reduced-instance solve (see
+     * 'reduce_full_span_items_applies' - only ever meaningful with
+     * exactly one bin copy in the first place). That shared bin is not
+     * itself one of 'number_of_dedicated_bins()''s own "outside the
+     * reduced instance" bins (see its own doc comment) - it is the same
+     * bin 'instance()''s own, possibly-shrunk bin type represents - but it
+     * is still unavailable for 'reduce_full_bin_items'/
+     * 'reduce_perfect_pairs'/'try_reduce_both_group' to separately claim
+     * as one of *their* dedicated bins: doing so would silently need two
+     * bin instances (one dedicated, one shared) from a pool 'reduce_full_
+     * span_items_applies' guarantees has only one. Used in place of a bare
+     * 'number_of_dedicated_bins()' at every one of those three functions'
+     * own cap checks - not at 'reduction_to_instance''s own bin-copies
+     * subtraction for the regular solve, which must stay exactly
+     * 'number_of_dedicated_bins()' there: the regular solve's own single
+     * remaining bin copy is exactly the shrunk bin the full-span pins
+     * already share, not a bin it additionally needs reserved for it.
+     */
+    BinPos reserved_bin_count() const;
+
+    /**
+     * For every not yet removed item type with at least one copy whose
+     * *current* dimensions (in some allowed orientation) exactly span
+     * 'true_bin_rect_''s current height or width, pins one such copy to
+     * the bin's current origin, records it in 'full_span_items_', and
+     * shrinks 'true_bin_rect_'/advances 'true_bin_origin_' along the
+     * matched axis by that copy's own dimension along it - repeating
+     * (across item types, and across multiple copies of the same one)
+     * until a full pass finds nothing new, since shrinking the bin on one
+     * axis can newly make some other item type's *other* axis match too
+     * (Proposition 1's own "if there exists such an item" framing, applied
+     * iteratively).
+     *
+     * "Current dimensions" deliberately includes an item type already
+     * grown by 'lift_item_dimensions' or companion absorption earlier the
+     * same round, not just an item still at its own original size:
+     * whatever either one added beyond the item's true footprint is
+     * margin already proven permanently unusable by anything else
+     * remaining (lifting's own subset-sum argument, or a companion-bin
+     * check's own real, placed companions), so consuming the whole grown
+     * span from 'true_bin_rect_' changes nothing about what could ever
+     * still fit elsewhere - it was never truly available. A companion-
+     * enlarged copy's real companions travel with it via
+     * 'FullSpanItem::companions' and are placed relative to wherever this
+     * pin ends up, the same way 'place_item_and_companions' already
+     * handles every other case in this class.
+     *
+     * Unlike every other operation in this class,
+     * 'true_bin_rect_'/'true_bin_origin_' are this bin's own *true*
+     * current dimensions/origin - not the heuristic, non-physical 'bin_w'/
+     * 'bin_h' shrunk bound the rest of this class reasons against (see
+     * 'compute_shrunk_bin_sizes') - because this is the one operation that
+     * actually changes the reduced instance's own real bin, rather than
+     * only using a tighter bound internally. Returns 'true' iff at least
+     * one copy was pinned this call.
+     *
+     * Gated by the same 'parameters.enlarge_wide_tall_items' flag as the
+     * wide/tall companion-absorption cases (see 'reduce_group'): this is
+     * that same idea's own boundary case - an item already occupying its
+     * *entire* target axis, with a companion region of exactly zero area,
+     * needs no companion search or feasibility solve at all (unlike
+     * 'try_reduce_group', whose own degenerate-companion-bin exclusion
+     * exists so a *pure no-op* enlargement never preempts a more valuable
+     * 'reduce_full_bin_items'/'reduce_perfect_pairs' match found later in
+     * the same round - not a concern here, since this function only runs
+     * after both of those have already had their turn this round, and
+     * removing this item's own axis - rather than merely marking it
+     * "enlarged" in place - is never a no-op). It cannot share
+     * 'try_reduce_group''s own code directly: enlarging grows an
+     * *item*'s footprint in place and hides its (searched-for) companions,
+     * which stay valid to reinsert into whichever bin the enlarged item
+     * ends up in; this instead shrinks the *bin* itself and fixes an
+     * absolute origin, which only ever makes sense with exactly one bin
+     * instance to shrink (see 'reduce_full_span_items_applies').
+     */
+    bool reduce_full_span_items(
+            std::vector<ReductionItemType>& reduction_item_types);
+
+    /**
      * A "perfect pair": two item types that, together (each in some
      * allowed orientation), exactly tile the bin via a single guillotine
      * split - side by side, both spanning the bin's full height, widths
@@ -1049,6 +1470,131 @@ private:
             Length bin_h);
 
     /**
+     * Trims every negative-profit item type's own 'copies' down to its
+     * 'effective_copies_min' (marking it 'removed' outright when that is
+     * 0) - see the class-level doc comment's "Trimming negative-profit
+     * item types" paragraph for why this is sound. Run once, upfront (not
+     * part of the main per-round loop): an item type's profit never
+     * changes, so there is nothing to re-check across rounds. Returns
+     * 'true' iff at least one item type was trimmed or removed.
+     */
+    bool remove_negative_profit_items(
+            std::vector<ReductionItemType>& reduction_item_types) const;
+
+    /**
+     * 'true' iff item type 'item_type_id_a' dominates item type
+     * 'item_type_id_b' - see the class-level doc comment's "Removing
+     * dominated item types" paragraph for the exact criteria and the
+     * underlying exchange argument. Always reads original-instance
+     * properties (profit, 'rect', weight, group, eligibility, resource
+     * consumption) directly from 'original_instance_', never from
+     * 'reduction_item_types' - unlike 'items_mergeable', which compares
+     * *current* (possibly already-lifted) 'rect' because a merge only
+     * needs the two survivors to behave identically going forward,
+     * dominance instead needs a fact that is true of the *original*
+     * items regardless of what any other operation in this class has
+     * since done to their working 'rect' (a lifted item's enlarged
+     * declared footprint does not correspond to any real placement
+     * argument - see 'lift_item_dimensions''s own doc comment - so basing
+     * a removal on it would not be justified).
+     *
+     * The resource comparison is deliberately conservative: it compares
+     * the *maximum* value anywhere in A's own consumption schedule
+     * against the *minimum* value anywhere in B's, for each bin
+     * type/resource, rather than trying to align schedules index-by-index
+     * (copies of A and B are not generally interchangeable one-for-one at
+     * the same copy index) - this can only ever miss a genuinely sound
+     * removal, never wrongly permit an unsound one.
+     */
+    bool item_type_dominates(
+            ItemTypeId item_type_id_a,
+            ItemTypeId item_type_id_b) const;
+
+    /**
+     * 'true' iff item types 'item_type_id_1' and 'item_type_id_2'
+     * (possibly the same one twice) provably cannot both be packed into
+     * any single bin: 'true' whenever they are pairwise incompatible (see
+     * the free function of the same purpose in 'reduction.cpp') in
+     * *every* bin type either one could ever be placed in (a bin type
+     * neither is eligible for is irrelevant; a bin type only one is
+     * eligible for already keeps them apart there on its own). Used by
+     * 'remove_dominated_items' to justify an outright removal: dominance
+     * alone is not enough on its own - see that method's own doc comment
+     * for why.
+     */
+    bool items_provably_incompatible(
+            ItemTypeId item_type_id_1,
+            ItemTypeId item_type_id_2) const;
+
+    /**
+     * Marks item type B 'removed' whenever some other, not-yet-'removed'
+     * item type A both 'item_type_dominates' it and is
+     * 'items_provably_incompatible' with it - see the class-level doc
+     * comment's "Removing dominated item types" paragraph for why *both*
+     * are needed together: dominance alone only says A is never a worse
+     * choice than B *for a single shared role* - it says nothing about
+     * whether a solution could still profitably use *both*, in different
+     * bins or side by side in the same one, since 2D packing is not an
+     * exclusive-choice problem the way substituting one item for another
+     * in a 1D knapsack is. Provable incompatibility closes that gap: it
+     * guarantees A and B can never both appear in the same bin at all, so
+     * wherever a solution would have used B, only A could have been used
+     * instead anyway - a genuine either/or choice, which dominance alone
+     * then correctly resolves in A's favor. Only ever considers item
+     * types with 'copies_min' 0 (fully optional) as removal candidates -
+     * a partially-or-fully mandatory item type cannot simply be dropped.
+     * A dominator's own copies are never adjusted (unlike
+     * 'merge_identical_items', nothing is folded into it). Naturally
+     * self-resolves a fully-tied pair (A and B mutually dominating and
+     * incompatible with each other) without removing both: whichever one
+     * is checked first, while the other is still available as its own
+     * dominator, gets removed, after which the survivor's own now-removed
+     * former dominator no longer qualifies as one. Run once, upfront (not
+     * part of the main per-round loop) alongside
+     * 'remove_negative_profit_items', for the same reason: nothing this
+     * method reads about an item type ever changes across rounds. Returns
+     * 'true' iff at least one item type was removed.
+     */
+    bool remove_dominated_items(
+            std::vector<ReductionItemType>& reduction_item_types) const;
+
+    /**
+     * 'true' iff bin type 'bin_type_id_a' dominates bin type
+     * 'bin_type_id_b' - see the class-level doc comment's "Removing
+     * dominated bin types" paragraph for the exact criteria. Always reads
+     * 'original_instance_' directly (bin types are never mutated by
+     * anything else in this class, unlike item types' own working
+     * 'rect').
+     */
+    bool bin_type_dominates(
+            BinTypeId bin_type_id_a,
+            BinTypeId bin_type_id_b) const;
+
+    /**
+     * For every bin type, 'true' iff it is dominated (see
+     * 'bin_type_dominates') by some other bin type with "enough" copies -
+     * see the class-level doc comment's "Removing dominated bin types"
+     * paragraph for the exact "enough copies" bound and why, unlike the
+     * equivalent bound for items, it is actually satisfiable here. Only
+     * ever considers bin types with 'copies_min' 0 (fully optional) as
+     * removal candidates. Naturally self-resolves a fully-tied pair (A
+     * and B mutually dominating each other) without marking both
+     * dominated, the same way 'remove_dominated_items' does: whichever
+     * one is checked first, while the other is not yet marked dominated,
+     * gets marked, after which the survivor's own now-dominated former
+     * dominator no longer qualifies as one. Returned as a plain
+     * 'bool' vector (indexed by 'original_instance_''s own bin type ids)
+     * rather than mutating a working representation, unlike every
+     * per-item operation above - bin types need no per-round working
+     * state at all (nothing else in this class ever changes a bin type's
+     * own properties the way 'lift_item_dimensions' changes an item
+     * type's 'rect'), so 'reduction_to_instance' is the only consumer,
+     * and it needs a simple removed/not-removed answer per bin type, not
+     * an evolving one.
+     */
+    std::vector<bool> compute_dominated_bin_types() const;
+
+    /**
      * Merge every group of pairwise-'items_mergeable' item types in
      * 'reduction_item_types' into a single survivor (the lowest item type
      * id in the group) with the group's combined copies - see the
@@ -1116,18 +1662,34 @@ private:
      * 'original.copies' (see 'InstanceBuilder::build'), so this always
      * equals 'reduction_item_types[item_type_id].copies' exactly - the
      * "still fully mandatory" case 'items_mergeable' and
-     * 'reduction_to_instance' both rely on. For 'Knapsack' (the one
-     * objective companion absorption never touches, so nothing is ever
-     * consumed from its 'copies'), this always equals
-     * 'original.copies_min' directly.
+     * 'reduction_to_instance' both rely on.
+     *
+     * For 'Knapsack', this formula does not apply: companion absorption
+     * never runs there (so a shrunk 'copies' can only mean
+     * 'remove_negative_profit_items' trimmed away copies that were simply
+     * never placed at all, not consumed elsewhere - unlike the
+     * subtraction above assumes), so this instead returns
+     * 'min(original.copies_min, reduction_item_types[item_type_id].copies)'
+     * - the requirement stays exactly 'original.copies_min', only capped
+     * (never actually tightened in practice, since that trim only ever
+     * stops exactly at 'copies_min' itself) so it can never exceed what
+     * genuinely remains.
      */
     ItemPos effective_copies_min(
             const std::vector<ReductionItemType>& reduction_item_types,
             ItemTypeId item_type_id) const;
 
-    /** Build the final reduced 'Instance' from the working representation. */
+    /**
+     * Build the final reduced 'Instance' from the working representation.
+     * 'bin_type_removed', indexed by 'original_instance_''s own bin type
+     * ids, marks which bin types 'compute_dominated_bin_types' found
+     * dominated (an empty vector, the default, means none - every caller
+     * that does not run that operation passes this default rather than a
+     * same-size all-'false' vector).
+     */
     Instance reduction_to_instance(
-            const std::vector<ReductionItemType>& reduction_item_types);
+            const std::vector<ReductionItemType>& reduction_item_types,
+            const std::vector<bool>& bin_type_removed = {});
 
     struct ShrunkBinSizes
     {
@@ -1206,12 +1768,99 @@ private:
      * 'multiplechoicesubsetsumsolver'. Takes 'original_instance' alongside
      * 'reduction_item_types' only for each item type's own 'oriented'
      * flag, which 'ReductionItemType' does not duplicate.
+     *
+     * 'excluded_item_type_id' (default '-1', meaning "none") leaves one
+     * copy of that item type's own group out of the candidate pool -
+     * used by 'lift_item_dimensions_axis' to ask "what could the *other*
+     * items contribute alongside a single occurrence of this one",
+     * without otherwise duplicating this whole function. Excluding only a
+     * single copy (not the whole item type) is deliberately conservative
+     * when the item type has further copies of its own: those remaining
+     * copies stay in the pool and so may still be combined into the
+     * bound, which can only ever make it *larger* (never smaller) than
+     * the true per-row achievable amount, since realistically each of the
+     * item's own copies needs a row of its own and could not
+     * simultaneously also be part of another row's own companions - a
+     * safe direction, matching every other bound in this class ("sound,
+     * just less effective" - see e.g. 'reduce_perfect_pairs''s own doc
+     * comment for the same pattern elsewhere).
      */
     static Length max_achievable_dimension_sum(
             const std::vector<ReductionItemType>& reduction_item_types,
             const Instance& original_instance,
             Length capacity,
-            bool width_axis);
+            bool width_axis,
+            ItemTypeId excluded_item_type_id = -1);
+
+    /**
+     * Companionless per-item, per-axis enlargement via a 1D multiple-
+     * choice subset-sum bound - see the class-level doc comment's
+     * "Lifting item dimensions via subset sum" paragraph for the general
+     * argument. For every not-yet-'removed' item type and axis: computes,
+     * via 'max_achievable_dimension_sum' (leaving one copy of the item
+     * type itself out of the pool), the maximum combination every *other*
+     * not-yet-'removed' item type could contribute not exceeding the
+     * bin's *shrunk* dimension on that axis ('bin_w'/'bin_h', from this
+     * same round's own 'compute_shrunk_bin_sizes' call - see the
+     * constructor's own comment for why shrinking runs first and this
+     * uses its result rather than the bin's true dimension) minus the
+     * item's own current dimension there ('capacity'); if that falls
+     * short of 'capacity', grows the item's own dimension by exactly the
+     * shortfall, closing the gap precisely (never further - see this
+     * method's own doc comment in 'reduction.cpp' for why growing it any
+     * further would not be provably safe).
+     *
+     * Skips an item type entirely (on the axis where this would apply)
+     * when either the item type itself, or any *other* not-yet-'removed'
+     * item type, has infinite ('< 0') copies: an infinite-copies item
+     * type could always be repeated as many times as needed to help fill
+     * any finite capacity, so 'max_achievable_dimension_sum' could not
+     * soundly bound what it might contribute (its own single-choice
+     * "leave one out" adjustment already handles finite copies safely -
+     * see its own doc comment - but does not extend to the infinite
+     * case), and the item type itself having infinite copies makes "grow
+     * this one item type's dimension" a poor fit regardless (every copy
+     * would grow identically, so an unbounded number of enlarged copies
+     * could end up claiming unboundedly more of the bin than any single
+     * occurrence ever needed to prove empty).
+     *
+     * Also requires the item type being grown to be 'oriented': directly
+     * growing 'rect.x'/'rect.y' only means anything if the item is fixed
+     * at that declared orientation - see this method's own doc comment in
+     * 'reduction.cpp' for the concrete corruption a non-oriented item
+     * would suffer otherwise. Same precondition 'is_big' already requires
+     * for 'Wide'/'Tall'.
+     *
+     * Also requires the item type to have exactly 1 remaining copy: since
+     * growing 'rect.x'/'rect.y' applies uniformly to every copy of the
+     * type at once, but 'max_achievable_dimension_sum''s "leave one out"
+     * adjustment only proves the bound for a *single* occurrence, several
+     * copies would each need their own row/column with their own claim on
+     * the same limited pool of other items - one shared bound cannot back
+     * every copy simultaneously (see this method's own doc comment in
+     * 'reduction.cpp' for a concrete counterexample).
+     *
+     * Returns 'true' iff at least one item type was enlarged, on either
+     * axis.
+     */
+    bool lift_item_dimensions(
+            std::vector<ReductionItemType>& reduction_item_types,
+            Length bin_w,
+            Length bin_h) const;
+
+    /**
+     * Single-axis half of 'lift_item_dimensions' (see there for the
+     * general argument and the infinite-copies exclusion). 'width_axis'
+     * selects which of 'rect.x'/'rect.y' is being grown; 'bin_dimension'
+     * is the bin's own *shrunk* width or height ('bin_w'/'bin_h', from
+     * this round's own 'compute_shrunk_bin_sizes' call), matching
+     * whichever axis is selected. Returns 'true' iff at least one item
+     * type was enlarged on this axis.
+     */
+    bool lift_item_dimensions_axis(
+            std::vector<ReductionItemType>& reduction_item_types,
+            Length bin_dimension,
+            bool width_axis) const;
 
     /*
      * Private attributes
@@ -1232,6 +1881,31 @@ private:
      * not by item type id.
      */
     std::vector<FullBinItem> full_bin_items_;
+
+    /**
+     * "Full span item" reservations found while building 'instance_' (see
+     * 'reduce_full_span_items'/'FullSpanItem'). Indexed by discovery
+     * order, not by item type id.
+     */
+    std::vector<FullSpanItem> full_span_items_;
+
+    /**
+     * The single bin's own *true* current dimensions/origin (in the
+     * *original* instance's own coordinate system), updated in place by
+     * 'reduce_full_span_items' every time it pins and removes a copy -
+     * unlike every other bound this class computes (e.g. 'bin_w'/'bin_h'
+     * from 'compute_shrunk_bin_sizes'), this is not a heuristic used only
+     * internally: it is the real dimensions the reduced instance's own
+     * single bin type is built with, and the real origin every
+     * 'FullSpanItem::bl_corner' is expressed against.
+     * Initialized from the original instance's own single bin type
+     * whenever 'reduce_full_span_items_applies' holds (untouched, and
+     * never read, otherwise).
+     */
+    Rectangle true_bin_rect_{0, 0};
+
+    /** See 'true_bin_rect_'. */
+    Point true_bin_origin_{0, 0};
 
     /**
      * "Perfect pair" reservations found while building 'instance_' (see
@@ -1298,6 +1972,22 @@ private:
      * 'reduction_to_instance').
      */
     std::vector<std::vector<CopyOrigin>> reduced_copy_origins_;
+
+    /**
+     * For each bin type of the reduced instance, the original instance's
+     * own bin type id it corresponds to (the bin-type analogue of
+     * 'reduced_copy_origins_', just without any per-copy structure to
+     * track - a bin type, unlike an item type, is never split, merged, or
+     * enlarged, so a single id per entry is enough). Identity (entry 'i'
+     * equals 'i') unless 'compute_dominated_bin_types' removed some bin
+     * types, in which case the reduced instance's own bin type ids are
+     * simply original ids with every dominated one skipped, in order.
+     * Indexed by the reduced instance's own bin type ids: populated once,
+     * alongside 'reduced_copy_origins_' (see 'reduction_to_instance'), and
+     * used by 'unreduce_solution' to translate a solved solution's own
+     * bin type ids back to 'original_instance_''s id space.
+     */
+    std::vector<BinTypeId> reduced_to_original_bin_type_id_;
 
     /**
      * Places 'item_type_id' (original instance's id space) at 'bl_corner'

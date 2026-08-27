@@ -1,0 +1,41 @@
+{
+    "bin_types": [
+        {
+            "copies": 1,
+            "copies_min": 0,
+            "cost": 10000.0,
+            "eligibility_ids": [],
+            "resources": [
+                {
+                    "capacity": 1.0,
+                    "consumptions": [
+                        {
+                            "consumption": 1.0,
+                            "item_type_id": 0
+                        }
+                    ],
+                    "penalize": true,
+                    "penalty": -100.0
+                }
+            ],
+            "x": 100,
+            "y": 100
+        }
+    ],
+    "item_types": [
+        {
+            "copies": 1,
+            "copies_min": 0,
+            "eligibility_id": -1,
+            "group_id": 0,
+            "oriented": true,
+            "profit": -3.0,
+            "weight": 0.0,
+            "x": 4,
+            "y": 4
+        }
+    ],
+    "leftover_mode": "Area",
+    "objective": "Knapsack",
+    "unloading_constraint": "None"
+}

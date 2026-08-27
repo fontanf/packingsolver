@@ -1,0 +1,49 @@
+{
+    "bin_types": [
+        {
+            "copies": 2,
+            "copies_min": 0,
+            "cost": 100.0,
+            "eligibility_ids": [],
+            "resources": [
+                {
+                    "capacity": 1000.0,
+                    "consumptions": [
+                        {
+                            "consumption": 1.0,
+                            "item_type_id": 0
+                        }
+                    ],
+                    "penalize": false,
+                    "penalty": 0.0
+                }
+            ],
+            "x": 10,
+            "y": 10
+        },
+        {
+            "copies": 1,
+            "copies_min": 0,
+            "cost": 100.0,
+            "eligibility_ids": [],
+            "x": 20,
+            "y": 20
+        }
+    ],
+    "item_types": [
+        {
+            "copies": 1,
+            "copies_min": 1,
+            "eligibility_id": -1,
+            "group_id": 0,
+            "oriented": true,
+            "profit": 25.0,
+            "weight": 0.0,
+            "x": 5,
+            "y": 5
+        }
+    ],
+    "leftover_mode": "Area",
+    "objective": "VariableSizedBinPacking",
+    "unloading_constraint": "None"
+}

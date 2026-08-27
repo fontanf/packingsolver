@@ -1,0 +1,4 @@
+NAME,VALUE
+objective,VariableSizedBinPacking
+unloading_constraint,None
+leftover_mode,Area

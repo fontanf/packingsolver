@@ -1,5 +1,6 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/optimize.hpp"
+#include "packingsolver/rectangle/reduction.hpp"
 #include "rectangle/conservative_scales.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
 
@@ -124,4 +125,56 @@ TEST(RectangleConservativeScales, Class01Size40Instance1TightensBoundToTen)
 
     EXPECT_EQ(dff_output.bin_packing_bound, 9);
     EXPECT_EQ(cs_output.bin_packing_bound, 10);
+}
+
+TEST(RectangleConservativeScales, BoundUnaffectedByMergingIdenticalItems)
+{
+    // Class_01.2bp_60_7 from the berkey1987 benchmark set: merging its
+    // identical item types (see 'Reduction::merge_identical_items') used to
+    // weaken this bound from 16 down to 15 - 'solve_conservative_scale_lp'
+    // had one rescaling variable per *item type*, so two physical items
+    // merged into a single type with 'copies' 2 were forced to share one
+    // rescaled value instead of being free to rescale independently, losing
+    // exactly the flexibility needed to reach 16. The LP is now built with
+    // one variable per physical item copy (see that function's own doc
+    // comment), so the bound no longer depends on whether the caller's
+    // instance happens to have already merged identical item types
+    // together.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::BinPacking);
+    instance_builder.read_item_types("data/rectangle/berkey1987/Class_01.2bp_60_7_items.csv");
+    instance_builder.read_bin_types("data/rectangle/berkey1987/Class_01.2bp_60_7_bins.csv");
+    instance_builder.set_bin_type_copies(0, -1);
+    instance_builder.set_item_types_oriented();
+    Instance instance = instance_builder.build();
+
+    // Every other reduction operation disabled, so 'merge_identical_items'
+    // is the only difference between the two instances built below - a
+    // change from any of the others (e.g. item enlargement) could shift
+    // this bound for unrelated reasons and defeat the point of this test.
+    ReductionParameters reduction_parameters;
+    reduction_parameters.enlarge_wide_tall_items = false;
+    reduction_parameters.enlarge_both_items = false;
+    reduction_parameters.reduce_full_bin_items = false;
+    reduction_parameters.reduce_perfect_pairs = false;
+    reduction_parameters.remove_negative_profit_items = false;
+    reduction_parameters.remove_dominated_items = false;
+    reduction_parameters.remove_dominated_bin_types = false;
+    reduction_parameters.merge_identical_items = false;
+    Reduction reduction_unmerged(instance, reduction_parameters);
+    reduction_parameters.merge_identical_items = true;
+    Reduction reduction_merged(instance, reduction_parameters);
+    // The merge must actually have happened, or this test is not exercising
+    // what it claims to.
+    ASSERT_LT(
+            reduction_merged.instance().number_of_item_types(),
+            reduction_unmerged.instance().number_of_item_types());
+
+    ConservativeScalesParameters cs_parameters;
+    cs_parameters.verbosity_level = 0;
+    ConservativeScalesOutput unmerged_output = conservative_scales(reduction_unmerged.instance(), cs_parameters);
+    ConservativeScalesOutput merged_output = conservative_scales(reduction_merged.instance(), cs_parameters);
+
+    EXPECT_EQ(unmerged_output.bin_packing_bound, 16);
+    EXPECT_EQ(merged_output.bin_packing_bound, 16);
 }
