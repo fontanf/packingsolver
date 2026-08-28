@@ -54,6 +54,7 @@
 #include <set>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace packingsolver
 {
@@ -65,30 +66,39 @@ using CutIdx = columngenerationsolver::CutIdx;
 using PricingOutput = columngenerationsolver::PricingSolver::PricingOutput;
 
 /**
- * Data specific to a subset-row cut of cardinality three (Jepsen, Petersen,
- * Spoorendonk & Pisinger 2008; used for the SR cuts of wang2025_bin_packing):
- * given three item types, at most one generated column/pattern may contain
- * two or more of them, i.e. sum_{p: pattern p contains >= 2 of the triplet}
- * xi_p <= 1.
+ * Data specific to a subset-row cut of generalized cardinality (Jepsen,
+ * Petersen, Spoorendonk & Pisinger 2008 introduce the cardinality-three case,
+ * used for the SR cuts of wang2025_bin_packing; the same multiplier-1/2
+ * Chvatal-Gomory rounding argument generalizes to any larger subset, as in
+ * the "extended" subset-row cuts used in VRP branch-cut-and-price): given a
+ * subset of item types, summing their demand-exactly-1 row equalities with
+ * multiplier 1/2 each and rounding down gives
+ * sum_{p: pattern p contains >= 2 of the subset} floor(|subset ∩ p| / 2) xi_p
+ *     <= floor(|item_type_ids.size()| / 2).
+ * The cardinality-three case is the special case where the right-hand side
+ * is 1 and the left-hand side coefficient is 0/1 valued ("at most one
+ * pattern contains >= 2 of the triplet").
  *
  * Stored in 'Cut::extra' (tagged by 'Cut::name == subset_row_cut_name'):
  * 'columngenerationsolver::Cut' is a concrete, uniform type - cut families
  * are told apart by 'extra', not by subclassing (see 'Cut' in
  * columngenerationsolver). 'item_type_ids' is always kept sorted (by
- * 'build_subset_row_cut' below), so two cuts over the same triple compare
- * equal by simple array comparison - see 'ColumnGenerationPricingSolver::
+ * 'build_subset_row_cut' below), so two cuts over the same subset compare
+ * equal by simple vector comparison - see 'ColumnGenerationPricingSolver::
  * equal' below.
  */
 struct SubsetRowCutExtra
 {
-    std::array<ItemTypeId, 3> item_type_ids;
+    std::vector<ItemTypeId> item_type_ids;
 };
 
 /** Tag used to recognize a subset-row cut among 'Cut::extra' payloads. */
 const std::string subset_row_cut_name = "subset_row";
 
 /**
- * Build a subset-row cut over the given item type triple.
+ * Build a subset-row cut over the given item type subset (cardinality >= 3
+ * - see 'SubsetRowCutExtra' above for the general formula; cardinality 3 is
+ * the original Jepsen et al. triple).
  *
  * Coefficient computation is not attached to the cut itself (see 'Cut' in
  * columngenerationsolver): 'ColumnGenerationPricingSolver::coefficient'
@@ -103,17 +113,16 @@ const std::string subset_row_cut_name = "subset_row";
  * for domains whose 'InstanceBuilder' supports resources.
  */
 inline std::shared_ptr<Cut> build_subset_row_cut(
-        ItemTypeId item_type_id_1,
-        ItemTypeId item_type_id_2,
-        ItemTypeId item_type_id_3)
+        std::vector<ItemTypeId> item_type_ids)
 {
+    std::sort(item_type_ids.begin(), item_type_ids.end());
+
     auto extra = std::make_shared<SubsetRowCutExtra>();
-    extra->item_type_ids = {item_type_id_1, item_type_id_2, item_type_id_3};
-    std::sort(extra->item_type_ids.begin(), extra->item_type_ids.end());
+    extra->item_type_ids = item_type_ids;
 
     auto cut = std::make_shared<Cut>();
     cut->name = subset_row_cut_name;
-    cut->upper_bound = 1.0;
+    cut->upper_bound = (Value)(item_type_ids.size() / 2);
     cut->extra = extra;
     return cut;
 }
@@ -133,19 +142,14 @@ public:
             const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function):
         instance_(instance),
         output_(output),
-        pricing_function_(pricing_function),
-        fixed_bin_types_(instance.number_of_bin_types()),
-        filled_demands_(instance.number_of_item_types()),
-        filled_fixed_demands_(instance.number_of_item_types())
+        pricing_function_(pricing_function)
     { }
-
-    virtual std::vector<std::shared_ptr<const Column>> initialize_pricing(
-            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
-            const std::vector<std::shared_ptr<const columngenerationsolver::Cut>>&,
-            const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&) override;
 
     virtual PricingOutput solve_pricing(
             bool solve_feasibility,
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
+            const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&,
+            const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>& tabu,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>& cut_duals,
             columngenerationsolver::Counter pricing_level) override;
@@ -159,13 +163,22 @@ public:
      * for every domain that uses this column generation template, not just
      * rectangle.
      *
-     * Candidate triples are restricted to those built from a pair of item
-     * types directly co-occurring in some positive-valued column of
-     * 'solution', extended by a third item type that co-occurs with either
-     * one of the pair in some (possibly different) column: a triple with
-     * no such pairwise evidence anywhere contributes nothing to any cut's
-     * violation yet, so this is a sound (if not exhaustive) pruning of the
-     * full O(n^3) triple search space.
+     * Two passes:
+     * - Cardinality 3: candidate triples are restricted to those built from
+     *   a pair of item types directly co-occurring in some positive-valued
+     *   column of 'solution', extended by a third item type that co-occurs
+     *   with either one of the pair in some (possibly different) column: a
+     *   triple with no such pairwise evidence anywhere contributes nothing
+     *   to any cut's violation yet, so this is a sound (if not exhaustive)
+     *   pruning of the full O(n^3) triple search space.
+     * - Cardinality 5, then 7 (see 'generalized_subset_row_cardinalities'
+     *   below): every co-occurring pair (seeded from pairs rather than
+     *   triples - see this pass's own comment in 'separate_cuts' for why
+     *   ranking by triple weight would miss some violated larger subsets)
+     *   is greedily grown, one item type at a time, up through cardinality
+     *   5 and then 7, checking for a violation at each cardinality along
+     *   the way - picking at each growth step whichever candidate
+     *   maximizes the resulting subset's violation.
      */
     virtual std::vector<std::shared_ptr<const Cut>> separate_cuts(
             const columngenerationsolver::Solution& solution) override;
@@ -195,13 +208,6 @@ private:
     const Output& output_;
 
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output> pricing_function_;
-
-    std::vector<BinPos> fixed_bin_types_;
-
-    std::vector<double> filled_demands_;
-
-    /** Fixed copies already covered by selected LP columns (per item type). */
-    std::vector<double> filled_fixed_demands_;
 
     /**
      * Cache for the 'VariableSizedBinPacking' 'maximum_number_of_bins'
@@ -268,36 +274,6 @@ columngenerationsolver::Model get_model(
     return model;
 }
 
-template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
-std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::initialize_pricing(
-        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
-        const std::vector<std::shared_ptr<const columngenerationsolver::Cut>>&,
-        const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&)
-{
-    //std::cout << "initialize_pricing " << fixed_columns.size() << std::endl;
-    std::fill(fixed_bin_types_.begin(), fixed_bin_types_.end(), 0);
-    std::fill(filled_demands_.begin(), filled_demands_.end(), 0);
-    std::fill(filled_fixed_demands_.begin(), filled_fixed_demands_.end(), 0);
-    for (auto p: fixed_columns) {
-        const Column& column = *(p.first);
-        Value value = p.second;
-        if (value < 0.5)
-            continue;
-        for (const columngenerationsolver::LinearTerm& element: column.elements) {
-            if (element.row < instance_.number_of_bin_types()) {
-                BinTypeId bin_type_id = element.row;
-                fixed_bin_types_[bin_type_id] += value;
-                for (const auto& fixed_item: instance_.bin_type(bin_type_id).fixed_items)
-                    filled_fixed_demands_[fixed_item.item_type_id] += value;
-            } else {
-                filled_demands_[element.row - instance_.number_of_bin_types()] += value * element.coefficient;
-            }
-        }
-    }
-    //std::cout << "initialize_pricing end" << std::endl;
-    return {};
-}
-
 template <typename Solution>
 std::vector<std::shared_ptr<const Column>> solution_to_columns(
         const Solution& solution)
@@ -352,12 +328,42 @@ std::vector<std::shared_ptr<const Column>> solution_to_columns(
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
 PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>::solve_pricing(
         bool solve_feasibility,
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
+        const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&,
+        const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>& tabu,
         const std::vector<Value>& duals,
         const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, Value>>& cut_duals,
         columngenerationsolver::Counter)
 {
     double multiplier_cost = largest_power_of_two_lesser_or_equal(instance_.largest_bin_cost());
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
+
+    // 'fixed_columns' and 'tabu' are the same on every call within one
+    // column generation attempt (see 'columngenerationsolver::PricingSolver
+    // ::solve_pricing''s own doc comment on why they're passed here rather
+    // than via a separate one-time setup call), but cheap enough to derive
+    // from unconditionally on every call anyway - no need to cache them
+    // across calls.
+    std::vector<BinPos> fixed_bin_types(instance_.number_of_bin_types(), 0);
+    std::vector<double> filled_demands(instance_.number_of_item_types(), 0);
+    // Fixed copies already covered by selected LP columns (per item type).
+    std::vector<double> filled_fixed_demands(instance_.number_of_item_types(), 0);
+    for (const auto& p: fixed_columns) {
+        const Column& column = *(p.first);
+        Value value = p.second;
+        if (value < 0.5)
+            continue;
+        for (const columngenerationsolver::LinearTerm& element: column.elements) {
+            if (element.row < instance_.number_of_bin_types()) {
+                BinTypeId bin_type_id = element.row;
+                fixed_bin_types[bin_type_id] += value;
+                for (const auto& fixed_item: instance_.bin_type(bin_type_id).fixed_items)
+                    filled_fixed_demands[fixed_item.item_type_id] += value;
+            } else {
+                filled_demands[element.row - instance_.number_of_bin_types()] += value * element.coefficient;
+            }
+        }
+    }
 
     //std::cout << "solve_pricing" << std::endl;
     PricingOutput output;
@@ -368,7 +374,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
         const auto& bin_type = instance_.bin_type(bin_type_id);
-        if (fixed_bin_types_[bin_type_id] == bin_type.copies)
+        if (fixed_bin_types[bin_type_id] == bin_type.copies)
             continue;
 
         for (const auto& fixed_item: bin_type.fixed_items)
@@ -415,7 +421,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             } else {
                 copies = item_type.copies
                     - item_type.copies_fixed
-                    - (filled_demands_[item_type_id] - filled_fixed_demands_[item_type_id])
+                    - (filled_demands[item_type_id] - filled_fixed_demands[item_type_id])
                     + bin_fixed_copies[item_type_id];
             }
             //std::cout << "item_type_id " << item_type_id << " profit " << profit << std::endl;
@@ -426,18 +432,27 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             kp_instance_builder.set_item_type_copies(kp_item_type_id, copies);
             kp2vbpp.push_back(item_type_id);
         }
+        // Map from vbpp item type id to this round's kp item type id ('-1'
+        // for a vbpp item type excluded from this round's kp instance -
+        // see the 'copies <= 0' skip above). Built once, shared by the
+        // subset-row cut resources below and the tabu no-good cut
+        // resources further down.
+        std::vector<ItemTypeId> vbpp2kp;
+        if (!cut_duals.empty() || !tabu.empty()) {
+            vbpp2kp.assign(instance_.number_of_item_types(), -1);
+            for (ItemTypeId kp_item_type_id = 0;
+                    kp_item_type_id < (ItemTypeId)kp2vbpp.size();
+                    ++kp_item_type_id) {
+                vbpp2kp[kp2vbpp[kp_item_type_id]] = kp_item_type_id;
+            }
+        }
+
         // Apply active subset-row cuts as penalizing resources on the
         // pricing sub-instance's bin type (see 'Resource' in
         // 'packingsolver/algorithms/common.hpp'), so that the tree search
         // actually searches for the best *reduced-cost* pattern instead of
         // just the best raw-profit one.
         if (!cut_duals.empty()) {
-            std::vector<ItemTypeId> vbpp2kp(instance_.number_of_item_types(), -1);
-            for (ItemTypeId kp_item_type_id = 0;
-                    kp_item_type_id < (ItemTypeId)kp2vbpp.size();
-                    ++kp_item_type_id) {
-                vbpp2kp[kp2vbpp[kp_item_type_id]] = kp_item_type_id;
-            }
             for (const auto& cut_dual: cut_duals) {
                 if (cut_dual.first->name != subset_row_cut_name)
                     continue;
@@ -459,14 +474,32 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                 // 'profit -= cut_dual * multiplier_profit' (i.e. 'penalty
                 // = cut_dual * multiplier_profit', scaled the same way the
                 // item duals just above are).
-                // The penalty can only ever trigger once 2 of the 3 item
-                // types are simultaneously present in a generated column
-                // (see 'coefficient' above), so if this bin type's pricing
-                // sub-instance excludes 2 or more of them already (e.g.
-                // because their remaining demand is 0 this round - see the
+                // The cut's coefficient on a generated column is
+                // floor(count / 2), where 'count' is how many of
+                // 'item_type_ids' the column contains (see 'coefficient'
+                // below) - reproduced here as one soft resource per unit of
+                // that coefficient: resource i (capacities 1, 3, 5, ...)
+                // is the first to cross its capacity exactly when 'count'
+                // reaches 2*(i+1), so the number of resources that end up
+                // crossed equals floor(count / 2) exactly, each
+                // independently contributing one 'penalty' ('Resource'
+                // triggers its penalty only once per bin, the first time
+                // consumption crosses its own capacity - see its own doc
+                // comment). This is why the cardinality-3 case (a single
+                // resource of capacity 1) is enough to cap its coefficient
+                // at 1: floor(3 / 2) is still 1, so a second resource would
+                // never be reachable there anyway.
+                //
+                // If this bin type's pricing sub-instance excludes 2 or
+                // more of the subset's item types already (e.g. because
+                // their remaining demand is 0 this round - see the
                 // 'copies <= 0' skip above), no column from it could ever
-                // reach that count and the resource would be a dead weight
-                // in the tree search state for no benefit.
+                // reach count 2, so no resource here could ever be crossed
+                // and building any would be dead weight in the tree search
+                // state for no benefit - same reasoning caps the number of
+                // resources built at 'present_kp_item_type_ids.size() / 2':
+                // no column could ever reach a count high enough to cross
+                // any resource beyond that.
                 std::vector<ItemTypeId> present_kp_item_type_ids;
                 for (ItemTypeId item_type_id: extra.item_type_ids) {
                     if (item_type_id < 0 || item_type_id >= (ItemTypeId)vbpp2kp.size())
@@ -482,19 +515,101 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                 double penalty = (instance_.objective() == Objective::Knapsack)?
                     cut_dual.second * multiplier_profit:
                     -cut_dual.second;
-                ResourceId resource_id = kp_instance_builder.add_bin_type_resource(
-                        kp_bin_type_id,
-                        /* capacity */ 1.0,
-                        /* penalize */ true,
-                        /* penalty */ penalty);
-                for (ItemTypeId kp_item_type_id: present_kp_item_type_ids) {
+                ItemPos number_of_thresholds = (ItemPos)present_kp_item_type_ids.size() / 2;
+                for (ItemPos threshold = 0; threshold < number_of_thresholds; ++threshold) {
+                    ResourceId resource_id = kp_instance_builder.add_bin_type_resource(
+                            kp_bin_type_id,
+                            /* capacity */ 2.0 * threshold + 1.0,
+                            /* penalize */ true,
+                            /* penalty */ penalty);
+                    for (ItemTypeId kp_item_type_id: present_kp_item_type_ids) {
+                        kp_instance_builder.add_resource_consumption(
+                                kp_bin_type_id,
+                                resource_id,
+                                kp_item_type_id,
+                                0,
+                                1.0);
+                    }
+                }
+            }
+        }
+
+        // Forbid regenerating any tabu column's pattern for this bin type,
+        // via a no-good cut expressed as a hard resource (see 'Resource'
+        // in 'packingsolver/algorithms/common.hpp', and the identical
+        // technique - 'threshold_schedule'/'ResourceCut' - already used by
+        // 'rectangle::benders_decomposition' for the same purpose on its
+        // own master problem): a per-item-type schedule capping that item
+        // type's contribution at its copy count in the tabu pattern (a run
+        // of 1's the length of that copy count, followed by a trailing 0
+        // so it stops growing there), with the resource's capacity set to
+        // one less than the sum of all the pattern's item copies, forbids
+        // exactly that pattern - and any pattern using at least as many
+        // copies of every item type in it - without excluding anything
+        // else. Unlike the subset-row resources above, this is a hard
+        // exclusion ('penalize' left at its default 'false'): a tabu
+        // column isn't a priced-in cut with a dual value to trade off
+        // against, it is a pattern the search has already branched away
+        // from and must never regenerate.
+        for (const auto& tabu_column: tabu) {
+            // Identify the bin type this tabu column was generated for -
+            // every column built by this template has exactly one bin
+            // type element, with coefficient 1 (see 'solution_to_columns'
+            // and this function's own column-building loop below).
+            BinTypeId tabu_bin_type_id = -1;
+            for (const columngenerationsolver::LinearTerm& element: tabu_column->elements) {
+                if (element.row < instance_.number_of_bin_types()) {
+                    tabu_bin_type_id = element.row;
+                    break;
+                }
+            }
+            if (tabu_bin_type_id != bin_type_id)
+                continue;
+
+            std::vector<std::pair<ItemTypeId, ItemPos>> present_kp_item_thresholds;
+            double capacity = -1.0;
+            for (const columngenerationsolver::LinearTerm& element: tabu_column->elements) {
+                if (element.row < instance_.number_of_bin_types())
+                    continue;
+                ItemTypeId item_type_id = element.row - instance_.number_of_bin_types();
+                ItemPos threshold = (ItemPos)std::round(element.coefficient);
+                if (threshold <= 0)
+                    continue;
+                capacity += threshold;
+                ItemTypeId kp_item_type_id = vbpp2kp[item_type_id];
+                if (kp_item_type_id == -1)
+                    continue;
+                present_kp_item_thresholds.push_back({kp_item_type_id, threshold});
+            }
+            // If none of the tabu pattern's item types survived into this
+            // round's kp instance, the pattern can't be regenerated this
+            // round regardless (see the 'copies <= 0' skip above), so the
+            // cut would be a dead weight in the tree search state for no
+            // benefit - same reasoning as the subset-row cut's own
+            // '< 2 present' skip above.
+            if (present_kp_item_thresholds.empty())
+                continue;
+
+            ResourceId resource_id = kp_instance_builder.add_bin_type_resource(
+                    kp_bin_type_id,
+                    /* capacity */ capacity);
+            for (const auto& present_kp_item_threshold: present_kp_item_thresholds) {
+                ItemTypeId kp_item_type_id = present_kp_item_threshold.first;
+                ItemPos threshold = present_kp_item_threshold.second;
+                for (ItemPos copy = 0; copy < threshold; ++copy) {
                     kp_instance_builder.add_resource_consumption(
                             kp_bin_type_id,
                             resource_id,
                             kp_item_type_id,
-                            0,
+                            copy,
                             1.0);
                 }
+                kp_instance_builder.add_resource_consumption(
+                        kp_bin_type_id,
+                        resource_id,
+                        kp_item_type_id,
+                        threshold,
+                        0.0);
             }
         }
 
@@ -871,12 +986,12 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
         return (it == pair_columns.end())? empty_columns: it->second;
     };
 
-    struct ViolatedTriple
+    struct ViolatedSubset
     {
-        std::array<ItemTypeId, 3> item_type_ids;
+        std::vector<ItemTypeId> item_type_ids;
         Value violation;
     };
-    std::vector<ViolatedTriple> violated_triples;
+    std::vector<ViolatedSubset> violated_subsets;
     for (const std::array<ItemTypeId, 3>& triple: candidate_triples) {
         ItemTypeId item_type_id_a = triple[0];
         ItemTypeId item_type_id_b = triple[1];
@@ -919,26 +1034,161 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
             + pair_weight_of(item_type_id_b, item_type_id_c)
             - 2.0 * triple_weight
             - 1.0;
-        if (violation > 1e-6)
-            violated_triples.push_back({triple, violation});
+        if (violation > 1e-6) {
+            violated_subsets.push_back({
+                    {item_type_id_a, item_type_id_b, item_type_id_c},
+                    violation});
+        }
+    }
+
+    // Cardinality-5/7 passes (see 'generalized_subset_row_cardinalities'
+    // and the class-level doc comment on this function): grow every
+    // co-occurring pair, one item type at a time, into a subset of the
+    // target cardinality, always adding whichever co-occurrence neighbor
+    // of the current subset maximizes its resulting violation. Evaluated
+    // by direct column scan ('subset_violation' below) rather than the
+    // pairwise inclusion-exclusion trick above: that trick is specific to
+    // counting "exactly 2 vs exactly 3" of a *triple*, it does not
+    // generalize to distinguishing the coefficient 0/1/2/3 bands of a
+    // larger subset.
+    //
+    // Seeded from pairs, not from the strongest candidate triples: ranking
+    // triples by their own combined pairwise weight is biased toward
+    // "triangles" (all 3 pairs co-occurring), but a violated larger subset
+    // need not contain any triangle at all - e.g. a cycle of item types
+    // where only consecutive pairs co-occur has every one of its own
+    // triples scoring worse than an unrelated triangle elsewhere, even
+    // though the full subset is the one that is actually violated. Seeding
+    // from every co-occurring pair instead (there are typically far fewer
+    // distinct pairs than triples, so this stays cheap) avoids that bias:
+    // every edge of such a cycle is its own seed.
+    const std::array<ItemPos, 2> generalized_subset_row_cardinalities = {5, 7};
+    const ItemPos maximum_number_of_extension_seeds = 200;
+    auto subset_violation = [&column_items](const std::vector<ItemTypeId>& subset) -> Value
+    {
+        Value lhs = 0.0;
+        for (const ColumnItems& entry: column_items) {
+            // Both 'subset' and 'entry.item_type_ids' are sorted - count
+            // their intersection via a merge instead of a hash lookup per
+            // element.
+            int count = 0;
+            std::size_t pos_subset = 0;
+            std::size_t pos_entry = 0;
+            while (pos_subset < subset.size() && pos_entry < entry.item_type_ids.size()) {
+                if (subset[pos_subset] == entry.item_type_ids[pos_entry]) {
+                    ++count;
+                    ++pos_subset;
+                    ++pos_entry;
+                } else if (subset[pos_subset] < entry.item_type_ids[pos_entry]) {
+                    ++pos_subset;
+                } else {
+                    ++pos_entry;
+                }
+            }
+            if (count >= 2)
+                lhs += (Value)(count / 2) * entry.value;
+        }
+        return lhs - (Value)(subset.size() / 2);
+    };
+    struct PairScore
+    {
+        ItemTypeId item_type_id_1;
+        ItemTypeId item_type_id_2;
+        Value weight;
+    };
+    std::vector<PairScore> pair_scores;
+    pair_scores.reserve(pair_weight.size());
+    for (const auto& p: pair_weight)
+        pair_scores.push_back({p.first.first, p.first.second, p.second});
+    std::sort(
+            pair_scores.begin(),
+            pair_scores.end(),
+            [](const PairScore& pair_score_1, const PairScore& pair_score_2)
+            {
+                return pair_score_1.weight > pair_score_2.weight;
+            });
+    if ((ItemPos)pair_scores.size() > maximum_number_of_extension_seeds)
+        pair_scores.resize(maximum_number_of_extension_seeds);
+    // Beam width for the growth itself: pure greedy (width 1) reliably gets
+    // trapped on a tie among several "clique-like" candidates (e.g. three
+    // item types that all pairwise co-occur with the seed, none of them
+    // pairwise with each other) that score equally well one step ahead but
+    // lead nowhere, while the extension actually needed to reach a violated
+    // quintuple scores no better at that same first step - a real example
+    // from the fractional point this cardinality-5 extension targets. A
+    // small beam recovers this: even if the needed extension is one of
+    // several tied candidates, it survives into the next step instead of
+    // being discarded for not going first in the tie.
+    const ItemPos extension_beam_width = 10;
+    for (const PairScore& seed: pair_scores) {
+        std::vector<std::vector<ItemTypeId>> beam = {{seed.item_type_id_1, seed.item_type_id_2}};
+        // Grow the same beam through every target cardinality in increasing
+        // order (5, then 7), checking for violations at each checkpoint
+        // along the way: the first 3 growth steps (2 -> 5) are shared work
+        // for both, no need to restart from the pair for cardinality 7.
+        for (ItemPos target_cardinality: generalized_subset_row_cardinalities) {
+            while ((ItemPos)beam.front().size() < target_cardinality) {
+                std::vector<std::pair<std::vector<ItemTypeId>, Value>> candidates;
+                std::set<std::vector<ItemTypeId>> seen;
+                for (const std::vector<ItemTypeId>& partial: beam) {
+                    std::set<ItemTypeId> candidate_pool;
+                    for (ItemTypeId item_type_id: partial) {
+                        for (ItemTypeId neighbor: neighbors[item_type_id])
+                            candidate_pool.insert(neighbor);
+                    }
+                    for (ItemTypeId item_type_id: partial)
+                        candidate_pool.erase(item_type_id);
+                    for (ItemTypeId candidate: candidate_pool) {
+                        std::vector<ItemTypeId> trial = partial;
+                        trial.push_back(candidate);
+                        std::sort(trial.begin(), trial.end());
+                        if (!seen.insert(trial).second)
+                            continue;
+                        candidates.push_back({trial, subset_violation(trial)});
+                    }
+                }
+                // No co-occurrence neighbor left to grow into from any
+                // subset in the beam: stop here, this seed will be
+                // discarded below (and skipped for any larger target
+                // cardinality still to come) for not reaching this one.
+                if (candidates.empty())
+                    break;
+                std::sort(
+                        candidates.begin(),
+                        candidates.end(),
+                        [](const std::pair<std::vector<ItemTypeId>, Value>& candidate_1, const std::pair<std::vector<ItemTypeId>, Value>& candidate_2)
+                        {
+                            return candidate_1.second > candidate_2.second;
+                        });
+                if ((ItemPos)candidates.size() > extension_beam_width)
+                    candidates.resize(extension_beam_width);
+                beam.clear();
+                for (auto& candidate: candidates)
+                    beam.push_back(std::move(candidate.first));
+            }
+            if ((ItemPos)beam.front().size() != target_cardinality)
+                break;
+            for (const std::vector<ItemTypeId>& subset: beam) {
+                Value violation = subset_violation(subset);
+                if (violation > 1e-6)
+                    violated_subsets.push_back({subset, violation});
+            }
+        }
     }
 
     std::sort(
-            violated_triples.begin(),
-            violated_triples.end(),
-            [](const ViolatedTriple& violated_triple_1, const ViolatedTriple& violated_triple_2)
+            violated_subsets.begin(),
+            violated_subsets.end(),
+            [](const ViolatedSubset& violated_subset_1, const ViolatedSubset& violated_subset_2)
             {
-                return violated_triple_1.violation > violated_triple_2.violation;
+                return violated_subset_1.violation > violated_subset_2.violation;
             });
 
     std::vector<std::shared_ptr<const Cut>> new_cuts;
-    for (const ViolatedTriple& violated_triple: violated_triples) {
+    for (const ViolatedSubset& violated_subset: violated_subsets) {
         if ((CutIdx)new_cuts.size() >= maximum_number_of_cuts)
             break;
-        new_cuts.push_back(build_subset_row_cut(
-                violated_triple.item_type_ids[0],
-                violated_triple.item_type_ids[1],
-                violated_triple.item_type_ids[2]));
+        new_cuts.push_back(build_subset_row_cut(violated_subset.item_type_ids));
     }
     return new_cuts;
 }
@@ -956,7 +1206,7 @@ Value ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>
         if (extra_solution.item_copies(item_type_id) > 0)
             number_of_items_present++;
     }
-    return (number_of_items_present >= 2)? 1.0: 0.0;
+    return (Value)(number_of_items_present / 2);
 }
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output>
@@ -965,8 +1215,8 @@ bool ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>:
         const Cut& cut_2) const
 {
     // Both cuts are always subset-row cuts - see 'build_subset_row_cut'
-    // above - and 'item_type_ids' is always kept sorted, so a plain array
-    // comparison recognizes two cuts built over the same triple.
+    // above - and 'item_type_ids' is always kept sorted, so a plain vector
+    // comparison recognizes two cuts built over the same subset.
     const SubsetRowCutExtra& extra_1 = *std::static_pointer_cast<SubsetRowCutExtra>(cut_1.extra);
     const SubsetRowCutExtra& extra_2 = *std::static_pointer_cast<SubsetRowCutExtra>(cut_2.extra);
     return extra_1.item_type_ids == extra_2.item_type_ids;

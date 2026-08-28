@@ -49,21 +49,19 @@ public:
         link2_row_(link2_row)
     { }
 
-    std::vector<std::shared_ptr<const columngenerationsolver::Column>> initialize_pricing(
-            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>&,
-            const std::vector<std::shared_ptr<const columngenerationsolver::Cut>>&,
-            const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&) override
-    {
-        return {};
-    }
-
     // 'solve_feasibility' unused: every dynamically priced column here
     // already carries a fixed 'objective_coefficient' of 0 (see
     // 'price_bars' below - only the static 'n_{i,t}'/'k_t' columns carry
     // the real objective), so this pricing search's own reduced cost is
     // identical in both phases and needs no phase-specific adjustment.
+    // 'fixed_columns'/'branching_decisions'/'tabu' unused: this pricing
+    // solver has neither fixed/tabu column bookkeeping nor
+    // branching-decision-sensitive behavior of its own.
     columngenerationsolver::PricingSolver::PricingOutput solve_pricing(
             bool solve_feasibility,
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>&,
+            const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&,
+            const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>&,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
             columngenerationsolver::Counter pricing_level) override;
@@ -229,6 +227,9 @@ double BarRelaxationPricingSolver::price_bars(
 
 columngenerationsolver::PricingSolver::PricingOutput BarRelaxationPricingSolver::solve_pricing(
         bool,
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>&,
+        const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&,
+        const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>&,
         const std::vector<columngenerationsolver::Value>& duals,
         const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
         columngenerationsolver::Counter)

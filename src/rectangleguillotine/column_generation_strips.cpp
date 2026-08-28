@@ -40,13 +40,11 @@ public:
         filled_demands_(instance.number_of_item_types())
     { }
 
-    virtual std::vector<std::shared_ptr<const Column>> initialize_pricing(
-            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
-            const std::vector<std::shared_ptr<const columngenerationsolver::Cut>>&,
-            const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&) override;
-
     virtual PricingOutput solve_pricing(
             bool solve_feasibility,
+            const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
+            const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&,
+            const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>&,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
             columngenerationsolver::Counter pricing_level) override;
@@ -131,17 +129,42 @@ private:
     bool all_columns_3h_patterns_generated_ = false;
 
     /**
-     * True from 'initialize_pricing' until the first 'solve_pricing' call has
-     * generated columns using zero duals (i.e. real profit instead of
-     * reduced profit). This guarantees that, for every diving branch, the
-     * best real-profit column (in particular a single-strip solution, since
-     * every generated strip is also considered as a candidate solution) is
-     * always found regardless of where the master problem's dual values
-     * happen to be, since real-profit-optimal columns do not always become
-     * reduced-cost-optimal at the dual values actually visited by the
-     * search.
+     * True from the start of a column generation attempt (see
+     * 'fixed_columns_signature_' below for how that start is detected, now
+     * that there is no dedicated per-attempt setup call) until the first
+     * 'solve_pricing' call of that attempt has generated columns using zero
+     * duals (i.e. real profit instead of reduced profit). This guarantees
+     * that, for every diving branch, the best real-profit column (in
+     * particular a single-strip solution, since every generated strip is
+     * also considered as a candidate solution) is always found regardless
+     * of where the master problem's dual values happen to be, since real-
+     * profit-optimal columns do not always become reduced-cost-optimal at
+     * the dual values actually visited by the search.
      */
     bool first_pricing_ = true;
+
+    /**
+     * '(column, fixed value)' pairs of 'fixed_columns' as of the last
+     * 'solve_pricing' call, used to detect the start of a new column
+     * generation attempt: per 'columngenerationsolver::PricingSolver::
+     * solve_pricing''s own doc comment, 'fixed_columns' (and the branching
+     * decisions it reflects) are the same on every call within one
+     * attempt, changing only when a new attempt (a different search node)
+     * begins. This one solver instance is reused across the whole limited
+     * discrepancy search tree (see its construction in
+     * 'column_generation_strips' below), so 'filled_demands_'/
+     * 'filled_width_'/'first_pricing_' need this signal to know when to
+     * recompute/reset rather than keep reusing the previous attempt's
+     * values. Compares both the column and its value, not just the column:
+     * a descendant node can re-fix the very same column (same pointer) at
+     * a different value as branching bounds tighten deeper in the tree, so
+     * pointer identity alone is not enough to recognize "still the same
+     * attempt".
+     */
+    std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>> fixed_columns_signature_;
+
+    /** 'false' only before the very first 'solve_pricing' call ever. */
+    bool fixed_columns_signature_initialized_ = false;
 
 };
 
@@ -662,40 +685,6 @@ GetModelOutput get_model(
     }
 
     return output;
-}
-
-std::vector<std::shared_ptr<const Column>> ColumnGenerationPricingSolver::initialize_pricing(
-        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
-        const std::vector<std::shared_ptr<const columngenerationsolver::Cut>>&,
-        const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&)
-{
-    const BinType& bin_type = instance_.bin_type(0);
-    double multiplier_length = largest_power_of_two_lesser_or_equal(bin_type.rect.w);
-    std::fill(filled_demands_.begin(), filled_demands_.end(), 0);
-    filled_width_ = 0;
-    first_pricing_ = true;
-    for (auto p: fixed_columns) {
-        const Column& column = *(p.first);
-        Value value = p.second;
-        for (const columngenerationsolver::LinearTerm& element: column.elements) {
-            if (element.row < instance_.number_of_item_types()) {
-                ItemTypeId item_type_id = element.row;
-                ItemPos copies = instance_.item_type(item_type_id).copies;
-                filled_demands_[item_type_id] += std::round(value) * std::round(element.coefficient);
-                if (filled_demands_[item_type_id] > copies) {
-                    throw std::logic_error(
-                            FUNC_SIGNATURE + "; "
-                            "item_type_id: " + std::to_string(item_type_id) + "; "
-                            "copies: " + std::to_string(copies) + "; "
-                            "filled_demands: " + std::to_string(filled_demands_[item_type_id]) + ".");
-                }
-            } else {
-                filled_width_ += std::round(value) * multiplier_length * element.coefficient;
-            }
-        }
-    }
-    //std::cout << "initialize_pricing end" << std::endl;
-    return {};
 }
 
 void ColumnGenerationPricingSolver::generate_1e_patterns(
@@ -1940,11 +1929,61 @@ void ColumnGenerationPricingSolver::generate_duals_zero(
 
 PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         bool solve_feasibility,
+        const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Column>, columngenerationsolver::Value>>& fixed_columns,
+        const std::vector<std::shared_ptr<const columngenerationsolver::BranchingDecision>>&,
+        const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>&,
         const std::vector<columngenerationsolver::Value>& duals,
         const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
         columngenerationsolver::Counter)
 {
     //std::cout << "solve_pricing" << std::endl;
+
+    // Detect the start of a new column generation attempt (a different
+    // search node) via 'fixed_columns_signature_' - see its own doc
+    // comment - and (re)do what used to happen once per attempt in
+    // 'initialize_pricing', now folded in here since the framework no
+    // longer calls a separate per-attempt setup hook.
+    bool new_attempt = !fixed_columns_signature_initialized_
+        || fixed_columns.size() != fixed_columns_signature_.size();
+    if (!new_attempt) {
+        for (std::size_t pos = 0; pos < fixed_columns.size(); ++pos) {
+            if (fixed_columns[pos].first != fixed_columns_signature_[pos].first
+                    || fixed_columns[pos].second != fixed_columns_signature_[pos].second) {
+                new_attempt = true;
+                break;
+            }
+        }
+    }
+    if (new_attempt) {
+        fixed_columns_signature_initialized_ = true;
+        fixed_columns_signature_ = fixed_columns;
+
+        const BinType& fixed_bin_type = instance_.bin_type(0);
+        double multiplier_length = largest_power_of_two_lesser_or_equal(fixed_bin_type.rect.w);
+        std::fill(filled_demands_.begin(), filled_demands_.end(), 0);
+        filled_width_ = 0;
+        for (const auto& p: fixed_columns) {
+            const Column& column = *(p.first);
+            Value value = p.second;
+            for (const columngenerationsolver::LinearTerm& element: column.elements) {
+                if (element.row < instance_.number_of_item_types()) {
+                    ItemTypeId item_type_id = element.row;
+                    ItemPos copies = instance_.item_type(item_type_id).copies;
+                    filled_demands_[item_type_id] += std::round(value) * std::round(element.coefficient);
+                    if (filled_demands_[item_type_id] > copies) {
+                        throw std::logic_error(
+                                FUNC_SIGNATURE + "; "
+                                "item_type_id: " + std::to_string(item_type_id) + "; "
+                                "copies: " + std::to_string(copies) + "; "
+                                "filled_demands: " + std::to_string(filled_demands_[item_type_id]) + ".");
+                    }
+                } else {
+                    filled_width_ += std::round(value) * multiplier_length * element.coefficient;
+                }
+            }
+        }
+        first_pricing_ = true;
+    }
 
     const BinType& bin_type = instance_.bin_type(0);
 
