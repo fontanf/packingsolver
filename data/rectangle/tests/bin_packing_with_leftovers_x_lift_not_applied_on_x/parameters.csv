@@ -1,0 +1,4 @@
+NAME,VALUE
+objective,BinPackingWithLeftovers
+unloading_constraint,None
+leftover_mode,X

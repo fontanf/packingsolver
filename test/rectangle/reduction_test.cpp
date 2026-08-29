@@ -977,6 +977,68 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangle" / "tests" / "bin_packing_merge_identical_items_unreduce_solution_round_trip",
                 ReductionParameters(),
                 false,
+            }, {
+                // Bin 10x10. Item 0 (6x3, oriented) is the same item as in
+                // 'bin_packing_lift_item_dimensions_feeds_into_both_group',
+                // but 'OpenDimensionX' instead of 'BinPacking': since
+                // 'companion_absorption_applies' never holds for
+                // 'OpenDimensionX' (only 'BinPacking'/
+                // 'VariableSizedBinPacking'/'Feasibility' - see its own doc
+                // comment), 'lift_item_dimensions' is the only thing that
+                // can touch item 0's dimensions here, with no wide/tall/
+                // both entanglement to chain into afterwards. Unrestricted
+                // lifting would grow item 0 from (6, 3) to (9, 4) against
+                // the shrunk (9, 9) bin (see
+                // 'bin_packing_lift_item_dimensions_feeds_into_both_group'
+                // for the full derivation) - but 'OpenDimensionX' measures
+                // reach along x directly, so
+                // 'lift_item_dimensions_applies_axis' must block the x
+                // lift specifically: item 0's width stays 6, while its
+                // height still lifts to 4 (the y axis is unaffected).
+                fs::path("data") / "rectangle" / "tests" / "open_dimension_x_lift_not_applied_on_x",
+                ReductionParameters(),
+                false,
+            }, {
+                // Same instance and reasoning as above, but
+                // 'OpenDimensionY': the y lift is blocked instead, so item
+                // 0's height stays 3 while its width still lifts to 9.
+                fs::path("data") / "rectangle" / "tests" / "open_dimension_y_lift_not_applied_on_y",
+                ReductionParameters(),
+                false,
+            }, {
+                // Same instance again, 'BinPackingWithLeftovers' with
+                // 'LeftoverMode::Area': the leftover value depends on
+                // *both* 'x_max' and 'y_max' (see 'LeftoverMode''s own doc
+                // comment: 'bin_area - x_max * y_max'), so
+                // 'lift_item_dimensions_applies_axis' must block lifting
+                // on *both* axes here - item 0 stays completely untouched
+                // at (6, 3). This is the exact combination reported in
+                // GitHub issue #533: lifting an item's declared dimension
+                // in the reduced instance the downstream solve actually
+                // runs on makes that solve reason - and choose placements
+                // - against an artificially enlarged footprint, which
+                // 'BinPackingWithLeftovers' (unlike plain 'BinPacking')
+                // can directly see and settle for a worse, non-compact
+                // arrangement over, since it scores solutions by exactly
+                // how far items reach.
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_area_lift_not_applied_on_either_axis",
+                ReductionParameters(),
+                false,
+            }, {
+                // Same instance, 'BinPackingWithLeftovers' with
+                // 'LeftoverMode::X' (leftover value is 'bin_width - x_max'
+                // - only the x axis matters): blocks only the x lift, the
+                // same result as 'OpenDimensionX' above.
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_x_lift_not_applied_on_x",
+                ReductionParameters(),
+                false,
+            }, {
+                // Same instance, 'BinPackingWithLeftovers' with
+                // 'LeftoverMode::Y': blocks only the y lift, the same
+                // result as 'OpenDimensionY' above.
+                fs::path("data") / "rectangle" / "tests" / "bin_packing_with_leftovers_y_lift_not_applied_on_y",
+                ReductionParameters(),
+                false,
             },
         }));
 
@@ -1041,4 +1103,3 @@ TEST(RectangleReduction, DISABLED_ReportBenchmarkRmv)
 
     std::cout << "Overall: " << avg(all) << "%" << std::endl;
 }
-

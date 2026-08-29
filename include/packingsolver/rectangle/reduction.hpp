@@ -230,10 +230,31 @@ struct ReductionParameters: optimizationtools::Parameters
  *   ever hidden this way, none of companion absorption's weight/resource/
  *   unloading-constraint exclusions apply here, and - like
  *   'merge_identical_items' - nothing about it depends on every item
- *   necessarily being packed, so it runs for *any* objective too. It does
- *   still need a single bin type (the bin's own true dimension must be
- *   unambiguous) and no defects (a defect sitting inside the claimed
- *   "provably empty" margin would be invisible to this purely 1D
+ *   necessarily being packed, so it runs for *any* objective, on either
+ *   axis independently, with one exception: an objective that directly
+ *   measures how far items extend along a given axis
+ *   ('Objective::OpenDimensionX'/'OpenDimensionY', or
+ *   'Objective::BinPackingWithLeftovers' with a 'LeftoverMode' that
+ *   depends on that axis - 'X'/'Y' for their own axis, 'Area' for both)
+ *   must never lift on that axis. Lifting only ever grows an item type's
+ *   *declared* dimension in the reduced instance the downstream solve
+ *   actually runs on ('reduction_to_instance' carries 'item.rect' over
+ *   as-is) - 'unreduce_solution' then places the true, original-sized
+ *   item back at whatever position the solve chose for its enlarged
+ *   stand-in, leaving the provably-unusable margin as genuine empty space
+ *   in the final solution, exactly as intended. That is harmless for an
+ *   objective that only cares about *whether* everything fits (or how
+ *   many bins that takes): the margin was never usable by anything else
+ *   regardless. But an objective that scores a solution by exactly how
+ *   far along an axis its items reach cannot tell the two apart: the
+ *   downstream solve reasons - and makes placement/objective-value
+ *   decisions - against the *enlarged* footprint, potentially settling
+ *   for a worse arrangement than the true, smaller footprint would have
+ *   allowed, since it believes reach along that axis is already
+ *   unavoidable when it is not. See 'lift_item_dimensions_applies_axis()'.
+ *   It does still need a single bin type (the bin's own true dimension
+ *   must be unambiguous) and no defects (a defect sitting inside the
+ *   claimed "provably empty" margin would be invisible to this purely 1D
  *   argument, the same blind spot as companion absorption's own geometric
  *   checks) - see 'lift_item_dimensions_applies()'.
  *
@@ -463,19 +484,39 @@ private:
 
     /**
      * 'true' iff lifting item dimensions via subset sum (see
-     * 'lift_item_dimensions') is meaningful for 'instance' - the
-     * class-level doc comment's "Lifting item dimensions via subset sum"
-     * paragraph: only for instances with a single bin type (the bin's own
-     * true dimension must be unambiguous - like companion absorption's
-     * own precondition) and no defects (a defect sitting inside the
-     * claimed "provably empty" margin would be invisible to this purely
-     * 1D argument). Unlike 'companion_absorption_applies', not restricted
-     * by objective, weight, resources, or unloading constraint - see the
-     * class-level doc comment for why none of those apply here. Does not
+     * 'lift_item_dimensions') is meaningful for 'instance' at all,
+     * regardless of axis - the class-level doc comment's "Lifting item
+     * dimensions via subset sum" paragraph: only for instances with a
+     * single bin type (the bin's own true dimension must be unambiguous -
+     * like companion absorption's own precondition) and no defects (a
+     * defect sitting inside the claimed "provably empty" margin would be
+     * invisible to this purely 1D argument). Unlike
+     * 'companion_absorption_applies', not restricted by weight, resources,
+     * or unloading constraint - see the class-level doc comment for why
+     * none of those apply here. Objective restrictions are per-axis, not
+     * covered here - see 'lift_item_dimensions_applies_axis()'. Does not
      * check 'parameters.reduce' - the constructor only calls this after
      * already checking it.
      */
     static bool lift_item_dimensions_applies(const Instance& instance);
+
+    /**
+     * 'true' iff lifting item dimensions (see 'lift_item_dimensions') is
+     * sound on the given axis ('width_axis' true for 'x', false for 'y')
+     * for 'instance' - the class-level doc comment's "Lifting item
+     * dimensions via subset sum" paragraph's own exception: 'false' when
+     * the objective directly measures how far items extend along this
+     * axis, i.e. 'Objective::OpenDimensionX' (for the 'x' axis) /
+     * 'OpenDimensionY' (for 'y'), or 'Objective::BinPackingWithLeftovers'
+     * with a 'LeftoverMode' that depends on this axis ('LeftoverMode::X'
+     * for 'x', 'LeftoverMode::Y' for 'y', 'LeftoverMode::Area' for
+     * either). Independent of 'lift_item_dimensions_applies()' - both
+     * must hold for lifting to actually run on a given axis (see
+     * 'lift_item_dimensions').
+     */
+    static bool lift_item_dimensions_applies_axis(
+            const Instance& instance,
+            bool width_axis);
 
     /**
      * 'true' iff trimming negative-profit item types (see
@@ -1839,6 +1880,13 @@ private:
      * the same limited pool of other items - one shared bound cannot back
      * every copy simultaneously (see this method's own doc comment in
      * 'reduction.cpp' for a concrete counterexample).
+     *
+     * Each axis is independently gated by 'lift_item_dimensions_applies_axis'
+     * first - an objective that measures reach along that axis directly
+     * (e.g. 'OpenDimensionX') must never have items lifted on it, even
+     * when lifting is otherwise sound (see that method's own doc comment,
+     * and the class-level "Lifting item dimensions via subset sum"
+     * paragraph, for why).
      *
      * Returns 'true' iff at least one item type was enlarged, on either
      * axis.

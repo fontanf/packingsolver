@@ -2094,6 +2094,35 @@ bool Reduction::lift_item_dimensions_applies(const Instance& instance)
             && instance.number_of_defects() == 0;
 }
 
+bool Reduction::lift_item_dimensions_applies_axis(
+        const Instance& instance,
+        bool width_axis)
+{
+    // See the class-level doc comment's "Lifting item dimensions via
+    // subset sum" paragraph for why: lifting only ever grows an item
+    // type's *declared* dimension in the reduced instance the downstream
+    // solve actually runs on, so an objective that measures reach along
+    // this axis directly would have that solve reason - and make
+    // placement/objective-value decisions - against an artificially
+    // enlarged footprint instead of the item's true one.
+    if (width_axis) {
+        if (instance.objective() == Objective::OpenDimensionX)
+            return false;
+        if (instance.objective() == Objective::BinPackingWithLeftovers
+                && (instance.parameters().leftover_mode == LeftoverMode::X
+                        || instance.parameters().leftover_mode == LeftoverMode::Area))
+            return false;
+    } else {
+        if (instance.objective() == Objective::OpenDimensionY)
+            return false;
+        if (instance.objective() == Objective::BinPackingWithLeftovers
+                && (instance.parameters().leftover_mode == LeftoverMode::Y
+                        || instance.parameters().leftover_mode == LeftoverMode::Area))
+            return false;
+    }
+    return true;
+}
+
 bool Reduction::remove_negative_profit_items_applies(const Instance& instance)
 {
     if (instance.objective() != Objective::Knapsack)
@@ -2173,8 +2202,10 @@ bool Reduction::lift_item_dimensions(
         Length bin_h) const
 {
     bool found = false;
-    found |= lift_item_dimensions_axis(reduction_item_types, bin_w, /* width_axis */ true);
-    found |= lift_item_dimensions_axis(reduction_item_types, bin_h, /* width_axis */ false);
+    if (lift_item_dimensions_applies_axis(*original_instance_, /* width_axis */ true))
+        found |= lift_item_dimensions_axis(reduction_item_types, bin_w, /* width_axis */ true);
+    if (lift_item_dimensions_applies_axis(*original_instance_, /* width_axis */ false))
+        found |= lift_item_dimensions_axis(reduction_item_types, bin_h, /* width_axis */ false);
     return found;
 }
 
