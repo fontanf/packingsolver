@@ -1376,6 +1376,34 @@ Instance build_sequential_feasibility_sub_instance(
  * sequence of calls (as the sequential feasibility scheme does) lets each
  * one pick up where the previous one left off instead of starting its
  * pricing from scratch.
+ *
+ * 'cut_pool': the cut analogue of 'column_pool' above - every subset-row
+ * cut only ever references item type ids, so, just like a column, it stays
+ * valid across every candidate of the sequential feasibility scheme. If
+ * non-null, seeded with '*cut_pool' before solving; on return, every cut
+ * newly confirmed violated by this call (see 'columngenerationsolver::
+ * Output::new_cuts') is appended to it - appended, not replaced, since
+ * 'new_cuts' deliberately excludes cuts already reactivated from the
+ * seeded pool, unlike 'column_pool' which is simply overwritten with
+ * 'columngenerationsolver::Output::columns' above.
+ *
+ * 'initial_columns'/'initial_cuts': unlike 'column_pool'/'cut_pool' above
+ * (checked lazily, only once the master LP actually needs a new entry),
+ * these seed the root master LP and root active cut set directly from the
+ * start. If non-null, seeded with '*initial_columns'/'*initial_cuts'
+ * before solving; on return, overwritten (not appended - there is only
+ * ever one root relaxation per call) with the columns of this call's own
+ * root node relaxation solution and its own root active cuts (see
+ * 'columngenerationsolver::LimitedDiscrepancySearchOutput::
+ * root_relaxation_solution'/'root_cuts'). Passing the same pointers to a
+ * sequence of calls (as the sequential feasibility scheme does) thus
+ * warm-starts each candidate's root relaxation with what was already
+ * (near-)optimal one bin fewer, the same way 'column_pool' lets pricing
+ * pick up where the previous call left off. Left untouched when this call
+ * takes the sequential feasibility branch itself instead of actually
+ * solving a single master LP - only a call that reaches
+ * 'columngenerationsolver::limited_discrepancy_search' below has a root
+ * relaxation of its own to report.
  */
 template <typename Instance, typename InstanceBuilder, typename Solution, typename AlgorithmFormatter, typename Output = packingsolver::Output<Instance, Solution>>
 Output column_generation(
@@ -1383,7 +1411,10 @@ Output column_generation(
         const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function,
         const ColumnGenerationParameters<Instance, Solution, Output>& parameters = {},
         BinPos lower_bound = 0,
-        std::vector<std::shared_ptr<const Column>>* column_pool = nullptr)
+        std::vector<std::shared_ptr<const Column>>* column_pool = nullptr,
+        std::vector<std::shared_ptr<const Cut>>* cut_pool = nullptr,
+        std::vector<std::shared_ptr<const Column>>* initial_columns = nullptr,
+        std::vector<std::shared_ptr<const Cut>>* initial_cuts = nullptr)
 {
     Output output(instance);
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
@@ -1415,11 +1446,22 @@ Output column_generation(
                 ++bin_type_id) {
             sequential_feasibility_bins_available += instance.bin_type(bin_type_id).copies;
         }
-        // Columns are reused from one candidate bin count to the next (see
-        // 'column_pool''s own doc comment above): every candidate shares the
-        // same bin and item types, only the number of bins available of
-        // each type changes.
+        // Columns and cuts are reused from one candidate bin count to the
+        // next (see 'column_pool'/'cut_pool''s own doc comments above):
+        // every candidate shares the same bin and item types, only the
+        // number of bins available of each type changes. Likewise,
+        // 'sequential_feasibility_initial_columns'/'..._initial_cuts' carry
+        // each candidate's own root relaxation solution and root active
+        // cuts forward as the *next* candidate's own seed (see
+        // 'initial_columns'/'initial_cuts' above): 'column_generation'
+        // both reads them (to warm-start this call) and overwrites them
+        // (with this call's own root relaxation, for the call after), so
+        // passing the same two vectors through the whole loop is enough -
+        // no per-iteration assignment needed.
         std::vector<std::shared_ptr<const Column>> sequential_feasibility_column_pool;
+        std::vector<std::shared_ptr<const Cut>> sequential_feasibility_cut_pool;
+        std::vector<std::shared_ptr<const Column>> sequential_feasibility_initial_columns;
+        std::vector<std::shared_ptr<const Cut>> sequential_feasibility_initial_cuts;
         for (BinPos number_of_bins = sequential_feasibility_lower_bound;
                 number_of_bins <= sequential_feasibility_bins_available;
                 ++number_of_bins) {
@@ -1438,7 +1480,11 @@ Output column_generation(
             sub_parameters.use_cutting_planes = parameters.use_cutting_planes;
             sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
             Output sub_output = column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, Output>(
-                    sub_instance, pricing_function, sub_parameters, 0, &sequential_feasibility_column_pool);
+                    sub_instance, pricing_function, sub_parameters, 0,
+                    &sequential_feasibility_column_pool,
+                    &sequential_feasibility_cut_pool,
+                    &sequential_feasibility_initial_columns,
+                    &sequential_feasibility_initial_cuts);
 
             if (sub_output.solution_pool.best().feasible()) {
                 // Found a feasible solution: report it as a new upper bound.
@@ -1549,10 +1595,33 @@ Output column_generation(
     cgslds_parameters.cutting_planes = parameters.use_cutting_planes;
     if (column_pool != nullptr)
         cgslds_parameters.column_pool = *column_pool;
+    if (cut_pool != nullptr)
+        cgslds_parameters.cut_pool = *cut_pool;
+    if (initial_columns != nullptr)
+        cgslds_parameters.initial_columns = *initial_columns;
+    if (initial_cuts != nullptr)
+        cgslds_parameters.initial_cuts = *initial_cuts;
     columngenerationsolver::LimitedDiscrepancySearchOutput cgslds_search_output
         = columngenerationsolver::limited_discrepancy_search(cgs_model, cgslds_parameters);
     if (column_pool != nullptr)
         *column_pool = cgslds_search_output.columns;
+    if (cut_pool != nullptr) {
+        // Append, not replace: unlike 'cgslds_search_output.columns' above
+        // (already self-contained), 'new_cuts' deliberately excludes cuts
+        // reactivated from the seeded 'cut_pool' - see 'cut_pool''s own doc
+        // comment above.
+        cut_pool->insert(
+                cut_pool->end(),
+                cgslds_search_output.new_cuts.begin(),
+                cgslds_search_output.new_cuts.end());
+    }
+    if (initial_columns != nullptr) {
+        initial_columns->clear();
+        for (const auto& p: cgslds_search_output.root_relaxation_solution.columns())
+            initial_columns->push_back(p.first);
+    }
+    if (initial_cuts != nullptr)
+        *initial_cuts = cgslds_search_output.root_cuts;
 
     algorithm_formatter.end();
     return output;
