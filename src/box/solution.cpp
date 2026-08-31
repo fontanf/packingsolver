@@ -186,6 +186,8 @@ bool Solution::operator<(const Solution& solution) const
         return strictly_greater_profit(solution.profit(), profit());
     } case Objective::Feasibility: {
         return strictly_greater_profit(solution.profit(), profit());
+    } case Objective::VariableSizedBinPacking: {
+        return strictly_lesser_cost(solution.cost(), cost());
     } default: {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "
