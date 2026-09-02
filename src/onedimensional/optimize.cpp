@@ -625,18 +625,17 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
     bool use_sequential_value_correction = parameters.use_sequential_value_correction;
     bool use_dichotomic_search = parameters.use_dichotomic_search;
     bool use_column_generation = parameters.use_column_generation;
-    bool use_milp_assignment = parameters.use_milp_assignment
-        && (instance.objective() == Objective::VariableSizedBinPacking
-                || instance.objective() == Objective::Knapsack
-                || instance.objective() == Objective::Feasibility
-                || instance.objective() == Objective::BinPacking);
+    bool use_milp_assignment = parameters.use_milp_assignment;
     if (instance.number_of_bins() <= 1) {
-        use_tree_search = true;
         use_sequential_single_knapsack = false;
         use_sequential_value_correction = false;
         use_dichotomic_search = false;
         use_column_generation = false;
-        use_milp_assignment = false;
+        // Automatic selection.
+        if (!use_tree_search
+                && !use_milp_assignment) {
+            use_tree_search = true;
+        }
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
         use_dichotomic_search = false;
@@ -698,11 +697,10 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
                 && instance.number_of_bin_types() > 1) {
             use_column_generation = false;
         }
+        if (instance.objective() == Objective::BinPackingWithLeftovers)
+            use_milp_assignment = false;
         use_dichotomic_search = false;
         // Automatic selection.
-        // ('use_milp_assignment' is only ever set for the 'BinPacking'
-        // objective, not 'BinPackingWithLeftovers', which MILP assignment
-        // does not support.)
         if (!use_tree_search
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction

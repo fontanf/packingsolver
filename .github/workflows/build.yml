@@ -28,7 +28,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: sudo apt-get -y install liblapack-dev libbz2-dev
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install liblapack-dev libbz2-dev
       if: matrix.os == 'ubuntu-latest'
     - name: Build
       run: |
