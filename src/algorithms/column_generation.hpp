@@ -475,10 +475,12 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                 // = cut_dual * multiplier_profit', scaled the same way the
                 // item duals just above are).
                 // The cut's coefficient on a generated column is
-                // floor(count / 2), where 'count' is how many of
-                // 'item_type_ids' the column contains (see 'coefficient'
-                // below) - reproduced here as one soft resource per unit of
-                // that coefficient: resource i (capacities 1, 3, 5, ...)
+                // floor(count / 2), where 'count' is how many *distinct*
+                // item types of 'item_type_ids' the column contains - not
+                // how many copies (see 'coefficient' below, which counts
+                // presence, not copies) - reproduced here as one soft
+                // resource per unit of that coefficient: resource i
+                // (capacities 1, 3, 5, ...)
                 // is the first to cross its capacity exactly when 'count'
                 // reaches 2*(i+1), so the number of resources that end up
                 // crossed equals floor(count / 2) exactly, each
@@ -523,12 +525,27 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                             /* penalize */ true,
                             /* penalty */ penalty);
                     for (ItemTypeId kp_item_type_id: present_kp_item_type_ids) {
+                        // Consumption schedule '[1.0, 0.0]': the item
+                        // type's first copy consumes 1.0 (counts as
+                        // "present"), every further copy consumes 0.0 (see
+                        // 'Resource::item_consumption' - a copy past the
+                        // end of the schedule repeats its last entry, so
+                        // without this trailing 0 every extra copy would
+                        // keep adding 1.0, making the resource count total
+                        // copies instead of distinct present item types,
+                        // unlike 'coefficient' above).
                         kp_instance_builder.add_resource_consumption(
                                 kp_bin_type_id,
                                 resource_id,
                                 kp_item_type_id,
                                 0,
                                 1.0);
+                        kp_instance_builder.add_resource_consumption(
+                                kp_bin_type_id,
+                                resource_id,
+                                kp_item_type_id,
+                                1,
+                                0.0);
                     }
                 }
             }
