@@ -36,6 +36,9 @@ struct MilpAssignmentParameters: packingsolver::Parameters<Instance, Solution, O
     mathoptsolverscmake::SolverName solver
         = mathoptsolverscmake::SolverName::Highs;
 
+    /** Optimization mode. */
+    OptimizationMode optimization_mode = OptimizationMode::Anytime;
+
     /**
      * Size of the tree search queue used:
      * - for 'VariableSizedBinPacking', to bound, for each bin type, the

@@ -120,14 +120,15 @@
  *   (wang2025_bin_packing) - rather than as a dedicated G2KP construct.
  * - Resources (see 'Resource') are enforced directly by whichever BMP
  *   algorithm is in use, both hard-capacity ones and 'penalize' ones;
- *   'milp' restricts 'penalize' resources to the same shape as
+ *   'milp' restricts 'penalize' resources to capacity == 1 (unlike
  *   'onedimensional::add_penalize_resource_constraints' in
- *   'milp_assignment.cpp' (capacity == 1, every involved item type's
- *   consumption a 'threshold_schedule(N)'), needed to linearize them into a
- *   MILP row - 'tree_search' has no such restriction, since it can track
- *   true cumulative consumption directly. Defects, weight, and eligibility
- *   are still not modeled (same exclusions, and for the same reason, as
- *   'bar_relaxation.hpp' - see its own header comment).
+ *   'milp_assignment.cpp', which also handles larger integer capacities),
+ *   every involved item type's consumption a 'threshold_schedule(N)',
+ *   needed to linearize them into a MILP row - 'tree_search' has no such
+ *   restriction, since it can track true cumulative consumption directly.
+ *   Defects, weight, and eligibility are still not modeled (same
+ *   exclusions, and for the same reason, as 'bar_relaxation.hpp' - see its
+ *   own header comment).
  */
 
 #pragma once

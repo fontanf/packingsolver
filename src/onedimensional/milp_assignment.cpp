@@ -15,6 +15,7 @@
 #endif
 
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 
 using namespace packingsolver;
@@ -86,7 +87,10 @@ BinPos compute_bin_instance_upper_bound(
     sub_parameters.verbosity_level = 0;
     sub_parameters.timer = parameters.timer;
     sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    sub_parameters.optimization_mode = OptimizationMode::NotAnytimeDeterministic;
+    sub_parameters.optimization_mode
+        = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytimeDeterministic;
     sub_parameters.use_column_generation = true;
     auto sub_output = optimize(sub_instance, sub_parameters);
 
@@ -349,13 +353,14 @@ std::vector<double> build_initial_solution(
  * penalty from the objective whenever it is 1, plus the constraints forcing
  * it to 1 whenever the resource's threshold is reached.
  *
- * Only a Jepsen et al. (2008)-style "at least 2 of a set of item-type units
- * are packed together" shape is supported: 'resource.capacity == 1'
- * (threshold 2), and every item type it involves capped at a contribution of
- * 1 per copy up to some bound N, via a 'threshold_schedule(N)' schedule (N
- * ones followed by a single trailing 0 - see 'threshold_schedule' in the
- * rectangle Benders decomposition, or 'Resource::item_consumptions' for the
- * general semantics). Throws if the resource does not have this shape.
+ * Only a Jepsen et al. (2008)-style "at least N of a set of item-type units
+ * are packed together" shape is supported, for any non-negative integer
+ * 'resource.capacity' (threshold 'capacity + 1'), with every item type it
+ * involves capped at a contribution of 1 per copy up to some bound N, via a
+ * 'threshold_schedule(N)' schedule (N ones followed by a single trailing 0 -
+ * see 'threshold_schedule' in the rectangle Benders decomposition, or
+ * 'Resource::item_consumptions' for the general semantics). Throws if the
+ * resource does not have this shape.
  *
  * Since every copy of an item type is already its own separate binary
  * variable (see 'build_milp_model's own "Variables: x_{i,t,k,c}" section:
@@ -364,22 +369,32 @@ std::vector<double> build_initial_solution(
  * is exactly the number - from 0 to N - of type i's copies present), each of
  * the resource's first N copies of each item type is already a plain 0/1
  * "is this particular unit present" indicator, exactly like Wang et al.
- * (2025)'s individual items. "At least two (of any mix of units, whether
- * from the same item type or different ones) are packed together" is then
- * exactly their G2KP formulation's pairwise/clique linearization (their
- * constraint (5c)), applied to the flattened list of every (item type,
- * copy) unit the resource involves: for every pair of units {u, v} in that
- * list,
- *     x_u + x_v - psi_k <= 1,
- * which forces 'psi_k' to 1 exactly when both are packed together, with no
- * slack/tolerance needed (unlike a general excess-vs-capacity row, which
- * would need an upper bound on the resource's own maximum possible
- * consumption to relax by) - this holds for any finite set of 0/1
- * variables, regardless of whether some of them happen to be different
- * copies of the same item type. A pair is skipped if either unit has no
- * variable at all for this bin instance (excluded by eligibility or by the
- * "pigeonhole" bound): such a pair can never be packed together there, so
- * the row would be vacuous anyway.
+ * (2025)'s individual items. "At least 'threshold' (of any mix of units,
+ * whether from the same item type or different ones) are packed together"
+ * is then the direct multi-unit generalization of their G2KP formulation's
+ * pairwise/clique linearization (their constraint (5c), which is exactly
+ * this for 'threshold == 2'): applied to the flattened list of every (item
+ * type, copy) unit the resource involves, for every subset S of size
+ * 'threshold' of that list,
+ *     sum_{u in S} x_u - psi_k <= threshold - 1,
+ * which forces 'psi_k' to 1 exactly when every unit of some size-'threshold'
+ * subset is packed together, with no slack/tolerance needed (unlike a
+ * general excess-vs-capacity row, which would need an upper bound on the
+ * resource's own maximum possible consumption to relax by) - this holds for
+ * any finite set of 0/1 variables, regardless of whether some of them
+ * happen to be different copies of the same item type. Since these
+ * resources only ever come from subset-row cuts (cardinality at most 7, so
+ * at most 7 units and 'threshold' at most 4), the number of size-'threshold'
+ * subsets stays small (at most C(7, 4) = 35) even though it grows
+ * combinatorially with 'threshold' in general. A bin instance whose
+ * available units (excluded by eligibility or by the "pigeonhole" bound)
+ * number fewer than 'threshold' has no subset of the required size at all,
+ * so it is skipped entirely - not even 'psi_k' is created for it, since
+ * nothing could ever force 'psi_k' away from its natural optimum of 0 (0.5
+ * for a threshold-crossing check that is trivially unsatisfiable there
+ * would otherwise leave 'psi_k' free to be set to 1 for a spurious profit
+ * whenever 'resource.penalty' is negative - see 'Resource''s own doc
+ * comment on negative penalties).
  */
 void add_penalize_resource_constraints(
         const Instance& instance,
@@ -390,15 +405,19 @@ void add_penalize_resource_constraints(
         double multiplier_profit,
         MilpModel& milp_model)
 {
-    if (resource.capacity != 1.0) {
+    double rounded_capacity = std::round(resource.capacity);
+    if (resource.capacity < 0.0
+            || std::abs(resource.capacity - rounded_capacity) > 1e-6) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "'penalize' resource " + std::to_string(resource_id) + " of bin type " +
                 std::to_string(bin_type_id) + " has capacity " + std::to_string(resource.capacity) +
-                " != 1; only 'at least 2 of a set of item-type units' penalize resources "
-                "(capacity == 1, every item type's consumption a 'threshold_schedule(N)' "
-                "for some N) are currently supported by the MILP model.");
+                "; only 'at least N of a set of item-type units' penalize resources "
+                "(a non-negative integer capacity, every item type's consumption a "
+                "'threshold_schedule(N)' for some N) are currently supported by the "
+                "MILP model.");
     }
+    ItemPos threshold = (ItemPos)rounded_capacity + 1;
 
     // Every (item type, copy) unit the resource involves, flattened.
     std::vector<std::pair<ItemTypeId, ItemPos>> resource_units;
@@ -415,24 +434,24 @@ void add_penalize_resource_constraints(
         // otherwise make this scan run forever ('item_consumption' repeats
         // a schedule's last entry for every copy past its end).
         ItemPos copies_bound = instance.item_type(item_type_id).copies;
-        ItemPos threshold = 0;
-        while (threshold <= copies_bound
-                && resource.item_consumption(item_type_id, threshold) == 1.0) {
-            ++threshold;
+        ItemPos item_type_threshold = 0;
+        while (item_type_threshold <= copies_bound
+                && resource.item_consumption(item_type_id, item_type_threshold) == 1.0) {
+            ++item_type_threshold;
         }
-        if (resource.item_consumption(item_type_id, threshold) != 0.0) {
+        if (resource.item_consumption(item_type_id, item_type_threshold) != 0.0) {
             throw std::invalid_argument(
                     FUNC_SIGNATURE + ": "
                     "'penalize' resource " + std::to_string(resource_id) + " of bin type " +
                     std::to_string(bin_type_id) + " does not use a 'threshold_schedule(N)' "
                     "consumption for item type " + std::to_string(item_type_id) + "; only "
-                    "'at least 2 of a set of item-type units' penalize resources are "
+                    "'at least N of a set of item-type units' penalize resources are "
                     "currently supported by the MILP model.");
         }
-        for (ItemPos copy = 0; copy < threshold; ++copy)
+        for (ItemPos copy = 0; copy < item_type_threshold; ++copy)
             resource_units.push_back({item_type_id, copy});
     }
-    if (resource_units.size() < 2)
+    if ((ItemPos)resource_units.size() < threshold)
         return;
 
     for (BinPos bin_instance_pos = 0;
@@ -453,6 +472,17 @@ void add_penalize_resource_constraints(
             presence_variable_ids.push_back(presence_variable_id);
         }
 
+        // Units that actually have a variable for this bin instance - see
+        // this function's own doc comment on why a bin instance with fewer
+        // of these than 'threshold' is skipped entirely, 'psi_k' included.
+        std::vector<int> valid_presence_variable_ids;
+        for (int presence_variable_id: presence_variable_ids) {
+            if (presence_variable_id != -1)
+                valid_presence_variable_ids.push_back(presence_variable_id);
+        }
+        if ((ItemPos)valid_presence_variable_ids.size() < threshold)
+            continue;
+
         // psi_k variable.
         int psi_variable_id = milp_model.model.variables_lower_bounds.size();
         milp_model.model.variables_lower_bounds.push_back(0.0);
@@ -460,26 +490,43 @@ void add_penalize_resource_constraints(
         milp_model.model.variables_types.push_back(mathoptsolverscmake::VariableType::Binary);
         milp_model.model.objective_coefficients.push_back(-resource.penalty / multiplier_profit);
 
-        // Pairwise constraints.
-        for (std::size_t a = 0; a < presence_variable_ids.size(); ++a) {
-            if (presence_variable_ids[a] == -1)
-                continue;
-            for (std::size_t b = a + 1; b < presence_variable_ids.size(); ++b) {
-                if (presence_variable_ids[b] == -1)
-                    continue;
-                // Initialize new row.
-                milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
-                // Add row elements.
-                milp_model.model.elements_variables.push_back(presence_variable_ids[a]);
+        // One constraint per size-'threshold' subset of
+        // 'valid_presence_variable_ids' (see this function's own doc
+        // comment) - enumerated via the standard "combination indices"
+        // odometer: 'combination_indices' always holds 'threshold' strictly
+        // increasing indices into 'valid_presence_variable_ids', starting at
+        // '0, 1, ..., threshold - 1'; each step advances the rightmost index
+        // that still has room to grow, then resets every index after it to
+        // the tightest strictly-increasing sequence following it.
+        std::vector<std::size_t> combination_indices(threshold);
+        for (ItemPos index = 0; index < threshold; ++index)
+            combination_indices[index] = index;
+        while (true) {
+            // Initialize new row.
+            milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
+            // Add row elements.
+            for (std::size_t index: combination_indices) {
+                milp_model.model.elements_variables.push_back(valid_presence_variable_ids[index]);
                 milp_model.model.elements_coefficients.push_back(1.0);
-                milp_model.model.elements_variables.push_back(presence_variable_ids[b]);
-                milp_model.model.elements_coefficients.push_back(1.0);
-                milp_model.model.elements_variables.push_back(psi_variable_id);
-                milp_model.model.elements_coefficients.push_back(-1.0);
-                // Add row bounds.
-                milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
-                milp_model.model.constraints_upper_bounds.push_back(1.0);
             }
+            milp_model.model.elements_variables.push_back(psi_variable_id);
+            milp_model.model.elements_coefficients.push_back(-1.0);
+            // Add row bounds.
+            milp_model.model.constraints_lower_bounds.push_back(-std::numeric_limits<double>::infinity());
+            milp_model.model.constraints_upper_bounds.push_back((double)threshold - 1.0);
+
+            // Advance to the next combination, or stop once none is left.
+            int position = (int)threshold - 1;
+            while (position >= 0
+                    && combination_indices[position]
+                        == valid_presence_variable_ids.size() - threshold + position) {
+                --position;
+            }
+            if (position < 0)
+                break;
+            ++combination_indices[position];
+            for (std::size_t next_position = position + 1; next_position < (std::size_t)threshold; ++next_position)
+                combination_indices[next_position] = combination_indices[next_position - 1] + 1;
         }
     }
 }
@@ -1270,7 +1317,10 @@ std::vector<BinPos> compute_bin_type_upper_bounds_bin_packing(
     sub_parameters.verbosity_level = 0;
     sub_parameters.timer = parameters.timer;
     sub_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    sub_parameters.optimization_mode = OptimizationMode::NotAnytimeDeterministic;
+    sub_parameters.optimization_mode
+        = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
+        OptimizationMode::NotAnytimeSequential:
+        OptimizationMode::NotAnytimeDeterministic;
     if (instance.number_of_bin_types() == 1) {
         sub_parameters.use_column_generation = true;
     } else {

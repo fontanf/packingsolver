@@ -248,18 +248,18 @@ NoGoodCut build_covering_cut(
  * the same coefficient applying to every one of a unit's own candidates,
  * since consumption doesn't depend on (x, orientation).
  *
- * A 'penalize' resource instead only supports the same restricted shape as
+ * A 'penalize' resource instead only supports capacity == 1 (unlike
  * 'onedimensional::add_penalize_resource_constraints' in
- * 'milp_assignment.cpp' (capacity == 1, every involved item type's
- * consumption a 'threshold_schedule(N)' - see its own doc comment there for
- * the full derivation and validation this mirrors): one binary "excess"
+ * 'milp_assignment.cpp', which also handles larger integer capacities -
+ * see its own doc comment there for the full derivation and validation
+ * this mirrors for the capacity == 1 case only), every involved item
+ * type's consumption a 'threshold_schedule(N)': one binary "excess"
  * variable 'psi', with objective coefficient '-penalty', and a pairwise
  * clique row 'presence(u) + presence(v) - psi <= 1' for every pair of units
  * {u, v} the resource involves - the same Jepsen et al. (2008)/Wang et al.
  * (2025 eq. 5c) linearization, over 'presence(u)' here instead of a single
  * 0/1 variable per unit. Skipped entirely for 'Feasibility': a 'penalize'
- * resource never blocks packing and there is no profit to penalize there -
- * same restriction as 'onedimensional::add_penalize_resource_constraints'.
+ * resource never blocks packing and there is no profit to penalize there.
  */
 void add_resource_constraints(
         const Instance& instance,

@@ -551,6 +551,7 @@ void optimize_milp_assignment(
     ma_parameters.verbosity_level = 0;
     ma_parameters.timer = parameters.timer;
     ma_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    ma_parameters.optimization_mode = parameters.optimization_mode;
     ma_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const onedimensional::Output& ps_output)
     {
@@ -882,7 +883,6 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
         // seeds the sequential feasibility scheme's starting candidate
         // instead of it always restarting from scratch.
         BinPos milp_assignment_lower_bound = output.bin_packing_bound;
-        std::cout << "milp_assignment_lower_bound " << milp_assignment_lower_bound << std::endl;
         tasks.push_back([&exception_ptr, &instance, &parameters, &algorithm_formatter, local_output = local_output.get(), milp_assignment_lower_bound]() {
             wrapper<decltype(&optimize_milp_assignment), optimize_milp_assignment>(
                     exception_ptr,
