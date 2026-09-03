@@ -40,7 +40,9 @@ jobs:
       with:
         ref: ${{ github.event.workflow_run.head_sha }}
     - name: Install dependencies
-      run: sudo apt-get -y install liblapack-dev libbz2-dev
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install liblapack-dev libbz2-dev
       if: matrix.os == 'ubuntu-latest'
     - name: Build
       run: |
