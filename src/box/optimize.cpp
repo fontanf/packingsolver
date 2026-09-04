@@ -484,7 +484,7 @@ void optimize_column_generation(
         box::Output* local_output)
 {
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, box::Output> pricing_function
-        = [&algorithm_formatter, &parameters](const Instance& kp_instance)
+        = [&algorithm_formatter, &parameters](const Instance& kp_instance, PricingType)
         {
             OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;

@@ -491,7 +491,7 @@ void optimize_column_generation(
         onedimensional::Output* local_output)
 {
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, onedimensional::Output> pricing_function
-        = [&parameters](const Instance& kp_instance)
+        = [&parameters](const Instance& kp_instance, PricingType)
         {
             OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;

@@ -1294,8 +1294,8 @@ BendersDecompositionContiguityOutput packingsolver::rectangle::benders_decomposi
     for (output.number_of_iterations = 0;
             ;
             ++output.number_of_iterations) {
-        if (parameters.maximum_number_of_iterations >= 0
-                && output.number_of_iterations >= parameters.maximum_number_of_iterations) {
+        if (parameters.not_anytime_maximum_number_of_iterations >= 0
+                && output.number_of_iterations >= parameters.not_anytime_maximum_number_of_iterations) {
             break;
         }
         if (parameters.timer.needs_to_end())

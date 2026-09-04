@@ -47,7 +47,7 @@ public:
             const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>&,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
-            columngenerationsolver::Counter pricing_level) override;
+            columngenerationsolver::PricingSolver::PricingType) override;
 
     void set_all_columns_2e_patterns_generated() { all_columns_2e_patterns_generated_ = true; }
 
@@ -1934,7 +1934,7 @@ PricingOutput ColumnGenerationPricingSolver::solve_pricing(
         const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>&,
         const std::vector<columngenerationsolver::Value>& duals,
         const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>&,
-        columngenerationsolver::Counter)
+        columngenerationsolver::PricingSolver::PricingType)
 {
     //std::cout << "solve_pricing" << std::endl;
 

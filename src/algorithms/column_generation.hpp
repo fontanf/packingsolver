@@ -64,6 +64,7 @@ using Column = columngenerationsolver::Column;
 using Cut = columngenerationsolver::Cut;
 using CutIdx = columngenerationsolver::CutIdx;
 using PricingOutput = columngenerationsolver::PricingSolver::PricingOutput;
+using PricingType = columngenerationsolver::PricingSolver::PricingType;
 
 /**
  * Data specific to a subset-row cut of generalized cardinality (Jepsen,
@@ -128,7 +129,7 @@ inline std::shared_ptr<Cut> build_subset_row_cut(
 }
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
-using ColumnGenerationPricingFunction = std::function<Output(const Instance&)>;
+using ColumnGenerationPricingFunction = std::function<Output(const Instance&, PricingType)>;
 
 template <typename Instance, typename InstanceBuilder, typename Solution, typename Output = packingsolver::Output<Instance, Solution>>
 class ColumnGenerationPricingSolver: public columngenerationsolver::PricingSolver
@@ -139,10 +140,12 @@ public:
     ColumnGenerationPricingSolver(
             const Instance& instance,
             const Output& output,
-            const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function):
+            const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function,
+            bool has_pricing_bound = false):
         instance_(instance),
         output_(output),
-        pricing_function_(pricing_function)
+        pricing_function_(pricing_function),
+        has_pricing_bound_(has_pricing_bound)
     { }
 
     virtual PricingOutput solve_pricing(
@@ -152,7 +155,22 @@ public:
             const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>& tabu,
             const std::vector<columngenerationsolver::Value>& duals,
             const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, columngenerationsolver::Value>>& cut_duals,
-            columngenerationsolver::Counter pricing_level) override;
+            PricingType pricing_type) override;
+
+    /**
+     * Whether 'pricing_function_' has something genuinely useful to offer
+     * for 'PricingType::Dual' calls - set from the constructor's
+     * 'has_pricing_bound' argument, which only a domain whose
+     * 'pricing_function' actually branches on 'PricingType::Dual' (e.g.
+     * rectangle, forcing an exact Benders-decomposition solve - see
+     * 'rectangle::optimize_column_generation') should pass as 'true'. See
+     * 'columngenerationsolver::PricingSolver::has_pricing_bound' for what
+     * this gates.
+     */
+    virtual bool has_pricing_bound() const override
+    {
+        return has_pricing_bound_;
+    }
 
     /**
      * Subset-row cut (Jepsen et al. 2008) separation - see
@@ -209,6 +227,9 @@ private:
 
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output> pricing_function_;
 
+    /** See 'has_pricing_bound' above. */
+    bool has_pricing_bound_ = false;
+
     /**
      * Cache for the 'VariableSizedBinPacking' 'maximum_number_of_bins'
      * computation below: 'true' once it has been computed at least once,
@@ -229,7 +250,8 @@ template <typename Instance, typename InstanceBuilder, typename Solution, typena
 columngenerationsolver::Model get_model(
         const Instance& instance,
         const Output& output,
-        const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function)
+        const ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, Output>& pricing_function,
+        bool pricing_function_has_dual_bound = false)
 {
     columngenerationsolver::Model model;
 
@@ -270,7 +292,8 @@ columngenerationsolver::Model get_model(
 
     // Pricing solver.
     model.pricing_solver = std::unique_ptr<columngenerationsolver::PricingSolver>(
-            new ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>(instance, output, pricing_function));
+            new ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution, Output>(
+                instance, output, pricing_function, pricing_function_has_dual_bound));
     return model;
 }
 
@@ -333,7 +356,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
         const std::unordered_set<std::shared_ptr<const columngenerationsolver::Column>>& tabu,
         const std::vector<Value>& duals,
         const std::vector<std::pair<std::shared_ptr<const columngenerationsolver::Cut>, Value>>& cut_duals,
-        columngenerationsolver::Counter)
+        PricingType pricing_type)
 {
     double multiplier_cost = largest_power_of_two_lesser_or_equal(instance_.largest_bin_cost());
     double multiplier_profit = largest_power_of_two_lesser_or_equal(instance_.largest_item_profit());
@@ -634,7 +657,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
 
         // Solve knapsack instance.
         //std::cout << "pricing_function" << std::endl;
-        auto kp_output = pricing_function_(kp_instance);
+        auto kp_output = pricing_function_(kp_instance, pricing_type);
         //std::cout << "pricing_function end" << std::endl;
 
         // Retrieve column.
@@ -1328,6 +1351,21 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
      * comparatively little benefit.
      */
     int use_cutting_planes = 0;
+
+    /**
+     * Whether 'pricing_function' has something genuinely useful to offer
+     * for 'columngenerationsolver::PricingSolver::PricingType::Dual' calls
+     * - i.e. whether it actually branches on the 'PricingType' it is given
+     * to run a more expensive, exact algorithm there instead of its
+     * regular cheap search (e.g. rectangle forcing a Benders-decomposition
+     * solve - see 'rectangle::optimize_column_generation'). Off by
+     * default: passed straight through to 'get_model', which only grants
+     * the pricing solver a genuine 'has_pricing_bound' when this is set,
+     * so 'columngenerationsolver::column_generation' never wastes a
+     * 'PricingType::Dual' call on a 'pricing_function' that would just
+     * redo its regular search.
+     */
+    bool pricing_function_has_dual_bound = false;
 };
 
 /**
@@ -1496,6 +1534,7 @@ Output column_generation(
             sub_parameters.internal_diving = parameters.internal_diving;
             sub_parameters.use_cutting_planes = parameters.use_cutting_planes;
             sub_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            sub_parameters.pricing_function_has_dual_bound = parameters.pricing_function_has_dual_bound;
             Output sub_output = column_generation<Instance, InstanceBuilder, Solution, AlgorithmFormatter, Output>(
                     sub_instance, pricing_function, sub_parameters, 0,
                     &sequential_feasibility_column_pool,
@@ -1539,7 +1578,8 @@ Output column_generation(
     }
 
     columngenerationsolver::Model cgs_model
-        = get_model<Instance, InstanceBuilder, Solution, Output>(instance, output, pricing_function);
+        = get_model<Instance, InstanceBuilder, Solution, Output>(
+                instance, output, pricing_function, parameters.pricing_function_has_dual_bound);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;

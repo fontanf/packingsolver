@@ -215,7 +215,7 @@ TEST(RectangleSubsetRowCardinality5Test, SeparatesCardinality5Cut)
     Instance instance = instance_builder.build();
     rectangle::Output output(instance);
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, rectangle::Output> pricing_function
-        = [](const Instance&) -> rectangle::Output
+        = [](const Instance&, PricingType) -> rectangle::Output
         {
             throw std::logic_error("not used by this test");
         };
@@ -319,7 +319,7 @@ TEST(RectangleSubsetRowCardinality7Test, SeparatesCardinality7Cut)
     Instance instance = instance_builder.build();
     rectangle::Output output(instance);
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, rectangle::Output> pricing_function
-        = [](const Instance&) -> rectangle::Output
+        = [](const Instance&, PricingType) -> rectangle::Output
         {
             throw std::logic_error("not used by this test");
         };

@@ -510,7 +510,7 @@ void optimize_column_generation(
         BinPos lower_bound)
 {
     ColumnGenerationPricingFunction<Instance, InstanceBuilder, Solution, rectangle::Output> pricing_function
-        = [&parameters](const Instance& kp_instance)
+        = [&parameters](const Instance& kp_instance, PricingType pricing_type)
         {
             OptimizeParameters kp_parameters;
             kp_parameters.verbosity_level = 0;
@@ -524,6 +524,19 @@ void optimize_column_generation(
             kp_parameters.not_anytime_tree_search_maximal_spaces_queue_size
                 = parameters.column_generation_subproblem_tree_search_maximal_spaces_queue_size;
             kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+            // 'PricingType::Dual' calls are rare (at most twice per column
+            // generation attempt) and exist specifically to *prove* a bound
+            // cheaply enough to justify the cost - see
+            // 'columngenerationsolver::PricingSolver::solve_pricing''s own
+            // doc comment. 'benders_decomposition' is the one algorithm here
+            // that converges to a proven-exact answer (or bound) rather than
+            // an incomplete search cut short by a queue size, so force it
+            // alone, bypassing the regular (heuristic) automatic algorithm
+            // selection entirely.
+            if (pricing_type == PricingType::Dual) {
+                //kp_parameters.verbosity_level = 1;
+                kp_parameters.use_benders_decomposition = true;
+            }
             return optimize(kp_instance, kp_parameters);
         };
 
@@ -534,6 +547,7 @@ void optimize_column_generation(
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
     cg_parameters.use_cutting_planes = 2;
+    cg_parameters.pricing_function_has_dual_bound = true;
     cg_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const rectangle::Output& ps_output)
     {
@@ -620,7 +634,7 @@ void optimize_benders_decomposition_contiguity(
     bdc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     bdc_parameters.optimization_mode = parameters.optimization_mode;
     if (parameters.optimization_mode != OptimizationMode::Anytime)
-        bdc_parameters.maximum_number_of_iterations = parameters.not_anytime_benders_decomposition_contiguity_number_of_iterations;
+        bdc_parameters.not_anytime_maximum_number_of_iterations = parameters.not_anytime_benders_decomposition_contiguity_number_of_iterations;
     bdc_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const rectangle::Output& ps_output)
     {

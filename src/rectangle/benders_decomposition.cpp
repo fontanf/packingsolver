@@ -871,6 +871,11 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
     // genuinely feasible (and possibly optimal) region.
     bool all_cuts_proven_infeasible = true;
 
+    // Number of iterations that actually solved at least one feasibility
+    // subproblem so far - see
+    // 'BendersDecompositionParameters::not_anytime_maximum_number_of_subproblem_solves'.
+    Counter number_of_subproblem_solves = 0;
+
     for (output.number_of_iterations = 0;
             ;
             ++output.number_of_iterations) {
@@ -894,6 +899,9 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             = (parameters.optimization_mode == OptimizationMode::NotAnytimeSequential)?
             OptimizationMode::NotAnytimeSequential:
             OptimizationMode::NotAnytimeDeterministic;
+        master_parameters.use_tree_search = parameters.master_problem_use_tree_search;
+        master_parameters.use_milp_assignment = parameters.master_problem_use_milp_assignment;
+        master_parameters.optimization_mode = OptimizationMode::Anytime;
         onedimensional::Output master_output = onedimensional::optimize(
                 master_instance, master_parameters);
 
@@ -978,6 +986,19 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             //std::cout << "dff_violation_found" << std::endl;
             continue;
         }
+
+        // Check maximum number of subproblem solves. Checked here, not at
+        // the top of the loop alongside
+        // 'not_anytime_maximum_number_of_iterations', since only past this
+        // point is it known that this iteration will actually solve at
+        // least one subproblem below (the 'continue' above skips it
+        // otherwise).
+        if (parameters.optimization_mode != OptimizationMode::Anytime
+                && parameters.not_anytime_maximum_number_of_subproblem_solves >= 0
+                && number_of_subproblem_solves >= parameters.not_anytime_maximum_number_of_subproblem_solves) {
+            break;
+        }
+        number_of_subproblem_solves++;
 
         // Pass 2: no bin had a dual-feasible-function violation; run the
         // actual geometric feasibility subproblem for every bin, adding one

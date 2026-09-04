@@ -185,8 +185,8 @@ struct BendersDecompositionContiguityParameters: packingsolver::Parameters<Insta
      */
     NodeId master_problem_tree_search_not_anytime_queue_size = 1024;
 
-    /** Maximum number of iterations. */
-    Counter maximum_number_of_iterations = -1;
+    /** Maximum number of iterations (-1: unlimited). */
+    Counter not_anytime_maximum_number_of_iterations = -1;
 
     /**
      * Seed for the random unit-removal orderings of the no-good cut
