@@ -881,16 +881,29 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
         Value value;
         std::vector<ItemTypeId> item_type_ids;
     };
-    struct ItemTypeStats
-    {
-        int number_of_columns = 0;
-        bool has_fractional_column = false;
-    };
-    std::unordered_map<ItemTypeId, ItemTypeStats> item_type_stats;
+    std::vector<ItemPos> item_type_number_of_columns(instance_.number_of_item_types(), 0);
     for (const auto& p: solution.columns()) {
-        if (p.second < 1e-6)
+        // Only a genuinely fractional column (as opposed to merely
+        // non-negligible) can ever contribute to a violated cut here, and
+        // restricting this scan (and 'column_items' below) to fractional
+        // columns changes nothing else: for an item type with 'copies ==
+        // 1', the row's upper bound is exactly 1, so a single column with
+        // value ~= 1 already saturates it entirely, leaving zero room for
+        // any other column - integral or fractional - to also carry that
+        // item type with positive value. Equivalently, such an item type
+        // has exactly one non-negligible occurrence total (that one
+        // integral column), so it is already excluded below regardless
+        // (via 'number_of_columns < 2'); an item type that does have
+        // another, distinct occurrence can therefore never have an
+        // integral one in the first place - every one of its occurrences
+        // is fractional. Skipping integral columns up front thus loses no
+        // item type this scan would otherwise have kept, while skipping
+        // exactly the columns that would end up contributing nothing to
+        // 'column_items' below anyway (an integral column's every
+        // 'copies == 1' item type is, by the same argument, excluded from
+        // its own 'entry.item_type_ids', making it an inert entry there).
+        if (p.second < 1e-6 || p.second >= 1.0 - 1e-6)
             continue;
-        bool fractional = p.second < 1.0 - 1e-6;
         for (const columngenerationsolver::LinearTerm& element: p.first->elements) {
             if (element.row < instance_.number_of_bin_types())
                 continue;
@@ -899,15 +912,12 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
             ItemTypeId item_type_id = element.row - instance_.number_of_bin_types();
             if (instance_.item_type(item_type_id).copies != 1)
                 continue;
-            ItemTypeStats& stats = item_type_stats[item_type_id];
-            stats.number_of_columns++;
-            if (fractional)
-                stats.has_fractional_column = true;
+            item_type_number_of_columns[item_type_id]++;
         }
     }
     std::vector<ColumnItems> column_items;
     for (const auto& p: solution.columns()) {
-        if (p.second < 1e-6)
+        if (p.second < 1e-6 || p.second >= 1.0 - 1e-6)
             continue;
         ColumnItems entry;
         entry.value = p.second;
@@ -919,8 +929,7 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
             ItemTypeId item_type_id = element.row - instance_.number_of_bin_types();
             if (instance_.item_type(item_type_id).copies != 1)
                 continue;
-            const ItemTypeStats& stats = item_type_stats.at(item_type_id);
-            if (stats.number_of_columns < 2 || !stats.has_fractional_column)
+            if (item_type_number_of_columns[item_type_id] < 2)
                 continue;
             entry.item_type_ids.push_back(item_type_id);
         }
@@ -936,8 +945,16 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
     //   'pair_weight' (the total value of columns containing both) and
     //   'pair_columns' (the sorted list of indices - into 'column_items' -
     //   of those columns), used further down to compute each candidate
-    //   triple's violation without rescanning every column.
+    //   triple's violation without rescanning every column;
+    // - for each item type, 'item_columns' (the sorted list of indices -
+    //   into 'column_items' - of every column that contains it), used by
+    //   'subset_violation' below to compute a larger (cardinality 5 or 7)
+    //   candidate's violation the same way - via a merge over just the
+    //   columns its own item types actually appear in - rather than
+    //   rescanning every active column regardless of whether it has any
+    //   overlap with the candidate at all.
     std::vector<std::vector<ItemTypeId>> neighbors(instance_.number_of_item_types());
+    std::vector<std::vector<ItemPos>> item_columns(instance_.number_of_item_types());
     using ItemTypeIdPair = std::pair<ItemTypeId, ItemTypeId>;
     struct ItemTypeIdPairHasher
     {
@@ -953,6 +970,13 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
     std::unordered_map<ItemTypeIdPair, std::vector<ItemPos>, ItemTypeIdPairHasher> pair_columns;
     for (ItemPos column_pos = 0; column_pos < (ItemPos)column_items.size(); ++column_pos) {
         const ColumnItems& entry = column_items[column_pos];
+        // 'column_pos' increases monotonically across this loop and
+        // 'entry.item_type_ids' is sorted, so each 'item_columns' list ends
+        // up sorted by construction - no separate sort needed afterwards
+        // (unlike 'neighbors' below, which collects across different
+        // columns in a different order).
+        for (ItemTypeId item_type_id: entry.item_type_ids)
+            item_columns[item_type_id].push_back(column_pos);
         for (ItemPos pos_1 = 0; pos_1 < (ItemPos)entry.item_type_ids.size(); ++pos_1) {
             for (ItemPos pos_2 = pos_1 + 1; pos_2 < (ItemPos)entry.item_type_ids.size(); ++pos_2) {
                 ItemTypeId item_type_id_1 = entry.item_type_ids[pos_1];
@@ -1131,29 +1155,47 @@ std::vector<std::shared_ptr<const Cut>> ColumnGenerationPricingSolver<Instance, 
     // every edge of such a cycle is its own seed.
     const std::array<ItemPos, 2> generalized_subset_row_cardinalities = {5, 7};
     const ItemPos maximum_number_of_extension_seeds = 200;
-    auto subset_violation = [&column_items](const std::vector<ItemTypeId>& subset) -> Value
+    // 'k'-way merge (k == 'subset.size()', 5 or 7) over 'item_columns'
+    // instead of a rescan of every active column: mirrors the pairwise
+    // merge 'pair_columns_of' above already uses for the cardinality-3
+    // pass, generalized from 2 lists to k. 'positions[i]' is how far
+    // 'item_columns[subset[i]]' has been consumed so far; each iteration
+    // advances every list currently at the smallest not-yet-consumed
+    // column index (there may be several, if that column contains more
+    // than one of 'subset''s item types), so every iteration retires at
+    // least one list entry - total iterations, and total work (each
+    // iteration does O(k) work to find the minimum and advance matching
+    // lists), are bounded by the combined length of the k lists, i.e. by
+    // how often 'subset''s own item types actually appear, not by how
+    // many active columns exist overall (most of which have no overlap
+    // with 'subset' at all and would contribute nothing to a full rescan
+    // anyway).
+    auto subset_violation = [&column_items, &item_columns](const std::vector<ItemTypeId>& subset) -> Value
     {
+        std::size_t subset_size = subset.size();
+        std::vector<std::size_t> positions(subset_size, 0);
         Value lhs = 0.0;
-        for (const ColumnItems& entry: column_items) {
-            // Both 'subset' and 'entry.item_type_ids' are sorted - count
-            // their intersection via a merge instead of a hash lookup per
-            // element.
+        while (true) {
+            ItemPos min_column = -1;
+            for (std::size_t i = 0; i < subset_size; ++i) {
+                const std::vector<ItemPos>& list = item_columns[subset[i]];
+                if (positions[i] < list.size()
+                        && (min_column == -1 || list[positions[i]] < min_column)) {
+                    min_column = list[positions[i]];
+                }
+            }
+            if (min_column == -1)
+                break;
             int count = 0;
-            std::size_t pos_subset = 0;
-            std::size_t pos_entry = 0;
-            while (pos_subset < subset.size() && pos_entry < entry.item_type_ids.size()) {
-                if (subset[pos_subset] == entry.item_type_ids[pos_entry]) {
+            for (std::size_t i = 0; i < subset_size; ++i) {
+                const std::vector<ItemPos>& list = item_columns[subset[i]];
+                if (positions[i] < list.size() && list[positions[i]] == min_column) {
                     ++count;
-                    ++pos_subset;
-                    ++pos_entry;
-                } else if (subset[pos_subset] < entry.item_type_ids[pos_entry]) {
-                    ++pos_subset;
-                } else {
-                    ++pos_entry;
+                    ++positions[i];
                 }
             }
             if (count >= 2)
-                lhs += (Value)(count / 2) * entry.value;
+                lhs += (Value)(count / 2) * column_items[min_column].value;
         }
         return lhs - (Value)(subset.size() / 2);
     };
