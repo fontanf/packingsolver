@@ -1318,7 +1318,7 @@ template <typename Instance, typename Solution, typename Output = packingsolver:
 struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution, Output>
 {
     OptimizationMode optimization_mode = OptimizationMode::Anytime;
-    int internal_diving = 1;
+    columngenerationsolver::Activation internal_diving = columngenerationsolver::Activation::Initial;
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
 
@@ -1374,7 +1374,7 @@ struct ColumnGenerationParameters: packingsolver::Parameters<Instance, Solution,
      * during search, otherwise they only add master LP overhead for
      * comparatively little benefit.
      */
-    int use_cutting_planes = 0;
+    columngenerationsolver::Activation use_cutting_planes = columngenerationsolver::Activation::Never;
 
     /**
      * Whether 'pricing_function' has something genuinely useful to offer
@@ -1595,11 +1595,11 @@ Output column_generation(
         = get_model<Instance, InstanceBuilder, Solution, Output>(
                 instance, output, pricing_function, parameters.pricing_function_has_dual_bound);
     columngenerationsolver::LimitedDiscrepancySearchParameters cgslds_parameters;
-    cgslds_parameters.verbosity_level = 1;
+    cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cgslds_parameters.internal_diving = parameters.internal_diving;
-    cgslds_parameters.rounding_heuristic = true;
+    cgslds_parameters.rounding_heuristic = columngenerationsolver::Activation::Initial;
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         cgslds_parameters.automatic_stop = true;
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter](
@@ -1661,8 +1661,6 @@ Output column_generation(
     };
     cgslds_parameters.column_generation_parameters.solver_name
         = parameters.linear_programming_solver_name;
-    // '1': enabled at the root node only (see 'ColumnGenerationParameters::
-    // use_cutting_planes' above).
     cgslds_parameters.cutting_planes = parameters.use_cutting_planes;
     if (column_pool != nullptr)
         cgslds_parameters.column_pool = *column_pool;

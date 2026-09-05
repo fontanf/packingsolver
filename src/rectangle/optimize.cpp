@@ -546,7 +546,7 @@ void optimize_column_generation(
     cg_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     cg_parameters.optimization_mode = parameters.optimization_mode;
     cg_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-    cg_parameters.use_cutting_planes = 2;
+    cg_parameters.use_cutting_planes = columngenerationsolver::Activation::Always;
     cg_parameters.pricing_function_has_dual_bound = true;
     cg_parameters.new_solution_callback = [&algorithm_formatter, local_output](
             const rectangle::Output& ps_output)

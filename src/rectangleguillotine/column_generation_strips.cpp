@@ -2154,7 +2154,7 @@ void column_generation_strips_vertical(
     cgslds_parameters.verbosity_level = 0;
     cgslds_parameters.timer = parameters.timer;
     cgslds_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    cgslds_parameters.internal_diving = 0;
+    cgslds_parameters.internal_diving = columngenerationsolver::Activation::Never;
     cgslds_parameters.automatic_stop = (parameters.optimization_mode != OptimizationMode::Anytime);
     cgslds_parameters.new_solution_callback = [&instance, &algorithm_formatter, local_output](
             const columngenerationsolver::Output& cgs_output)
