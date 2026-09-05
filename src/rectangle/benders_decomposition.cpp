@@ -950,6 +950,38 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                     "the master problem should not be infeasible.");
         }
 
+        // Stop if this iteration's master candidate cannot possibly beat
+        // the current best solution - comparing 'master_solution' itself
+        // directly, not 'master_output.bin_packing_bound' (and friends,
+        // updated above): the master is solved via an 'Anytime' algorithm,
+        // so that separately-tracked bound can lag well behind what the
+        // master's own solve actually found, especially once
+        // 'master_problem_use_milp_assignment' lets it solve the master to
+        // its own proven optimum without that optimum having been
+        // propagated into the tracked bound - relying on the bound alone
+        // (as 'Output::is_proven_optimal' does) could miss this and keep
+        // refining cuts and re-solving subproblems for a candidate already
+        // known not to help. Not gated by 'all_cuts_proven_infeasible',
+        // unlike the bound updates above: this isn't claiming a proof of
+        // optimality, just declining to search further - exactly like the
+        // timer/iteration-cap stops elsewhere in this loop, which return the
+        // best solution found without asserting it is optimal. An unproven
+        // cut already accepted the risk of excluding a genuinely better
+        // region for the sake of converging faster; stopping here on that
+        // same (possibly unsound) master model is no additional risk.
+        if (output.solution_pool.best().feasible()) {
+            if (instance.objective() == Objective::Knapsack) {
+                if (master_solution.profit() <= output.solution_pool.best().profit())
+                    break;
+            } else if (instance.objective() == Objective::BinPacking) {
+                if (master_solution.number_of_bins() >= output.solution_pool.best().number_of_bins())
+                    break;
+            } else if (instance.objective() == Objective::VariableSizedBinPacking) {
+                if (master_solution.cost() >= output.solution_pool.best().cost())
+                    break;
+            }
+        }
+
         // Pass 1: check every bin of the master's candidate for a violated
         // dual-feasible-function inequality before paying for the
         // (potentially expensive) feasibility subproblems. Unlike a
