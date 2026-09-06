@@ -128,4 +128,18 @@ INSTANTIATE_TEST_SUITE_P(
                 // overlapping the defect). Only 1 of the 2 copies fits.
                 fs::path("data") / "irregular" / "tests" / "knapsack_defect_blocks_middle.json",
                 fs::path("data") / "irregular" / "tests" / "knapsack_defect_blocks_middle_solution.json"
+            }, {
+                // L-shaped (non-rectangular) bin: a 20x10 bounding box with
+                // its top-right 10x5 corner (x in [10,20), y in [5,10))
+                // missing. root()'s initial empty space spans the bin's full
+                // bounding box, so without cutting out 'bin_type().borders'
+                // -- the AABB decomposition of the bounding-box-minus-shape
+                // area computed alongside 'defects' -- the search would treat
+                // that missing corner as free space. A 10x10 item, 2 copies:
+                // the first fits at (0,0), entirely inside the true L-shape;
+                // a second at (10,0) would need the missing corner, and the
+                // remaining true free space (10x5) is too short for it, so
+                // only 1 of the 2 copies fits.
+                fs::path("data") / "irregular" / "tests" / "knapsack_bin_border.json",
+                fs::path("data") / "irregular" / "tests" / "knapsack_bin_border_solution.json"
             }}));

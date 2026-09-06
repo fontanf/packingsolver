@@ -496,21 +496,29 @@ BranchingSchemePeriodicPacking::root() const
     space.bx = bin_bx();
     space.by = bin_by();
     node->empty_spaces.push_back(space);
-    // Cut out defects (approximated by their inflated AABB) from the initial
-    // empty space.
+    // Cut out defects and borders (approximated by their inflated AABB) from
+    // the initial empty space. 'space' spans the bin's full bounding box
+    // (see usable_bin_bx()/by()'s comment above), which for a non-rectangular
+    // bin shape extends past the shape itself; without cutting out 'borders'
+    // -- the AABB decomposition of that bounding-box-minus-shape area, built
+    // alongside 'defects' in InstanceBuilder::build() -- the search would
+    // treat that area as free space and place items outside the bin.
     const std::vector<Defect>& defects = bin_type().defects;
-    for (const Defect& defect: defects) {
-        AxisAlignedBoundingBox aabb = defect.shape_inflated.compute_min_max();
-        cut_spaces(
-                node->empty_spaces,
-                {aabb.x_min, aabb.y_min},
-                aabb.x_max - aabb.x_min,
-                aabb.y_max - aabb.y_min);
+    const std::vector<Defect>& borders = bin_type().borders;
+    for (const std::vector<Defect>& obstacles: {defects, borders}) {
+        for (const Defect& obstacle: obstacles) {
+            AxisAlignedBoundingBox aabb = obstacle.shape_inflated.compute_min_max();
+            cut_spaces(
+                    node->empty_spaces,
+                    {aabb.x_min, aabb.y_min},
+                    aabb.x_max - aabb.x_min,
+                    aabb.y_max - aabb.y_min);
+        }
     }
     ItemPos number_of_blocks = (ItemPos)blocks_.size();
     node->valid_block_ids.resize(number_of_blocks);
     std::iota(node->valid_block_ids.begin(), node->valid_block_ids.end(), (ItemPos)0);
-    if (!defects.empty())
+    if (!defects.empty() || !borders.empty())
         remove_unusable_spaces(*node);
     return node;
 }
