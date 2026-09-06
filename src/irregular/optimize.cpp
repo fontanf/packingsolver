@@ -823,9 +823,9 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Disable algorithms which are not available for this objective.
         use_local_search = false;
         use_dichotomic_search = false;
-        use_tree_search_periodic_packing = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_periodic_packing
                 && !use_milp_raster
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
@@ -849,9 +849,9 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
         // Disable algorithms which are not available for this objective.
         use_local_search = false;
         use_dichotomic_search = false;
-        use_tree_search_periodic_packing = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_periodic_packing
                 && !use_milp_raster
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
@@ -874,12 +874,6 @@ packingsolver::irregular::Output packingsolver::irregular::optimize(
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
-        // tree_search_periodic_packing only supports a single bin; here we
-        // are in the multi-bin case (it will still be available for the
-        // per-bin Knapsack subproblems of sequential_single_knapsack /
-        // sequential_value_correction, via their own recursive optimize()
-        // call on a single-bin instance).
-        use_tree_search_periodic_packing = false;
         // 'column_generation' doesn't build item-type rows for
         // 'BinPackingWithLeftovers' at all (see 'get_model' in
         // 'algorithms/column_generation.hpp'); for 'BinPacking' with more

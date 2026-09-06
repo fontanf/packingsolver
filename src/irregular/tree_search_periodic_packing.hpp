@@ -142,7 +142,10 @@ public:
         /** Absolute position of the block BL corner (scaled coordinates). */
         Point bl_corner = {0.0, 0.0};
 
-        /** Index of the empty space in parent->empty_spaces. */
+        /** Bin the space belongs to. */
+        BinPos bin_pos = -1;
+
+        /** Index of the empty space in parent->empty_spaces[bin_pos]. */
         ItemPos space_id = -1;
 
         /** Fitness score. */
@@ -150,7 +153,8 @@ public:
 
         bool operator==(const Insertion& other) const
         {
-            return shape::equal(bl_corner.x, other.bl_corner.x)
+            return bin_pos == other.bin_pos
+                && shape::equal(bl_corner.x, other.bl_corner.x)
                 && shape::equal(bl_corner.y, other.bl_corner.y)
                 && block_id == other.block_id;
         }
@@ -166,9 +170,11 @@ public:
 
         NodeId id = -1;
 
-        std::vector<PlacedBlock> placed_blocks;
+        /** Placed blocks, indexed by bin position. */
+        std::vector<std::vector<PlacedBlock>> placed_blocks;
 
-        std::vector<EmptySpace> empty_spaces;
+        /** Empty spaces, indexed by bin position. */
+        std::vector<std::vector<EmptySpace>> empty_spaces;
 
         std::vector<ItemPos> item_number_of_copies;
 
@@ -361,15 +367,19 @@ private:
     std::vector<PeriodicBlock> blocks_;
     Parameters parameters_;
 
-    /** The (single) bin type packed into, looked up fresh each time: cheap inline accessors on Instance, no need to cache. */
-    inline const BinType& bin_type() const { return instance_.bin_type(instance_.bin_type_id(0)); }
+    /** Total usable area across all (fixed) bins, cached for fill-rate computations. */
+    AreaDbl total_bin_area_ = 0.0;
+
+    /** The bin type packed into at a given bin position, looked up fresh each time: cheap inline accessors on Instance, no need to cache. */
+    inline const BinType& bin_type(BinPos bin_pos) const { return instance_.bin_type(instance_.bin_type_id(bin_pos)); }
 
     /**
-     * Usable bin bounding-box dimensions (scaled): shrunk on every side by
-     * instance_.bin_spacing_scaled() (so a block placed anywhere within
-     * [bin_x_min(), bin_x_min() + bin_bx()] x [bin_y_min(), bin_y_min() +
-     * bin_by()] automatically stays that far from the real bin border), then
-     * grown by one extra instance_.item_spacing_scaled().
+     * Usable bin bounding-box dimensions (scaled) of the bin at 'bin_pos':
+     * shrunk on every side by instance_.bin_spacing_scaled() (so a block
+     * placed anywhere within [bin_x_min(bin_pos), bin_x_min(bin_pos) +
+     * bin_bx(bin_pos)] x [bin_y_min(bin_pos), bin_y_min(bin_pos) +
+     * bin_by(bin_pos)] automatically stays that far from the real bin
+     * border), then grown by one extra instance_.item_spacing_scaled().
      *
      * That extra item_spacing_scaled() is not real bin space: it exactly
      * cancels the trailing item_spacing_scaled() margin that
@@ -392,32 +402,38 @@ private:
      * forwarder to the free function usable_bin_bx()/by(), shared with
      * compute_periodic_blocks_for_item_type() and
      * add_aabb_grid_blocks_for_item_type(), which need the same value
-     * before any BranchingSchemePeriodicPacking exists.
+     * before any BranchingSchemePeriodicPacking exists (those two still key
+     * off bin position 0 only, since block generation is capped once up
+     * front for performance -- a block too large for bin 0 but valid for a
+     * later, larger bin is simply never generated; this never causes an
+     * incorrect placement, since fit is always re-checked against the
+     * specific target space's own bx/by).
      */
-    LengthDbl bin_bx() const;
-    LengthDbl bin_by() const;
+    LengthDbl bin_bx(BinPos bin_pos) const;
+    LengthDbl bin_by(BinPos bin_pos) const;
 
     /**
      * Lower-left corner of the usable region above, already in the bin
-     * type's own (scaled) frame -- i.e. bin_type().aabb_scaled.x_min/y_min
+     * type's own (scaled) frame -- i.e. bin_type(bin_pos).aabb_scaled.x_min/y_min
      * plus the item_bin_minimum_spacing inset. Node placements are tracked
      * directly in this frame (not a separate origin-at-zero local frame), so
      * a placed block/item's coordinates already match what it will get in
      * the final solution, up to the unscaling done at output time.
      */
-    inline LengthDbl bin_x_min() const
+    inline LengthDbl bin_x_min(BinPos bin_pos) const
     {
-        return bin_type().aabb_scaled.x_min + instance_.bin_spacing_scaled(instance_.bin_type_id(0));
+        return bin_type(bin_pos).aabb_scaled.x_min + instance_.bin_spacing_scaled(instance_.bin_type_id(bin_pos));
     }
-    inline LengthDbl bin_y_min() const
+    inline LengthDbl bin_y_min(BinPos bin_pos) const
     {
-        return bin_type().aabb_scaled.y_min + instance_.bin_spacing_scaled(instance_.bin_type_id(0));
+        return bin_type(bin_pos).aabb_scaled.y_min + instance_.bin_spacing_scaled(instance_.bin_type_id(bin_pos));
     }
 
     mutable NodeId node_id_ = 0;
     mutable std::vector<Insertion> insertions_;
 
     struct BestSpaceResult {
+        BinPos bin_pos = -1;
         ItemPos space_idx = -1;
         AnchorInfo anchor = {};
     };
@@ -452,7 +468,8 @@ private:
     SpaceContactInfo compute_space_contact_info(
             const std::vector<Node::PlacedBlock>& placed_blocks,
             const EmptySpace& space,
-            double delta) const;
+            double delta,
+            BinPos bin_pos) const;
 
     double compute_relative_contact_area(
             const SpaceContactInfo& info,

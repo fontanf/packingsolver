@@ -87,6 +87,9 @@ public:
 
     struct Insertion
     {
+        /** Bin the space belongs to. */
+        BinPos bin_pos = -1;
+
         ItemPos block_id = -1;
         ItemPos space_id = -1;
         CutOrientation cut_orientation = CutOrientation::Vertical;
@@ -94,7 +97,8 @@ public:
 
         bool operator==(const Insertion& other) const
         {
-            return this->block_id == other.block_id
+            return this->bin_pos == other.bin_pos
+                && this->block_id == other.block_id
                 && this->space_id == other.space_id
                 && this->cut_orientation == other.cut_orientation;
         }
@@ -105,6 +109,9 @@ public:
     struct Node
     {
         struct PlacedBlock {
+            /** Bin the block was placed in. */
+            BinPos bin_pos = -1;
+
             ItemPos block_id = -1;
             Coord bl_corner = {0, 0};
             CutOrientation cut_orientation = CutOrientation::Vertical;
@@ -112,8 +119,23 @@ public:
 
         NodeId id = -1;
 
+        /**
+         * All blocks placed so far, in true global placement order (across
+         * all bins): to_solution()'s cut-tree replay depends on this order
+         * to correctly mirror apply_insertion()'s cross-bin item-copy
+         * pruning step by step, so this stays a single flat, order-preserving
+         * list (each entry tagged with its own bin_pos) rather than one list
+         * per bin.
+         */
         std::vector<PlacedBlock> placed_blocks;
-        std::vector<EmptySpace> empty_spaces;
+
+        /** Maximal empty spaces (URSs) remaining after all placements up to this node, indexed by bin position. */
+        std::vector<std::vector<EmptySpace>> empty_spaces;
+
+        /**
+         * For each item type, how many copies have been placed so far
+         * (shared across all bins: item copies are a global resource).
+         */
         std::vector<ItemPos> item_number_of_copies;
 
         Area item_area = 0;
@@ -121,7 +143,12 @@ public:
         ItemPos number_of_items = 0;
         ItemPos number_of_blocks = 0;
 
-        std::vector<ItemPos> valid_block_ids;
+        /**
+         * IDs of blocks that can still be placed in a given bin, indexed by
+         * bin position: those whose item quantities are still available
+         * (shared item-copy constraint).
+         */
+        std::vector<std::vector<ItemPos>> valid_block_ids;
 
         Profit greedy_value = 0;
 
@@ -282,8 +309,8 @@ private:
     Parameters parameters_;
     Length cut_thickness_;
 
-    /** Effective bin dimensions (from bin type 0). */
-    Rectangle bin_rect_;
+    /** Effective bin dimensions, indexed by bin position. */
+    std::vector<Rectangle> bin_rects_;
 
     mutable NodeId node_id_ = 0;
     mutable std::vector<Insertion> insertions_;
@@ -291,8 +318,34 @@ private:
     /** True iff the forced first cut for a URS at (depth, cut_orientation) is vertical. */
     bool cut_is_vertical(Depth depth, CutOrientation cut_orientation) const;
 
-    /** Index of the URS with smallest area in node.empty_spaces. */
-    ItemPos find_best_space(const Node& node) const;
+    struct BestSpaceResult {
+        BinPos bin_pos = -1;
+        ItemPos space_idx = -1;
+    };
+
+    /** Bin position and index of the URS with smallest area across all bins. */
+    BestSpaceResult find_best_space(const Node& node) const;
+
+    /**
+     * Remove from node.valid_block_ids[bin_pos] every block that no longer
+     * has sufficient item copies available after this node's placements
+     * (item-copy usage is shared/global across bins, so a placement in any
+     * bin can invalidate blocks in every bin's own list, not just the one it
+     * was placed in).
+     */
+    void prune_valid_block_ids(
+            Node& node,
+            BinPos bin_pos) const;
+
+    /**
+     * Remove empty spaces (URSs) of bin 'bin_pos' that fit no currently
+     * valid block: otherwise find_best_space could pick one of these and
+     * find no insertion there, wrongly making the node infertile even
+     * though other, larger spaces remain usable.
+     */
+    void remove_unusable_spaces(
+            Node& node,
+            BinPos bin_pos) const;
 
     Profit compute_guide_greedy(const Node& node) const;
 };

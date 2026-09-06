@@ -879,13 +879,28 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         }
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
-        use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
         use_benders_decomposition = false;
         use_benders_decomposition_contiguity = false;
         use_bar_relaxation = false;
+        // 'tree_search_maximal_spaces' doesn't implement unloading
+        // constraints or semi-trailer-truck axle weight distribution
+        // constraints (see the matching guard in the number_of_bins() <= 1
+        // branch above): force it off even if the caller explicitly
+        // requested it, rather than silently running and ignoring the
+        // constraint.
+        if (instance.parameters().unloading_constraint != UnloadingConstraint::None)
+            use_tree_search_maximal_spaces = false;
+        for (BinTypeId bin_type_id = 0;
+                use_tree_search_maximal_spaces
+                        && bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            if (instance.bin_type(bin_type_id).semi_trailer_truck_data.is)
+                use_tree_search_maximal_spaces = false;
+        }
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_maximal_spaces
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -906,15 +921,30 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
-        use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
         // Unlike 'use_benders_decomposition', 'benders_decomposition_contiguity'
         // requires a single bin type used exactly once (see its own
         // validation) - this branch is only reached when
         // 'instance.number_of_bins() > 1'.
         use_benders_decomposition_contiguity = false;
+        // 'tree_search_maximal_spaces' doesn't implement unloading
+        // constraints or semi-trailer-truck axle weight distribution
+        // constraints (see the matching guard in the number_of_bins() <= 1
+        // branch above): force it off even if the caller explicitly
+        // requested it, rather than silently running and ignoring the
+        // constraint.
+        if (instance.parameters().unloading_constraint != UnloadingConstraint::None)
+            use_tree_search_maximal_spaces = false;
+        for (BinTypeId bin_type_id = 0;
+                use_tree_search_maximal_spaces
+                        && bin_type_id < instance.number_of_bin_types();
+                ++bin_type_id) {
+            if (instance.bin_type(bin_type_id).semi_trailer_truck_data.is)
+                use_tree_search_maximal_spaces = false;
+        }
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_maximal_spaces
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation
@@ -938,7 +968,6 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
-        use_tree_search_maximal_spaces = false;
         // 'column_generation' doesn't build item-type rows for
         // 'BinPackingWithLeftovers' at all (see 'get_model' in
         // 'algorithms/column_generation.hpp'); for 'BinPacking' with more
@@ -961,6 +990,7 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
         }
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_maximal_spaces
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation
@@ -980,9 +1010,6 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 }
             } else {
                 use_tree_search = true;
-                std::cout << "mean_number_of_items_in_bins " << mean_number_of_items_in_bins
-                    << " / " << parameters.many_items_in_bins_threshold
-                    << std::endl;
                 if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
                     use_sequential_single_knapsack = true;

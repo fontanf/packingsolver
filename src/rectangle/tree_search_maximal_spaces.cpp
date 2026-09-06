@@ -1,5 +1,6 @@
 #include "rectangle/tree_search_maximal_spaces.hpp"
 
+#include "rectangle/sequential_feasibility.hpp"
 #include "rectangle/solution_builder.hpp"
 #include "packingsolver/rectangle/algorithm_formatter.hpp"
 #include "algorithms/thread_pool.hpp"
@@ -60,10 +61,15 @@ BranchingSchemeMaximalSpaces::BranchingSchemeMaximalSpaces(
 {
     max_reachable_x_ = max_reachable_lengths.x;
     max_reachable_y_ = max_reachable_lengths.y;
-    BinTypeId bin_type_id = instance_.bin_type_id(0);
-    const BinType& bin_type = instance_.bin_type(bin_type_id);
-    bin_rect_.x = max_reachable_lengths.x[bin_type.rect.x];
-    bin_rect_.y = max_reachable_lengths.y[bin_type.rect.y];
+
+    BinPos number_of_bins = instance_.number_of_bins();
+    bin_rects_.resize(number_of_bins);
+    for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
+        const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(bin_pos));
+        bin_rects_[bin_pos].x = max_reachable_lengths.x[bin_type.rect.x];
+        bin_rects_[bin_pos].y = max_reachable_lengths.y[bin_type.rect.y];
+        total_bin_area_ += bin_rects_[bin_pos].area();
+    }
 }
 
 const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximalSpaces::root() const
@@ -71,46 +77,63 @@ const std::shared_ptr<BranchingSchemeMaximalSpaces::Node> BranchingSchemeMaximal
     auto node = std::make_shared<Node>();
     node->id = node_id_++;
     node->item_number_of_copies.assign(instance_.number_of_item_types(), 0);
-    BinTypeId bin_type_id = instance_.bin_type_id(0);
-    const BinType& bin_type = instance_.bin_type(bin_type_id);
-    EmptySpace space;
-    space.bl_corner = {0, 0};
-    space.rect = bin_rect_;
-    node->empty_spaces.push_back(space);
-    for (const Defect& defect: bin_type.defects)
-        cut_spaces(node->empty_spaces, defect.pos, defect.rect);
-    ItemPos number_of_blocks = (ItemPos)blocks_[bin_type_id].size();
-    node->valid_block_ids.resize(number_of_blocks);
-    std::iota(node->valid_block_ids.begin(), node->valid_block_ids.end(), (ItemPos)0);
-    if (!bin_type.defects.empty())
-        remove_unusable_spaces(*node, bin_type_id);
+
+    BinPos number_of_bins = instance_.number_of_bins();
+    node->empty_spaces.resize(number_of_bins);
+    node->placed_blocks.resize(number_of_bins);
+    node->resource_consumption.resize(number_of_bins);
+    node->weight.assign(number_of_bins, 0);
+    node->valid_block_ids.resize(number_of_bins);
+
+    for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
+        BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
+        const BinType& bin_type = instance_.bin_type(bin_type_id);
+
+        EmptySpace space;
+        space.bl_corner = {0, 0};
+        space.rect = bin_rects_[bin_pos];
+        node->empty_spaces[bin_pos].push_back(space);
+        for (const Defect& defect: bin_type.defects)
+            cut_spaces(node->empty_spaces[bin_pos], defect.pos, defect.rect);
+
+        ItemPos number_of_blocks = (ItemPos)blocks_[bin_type_id].size();
+        node->valid_block_ids[bin_pos].resize(number_of_blocks);
+        std::iota(node->valid_block_ids[bin_pos].begin(), node->valid_block_ids[bin_pos].end(), (ItemPos)0);
+
+        remove_unusable_spaces(*node, bin_pos);
+    }
     return node;
 }
 
 BranchingSchemeMaximalSpaces::BestSpaceResult BranchingSchemeMaximalSpaces::find_best_space(
-        const Node& parent,
-        BinTypeId bin_type_id) const
+        const Node& parent) const
 {
     BestSpaceResult result;
     Length best_distance = std::numeric_limits<Length>::max();
     Area best_area = 0;
     int best_corner = std::numeric_limits<int>::min();
-    for (ItemPos space_idx = 0;
-            space_idx < (ItemPos)parent.empty_spaces.size();
-            ++space_idx) {
-        const EmptySpace& space = parent.empty_spaces[space_idx];
-        AnchorInfo anchor = compute_anchor_info(space, bin_rect_);
-        Area space_area = space.rect.area();
-        int corner = (anchor.dir_x ? 2 : 0) | (anchor.dir_y ? 1 : 0);
-        bool is_better = (anchor.distance < best_distance)
-            || (anchor.distance == best_distance && space_area > best_area)
-            || (anchor.distance == best_distance && space_area == best_area && corner > best_corner);
-        if (is_better) {
-            result.space_idx = space_idx;
-            result.anchor = anchor;
-            best_distance = anchor.distance;
-            best_area = space_area;
-            best_corner = corner;
+    for (BinPos bin_pos = 0;
+            bin_pos < (BinPos)parent.empty_spaces.size();
+            ++bin_pos) {
+        const std::vector<EmptySpace>& spaces = parent.empty_spaces[bin_pos];
+        for (ItemPos space_idx = 0;
+                space_idx < (ItemPos)spaces.size();
+                ++space_idx) {
+            const EmptySpace& space = spaces[space_idx];
+            AnchorInfo anchor = compute_anchor_info(space, bin_rects_[bin_pos]);
+            Area space_area = space.rect.area();
+            int corner = (anchor.dir_x ? 2 : 0) | (anchor.dir_y ? 1 : 0);
+            bool is_better = (anchor.distance < best_distance)
+                || (anchor.distance == best_distance && space_area > best_area)
+                || (anchor.distance == best_distance && space_area == best_area && corner > best_corner);
+            if (is_better) {
+                result.bin_pos = bin_pos;
+                result.space_idx = space_idx;
+                result.anchor = anchor;
+                best_distance = anchor.distance;
+                best_area = space_area;
+                best_corner = corner;
+            }
         }
     }
     return result;
@@ -133,11 +156,11 @@ double BranchingSchemeMaximalSpaces::compute_insertion_guide(
         const Insertion& insertion,
         const SpaceContactInfo& info) const
 {
-    BinTypeId bin_type_id = instance_.bin_type_id(0);
+    BinTypeId bin_type_id = instance_.bin_type_id(insertion.bin_pos);
     const Block& block = blocks_[bin_type_id][insertion.block_id];
 
-    double fill_rate = (double)parent.item_area / bin_rect_.area();
-    double v = insertion_profit(parent, block, bin_type_id);
+    double fill_rate = (double)parent.item_area / total_bin_area_;
+    double v = insertion_profit(parent, block, insertion.bin_pos);
     double l = compute_area_loss_factor(info, block);
     double n = (double)block.number_of_items;
     if (fill_rate < parameters_.configuration_switch_threshold) {
@@ -197,7 +220,7 @@ void BranchingSchemeMaximalSpaces::update_node_max_reachable(const Node& node) c
 
 double BranchingSchemeMaximalSpaces::active_delta(const Node& node) const
 {
-    double fill_rate = (double)node.item_area / bin_rect_.area();
+    double fill_rate = (double)node.item_area / total_bin_area_;
     if (fill_rate < parameters_.configuration_switch_threshold) {
         return parameters_.delta;
     } else {
@@ -208,17 +231,18 @@ double BranchingSchemeMaximalSpaces::active_delta(const Node& node) const
 bool BranchingSchemeMaximalSpaces::block_resource_capacity_ok(
         const Node& parent,
         const Block& block,
-        BinTypeId bin_type_id) const
+        BinPos bin_pos) const
 {
-    const BinType& bin_type = instance_.bin_type(bin_type_id);
+    const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(bin_pos));
+    const std::vector<double>& resource_consumption = parent.resource_consumption[bin_pos];
     for (ResourceId resource_id = 0;
             resource_id < bin_type.number_of_resources();
             ++resource_id) {
         const Resource& resource = bin_type.resource(resource_id);
         if (resource.penalize)
             continue;
-        double previous_consumption = parent.resource_consumption.empty()?
-            0.0: parent.resource_consumption[resource_id];
+        double previous_consumption = resource_consumption.empty()?
+            0.0: resource_consumption[resource_id];
         if (previous_consumption + block.resource_consumption[resource_id] > resource.capacity * PSTOL)
             return false;
     }
@@ -228,9 +252,10 @@ bool BranchingSchemeMaximalSpaces::block_resource_capacity_ok(
 Profit BranchingSchemeMaximalSpaces::insertion_profit(
         const Node& parent,
         const Block& block,
-        BinTypeId bin_type_id) const
+        BinPos bin_pos) const
 {
-    const BinType& bin_type = instance_.bin_type(bin_type_id);
+    const BinType& bin_type = instance_.bin_type(instance_.bin_type_id(bin_pos));
+    const std::vector<double>& resource_consumption = parent.resource_consumption[bin_pos];
     Profit profit = block.item_profit;
     for (ResourceId resource_id = 0;
             resource_id < bin_type.number_of_resources();
@@ -238,8 +263,8 @@ Profit BranchingSchemeMaximalSpaces::insertion_profit(
         const Resource& resource = bin_type.resource(resource_id);
         if (!resource.penalize)
             continue;
-        double previous_consumption = parent.resource_consumption.empty()?
-            0.0: parent.resource_consumption[resource_id];
+        double previous_consumption = resource_consumption.empty()?
+            0.0: resource_consumption[resource_id];
         double new_consumption = previous_consumption + block.resource_consumption[resource_id];
         if (new_consumption > resource.capacity && previous_consumption <= resource.capacity)
             profit -= resource.penalty;
@@ -262,31 +287,30 @@ const std::vector<BranchingSchemeMaximalSpaces::Insertion>& BranchingSchemeMaxim
     insertions_.clear();
 
     double delta = active_delta(*parent);
-    BinTypeId bin_type_id = instance_.bin_type_id(0);
 
-    if (!parent->empty_spaces.empty()) {
-        BestSpaceResult best = find_best_space(*parent, bin_type_id);
-
-        if (best.space_idx != -1) {
-            const EmptySpace& space = parent->empty_spaces[best.space_idx];
-            SpaceContactInfo contact_info = compute_space_contact_info(
-                    parent->placed_blocks, bin_type_id, space, delta);
-            for (ItemPos block_id: parent->valid_block_ids) {
-                const Block& block = blocks_[bin_type_id][block_id];
-                if (block.rect.x > space.rect.x
-                        || block.rect.y > space.rect.y)
-                    continue;
-                // Weight and resource capacity are already guaranteed by
-                // 'valid_block_ids' (pruned in 'apply_insertion' - both only
-                // ever grow monotonically, so a block ruled out there stays
-                // ruled out for the rest of this subtree).
-                Insertion insertion;
-                insertion.space_id = best.space_idx;
-                insertion.block_id = block_id;
-                insertion.bl_corner = compute_block_position(best.anchor, space, block.rect);
-                insertion.guide = compute_insertion_guide(*parent, insertion, contact_info);
-                insertions_.push_back(insertion);
-            }
+    BestSpaceResult best = find_best_space(*parent);
+    if (best.space_idx != -1) {
+        BinPos bin_pos = best.bin_pos;
+        BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
+        const EmptySpace& space = parent->empty_spaces[bin_pos][best.space_idx];
+        SpaceContactInfo contact_info = compute_space_contact_info(
+                parent->placed_blocks[bin_pos], bin_pos, space, delta);
+        for (ItemPos block_id: parent->valid_block_ids[bin_pos]) {
+            const Block& block = blocks_[bin_type_id][block_id];
+            if (block.rect.x > space.rect.x
+                    || block.rect.y > space.rect.y)
+                continue;
+            // Weight and resource capacity are already guaranteed by
+            // 'valid_block_ids' (pruned in 'apply_insertion' - both only
+            // ever grow monotonically, so a block ruled out there stays
+            // ruled out for the rest of this subtree).
+            Insertion insertion;
+            insertion.bin_pos = bin_pos;
+            insertion.space_id = best.space_idx;
+            insertion.block_id = block_id;
+            insertion.bl_corner = compute_block_position(best.anchor, space, block.rect);
+            insertion.guide = compute_insertion_guide(*parent, insertion, contact_info);
+            insertions_.push_back(insertion);
         }
     }
 
@@ -304,32 +328,31 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
     double best_score = 0;
 
     double delta = active_delta(parent);
-    BinTypeId bin_type_id = instance_.bin_type_id(0);
 
-    if (!parent.empty_spaces.empty()) {
-        BestSpaceResult best_space = find_best_space(parent, bin_type_id);
-
-        if (best_space.space_idx != -1) {
-            const EmptySpace& space = parent.empty_spaces[best_space.space_idx];
-            SpaceContactInfo contact_info = compute_space_contact_info(
-                    parent.placed_blocks, bin_type_id, space, delta);
-            for (ItemPos block_id: parent.valid_block_ids) {
-                const Block& block = blocks_[bin_type_id][block_id];
-                if (block.rect.x > space.rect.x
-                        || block.rect.y > space.rect.y)
-                    continue;
-                // Weight and resource capacity are already guaranteed by
-                // 'valid_block_ids' - see the matching comment in
-                // 'insertions'.
-                Insertion insertion;
-                insertion.space_id = best_space.space_idx;
-                insertion.block_id = block_id;
-                insertion.bl_corner = compute_block_position(best_space.anchor, space, block.rect);
-                double score = compute_insertion_guide(parent, insertion, contact_info);
-                if (score > best_score) {
-                    best_score = score;
-                    best = insertion;
-                }
+    BestSpaceResult best_space = find_best_space(parent);
+    if (best_space.space_idx != -1) {
+        BinPos bin_pos = best_space.bin_pos;
+        BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
+        const EmptySpace& space = parent.empty_spaces[bin_pos][best_space.space_idx];
+        SpaceContactInfo contact_info = compute_space_contact_info(
+                parent.placed_blocks[bin_pos], bin_pos, space, delta);
+        for (ItemPos block_id: parent.valid_block_ids[bin_pos]) {
+            const Block& block = blocks_[bin_type_id][block_id];
+            if (block.rect.x > space.rect.x
+                    || block.rect.y > space.rect.y)
+                continue;
+            // Weight and resource capacity are already guaranteed by
+            // 'valid_block_ids' - see the matching comment in
+            // 'insertions'.
+            Insertion insertion;
+            insertion.bin_pos = bin_pos;
+            insertion.space_id = best_space.space_idx;
+            insertion.block_id = block_id;
+            insertion.bl_corner = compute_block_position(best_space.anchor, space, block.rect);
+            double score = compute_insertion_guide(parent, insertion, contact_info);
+            if (score > best_score) {
+                best_score = score;
+                best = insertion;
             }
         }
     }
@@ -339,10 +362,13 @@ BranchingSchemeMaximalSpaces::Insertion BranchingSchemeMaximalSpaces::best_inser
 
 BranchingSchemeMaximalSpaces::SpaceContactInfo BranchingSchemeMaximalSpaces::compute_space_contact_info(
         const std::vector<Node::PlacedBlock>& placed_blocks,
-        BinTypeId bin_type_id,
+        BinPos bin_pos,
         const EmptySpace& space,
         double delta) const
 {
+    BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
+    const Rectangle& bin_rect = bin_rects_[bin_pos];
+
     SpaceContactInfo info;
     info.space_xs = space.bl_corner.x;
     info.space_ys = space.bl_corner.y;
@@ -355,8 +381,8 @@ BranchingSchemeMaximalSpaces::SpaceContactInfo BranchingSchemeMaximalSpaces::com
     Length yl = space.bl_corner.y, yh = yl + space.rect.y;
     info.xl_wall = (xl <= info.tol_x);
     info.yl_wall = (yl <= info.tol_y);
-    info.xh_wall = (bin_rect_.x - xh <= info.tol_x);
-    info.yh_wall = (bin_rect_.y - yh <= info.tol_y);
+    info.xh_wall = (bin_rect.x - xh <= info.tol_x);
+    info.yh_wall = (bin_rect.y - yh <= info.tol_y);
 
     for (const Node::PlacedBlock& pb: placed_blocks) {
         const Block& pb_block = blocks_[bin_type_id][pb.block_id];
@@ -455,21 +481,22 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
 {
     node.id = node_id_++;
 
-    BinTypeId bin_type_id = instance_.bin_type_id(0);
+    BinPos bin_pos = insertion.bin_pos;
+    BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
     const Block& block = blocks_[bin_type_id][insertion.block_id];
     const BinType& bin_type = instance_.bin_type(bin_type_id);
 
     // 'insertion_profit' must run against 'node''s resource_consumption
     // right before this block's own is added below (it detects a
     // 'penalize' resource's *first* crossing of its capacity).
-    node.profit += insertion_profit(node, block, bin_type_id);
+    node.profit += insertion_profit(node, block, bin_pos);
     if (bin_type.number_of_resources() > 0) {
-        if (node.resource_consumption.empty())
-            node.resource_consumption.assign(bin_type.number_of_resources(), 0.0);
+        if (node.resource_consumption[bin_pos].empty())
+            node.resource_consumption[bin_pos].assign(bin_type.number_of_resources(), 0.0);
         for (ResourceId resource_id = 0;
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
-            node.resource_consumption[resource_id] += block.resource_consumption[resource_id];
+            node.resource_consumption[bin_pos][resource_id] += block.resource_consumption[resource_id];
         }
     }
 
@@ -477,73 +504,86 @@ void BranchingSchemeMaximalSpaces::apply_insertion(
         node.item_number_of_copies[item_copy.first] += item_copy.second;
     node.item_area += block.item_area;
     node.block_area += block.rect.area();
-    node.weight += block.weight;
+    node.weight[bin_pos] += block.weight;
     node.number_of_items += (ItemPos)block.items.size();
     node.number_of_blocks++;
 
     Node::PlacedBlock current_pb;
     current_pb.block_id = insertion.block_id;
     current_pb.bl_corner = insertion.bl_corner;
-    node.placed_blocks.push_back(std::move(current_pb));
+    node.placed_blocks[bin_pos].push_back(std::move(current_pb));
 
-    {
-        // Prune every block that node's post-insertion state (item copies
-        // used, weight, resource consumption) has made unusable for the
-        // rest of this node's subtree. Sound because all three only ever
-        // grow monotonically as more blocks get placed (never decrease), so
-        // a block ruled out here can never become usable again below this
-        // node - unlike 'insertions'/'best_insertion''s own weight/resource
-        // checks, which only rule out an insertion for the *current* node
-        // (recomputed on every call), this is a one-time, permanent prune.
-        const std::vector<Block>& bin_blocks = blocks_[bin_type_id];
-        Weight maximum_weight = bin_type.maximum_weight;
-        ItemPos block_idx = 0;
-        while (block_idx < (ItemPos)node.valid_block_ids.size()) {
-            const Block& candidate = bin_blocks[node.valid_block_ids[block_idx]];
-            bool feasible = true;
-            for (const auto& item_copy: candidate.item_copies) {
-                if (node.item_number_of_copies[item_copy.first] + item_copy.second
-                        > instance_.item_type(item_copy.first).copies) {
-                    feasible = false;
-                    break;
-                }
-            }
-            if (feasible && node.weight + candidate.weight > maximum_weight)
-                feasible = false;
-            if (feasible && !block_resource_capacity_ok(node, candidate, bin_type_id))
-                feasible = false;
-            if (!feasible) {
-                node.valid_block_ids[block_idx] = node.valid_block_ids.back();
-                node.valid_block_ids.pop_back();
-            } else {
-                ++block_idx;
-            }
-        }
+    // Item-copy usage is global (shared across bins), so this insertion can
+    // rule out blocks in every bin's valid_block_ids, not just bin_pos's -
+    // but weight/resource capacity are per-bin, so only bin_pos itself needs
+    // those two re-checked.
+    for (BinPos other_bin_pos = 0;
+            other_bin_pos < (BinPos)node.valid_block_ids.size();
+            ++other_bin_pos) {
+        prune_valid_block_ids(node, other_bin_pos, other_bin_pos == bin_pos);
     }
 
-    cut_spaces(node.empty_spaces, insertion.bl_corner, block.rect);
-    remove_unusable_spaces(node, bin_type_id);
+    cut_spaces(node.empty_spaces[bin_pos], insertion.bl_corner, block.rect);
+    remove_unusable_spaces(node, bin_pos);
+}
+
+void BranchingSchemeMaximalSpaces::prune_valid_block_ids(
+        Node& node,
+        BinPos bin_pos,
+        bool check_weight_and_resources) const
+{
+    BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
+    const std::vector<Block>& bin_blocks = blocks_[bin_type_id];
+    Weight maximum_weight = instance_.bin_type(bin_type_id).maximum_weight;
+    std::vector<ItemPos>& valid_block_ids = node.valid_block_ids[bin_pos];
+    ItemPos block_idx = 0;
+    while (block_idx < (ItemPos)valid_block_ids.size()) {
+        const Block& candidate = bin_blocks[valid_block_ids[block_idx]];
+        bool feasible = true;
+        for (const auto& item_copy: candidate.item_copies) {
+            if (node.item_number_of_copies[item_copy.first] + item_copy.second
+                    > instance_.item_type(item_copy.first).copies) {
+                feasible = false;
+                break;
+            }
+        }
+        if (feasible && check_weight_and_resources) {
+            if (node.weight[bin_pos] + candidate.weight > maximum_weight)
+                feasible = false;
+            if (feasible && !block_resource_capacity_ok(node, candidate, bin_pos))
+                feasible = false;
+        }
+        if (!feasible) {
+            valid_block_ids[block_idx] = valid_block_ids.back();
+            valid_block_ids.pop_back();
+        } else {
+            ++block_idx;
+        }
+    }
 }
 
 void BranchingSchemeMaximalSpaces::remove_unusable_spaces(
         Node& node,
-        BinTypeId bin_type_id) const
+        BinPos bin_pos) const
 {
+    BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
     const std::vector<Block>& bin_blocks = blocks_[bin_type_id];
+    std::vector<EmptySpace>& spaces = node.empty_spaces[bin_pos];
+    const std::vector<ItemPos>& valid_block_ids = node.valid_block_ids[bin_pos];
     ItemPos space_idx = 0;
-    while (space_idx < (ItemPos)node.empty_spaces.size()) {
+    while (space_idx < (ItemPos)spaces.size()) {
         bool has_fitting_block = false;
-        for (ItemPos block_id: node.valid_block_ids) {
+        for (ItemPos block_id: valid_block_ids) {
             const Block& candidate = bin_blocks[block_id];
-            if (candidate.rect.x <= node.empty_spaces[space_idx].rect.x
-                    && candidate.rect.y <= node.empty_spaces[space_idx].rect.y) {
+            if (candidate.rect.x <= spaces[space_idx].rect.x
+                    && candidate.rect.y <= spaces[space_idx].rect.y) {
                 has_fitting_block = true;
                 break;
             }
         }
         if (!has_fitting_block) {
-            node.empty_spaces[space_idx] = node.empty_spaces.back();
-            node.empty_spaces.pop_back();
+            spaces[space_idx] = spaces.back();
+            spaces.pop_back();
         } else {
             ++space_idx;
         }
@@ -605,19 +645,21 @@ Solution BranchingSchemeMaximalSpaces::to_solution(const std::shared_ptr<Node>& 
     }
 
     SolutionBuilder solution_builder(instance_);
-    BinTypeId bin_type_id = instance_.bin_type_id(0);
-    BinPos bin_pos = solution_builder.add_bin(bin_type_id, 1);
-    for (const Node::PlacedBlock& pb: greedy_node.placed_blocks) {
-        const Block& block = blocks_[bin_type_id][pb.block_id];
-        for (const SolutionItem& solution_item: block.items) {
-            Point item_bl_corner;
-            item_bl_corner.x = pb.bl_corner.x + solution_item.bl_corner.x;
-            item_bl_corner.y = pb.bl_corner.y + solution_item.bl_corner.y;
-            solution_builder.add_item(
-                bin_pos,
-                solution_item.item_type_id,
-                item_bl_corner,
-                solution_item.rotate);
+    for (BinPos bin_pos = 0; bin_pos < instance_.number_of_bins(); ++bin_pos) {
+        BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
+        BinPos solution_bin_pos = solution_builder.add_bin(bin_type_id, 1);
+        for (const Node::PlacedBlock& pb: greedy_node.placed_blocks[bin_pos]) {
+            const Block& block = blocks_[bin_type_id][pb.block_id];
+            for (const SolutionItem& solution_item: block.items) {
+                Point item_bl_corner;
+                item_bl_corner.x = pb.bl_corner.x + solution_item.bl_corner.x;
+                item_bl_corner.y = pb.bl_corner.y + solution_item.bl_corner.y;
+                solution_builder.add_item(
+                    solution_bin_pos,
+                    solution_item.item_type_id,
+                    item_bl_corner,
+                    solution_item.rotate);
+            }
         }
     }
 
@@ -751,6 +793,38 @@ const packingsolver::rectangle::TreeSearchMaximalSpacesOutput packingsolver::rec
     AlgorithmFormatter algorithm_formatter(instance, parameters, output);
     algorithm_formatter.start();
     algorithm_formatter.print_header();
+
+    if (instance.objective() == Objective::BinPacking
+            || instance.objective() == Objective::BinPackingWithLeftovers) {
+        SequentialFeasibilitySolver solver = [&parameters, &algorithm_formatter](
+                const Instance& sub_instance)
+        {
+            TreeSearchMaximalSpacesParameters inner_parameters;
+            inner_parameters.verbosity_level = 0;
+            inner_parameters.timer = parameters.timer;
+            inner_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+            inner_parameters.optimization_mode = parameters.optimization_mode;
+            inner_parameters.not_anytime_tree_search_queue_size
+                = parameters.not_anytime_tree_search_queue_size;
+            return tree_search_maximal_spaces(sub_instance, inner_parameters).solution_pool;
+        };
+
+        SequentialFeasibilityParameters sf_parameters;
+        sf_parameters.verbosity_level = 0;
+        sf_parameters.timer = parameters.timer;
+        sf_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+        sf_parameters.new_solution_callback = [&algorithm_formatter](
+                const packingsolver::Output<Instance, Solution>& sf_output)
+        {
+            algorithm_formatter.update_solution(
+                    sf_output.solution_pool.best(),
+                    sf_output.solution_pool.best_label());
+        };
+
+        sequential_feasibility(instance, solver, sf_parameters);
+        algorithm_formatter.end();
+        return output;
+    }
 
     MaxReachableLengths max_reachable_lengths = compute_max_reachable_lengths(instance);
     std::vector<std::vector<Block>> all_blocks = compute_blocks(instance);

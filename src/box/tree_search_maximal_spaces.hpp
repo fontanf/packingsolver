@@ -107,12 +107,16 @@ public:
         /** Absolute position of the block's bottom-left-back corner. */
         Point bl_corner = {0, 0, 0};
 
+        /** Bin the space belongs to. */
+        BinPos bin_pos = -1;
+
         /**
-         * Index of the space in parent->empty_spaces from which this insertion
-         * was generated.  Used in apply_insertion() to retrieve the anchor
-         * corner without re-searching.  Not included in operator== since two
-         * insertions placing the same block at the same position are equivalent
-         * regardless of the originating space.
+         * Index of the space in parent->empty_spaces[bin_pos] from which this
+         * insertion was generated.  Used in apply_insertion() to retrieve the
+         * anchor corner without re-searching.  Not included in operator==
+         * since two insertions placing the same block at the same position
+         * (in the same bin) are equivalent regardless of the originating
+         * space.
          */
         ItemPos space_id = -1;
 
@@ -121,7 +125,8 @@ public:
 
         bool operator==(const Insertion& other) const
         {
-            return this->bl_corner == other.bl_corner
+            return this->bin_pos == other.bin_pos
+                && this->bl_corner == other.bl_corner
                 && this->block_id == other.block_id;
         }
 
@@ -143,31 +148,38 @@ public:
 
         NodeId id = -1;
 
-        /** All blocks placed so far, in order of placement. */
-        std::vector<PlacedBlock> placed_blocks;
+        /** All blocks placed so far, indexed by bin position, in order of placement. */
+        std::vector<std::vector<PlacedBlock>> placed_blocks;
 
-        /** Maximal empty spaces remaining after all placements up to this node. */
-        std::vector<EmptySpace> empty_spaces;
+        /** Maximal empty spaces remaining after all placements up to this node, indexed by bin position. */
+        std::vector<std::vector<EmptySpace>> empty_spaces;
 
-        /** For each item type, how many copies have been placed so far. */
+        /**
+         * For each item type, how many copies have been placed so far
+         * (shared across all bins: item copies are a global resource).
+         */
         std::vector<ItemPos> item_number_of_copies;
 
         Volume item_volume = 0;
         Volume block_volume = 0;
-        Weight weight = 0;
+
+        /** Weight placed so far, indexed by bin position (a per-bin capacity). */
+        std::vector<Weight> weight;
+
         ItemPos number_of_items = 0;
         ItemPos number_of_blocks = 0;
         Profit profit = 0;
 
         /**
-         * IDs of blocks that can still be placed: those whose item quantities
-         * are still available and that fit within at least one remaining empty
-         * space.  Initialized by root().  Maintained by apply_insertion() so
-         * that insertions() / best_insertion() / find_best_space() can iterate
-         * a pre-filtered list instead of rescanning all blocks from scratch on
-         * every call.
+         * IDs of blocks that can still be placed in a given bin, indexed by
+         * bin position: those whose item quantities are still available
+         * (shared item-copy constraint) and that fit within at least one
+         * remaining empty space of that bin. Initialized by root().
+         * Maintained by apply_insertion() so that insertions() /
+         * best_insertion() / find_best_space() can iterate a pre-filtered
+         * list instead of rescanning all blocks from scratch on every call.
          */
-        std::vector<ItemPos> valid_block_ids;
+        std::vector<std::vector<ItemPos>> valid_block_ids;
 
         /**
          * Profit reached by running the greedy (best_insertion loop) from
@@ -395,8 +407,11 @@ private:
 
     Parameters parameters_;
 
-    /** Bin box. */
-    Box bin_box_;
+    /** Bin boxes, indexed by bin position. */
+    std::vector<Box> bin_boxes_;
+
+    /** Total usable volume across all (fixed) bins, cached for fill-rate computations. */
+    Volume total_bin_volume_ = 0;
 
     /** max_reachable_x_[r] = largest length ≤ r achievable by stacking items along x. */
     mutable std::vector<Length> max_reachable_x_;
@@ -440,18 +455,17 @@ private:
      * removed spaces are also permanently inaccessible.
      */
     struct BestSpaceResult {
+        BinPos bin_pos = -1;
         ItemPos space_idx = -1;
         AnchorInfo anchor = {};
     };
 
     /**
      * Remove spaces with no fitting feasible block (Pass 1), then return the
-     * index of the space with the smallest anchor distance (Pass 2).
-     * Returns space_idx == -1 if no space remains.
+     * bin position and index of the space with the smallest anchor distance
+     * across all bins (Pass 2). Returns space_idx == -1 if no space remains.
      */
-    BestSpaceResult find_best_space(
-            const Node& parent,
-            BinTypeId bin_type_id) const;
+    BestSpaceResult find_best_space(const Node& parent) const;
 
     /**
      * Per-face neighbour information for a selected empty space.
@@ -526,10 +540,10 @@ private:
         std::vector<Neighbor> zh_neighbors;
     };
 
-    /** Build SpaceContactInfo for space from the placed blocks of the current bin. */
+    /** Build SpaceContactInfo for space from the placed blocks of bin 'bin_pos'. */
     SpaceContactInfo compute_space_contact_info(
             const std::vector<Node::PlacedBlock>& placed_blocks,
-            BinTypeId bin_type_id,
+            BinPos bin_pos,
             const EmptySpace& space,
             double delta) const;
 
@@ -596,6 +610,27 @@ private:
             std::vector<EmptySpace>& spaces,
             Point bl_corner,
             const Box& block_box);
+
+    /**
+     * Remove empty spaces that fit no currently valid block: otherwise
+     * find_best_space could pick one of these (e.g. because it is closest to
+     * a bin corner) and find no insertion there, wrongly making the node
+     * infertile even though other, larger spaces remain usable.
+     */
+    void remove_unusable_spaces(
+            Node& node,
+            BinPos bin_pos) const;
+
+    /**
+     * Remove from node.valid_block_ids[bin_pos] every block that no longer
+     * has sufficient item copies available after this node's placements
+     * (item-copy usage is shared/global across bins, so a placement in any
+     * bin can invalidate blocks in every bin's own list, not just the one it
+     * was placed in).
+     */
+    void prune_valid_block_ids(
+            Node& node,
+            BinPos bin_pos) const;
 
     /**
      * Copy node, run best_insertion + apply_insertion until no insertion is

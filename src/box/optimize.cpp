@@ -604,10 +604,10 @@ packingsolver::box::Output packingsolver::box::optimize(
         }
     } else if (instance.objective() == Objective::Feasibility) {
         // Disable algorithms which are not available for this objective.
-        use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_maximal_spaces
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -633,10 +633,10 @@ packingsolver::box::Output packingsolver::box::optimize(
         }
     } else if (instance.objective() == Objective::Knapsack) {
         // Disable algorithms which are not available for this objective.
-        use_tree_search_maximal_spaces = false;
         use_dichotomic_search = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_maximal_spaces
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -663,7 +663,6 @@ packingsolver::box::Output packingsolver::box::optimize(
     } else if (instance.objective() == Objective::BinPacking
             || instance.objective() == Objective::BinPackingWithLeftovers) {
         // Disable algorithms which are not available for this objective.
-        use_tree_search_maximal_spaces = false;
         // 'column_generation' doesn't build item-type rows for
         // 'BinPackingWithLeftovers' at all (see 'get_model' in
         // 'algorithms/column_generation.hpp'); for 'BinPacking' with more
@@ -677,6 +676,7 @@ packingsolver::box::Output packingsolver::box::optimize(
         use_dichotomic_search = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_maximal_spaces
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {

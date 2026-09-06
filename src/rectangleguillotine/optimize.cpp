@@ -793,6 +793,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         use_sequential_strips_onedimensional = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_maximal_spaces
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -818,6 +819,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         use_sequential_strips_onedimensional = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_maximal_spaces
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_column_generation) {
@@ -856,6 +858,7 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
         use_dichotomic_search = false;
         // Automatic selection.
         if (!use_tree_search
+                && !use_tree_search_maximal_spaces
                 && !use_sequential_single_knapsack
                 && !use_sequential_value_correction
                 && !use_sequential_strips_onedimensional

@@ -473,16 +473,19 @@ BranchingSchemePeriodicPacking::BranchingSchemePeriodicPacking(
     const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations
         = all_item_type_rotations[bin_type_id];
     blocks_ = compute_periodic_blocks(instance_, packings, item_type_rotations);
+
+    for (BinPos bin_pos = 0; bin_pos < instance_.number_of_bins(); ++bin_pos)
+        total_bin_area_ += bin_bx(bin_pos) * bin_by(bin_pos);
 }
 
-LengthDbl BranchingSchemePeriodicPacking::bin_bx() const
+LengthDbl BranchingSchemePeriodicPacking::bin_bx(BinPos bin_pos) const
 {
-    return usable_bin_bx(instance_, instance_.bin_type_id(0));
+    return usable_bin_bx(instance_, instance_.bin_type_id(bin_pos));
 }
 
-LengthDbl BranchingSchemePeriodicPacking::bin_by() const
+LengthDbl BranchingSchemePeriodicPacking::bin_by(BinPos bin_pos) const
 {
-    return usable_bin_by(instance_, instance_.bin_type_id(0));
+    return usable_bin_by(instance_, instance_.bin_type_id(bin_pos));
 }
 
 const std::shared_ptr<BranchingSchemePeriodicPacking::Node>
@@ -491,27 +494,34 @@ BranchingSchemePeriodicPacking::root() const
     auto node = std::make_shared<Node>();
     node->id = node_id_++;
     node->item_number_of_copies.assign(instance_.number_of_item_types(), 0);
-    EmptySpace space;
-    space.bl_corner = {bin_x_min(), bin_y_min()};
-    space.bx = bin_bx();
-    space.by = bin_by();
-    node->empty_spaces.push_back(space);
-    // Cut out defects (approximated by their inflated AABB) from the initial
-    // empty space.
-    const std::vector<Defect>& defects = bin_type().defects;
-    for (const Defect& defect: defects) {
-        AxisAlignedBoundingBox aabb = defect.shape_inflated.compute_min_max();
-        cut_spaces(
-                node->empty_spaces,
-                {aabb.x_min, aabb.y_min},
-                aabb.x_max - aabb.x_min,
-                aabb.y_max - aabb.y_min);
+
+    BinPos number_of_bins = instance_.number_of_bins();
+    node->empty_spaces.resize(number_of_bins);
+    node->placed_blocks.resize(number_of_bins);
+
+    for (BinPos bin_pos = 0; bin_pos < number_of_bins; ++bin_pos) {
+        EmptySpace space;
+        space.bl_corner = {bin_x_min(bin_pos), bin_y_min(bin_pos)};
+        space.bx = bin_bx(bin_pos);
+        space.by = bin_by(bin_pos);
+        node->empty_spaces[bin_pos].push_back(space);
+        // Cut out defects (approximated by their inflated AABB) from the
+        // initial empty space.
+        const std::vector<Defect>& defects = bin_type(bin_pos).defects;
+        for (const Defect& defect: defects) {
+            AxisAlignedBoundingBox aabb = defect.shape_inflated.compute_min_max();
+            cut_spaces(
+                    node->empty_spaces[bin_pos],
+                    {aabb.x_min, aabb.y_min},
+                    aabb.x_max - aabb.x_min,
+                    aabb.y_max - aabb.y_min);
+        }
     }
+
     ItemPos number_of_blocks = (ItemPos)blocks_.size();
     node->valid_block_ids.resize(number_of_blocks);
     std::iota(node->valid_block_ids.begin(), node->valid_block_ids.end(), (ItemPos)0);
-    if (!defects.empty())
-        remove_unusable_spaces(*node);
+    remove_unusable_spaces(*node);
     return node;
 }
 
@@ -523,32 +533,38 @@ BranchingSchemePeriodicPacking::find_best_space(const Node& parent) const
     AreaDbl best_area = 0.0;
     int best_corner = std::numeric_limits<int>::min();
 
-    for (ItemPos space_idx = 0;
-            space_idx < (ItemPos)parent.empty_spaces.size();
-            ++space_idx) {
-        const EmptySpace& space = parent.empty_spaces[space_idx];
-        LengthDbl dist_x_start = space.xs() - bin_x_min();
-        LengthDbl dist_x_end = (bin_x_min() + bin_bx()) - space.xe();
-        LengthDbl dist_y_start = space.ys() - bin_y_min();
-        LengthDbl dist_y_end = (bin_y_min() + bin_by()) - space.ye();
-        bool dir_x = shape::strictly_lesser(dist_x_end, dist_x_start);
-        bool dir_y = shape::strictly_lesser(dist_y_end, dist_y_start);
-        LengthDbl distance = std::min(dist_x_start, dist_x_end)
-            + std::min(dist_y_start, dist_y_end);
-        AreaDbl area = space.area();
-        int corner = (dir_x? 2: 0) | (dir_y? 1: 0);
-        bool is_better = shape::strictly_lesser(distance, best_distance)
-            || (shape::equal(distance, best_distance) && shape::strictly_greater(area, best_area))
-            || (shape::equal(distance, best_distance) && shape::equal(area, best_area) && corner > best_corner);
-        if (is_better) {
-            result.space_idx = space_idx;
-            result.anchor.distance = distance;
-            result.anchor.dir_x = dir_x;
-            result.anchor.dir_y = dir_y;
-            result.anchor.space_area = area;
-            best_distance = distance;
-            best_area = area;
-            best_corner = corner;
+    for (BinPos bin_pos = 0;
+            bin_pos < (BinPos)parent.empty_spaces.size();
+            ++bin_pos) {
+        const std::vector<EmptySpace>& spaces = parent.empty_spaces[bin_pos];
+        for (ItemPos space_idx = 0;
+                space_idx < (ItemPos)spaces.size();
+                ++space_idx) {
+            const EmptySpace& space = spaces[space_idx];
+            LengthDbl dist_x_start = space.xs() - bin_x_min(bin_pos);
+            LengthDbl dist_x_end = (bin_x_min(bin_pos) + bin_bx(bin_pos)) - space.xe();
+            LengthDbl dist_y_start = space.ys() - bin_y_min(bin_pos);
+            LengthDbl dist_y_end = (bin_y_min(bin_pos) + bin_by(bin_pos)) - space.ye();
+            bool dir_x = shape::strictly_lesser(dist_x_end, dist_x_start);
+            bool dir_y = shape::strictly_lesser(dist_y_end, dist_y_start);
+            LengthDbl distance = std::min(dist_x_start, dist_x_end)
+                + std::min(dist_y_start, dist_y_end);
+            AreaDbl area = space.area();
+            int corner = (dir_x? 2: 0) | (dir_y? 1: 0);
+            bool is_better = shape::strictly_lesser(distance, best_distance)
+                || (shape::equal(distance, best_distance) && shape::strictly_greater(area, best_area))
+                || (shape::equal(distance, best_distance) && shape::equal(area, best_area) && corner > best_corner);
+            if (is_better) {
+                result.bin_pos = bin_pos;
+                result.space_idx = space_idx;
+                result.anchor.distance = distance;
+                result.anchor.dir_x = dir_x;
+                result.anchor.dir_y = dir_y;
+                result.anchor.space_area = area;
+                best_distance = distance;
+                best_area = area;
+                best_corner = corner;
+            }
         }
     }
     return result;
@@ -558,7 +574,8 @@ BranchingSchemePeriodicPacking::SpaceContactInfo
 BranchingSchemePeriodicPacking::compute_space_contact_info(
         const std::vector<Node::PlacedBlock>& placed_blocks,
         const EmptySpace& space,
-        double delta) const
+        double delta,
+        BinPos bin_pos) const
 {
     SpaceContactInfo info;
     info.space_xs = space.bl_corner.x;
@@ -570,10 +587,10 @@ BranchingSchemePeriodicPacking::compute_space_contact_info(
 
     LengthDbl xl = space.xs(), xh = space.xe();
     LengthDbl yl = space.ys(), yh = space.ye();
-    info.xl_wall = !shape::strictly_greater(xl - bin_x_min(), info.tol_x);
-    info.yl_wall = !shape::strictly_greater(yl - bin_y_min(), info.tol_y);
-    info.xh_wall = !shape::strictly_greater((bin_x_min() + bin_bx()) - xh, info.tol_x);
-    info.yh_wall = !shape::strictly_greater((bin_y_min() + bin_by()) - yh, info.tol_y);
+    info.xl_wall = !shape::strictly_greater(xl - bin_x_min(bin_pos), info.tol_x);
+    info.yl_wall = !shape::strictly_greater(yl - bin_y_min(bin_pos), info.tol_y);
+    info.xh_wall = !shape::strictly_greater((bin_x_min(bin_pos) + bin_bx(bin_pos)) - xh, info.tol_x);
+    info.yh_wall = !shape::strictly_greater((bin_y_min(bin_pos) + bin_by(bin_pos)) - yh, info.tol_y);
 
     for (const Node::PlacedBlock& pb: placed_blocks) {
         const PeriodicBlock& block = blocks_[pb.block_id];
@@ -718,7 +735,7 @@ double BranchingSchemePeriodicPacking::compute_insertion_guide(
 {
     const PeriodicBlock& block = blocks_[insertion.block_id];
 
-    double node_fill_rate = (double)parent.item_area / (bin_bx() * bin_by());
+    double node_fill_rate = (double)parent.item_area / total_bin_area_;
     double v = block.item_profit;
     double f = block.fill_rate();
     double n = (double)block.number_of_items;
@@ -741,7 +758,7 @@ double BranchingSchemePeriodicPacking::compute_insertion_guide(
 
 double BranchingSchemePeriodicPacking::active_delta(const Node& node) const
 {
-    double fill_rate = (double)node.item_area / (bin_bx() * bin_by());
+    double fill_rate = (double)node.item_area / total_bin_area_;
     return (fill_rate < parameters_.configuration_switch_threshold)?
         parameters_.delta:
         parameters_.delta_2;
@@ -755,32 +772,31 @@ BranchingSchemePeriodicPacking::insertions(
 
     double delta = active_delta(*parent);
 
-    if (!parent->empty_spaces.empty()) {
-        BestSpaceResult best = find_best_space(*parent);
-        if (best.space_idx != -1) {
-            const EmptySpace& space = parent->empty_spaces[best.space_idx];
-            SpaceContactInfo contact_info = compute_space_contact_info(
-                    parent->placed_blocks, space, delta);
+    BestSpaceResult best = find_best_space(*parent);
+    if (best.space_idx != -1) {
+        const EmptySpace& space = parent->empty_spaces[best.bin_pos][best.space_idx];
+        SpaceContactInfo contact_info = compute_space_contact_info(
+                parent->placed_blocks[best.bin_pos], space, delta, best.bin_pos);
 
-            LengthDbl anchor_x = best.anchor.dir_x? space.xe(): space.xs();
-            LengthDbl anchor_y = best.anchor.dir_y? space.ye(): space.ys();
+        LengthDbl anchor_x = best.anchor.dir_x? space.xe(): space.xs();
+        LengthDbl anchor_y = best.anchor.dir_y? space.ye(): space.ys();
 
-            for (ItemPos block_id: parent->valid_block_ids) {
-                const PeriodicBlock& block = blocks_[block_id];
-                if (shape::strictly_greater(block.bx, space.bx)
-                        || shape::strictly_greater(block.by, space.by))
-                    continue;
+        for (ItemPos block_id: parent->valid_block_ids) {
+            const PeriodicBlock& block = blocks_[block_id];
+            if (shape::strictly_greater(block.bx, space.bx)
+                    || shape::strictly_greater(block.by, space.by))
+                continue;
 
-                Insertion insertion;
-                insertion.space_id = best.space_idx;
-                insertion.block_id = block_id;
-                insertion.bl_corner.x = best.anchor.dir_x?
-                    anchor_x - block.bx: anchor_x;
-                insertion.bl_corner.y = best.anchor.dir_y?
-                    anchor_y - block.by: anchor_y;
-                insertion.guide = compute_insertion_guide(*parent, insertion, contact_info);
-                insertions_.push_back(insertion);
-            }
+            Insertion insertion;
+            insertion.bin_pos = best.bin_pos;
+            insertion.space_id = best.space_idx;
+            insertion.block_id = block_id;
+            insertion.bl_corner.x = best.anchor.dir_x?
+                anchor_x - block.bx: anchor_x;
+            insertion.bl_corner.y = best.anchor.dir_y?
+                anchor_y - block.by: anchor_y;
+            insertion.guide = compute_insertion_guide(*parent, insertion, contact_info);
+            insertions_.push_back(insertion);
         }
     }
 
@@ -799,34 +815,33 @@ BranchingSchemePeriodicPacking::best_insertion(Node& parent) const
 
     double delta = active_delta(parent);
 
-    if (!parent.empty_spaces.empty()) {
-        BestSpaceResult best_space = find_best_space(parent);
-        if (best_space.space_idx != -1) {
-            const EmptySpace& space = parent.empty_spaces[best_space.space_idx];
-            SpaceContactInfo contact_info = compute_space_contact_info(
-                    parent.placed_blocks, space, delta);
+    BestSpaceResult best_space = find_best_space(parent);
+    if (best_space.space_idx != -1) {
+        const EmptySpace& space = parent.empty_spaces[best_space.bin_pos][best_space.space_idx];
+        SpaceContactInfo contact_info = compute_space_contact_info(
+                parent.placed_blocks[best_space.bin_pos], space, delta, best_space.bin_pos);
 
-            LengthDbl anchor_x = best_space.anchor.dir_x? space.xe(): space.xs();
-            LengthDbl anchor_y = best_space.anchor.dir_y? space.ye(): space.ys();
+        LengthDbl anchor_x = best_space.anchor.dir_x? space.xe(): space.xs();
+        LengthDbl anchor_y = best_space.anchor.dir_y? space.ye(): space.ys();
 
-            for (ItemPos block_id: parent.valid_block_ids) {
-                const PeriodicBlock& block = blocks_[block_id];
-                if (shape::strictly_greater(block.bx, space.bx)
-                        || shape::strictly_greater(block.by, space.by))
-                    continue;
+        for (ItemPos block_id: parent.valid_block_ids) {
+            const PeriodicBlock& block = blocks_[block_id];
+            if (shape::strictly_greater(block.bx, space.bx)
+                    || shape::strictly_greater(block.by, space.by))
+                continue;
 
-                Insertion insertion;
-                insertion.space_id = best_space.space_idx;
-                insertion.block_id = block_id;
-                insertion.bl_corner.x = best_space.anchor.dir_x?
-                    anchor_x - block.bx: anchor_x;
-                insertion.bl_corner.y = best_space.anchor.dir_y?
-                    anchor_y - block.by: anchor_y;
-                double score = compute_insertion_guide(parent, insertion, contact_info);
-                if (score > best_score) {
-                    best_score = score;
-                    best = insertion;
-                }
+            Insertion insertion;
+            insertion.bin_pos = best_space.bin_pos;
+            insertion.space_id = best_space.space_idx;
+            insertion.block_id = block_id;
+            insertion.bl_corner.x = best_space.anchor.dir_x?
+                anchor_x - block.bx: anchor_x;
+            insertion.bl_corner.y = best_space.anchor.dir_y?
+                anchor_y - block.by: anchor_y;
+            double score = compute_insertion_guide(parent, insertion, contact_info);
+            if (score > best_score) {
+                best_score = score;
+                best = insertion;
             }
         }
     }
@@ -927,7 +942,7 @@ void BranchingSchemePeriodicPacking::apply_insertion(
     Node::PlacedBlock pb;
     pb.block_id = insertion.block_id;
     pb.bl_corner = insertion.bl_corner;
-    node.placed_blocks.push_back(pb);
+    node.placed_blocks[insertion.bin_pos].push_back(pb);
 
     // Update item copy counts.
     for (const std::pair<ItemTypeId, ItemPos>& kv: block.item_copies)
@@ -959,28 +974,30 @@ void BranchingSchemePeriodicPacking::apply_insertion(
     node.profit += block.item_profit;
 
     // Update empty spaces.
-    cut_spaces(node.empty_spaces, insertion.bl_corner, block.bx, block.by);
+    cut_spaces(node.empty_spaces[insertion.bin_pos], insertion.bl_corner, block.bx, block.by);
     remove_unusable_spaces(node);
 }
 
 void BranchingSchemePeriodicPacking::remove_unusable_spaces(Node& node) const
 {
-    for (ItemPos space_idx = 0; space_idx < (ItemPos)node.empty_spaces.size(); ) {
-        const EmptySpace& space = node.empty_spaces[space_idx];
-        bool has_fitting_block = false;
-        for (ItemPos block_id: node.valid_block_ids) {
-            const PeriodicBlock& candidate = blocks_[block_id];
-            if (!shape::strictly_greater(candidate.bx, space.bx)
-                    && !shape::strictly_greater(candidate.by, space.by)) {
-                has_fitting_block = true;
-                break;
+    for (std::vector<EmptySpace>& spaces: node.empty_spaces) {
+        for (ItemPos space_idx = 0; space_idx < (ItemPos)spaces.size(); ) {
+            const EmptySpace& space = spaces[space_idx];
+            bool has_fitting_block = false;
+            for (ItemPos block_id: node.valid_block_ids) {
+                const PeriodicBlock& candidate = blocks_[block_id];
+                if (!shape::strictly_greater(candidate.bx, space.bx)
+                        && !shape::strictly_greater(candidate.by, space.by)) {
+                    has_fitting_block = true;
+                    break;
+                }
             }
-        }
-        if (!has_fitting_block) {
-            node.empty_spaces[space_idx] = node.empty_spaces.back();
-            node.empty_spaces.pop_back();
-        } else {
-            ++space_idx;
+            if (!has_fitting_block) {
+                spaces[space_idx] = spaces.back();
+                spaces.pop_back();
+            } else {
+                ++space_idx;
+            }
         }
     }
 }
@@ -1079,25 +1096,27 @@ Solution BranchingSchemePeriodicPacking::to_solution(
     }
 
     SolutionBuilder solution_builder(instance_);
-    BinTypeId bin_type_id = instance_.bin_type_id(0);
-    BinPos bin_pos = solution_builder.add_bin(bin_type_id, 1);
 
-    // Node placements are tracked directly in the bin type's own (scaled)
+    // Node placements are tracked directly in each bin type's own (scaled)
     // frame (see bin_x_min()/bin_y_min()'s comment in the header), so all
     // that is left here is to unscale them into absolute solution coordinates.
     double scale = 1.0 / instance_.parameters().scale_value;
-    for (const Node::PlacedBlock& pb: greedy_node.placed_blocks) {
-        const PeriodicBlock& block = blocks_[pb.block_id];
-        for (const SolutionItem& solution_item: block.items) {
-            Point item_bl_corner;
-            item_bl_corner.x = (pb.bl_corner.x + solution_item.bl_corner.x) * scale;
-            item_bl_corner.y = (pb.bl_corner.y + solution_item.bl_corner.y) * scale;
-            solution_builder.add_item(
-                    bin_pos,
-                    solution_item.item_type_id,
-                    item_bl_corner,
-                    solution_item.angle,
-                    solution_item.mirror);
+    for (BinPos bin_pos = 0; bin_pos < instance_.number_of_bins(); ++bin_pos) {
+        BinTypeId bin_type_id = instance_.bin_type_id(bin_pos);
+        BinPos solution_bin_pos = solution_builder.add_bin(bin_type_id, 1);
+        for (const Node::PlacedBlock& pb: greedy_node.placed_blocks[bin_pos]) {
+            const PeriodicBlock& block = blocks_[pb.block_id];
+            for (const SolutionItem& solution_item: block.items) {
+                Point item_bl_corner;
+                item_bl_corner.x = (pb.bl_corner.x + solution_item.bl_corner.x) * scale;
+                item_bl_corner.y = (pb.bl_corner.y + solution_item.bl_corner.y) * scale;
+                solution_builder.add_item(
+                        solution_bin_pos,
+                        solution_item.item_type_id,
+                        item_bl_corner,
+                        solution_item.angle,
+                        solution_item.mirror);
+            }
         }
     }
 
@@ -1113,13 +1132,6 @@ namespace
 
 void validate_tree_search_periodic_packing_instance(const Instance& instance)
 {
-    if (instance.number_of_bins() > 1) {
-        std::stringstream ss;
-        ss << FUNC_SIGNATURE << ": "
-            << "algorithm 'irregular::tree_search_periodic_packing' "
-            << "does not support instances with more than one bin.";
-        throw std::logic_error(ss.str());
-    }
     if (instance.objective() == Objective::VariableSizedBinPacking) {
         std::stringstream ss;
         ss << FUNC_SIGNATURE << ": "

@@ -12,7 +12,8 @@ target_sources(PackingSolver_box PRIVATE
     post_process.cpp
     block.cpp
     tree_search.cpp
-    tree_search_maximal_spaces.cpp)
+    tree_search_maximal_spaces.cpp
+    sequential_feasibility.cpp)
 target_include_directories(PackingSolver_box PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_box PRIVATE

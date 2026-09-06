@@ -105,9 +105,12 @@ public:
         /** Absolute position of the block's bottom-left corner. */
         Point bl_corner = {0, 0};
 
+        /** Bin the space belongs to. */
+        BinPos bin_pos = -1;
+
         /**
-         * Index of the space in parent->empty_spaces from which this insertion
-         * was generated.
+         * Index of the space in parent->empty_spaces[bin_pos] from which this
+         * insertion was generated.
          */
         ItemPos space_id = -1;
 
@@ -116,7 +119,8 @@ public:
 
         bool operator==(const Insertion& other) const
         {
-            return this->bl_corner.x == other.bl_corner.x
+            return this->bin_pos == other.bin_pos
+                && this->bl_corner.x == other.bl_corner.x
                 && this->bl_corner.y == other.bl_corner.y
                 && this->block_id == other.block_id;
         }
@@ -133,37 +137,46 @@ public:
 
         NodeId id = -1;
 
-        /** All blocks placed so far, in order of placement. */
-        std::vector<PlacedBlock> placed_blocks;
+        /** All blocks placed so far, indexed by bin position, in order of placement. */
+        std::vector<std::vector<PlacedBlock>> placed_blocks;
 
-        /** Maximal empty spaces remaining after all placements up to this node. */
-        std::vector<EmptySpace> empty_spaces;
+        /** Maximal empty spaces remaining after all placements up to this node, indexed by bin position. */
+        std::vector<std::vector<EmptySpace>> empty_spaces;
 
-        /** For each item type, how many copies have been placed so far. */
+        /**
+         * For each item type, how many copies have been placed so far
+         * (shared across all bins: item copies are a global resource).
+         */
         std::vector<ItemPos> item_number_of_copies;
 
         Area item_area = 0;
         Area block_area = 0;
-        Weight weight = 0;
+
+        /** Weight placed so far, indexed by bin position (a per-bin capacity). */
+        std::vector<Weight> weight;
 
         /**
-         * Resource consumption accumulated over every block placed so far,
-         * indexed by resource_id (elementwise sum of each placed block's own
-         * 'Block::resource_consumption' - exact for a uniform per-copy
-         * consumption schedule, the common case; see 'Resource::
-         * item_consumptions'). Empty iff the bin type has no resources.
+         * Resource consumption accumulated over every block placed so far in
+         * a given bin, indexed by [bin_pos][resource_id] (elementwise sum of
+         * each placed block's own 'Block::resource_consumption' - exact for a
+         * uniform per-copy consumption schedule, the common case; see
+         * 'Resource::item_consumptions'). resource_consumption[bin_pos] is
+         * empty iff that bin's type has no resources, or no block using one
+         * has been placed there yet.
          */
-        std::vector<double> resource_consumption;
+        std::vector<std::vector<double>> resource_consumption;
 
         ItemPos number_of_items = 0;
         ItemPos number_of_blocks = 0;
         Profit profit = 0;
 
         /**
-         * IDs of blocks that can still be placed: those whose item quantities
-         * are still available.
+         * IDs of blocks that can still be placed in a given bin, indexed by
+         * bin position: those whose item quantities are still available
+         * (shared item-copy constraint) and that still fit that bin's own
+         * remaining weight/resource capacity.
          */
-        std::vector<ItemPos> valid_block_ids;
+        std::vector<std::vector<ItemPos>> valid_block_ids;
 
         /**
          * Profit reached by running the greedy (best_insertion loop) from
@@ -341,8 +354,11 @@ private:
 
     Parameters parameters_;
 
-    /** Bin rectangle (effective, clipped to max reachable lengths). */
-    Rectangle bin_rect_;
+    /** Bin rectangles (effective, clipped to max reachable lengths), indexed by bin position. */
+    std::vector<Rectangle> bin_rects_;
+
+    /** Total usable area across all (fixed) bins, cached for fill-rate computations. */
+    Area total_bin_area_ = 0;
 
     /** max_reachable_x_[r] = largest length ≤ r achievable by stacking items along x. */
     mutable std::vector<Length> max_reachable_x_;
@@ -363,13 +379,12 @@ private:
     void update_node_max_reachable(const Node& node) const;
 
     struct BestSpaceResult {
+        BinPos bin_pos = -1;
         ItemPos space_idx = -1;
         AnchorInfo anchor = {};
     };
 
-    BestSpaceResult find_best_space(
-            const Node& parent,
-            BinTypeId bin_type_id) const;
+    BestSpaceResult find_best_space(const Node& parent) const;
 
     /**
      * Per-edge neighbour information for a selected empty space.
@@ -411,7 +426,7 @@ private:
 
     SpaceContactInfo compute_space_contact_info(
             const std::vector<Node::PlacedBlock>& placed_blocks,
-            BinTypeId bin_type_id,
+            BinPos bin_pos,
             const EmptySpace& space,
             double delta) const;
 
@@ -465,7 +480,25 @@ private:
      */
     void remove_unusable_spaces(
             Node& node,
-            BinTypeId bin_type_id) const;
+            BinPos bin_pos) const;
+
+    /**
+     * Remove from node.valid_block_ids[bin_pos] every block that node's
+     * post-insertion state has made unusable for the rest of this node's
+     * subtree there: always re-checked against the (shared, global)
+     * item-copy usage, and -- only when 'check_weight_and_resources' is true
+     * -- also against 'bin_pos''s own (per-bin) weight and resource
+     * consumption. Sound because all three only ever grow monotonically, so
+     * a block ruled out here can never become usable again below this node.
+     * Item-copy usage is global, so placing a block in one bin can rule out
+     * blocks in every *other* bin's list too; but weight/resource capacity
+     * are per-bin, so those checks only need re-running for the bin that was
+     * actually just modified.
+     */
+    void prune_valid_block_ids(
+            Node& node,
+            BinPos bin_pos,
+            bool check_weight_and_resources) const;
 
     Profit compute_guide_greedy(const Node& node) const;
 
@@ -473,30 +506,30 @@ private:
 
     /**
      * 'true' iff placing 'block' on top of 'parent''s accumulated resource
-     * consumption would not push any non-'penalize' resource of
-     * 'bin_type_id' past its capacity (see 'Resource::penalize') -
-     * 'penalize' resources never block an insertion, only a plain
-     * (non-'penalize') resource does. Cheap: just adds the block's own
+     * consumption in bin 'bin_pos' would not push any non-'penalize'
+     * resource of that bin's type past its capacity (see 'Resource::
+     * penalize') - 'penalize' resources never block an insertion, only a
+     * plain (non-'penalize') resource does. Cheap: just adds the block's own
      * precomputed 'resource_consumption' to 'parent''s running total,
      * rather than recomputing it from 'block.item_copies'.
      */
     bool block_resource_capacity_ok(
             const Node& parent,
             const Block& block,
-            BinTypeId bin_type_id) const;
+            BinPos bin_pos) const;
 
     /**
      * 'block.item_profit', reduced by the penalty of every 'penalize'
-     * resource of 'bin_type_id' whose consumption crosses its capacity for
-     * the first time as a result of placing 'block' on top of 'parent''s
-     * accumulated resource consumption (mirrors 'Solution::
+     * resource of bin 'bin_pos''s type whose consumption crosses its
+     * capacity for the first time as a result of placing 'block' on top of
+     * 'parent''s accumulated resource consumption there (mirrors 'Solution::
      * update_indicators': the penalty is charged once per bin, the first
      * time consumption crosses capacity - not once per block/item past it).
      */
     Profit insertion_profit(
             const Node& parent,
             const Block& block,
-            BinTypeId bin_type_id) const;
+            BinPos bin_pos) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
