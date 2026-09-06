@@ -1,7 +1,75 @@
 #include "boxstacks/solution_builder.hpp"
 
+#include "optimizationtools/utils/utils.hpp"
+
+#include <fstream>
+
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
+
+void SolutionBuilder::read(
+        const std::string& certificate_path)
+{
+    std::ifstream file(certificate_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + certificate_path + "\".");
+    }
+
+    std::string tmp;
+    std::vector<std::string> line;
+    std::vector<std::string> labels;
+
+    getline(file, tmp);
+    labels = optimizationtools::split(tmp, ',');
+    while (getline(file, tmp)) {
+        line = optimizationtools::split(tmp, ',');
+
+        std::string type = "";
+        ItemTypeId id = -1;
+        BinPos copies = -1;
+        BinPos bin_pos = -1;
+        StackId stack_id = -1;
+        Length x = -1;
+        Length y = -1;
+        Length lx = -1;
+        Length ly = -1;
+        Rotation rotation = Rotation::XYZ;
+
+        for (Counter i = 0; i < (Counter)line.size(); ++i) {
+            if (labels[i] == "TYPE") {
+                type = line[i];
+            } else if (labels[i] == "ID") {
+                id = (ItemTypeId)std::stol(line[i]);
+            } else if (labels[i] == "COPIES") {
+                copies = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "BIN") {
+                bin_pos = (BinPos)std::stol(line[i]);
+            } else if (labels[i] == "STACK") {
+                stack_id = (StackId)std::stol(line[i]);
+            } else if (labels[i] == "X") {
+                x = (Length)std::stol(line[i]);
+            } else if (labels[i] == "Y") {
+                y = (Length)std::stol(line[i]);
+            } else if (labels[i] == "LX") {
+                lx = (Length)std::stol(line[i]);
+            } else if (labels[i] == "LY") {
+                ly = (Length)std::stol(line[i]);
+            } else if (labels[i] == "ROTATION" && !line[i].empty()) {
+                rotation = rotation_from_string(line[i]);
+            }
+        }
+
+        if (type == "BIN") {
+            add_bin(id, copies);
+        } else if (type == "STACK") {
+            add_stack(bin_pos, x, x + lx, y, y + ly);
+        } else if (type == "ITEM") {
+            add_item(bin_pos, stack_id, id, rotation);
+        }
+    }
+}
 
 BinPos SolutionBuilder::add_bin(
         BinTypeId bin_type_id,

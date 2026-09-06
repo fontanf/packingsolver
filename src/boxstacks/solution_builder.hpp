@@ -15,6 +15,9 @@ public:
     /** Constructor. */
     SolutionBuilder(const Instance& instance): solution_(instance) { }
 
+    /** Read a solution from a file. */
+    void read(const std::string& certificate_path);
+
     /** Add a bin at the end of the solution. */
     BinPos add_bin(
             BinTypeId bin_type_id,

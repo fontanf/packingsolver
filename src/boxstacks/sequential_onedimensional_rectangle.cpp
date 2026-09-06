@@ -214,9 +214,10 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
         const std::vector<std::tuple<StackabilityId, int, StackId>>& rectangle2boxstacks,
         const rectangle::BranchingScheme::Parameters rectangle_parameters)
 {
+    auto logger = parameters.get_logger();
     SequentialOneDimensionalRectangleSubproblemOutput output(instance);
     FFOT_LOG_FOLD_START(
-            parameters.logger,
+            logger,
             "it " << sor_output.number_of_iterations
             << " guide " << rectangle_parameters.guide_id
             << std::endl);
@@ -241,7 +242,7 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     sor_output.number_of_rectangle_calls++;
     auto rectangle_solution = rectangle_branching_scheme.to_solution(rectangle_output.solution_pool.best());
     FFOT_LOG(
-            parameters.logger,
+            logger,
             "rectangle_solution.number_of_items " << rectangle_solution.number_of_items()
             << " / " << rectangle_instance.number_of_items()
             << std::endl);
@@ -404,7 +405,7 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
             number_of_items_before_repair);
     output.profit_before_repair = solution.profit();
     FFOT_LOG(
-            parameters.logger,
+            logger,
             "number of items " << solution.number_of_items() << std::endl
             << "profit " << solution.profit() << std::endl
             << "middle axle weight constraints violation " << solution.compute_middle_axle_weight_constraints_violation() << std::endl
@@ -422,7 +423,7 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
         parameters.new_solution_callback(sor_output);
     }
     output.solution = solution;
-    FFOT_LOG_FOLD_END(parameters.logger, "");
+    FFOT_LOG_FOLD_END(logger, "");
     return output;
 }
 
@@ -430,8 +431,9 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
         const Instance& instance,
         const SequentialOneDimensionalRectangleParameters& parameters)
 {
+    auto logger = parameters.get_logger();
     FFOT_LOG_FOLD_START(
-            parameters.logger,
+            logger,
             "sequential_onedimensional_rectangle" << std::endl);
 
     SequentialOneDimensionalRectangleOutput output(instance);
@@ -548,7 +550,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
         }
     }
     FFOT_LOG(
-            parameters.logger,
+            logger,
             "fixed_items_solutions.size() " << fixed_items_solutions.size()
             << std::endl);
 
@@ -561,7 +563,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
         // Part of solution which is fixed.
         Solution fixed_items = fixed_items_solutions[fixed_items_solutions_pos];
         FFOT_LOG_FOLD_START(
-                parameters.logger,
+                logger,
                 "iteration " << output.number_of_iterations << std::endl
                 << "fixed_items.number_of_items() " << fixed_items.number_of_items() << std::endl
                 << "fixed_items.x_max() " << fixed_items.x_max() << std::endl);
@@ -750,7 +752,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
 
             auto onedim_solution = onedim_output.solution_pool.best();
             if (parameters.timer.needs_to_end()) {
-                FFOT_LOG_FOLD_END(parameters.logger, "");
+                FFOT_LOG_FOLD_END(logger, "");
                 algorithm_formatter.end();
                 return output;
             }
@@ -789,7 +791,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
         for (output.number_of_stack_splits = 0;
                 output.number_of_stack_splits < 7;
                 ++output.number_of_stack_splits) {
-            FFOT_LOG(parameters.logger, "number of splitted stacks " << output.number_of_stack_splits << std::endl);
+            FFOT_LOG(logger, "number of splitted stacks " << output.number_of_stack_splits << std::endl);
 
             Area stack_area = 0;
             for (BinPos bin_pos = 0; bin_pos < fixed_items.number_of_different_bins(); ++bin_pos) {
@@ -982,8 +984,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
                     failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
                     if (output.solution_pool.best().full()) {
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
                         algorithm_formatter.end();
                         return output;
                     }
@@ -1011,8 +1013,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
                     failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
                     if (output.solution_pool.best().full()) {
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
                         algorithm_formatter.end();
                         return output;
                     }
@@ -1037,8 +1039,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             rectangle2boxstacks,
                             rectangle_parameters);
                     if (output.solution_pool.best().full()) {
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
                         algorithm_formatter.end();
                         return output;
                     }
@@ -1062,8 +1064,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             rectangle2boxstacks,
                             rectangle_parameters);
                     if (output.solution_pool.best().full()) {
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
                         algorithm_formatter.end();
                         return output;
                     }
@@ -1101,8 +1103,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                     failed_middle_axle_weight_constraint_cur |= (subproblem_output.solution.compute_middle_axle_weight_constraints_violation() > 0);
                     failed_rear_axle_weight_constraint_cur |= (subproblem_output.solution.compute_rear_axle_weight_constraints_violation() > 0);
                     if (output.solution_pool.best().full()) {
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
                         algorithm_formatter.end();
                         return output;
                     }
@@ -1126,8 +1128,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             rectangle2boxstacks,
                             rectangle_parameters);
                     if (output.solution_pool.best().full()) {
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
                         algorithm_formatter.end();
                         return output;
                     }
@@ -1139,8 +1141,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                         && !failed_rear_axle_weight_constraint_cur
                         && fixed_items_solutions_pos == 0
                         && output.number_of_stack_splits == 0) {
-                    FFOT_LOG_FOLD_END(parameters.logger, "");
-                    FFOT_LOG_FOLD_END(parameters.logger, "");
+                    FFOT_LOG_FOLD_END(logger, "");
+                    FFOT_LOG_FOLD_END(logger, "");
                     algorithm_formatter.end();
                     return output;
                 }
@@ -1164,8 +1166,8 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             rectangle2boxstacks,
                             rectangle_parameters);
                     if (output.solution_pool.best().full()) {
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
                         algorithm_formatter.end();
                         return output;
                     }
@@ -1189,7 +1191,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
                             rectangle2boxstacks,
                             rectangle_parameters);
                     if (output.solution_pool.best().full()) {
-                        FFOT_LOG_FOLD_END(parameters.logger, "");
+                        FFOT_LOG_FOLD_END(logger, "");
                         algorithm_formatter.end();
                         return output;
                     }
@@ -1268,7 +1270,7 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
             fixed_items = fixed_items_builder.build();
         }
         FFOT_LOG(
-                parameters.logger,
+                logger,
                 "failed_middle_axle_weight_constraint " << failed_middle_axle_weight_constraint << std::endl
                 << "failed_rear_axle_weight_constraint " << failed_rear_axle_weight_constraint << std::endl
                 << "x_max " << x_max << " / " << xi << std::endl);
@@ -1296,17 +1298,17 @@ const SequentialOneDimensionalRectangleOutput boxstacks::sequential_onedimension
         //fixed_items.write("fixed_items.csv");
 
         FFOT_LOG(
-                parameters.logger,
+                logger,
                 "fixed_items_solutions_pos " << fixed_items_solutions_pos << std::endl
                 << "fixed_items_solutions_pos_lower_bound " << fixed_items_solutions_pos_lower_bound << std::endl
                 << "fixed_items_solutions_pos_upper_bound " << fixed_items_solutions_pos_upper_bound << std::endl);
-        FFOT_LOG_FOLD_END(parameters.logger, "");
+        FFOT_LOG_FOLD_END(logger, "");
         if (fixed_items_solutions_pos_lower_bound > fixed_items_solutions_pos_upper_bound)
             break;
 
     }
 
-    FFOT_LOG_FOLD_END(parameters.logger, "");
+    FFOT_LOG_FOLD_END(logger, "");
     algorithm_formatter.end();
     return output;
 }
