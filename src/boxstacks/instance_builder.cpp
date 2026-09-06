@@ -684,7 +684,6 @@ void InstanceBuilder::read_bin_types(
         double maximum_stack_density = std::numeric_limits<double>::max();
 
         SemiTrailerTruckData semi_trailer_truck_data;
-        semi_trailer_truck_data.is = true;
 
         for (Counter i = 0; i < (Counter)line.size(); ++i) {
             if (labels[i] == "X") {
@@ -1001,6 +1000,8 @@ Instance InstanceBuilder::build()
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
         const BinType& bin_type = instance_.bin_type(bin_type_id);
+        // Check truck data consistency.
+        bin_type.semi_trailer_truck_data.check();
         // Update bin_type.copies.
         if (bin_type.copies == -1)
             instance_.bin_types_[bin_type_id].copies = instance_.number_of_items();

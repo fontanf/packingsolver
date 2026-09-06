@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <iomanip>
+#include <stdexcept>
 
 namespace packingsolver
 {
@@ -54,11 +55,6 @@ struct SemiTrailerTruckData
     {
         if (!is)
             return {0, 0};
-        // Both axle weights are computed from 'harness_weight', which divides
-        // by 'harness_rear_axle_distance', so without that distance neither
-        // axle weight can be computed and neither axle is constrained.
-        if (harness_rear_axle_distance <= 0)
-            return {0, 0};
         double stacks_gravity_center_trailer_start_distance  // eje
             = weight_weighted_sum
             / weight;  // tmt
@@ -83,18 +79,40 @@ struct SemiTrailerTruckData
             = weight  // tmt
             + empty_trailer_weight  // EM
             - harness_weight;  // emh
-        // Likewise, without 'front_axle_middle_axle_distance' the middle axle
-        // weight cannot be computed, so only the rear axle is constrained.
-        double middle_axle_weight = 0;  // emm
-        if (front_axle_middle_axle_distance > 0) {
-            middle_axle_weight
-                = (tractor_weight  // CM
-                        * front_axle_tractor_gravity_center_distance  // CJfc
-                        + harness_weight  // emh
-                        * front_axle_harness_distance)  // CJfh
-                / front_axle_middle_axle_distance; // CJfm
-        }
+        double middle_axle_weight  // emm
+            = (tractor_weight  // CM
+                    * front_axle_tractor_gravity_center_distance  // CJfc
+                    + harness_weight  // emh
+                    * front_axle_harness_distance)  // CJfh
+            / front_axle_middle_axle_distance; // CJfm
         return {middle_axle_weight, rear_axle_weight};
+    }
+
+    /**
+     * Check that the provided truck data is consistent.
+     *
+     * A bin type that is not a semi-trailer truck needs no truck data:
+     * compute_axle_weights returns {0, 0} without looking at any other
+     * field, so the other fields can hold any value. A semi-trailer truck
+     * needs 'harness_rear_axle_distance' and 'front_axle_middle_axle_distance'
+     * to compute the rear and middle axle weights.
+     */
+    void check() const
+    {
+        if (!is)
+            return;
+        if (harness_rear_axle_distance <= 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "a semi-trailer truck bin type must have a strictly "
+                    "positive 'harness_rear_axle_distance'.");
+        }
+        if (front_axle_middle_axle_distance <= 0) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "a semi-trailer truck bin type must have a strictly "
+                    "positive 'front_axle_middle_axle_distance'.");
+        }
     }
 
     void read(std::string label, std::string value)

@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+
 using namespace packingsolver;
 
 namespace
@@ -34,27 +36,29 @@ TEST(Truck, ComputeAxleWeights)
     EXPECT_NEAR(axle_weights.second, 3000.0, 1e-6);
 }
 
-TEST(Truck, ComputeAxleWeightsWithoutHarnessRearAxleDistance)
+TEST(Truck, CheckNotATruck)
 {
-    // Every axle weight is computed from 'harness_weight', which divides by
-    // 'harness_rear_axle_distance'.
-    SemiTrailerTruckData semi_trailer_truck_data = complete_truck();
-    semi_trailer_truck_data.harness_rear_axle_distance = 0;
-    std::pair<Weight, Weight> axle_weights
-        = semi_trailer_truck_data.compute_axle_weights(200000, 2000);
-    EXPECT_EQ(axle_weights.first, 0);
-    EXPECT_EQ(axle_weights.second, 0);
+    // A bin type that isn't a semi-trailer truck needs no truck data.
+    SemiTrailerTruckData semi_trailer_truck_data;
+    EXPECT_NO_THROW(semi_trailer_truck_data.check());
 }
 
-TEST(Truck, ComputeAxleWeightsWithoutFrontAxleMiddleAxleDistance)
+TEST(Truck, CheckWithoutHarnessRearAxleDistance)
 {
-    // Only the middle axle weight divides by
-    // 'front_axle_middle_axle_distance', so the rear axle weight is still
-    // computed.
+    // Every axle weight is computed from 'harness_weight', which divides by
+    // 'harness_rear_axle_distance', so a semi-trailer truck without it is an
+    // inconsistent input, not a case to silently skip.
+    SemiTrailerTruckData semi_trailer_truck_data = complete_truck();
+    semi_trailer_truck_data.harness_rear_axle_distance = 0;
+    EXPECT_THROW(semi_trailer_truck_data.check(), std::invalid_argument);
+}
+
+TEST(Truck, CheckWithoutFrontAxleMiddleAxleDistance)
+{
+    // The middle axle weight is computed from 'harness_weight', which
+    // divides by 'front_axle_middle_axle_distance', so a semi-trailer truck
+    // without it is an inconsistent input, not a case to silently skip.
     SemiTrailerTruckData semi_trailer_truck_data = complete_truck();
     semi_trailer_truck_data.front_axle_middle_axle_distance = 0;
-    std::pair<Weight, Weight> axle_weights
-        = semi_trailer_truck_data.compute_axle_weights(200000, 2000);
-    EXPECT_EQ(axle_weights.first, 0);
-    EXPECT_NEAR(axle_weights.second, 3000.0, 1e-6);
+    EXPECT_THROW(semi_trailer_truck_data.check(), std::invalid_argument);
 }
