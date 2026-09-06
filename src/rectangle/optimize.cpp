@@ -357,6 +357,10 @@ void optimize_sequential_single_knapsack(
         svc_parameters.timer = parameters.timer;
         svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
         svc_parameters.maximum_number_of_iterations = 1;
+        // No later iteration to adjust profits away from this initial
+        // value - see 'SequentialValueCorrectionParameters::
+        // initial_profit_exponent''s own doc comment.
+        svc_parameters.initial_profit_exponent = 1.0;
         svc_parameters.new_solution_callback = [
             &algorithm_formatter, local_output, &queue_size](
                     const rectangle::Output& ps_output)
@@ -417,6 +421,7 @@ void optimize_sequential_value_correction(
     svc_parameters.verbosity_level = 0;
     svc_parameters.timer = parameters.timer;
     svc_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    svc_parameters.initial_profit_exponent = 1.1;
     if (parameters.optimization_mode != OptimizationMode::Anytime)
         svc_parameters.maximum_number_of_iterations = parameters.not_anytime_sequential_value_correction_number_of_iterations;
     svc_parameters.new_solution_callback = [&algorithm_formatter, local_output](
@@ -975,6 +980,9 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 }
             } else {
                 use_tree_search = true;
+                std::cout << "mean_number_of_items_in_bins " << mean_number_of_items_in_bins
+                    << " / " << parameters.many_items_in_bins_threshold
+                    << std::endl;
                 if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
                     use_sequential_single_knapsack = true;

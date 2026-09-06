@@ -71,6 +71,23 @@ struct SequentialValueCorrectionParameters: packingsolver::Parameters<Instance, 
     Counter maximum_number_of_iterations = -1;
 
     /**
+     * Exponent applied to an item's space to get its initial profit for the
+     * BinPacking-family objectives (not used for 'Knapsack', which keeps the
+     * item's own profit) - see this file's own profit computation. Greater
+     * than 1 breaks the many exact-space ties a 1D dynamic programming
+     * subproblem would otherwise face, without changing the optimal
+     * *selection* whenever a bin's subproblem can pack everything given to
+     * it (profits stay strictly positive and monotonic in space either
+     * way). Harmless once later iterations adjust profits away from this
+     * initial value (the regular, multi-iteration scheme), but with only a
+     * single pass and nothing to correct it, distorting the search guide
+     * away from an otherwise-reachable full packing is a net loss - see
+     * 'optimize_sequential_single_knapsack' (in every domain that has one),
+     * which overrides this to 1.0.
+     */
+    double initial_profit_exponent = 1.1;
+
+    /**
      * If the objective is "BinPacking", stop as soon as a solution using this
      * number of bins is found.
      *
@@ -103,7 +120,9 @@ SequentialValueCorrectionOutput<Instance, Solution, Output> sequential_value_cor
         if (instance.objective() == Objective::Knapsack) {
             profits[item_type_id] = instance.item_type(item_type_id).profit;
         } else {
-            profits[item_type_id] = std::pow(instance.item_type(item_type_id).space(), 1.1);
+            profits[item_type_id] = std::pow(
+                    instance.item_type(item_type_id).space(),
+                    parameters.initial_profit_exponent);
         }
         //std::cout << "item_type_id " << item_type_id
         //    << " profit " << profits[item_type_id]
