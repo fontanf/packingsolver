@@ -1,5 +1,6 @@
 #include "packingsolver/boxstacks/instance_builder.hpp"
 #include "packingsolver/boxstacks/optimize.hpp"
+#include "boxstacks/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -12,9 +13,7 @@ struct BoxStacksOptimizeTestParams
     fs::path items_path;
     fs::path bins_path;
     fs::path parameters_path;
-
-    /** Expected cost of the returned solution. */
-    packingsolver::Profit cost;
+    fs::path certificate_path;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const BoxStacksOptimizeTestParams& test_params)
@@ -38,12 +37,16 @@ TEST_P(BoxStacksOptimizeTest, BoxStacksOptimize)
     optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
     Output output = optimize(instance, optimize_parameters);
 
-    // 'boxstacks' has no 'SolutionBuilder::read', so the returned solution is
-    // checked against the expected cost instead of against a reference
-    // certificate.
-    EXPECT_TRUE(output.solution_pool.best().feasible());
-    EXPECT_TRUE(output.solution_pool.best().full());
-    EXPECT_TRUE(packingsolver::equal_cost(output.solution_pool.best().cost(), test_params.cost));
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read(test_params.certificate_path.string());
+    Solution solution = solution_builder.build();
+    std::cout << std::endl
+        << "Reference solution" << std::endl
+        << "------------------" << std::endl;
+    solution.format(std::cout);
+
+    EXPECT_EQ(!(output.solution_pool.best() < solution), true);
+    EXPECT_EQ(!(solution < output.solution_pool.best()), true);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -54,5 +57,5 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "items.csv",
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "bins.csv",
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "parameters.csv",
-                10,
+                fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "solution.csv",
             }}));
