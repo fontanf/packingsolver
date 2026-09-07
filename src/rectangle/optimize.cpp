@@ -980,9 +980,6 @@ packingsolver::rectangle::Output packingsolver::rectangle::optimize(
                 }
             } else {
                 use_tree_search = true;
-                std::cout << "mean_number_of_items_in_bins " << mean_number_of_items_in_bins
-                    << " / " << parameters.many_items_in_bins_threshold
-                    << std::endl;
                 if (mean_number_of_items_in_bins
                         > parameters.many_items_in_bins_threshold) {
                     use_sequential_single_knapsack = true;
