@@ -655,6 +655,44 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
         auto kp_output = pricing_function_(kp_instance, pricing_type);
         //std::cout << "pricing_function end" << std::endl;
 
+        // Update the reduced cost bound for this bin type from 'kp_output.
+        // knapsack_bound' alone - computed once per bin type, unconditionally
+        // (not nested in the loop below, and independent of whether that
+        // loop below ever finds an actual improving column to retrieve): a
+        // pricing call whose only purpose is to *prove* a bound (e.g.
+        // 'benders_decomposition' with 'not_anytime_maximum_number_of_
+        // subproblem_solves' set to 0, deliberately never solving a
+        // subproblem so it only ever returns a dual-feasible-function-cut-
+        // refined bound) can legitimately return an empty solution pool
+        // while still reporting a meaningful 'knapsack_bound' - nesting this
+        // update inside the loop over 'kp_output.solution_pool.solutions()'
+        // would silently discard that bound whenever the pool is empty (or
+        // only holds the trivial 0-bin solution), leaving 'reduced_cost_
+        // bound' at its useless default and letting the caller wrongly
+        // conclude infeasibility from 'overcost' alone.
+        if (instance_.objective() == Objective::VariableSizedBinPacking
+                || instance_.objective() == Objective::BinPacking) {
+            // Real bin cost zeroed during the feasibility phase, same
+            // reasoning as the item profit above; 'kp_output.
+            // knapsack_bound' already reflects that phase's own (dual-
+            // only, since items carry no real cost for this objective)
+            // pricing search, so it needs no separate adjustment here.
+            reduced_cost_bound = (std::min)(
+                    reduced_cost_bound,
+                    (solve_feasibility? 0: bin_type.cost / multiplier_cost) - duals[bin_type_id] - kp_output.knapsack_bound);
+        } else if (instance_.objective() == Objective::Feasibility) {
+            // Consistent with 'column.objective_coefficient' below: 1 per
+            // column, not the bin's real cost - zeroed during the
+            // feasibility phase like every other real objective term.
+            reduced_cost_bound = (std::min)(
+                    reduced_cost_bound,
+                    (solve_feasibility? 0: 1) - duals[bin_type_id] - kp_output.knapsack_bound);
+        } else if (instance_.objective() == Objective::Knapsack) {
+            reduced_cost_bound = (std::max)(
+                    reduced_cost_bound,
+                    kp_output.knapsack_bound / multiplier_profit - duals[bin_type_id]);
+        }
+
         // Retrieve column.
         for (const auto& kp_entry: kp_output.solution_pool.solutions()) {
             if (kp_entry.solution.number_of_bins() == 0)
@@ -700,28 +738,6 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             }
             //std::cout << column << std::endl;
             output.columns.push_back(std::shared_ptr<const Column>(new Column(column)));
-            if (instance_.objective() == Objective::VariableSizedBinPacking
-                    || instance_.objective() == Objective::BinPacking) {
-                // Real bin cost zeroed during the feasibility phase, same
-                // reasoning as the item profit above; 'kp_output.
-                // knapsack_bound' already reflects that phase's own (dual-
-                // only, since items carry no real cost for this objective)
-                // pricing search, so it needs no separate adjustment here.
-                reduced_cost_bound = (std::min)(
-                        reduced_cost_bound,
-                        (solve_feasibility? 0: bin_type.cost / multiplier_cost) - duals[bin_type_id] - kp_output.knapsack_bound);
-            } else if (instance_.objective() == Objective::Feasibility) {
-                // Consistent with 'column.objective_coefficient' above: 1
-                // per column, not the bin's real cost - zeroed during the
-                // feasibility phase like every other real objective term.
-                reduced_cost_bound = (std::min)(
-                        reduced_cost_bound,
-                        (solve_feasibility? 0: 1) - duals[bin_type_id] - kp_output.knapsack_bound);
-            } else if (instance_.objective() == Objective::Knapsack) {
-                reduced_cost_bound = (std::max)(
-                        reduced_cost_bound,
-                        kp_output.knapsack_bound / multiplier_profit - duals[bin_type_id]);
-            }
         }
 
         for (const auto& fixed_item: bin_type.fixed_items)
