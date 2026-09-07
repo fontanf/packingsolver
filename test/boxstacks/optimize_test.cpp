@@ -1,14 +1,14 @@
-#include "packingsolver/box/instance_builder.hpp"
-#include "packingsolver/box/optimize.hpp"
-#include "box/solution_builder.hpp"
+#include "packingsolver/boxstacks/instance_builder.hpp"
+#include "packingsolver/boxstacks/optimize.hpp"
+#include "boxstacks/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
-using namespace packingsolver::box;
+using namespace packingsolver::boxstacks;
 namespace fs = boost::filesystem;
 
-struct BoxOptimizeTestParams
+struct BoxStacksOptimizeTestParams
 {
     fs::path items_path;
     fs::path bins_path;
@@ -16,17 +16,17 @@ struct BoxOptimizeTestParams
     fs::path certificate_path;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const BoxOptimizeTestParams& test_params)
+inline std::ostream& operator<<(std::ostream& os, const BoxStacksOptimizeTestParams& test_params)
 {
     os << test_params.items_path;
     return os;
 }
 
-class BoxOptimizeTest: public testing::TestWithParam<BoxOptimizeTestParams> { };
+class BoxStacksOptimizeTest: public testing::TestWithParam<BoxStacksOptimizeTestParams> { };
 
-TEST_P(BoxOptimizeTest, BoxOptimize)
+TEST_P(BoxStacksOptimizeTest, BoxStacksOptimize)
 {
-    BoxOptimizeTestParams test_params = GetParam();
+    BoxStacksOptimizeTestParams test_params = GetParam();
     InstanceBuilder instance_builder;
     instance_builder.read_item_types(test_params.items_path.string());
     instance_builder.read_bin_types(test_params.bins_path.string());
@@ -50,12 +50,12 @@ TEST_P(BoxOptimizeTest, BoxOptimize)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-        Box,
-        BoxOptimizeTest,
-        testing::ValuesIn(std::vector<BoxOptimizeTestParams>{
+        BoxStacks,
+        BoxStacksOptimizeTest,
+        testing::ValuesIn(std::vector<BoxStacksOptimizeTestParams>{
             {
-                fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_two_bin_types" / "items.csv",
-                fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_two_bin_types" / "bins.csv",
-                fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_two_bin_types" / "parameters.csv",
-                fs::path("data") / "box" / "tests" / "variable_sized_bin_packing_two_bin_types" / "solution.csv",
+                fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "solution.csv",
             }}));
