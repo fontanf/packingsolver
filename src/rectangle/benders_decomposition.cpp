@@ -5,11 +5,14 @@
 #include "packingsolver/rectangle/optimize.hpp"
 #include "rectangle/dual_feasible_functions.hpp"
 #include "rectangle/bar_relaxation.hpp"
+#include "rectangle/item_subset_incompatibility.hpp"
+#include "rectangle/solution_builder.hpp"
 
 #include "onedimensional/milp_assignment.hpp"
 #include "packingsolver/onedimensional/instance_builder.hpp"
 
 #include <algorithm>
+#include <chrono>
 
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
@@ -203,6 +206,7 @@ void enumerate_minimal_infeasible_subsets_dfs(
         BinTypeId bin_type_id,
         const std::vector<ItemTypeId>& units,
         std::vector<bool>& removed,
+        size_t remaining_count,
         size_t next_unit_pos,
         bool path_proven,
         const BendersDecompositionParameters& parameters,
@@ -214,14 +218,31 @@ void enumerate_minimal_infeasible_subsets_dfs(
             unit_pos < units.size() && (Counter)cuts.size() < maximum_number_of_cuts;
             ++unit_pos) {
         removed[unit_pos] = true;
-        std::vector<std::pair<ItemTypeId, ItemPos>> child_selection =
-            aggregate_units(instance, units, removed);
-        SelectionFeasibility child_feasibility = selection_feasibility(
-                instance, bin_type_id, child_selection, parameters);
+        size_t child_remaining_count = remaining_count - 1;
+        SelectionFeasibility child_feasibility;
+        if (child_remaining_count <= 3) {
+            // A selection of at most 3 items can never be infeasible here:
+            // 'benders_decomposition''s own Pass 1b already ran
+            // 'find_incompatible_triplets' on this exact bin's full
+            // selection before ever reaching this search (see its own doc
+            // comment), so every triplet drawn from it - including this
+            // one - is already known compatible; pairs and singletons are
+            // ruled out even earlier (the master's own pairwise-
+            // incompatibility resource, and per-item-type eligibility,
+            // respectively). Skipping the geometric subproblem call here
+            // both saves it and correctly stops the search from
+            // descending any further along this branch.
+            child_feasibility = SelectionFeasibility::Feasible;
+        } else {
+            std::vector<std::pair<ItemTypeId, ItemPos>> child_selection =
+                aggregate_units(instance, units, removed);
+            child_feasibility = selection_feasibility(
+                    instance, bin_type_id, child_selection, parameters);
+        }
         if (child_feasibility != SelectionFeasibility::Feasible) {
             any_child_infeasible = true;
             enumerate_minimal_infeasible_subsets_dfs(
-                    instance, bin_type_id, units, removed, unit_pos + 1,
+                    instance, bin_type_id, units, removed, child_remaining_count, unit_pos + 1,
                     path_proven && (child_feasibility == SelectionFeasibility::ProvenInfeasible),
                     parameters, maximum_number_of_cuts, cuts);
         }
@@ -277,7 +298,7 @@ std::vector<MinimalInfeasibleSubset> enumerate_minimal_infeasible_subsets(
     std::vector<bool> removed(units.size(), false);
     std::vector<MinimalInfeasibleSubset> cuts;
     enumerate_minimal_infeasible_subsets_dfs(
-            instance, bin_type_id, units, removed, 0, selection_proven_infeasible,
+            instance, bin_type_id, units, removed, units.size(), 0, selection_proven_infeasible,
             parameters, maximum_number_of_cuts, cuts);
     return cuts;
 }
@@ -437,6 +458,7 @@ onedimensional::Instance build_master_instance(
         const std::vector<StaticBinTypeResources>& static_resources,
         const std::vector<std::pair<ItemTypeId, ItemTypeId>>& item_type_precedences,
         const std::vector<std::vector<ResourceCut>>& dff_cuts_by_bin_type,
+        const std::vector<std::vector<ResourceCut>>& triplet_cuts_by_bin_type,
         const std::vector<std::vector<ResourceCut>>& no_good_cuts_by_bin_type)
 {
     onedimensional::InstanceBuilder master_instance_builder;
@@ -461,6 +483,9 @@ onedimensional::Instance build_master_instance(
             add_cut_as_resource(master_instance_builder, master_bin_type_id, cut);
         }
         for (const ResourceCut& cut: dff_cuts_by_bin_type[bin_type_id]) {
+            add_cut_as_resource(master_instance_builder, master_bin_type_id, cut);
+        }
+        for (const ResourceCut& cut: triplet_cuts_by_bin_type[bin_type_id]) {
             add_cut_as_resource(master_instance_builder, master_bin_type_id, cut);
         }
         for (const ResourceCut& cut: no_good_cuts_by_bin_type[bin_type_id]) {
@@ -614,13 +639,15 @@ bool cut_violates_solution(
 }
 
 /**
- * Check that no accumulated cut (dual-feasible-function or no-good)
- * excludes 'solution' - the algorithm's own current best known feasible
- * solution to 'instance' itself, not the master's relaxation.
+ * Check that no accumulated cut (dual-feasible-function, triplet-
+ * incompatibility, or no-good) excludes 'solution' - the algorithm's own
+ * current best known feasible solution to 'instance' itself, not the
+ * master's relaxation.
  *
  * Only meaningful once every no-good cut added so far is backed by a
- * genuine proof of infeasibility (dual-feasible-function cuts always
- * are; see 'all_cuts_proven_infeasible' at the call site): in that
+ * genuine proof of infeasibility (dual-feasible-function and triplet-
+ * incompatibility cuts always are; see
+ * 'all_cuts_proven_infeasible' at the call site): in that
  * regime, every cut is sound (derived from - and only from - a
  * combination proven infeasible in true 2D geometry), so the best known
  * solution, itself a genuinely feasible packing, must satisfy every one
@@ -631,6 +658,7 @@ void check_cuts_against_best_solution(
         const Instance& instance,
         const Solution& solution,
         const std::vector<std::vector<ResourceCut>>& dff_cuts_by_bin_type,
+        const std::vector<std::vector<ResourceCut>>& triplet_cuts_by_bin_type,
         const std::vector<std::vector<ResourceCut>>& no_good_cuts_by_bin_type)
 {
     for (BinTypeId bin_type_id = 0;
@@ -640,6 +668,13 @@ void check_cuts_against_best_solution(
             if (cut_violates_solution(instance, solution, bin_type_id, cut)) {
                 throw std::logic_error(
                         FUNC_SIGNATURE + ": a dual-feasible-function cut excludes "
+                        "the current best solution.");
+            }
+        }
+        for (const ResourceCut& cut: triplet_cuts_by_bin_type[bin_type_id]) {
+            if (cut_violates_solution(instance, solution, bin_type_id, cut)) {
+                throw std::logic_error(
+                        FUNC_SIGNATURE + ": a triplet-incompatibility cut excludes "
                         "the current best solution.");
             }
         }
@@ -765,14 +800,16 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
 
     // Cuts accumulated so far, bucketed per bin type.
     std::vector<std::vector<ResourceCut>> dff_cuts_by_bin_type(instance.number_of_bin_types());
+    std::vector<std::vector<ResourceCut>> triplet_cuts_by_bin_type(instance.number_of_bin_types());
     std::vector<std::vector<ResourceCut>> no_good_cuts_by_bin_type(instance.number_of_bin_types());
 
     // 'true' iff every cut added so far is backed by a proof of
-    // infeasibility (a dual-feasible-function cut always is; a no-good cut
-    // only is if its subproblem was proven infeasible, not merely
-    // incomplete). The master's relaxation bound is only a valid bound as
-    // long as this holds: a cut added without proof may have removed a
-    // genuinely feasible (and possibly optimal) region.
+    // infeasibility (a dual-feasible-function or triplet-incompatibility
+    // cut always is; a no-good cut only is if
+    // its subproblem was proven infeasible, not merely incomplete). The
+    // master's relaxation bound is only a valid bound as long as this
+    // holds: a cut added without proof
+    // may have removed a genuinely feasible (and possibly optimal) region.
     bool all_cuts_proven_infeasible = true;
 
     // Number of iterations that actually solved at least one feasibility
@@ -793,9 +830,14 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
         }
 
         // Build and solve the master problem.
+        auto master_begin = std::chrono::steady_clock::now();
         onedimensional::Instance master_instance = build_master_instance(
-                instance, static_resources, item_type_precedences,
-                dff_cuts_by_bin_type, no_good_cuts_by_bin_type);
+                instance,
+                static_resources,
+                item_type_precedences,
+                dff_cuts_by_bin_type,
+                triplet_cuts_by_bin_type,
+                no_good_cuts_by_bin_type);
         onedimensional::OptimizeParameters master_parameters;
         master_parameters.verbosity_level = 0;
         master_parameters.timer = parameters.timer;
@@ -805,9 +847,11 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             OptimizationMode::NotAnytimeDeterministic;
         master_parameters.use_tree_search = parameters.master_problem_use_tree_search;
         master_parameters.use_milp_assignment = parameters.master_problem_use_milp_assignment;
-        master_parameters.optimization_mode = OptimizationMode::Anytime;
         onedimensional::Output master_output = onedimensional::optimize(
                 master_instance, master_parameters);
+        auto master_end = std::chrono::steady_clock::now();
+        output.master_time += std::chrono::duration_cast<std::chrono::duration<double>>(
+                master_end - master_begin).count();
 
         // Check end.
         if (parameters.timer.needs_to_end())
@@ -895,6 +939,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
         // bin has one, add the most-violated cut for every bin that has
         // one, and skip the subproblems entirely this iteration.
         bool dff_violation_found = false;
+        auto dff_begin = std::chrono::steady_clock::now();
         for (BinPos master_bin_pos = 0;
                 master_bin_pos < master_solution.number_of_different_bins();
                 ++master_bin_pos) {
@@ -918,8 +963,64 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 dff_cuts_by_bin_type[master_bin.bin_type_id].push_back(resource_cut);
             }
         }
+        auto dff_end = std::chrono::steady_clock::now();
+        output.dual_feasible_functions_time += std::chrono::duration_cast<std::chrono::duration<double>>(
+                dff_end - dff_begin).count();
         if (dff_violation_found) {
             //std::cout << "dff_violation_found" << std::endl;
+            output.number_of_dual_feasible_function_terminations++;
+            continue;
+        }
+
+        // Pass 1b: no bin had a dual-feasible-function violation either;
+        // check every bin of the master's candidate for an incompatible
+        // triplet (see 'item_subset_incompatibility.hpp') before paying for
+        // the (potentially expensive) feasibility subproblems. Like a
+        // dual-feasible-function cut, an incompatible triplet is valid
+        // for any selection assigned to a bin of that type, so it is
+        // added as a permanent resource. If any bin has one, add every
+        // one found for every bin that has one, and skip the subproblems
+        // entirely this iteration.
+        bool triplet_violation_found = false;
+        auto triplets_begin = std::chrono::steady_clock::now();
+        for (BinPos master_bin_pos = 0;
+                master_bin_pos < master_solution.number_of_different_bins();
+                ++master_bin_pos) {
+            const onedimensional::SolutionBin& master_bin = master_solution.bin(master_bin_pos);
+            std::vector<std::pair<ItemTypeId, ItemPos>> selected_items = aggregate_bin_items(
+                    master_bin, instance.number_of_item_types());
+            std::vector<IncompatibleTriplet> incompatible_triplets = find_incompatible_triplets(
+                    instance, master_bin.bin_type_id, selected_items);
+            for (const IncompatibleTriplet& incompatible_triplet: incompatible_triplets) {
+                triplet_violation_found = true;
+                // 'item_type_ids' is sorted, so equal ids are already
+                // adjacent - group them into a single threshold-schedule
+                // entry per distinct item type (see 'ResourceCut''s own
+                // doc comment for why a uniform per-unit consumption
+                // cannot express this directly).
+                ResourceCut resource_cut;
+                resource_cut.capacity = 2.0;
+                ItemTypeId group_item_type_id = incompatible_triplet.item_type_ids[0];
+                ItemPos group_count = 0;
+                for (ItemTypeId item_type_id: incompatible_triplet.item_type_ids) {
+                    if (item_type_id != group_item_type_id) {
+                        resource_cut.consumption.push_back(
+                                {group_item_type_id, threshold_schedule(group_count)});
+                        group_item_type_id = item_type_id;
+                        group_count = 0;
+                    }
+                    group_count++;
+                }
+                resource_cut.consumption.push_back(
+                        {group_item_type_id, threshold_schedule(group_count)});
+                triplet_cuts_by_bin_type[master_bin.bin_type_id].push_back(resource_cut);
+            }
+        }
+        auto triplets_end = std::chrono::steady_clock::now();
+        output.triplets_time += std::chrono::duration_cast<std::chrono::duration<double>>(
+                triplets_end - triplets_begin).count();
+        if (triplet_violation_found) {
+            output.number_of_triplet_terminations++;
             continue;
         }
 
@@ -949,6 +1050,27 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             std::vector<std::pair<ItemTypeId, ItemPos>> selected_items = aggregate_bin_items(
                     master_bin, instance.number_of_item_types());
 
+            // A bin selecting exactly 3 items is already known
+            // geometrically feasible at this point: Pass 1b (above) ran
+            // 'find_incompatible_triplets' on this exact selection before
+            // this iteration ever reached Pass 2, and did not flag it -
+            // only a concrete placement (not just that yes/no answer) is
+            // still missing, which 'find_triplet_placement' can supply
+            // directly (see its own doc comment), without paying for the
+            // general feasibility subproblem below at all. Falls back to
+            // it on an (unexpected) empty return instead of trusting the
+            // two independent checks agree unconditionally.
+            ItemPos total_selected_items = 0;
+            for (const std::pair<ItemTypeId, ItemPos>& p: selected_items)
+                total_selected_items += p.second;
+            if (total_selected_items == 3) {
+                Solution triplet_solution = find_triplet_placement(instance, master_bin.bin_type_id, selected_items);
+                if (triplet_solution.number_of_bins() > 0) {
+                    solution.append_bin(triplet_solution, 0, master_bin.copies);
+                    continue;
+                }
+            }
+
             // Build subproblem instance.
             InstanceBuilder sub_instance_builder;
             sub_instance_builder.set_objective(Objective::Feasibility);
@@ -974,7 +1096,11 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 OptimizationMode::NotAnytimeSequential:
                 OptimizationMode::NotAnytimeDeterministic;
             sub_parameters.not_anytime_tree_search_queue_size = parameters.subproblem_queue_size;
+            auto subproblem_begin = std::chrono::steady_clock::now();
             auto sub_output = optimize(sub_instance, sub_parameters);
+            auto subproblem_end = std::chrono::steady_clock::now();
+            output.subproblem_time += std::chrono::duration_cast<std::chrono::duration<double>>(
+                    subproblem_end - subproblem_begin).count();
             const Solution& sub_solution = sub_output.solution_pool.best();
 
             if (sub_solution.number_of_bins() > 0) {
@@ -1018,6 +1144,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                 // that risk is live (see the gate on 'all_cuts_proven_infeasible'
                 // above, and 'check_cuts_against_best_solution').
                 all_bins_feasible = false;
+                auto minimal_infeasible_subsets_begin = std::chrono::steady_clock::now();
                 std::vector<MinimalInfeasibleSubset> minimal_selections
                     = enumerate_minimal_infeasible_subsets(
                             instance,
@@ -1026,6 +1153,10 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                             sub_output.is_proven_infeasible,
                             parameters,
                             parameters.maximum_number_of_no_good_cuts_per_bin);
+                auto minimal_infeasible_subsets_end = std::chrono::steady_clock::now();
+                output.minimal_infeasible_subsets_time
+                    += std::chrono::duration_cast<std::chrono::duration<double>>(
+                            minimal_infeasible_subsets_end - minimal_infeasible_subsets_begin).count();
                 for (const MinimalInfeasibleSubset& minimal_selection: minimal_selections) {
                     ResourceCut resource_cut;
                     ItemPos cut_size = 0;
@@ -1037,8 +1168,12 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
 
                     // Sequentially lifted into a single, stronger cut (see
                     // 'lift_no_good_cut').
+                    auto lifting_begin = std::chrono::steady_clock::now();
                     ResourceCut lifted_cut = lift_no_good_cut(
                             resource_cut, instance, master_bin.bin_type_id, parameters);
+                    auto lifting_end = std::chrono::steady_clock::now();
+                    output.lifting_time += std::chrono::duration_cast<std::chrono::duration<double>>(
+                            lifting_end - lifting_begin).count();
                     no_good_cuts_by_bin_type[master_bin.bin_type_id].push_back(std::move(lifted_cut));
                     all_cuts_proven_infeasible
                         = all_cuts_proven_infeasible && minimal_selection.proven;
@@ -1063,6 +1198,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
                     instance,
                     output.solution_pool.best(),
                     dff_cuts_by_bin_type,
+                    triplet_cuts_by_bin_type,
                     no_good_cuts_by_bin_type);
         }
 
@@ -1075,6 +1211,7 @@ BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
             // added so far) solution. Stop.
             break;
         }
+        output.number_of_subproblem_terminations++;
     }
 
     algorithm_formatter.end();
