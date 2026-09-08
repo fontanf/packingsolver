@@ -12,6 +12,7 @@ target_sources(PackingSolver_rectangle PRIVATE
     tree_search.cpp
     benders_decomposition.cpp
     benders_decomposition_contiguity.cpp
+    item_subset_incompatibility.cpp
     onedimentional_contiguity/milp.cpp
     onedimentional_contiguity/tree_search.cpp
     dual_feasible_functions.cpp

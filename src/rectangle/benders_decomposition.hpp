@@ -10,19 +10,20 @@ namespace rectangle
 {
 
 /**
- * A cut (dual-feasible-function cut, no-good cut, or pairwise-
- * incompatibility cut) turned into a onedimensional resource on a specific
- * bin type.
+ * A cut (dual-feasible-function cut, no-good cut, pairwise-incompatibility
+ * cut, or triplet-incompatibility cut) turned into a onedimensional
+ * resource on a specific bin type.
  *
  * A per-item-type consumption is a per-copy schedule (see
  * 'onedimensional::Resource::item_consumptions'), not a single
  * scalar: a dual-feasible-function cut is a plain linear inequality on item
- * counts, so a uniform (length-1) schedule is exact for it; a no-good cut
- * or pairwise-incompatibility cut instead needs "at least N copies of this
- * item type", which a uniform per-unit consumption cannot express (it would
- * only cap the *combined* total of the item types involved, wrongly
- * excluding unrelated combinations using more of one item type and none of
- * another) - achieved exactly via 'threshold_schedule' below.
+ * counts, so a uniform (length-1) schedule is exact for it; a no-good cut,
+ * pairwise-incompatibility cut, or triplet-incompatibility cut instead
+ * needs "at least N copies of this item type", which a uniform per-unit
+ * consumption cannot express (it would only cap the *combined* total of
+ * the item types involved, wrongly excluding unrelated combinations using
+ * more of one item type and none of another) - achieved exactly via
+ * 'threshold_schedule' below.
  */
 struct ResourceCut
 {
@@ -50,6 +51,89 @@ struct BendersDecompositionOutput: Output
 
     /** Number of iterations. */
     Counter number_of_iterations = 0;
+
+    /**
+     * Number of iterations that stopped early because some bin of the
+     * master's candidate had a dual-feasible-function cut violation (see
+     * Pass 1 in 'benders_decomposition'), skipping every later pass that
+     * iteration.
+     */
+    Counter number_of_dual_feasible_function_terminations = 0;
+
+    /**
+     * Number of iterations that stopped early because some bin of the
+     * master's candidate had an incompatible-triplet cut violation (see
+     * Pass 1b in 'benders_decomposition'), skipping the feasibility
+     * subproblem that iteration.
+     */
+    Counter number_of_triplet_terminations = 0;
+
+    /**
+     * Number of iterations where the feasibility subproblem found at
+     * least one infeasible bin (see Pass 2 in 'benders_decomposition'),
+     * adding one or more no-good cuts instead of converging that
+     * iteration.
+     */
+    Counter number_of_subproblem_terminations = 0;
+
+    /** Total time spent building and solving the master problem. */
+    double master_time = 0.0;
+
+    /** Total time spent searching for dual-feasible-function cuts. */
+    double dual_feasible_functions_time = 0.0;
+
+    /** Total time spent searching for incompatible triplets. */
+    double triplets_time = 0.0;
+
+    /** Total time spent solving feasibility subproblems. */
+    double subproblem_time = 0.0;
+
+    /** Total time spent enumerating minimal infeasible subsets. */
+    double minimal_infeasible_subsets_time = 0.0;
+
+    /** Total time spent lifting no-good cuts. */
+    double lifting_time = 0.0;
+
+    virtual nlohmann::json to_json() const override
+    {
+        nlohmann::json json = Output::to_json();
+        json["NumberOfIterations"] = number_of_iterations;
+        json["NumberOfDualFeasibleFunctionTerminations"] = number_of_dual_feasible_function_terminations;
+        json["NumberOfTripletTerminations"] = number_of_triplet_terminations;
+        json["NumberOfSubproblemTerminations"] = number_of_subproblem_terminations;
+        json["MasterTime"] = master_time;
+        json["DualFeasibleFunctionsTime"] = dual_feasible_functions_time;
+        json["TripletsTime"] = triplets_time;
+        json["SubproblemTime"] = subproblem_time;
+        json["MinimalInfeasibleSubsetsTime"] = minimal_infeasible_subsets_time;
+        json["LiftingTime"] = lifting_time;
+        return json;
+    }
+
+    virtual int format_width() const override
+    {
+        // Fits "Number of dual feasible function terminations: ", the
+        // longest of the lines printed below.
+        return 48;
+    }
+
+    virtual void format(std::ostream& os) const override
+    {
+        Output::format(os);
+        int width = format_width();
+        os
+            << std::setw(width) << std::left << "Number of iterations: " << number_of_iterations << std::endl
+            << std::setw(width) << std::left << "Number of dual feasible function terminations: " << number_of_dual_feasible_function_terminations << std::endl
+            << std::setw(width) << std::left << "Number of triplet terminations: " << number_of_triplet_terminations << std::endl
+            << std::setw(width) << std::left << "Number of subproblem terminations: " << number_of_subproblem_terminations << std::endl
+            << std::setw(width) << std::left << "Master time (s): " << master_time << std::endl
+            << std::setw(width) << std::left << "Dual feasible functions time (s): " << dual_feasible_functions_time << std::endl
+            << std::setw(width) << std::left << "Triplets time (s): " << triplets_time << std::endl
+            << std::setw(width) << std::left << "Subproblem time (s): " << subproblem_time << std::endl
+            << std::setw(width) << std::left << "Minimal infeasible subsets time (s): " << minimal_infeasible_subsets_time << std::endl
+            << std::setw(width) << std::left << "Lifting time (s): " << lifting_time << std::endl
+            ;
+    }
 };
 
 struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solution, Output>
@@ -85,7 +169,7 @@ struct BendersDecompositionParameters: packingsolver::Parameters<Instance, Solut
      * 'benders_decomposition.cpp') doesn't count towards this limit, since
      * it never actually pays for a subproblem solve.
      */
-    Counter not_anytime_maximum_number_of_subproblem_solves = 0;
+    Counter not_anytime_maximum_number_of_subproblem_solves = 100;
 
     /** Size of the queue for the knapsack subproblem. */
     NodeId subproblem_queue_size = 512;
