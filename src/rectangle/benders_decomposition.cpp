@@ -18,44 +18,6 @@ namespace
 {
 
 /**
- * A cut (dual-feasible-function cut, no-good cut, or pairwise-
- * incompatibility cut) turned into a onedimensional resource on a specific
- * bin type.
- *
- * A per-item-type consumption is a per-copy schedule (see
- * 'onedimensional::Resource::item_consumptions'), not a single
- * scalar: a dual-feasible-function cut is a plain linear inequality on item
- * counts, so a uniform (length-1) schedule is exact for it; a no-good cut
- * or pairwise-incompatibility cut instead needs "at least N copies of this
- * item type", which a uniform per-unit consumption cannot express (it would
- * only cap the *combined* total of the item types involved, wrongly
- * excluding unrelated combinations using more of one item type and none of
- * another) - achieved exactly via 'threshold_schedule' below.
- */
-struct ResourceCut
-{
-    double capacity;
-    std::vector<std::pair<ItemTypeId, std::vector<double>>> consumption;
-};
-
-/**
- * Per-copy consumption schedule making an item type's contribution to a
- * resource's total equal to 'min(count, threshold)': 'threshold' ones
- * followed by a single trailing zero. Contribution keeps growing only while
- * count < threshold, and never grows past it - so summing this schedule's
- * contribution over every item type in a selection, and setting the
- * resource's capacity to '(sum of thresholds) - 1', forbids exactly the
- * selection (and any selection using at least as many copies of every item
- * type in it), without excluding anything else.
- */
-std::vector<double> threshold_schedule(ItemPos threshold)
-{
-    std::vector<double> schedule(threshold, 1.0);
-    schedule.push_back(0.0);
-    return schedule;
-}
-
-/**
  * 'true' iff two item types (possibly the same one twice) cannot both be
  * packed together in a single bin of the given type: a direct
  * generalization of the single-item "self-incompatible" check (substitute
@@ -114,147 +76,6 @@ bool item_type_fits_footprint_of(
             return false;
     }
     return true;
-}
-
-/**
- * Lift a no-good cut via the sequential lifting procedure of Balas (1975)
- * and Wolsey (1975), as adapted by Côté, Haouari & Iori (2021), Section 7.3
- * ("Lifting the Cut", their Algorithm 2): starting from 'S := C' (the
- * original cut's item types, each worth profit 1 per copy up to its
- * threshold), visit every item type not already in the cut, in id order,
- * and compute how many "covering units" it is worth by solving a 2D
- * knapsack that forces one copy of it into the bin alongside the best
- * achievable selection from 'S'. The paper solves that knapsack exactly
- * (2D-KP); this uses the bar relaxation ('bar_relaxation.hpp', Scheithauer
- * 1999) instead, the same substitution the paper itself makes for the same
- * reason (2D-KP is NP-hard, the bar relaxation is not) via its "2D-UKP".
- *
- * Concretely, for candidate j*: let 'm' be the running total of 'S' (sum of
- * each entry's threshold, i.e. the original cut's capacity + 1, plus every
- * previously lifted item's own coefficient). Solve a Knapsack instance on
- * this bin type with every item type in 'S' at its tracked (copies,
- * profit) - profit 1 per copy for the original cut's items, or a lifted
- * item's own coefficient for exactly 1 copy (see below) - plus j* forced
- * into exactly 1 copy via 'copies_min' (a hard bound, not a profit
- * incentive: bar_relaxation is only a linear relaxation, so a sufficiently
- * high profit only guarantees j* wins the *aggregate* trade-off against
- * everything 'S' could contribute in total - it says nothing about the
- * *marginal*, per-unit-of-shared-capacity trade-off the LP actually
- * optimizes over, which a single very dense item already in 'S', e.g. a
- * previously-lifted one with a large coefficient on a small footprint,
- * could still win, leaving j* selected fractionally below 1 - so
- * 'copies_min' is the only mechanism that actually guarantees j*'s
- * quantity reaches 1 at the optimum), at profit 0 (j*'s own real profit is
- * irrelevant here - only 'S''s achievable profit alongside its forced
- * presence matters). The reported bound is then exactly 'S''s contribution
- * alongside that forced copy - a valid (since the bar relaxation is itself
- * a relaxation) upper bound on the exact 2D-KP value the paper calls for.
- * The lift coefficient is then 'alpha = max(0, m - 1 - that bound)',
- * floored to the nearest integer below it (never above: the true,
- * exact-2D-KP-based coefficient is itself an integer at least as large as
- * any valid upper-bound-based estimate of it, so rounding down can only
- * make this estimate more conservative, never unsound). If alpha > 0, j*
- * joins 'S' - contributing exactly 1 copy at profit 'alpha' to every
- * future candidate's knapsack (not 'alpha' copies at profit 1: unlike the
- * original cut's items, which really do represent that many physical
- * units, j* is a single physical item whose *equivalent covering worth*
- * happens to be 'alpha') - and is appended to the same, single cut being
- * built, with its own row contribution capped at 'alpha' via
- * 'threshold_schedule' exactly as for the original items.
- *
- * Unlike a purely geometric domination check (fits within the footprint of
- * some subset of 'S', therefore forces at least that much room), this
- * needs no notion of "dominates": the relaxation bound already accounts
- * for every item type in 'S' at once, so nothing here is unsound the way
- * merging several independently-computed dominators into one shared row
- * would be. It also generalizes cleanly to non-geometric infeasibility
- * (e.g. a weight or axle-load limit the original cut's infeasibility proof
- * actually turned on): the bar relaxation is a valid upper bound on the
- * exact 2D knapsack value regardless of which other constraints made 'C'
- * infeasible in the first place, since dropping constraints from a
- * relaxation can only raise that bound, never lower it below the truth.
- */
-ResourceCut lift_no_good_cut(
-        const ResourceCut& original_cut,
-        const Instance& instance,
-        BinTypeId bin_type_id,
-        const BendersDecompositionParameters& parameters)
-{
-    //std::cout << "lift_no_good_cut" << std::endl;
-    struct SEntry
-    {
-        ItemTypeId item_type_id;
-        ItemPos copies;
-        double profit;
-    };
-
-    std::vector<bool> in_cut(instance.number_of_item_types(), false);
-    std::vector<SEntry> s_entries;
-    double m = original_cut.capacity + 1.0;
-    for (const std::pair<ItemTypeId, std::vector<double>>& entry: original_cut.consumption) {
-        ItemPos threshold = (ItemPos)entry.second.size() - 1;
-        s_entries.push_back({entry.first, threshold, 1.0});
-        in_cut[entry.first] = true;
-    }
-
-    ResourceCut lifted_cut = original_cut;
-    for (ItemTypeId candidate_id = 0;
-            candidate_id < instance.number_of_item_types();
-            ++candidate_id) {
-        if (in_cut[candidate_id])
-            continue;
-        if (!instance.item_type_fits_bin_type(candidate_id, bin_type_id))
-            continue;
-        if (parameters.timer.needs_to_end())
-            break;
-
-        InstanceBuilder sub_instance_builder;
-        sub_instance_builder.set_objective(Objective::Knapsack);
-        sub_instance_builder.set_parameters(instance.parameters());
-        BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
-        sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
-        sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
-        for (const SEntry& s_entry: s_entries) {
-            ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance, s_entry.item_type_id);
-            sub_instance_builder.set_item_type_profit(sub_item_type_id, s_entry.profit);
-            sub_instance_builder.set_item_type_copies(sub_item_type_id, s_entry.copies);
-        }
-        // j* forced into exactly 1 copy via 'copies_min', at profit 0 (see
-        // the function-level comment above for why a profit incentive
-        // cannot substitute for this).
-        ItemTypeId sub_candidate_id = sub_instance_builder.add_item_type(instance, candidate_id);
-        sub_instance_builder.set_item_type_profit(sub_candidate_id, 0.0);
-        sub_instance_builder.set_item_type_copies(sub_candidate_id, 1);
-        sub_instance_builder.set_item_type_copies_min(sub_candidate_id, 1);
-        Instance sub_instance = sub_instance_builder.build();
-
-        BarRelaxationParameters bar_relaxation_parameters;
-        bar_relaxation_parameters.verbosity_level = 0;
-        bar_relaxation_parameters.timer = parameters.timer;
-        BarRelaxationOutput bar_relaxation_output = bar_relaxation(sub_instance, bar_relaxation_parameters);
-
-        // j* contributes 0 to the objective by construction, so the
-        // reported bound is exactly 'S''s contribution alongside it -
-        // no arithmetic needed to back a forced profit back out.
-        double s_contribution = bar_relaxation_output.knapsack_bound;
-        double alpha = m - 1.0 - s_contribution;
-        // '+ 1e-6' guards against floating-point noise from the LP solve
-        // rounding an exact integer value down (e.g. 3 computed as
-        // 2.9999999997): never enough to round a genuinely fractional
-        // value up to the next integer, which would overstate alpha and
-        // make the cut unsound.
-        ItemPos alpha_rounded = (alpha > 0.0)?
-            (ItemPos)std::floor(alpha + 1e-6) : 0;
-
-        if (alpha_rounded > 0) {
-            lifted_cut.consumption.push_back(
-                    {candidate_id, threshold_schedule(alpha_rounded)});
-            s_entries.push_back({candidate_id, 1, (double)alpha_rounded});
-            m += alpha_rounded;
-        }
-    }
-    //std::cout << "lift_no_good_cut end" << std::endl;
-    return lifted_cut;
 }
 
 /**
@@ -832,6 +653,102 @@ void check_cuts_against_best_solution(
     }
 }
 
+}
+
+std::vector<double> packingsolver::rectangle::threshold_schedule(ItemPos threshold)
+{
+    std::vector<double> schedule(threshold, 1.0);
+    schedule.push_back(0.0);
+    return schedule;
+}
+
+ResourceCut packingsolver::rectangle::lift_no_good_cut(
+        const ResourceCut& original_cut,
+        const Instance& instance,
+        BinTypeId bin_type_id,
+        const BendersDecompositionParameters& parameters)
+{
+    struct SEntry
+    {
+        ItemTypeId item_type_id;
+        ItemPos copies;
+        double profit;
+    };
+
+    std::vector<bool> in_cut(instance.number_of_item_types(), false);
+    std::vector<SEntry> s_entries;
+    // '|C|' in the paper's own notation: the *original* cover's size, fixed
+    // for the whole procedure - every candidate's alpha is measured against
+    // this same constant, never against a running total that includes
+    // previously lifted coefficients (Algorithm 2 always computes
+    // 'alpha_j* := |C| - 1 - z(2D-KP(S, j*))', with '|C| - 1' unchanged
+    // throughout the 'for each j*' loop; only 'S' itself grows). Getting
+    // this wrong by re-deriving it from a growing running total instead
+    // compounds: a larger total inflates the next alpha, which inflates
+    // the total further, without bound.
+    const double cover_size = original_cut.capacity + 1.0;
+    for (const std::pair<ItemTypeId, std::vector<double>>& entry: original_cut.consumption) {
+        ItemPos threshold = (ItemPos)entry.second.size() - 1;
+        s_entries.push_back({entry.first, threshold, 1.0});
+        in_cut[entry.first] = true;
+    }
+
+    ResourceCut lifted_cut = original_cut;
+    for (ItemTypeId candidate_id = 0;
+            candidate_id < instance.number_of_item_types();
+            ++candidate_id) {
+        if (in_cut[candidate_id])
+            continue;
+        if (!instance.item_type_fits_bin_type(candidate_id, bin_type_id))
+            continue;
+        if (parameters.timer.needs_to_end())
+            break;
+
+        InstanceBuilder sub_instance_builder;
+        sub_instance_builder.set_objective(Objective::Knapsack);
+        sub_instance_builder.set_parameters(instance.parameters());
+        BinTypeId sub_bin_type_id = sub_instance_builder.add_bin_type(instance, bin_type_id);
+        sub_instance_builder.set_bin_type_copies(sub_bin_type_id, 1);
+        sub_instance_builder.set_bin_type_copies_min(sub_bin_type_id, 0);
+        for (const SEntry& s_entry: s_entries) {
+            ItemTypeId sub_item_type_id = sub_instance_builder.add_item_type(instance, s_entry.item_type_id);
+            sub_instance_builder.set_item_type_profit(sub_item_type_id, s_entry.profit);
+            sub_instance_builder.set_item_type_copies(sub_item_type_id, s_entry.copies);
+        }
+        // j* forced into exactly 1 copy via 'copies_min', at profit 0 (see
+        // the function-level comment above for why a profit incentive
+        // cannot substitute for this).
+        ItemTypeId sub_candidate_id = sub_instance_builder.add_item_type(instance, candidate_id);
+        sub_instance_builder.set_item_type_profit(sub_candidate_id, 0.0);
+        sub_instance_builder.set_item_type_copies(sub_candidate_id, 1);
+        sub_instance_builder.set_item_type_copies_min(sub_candidate_id, 1);
+        Instance sub_instance = sub_instance_builder.build();
+
+        BarRelaxationParameters bar_relaxation_parameters;
+        bar_relaxation_parameters.verbosity_level = 0;
+        bar_relaxation_parameters.timer = parameters.timer;
+        BarRelaxationOutput bar_relaxation_output = bar_relaxation(sub_instance, bar_relaxation_parameters);
+
+        // j* contributes 0 to the objective by construction, so the
+        // reported bound is exactly 'S''s contribution alongside it -
+        // no arithmetic needed to back a forced profit back out.
+        double s_contribution = bar_relaxation_output.knapsack_bound;
+        double alpha = cover_size - 1.0 - s_contribution;
+        // '+ 1e-6' guards against floating-point noise from the LP solve
+        // rounding an exact integer value down (e.g. 3 computed as
+        // 2.9999999997): never enough to round a genuinely fractional
+        // value up to the next integer, which would overstate alpha and
+        // make the cut unsound.
+        ItemPos alpha_rounded = (alpha > 0.0)?
+            (ItemPos)std::floor(alpha + 1e-6) : 0;
+
+        if (alpha_rounded > 0) {
+            lifted_cut.consumption.push_back(
+                    {candidate_id, threshold_schedule(alpha_rounded)});
+            s_entries.push_back({candidate_id, 1, (double)alpha_rounded});
+        }
+    }
+    return lifted_cut;
 }
 
 BendersDecompositionOutput packingsolver::rectangle::benders_decomposition(
