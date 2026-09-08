@@ -131,18 +131,18 @@ void packingsolver::rectangle::onedimentional_contiguity::add_resource_constrain
             // flattened - same validation/extraction as
             // 'onedimensional::add_penalize_resource_constraints'.
             std::vector<std::pair<ItemTypeId, ItemPos>> resource_units;
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance.number_of_item_types();
-                    ++item_type_id) {
-                if (resource.item_consumption(item_type_id, 0) == 0.0)
+            for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource.item_consumptions) {
+                ItemTypeId item_type_id = entry.first;
+                const std::vector<double>& schedule = entry.second;
+                if (schedule_consumption(schedule, 0) == 0.0)
                     continue;
                 ItemPos copies_bound = instance.item_type(item_type_id).copies;
                 ItemPos threshold = 0;
                 while (threshold <= copies_bound
-                        && resource.item_consumption(item_type_id, threshold) == 1.0) {
+                        && schedule_consumption(schedule, threshold) == 1.0) {
                     ++threshold;
                 }
-                if (resource.item_consumption(item_type_id, threshold) != 0.0)
+                if (schedule_consumption(schedule, threshold) != 0.0)
                     throw std::invalid_argument(FUNC_SIGNATURE);
                 for (ItemPos copy = 0; copy < threshold; ++copy)
                     resource_units.push_back({item_type_id, copy});
@@ -191,15 +191,18 @@ void packingsolver::rectangle::onedimentional_contiguity::add_resource_constrain
                 }
             }
         } else {
-            // Hard-capacity resource.
+            // Hard-capacity resource. Only ever visits item types this
+            // resource actually has a schedule for (see
+            // 'Resource::item_consumptions''s own doc comment), not every
+            // item type in the instance.
             model.constraints_starts.push_back((int)model.elements_variables.size());
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < instance.number_of_item_types();
-                    ++item_type_id) {
+            for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource.item_consumptions) {
+                ItemTypeId item_type_id = entry.first;
+                const std::vector<double>& schedule = entry.second;
                 const std::vector<std::vector<size_t>>& unit_candidates_by_copy
                     = candidates_by_item_type_and_copy[item_type_id];
                 for (ItemPos copy = 0; copy < (ItemPos)unit_candidates_by_copy.size(); ++copy) {
-                    double consumption = resource.item_consumption(item_type_id, copy);
+                    double consumption = schedule_consumption(schedule, copy);
                     if (consumption == 0.0)
                         continue;
                     for (size_t candidate_id: unit_candidates_by_copy[copy]) {

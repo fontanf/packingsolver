@@ -419,27 +419,30 @@ void add_penalize_resource_constraints(
     }
     ItemPos threshold = (ItemPos)rounded_capacity + 1;
 
-    // Every (item type, copy) unit the resource involves, flattened.
+    // Every (item type, copy) unit the resource involves, flattened. Only
+    // ever visits item types this resource actually has a schedule for
+    // (see 'Resource::item_consumptions''s own doc comment), not every
+    // item type in the instance.
     std::vector<std::pair<ItemTypeId, ItemPos>> resource_units;
-    for (ItemTypeId item_type_id = 0;
-            item_type_id < instance.number_of_item_types();
-            ++item_type_id) {
-        if (resource.item_consumption(item_type_id, 0) == 0.0)
+    for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource.item_consumptions) {
+        ItemTypeId item_type_id = entry.first;
+        const std::vector<double>& schedule = entry.second;
+        if (schedule_consumption(schedule, 0) == 0.0)
             continue;
         // Validate the 'threshold_schedule(N)' shape: N ones then a single
         // trailing 0 - anything else (e.g. an uncapped uniform consumption,
         // or a non-0/1 value) is not expressible as 0/1 "unit" presence.
         // Bounded by the item type's own total copies: no valid schedule
         // needs to cap beyond that, and an uncapped (all-1) schedule would
-        // otherwise make this scan run forever ('item_consumption' repeats
-        // a schedule's last entry for every copy past its end).
+        // otherwise make this scan run forever ('schedule_consumption'
+        // repeats a schedule's last entry for every copy past its end).
         ItemPos copies_bound = instance.item_type(item_type_id).copies;
         ItemPos item_type_threshold = 0;
         while (item_type_threshold <= copies_bound
-                && resource.item_consumption(item_type_id, item_type_threshold) == 1.0) {
+                && schedule_consumption(schedule, item_type_threshold) == 1.0) {
             ++item_type_threshold;
         }
-        if (resource.item_consumption(item_type_id, item_type_threshold) != 0.0) {
+        if (schedule_consumption(schedule, item_type_threshold) != 0.0) {
             throw std::invalid_argument(
                     FUNC_SIGNATURE + ": "
                     "'penalize' resource " + std::to_string(resource_id) + " of bin type " +
@@ -920,15 +923,26 @@ MilpModel build_milp_model(
                     ++bin_instance_pos) {
                 // Initialize new row.
                 milp_model.model.constraints_starts.push_back(milp_model.model.elements_variables.size());
-                // Add row elements.
-                for (ItemTypeId item_type_id = 0;
-                        item_type_id < instance.number_of_item_types();
-                        ++item_type_id) {
+                // Add row elements. Only ever visits item types this
+                // resource actually has a schedule for (see
+                // 'Resource::item_consumptions''s own doc comment) rather
+                // than every item type in the instance: a resource
+                // generated as a combinatorial cut typically only
+                // involves a handful of them, so this row would otherwise
+                // pay for a full scan of every other, entirely unrelated
+                // item type for nothing.
+                for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource.item_consumptions) {
+                    ItemTypeId item_type_id = entry.first;
                     if (milp_model.x[item_type_id][bin_type_id].empty())
+                        continue;
+                    const std::vector<double>& schedule = entry.second;
+                    if (schedule.empty())
                         continue;
                     const std::vector<int>& slots = milp_model.x[item_type_id][bin_type_id][bin_instance_pos];
                     for (ItemPos copy = 0; copy < (ItemPos)slots.size(); ++copy) {
-                        double consumption = resource.item_consumption(item_type_id, copy);
+                        double consumption = (copy < (ItemPos)schedule.size())?
+                            schedule[copy]:
+                            schedule.back();
                         if (consumption == 0.0)
                             continue;
                         milp_model.model.elements_variables.push_back(slots[copy]);

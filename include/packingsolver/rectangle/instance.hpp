@@ -179,13 +179,16 @@ struct ItemType
 
     /**
      * For each bin type (indexed by bin_type_id - a resource's id is only
-     * ever local to one bin type, see 'BinType::resources'), the ids of
-     * that bin type's resources this item type has a non-zero consumption
-     * for. Lets algorithms that need every resource a given item type
-     * (in a given bin type) might affect skip the rest, instead of scanning
-     * every resource of the bin type for every item.
+     * ever local to one bin type, see 'BinType::resources'), the bin
+     * type's resources this item type has a non-zero consumption for,
+     * together with the position of this item type's own entry in each
+     * resource's own 'Resource::item_consumptions' (see
+     * 'ItemResourceConsumption') - so a caller can jump straight to its
+     * schedule with no search. Lets algorithms that need every resource a
+     * given item type (in a given bin type) might affect skip the rest,
+     * instead of scanning every resource of the bin type for every item.
      */
-    std::vector<std::vector<ResourceId>> resource_ids;
+    std::vector<std::vector<ItemResourceConsumption>> resources;
 };
 
 std::ostream& operator<<(

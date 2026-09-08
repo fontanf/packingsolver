@@ -81,11 +81,14 @@ const std::vector<BranchingScheme::Insertion>& BranchingScheme::insertions(
         // Hard-capacity resources ('penalize' ones never block an
         // insertion - the corresponding penalty is applied to 'profit' in
         // 'child_tmp' instead).
-        for (ResourceId resource_id: item_type.resource_ids[0]) {
+        for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[0]) {
+            ResourceId resource_id = item_resource_consumption.resource_id;
             const Resource& resource = bin_type.resource(resource_id);
             if (resource.penalize)
                 continue;
-            double consumption = resource.item_consumption(item_type_id, copy);
+            const std::vector<double>& schedule
+                = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
+            double consumption = schedule_consumption(schedule, copy);
             if (parent->resource_consumption[resource_id] + consumption > resource.capacity * PSTOL) {
                 ok = false;
                 break;
@@ -152,10 +155,13 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         // 'insertions' above), but the first time its consumption crosses
         // 'capacity', 'penalty' is subtracted from 'profit'.
         const BinType& bin_type = instance_.bin_type(0);
-        for (ResourceId resource_id: item_type.resource_ids[0]) {
+        for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[0]) {
+            ResourceId resource_id = item_resource_consumption.resource_id;
             const Resource& resource = bin_type.resource(resource_id);
             double previous_consumption = node.resource_consumption[resource_id];
-            double consumption = resource.item_consumption(candidate.item_type_id, candidate.copy);
+            const std::vector<double>& schedule
+                = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
+            double consumption = schedule_consumption(schedule, candidate.copy);
             node.resource_consumption[resource_id] += consumption;
             if (resource.penalize
                     && node.resource_consumption[resource_id] > resource.capacity

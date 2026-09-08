@@ -1220,6 +1220,31 @@ BinPos Reduction::reserved_bin_count() const
     return number_of_dedicated_bins() + (full_span_items_.empty()? 0: 1);
 }
 
+namespace
+{
+
+/**
+ * The consumption schedule 'item_type' has for 'resource_id' in bin type
+ * 'bin_type_id' of 'bin_type' (see 'ItemType::resources'), or 'nullptr'
+ * if it has none there. A linear scan over 'item_type.resources[bin_type_id]'
+ * - typically tiny, how many resources a single item type is involved in -
+ * not a search through the resource's own (potentially larger) item list.
+ */
+const std::vector<double>* find_item_type_schedule(
+        const ItemType& item_type,
+        BinTypeId bin_type_id,
+        const BinType& bin_type,
+        ResourceId resource_id)
+{
+    for (const ItemResourceConsumption& entry: item_type.resources[bin_type_id]) {
+        if (entry.resource_id == resource_id)
+            return &bin_type.resource(resource_id).item_consumptions[entry.consumption_pos].second;
+    }
+    return nullptr;
+}
+
+}
+
 bool Reduction::items_mergeable(
         const std::vector<ReductionItemType>& reduction_item_types,
         ItemTypeId item_type_id_1,
@@ -1272,14 +1297,14 @@ bool Reduction::items_mergeable(
         for (ResourceId resource_id = 0;
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
-            const std::vector<std::vector<double>>& item_consumptions
-                = bin_type.resource(resource_id).item_consumptions;
+            const std::vector<double>* schedule_1_ptr
+                = find_item_type_schedule(original_item_type_1, bin_type_id, bin_type, resource_id);
+            const std::vector<double>* schedule_2_ptr
+                = find_item_type_schedule(original_item_type_2, bin_type_id, bin_type, resource_id);
             const std::vector<double>& schedule_1
-                = (item_type_id_1 < (ItemTypeId)item_consumptions.size())?
-                    item_consumptions[item_type_id_1]: empty_schedule;
+                = (schedule_1_ptr != nullptr)? *schedule_1_ptr: empty_schedule;
             const std::vector<double>& schedule_2
-                = (item_type_id_2 < (ItemTypeId)item_consumptions.size())?
-                    item_consumptions[item_type_id_2]: empty_schedule;
+                = (schedule_2_ptr != nullptr)? *schedule_2_ptr: empty_schedule;
             if (schedule_1 != schedule_2)
                 return false;
         }
@@ -1443,10 +1468,9 @@ double min_or_zero(const std::vector<double>& schedule)
  * (geometric, weight, any one resource) holds.
  */
 bool items_incompatible(
-        ItemTypeId item_type_id_1,
         const ItemType& item_type_1,
-        ItemTypeId item_type_id_2,
         const ItemType& item_type_2,
+        BinTypeId bin_type_id,
         const BinType& bin_type)
 {
     bool geometrically_incompatible =
@@ -1484,14 +1508,15 @@ bool items_incompatible(
         // combined contribution from one occurrence of each already
         // exceeds capacity, a guaranteed overflow regardless of which
         // copy index either one actually ends up placed at.
-        const std::vector<std::vector<double>>& item_consumptions = resource.item_consumptions;
         static const std::vector<double> empty_schedule;
+        const std::vector<double>* schedule_1_ptr
+            = find_item_type_schedule(item_type_1, bin_type_id, bin_type, resource_id);
+        const std::vector<double>* schedule_2_ptr
+            = find_item_type_schedule(item_type_2, bin_type_id, bin_type, resource_id);
         const std::vector<double>& schedule_1
-            = (item_type_id_1 < (ItemTypeId)item_consumptions.size())?
-                item_consumptions[item_type_id_1]: empty_schedule;
+            = (schedule_1_ptr != nullptr)? *schedule_1_ptr: empty_schedule;
         const std::vector<double>& schedule_2
-            = (item_type_id_2 < (ItemTypeId)item_consumptions.size())?
-                item_consumptions[item_type_id_2]: empty_schedule;
+            = (schedule_2_ptr != nullptr)? *schedule_2_ptr: empty_schedule;
         if (min_or_zero(schedule_1) + min_or_zero(schedule_2) > resource.capacity)
             return true;
     }
@@ -1544,15 +1569,15 @@ bool Reduction::item_type_dominates(
         for (ResourceId resource_id = 0;
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
-            const std::vector<std::vector<double>>& item_consumptions
-                = bin_type.resource(resource_id).item_consumptions;
             static const std::vector<double> empty_schedule;
+            const std::vector<double>* schedule_a_ptr
+                = find_item_type_schedule(item_a, bin_type_id, bin_type, resource_id);
+            const std::vector<double>* schedule_b_ptr
+                = find_item_type_schedule(item_b, bin_type_id, bin_type, resource_id);
             const std::vector<double>& schedule_a
-                = (item_type_id_a < (ItemTypeId)item_consumptions.size())?
-                    item_consumptions[item_type_id_a]: empty_schedule;
+                = (schedule_a_ptr != nullptr)? *schedule_a_ptr: empty_schedule;
             const std::vector<double>& schedule_b
-                = (item_type_id_b < (ItemTypeId)item_consumptions.size())?
-                    item_consumptions[item_type_id_b]: empty_schedule;
+                = (schedule_b_ptr != nullptr)? *schedule_b_ptr: empty_schedule;
             if (max_or_zero(schedule_a) > min_or_zero(schedule_b))
                 return false;
         }
@@ -1583,8 +1608,9 @@ bool Reduction::items_provably_incompatible(
         if (!eligible_1 || !eligible_2)
             continue;
         if (!items_incompatible(
-                item_type_id_1, item_type_1,
-                item_type_id_2, item_type_2,
+                item_type_1,
+                item_type_2,
+                bin_type_id,
                 original_instance_->bin_type(bin_type_id)))
             return false;
     }
@@ -1919,24 +1945,15 @@ Instance Reduction::reduction_to_instance(
             if (original_to_reduced_bin_type_id[bin_type_id] == -1)
                 continue;
             const BinType& original_bin_type = original_instance_->bin_type(bin_type_id);
-            for (ResourceId resource_id = 0;
-                    resource_id < original_bin_type.number_of_resources();
-                    ++resource_id) {
-                const std::vector<std::vector<double>>& item_consumptions
-                    = original_bin_type.resource(resource_id).item_consumptions;
-                if (item_type_id >= (ItemTypeId)item_consumptions.size())
-                    continue;
-                const std::vector<double>& schedule = item_consumptions[item_type_id];
-                for (ItemPos item_copy = 0;
-                        item_copy < (ItemPos)schedule.size();
-                        ++item_copy) {
-                    instance_builder.add_resource_consumption(
-                            original_to_reduced_bin_type_id[bin_type_id],
-                            resource_id,
-                            new_item_type_id,
-                            item_copy,
-                            schedule[item_copy]);
-                }
+            for (const ItemResourceConsumption& consumption: original_item_type.resources[bin_type_id]) {
+                const std::vector<double>& schedule
+                    = original_bin_type.resource(consumption.resource_id)
+                        .item_consumptions[consumption.consumption_pos].second;
+                instance_builder.add_resource_consumption(
+                        original_to_reduced_bin_type_id[bin_type_id],
+                        consumption.resource_id,
+                        new_item_type_id,
+                        schedule);
             }
         }
         reduced_copy_origins_.push_back(std::move(copy_origins));

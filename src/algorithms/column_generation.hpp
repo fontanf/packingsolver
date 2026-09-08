@@ -546,7 +546,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                         // Consumption schedule '[1.0, 0.0]': the item
                         // type's first copy consumes 1.0 (counts as
                         // "present"), every further copy consumes 0.0 (see
-                        // 'Resource::item_consumption' - a copy past the
+                        // 'Resource::item_consumptions' - a copy past the
                         // end of the schedule repeats its last entry, so
                         // without this trailing 0 every extra copy would
                         // keep adding 1.0, making the resource count total
@@ -556,14 +556,7 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
                                 kp_bin_type_id,
                                 resource_id,
                                 kp_item_type_id,
-                                0,
-                                1.0);
-                        kp_instance_builder.add_resource_consumption(
-                                kp_bin_type_id,
-                                resource_id,
-                                kp_item_type_id,
-                                1,
-                                0.0);
+                                {1.0, 0.0});
                     }
                 }
             }
@@ -631,20 +624,13 @@ PricingOutput ColumnGenerationPricingSolver<Instance, InstanceBuilder, Solution,
             for (const auto& present_kp_item_threshold: present_kp_item_thresholds) {
                 ItemTypeId kp_item_type_id = present_kp_item_threshold.first;
                 ItemPos threshold = present_kp_item_threshold.second;
-                for (ItemPos copy = 0; copy < threshold; ++copy) {
-                    kp_instance_builder.add_resource_consumption(
-                            kp_bin_type_id,
-                            resource_id,
-                            kp_item_type_id,
-                            copy,
-                            1.0);
-                }
+                std::vector<double> schedule(threshold, 1.0);
+                schedule.push_back(0.0);
                 kp_instance_builder.add_resource_consumption(
                         kp_bin_type_id,
                         resource_id,
                         kp_item_type_id,
-                        threshold,
-                        0.0);
+                        schedule);
             }
         }
 

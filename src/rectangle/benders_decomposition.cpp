@@ -602,16 +602,11 @@ void add_cut_as_resource(
     ResourceId resource_id = master_instance_builder.add_bin_type_resource(
             master_bin_type_id, cut.capacity);
     for (const std::pair<ItemTypeId, std::vector<double>>& entry: cut.consumption) {
-        for (ItemPos item_copy = 0;
-                item_copy < (ItemPos)entry.second.size();
-                ++item_copy) {
-            master_instance_builder.add_resource_consumption(
-                    master_bin_type_id,
-                    resource_id,
-                    entry.first,
-                    item_copy,
-                    entry.second[item_copy]);
-        }
+        master_instance_builder.add_resource_consumption(
+                master_bin_type_id,
+                resource_id,
+                entry.first,
+                entry.second);
     }
 }
 
@@ -669,20 +664,12 @@ onedimensional::Instance build_master_instance(
                     resource.capacity,
                     resource.penalize,
                     resource.penalty);
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < (ItemTypeId)resource.item_consumptions.size();
-                    ++item_type_id) {
-                const std::vector<double>& schedule = resource.item_consumptions[item_type_id];
-                for (ItemPos item_copy = 0;
-                        item_copy < (ItemPos)schedule.size();
-                        ++item_copy) {
-                    master_instance_builder.add_resource_consumption(
-                            master_bin_type_id,
-                            master_resource_id,
-                            item_type_id,
-                            item_copy,
-                            schedule[item_copy]);
-                }
+            for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource.item_consumptions) {
+                master_instance_builder.add_resource_consumption(
+                        master_bin_type_id,
+                        master_resource_id,
+                        entry.first,
+                        entry.second);
             }
         }
     }

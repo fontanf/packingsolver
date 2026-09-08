@@ -1,6 +1,7 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
+#include "optimizationtools/containers/indexed_set.hpp"
 
 using namespace packingsolver;
 using namespace packingsolver::rectangle;
@@ -200,8 +201,7 @@ void InstanceBuilder::add_resource_consumption(
         BinTypeId bin_type_id,
         ResourceId resource_id,
         ItemTypeId item_type_id,
-        ItemPos item_copy,
-        double consumption)
+        const std::vector<double>& schedule)
 {
     if (bin_type_id < 0 || bin_type_id >= (BinTypeId)instance_.bin_types_.size()) {
         throw std::invalid_argument(
@@ -219,20 +219,11 @@ void InstanceBuilder::add_resource_consumption(
                 "resource_id: " + std::to_string(resource_id) + "; "
                 "bin_type.resources.size(): " + std::to_string(bin_type.resources.size()) + ".");
     }
-    if (item_copy < 0) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "invalid 'item_copy'; "
-                "item_copy: " + std::to_string(item_copy) + ".");
-    }
 
-    std::vector<std::vector<double>>& item_consumptions = bin_type.resources[resource_id].item_consumptions;
-    if (item_type_id >= (ItemTypeId)item_consumptions.size())
-        item_consumptions.resize(item_type_id + 1);
-    std::vector<double>& schedule = item_consumptions[item_type_id];
-    if (item_copy >= (ItemPos)schedule.size())
-        schedule.resize(item_copy + 1, 0.0);
-    schedule[item_copy] = consumption;
+    // May be called at most once per (item type, resource) pair (checked,
+    // and thrown on otherwise, in 'build' below) - no search needed, just
+    // append.
+    bin_type.resources[resource_id].item_consumptions.push_back({item_type_id, schedule});
 }
 
 BinTypeId InstanceBuilder::add_bin_type(
@@ -503,24 +494,15 @@ ItemTypeId InstanceBuilder::add_item_type(
         if (sub_bin_type_id == -1)
             continue;
         const BinType& original_bin_type = original_instance.bin_type(original_bin_type_id);
-        for (ResourceId resource_id = 0;
-                resource_id < original_bin_type.number_of_resources();
-                ++resource_id) {
-            const std::vector<std::vector<double>>& item_consumptions
-                = original_bin_type.resource(resource_id).item_consumptions;
-            if (original_item_type_id >= (ItemTypeId)item_consumptions.size())
-                continue;
-            const std::vector<double>& schedule = item_consumptions[original_item_type_id];
-            for (ItemPos item_copy = 0;
-                    item_copy < (ItemPos)schedule.size();
-                    ++item_copy) {
-                add_resource_consumption(
-                        sub_bin_type_id,
-                        resource_id,
-                        item_type_id,
-                        item_copy,
-                        schedule[item_copy]);
-            }
+        for (const ItemResourceConsumption& consumption: item_type.resources[original_bin_type_id]) {
+            const std::vector<double>& schedule
+                = original_bin_type.resource(consumption.resource_id)
+                    .item_consumptions[consumption.consumption_pos].second;
+            add_resource_consumption(
+                    sub_bin_type_id,
+                    consumption.resource_id,
+                    item_type_id,
+                    schedule);
         }
     }
     return item_type_id;
@@ -1009,16 +991,11 @@ void InstanceBuilder::read(
                             // the end of the schedule repeats its last
                             // entry); see 'Resource::item_consumptions'.
                             std::vector<double> schedule = json_consumption["consumption_schedule"];
-                            for (ItemPos item_copy = 0;
-                                    item_copy < (ItemPos)schedule.size();
-                                    ++item_copy) {
-                                add_resource_consumption(
-                                        bin_type_id,
-                                        resource_id,
-                                        item_type_id,
-                                        item_copy,
-                                        schedule[item_copy]);
-                            }
+                            add_resource_consumption(
+                                    bin_type_id,
+                                    resource_id,
+                                    item_type_id,
+                                    schedule);
                         } else {
                             // Uniform consumption, regardless of how many
                             // copies are already packed.
@@ -1027,8 +1004,7 @@ void InstanceBuilder::read(
                                     bin_type_id,
                                     resource_id,
                                     item_type_id,
-                                    0,
-                                    consumption);
+                                    {consumption});
                         }
                     }
                 }
@@ -1175,12 +1151,13 @@ Instance InstanceBuilder::build()
         }
     }
 
-    // Compute item_type.resource_ids (see its own doc comment).
+    // Compute item_type.resources (see its own doc comment).
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance_.number_of_item_types();
             ++item_type_id) {
-        instance_.item_types_[item_type_id].resource_ids.resize(instance_.number_of_bin_types());
+        instance_.item_types_[item_type_id].resources.resize(instance_.number_of_bin_types());
     }
+    optimizationtools::IndexedSet seen_item_type_ids(instance_.number_of_item_types());
     for (BinTypeId bin_type_id = 0;
             bin_type_id < instance_.number_of_bin_types();
             ++bin_type_id) {
@@ -1189,12 +1166,24 @@ Instance InstanceBuilder::build()
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
             const Resource& resource = bin_type.resource(resource_id);
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < (ItemTypeId)resource.item_consumptions.size();
-                    ++item_type_id) {
-                if (!resource.item_consumptions[item_type_id].empty()) {
-                    instance_.item_types_[item_type_id].resource_ids[bin_type_id]
-                        .push_back(resource_id);
+            seen_item_type_ids.clear();
+            for (std::size_t consumption_pos = 0;
+                    consumption_pos < resource.item_consumptions.size();
+                    ++consumption_pos) {
+                const std::pair<ItemTypeId, std::vector<double>>& entry
+                    = resource.item_consumptions[consumption_pos];
+                if (!seen_item_type_ids.add(entry.first)) {
+                    throw std::invalid_argument(
+                            FUNC_SIGNATURE + ": "
+                            "resource " + std::to_string(resource_id) + " of bin type " +
+                            std::to_string(bin_type_id) + " has more than one consumption "
+                            "entry for item type " + std::to_string(entry.first) + "; "
+                            "'add_resource_consumption' may only be called once per "
+                            "(item type, resource) pair.");
+                }
+                if (!entry.second.empty()) {
+                    instance_.item_types_[entry.first].resources[bin_type_id]
+                        .push_back({resource_id, consumption_pos});
                 }
             }
         }

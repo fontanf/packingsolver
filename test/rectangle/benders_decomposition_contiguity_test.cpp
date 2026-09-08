@@ -69,9 +69,7 @@ TEST(RectangleBendersDecompositionContiguity, UnsupportedPenalizeResourceCapacit
     ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 2.0, true, 100.0);
     ItemTypeId item_type_id = instance_builder.add_item_type(5, 5, true);
     instance_builder.set_item_type_copies(item_type_id, 2);
-    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 0, 1.0);
-    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 1, 1.0);
-    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 2, 0.0);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, {1.0, 1.0, 0.0});
     Instance instance = instance_builder.build();
 
     BendersDecompositionContiguityParameters parameters;
@@ -93,7 +91,7 @@ TEST(RectangleBendersDecompositionContiguity, UnsupportedPenalizeResourceSchedul
     ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 1.0, true, 100.0);
     ItemTypeId item_type_id = instance_builder.add_item_type(5, 5, true);
     instance_builder.set_item_type_copies(item_type_id, 2);
-    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 0, 1.0);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, {1.0});
     Instance instance = instance_builder.build();
 
     BendersDecompositionContiguityParameters parameters;

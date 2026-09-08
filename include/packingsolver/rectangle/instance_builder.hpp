@@ -123,17 +123,17 @@ public:
             double penalty = 0.0);
 
     /**
-     * Set an item type's consumption of a bin type's resource for the
-     * 'item_copy'-th copy of the item type placed in the bin (0-indexed). See
-     * 'Resource::item_consumptions' for the exact semantics of a
-     * per-copy schedule.
+     * Set an item type's whole per-copy consumption schedule of a bin
+     * type's resource at once - see 'Resource::item_consumptions' for the
+     * exact semantics of a per-copy schedule. May be called at most once
+     * per (item type, resource) pair - 'InstanceBuilder::build' throws
+     * otherwise.
      */
     void add_resource_consumption(
             BinTypeId bin_type_id,
             ResourceId resource_id,
             ItemTypeId item_type_id,
-            ItemPos item_copy,
-            double consumption);
+            const std::vector<double>& schedule);
 
     /**
      * Add a bin type from another bin type.
