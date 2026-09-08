@@ -1,10 +1,12 @@
 #include "packingsolver/rectangle/instance_builder.hpp"
 #include "packingsolver/rectangle/optimize.hpp"
+#include "rectangle/benders_decomposition.hpp"
 #include "rectangle/solution_builder.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
+using namespace packingsolver;
 using namespace packingsolver::rectangle;
 namespace fs = boost::filesystem;
 
@@ -50,7 +52,7 @@ TEST_P(RectangleBendersDecompositionTest, RectangleBendersDecomposition)
 
     OptimizeParameters optimize_parameters;
     optimize_parameters.use_benders_decomposition = true;
-    Output output = optimize(instance, optimize_parameters);
+    rectangle::Output output = optimize(instance, optimize_parameters);
 
     SolutionBuilder solution_builder(instance);
     solution_builder.read(test_params.certificate_path.string());
@@ -143,3 +145,89 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "rectangle" / "tests" / "knapsack_resource_capacity_one_item" / "solution.csv",
                 fs::path("data") / "rectangle" / "tests" / "knapsack_resource_capacity_one_item" / "instance.json",
             }}));
+
+TEST(RectangleThresholdSchedule, Basic)
+{
+    // 'threshold_schedule(3)' should be exactly '{1, 1, 1, 0}': three
+    // per-copy ones (the schedule is still growing) followed by the
+    // trailing zero that caps the contribution at 'threshold' regardless
+    // of how many further copies get packed (see 'threshold_schedule''s
+    // own doc comment in 'benders_decomposition.hpp').
+    std::vector<double> schedule = threshold_schedule(3);
+    ASSERT_EQ(schedule.size(), 4);
+    EXPECT_EQ(schedule[0], 1.0);
+    EXPECT_EQ(schedule[1], 1.0);
+    EXPECT_EQ(schedule[2], 1.0);
+    EXPECT_EQ(schedule[3], 0.0);
+}
+
+namespace
+{
+
+/** The number of copies 'item_type_id' is capped to by 'lifted_cut'. */
+ItemPos lifted_threshold(
+        const ResourceCut& lifted_cut,
+        ItemTypeId item_type_id)
+{
+    for (const std::pair<ItemTypeId, std::vector<double>>& entry: lifted_cut.consumption)
+        if (entry.first == item_type_id)
+            return (ItemPos)entry.second.size() - 1;
+    return -1;
+}
+
+}
+
+TEST(RectangleLiftNoGoodCut, LiftCoefficientsStayBoundedByCoverSize)
+{
+    // Regression test for a bug where 'lift_no_good_cut' re-derived its
+    // '|C| - 1' constant (the function's own doc comment in
+    // 'benders_decomposition.hpp' calls it 'cover_size') from a running
+    // total that grew with every previously lifted item's own
+    // coefficient, instead of keeping it fixed for the whole procedure.
+    // That made each lift coefficient inflate the next one, without
+    // bound: on a real 100-item instance this grew a single coefficient
+    // past 2.6e8 within about 80 lifts, and the resulting
+    // 'threshold_schedule' allocation (a vector of that many doubles) was
+    // enough to exhaust memory and crash the solver.
+    //
+    // Bin and every item type here are exactly 10x10 (oriented, so a
+    // single copy already fills the whole bin): forcing any one candidate
+    // into the feasibility subproblem built for each lift leaves no bar
+    // capacity for anything else, so the bar relaxation bound alongside
+    // it is always exactly 0, regardless of what has already been lifted
+    // into 'S'. With 'cover_size' correctly held fixed at 2 (the original
+    // cover {A, B}'s thresholds sum to 2), every candidate should
+    // therefore get the same coefficient ('cover_size - 1 - 0 == 1'); with
+    // the bug, each one keeps compounding on the last instead ('m' growing
+    // 2 -> 3 -> 5, coefficients 1 -> 2 -> 4).
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(Objective::Knapsack);
+    BinTypeId bin_type_id = instance_builder.add_bin_type(10, 10);
+    ItemTypeId item_type_a = instance_builder.add_item_type(10, 10, true);
+    ItemTypeId item_type_b = instance_builder.add_item_type(10, 10, true);
+    ItemTypeId candidate_0 = instance_builder.add_item_type(10, 10, true);
+    ItemTypeId candidate_1 = instance_builder.add_item_type(10, 10, true);
+    ItemTypeId candidate_2 = instance_builder.add_item_type(10, 10, true);
+    Instance instance = instance_builder.build();
+
+    // The original cut: 'A' and 'B' cannot both be packed. This cover is
+    // fabricated, not derived from an actual geometric proof -
+    // 'lift_no_good_cut' takes the cut's soundness for granted and only
+    // ever tightens it further, so nothing here needs to actually be
+    // infeasible for the lifting logic itself to be exercised.
+    ResourceCut original_cut;
+    original_cut.capacity = 1.0;
+    original_cut.consumption.push_back({item_type_a, threshold_schedule(1)});
+    original_cut.consumption.push_back({item_type_b, threshold_schedule(1)});
+
+    BendersDecompositionParameters parameters;
+    ResourceCut lifted_cut = lift_no_good_cut(
+            original_cut,
+            instance,
+            bin_type_id,
+            parameters);
+
+    EXPECT_EQ(lifted_threshold(lifted_cut, candidate_0), 1);
+    EXPECT_EQ(lifted_threshold(lifted_cut, candidate_1), 1);
+    EXPECT_EQ(lifted_threshold(lifted_cut, candidate_2), 1);
+}
