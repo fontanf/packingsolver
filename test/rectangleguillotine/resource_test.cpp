@@ -22,7 +22,7 @@ TEST(RectangleGuillotineResourceTest, HardResourceForcesExtraBins)
     packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 1.0, false, 0.0);
     packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(5, 5);
     instance_builder.set_item_type_copies(item_type_id, 3);
-    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 0, 1.0);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, {1.0});
     Instance instance = instance_builder.build();
 
     OptimizeParameters parameters;
@@ -54,7 +54,7 @@ TEST(RectangleGuillotineResourceTest, PenalizeResourceDiscouragesCrossing)
     packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(5, 5);
     instance_builder.set_item_type_profit(item_type_id, 10);
     instance_builder.set_item_type_copies(item_type_id, 2);
-    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 0, 1.0);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, {1.0});
     Instance instance = instance_builder.build();
 
     OptimizeParameters parameters;

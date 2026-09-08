@@ -126,7 +126,7 @@ std::vector<std::pair<ItemTypeId, ItemPos>> merge_item_copies(
  * Prefix sums of each item type's consumption schedule, for each resource it
  * touches - see 'compute_resource_consumption_prefix_sums' in
  * 'algorithms/common.hpp'. Indexed [item_type_id][resource_id]; only entries
- * for resources actually in 'item_type.resource_ids[bin_type_id]' are
+ * for resources actually in 'item_type.resources[bin_type_id]' are
  * populated (every other entry stays a default-constructed empty vector,
  * never read - see 'compute_resource_consumption').
  */
@@ -141,9 +141,12 @@ std::vector<std::vector<std::vector<double>>> compute_resource_consumption_prefi
             ++item_type_id) {
         const ItemType& item_type = instance.item_type(item_type_id);
         prefix_sums[item_type_id].resize(bin_type.number_of_resources());
-        for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
-            prefix_sums[item_type_id][resource_id] = compute_resource_consumption_prefix_sums(
-                    bin_type.resource(resource_id), item_type_id);
+        for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
+            const std::vector<double>& schedule
+                = bin_type.resource(item_resource_consumption.resource_id)
+                    .item_consumptions[item_resource_consumption.consumption_pos].second;
+            prefix_sums[item_type_id][item_resource_consumption.resource_id]
+                = compute_resource_consumption_prefix_sums(schedule);
         }
     }
     return prefix_sums;
@@ -169,10 +172,10 @@ std::vector<double> compute_resource_consumption(
         ItemTypeId item_type_id = item_copy.first;
         ItemPos count = item_copy.second;
         const ItemType& item_type = instance.item_type(item_type_id);
-        for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
-            const Resource& resource = bin_type.resource(resource_id);
+        for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
+            ResourceId resource_id = item_resource_consumption.resource_id;
             consumption[resource_id] += sum_item_consumption(
-                    resource, item_type_id, prefix_sums[item_type_id][resource_id], count);
+                    prefix_sums[item_type_id][resource_id], count);
         }
     }
     return consumption;

@@ -91,20 +91,12 @@ Instance InstanceFlipper::flip(const Instance& instance)
                 resource_id < bin_type.number_of_resources();
                 ++resource_id) {
             const Resource& resource = bin_type.resource(resource_id);
-            for (ItemTypeId item_type_id = 0;
-                    item_type_id < (ItemTypeId)resource.item_consumptions.size();
-                    ++item_type_id) {
-                const std::vector<double>& schedule = resource.item_consumptions[item_type_id];
-                for (ItemPos item_copy = 0;
-                        item_copy < (ItemPos)schedule.size();
-                        ++item_copy) {
-                    flipped_instance_builder.add_resource_consumption(
-                            bin_type_id,
-                            resource_id,
-                            item_type_id,
-                            item_copy,
-                            schedule[item_copy]);
-                }
+            for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource.item_consumptions) {
+                flipped_instance_builder.add_resource_consumption(
+                        bin_type_id,
+                        resource_id,
+                        entry.first,
+                        entry.second);
             }
         }
     }

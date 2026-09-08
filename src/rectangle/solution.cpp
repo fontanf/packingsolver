@@ -52,12 +52,14 @@ void Solution::update_indicators(
         this->item_copies_[solution_item.item_type_id] += bin.copies;
 
         // Update bin.resource_consumption.
-        for (ResourceId resource_id: item_type.resource_ids[bin.bin_type_id]) {
+        for (const ItemResourceConsumption& consumption: item_type.resources[bin.bin_type_id]) {
+            ResourceId resource_id = consumption.resource_id;
             const Resource& resource = bin_type.resource(resource_id);
+            const std::vector<double>& schedule = resource.item_consumptions[consumption.consumption_pos].second;
             double previous_consumption = bin.resource_consumption[resource_id];
             bin.resource_consumption[resource_id]
-                += resource.item_consumption(
-                        solution_item.item_type_id,
+                += schedule_consumption(
+                        schedule,
                         item_type_copies_in_bin[solution_item.item_type_id]);
             if (bin.resource_consumption[resource_id] > resource.capacity) {
                 if (resource.penalize) {

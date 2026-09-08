@@ -685,14 +685,12 @@ void Instance::write_json(
                 json_resource["penalize"] = resource.penalize;
                 json_resource["penalty"] = resource.penalty;
                 json_resource["consumptions"] = nlohmann::json::array();
-                for (ItemTypeId item_type_id = 0;
-                        item_type_id < (ItemTypeId)resource.item_consumptions.size();
-                        ++item_type_id) {
-                    const std::vector<double>& schedule = resource.item_consumptions[item_type_id];
+                for (const std::pair<ItemTypeId, std::vector<double>>& entry: resource.item_consumptions) {
+                    const std::vector<double>& schedule = entry.second;
                     if (schedule.empty())
                         continue;
                     nlohmann::json json_consumption;
-                    json_consumption["item_type_id"] = item_type_id;
+                    json_consumption["item_type_id"] = entry.first;
                     if (schedule.size() == 1) {
                         json_consumption["consumption"] = schedule[0];
                     } else {

@@ -535,11 +535,14 @@ BranchingScheme::Node BranchingScheme::child_tmp(
                 continue;
             const ItemType& item_type = instance.item_type(item_type_id);
             ItemPos item_copy = node.last_bin_item_number_of_copies[item_type_id];
-            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
+                ResourceId resource_id = item_resource_consumption.resource_id;
                 const Resource& resource = bin_type.resource(resource_id);
+                const std::vector<double>& schedule
+                    = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
                 double previous_consumption = node.last_bin_resource_consumption[resource_id];
                 node.last_bin_resource_consumption[resource_id]
-                    += resource.item_consumption(item_type_id, item_copy);
+                    += schedule_consumption(schedule, item_copy);
                 if (resource.penalize
                         && node.last_bin_resource_consumption[resource_id] > resource.capacity
                         && previous_consumption <= resource.capacity) {
@@ -1846,11 +1849,14 @@ void BranchingScheme::update(
                 continue;
             const ItemType& item_type = instance.item_type(item_type_id);
             ItemPos item_copy = item_number_of_copies[item_type_id];
-            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
+                ResourceId resource_id = item_resource_consumption.resource_id;
                 const Resource& resource = bin_type.resource(resource_id);
                 if (resource.penalize)
                     continue;
-                resource_consumption[resource_id] += resource.item_consumption(item_type_id, item_copy);
+                const std::vector<double>& schedule
+                    = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
+                resource_consumption[resource_id] += schedule_consumption(schedule, item_copy);
                 if (resource_consumption[resource_id] > resource.capacity * PSTOL)
                     return;
             }

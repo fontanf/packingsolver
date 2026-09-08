@@ -348,9 +348,12 @@ BranchingScheme::Node BranchingScheme::child_tmp(
         if (insertion.new_bin > 0) {  // New bin.
             node.last_bin_item_number_of_copies.assign(instance.number_of_item_types(), 0);
             node.last_bin_resource_consumption.assign(bin_type.number_of_resources(), 0.0);
-            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
+                ResourceId resource_id = item_resource_consumption.resource_id;
                 const Resource& resource = bin_type.resource(resource_id);
-                double consumption = resource.item_consumption(insertion.item_type_id, 0);
+                const std::vector<double>& schedule
+                    = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
+                double consumption = schedule_consumption(schedule, 0);
                 node.last_bin_resource_consumption[resource_id] = consumption;
                 // The bin is empty before this insertion, so any crossing here
                 // is necessarily the first one.
@@ -362,11 +365,14 @@ BranchingScheme::Node BranchingScheme::child_tmp(
             node.last_bin_item_number_of_copies = parent.last_bin_item_number_of_copies;
             ItemPos item_copy = node.last_bin_item_number_of_copies[insertion.item_type_id];
             node.last_bin_resource_consumption = parent.last_bin_resource_consumption;
-            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
+                ResourceId resource_id = item_resource_consumption.resource_id;
                 const Resource& resource = bin_type.resource(resource_id);
+                const std::vector<double>& schedule
+                    = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
                 double previous_consumption = node.last_bin_resource_consumption[resource_id];
                 node.last_bin_resource_consumption[resource_id]
-                    += resource.item_consumption(insertion.item_type_id, item_copy);
+                    += schedule_consumption(schedule, item_copy);
                 if (resource.penalize
                         && node.last_bin_resource_consumption[resource_id] > resource.capacity
                         && previous_consumption <= resource.capacity) {
@@ -882,21 +888,27 @@ void BranchingScheme::insertion_item(
     if (bin_type.number_of_resources() > 0) {
         if (new_bin == 0) {
             ItemPos item_copy = parent->last_bin_item_number_of_copies[item_type_id];
-            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
+                ResourceId resource_id = item_resource_consumption.resource_id;
                 const Resource& resource = bin_type.resource(resource_id);
                 if (resource.penalize)
                     continue;
+                const std::vector<double>& schedule
+                    = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
                 double consumption = parent->last_bin_resource_consumption[resource_id]
-                    + resource.item_consumption(item_type_id, item_copy);
+                    + schedule_consumption(schedule, item_copy);
                 if (consumption > resource.capacity * PSTOL)
                     return;
             }
         } else {
-            for (ResourceId resource_id: item_type.resource_ids[bin_type_id]) {
+            for (const ItemResourceConsumption& item_resource_consumption: item_type.resources[bin_type_id]) {
+                ResourceId resource_id = item_resource_consumption.resource_id;
                 const Resource& resource = bin_type.resource(resource_id);
                 if (resource.penalize)
                     continue;
-                double consumption = resource.item_consumption(item_type_id, 0);
+                const std::vector<double>& schedule
+                    = resource.item_consumptions[item_resource_consumption.consumption_pos].second;
+                double consumption = schedule_consumption(schedule, 0);
                 if (consumption > resource.capacity * PSTOL)
                     return;
             }

@@ -8,6 +8,30 @@
 using namespace packingsolver::onedimensional;
 namespace fs = boost::filesystem;
 
+namespace
+{
+
+/**
+ * Test-only helper: the consumption of the 'copy'-th (0-indexed) unit of
+ * 'item_type_id' in 'resource' - a linear scan over
+ * 'Resource::item_consumptions', fine here since this is not a hot path
+ * (see that field's own doc comment for why production code instead looks
+ * this up in O(1) via 'ItemType::resources').
+ */
+double item_consumption_for_test(
+        const packingsolver::Resource& resource,
+        packingsolver::ItemTypeId item_type_id,
+        packingsolver::ItemPos copy)
+{
+    for (const auto& entry: resource.item_consumptions) {
+        if (entry.first == item_type_id)
+            return packingsolver::schedule_consumption(entry.second, copy);
+    }
+    return 0.0;
+}
+
+}
+
 TEST(OneDimensional, BinCopies)
 {
     InstanceBuilder instance_builder;
@@ -31,7 +55,7 @@ TEST(OneDimensional, ResourceConsumptionCopiedFromOriginalInstance)
     packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(100);
     packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 10);
     packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(10);
-    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 0, 5);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, {5.0});
     const Instance instance = instance_builder.build();
 
     InstanceBuilder sub_instance_builder;
@@ -41,7 +65,7 @@ TEST(OneDimensional, ResourceConsumptionCopiedFromOriginalInstance)
 
     EXPECT_EQ(sub_instance.bin_type(sub_bin_type_id).number_of_resources(), 1);
     EXPECT_EQ(
-            sub_instance.bin_type(sub_bin_type_id).resource(0).item_consumption(sub_item_type_id, 0),
+            item_consumption_for_test(sub_instance.bin_type(sub_bin_type_id).resource(0), sub_item_type_id, 0),
             5.0);
 }
 
@@ -89,7 +113,7 @@ TEST(OneDimensional, WriteJsonRoundTripWithResource)
     packingsolver::ResourceId resource_id = instance_builder.add_bin_type_resource(bin_type_id, 10);
     packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(10);
     instance_builder.set_item_type_copies(item_type_id, 3);
-    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, 0, 5);
+    instance_builder.add_resource_consumption(bin_type_id, resource_id, item_type_id, {5.0});
     const Instance instance = instance_builder.build();
 
     fs::path path = fs::temp_directory_path() / fs::unique_path();
@@ -106,7 +130,7 @@ TEST(OneDimensional, WriteJsonRoundTripWithResource)
     ASSERT_EQ(read_instance.number_of_bin_types(), 1);
     EXPECT_EQ(read_instance.bin_type(0).number_of_resources(), 1);
     EXPECT_EQ(read_instance.bin_type(0).resource(0).capacity, 10.0);
-    EXPECT_EQ(read_instance.bin_type(0).resource(0).item_consumption(0, 0), 5.0);
+    EXPECT_EQ(item_consumption_for_test(read_instance.bin_type(0).resource(0), 0, 0), 5.0);
 }
 
 TEST(OneDimensional, WriteCsvThrowsOnResource)

@@ -9,6 +9,7 @@
 #include "optimizationtools/utils/common.hpp"
 #include "optimizationtools/utils/output.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <set>
 #include <iomanip>
@@ -273,21 +274,41 @@ struct Resource
     double capacity = 0.0;
 
     /**
-     * Resource consumption schedule of each item type, indexed by
-     * [item_type_id][copy]: the consumption charged for the 'copy'-th
-     * (0-indexed) unit of the item type packed in a bin with this resource.
-     * A 'copy' past the end of the schedule repeats its last entry (so a
-     * length-1 schedule means "the same consumption regardless of how many
-     * copies are already packed" - the common case); an 'item_type_id' past
-     * the end of this vector implicitly consumes 0 regardless of 'copy'.
+     * Resource consumption schedule of each item type that has one - each
+     * entry's 'std::vector<double>' gives the consumption charged for the
+     * 'copy'-th (0-indexed) unit of that item type packed in a bin with
+     * this resource. A 'copy' past the end of the schedule repeats its
+     * last entry (so a length-1 schedule means "the same consumption
+     * regardless of how many copies are already packed" - the common
+     * case); an 'item_type_id' absent from this list implicitly consumes 0
+     * regardless of 'copy'.
      *
      * A non-uniform schedule lets a resource express "at least N copies of
      * this item type" as a plain capacity/consumption row: an all-ones
      * schedule of length N followed by a single trailing 0 makes the total
      * consumption equal to 'min(count, N)', which only keeps growing while
      * count < N.
+     *
+     * Sparse rather than a plain [item_type_id]-indexed vector because a
+     * resource generated as a combinatorial cut (see e.g. the rectangle
+     * Benders decomposition's no-good and triplet-incompatibility cuts)
+     * typically only involves a handful of item types, yet every consumer
+     * that used to index a dense vector by 'item_type_id' had to be sized
+     * (and, worse, scanned - see 'onedimensional::milp_assignment.cpp's
+     * constraint builder before this) up to the highest item type id
+     * referenced anywhere in the instance, however large that is.
+     *
+     * At most one entry per 'item_type_id' - 'InstanceBuilder::build'
+     * throws otherwise (see its own doc comment); 'InstanceBuilder::
+     * add_resource_consumption' may therefore be called at most once per
+     * (item type, resource) pair, and simply appends here, no search
+     * needed. No per-item-type lookup method is offered here on purpose -
+     * a one-off search (linear or otherwise) through this list is not
+     * O(1), so a caller that already knows which item type it wants would
+     * pay for one on every query. Look the position up once instead, via
+     * 'ItemType::resources', and index this list directly with it.
      */
-    std::vector<std::vector<double>> item_consumptions;
+    std::vector<std::pair<ItemTypeId, std::vector<double>>> item_consumptions;
 
     /**
      * If 'true', exceeding 'capacity' does not make a bin infeasible;
@@ -298,49 +319,61 @@ struct Resource
 
     /** Penalty subtracted from the solution's profit; only used when 'penalize' is 'true'. */
     double penalty = 0.0;
-
-    /** Get the consumption of the 'copy'-th (0-indexed) unit of an item type. */
-    inline double item_consumption(
-            ItemTypeId item_type_id,
-            ItemPos copy) const
-    {
-        if (item_type_id >= (ItemTypeId)item_consumptions.size())
-            return 0.0;
-        const std::vector<double>& schedule = item_consumptions[item_type_id];
-        if (schedule.empty())
-            return 0.0;
-        return (copy < (ItemPos)schedule.size())?
-            schedule[copy]:
-            schedule.back();
-    }
 };
 
 /**
- * Prefix sums of 'resource''s per-copy consumption schedule for
- * 'item_type_id': result[k] = sum of
- * 'resource.item_consumption(item_type_id, copy)' for 'copy' in [0, k), for
- * k in [0, schedule.size()] - always has at least one entry (result[0] ==
- * 0), even for an item type absent from 'resource.item_consumptions' or
- * with an empty schedule.
+ * One of a bin type's resources a given item type has a non-zero
+ * consumption for, together with the position of that item type's own
+ * entry in the resource's own (sparse) 'Resource::item_consumptions' list
+ * - see 'ItemType::resources' - so that a caller already holding one of
+ * these can jump straight to 'bin_type.resource(resource_id).item_consumptions[consumption_pos].second'
+ * for the schedule, with no search at all.
+ */
+struct ItemResourceConsumption
+{
+    ResourceId resource_id;
+    std::size_t consumption_pos;
+};
+
+/**
+ * Get the consumption of the 'copy'-th (0-indexed) unit of an item type,
+ * given its schedule (see 'Resource::item_consumptions') - O(1), unlike a
+ * per-item-type lookup would be. 'schedule' is typically obtained via
+ * 'ItemType::resources' (see 'ItemResourceConsumption').
+ */
+inline double schedule_consumption(
+        const std::vector<double>& schedule,
+        ItemPos copy)
+{
+    if (schedule.empty())
+        return 0.0;
+    return (copy < (ItemPos)schedule.size())?
+        schedule[copy]:
+        schedule.back();
+}
+
+/**
+ * Prefix sums of 'schedule' (an item type's consumption schedule for some
+ * resource - see 'Resource::item_consumptions', typically obtained in O(1)
+ * via 'ItemType::resources'): result[k] = sum of 'schedule[copy]' (or
+ * 'schedule.back()' past its end) for 'copy' in [0, k), for k in
+ * [0, schedule.size()] - always has at least one entry (result[0] == 0),
+ * even for an empty schedule.
  *
  * Not stored on 'Resource' itself: only a consumer that bundles several
  * copies of an item at once (e.g. rectangle::block.cpp's guillotine blocks)
  * ever needs a *range* sum - every other domain's tree search looks up one
- * copy at a time via 'Resource::item_consumption' directly, so precomputing
- * this unconditionally in every domain's 'InstanceBuilder::build' would pay
- * for something most of them never read. Call this once per (bin type,
- * item type, resource) a block-bundling consumer actually cares about, and
- * pass the result to 'sum_item_consumption' for an O(1) range sum instead
- * of an O(schedule.size()) one - worthwhile whenever the same triple gets
- * queried many times (e.g. once per generated block).
+ * copy at a time via 'schedule_consumption' directly, so precomputing this
+ * unconditionally in every domain's 'InstanceBuilder::build' would pay for
+ * something most of them never read. Call this once per (bin type, item
+ * type, resource) a block-bundling consumer actually cares about, and pass
+ * the result to 'sum_item_consumption' for an O(1) range sum instead of an
+ * O(schedule.size()) one - worthwhile whenever the same triple gets queried
+ * many times (e.g. once per generated block).
  */
 inline std::vector<double> compute_resource_consumption_prefix_sums(
-        const Resource& resource,
-        ItemTypeId item_type_id)
+        const std::vector<double>& schedule)
 {
-    if (item_type_id >= (ItemTypeId)resource.item_consumptions.size())
-        return {0.0};
-    const std::vector<double>& schedule = resource.item_consumptions[item_type_id];
     std::vector<double> prefix_sums(schedule.size() + 1, 0.0);
     for (std::size_t k = 0; k < schedule.size(); ++k)
         prefix_sums[k + 1] = prefix_sums[k] + schedule[k];
@@ -348,14 +381,11 @@ inline std::vector<double> compute_resource_consumption_prefix_sums(
 }
 
 /**
- * Sum of 'resource.item_consumption(item_type_id, copy)' for 'copy' in
- * '[0, count)', in O(1) given 'prefix_sums' (see
- * 'compute_resource_consumption_prefix_sums', called against the same
- * 'resource'/'item_type_id').
+ * Sum of 'schedule_consumption(schedule, copy)' for 'copy' in '[0, count)',
+ * in O(1) given 'prefix_sums' (see 'compute_resource_consumption_prefix_sums',
+ * called against that same 'schedule').
  */
 inline double sum_item_consumption(
-        const Resource& resource,
-        ItemTypeId item_type_id,
         const std::vector<double>& prefix_sums,
         ItemPos count)
 {
@@ -365,8 +395,10 @@ inline double sum_item_consumption(
     ItemPos head_count = (std::min)(count, schedule_length);
     double sum = prefix_sums[head_count];
     ItemPos tail_count = count - head_count;
-    if (tail_count > 0)
-        sum += (double)tail_count * resource.item_consumption(item_type_id, schedule_length - 1);
+    if (tail_count > 0) {
+        double last_schedule_value = prefix_sums[schedule_length] - prefix_sums[schedule_length - 1];
+        sum += (double)tail_count * last_schedule_value;
+    }
     return sum;
 }
 
