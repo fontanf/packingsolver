@@ -997,6 +997,20 @@ Instance InstanceBuilder::build()
         // compute_periodic_blocks_for_item_type is later called on it.
         const ItemPos periodic_packings_copies_threshold = 16;
 
+        // Even above that copies threshold, a shape with too many vertices
+        // makes this precomputation itself prohibitively expensive: its
+        // cost is driven by the number of convex parts the shape decomposes
+        // into (each pairwise convex-convex NFP, and the final union over
+        // all of them, adds up), and a highly concave shape's part count
+        // grows with its vertex count. Benchmarked against real production
+        // data (fontanf/packingsolver#558): a self-NFP already took ~22s at
+        // 442 vertices (115 convex parts) and didn't finish in two minutes
+        // at 4068 vertices (1070 parts), against ~1s at 151 vertices (47
+        // parts); this cap sits just below where cost starts climbing
+        // steeply, trading a possibly-missed periodic packing for keeping
+        // instance building itself fast regardless of item complexity.
+        const ElementPos periodic_packings_maximum_number_of_vertices = 300;
+
         auto all_item_type_rotations = compute_item_type_rotations(instance_);
         const std::vector<std::vector<ItemTypeRotation>>& item_type_rotations
             = all_item_type_rotations[instance_.bin_type_id(0)];
@@ -1005,7 +1019,11 @@ Instance InstanceBuilder::build()
                 ++item_type_id) {
             ItemType& item_type = instance_.item_types_[item_type_id];
             if (!item_type.periodic_packings_computed) {
-                if (item_type.copies > periodic_packings_copies_threshold) {
+                ElementPos number_of_vertices = 0;
+                for (const ItemShape& item_shape: item_type.shapes)
+                    number_of_vertices += item_shape.shape_scaled.shape.elements.size();
+                if (item_type.copies > periodic_packings_copies_threshold
+                        && number_of_vertices <= periodic_packings_maximum_number_of_vertices) {
                     item_type.periodic_packings = compute_periodic_packings_for_item_type(
                             instance_, item_type_id, item_type_rotations[item_type_id]);
                 }
