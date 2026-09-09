@@ -8,6 +8,7 @@
 #include "shape/trapezoid.hpp"
 
 #include "optimizationtools/utils/utils.hpp"
+#include "optimizationtools/utils/timer.hpp"
 
 #include <sstream>
 
@@ -328,6 +329,19 @@ public:
         Direction direction = Direction::LeftToRightThenBottomToTop;
 
         double maximum_approximation_ratio = 0.05;
+
+        /**
+         * Timer to check against inside insertions() and children(), so a
+         * single node whose candidate insertions are numerous on a complex
+         * shape doesn't block past the time limit for however long it takes
+         * to enumerate and build them: iterative_beam_search_2's own time
+         * check only runs between nodes, not while children() (which calls
+         * insertions()) builds one node's full set of children in one go.
+         * Left default-constructed (no time limit, so never triggers) where
+         * a caller has no timer to give, e.g. direct unit tests of the
+         * branching scheme.
+         */
+        optimizationtools::Timer timer;
     };
 
     /** Constructor. */
@@ -645,6 +659,23 @@ private:
             BinPos new_bin_pos = -1) const;
 
     void json_export_setup() const;
+
+    /**
+     * Whether a bulk-generation loop keyed on 'count' (either the number of
+     * candidates found so far by insertions(), or the number of child Node
+     * objects built so far by children()) should stop right now: checked
+     * only every 100 units of 'count', not on every single one --
+     * parameters_.timer.needs_to_end() itself isn't free -- since either
+     * count can run into the thousands for a complex shape (see the
+     * Parameters::timer doc comment) and generation must be able to stop
+     * partway through, not just between nodes.
+     */
+    inline bool time_limit_reached(std::size_t count) const
+    {
+        return count > 0
+            && count % 100 == 0
+            && parameters_.timer.needs_to_end();
+    }
 
 };
 
