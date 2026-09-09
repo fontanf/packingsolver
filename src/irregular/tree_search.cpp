@@ -1468,8 +1468,12 @@ std::vector<std::shared_ptr<BranchingScheme::Node>> BranchingScheme::children(
     update_extra_trapezoids(*parent);
     insertions(parent);
     std::vector<std::shared_ptr<Node>> cs;
+    if (parameters_.timer.needs_to_end())
+        return cs;
     cs.reserve(parent->children_insertions.size());
     for (Counter i = 0; i < (Counter)parent->children_insertions.size(); ++i) {
+        if (time_limit_reached(cs.size()))
+            break;
         const Insertion& insertion = parent->children_insertions[i];
 
         //std::cout << "- insertion " << insertion << std::endl;
@@ -1557,6 +1561,8 @@ void BranchingScheme::insertions(
 
         // Check all parents insertions.
         for (const Insertion& insertion: parent->parent->children_insertions) {
+            if (time_limit_reached(parent->children_insertions.size()))
+                return;
             // Check item quantity.
             ItemTypeId item_type_id = trapezoid_sets[insertion.trapezoid_set_id].item_type_id;
             const ItemType& item_type = instance().item_type(item_type_id);
@@ -1579,6 +1585,8 @@ void BranchingScheme::insertions(
                 //std::cout << "trapezoid_set_id " << trapezoid_set_id << std::endl;
                 const TrapezoidSet& supported_trapezoid_set = trapezoid_sets[supported_trapezoid_set_id];
                 for (ShapePos supported_part_pos: supported_trapezoid_set.supported_parts) {
+                    if (time_limit_reached(parent->children_insertions.size()))
+                        return;
                     const Support& supported_part = bb_bin_type.supported_parts[supported_part_pos];
 
                     insertion_trapezoid_set(
@@ -1640,6 +1648,8 @@ void BranchingScheme::insertions(
                 ItemShapePos item_shape_pos = -1;
 
                 for (ShapePos supported_part_pos: bb_bin_type.trapezoid_sets[supported_trapezoid_set_id].supported_parts) {
+                    if (time_limit_reached(parent->children_insertions.size()))
+                        return;
                     const Support& supported_part = bb_bin_type.supported_parts[supported_part_pos];
 
                     // If inserting on a defect, check if it is impacting.
@@ -2733,6 +2743,7 @@ void tree_search_worker(
         }
 
         branching_scheme_parameters.maximum_approximation_ratio = maximum_approximation_ratio;
+        branching_scheme_parameters.timer = ibs_parameters.timer;
         ibs_parameters.cutoff = cutoff;
         ibs_parameters.minimum_size_of_the_queue = queue_size;
         ibs_parameters.maximum_size_of_the_queue = queue_size;
