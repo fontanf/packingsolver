@@ -163,6 +163,34 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
 
+    /**
+     * Fraction of the remaining time that the 'box' relaxation may use to
+     * compute a bound before the primal algorithms start.
+     *
+     * The relaxation drops the stacking constraints and is solved with the
+     * 'box' tree search, which only tightens the trivial bound once it has
+     * explored its whole search tree. On instances where it cannot do so
+     * within the time limit, it used to consume the entire time limit and
+     * no solution was returned at all. The relaxation is now run twice: once
+     * with this fraction of the remaining time before the primal algorithms,
+     * and once more with whatever time is left after them, so nothing is lost
+     * when the primal algorithms finish early.
+     *
+     * Without a time limit the first run is not capped and the relaxation is
+     * solved once, as before. 0 skips the first run: the relaxation is then
+     * only solved after the primal algorithms.
+     */
+    double box_bound_time_limit_ratio = 0.2;
+
+    /**
+     * Run the 'box' relaxation again with the remaining time once the primal
+     * algorithms are done and optimality has not been proven.
+     *
+     * Disabled in the knapsack subproblems of the sequential value correction
+     * algorithm: their remaining time belongs to the outer loop.
+     */
+    bool box_bound_use_remaining_time = true;
+
     /** Use tree search algorithm. */
     bool use_tree_search = false;
 

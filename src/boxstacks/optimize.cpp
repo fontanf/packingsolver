@@ -9,6 +9,8 @@
 
 #include "algorithms/sequential_value_correction.hpp"
 
+#include <cmath>
+
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
 
@@ -103,7 +105,8 @@ void optimize_trivial_bound(
 void optimize_box_bound(
         const Instance& instance,
         const OptimizeParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter)
+        AlgorithmFormatter& algorithm_formatter,
+        double time_limit_ratio)
 {
     // Relax the instance to a plain 'box' instance: drop the stacking,
     // axle weight, stack density and unloading constraints, keep only the
@@ -152,6 +155,14 @@ void optimize_box_bound(
     box::OptimizeParameters box_parameters;
     box_parameters.verbosity_level = 0;
     box_parameters.timer = parameters.timer;
+    // The relaxation shares the timer of the whole optimization; cap it so
+    // that it cannot starve the primal algorithms that run after it.
+    if (time_limit_ratio < 1
+            && std::isfinite(parameters.timer.time_limit())) {
+        box_parameters.timer.set_time_limit(
+                parameters.timer.elapsed_time()
+                + time_limit_ratio * parameters.timer.remaining_time());
+    }
     box_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
     box_parameters.optimization_mode = OptimizationMode::NotAnytime;
     box_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
@@ -185,10 +196,25 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
     auto logger = parameters.get_logger();
 
     optimize_trivial_bound(instance, algorithm_formatter);
-    if (instance.objective() == Objective::Knapsack
-            || instance.objective() == Objective::BinPacking
-            || instance.objective() == Objective::VariableSizedBinPacking) {
-        optimize_box_bound(instance, parameters, algorithm_formatter);
+    bool use_box_bound
+        = (instance.objective() == Objective::Knapsack
+                || instance.objective() == Objective::BinPacking
+                || instance.objective() == Objective::VariableSizedBinPacking);
+    // First run of the relaxation. With a time limit it only gets a fraction
+    // of it: the primal algorithms below must get their turn. Without a time
+    // limit it runs to completion as it always did; the bound it produces is
+    // what lets the primal algorithms stop once they reach it.
+    bool box_bound_first_run_capped = false;
+    if (use_box_bound
+            && parameters.box_bound_time_limit_ratio > 0) {
+        optimize_box_bound(
+                instance,
+                parameters,
+                algorithm_formatter,
+                parameters.box_bound_time_limit_ratio);
+        box_bound_first_run_capped
+            = parameters.box_bound_time_limit_ratio < 1
+            && std::isfinite(parameters.timer.time_limit());
     }
 
     if (algorithm_formatter.end_boolean()) {
@@ -339,6 +365,8 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     OptimizationMode::NotAnytimeSequential:
                     OptimizationMode::NotAnytimeDeterministic;
                 kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+                kp_parameters.box_bound_time_limit_ratio = parameters.box_bound_time_limit_ratio;
+                kp_parameters.box_bound_use_remaining_time = false;
                 kp_parameters.not_anytime_tree_search_queue_size
                     = parameters.sequential_value_correction_subproblem_tree_search_queue_size;
                 //kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;
@@ -372,6 +400,18 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         };
         auto svc_output = sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, boxstacks::Output>(instance, kp_solve, svc_parameters);
 
+    }
+
+    // Second run of the relaxation with whatever time is left, when the first
+    // run was capped or skipped: when the primal algorithms finish early, the
+    // bound still gets the full budget it had before the cap.
+    if (use_box_bound
+            && parameters.box_bound_use_remaining_time
+            && (box_bound_first_run_capped
+                || parameters.box_bound_time_limit_ratio <= 0)
+            && !algorithm_formatter.end_boolean()
+            && !parameters.timer.needs_to_end()) {
+        optimize_box_bound(instance, parameters, algorithm_formatter, 1.0);
     }
 
     algorithm_formatter.end();
