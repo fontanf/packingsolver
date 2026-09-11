@@ -185,6 +185,52 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
     algorithm_formatter.print_header();
     auto logger = parameters.get_logger();
 
+    // Instance reduction (see 'Reduction'): applied once, upfront, wrapping
+    // the whole dispatch logic below uniformly for every algorithm -
+    // mirrors 'rectangle::optimize''s own wrapping of its own 'Reduction'.
+    // 'reduced_parameters.reduction_parameters.reduce' is set to 'false'
+    // below to avoid re-running the reduction recursively on the
+    // already-reduced instance.
+    if (parameters.reduction_parameters.reduce) {
+        ReductionParameters reduction_parameters = parameters.reduction_parameters;
+        reduction_parameters.timer = parameters.timer;
+        Reduction reduction(instance, reduction_parameters);
+
+        // Forwards a solution/bound found for the reduced instance to the
+        // original 'algorithm_formatter', in original-instance coordinates.
+        // Neither reduction operation this class performs can ever hide an
+        // item in a dedicated bin or prove the instance infeasible by
+        // itself (unlike 'rectangle::Reduction'), so no bound needs any
+        // reduction-specific translation: 'reduced_output's bounds already
+        // are the original instance's bounds directly.
+        auto report_reduced_output = [&reduction, &algorithm_formatter](
+                const boxstacks::Output& reduced_output)
+            {
+                algorithm_formatter.update_solution(
+                        reduction.unreduce_solution(reduced_output.solution_pool.best()),
+                        reduced_output.solution_pool.best_label());
+                algorithm_formatter.update_bounds(reduced_output);
+            };
+
+        OptimizeParameters reduced_parameters = parameters;
+        reduced_parameters.verbosity_level = 0;
+        reduced_parameters.reduction_parameters.reduce = false;
+        // Forward every solution/bound the recursive solve finds to the
+        // original 'algorithm_formatter' as soon as it is found, rather
+        // than only once at the very end.
+        reduced_parameters.new_solution_callback = report_reduced_output;
+        Output reduced_output = optimize(reduction.instance(), reduced_parameters);
+        // Also report the final result explicitly: some sub-solves never
+        // call 'new_solution_callback' at all - this guarantees the answer
+        // is still reported once regardless. Harmless to call again since
+        // 'update_solution'/'update_bounds' are themselves no-ops for
+        // anything that doesn't improve on what is already recorded.
+        report_reduced_output(reduced_output);
+
+        algorithm_formatter.end();
+        return output;
+    }
+
     if (parameters.use_box_bounds
             && (instance.objective() == Objective::Knapsack
                 || instance.objective() == Objective::BinPacking

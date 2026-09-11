@@ -1,0 +1,38 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "x": 100,
+            "y": 100,
+            "z": 100,
+            "cost": 10000.0,
+            "copies": 5,
+            "copies_min": 0,
+            "resources": [
+                {
+                    "capacity": 1.0,
+                    "penalize": true,
+                    "penalty": -100.0,
+                    "consumptions": [
+                        {
+                            "item_type_id": 0,
+                            "consumption": 1.0
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "x": 4,
+            "y": 4,
+            "z": 4,
+            "profit": -3.0,
+            "copies": 2,
+            "copies_min": 0,
+            "weight": 0.0,
+            "rotations": ["XYZ"]
+        }
+    ]
+}

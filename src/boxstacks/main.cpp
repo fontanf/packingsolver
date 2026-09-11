@@ -92,6 +92,7 @@ int main(int argc, char *argv[])
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
 
             ("group-identical-bins,", po::value<bool>(), "")
+            ("reduce,", po::value<bool>(), "enable/disable instance reduction (preprocessing)")
             ;
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -187,6 +188,8 @@ int main(int argc, char *argv[])
             parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
         if (vm.count("memory-limit"))
             parameters.memory_limit_megabytes = vm["memory-limit"].as<Megabytes>();
+        if (vm.count("reduce"))
+            parameters.reduction_parameters.reduce = vm["reduce"].as<bool>();
 
         const boxstacks::Output output = optimize(instance, parameters);
 

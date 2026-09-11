@@ -100,6 +100,7 @@ int main(int argc, char *argv[])
             ("not-anytime-dichotomic-search-subproblem-tree-search-queue-size,", po::value<Counter>(), "")
 
             ("group-identical-bins,", po::value<bool>(), "")
+            ("reduce,", po::value<bool>(), "enable/disable instance reduction (preprocessing)")
             ;
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -209,6 +210,8 @@ int main(int argc, char *argv[])
             parameters.not_anytime_sequential_value_correction_number_of_iterations = vm["not-anytime-sequential-value-correction-number-of-iterations"].as<Counter>();
         if (vm.count("not-anytime-dichotomic-search-subproblem-tree-search-queue-size"))
             parameters.not_anytime_dichotomic_search_subproblem_tree_search_queue_size = vm["not-anytime-dichotomic-search-subproblem-tree-search-queue-size"].as<Counter>();
+        if (vm.count("reduce"))
+            parameters.reduction_parameters.reduce = vm["reduce"].as<bool>();
         const onedimensional::Output output = optimize(instance, parameters);
 
         if (vm.count("output"))

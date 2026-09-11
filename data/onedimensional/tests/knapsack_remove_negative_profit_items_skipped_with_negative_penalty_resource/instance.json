@@ -1,0 +1,23 @@
+{
+    "objective": "knapsack",
+    "bin_types": [
+        {
+            "length": 100,
+            "cost": 1,
+            "copies": 1,
+            "resources": [
+                {
+                    "capacity": 1,
+                    "penalize": true,
+                    "penalty": -100,
+                    "consumptions": [
+                        { "item_type_id": 0, "consumption": 1 }
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        { "length": 4, "profit": -3, "copies": 1, "copies_min": 0 }
+    ]
+}

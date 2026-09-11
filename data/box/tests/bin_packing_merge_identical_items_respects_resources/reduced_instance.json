@@ -1,0 +1,52 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {
+            "x": 100,
+            "y": 100,
+            "z": 100,
+            "cost": 10000.0,
+            "copies": 3,
+            "copies_min": 0,
+            "resources": [
+                {
+                    "capacity": 1000.0,
+                    "penalize": false,
+                    "penalty": 0.0,
+                    "consumptions": [
+                        {
+                            "item_type_id": 0,
+                            "consumption": 1.0
+                        },
+                        {
+                            "item_type_id": 1,
+                            "consumption": 2.0
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {
+            "x": 4,
+            "y": 4,
+            "z": 4,
+            "profit": 16.0,
+            "copies": 2,
+            "copies_min": 2,
+            "weight": 0.0,
+            "rotations": ["XYZ"]
+        },
+        {
+            "x": 4,
+            "y": 4,
+            "z": 4,
+            "profit": 16.0,
+            "copies": 1,
+            "copies_min": 1,
+            "weight": 0.0,
+            "rotations": ["XYZ"]
+        }
+    ]
+}
