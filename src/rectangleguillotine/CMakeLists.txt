@@ -9,6 +9,7 @@ target_sources(PackingSolver_rectangleguillotine PRIVATE
     instance_flipper.cpp
     algorithm_formatter.cpp
     optimize.cpp
+    reduction.cpp
     post_process.cpp
     sequential_feasibility.cpp
     tree_search.cpp

@@ -90,6 +90,7 @@ int main(int argc, char *argv[])
             ("use-sequential-value-correction,", po::value<bool>(), "enable sequential-value-correction")
             ("use-column-generation,", po::value<bool>(), "enable column-generation")
             ("use-dichotomic-search,", po::value<bool>(), "enable dichotomic search")
+            ("reduce,", po::value<bool>(), "enable/disable instance reduction (preprocessing)")
             ("initial-maximum-approximation-ratio,", po::value<double>(), "initial maximum approximation ratio")
             ("maximum-approximation-ratio-factor,", po::value<double>(), "decrease factor for the maximum approximation ratio")
             ("sequential-value-correction-subproblem-tree-search-queue-size,", po::value<NodeId>(), "set sequential value correction subproblem queue size")
@@ -171,6 +172,8 @@ int main(int argc, char *argv[])
             parameters.use_column_generation = vm["use-column-generation"].as<bool>();
         if (vm.count("use-dichotomic-search"))
             parameters.use_dichotomic_search = vm["use-dichotomic-search"].as<bool>();
+        if (vm.count("reduce"))
+            parameters.reduction_parameters.reduce = vm["reduce"].as<bool>();
 
         if (vm.count("initial-maximum-approximation-ratio"))
             parameters.initial_maximum_approximation_ratio = vm["initial-maximum-approximation-ratio"].as<double>();

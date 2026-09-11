@@ -1,6 +1,7 @@
 #pragma once
 
 #include "packingsolver/rectangleguillotine/solution.hpp"
+#include "packingsolver/rectangleguillotine/reduction.hpp"
 
 #include "columngenerationsolver/commons.hpp"
 
@@ -262,6 +263,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * algorithm.
      */
     NodeId not_anytime_dichotomic_search_subproblem_tree_search_queue_size = 128;
+
+    /** Parameters for the instance reduction. */
+    ReductionParameters reduction_parameters;
 };
 
 Output optimize(

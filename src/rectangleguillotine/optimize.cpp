@@ -680,6 +680,82 @@ packingsolver::rectangleguillotine::Output packingsolver::rectangleguillotine::o
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
+    // Instance reduction (see 'Reduction'): applied once, upfront,
+    // wrapping the whole dispatch logic below uniformly for every
+    // algorithm - mirrors 'rectangle::optimize''s own wiring. Gated
+    // directly on 'parameters.reduction_parameters.reduce', rather than
+    // constructing a 'Reduction' unconditionally and letting its
+    // constructor no-op, to skip paying for (and discarding) a full pass
+    // building its working representation when disabled.
+    // 'reduced_parameters.reduction_parameters.reduce' is set to 'false'
+    // below to avoid re-running the reduction recursively on the
+    // already-reduced instance.
+    if (parameters.reduction_parameters.reduce) {
+        ReductionParameters reduction_parameters = parameters.reduction_parameters;
+        reduction_parameters.timer = parameters.timer;
+        Reduction reduction(instance, reduction_parameters);
+
+        // Forwards a solution/bound found for the reduced instance to the
+        // original 'algorithm_formatter', in original-instance
+        // coordinates. Unlike 'rectangle::Reduction', this class never
+        // sets aside dedicated bins or proves infeasibility on its own,
+        // so every bound of 'reduced_output' already is the original
+        // instance's own bound, in exactly 'Output's own field layout -
+        // no translation needed.
+        auto report_reduced_output = [&reduction, &algorithm_formatter](
+                const rectangleguillotine::Output& reduced_output)
+            {
+                // Skip incomplete solutions here: 'new_solution_callback' is
+                // threaded, unchanged, into every algorithm this dispatches
+                // to below (including 'use_column_generation''s own
+                // internal pricing subproblems, which recursively call this
+                // same 'optimize()' - with a copy of the *current*
+                // 'OptimizeParameters', this callback included - on tiny,
+                // unrelated sub-instances of their own), so this can fire
+                // with a partial, not-all-items-placed 'best()' that has
+                // nothing to do with a genuine top-level improvement. Every
+                // objective except 'Knapsack' requires every item to be
+                // placed for a solution to be meaningful at all (see
+                // 'Solution::full()') - forwarding an incomplete one anyway
+                // would let it wrongly outrank a real, complete solution:
+                // 'Solution::feasible()' only checks geometric/structural
+                // validity of whatever *is* placed, not completeness, so an
+                // empty solution reads as "feasible" with the fewest
+                // possible bins, and 'operator<''s 'BinPacking'-family
+                // cases rank solely on bin count once feasibility ties.
+                const Solution& reduced_solution = reduced_output.solution_pool.best();
+                if (reduction.instance().objective() == Objective::Knapsack
+                        || reduced_solution.full()) {
+                    algorithm_formatter.update_solution(
+                            reduction.unreduce_solution(reduced_solution),
+                            reduced_output.solution_pool.best_label());
+                }
+                algorithm_formatter.update_bounds(reduced_output);
+            };
+
+        OptimizeParameters reduced_parameters = parameters;
+        reduced_parameters.verbosity_level = 0;
+        reduced_parameters.reduction_parameters.reduce = false;
+        // Forward every solution/bound the recursive solve finds to the
+        // original 'algorithm_formatter' as soon as it is found, rather
+        // than only once at the very end - lets an anytime run on the
+        // reduced instance report live progress (in original-instance
+        // coordinates) the same way a direct, unreduced run would.
+        reduced_parameters.new_solution_callback = report_reduced_output;
+        Output reduced_output = optimize(reduction.instance(), reduced_parameters);
+        // Also report the final result explicitly: some sub-solves never
+        // call 'new_solution_callback' at all (e.g. a reduced instance
+        // left with zero items), so this guarantees the answer is still
+        // reported once regardless. Harmless to call again even when the
+        // callback already reported this exact result, since
+        // 'update_solution'/'update_bounds' are themselves no-ops for
+        // anything that doesn't improve on what is already recorded.
+        report_reduced_output(reduced_output);
+
+        algorithm_formatter.end();
+        return output;
+    }
+
     optimize_trivial_bound(instance, algorithm_formatter);
 
     if (instance.objective() == Objective::BinPacking

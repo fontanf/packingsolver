@@ -1,6 +1,7 @@
 #pragma once
 
 #include "packingsolver/box/solution.hpp"
+#include "packingsolver/box/reduction.hpp"
 
 #include "columngenerationsolver/commons.hpp"
 
@@ -171,6 +172,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 
     /** Fixed items. */
     Solution* fixed_items = nullptr;
+
+    /** Parameters for the instance reduction. */
+    ReductionParameters reduction_parameters;
 
     /** Linear programming solver. */
     columngenerationsolver::SolverName linear_programming_solver_name
