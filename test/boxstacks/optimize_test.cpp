@@ -3,6 +3,8 @@
 #include "boxstacks/solution_builder.hpp"
 
 #include <gtest/gtest.h>
+
+#include <limits>
 #include <boost/filesystem.hpp>
 
 using namespace packingsolver::boxstacks;
@@ -14,6 +16,8 @@ struct BoxStacksOptimizeTestParams
     fs::path bins_path;
     fs::path parameters_path;
     fs::path certificate_path;
+    /** Time limit of the run; the default leaves the optimization unlimited. */
+    double time_limit = std::numeric_limits<double>::infinity();
 };
 
 inline std::ostream& operator<<(std::ostream& os, const BoxStacksOptimizeTestParams& test_params)
@@ -35,6 +39,7 @@ TEST_P(BoxStacksOptimizeTest, BoxStacksOptimize)
 
     OptimizeParameters optimize_parameters;
     optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    optimize_parameters.timer.set_time_limit(test_params.time_limit);
     Output output = optimize(instance, optimize_parameters);
 
     SolutionBuilder solution_builder(instance);
@@ -58,4 +63,27 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "bins.csv",
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "parameters.csv",
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "solution.csv",
+            },
+            // The three instances below need a time limit to be meaningful:
+            // the 'box' relaxation used to compute the bound does not finish
+            // on them, and before it was given a time budget of its own it
+            // consumed the whole time limit and no solution was returned.
+            {
+                fs::path("data") / "boxstacks" / "tests" / "knapsack_two_item_types_pallet_time_limit" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "knapsack_two_item_types_pallet_time_limit" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "knapsack_two_item_types_pallet_time_limit" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "knapsack_two_item_types_pallet_time_limit" / "solution.csv",
+                3.0,
+            }, {
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "solution.csv",
+                3.0,
+            }, {
+                fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_pallet_types_time_limit" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_pallet_types_time_limit" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_pallet_types_time_limit" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_pallet_types_time_limit" / "solution.csv",
+                3.0,
             }}));
