@@ -89,6 +89,8 @@ int main(int argc, char *argv[])
 
             ("memory-limit,", po::value<Megabytes>(), "Memory limit in mebibytes (default: unlimited)")
 
+            ("reduce,", po::value<bool>(), "enable/disable instance reduction (preprocessing)")
+
             ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
             ("use-dual-feasible-functions,", po::value<bool>(), "force running the dual feasible functions bound/infeasibility check even if the instance has more items than the default criterion allows")
@@ -199,6 +201,8 @@ int main(int argc, char *argv[])
             parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
         if (vm.count("memory-limit"))
             parameters.memory_limit_megabytes = vm["memory-limit"].as<Megabytes>();
+        if (vm.count("reduce"))
+            parameters.reduction_parameters.reduce = vm["reduce"].as<bool>();
 
         if (vm.count("use-dual-feasible-functions"))
             parameters.use_dual_feasible_functions = vm["use-dual-feasible-functions"].as<bool>();

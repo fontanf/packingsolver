@@ -582,6 +582,58 @@ packingsolver::onedimensional::Output packingsolver::onedimensional::optimize(
     algorithm_formatter.start();
     algorithm_formatter.print_header();
 
+    // Instance reduction (see 'Reduction'): applied once, upfront, wrapping
+    // the whole dispatch logic below uniformly for every algorithm -
+    // mirrors 'rectangle::optimize()''s own wiring. Gated directly on
+    // 'parameters.reduction_parameters.reduce', rather than constructing a
+    // 'Reduction' unconditionally and letting its constructor no-op: when
+    // it is 'false', this skips the reduction entirely instead of paying
+    // for (and discarding) a full pass building its working
+    // representation. 'reduced_parameters.reduction_parameters.reduce' is
+    // set to 'false' below to avoid re-running the reduction recursively on
+    // the already-reduced instance.
+    if (parameters.reduction_parameters.reduce) {
+        ReductionParameters reduction_parameters = parameters.reduction_parameters;
+        reduction_parameters.timer = parameters.timer;
+        Reduction reduction(instance, reduction_parameters);
+
+        // Unlike rectangle's own six-operation 'Reduction', neither
+        // operation here can ever hide items in a dedicated bin or prove
+        // the instance infeasible by itself, so there is no
+        // 'proven_infeasible()'/'number_of_dedicated_bins()' bound
+        // translation needed - every bound found for the reduced instance
+        // already is the original instance's own bound, unchanged.
+        auto report_reduced_output = [&reduction, &algorithm_formatter](
+                const onedimensional::Output& reduced_output)
+            {
+                algorithm_formatter.update_solution(
+                        reduction.unreduce_solution(reduced_output.solution_pool.best()),
+                        reduced_output.solution_pool.best_label());
+                algorithm_formatter.update_bounds(reduced_output);
+            };
+
+        OptimizeParameters reduced_parameters = parameters;
+        reduced_parameters.verbosity_level = 0;
+        reduced_parameters.reduction_parameters.reduce = false;
+        // Forward every solution/bound the recursive solve finds to the
+        // original 'algorithm_formatter' as soon as it is found, rather
+        // than only once at the very end - lets an anytime run on the
+        // reduced instance report live progress (in original-instance
+        // coordinates) the same way a direct, unreduced run would.
+        reduced_parameters.new_solution_callback = report_reduced_output;
+        Output reduced_output = optimize(reduction.instance(), reduced_parameters);
+        // Also report the final result explicitly: some sub-solves never
+        // call 'new_solution_callback' at all (e.g. nothing left to search
+        // for). Harmless to call again even when the callback already
+        // reported this exact result, since 'update_solution'/
+        // 'update_bounds' are themselves no-ops for anything that doesn't
+        // improve on what is already recorded.
+        report_reduced_output(reduced_output);
+
+        algorithm_formatter.end();
+        return output;
+    }
+
     optimize_trivial_bound(instance, parameters, algorithm_formatter);
 
     if (instance.objective() == Objective::BinPacking

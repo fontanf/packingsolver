@@ -1,0 +1,25 @@
+{
+    "objective": "bin-packing",
+    "bin_types": [
+        {
+            "length": 100,
+            "cost": 1,
+            "copies": 5,
+            "resources": [
+                {
+                    "capacity": 1000,
+                    "consumptions": [
+                        { "item_type_id": 0, "consumption": 1 },
+                        { "item_type_id": 1, "consumption": 1 },
+                        { "item_type_id": 2, "consumption": 2 }
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        { "length": 4, "copies": 2 },
+        { "length": 4, "copies": 3 },
+        { "length": 4, "copies": 2 }
+    ]
+}

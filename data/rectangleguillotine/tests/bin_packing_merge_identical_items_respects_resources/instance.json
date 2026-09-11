@@ -1,0 +1,31 @@
+{
+    "objective": "BinPacking",
+    "number_of_stages": 2,
+    "cut_type": "NonExact",
+    "first_stage_orientation": "Vertical",
+    "bin_types": [
+        {
+            "width": 100,
+            "height": 100,
+            "cost": 10000,
+            "copies": 5,
+            "resources": [
+                {
+                    "capacity": 1000,
+                    "penalize": false,
+                    "penalty": 0,
+                    "consumptions": [
+                        {"item_type_id": 0, "consumption": 1},
+                        {"item_type_id": 1, "consumption": 1},
+                        {"item_type_id": 2, "consumption": 2}
+                    ]
+                }
+            ]
+        }
+    ],
+    "item_types": [
+        {"width": 4, "height": 4, "oriented": true, "copies": 1},
+        {"width": 4, "height": 4, "oriented": true, "copies": 1},
+        {"width": 4, "height": 4, "oriented": true, "copies": 1}
+    ]
+}
