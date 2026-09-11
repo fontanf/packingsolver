@@ -163,6 +163,13 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     columngenerationsolver::SolverName linear_programming_solver_name
         = columngenerationsolver::SolverName::CLP;
 
+    /**
+     * Compute a bound on the 'box' relaxation (trivial, 1D and dual
+     * feasible functions bounds) for the 'Knapsack', 'BinPacking' and
+     * 'VariableSizedBinPacking' objectives, before the primal algorithms.
+     */
+    bool use_box_bounds = true;
+
     /** Use tree search algorithm. */
     bool use_tree_search = false;
 
