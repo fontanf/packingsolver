@@ -5,11 +5,12 @@
 #include "boxstacks/tree_search.hpp"
 #include "boxstacks/sequential_onedimensional_rectangle.hpp"
 #include "packingsolver/box/instance_builder.hpp"
-#include "packingsolver/box/optimize.hpp"
+#include "box/trivial.hpp"
+#include "box/dual_feasible_functions.hpp"
+#include "packingsolver/onedimensional/instance_builder.hpp"
+#include "packingsolver/onedimensional/optimize.hpp"
 
 #include "algorithms/sequential_value_correction.hpp"
-
-#include <cmath>
 
 using namespace packingsolver;
 using namespace packingsolver::boxstacks;
@@ -17,96 +18,68 @@ using namespace packingsolver::boxstacks;
 namespace
 {
 
-void optimize_trivial_bound(
-        const Instance& instance,
+void optimize_onedimensional_bound(
+        const box::Instance& box_instance,
+        const OptimizeParameters& parameters,
         AlgorithmFormatter& algorithm_formatter)
 {
-    if (instance.objective() == Objective::Knapsack) {
-        // 1D continuous relaxation (volume-based Dantzig bound): sort items
-        // by decreasing profit/volume ratio and greedily fill the total
-        // available bin volume, taking the last item fractionally. Always a
-        // valid, cheap (O(n log n), no search) upper bound, and much
-        // tighter than the trivial "sum of all profits" whenever item
-        // profits aren't roughly proportional to their volume.
-        // Items that don't fit (in any allowed rotation) in any bin type
-        // can never be packed, so they must be excluded entirely rather
-        // than counted as fractionally packable volume.
-        Volume total_capacity = 0;
-        for (BinTypeId bin_type_id = 0;
-                bin_type_id < instance.number_of_bin_types();
-                ++bin_type_id) {
-            const BinType& bin_type = instance.bin_type(bin_type_id);
-            total_capacity += bin_type.volume() * bin_type.copies;
-        }
-        std::vector<ItemTypeId> sorted_item_types;
-        for (ItemTypeId item_type_id = 0;
-                item_type_id < instance.number_of_item_types();
-                ++item_type_id) {
-            if (instance.fits_some_bin(item_type_id))
-                sorted_item_types.push_back(item_type_id);
-        }
-        std::sort(
-                sorted_item_types.begin(),
-                sorted_item_types.end(),
-                [&instance](ItemTypeId item_type_id_1, ItemTypeId item_type_id_2) -> bool
-                {
-                    const ItemType& item_type_1 = instance.item_type(item_type_id_1);
-                    const ItemType& item_type_2 = instance.item_type(item_type_id_2);
-                    return item_type_1.profit * item_type_2.volume()
-                        > item_type_2.profit * item_type_1.volume();
-                });
-        Profit bound = 0.0;
-        Volume remaining_capacity = total_capacity;
-        for (ItemTypeId item_type_id: sorted_item_types) {
-            if (remaining_capacity <= 0)
-                break;
-            const ItemType& item_type = instance.item_type(item_type_id);
-            if (item_type.volume() <= 0)
-                continue;
-            Volume item_total_volume = item_type.volume() * item_type.copies;
-            if (item_total_volume <= remaining_capacity) {
-                bound += item_type.profit * item_type.copies;
-                remaining_capacity -= item_total_volume;
-            } else {
-                bound += item_type.profit
-                    * ((double)remaining_capacity / item_type.volume());
-                remaining_capacity = 0;
-            }
-        }
-        algorithm_formatter.update_knapsack_bound(bound);
-        return;
+    // Relax the 'box' relaxation further down to 1D, keeping only bin/item
+    // volumes: any solution of 'box_instance' is also a solution of this
+    // relaxation (with the same cost), so the bound the onedimensional
+    // solver finds for it is a valid bound here too. Unlike the full
+    // geometric 'box' relaxation, 1D bin packing is solved exactly and
+    // cheaply (dichotomic search), so this stays fast regardless of how
+    // hard the geometric relaxation would be to search.
+    onedimensional::InstanceBuilder onedim_instance_builder;
+    onedim_instance_builder.set_objective(box_instance.objective());
+    for (BinTypeId bin_type_id = 0;
+            bin_type_id < box_instance.number_of_bin_types();
+            ++bin_type_id) {
+        const box::BinType& bin_type = box_instance.bin_type(bin_type_id);
+        BinTypeId onedim_bin_type_id = onedim_instance_builder.add_bin_type(bin_type.volume());
+        onedim_instance_builder.set_bin_type_cost(onedim_bin_type_id, bin_type.cost);
+        onedim_instance_builder.set_bin_type_copies(onedim_bin_type_id, bin_type.copies);
+        onedim_instance_builder.set_bin_type_copies_min(onedim_bin_type_id, bin_type.copies_min);
     }
+    for (ItemTypeId item_type_id = 0;
+            item_type_id < box_instance.number_of_item_types();
+            ++item_type_id) {
+        const box::ItemType& item_type = box_instance.item_type(item_type_id);
+        if (item_type.volume() <= 0)
+            continue;
+        ItemTypeId onedim_item_type_id = onedim_instance_builder.add_item_type(item_type.volume());
+        onedim_instance_builder.set_item_type_profit(onedim_item_type_id, item_type.profit);
+        onedim_instance_builder.set_item_type_copies(onedim_item_type_id, item_type.copies);
+    }
+    onedimensional::Instance onedim_instance = onedim_instance_builder.build();
 
-    if (instance.objective() == Objective::BinPacking) {
-        // Volume-based bound: fill bin types in the order they are
-        // provided (as bins are used for this objective) until enough
-        // volume is available to fit all the items. Cheap (linear in the
-        // number of bin/item types).
-        Volume remaining_item_volume = instance.item_volume();
-        BinPos bound = 0;
-        for (BinTypeId bin_type_id = 0;
-                bin_type_id < instance.number_of_bin_types();
-                ++bin_type_id) {
-            if (remaining_item_volume <= 0)
-                break;
-            const BinType& bin_type = instance.bin_type(bin_type_id);
-            if (bin_type.volume() <= 0)
-                continue;
-            BinPos bins_needed = (BinPos)((remaining_item_volume + bin_type.volume() - 1) / bin_type.volume());
-            BinPos bins_used = std::min(bins_needed, bin_type.copies);
-            bound += bins_used;
-            remaining_item_volume -= bins_used * bin_type.volume();
-        }
-        algorithm_formatter.update_bin_packing_bound(bound);
-        return;
+    onedimensional::OptimizeParameters onedim_parameters;
+    onedim_parameters.verbosity_level = 0;
+    onedim_parameters.timer = parameters.timer;
+    onedim_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
+    onedim_parameters.optimization_mode = OptimizationMode::NotAnytime;
+    onedim_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
+    auto onedim_output = onedimensional::optimize(onedim_instance, onedim_parameters);
+
+    switch (box_instance.objective()) {
+    case Objective::Knapsack:
+        algorithm_formatter.update_knapsack_bound(onedim_output.knapsack_bound);
+        break;
+    case Objective::BinPacking:
+        algorithm_formatter.update_bin_packing_bound(onedim_output.bin_packing_bound);
+        break;
+    case Objective::VariableSizedBinPacking:
+        algorithm_formatter.update_variable_sized_bin_packing_bound(onedim_output.variable_sized_bin_packing_bound);
+        break;
+    default:
+        break;
     }
 }
 
 void optimize_box_bound(
         const Instance& instance,
         const OptimizeParameters& parameters,
-        AlgorithmFormatter& algorithm_formatter,
-        double time_limit_ratio)
+        AlgorithmFormatter& algorithm_formatter)
 {
     // Relax the instance to a plain 'box' instance: drop the stacking,
     // axle weight, stack density and unloading constraints, keep only the
@@ -152,34 +125,51 @@ void optimize_box_bound(
     }
     box::Instance box_instance = box_instance_builder.build();
 
-    box::OptimizeParameters box_parameters;
-    box_parameters.verbosity_level = 0;
-    box_parameters.timer = parameters.timer;
-    // The relaxation shares the timer of the whole optimization; cap it so
-    // that it cannot starve the primal algorithms that run after it.
-    if (time_limit_ratio < 1
-            && std::isfinite(parameters.timer.time_limit())) {
-        box_parameters.timer.set_time_limit(
-                parameters.timer.elapsed_time()
-                + time_limit_ratio * parameters.timer.remaining_time());
-    }
-    box_parameters.timer.add_end_boolean(&algorithm_formatter.end_boolean());
-    box_parameters.optimization_mode = OptimizationMode::NotAnytime;
-    box_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-    box::Output box_output = box::optimize(box_instance, box_parameters);
-
+    // Trivial (closed-form, no search) bound on the 'box' relaxation.
+    box::TrivialBoundsParameters trivial_bounds_parameters;
+    trivial_bounds_parameters.verbosity_level = 0;
+    box::TrivialBoundsOutput trivial_bounds_output = box::trivial_bounds(
+            box_instance,
+            trivial_bounds_parameters);
     switch (instance.objective()) {
     case Objective::Knapsack:
-        algorithm_formatter.update_knapsack_bound(box_output.knapsack_bound);
+        algorithm_formatter.update_knapsack_bound(trivial_bounds_output.knapsack_bound);
         break;
     case Objective::BinPacking:
-        algorithm_formatter.update_bin_packing_bound(box_output.bin_packing_bound);
-        break;
-    case Objective::VariableSizedBinPacking:
-        algorithm_formatter.update_variable_sized_bin_packing_bound(box_output.variable_sized_bin_packing_bound);
+        algorithm_formatter.update_bin_packing_bound(trivial_bounds_output.bin_packing_bound);
         break;
     default:
         break;
+    }
+
+    // 1D relaxation bound: solved exactly, so tighter than the trivial bound
+    // above whenever bin/item volumes don't fill up evenly, and still cheap.
+    optimize_onedimensional_bound(box_instance, parameters, algorithm_formatter);
+
+    // Dual feasible functions bound: a fast (polynomial-time), no-search
+    // geometric bound, tighter than the volume-only bounds above since it
+    // accounts for the shapes not tiling the bin perfectly. Only valid for a
+    // single bin type, and only computed by default up to a certain instance
+    // size since it is cubic in the number of item types.
+    if ((instance.objective() == Objective::Knapsack
+                || instance.objective() == Objective::BinPacking)
+            && box_instance.number_of_bin_types() == 1
+            && box_instance.number_of_items() <= 50) {
+        box::DualFeasibleFunctionsParameters dff_parameters;
+        dff_parameters.verbosity_level = 0;
+        box::DualFeasibleFunctionsOutput dff_output = box::dual_feasible_functions(
+                box_instance,
+                dff_parameters);
+        switch (instance.objective()) {
+        case Objective::Knapsack:
+            algorithm_formatter.update_knapsack_bound(dff_output.knapsack_bound);
+            break;
+        case Objective::BinPacking:
+            algorithm_formatter.update_bin_packing_bound(dff_output.bin_packing_bound);
+            break;
+        default:
+            break;
+        }
     }
 }
 
@@ -195,26 +185,11 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
     algorithm_formatter.print_header();
     auto logger = parameters.get_logger();
 
-    optimize_trivial_bound(instance, algorithm_formatter);
-    bool use_box_bound
-        = (instance.objective() == Objective::Knapsack
+    if (parameters.use_box_bounds
+            && (instance.objective() == Objective::Knapsack
                 || instance.objective() == Objective::BinPacking
-                || instance.objective() == Objective::VariableSizedBinPacking);
-    // First run of the relaxation. With a time limit it only gets a fraction
-    // of it: the primal algorithms below must get their turn. Without a time
-    // limit it runs to completion as it always did; the bound it produces is
-    // what lets the primal algorithms stop once they reach it.
-    bool box_bound_first_run_capped = false;
-    if (use_box_bound
-            && parameters.box_bound_time_limit_ratio > 0) {
-        optimize_box_bound(
-                instance,
-                parameters,
-                algorithm_formatter,
-                parameters.box_bound_time_limit_ratio);
-        box_bound_first_run_capped
-            = parameters.box_bound_time_limit_ratio < 1
-            && std::isfinite(parameters.timer.time_limit());
+                || instance.objective() == Objective::VariableSizedBinPacking)) {
+        optimize_box_bound(instance, parameters, algorithm_formatter);
     }
 
     if (algorithm_formatter.end_boolean()) {
@@ -365,8 +340,6 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
                     OptimizationMode::NotAnytimeSequential:
                     OptimizationMode::NotAnytimeDeterministic;
                 kp_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
-                kp_parameters.box_bound_time_limit_ratio = parameters.box_bound_time_limit_ratio;
-                kp_parameters.box_bound_use_remaining_time = false;
                 kp_parameters.not_anytime_tree_search_queue_size
                     = parameters.sequential_value_correction_subproblem_tree_search_queue_size;
                 //kp_parameters.sequential_onedimensional_rectangle_parameters.rectangle_queue_size = parameters.sequential_value_correction_queue_size;
@@ -400,18 +373,6 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         };
         auto svc_output = sequential_value_correction<Instance, InstanceBuilder, Solution, AlgorithmFormatter, boxstacks::Output>(instance, kp_solve, svc_parameters);
 
-    }
-
-    // Second run of the relaxation with whatever time is left, when the first
-    // run was capped or skipped: when the primal algorithms finish early, the
-    // bound still gets the full budget it had before the cap.
-    if (use_box_bound
-            && parameters.box_bound_use_remaining_time
-            && (box_bound_first_run_capped
-                || parameters.box_bound_time_limit_ratio <= 0)
-            && !algorithm_formatter.end_boolean()
-            && !parameters.timer.needs_to_end()) {
-        optimize_box_bound(instance, parameters, algorithm_formatter, 1.0);
     }
 
     algorithm_formatter.end();

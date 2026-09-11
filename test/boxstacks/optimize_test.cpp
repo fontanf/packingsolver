@@ -65,9 +65,11 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "boxstacks" / "tests" / "variable_sized_bin_packing_two_bin_types" / "solution.csv",
             },
             // The three instances below need a time limit to be meaningful:
-            // the 'box' relaxation used to compute the bound does not finish
-            // on them, and before it was given a time budget of its own it
-            // consumed the whole time limit and no solution was returned.
+            // with more items than fit and more than one item type, solving
+            // the full 'box' relaxation to (near-)optimality used to consume
+            // the whole time limit before the primal algorithms ever ran
+            // (see 'optimize_box_bound' in 'optimize.cpp'), so no solution
+            // was returned at all.
             {
                 fs::path("data") / "boxstacks" / "tests" / "knapsack_two_item_types_pallet_time_limit" / "items.csv",
                 fs::path("data") / "boxstacks" / "tests" / "knapsack_two_item_types_pallet_time_limit" / "bins.csv",
