@@ -36,7 +36,8 @@ struct ApproximatedShapeKey
 
 SimplifiedInstance irregular::shape_simplification(
         const Instance& instance,
-        double maximum_approximation_ratio)
+        double maximum_approximation_ratio,
+        shape::ElementPos minimum_number_of_vertices)
 {
     //std::cout << "shape_simplification" << std::endl;
     std::vector<shape::SimplifyInputShape> simplify_inflated_bin_types_input;
@@ -156,11 +157,11 @@ SimplifiedInstance irregular::shape_simplification(
 
     // Run shape simplification algorithm.
     std::vector<shape::ShapeWithHoles> simplify_inflated_bin_types_output
-        = shape::simplify(simplify_inflated_bin_types_input, maximum_approximation_area);
+        = shape::simplify(simplify_inflated_bin_types_input, maximum_approximation_area, minimum_number_of_vertices);
     std::vector<shape::ShapeWithHoles> simplify_item_types_output
-        = shape::simplify(simplify_item_types_input, maximum_approximation_area);
+        = shape::simplify(simplify_item_types_input, maximum_approximation_area, minimum_number_of_vertices);
     std::vector<shape::ShapeWithHoles> simplify_inflated_item_types_output
-        = shape::simplify(simplify_inflated_item_types_input, maximum_approximation_area);
+        = shape::simplify(simplify_inflated_item_types_input, maximum_approximation_area, minimum_number_of_vertices);
 
     // Build simplified instance.
     SimplifiedInstance simplified_instance;
