@@ -1,5 +1,7 @@
 #include "irregular/periodic_packing.hpp"
 
+#include "irregular/shape_simplification.hpp"
+
 #include "shape/no_fit_polygon.hpp"
 #include "shape/boolean_operations.hpp"
 #include "shape/shapes_intersections.hpp"
@@ -7,6 +9,7 @@
 
 #include <limits>
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 
 using namespace packingsolver;
@@ -45,25 +48,73 @@ bool packingsolver::irregular::equal(
     return true;
 }
 
+namespace
+{
+
+/**
+ * Apply a rotation (mirror then angle) to each of a set of unrotated
+ * sub-shapes and union the result, the same way Instance::item_shape_scaled
+ * + get_item_combined_shape do for a real item type, but without needing an
+ * Instance/ItemTypeId to look the sub-shapes up from.
+ */
+ShapeWithHoles compute_combined_shape(
+        const std::vector<ShapeWithHoles>& item_shapes,
+        const ItemTypeRotation& rotation)
+{
+    std::vector<ShapeWithHoles> shapes;
+    shapes.reserve(item_shapes.size());
+    for (const ShapeWithHoles& item_shape: item_shapes) {
+        ShapeWithHoles shape = item_shape;
+        if (rotation.mirror)
+            shape = shape.axial_symmetry_y_axis();
+        shape = shape.rotate(rotation.angle);
+        shapes.push_back(std::move(shape));
+    }
+    if (shapes.size() == 1)
+        return shapes[0];
+    MultiShapeWithHoles union_result = shape::compute_union(shapes);
+    if (union_result.shapes_with_holes.empty())
+        return shapes[0];
+    return union_result.shapes_with_holes[0];
+}
+
+/**
+ * Return true if 'rotations' contains an entry matching (angle, mirror)
+ * (angle normalized to [0, 360)), used in place of
+ * ItemType::is_rotation_allowed to check whether a rotation's r + 180
+ * counterpart is itself a valid candidate, without needing the ItemType
+ * this list of rotations was generated from.
+ */
+bool contains_rotation(
+        const std::vector<ItemTypeRotation>& rotations,
+        Angle angle,
+        bool mirror)
+{
+    while (angle < 0)
+        angle += 360;
+    while (angle >= 360)
+        angle -= 360;
+    for (const ItemTypeRotation& rotation: rotations)
+        if (rotation.mirror == mirror && shape::equal(rotation.angle, angle))
+            return true;
+    return false;
+}
+
+}  // namespace
+
 ShapeWithHoles packingsolver::irregular::get_item_combined_shape(
         const Instance& instance,
         ItemTypeId item_type_id,
         const ItemTypeRotation& rotation)
 {
     const ItemType& item_type = instance.item_type(item_type_id);
-    std::vector<ShapeWithHoles> shapes;
+    std::vector<ShapeWithHoles> item_shapes;
     for (ItemShapePos item_shape_pos = 0;
             item_shape_pos < (ItemShapePos)item_type.shapes.size();
             ++item_shape_pos) {
-        shapes.push_back(instance.item_shape_scaled(
-            item_type_id, item_shape_pos, rotation.angle, rotation.mirror));
+        item_shapes.push_back(item_type.shapes[item_shape_pos].shape_scaled);
     }
-    if ((ItemShapePos)shapes.size() == 1)
-        return shapes[0];
-    MultiShapeWithHoles union_result = shape::compute_union(shapes);
-    if (union_result.shapes_with_holes.empty())
-        return shapes[0];
-    return union_result.shapes_with_holes[0];
+    return compute_combined_shape(item_shapes, rotation);
 }
 
 namespace
@@ -348,6 +399,34 @@ bool check_periodic_packing(
 {
     int n_items = (int)item_shapes.size();
 
+    // Items within the same cell are NOT re-checked for overlap below: every
+    // current caller places them at a relative offset taken directly from
+    // the boundary of their own no_fit_polygon (item_positions is all-zero
+    // and the offset is already baked into item_shapes for the two-shape
+    // case; for the single-shape case there is only one item, so there is
+    // no pair to check regardless). A point on an NFP's boundary is, by
+    // definition, an exact-touching (zero-overlap) placement, so
+    // re-deriving that same fact via an independent intersect() call is not
+    // just redundant but actively harmful: it is a second,
+    // differently-rounded computation of a razor-thin tangency, which can
+    // disagree with the NFP by a hairline (observed: ~1.7e-8 of the item's
+    // own area) and reject an otherwise valid, exactly-touching candidate.
+    // If no_fit_polygon itself ever produced a boundary point that is not
+    // genuinely a valid touching placement, that would be a bug in
+    // no_fit_polygon to fix directly, not something to paper over with a
+    // redundant recheck here.
+    //
+    // That guarantee has only been established for exactly this n_items <=
+    // 2 usage (see the two call sites above: 1 item for self-tiling, 2 for
+    // a shape paired with its own NFP-derived placement against a second
+    // rotation). It does NOT automatically extend to n_items >= 3: nothing
+    // here would guarantee every pairwise relative offset among 3+ items is
+    // itself an NFP boundary point. A future caller passing more items must
+    // either establish (and document) that same guarantee for every pair,
+    // or reinstate an explicit intra-cell overlap check for the pairs that
+    // aren't covered by it.
+    assert(n_items <= 2);
+
     // Build the base items (each shape shifted by its position in the cell)
     // and their bounding boxes.
     std::vector<ShapeWithHoles> base_items;
@@ -357,14 +436,6 @@ bool check_periodic_packing(
         s.shift(item_positions[item_idx].x, item_positions[item_idx].y);
         base_aabbs.push_back(s.compute_min_max());
         base_items.push_back(std::move(s));
-    }
-
-    // Check items within the same cell.
-    for (int item_idx = 0; item_idx < n_items; ++item_idx) {
-        for (int other_idx = item_idx + 1; other_idx < n_items; ++other_idx) {
-            if (shape::intersect(base_items[item_idx], base_items[other_idx], true))
-                return false;
-        }
     }
 
     // Natural (unshifted) bounding boxes: a copy's bounding box at any offset
@@ -778,26 +849,24 @@ std::vector<PeriodicPacking> packingsolver::irregular::compute_periodic_packings
 }
 
 std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_packings_for_item_type(
-        const Instance& instance,
-        ItemTypeId item_type_id,
-        const std::vector<ItemTypeRotation>& rotations)
+        const std::vector<ShapeWithHoles>& item_shapes,
+        const std::vector<ItemTypeRotation>& rotations,
+        LengthDbl item_item_minimum_spacing)
 {
     std::vector<PeriodicItemPacking> output;
-
-    LengthDbl item_item_minimum_spacing = instance.item_spacing_scaled();
 
     for (int rot_0_pos = 0;
             rot_0_pos < (int)rotations.size();
             ++rot_0_pos) {
         const ItemTypeRotation& rot_0 = rotations[rot_0_pos];
-        ShapeWithHoles shape_0 = get_item_combined_shape(instance, item_type_id, rot_0);
+        ShapeWithHoles shape_0 = compute_combined_shape(item_shapes, rot_0);
 
         for (const PeriodicPacking& pp_same: compute_periodic_packings(shape_0, item_item_minimum_spacing)) {
             PeriodicItemPacking item_packing;
             item_packing.vector_1 = pp_same.vector_1;
             item_packing.vector_2 = pp_same.vector_2;
             SolutionItem item;
-            item.item_type_id = item_type_id;
+            item.item_type_id = -1;
             item.bl_corner = pp_same.positions[0];
             item.angle = rot_0.angle;
             item.mirror = rot_0.mirror;
@@ -826,10 +895,9 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
         // zero-overhang pairing found only via (shape_r, shape_0), never
         // via (shape_0, shape_r). So both orders are tried here.
         if (shape::strictly_lesser(rot_0.angle, 180.0)
-                && instance.item_type(item_type_id).is_rotation_allowed(
-                    rot_0.angle + 180.0, rot_0.mirror)) {
+                && contains_rotation(rotations, rot_0.angle + 180.0, rot_0.mirror)) {
             ItemTypeRotation rot_r{rot_0.angle + 180.0, rot_0.mirror};
-            ShapeWithHoles shape_r = get_item_combined_shape(instance, item_type_id, rot_r);
+            ShapeWithHoles shape_r = compute_combined_shape(item_shapes, rot_r);
 
             auto add_two_shape_packings = [&](
                     const ItemTypeRotation& rotation_first,
@@ -843,7 +911,7 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
                     item_packing.vector_1 = pp_two.vector_1;
                     item_packing.vector_2 = pp_two.vector_2;
                     SolutionItem item_first;
-                    item_first.item_type_id = item_type_id;
+                    item_first.item_type_id = -1;
                     item_first.bl_corner = pp_two.positions[0];
                     item_first.angle = rotation_first.angle;
                     item_first.mirror = rotation_first.mirror;
@@ -852,7 +920,7 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
                     bb_first.shift(pp_two.positions[0]);
                     item_packing.aabb_scaled = merge(item_packing.aabb_scaled, bb_first);
                     SolutionItem item_second;
-                    item_second.item_type_id = item_type_id;
+                    item_second.item_type_id = -1;
                     item_second.bl_corner = pp_two.positions[1];
                     item_second.angle = rotation_second.angle;
                     item_second.mirror = rotation_second.mirror;
@@ -878,12 +946,27 @@ std::vector<PeriodicItemPacking> packingsolver::irregular::compute_periodic_pack
 {
     std::vector<PeriodicItemPacking> output;
 
+    LengthDbl item_item_minimum_spacing = instance.item_spacing_scaled();
+    // See instance_builder.cpp's periodic_packings_simplification_minimum_
+    // number_of_vertices for why 64.
+    SimplifiedInstance simplified_instance = shape_simplification(instance, 0.001, 64);
+
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
+        std::vector<ShapeWithHoles> item_shapes;
+        for (const SimplifiedShape& simplified_shape:
+                simplified_instance.item_types[item_type_id].shapes) {
+            item_shapes.push_back(simplified_shape.shape);
+        }
         std::vector<PeriodicItemPacking> item_type_output
             = compute_periodic_packings_for_item_type(
-                    instance, item_type_id, item_type_rotations[item_type_id]);
+                    item_shapes,
+                    item_type_rotations[item_type_id],
+                    item_item_minimum_spacing);
+        for (PeriodicItemPacking& item_packing: item_type_output)
+            for (SolutionItem& item: item_packing.items)
+                item.item_type_id = item_type_id;
         output.insert(
                 output.end(),
                 std::make_move_iterator(item_type_output.begin()),

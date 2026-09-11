@@ -5,6 +5,7 @@
 
 #include "irregular/periodic_packing.hpp"
 #include "irregular/rotations.hpp"
+#include "irregular/shape_simplification.hpp"
 #include "irregular/solution_builder.hpp"
 #include "algorithms/thread_pool.hpp"
 #include "treesearchsolver/iterative_beam_search.hpp"
@@ -1152,6 +1153,11 @@ std::vector<PeriodicItemPacking> assemble_periodic_packings(const Instance& inst
 {
     std::vector<PeriodicItemPacking> packings;
     std::vector<std::vector<ItemTypeRotation>> item_type_rotations;
+    // Computed lazily (only if some item type's cache actually needs it).
+    // See instance_builder.cpp's periodic_packings_simplification_minimum_
+    // number_of_vertices for why 64.
+    SimplifiedInstance simplified_instance;
+    bool simplified_instance_computed = false;
     for (ItemTypeId item_type_id = 0;
             item_type_id < instance.number_of_item_types();
             ++item_type_id) {
@@ -1167,9 +1173,23 @@ std::vector<PeriodicItemPacking> assemble_periodic_packings(const Instance& inst
             auto all_item_type_rotations = compute_item_type_rotations(instance);
             item_type_rotations = all_item_type_rotations[instance.bin_type_id(0)];
         }
+        if (!simplified_instance_computed) {
+            simplified_instance = shape_simplification(instance, 0.001, 64);
+            simplified_instance_computed = true;
+        }
+        std::vector<ShapeWithHoles> item_shapes;
+        for (const SimplifiedShape& simplified_shape:
+                simplified_instance.item_types[item_type_id].shapes) {
+            item_shapes.push_back(simplified_shape.shape);
+        }
         std::vector<PeriodicItemPacking> item_type_packings
             = compute_periodic_packings_for_item_type(
-                    instance, item_type_id, item_type_rotations[item_type_id]);
+                    item_shapes,
+                    item_type_rotations[item_type_id],
+                    instance.item_spacing_scaled());
+        for (PeriodicItemPacking& item_packing: item_type_packings)
+            for (SolutionItem& item: item_packing.items)
+                item.item_type_id = item_type_id;
         packings.insert(
                 packings.end(),
                 std::make_move_iterator(item_type_packings.begin()),

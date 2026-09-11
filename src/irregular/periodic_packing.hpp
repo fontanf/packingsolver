@@ -44,14 +44,20 @@ std::vector<PeriodicPacking> compute_periodic_packings(
  * Compute periodic packings for a single item type (self-pairing and, when
  * allowed, pairing a rotation with its r + 180 counterpart).
  *
- * Only depends on the item type's own shape and allowed rotations, not on
- * any other item type or on bin dimensions, so its result is cacheable on
- * ItemType (see ItemType::periodic_packings in instance.hpp).
+ * Only depends on the item's own (unrotated) sub-shapes and allowed
+ * rotations, not on any other item type or on bin dimensions -- hence
+ * 'item_shapes' rather than an (Instance, ItemTypeId) pair, so this can be
+ * called directly on e.g. a simplified version of an item type's shapes
+ * without needing to build a full Instance around them.
+ *
+ * The returned PeriodicItemPacking::items do not have item_type_id set
+ * (this function has no item type identity to give them); the caller is
+ * responsible for filling it in.
  */
 std::vector<PeriodicItemPacking> compute_periodic_packings_for_item_type(
-        const Instance& instance,
-        ItemTypeId item_type_id,
-        const std::vector<ItemTypeRotation>& rotations);
+        const std::vector<ShapeWithHoles>& item_shapes,
+        const std::vector<ItemTypeRotation>& rotations,
+        LengthDbl item_item_minimum_spacing = 0.0);
 
 std::vector<PeriodicItemPacking> compute_periodic_packings(
         const Instance& instance,
