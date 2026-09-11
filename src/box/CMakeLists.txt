@@ -9,6 +9,7 @@ target_sources(PackingSolver_box PRIVATE
     algorithm_formatter.cpp
     optimize.cpp
     dual_feasible_functions.cpp
+    trivial.cpp
     post_process.cpp
     block.cpp
     tree_search.cpp

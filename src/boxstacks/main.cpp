@@ -90,7 +90,6 @@ int main(int argc, char *argv[])
 
             ("linear-programming-solver,", po::value<columngenerationsolver::SolverName>(), "set linear programming solver")
             ("optimization-mode,", po::value<OptimizationMode>(), "set optimization mode")
-            ("box-bound-time-limit-ratio,", po::value<double>(), "fraction of the remaining time the 'box' relaxation may use before the primal algorithms (default 0.2, 0 skips it)")
 
             ("group-identical-bins,", po::value<bool>(), "")
             ;
@@ -186,8 +185,6 @@ int main(int argc, char *argv[])
             parameters.linear_programming_solver_name = vm["linear-programming-solver"].as<columngenerationsolver::SolverName>();
         if (vm.count("optimization-mode"))
             parameters.optimization_mode = vm["optimization-mode"].as<OptimizationMode>();
-        if (vm.count("box-bound-time-limit-ratio"))
-            parameters.box_bound_time_limit_ratio = vm["box-bound-time-limit-ratio"].as<double>();
         if (vm.count("memory-limit"))
             parameters.memory_limit_megabytes = vm["memory-limit"].as<Megabytes>();
 
