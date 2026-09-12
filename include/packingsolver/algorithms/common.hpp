@@ -322,6 +322,29 @@ struct Resource
 };
 
 /**
+ * Result of a domain's 'FeasibilityCallback' invocation (see each domain's
+ * own 'instance.hpp' for the callback itself).
+ *
+ * 'resources' lets the callback hand back its own reason for an infeasible
+ * verdict, expressed as one or more combinatorial cuts (see 'Resource'),
+ * instead of only a bare 'true'/'false' - so that whichever algorithm owns
+ * the callback (e.g. a caller re-solving the same instance repeatedly, one
+ * cut at a time) can accumulate and reuse them itself, rather than
+ * re-deriving the same infeasibility from scratch on a later call. Empty
+ * when 'feasible' is 'true', or when the callback has no cut to offer for
+ * an infeasible verdict (a plain 'false', same as before this field
+ * existed, is still a completely valid result).
+ */
+struct FeasibilityCallbackResult
+{
+    /** 'false' marks the solution the callback was given as infeasible. */
+    bool feasible = true;
+
+    /** Cuts the callback derived while proving 'feasible == false', if any. */
+    std::vector<Resource> resources;
+};
+
+/**
  * One of a bin type's resources a given item type has a non-zero
  * consumption for, together with the position of that item type's own
  * entry in the resource's own (sparse) 'Resource::item_consumptions' list
