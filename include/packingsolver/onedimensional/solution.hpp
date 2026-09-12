@@ -112,6 +112,9 @@ public:
     /** Feasibility according to the user feasibility callback. */
     inline bool callback_feasible() const { return callback_feasible_; }
 
+    /** Cuts the feasibility callback returned, if any - see 'FeasibilityCallbackResult'. */
+    inline const std::vector<Resource>& callback_resources() const { return callback_resources_; }
+
     /** Return 'true' iff the solution satisfies the bin length capacity constraint. */
     inline bool capacity_feasible() const { return capacity_feasible_; }
 
@@ -293,6 +296,9 @@ private:
 
     /** Feasibility according to the user feasibility callback. */
     bool callback_feasible_ = true;
+
+    /** Cuts the feasibility callback returned, if any - see 'FeasibilityCallbackResult'. */
+    std::vector<Resource> callback_resources_;
 
     /** 'true' iff the solution is feasible regarding the packing constraints. */
     bool feasible_ = true;

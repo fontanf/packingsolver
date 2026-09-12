@@ -362,9 +362,9 @@ class Solution;
  * User-provided feasibility callback.
  *
  * Called on a fully-built Solution in addition to the built-in feasibility
- * checks; returning 'false' marks the solution as infeasible.
+ * checks; see 'FeasibilityCallbackResult' for what it may return.
  */
-using FeasibilityCallback = std::function<bool(const Solution&)>;
+using FeasibilityCallback = std::function<FeasibilityCallbackResult(const Solution&)>;
 
 /**
  * Instance class for a problem of type "rectangleguillotine".
@@ -591,7 +591,7 @@ private:
     Parameters parameters_;
 
     /** User-provided feasibility callback. */
-    FeasibilityCallback feasibility_callback_ = [](const Solution&) { return true; };
+    FeasibilityCallback feasibility_callback_ = [](const Solution&) { return FeasibilityCallbackResult(); };
 
     /** Bin types. */
     std::vector<BinType> bin_types_;

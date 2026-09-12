@@ -161,6 +161,9 @@ public:
 
     bool callback_feasible() const { return callback_feasible_; }
 
+    /** Cuts the feasibility callback returned, if any - see 'FeasibilityCallbackResult'. */
+    const std::vector<Resource>& callback_resources() const { return callback_resources_; }
+
     bool feasible() const { return feasible_; }
 
     /*
@@ -337,6 +340,9 @@ private:
 
     /** Feasibility according to the user feasibility callback. */
     bool callback_feasible_ = true;
+
+    /** Cuts the feasibility callback returned, if any - see 'FeasibilityCallbackResult'. */
+    std::vector<Resource> callback_resources_;
 
     /** Overall feasibility. */
     bool feasible_ = true;
