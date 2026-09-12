@@ -10,7 +10,8 @@ target_sources(PackingSolver_boxstacks PRIVATE
     optimize.cpp
     post_process.cpp
     sequential_onedimensional_rectangle.cpp
-    tree_search.cpp)
+    tree_search.cpp
+    reduction.cpp)
 target_include_directories(PackingSolver_boxstacks PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(PackingSolver_boxstacks PRIVATE

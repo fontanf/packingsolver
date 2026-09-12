@@ -1,6 +1,7 @@
 #pragma once
 
 #include "packingsolver/onedimensional/solution.hpp"
+#include "packingsolver/onedimensional/reduction.hpp"
 
 #include "columngenerationsolver/commons.hpp"
 
@@ -194,6 +195,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
      * algorithm.
      */
     NodeId not_anytime_dichotomic_search_subproblem_tree_search_queue_size = 512;
+
+    /** Parameters for the instance reduction. */
+    ReductionParameters reduction_parameters;
 };
 
 Output optimize(

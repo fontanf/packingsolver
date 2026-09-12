@@ -10,6 +10,7 @@ target_sources(PackingSolver_onedimensional PRIVATE
     dual_feasible_functions.cpp
     milp_assignment.cpp
     post_process.cpp
+    reduction.cpp
     tree_search.cpp)
 target_include_directories(PackingSolver_onedimensional PUBLIC
     ${PROJECT_SOURCE_DIR}/include)

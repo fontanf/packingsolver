@@ -1,6 +1,7 @@
 #pragma once
 
 #include "packingsolver/boxstacks/solution.hpp"
+#include "packingsolver/boxstacks/reduction.hpp"
 
 #include "columngenerationsolver/commons.hpp"
 
@@ -206,6 +207,9 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
 
     /** Number of iterations of the sequential value correction algorithm. */
     Counter not_anytime_sequential_value_correction_number_of_iterations = 32;
+
+    /** Parameters for the instance reduction. */
+    ReductionParameters reduction_parameters;
 };
 
 Output optimize(
