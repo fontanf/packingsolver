@@ -104,7 +104,9 @@ void Solution::update_indicators(
     }
 
     // Feasibility callback.
-    callback_feasible_ = instance().feasibility_callback()(*this);
+    FeasibilityCallbackResult callback_result = instance().feasibility_callback()(*this);
+    callback_feasible_ = callback_result.feasible;
+    callback_resources_ = std::move(callback_result.resources);
     feasible_ = item_copies_feasible_
         && callback_feasible_
         && resource_feasible_
