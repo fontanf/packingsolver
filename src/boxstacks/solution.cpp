@@ -109,41 +109,33 @@ void Solution::update_indicators(
     callback_feasible_ = callback_result.feasible;
     callback_resources_ = std::move(callback_result.resources);
 
+    // Bin 'bin_pos' has just been sized above, so its total weight and axle
+    // weight feasibility can be checked and accumulated now.
+    total_weight_feasible_ = total_weight_feasible_
+        && !(bin.weight.front() > bin_type.maximum_weight * PSTOL);
+    axle_weights_feasible_ = axle_weights_feasible_ && feasible_axle_weights(bin_pos);
+
     // Aggregate feasibility, recomputed (not accumulated) on every call since
     // the feasibility callback's result is not required to be monotonic as
     // bins are added.
-    feasible_ = feasible_total_weight() && feasible_axle_weights() && callback_feasible_
+    feasible_ = total_weight_feasible_ && axle_weights_feasible_ && callback_feasible_
         && item_copies_feasible_
         && (number_of_infeasible_item_copies_min_ == 0);
 }
 
-bool Solution::feasible_total_weight() const
+bool Solution::feasible_axle_weights(BinPos bin_pos) const
 {
-    for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
-        const SolutionBin& bin = bins_[bin_pos];
-        const BinType& bin_type = instance().bin_type(bin.bin_type_id);
-        Weight w = (bin.weight.size() == 0)? 0: bin.weight.front();
-        if (w > bin_type.maximum_weight * PSTOL)
+    const SolutionBin& bin = bins_[bin_pos];
+    const BinType& bin_type = instance().bin_type(bin.bin_type_id);
+    for (GroupId group_id = 0; group_id < instance().number_of_groups(); ++group_id) {
+        if (!instance().check_weight_constraints(group_id))
+            continue;
+        std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
+                bin.weight_weighted_sum[group_id], bin.weight[group_id]);
+        if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL)
             return false;
-    }
-    return true;
-}
-
-bool Solution::feasible_axle_weights() const
-{
-    for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
-        const SolutionBin& bin = bins_[bin_pos];
-        const BinType& bin_type = instance().bin_type(bin.bin_type_id);
-        for (GroupId group_id = 0; group_id < instance().number_of_groups(); ++group_id) {
-            if (!instance().check_weight_constraints(group_id))
-                continue;
-            std::pair<double, double> axle_weights = bin_type.semi_trailer_truck_data.compute_axle_weights(
-                    bin.weight_weighted_sum[group_id], bin.weight[group_id]);
-            if (axle_weights.first > bin_type.semi_trailer_truck_data.middle_axle_maximum_weight * PSTOL)
-                return false;
-            if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL)
-                return false;
-        }
+        if (axle_weights.second > bin_type.semi_trailer_truck_data.rear_axle_maximum_weight * PSTOL)
+            return false;
     }
     return true;
 }

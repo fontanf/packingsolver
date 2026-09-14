@@ -152,6 +152,18 @@ public:
     /** Feasibility according to the user feasibility callback. */
     inline bool callback_feasible() const { return callback_feasible_; }
 
+    /** Return 'true' iff the total weight constraint is satisfied in every bin. */
+    inline bool total_weight_feasible() const { return total_weight_feasible_; }
+
+    /** Return 'true' iff the axle weight constraints are satisfied in every bin. */
+    inline bool axle_weights_feasible() const { return axle_weights_feasible_; }
+
+    /** Return 'true' iff no item type has been packed more than 'copies' times. */
+    inline bool item_copies_feasible() const { return item_copies_feasible_; }
+
+    /** Overall feasibility. */
+    inline bool feasible() const { return feasible_; }
+
     /** Cuts the feasibility callback returned, if any - see 'FeasibilityCallbackResult'. */
     inline const std::vector<Resource>& callback_resources() const { return callback_resources_; }
 
@@ -220,9 +232,6 @@ public:
      * have been packed.
      */
     inline ItemPos number_of_infeasible_item_copies_min() const { return number_of_infeasible_item_copies_min_; }
-
-    /** Return 'true' iff no item type has been packed more than 'copies' times. */
-    inline bool item_copies_feasible() const { return item_copies_feasible_; }
 
     /*
      * Getters: others
@@ -305,13 +314,6 @@ public:
             BinTypeId bin_type_id,
             const std::vector<std::pair<ItemTypeId, Rotation>>& item_type_ids) const;
 
-    bool feasible_total_weight() const;
-
-    bool feasible_axle_weights() const;
-
-    /** Overall feasibility. */
-    inline bool feasible() const { return feasible_; }
-
     bool operator<(const Solution& solution) const;
 
     /*
@@ -338,6 +340,9 @@ private:
     void update_indicators(
             BinPos bin_pos);
 
+    /** Return 'true' iff the axle weight constraints are satisfied in bin 'bin_pos'. */
+    bool feasible_axle_weights(BinPos bin_pos) const;
+
     /*
      * Private attributes.
      */
@@ -353,6 +358,20 @@ private:
 
     /** Overall feasibility. */
     bool feasible_ = true;
+
+    /**
+     * Total weight and axle weight feasibility, accumulated incrementally
+     * as bins are added.
+     *
+     * 'update_indicators(bin_pos)' is only ever called once per 'bin_pos',
+     * in increasing order, and bins are never removed once added; so the
+     * weight feasibility of a bin, once computed, cannot change and can
+     * safely be ANDed into these flags instead of being recomputed for
+     * every bin on every call.
+     */
+    bool total_weight_feasible_ = true;
+
+    bool axle_weights_feasible_ = true;
 
     /** Bins. */
     std::vector<SolutionBin> bins_;

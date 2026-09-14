@@ -23,3 +23,88 @@ TEST(BoxStacks, BinCopies)
     EXPECT_EQ(solution.number_of_bins(), 2);
     EXPECT_EQ(solution.bin_copies(0), 2);
 }
+
+TEST(BoxStacks, SolutionBuilderTwoBinsBuiltAtOnce)
+{
+    // 'SolutionBuilder::build' computes the indicators of a multi-bin
+    // solution one bin at a time, and each pass recomputes the aggregate
+    // feasibility over every bin, including the ones not sized yet; this
+    // read past the end of their empty per-group weight vectors (an access
+    // violation on Windows, caught by _GLIBCXX_ASSERTIONS elsewhere). Every
+    // multi-bin solution rebuilt from another instance goes through here:
+    // Reduction::unreduce_solution, InstanceFlipper::unflip_solution.
+    InstanceBuilder instance_builder;
+    instance_builder.set_objective(packingsolver::Objective::BinPacking);
+    packingsolver::ItemTypeId item_type_id = instance_builder.add_item_type(4, 4, 4);
+    instance_builder.set_item_type_copies(item_type_id, 2);
+    packingsolver::BinTypeId bin_type_id = instance_builder.add_bin_type(5, 5, 5);
+    instance_builder.set_bin_type_copies(bin_type_id, 2);
+    const Instance instance = instance_builder.build();
+    SolutionBuilder solution_builder(instance);
+    for (packingsolver::BinPos bin_pos = 0; bin_pos < 2; ++bin_pos) {
+        solution_builder.add_bin(bin_type_id, 1);
+        solution_builder.add_stack(bin_pos, 0, 4, 0, 4);
+        solution_builder.add_item(bin_pos, 0, item_type_id, packingsolver::boxstacks::Rotation::XYZ);
+    }
+    Solution solution = solution_builder.build();
+    EXPECT_EQ(solution.number_of_bins(), 2);
+    EXPECT_EQ(solution.number_of_items(), 2);
+    EXPECT_TRUE(solution.feasible());
+    EXPECT_TRUE(solution.full());
+}
+
+struct BoxStacksSolutionBuilderReadTestParams
+{
+    fs::path items_path;
+    fs::path bins_path;
+    fs::path parameters_path;
+    fs::path certificate_path;
+    packingsolver::BinPos number_of_bins;
+};
+
+inline std::ostream& operator<<(std::ostream& os, const BoxStacksSolutionBuilderReadTestParams& test_params)
+{
+    os << test_params.certificate_path;
+    return os;
+}
+
+class BoxStacksSolutionBuilderReadTest: public testing::TestWithParam<BoxStacksSolutionBuilderReadTestParams> { };
+
+TEST_P(BoxStacksSolutionBuilderReadTest, BoxStacksSolutionBuilderRead)
+{
+    // Reading a certificate with several bins goes through
+    // 'SolutionBuilder::build' with every bin already added, the same way
+    // 'Reduction::unreduce_solution' and 'InstanceFlipper::unflip_solution'
+    // rebuild a solution; see 'SolutionBuilderTwoBinsBuiltAtOnce'.
+    BoxStacksSolutionBuilderReadTestParams test_params = GetParam();
+    InstanceBuilder instance_builder;
+    instance_builder.read_item_types(test_params.items_path.string());
+    instance_builder.read_bin_types(test_params.bins_path.string());
+    instance_builder.read_parameters(test_params.parameters_path.string());
+    Instance instance = instance_builder.build();
+
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read(test_params.certificate_path.string());
+    Solution solution = solution_builder.build();
+    EXPECT_EQ(solution.number_of_bins(), test_params.number_of_bins);
+    EXPECT_TRUE(solution.full());
+    EXPECT_TRUE(solution.feasible());
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        BoxStacks,
+        BoxStacksSolutionBuilderReadTest,
+        testing::ValuesIn(std::vector<BoxStacksSolutionBuilderReadTestParams>{
+            {
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "solution.csv",
+                2,
+            }, {
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "solution.csv",
+                2,
+            }}));
