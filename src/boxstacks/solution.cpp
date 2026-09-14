@@ -134,6 +134,14 @@ bool Solution::feasible_axle_weights() const
     for (BinPos bin_pos = 0; bin_pos < number_of_different_bins(); ++bin_pos) {
         const SolutionBin& bin = bins_[bin_pos];
         const BinType& bin_type = instance().bin_type(bin.bin_type_id);
+        // 'update_indicators' sizes the per-group weight vectors of one bin
+        // at a time and then recomputes the aggregate feasibility over all
+        // bins, so when 'SolutionBuilder::build' processes a multi-bin
+        // solution the bins after the current one are still unsized here;
+        // skip them like 'feasible_total_weight' does, the last call sees
+        // every bin sized.
+        if (bin.weight.empty())
+            continue;
         for (GroupId group_id = 0; group_id < instance().number_of_groups(); ++group_id) {
             if (!instance().check_weight_constraints(group_id))
                 continue;
