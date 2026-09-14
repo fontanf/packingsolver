@@ -52,3 +52,59 @@ TEST(BoxStacks, SolutionBuilderTwoBinsBuiltAtOnce)
     EXPECT_TRUE(solution.feasible());
     EXPECT_TRUE(solution.full());
 }
+
+struct BoxStacksSolutionBuilderReadTestParams
+{
+    fs::path items_path;
+    fs::path bins_path;
+    fs::path parameters_path;
+    fs::path certificate_path;
+    packingsolver::BinPos number_of_bins;
+};
+
+inline std::ostream& operator<<(std::ostream& os, const BoxStacksSolutionBuilderReadTestParams& test_params)
+{
+    os << test_params.certificate_path;
+    return os;
+}
+
+class BoxStacksSolutionBuilderReadTest: public testing::TestWithParam<BoxStacksSolutionBuilderReadTestParams> { };
+
+TEST_P(BoxStacksSolutionBuilderReadTest, BoxStacksSolutionBuilderRead)
+{
+    // Reading a certificate with several bins goes through
+    // 'SolutionBuilder::build' with every bin already added, the same way
+    // 'Reduction::unreduce_solution' and 'InstanceFlipper::unflip_solution'
+    // rebuild a solution; see 'SolutionBuilderTwoBinsBuiltAtOnce'.
+    BoxStacksSolutionBuilderReadTestParams test_params = GetParam();
+    InstanceBuilder instance_builder;
+    instance_builder.read_item_types(test_params.items_path.string());
+    instance_builder.read_bin_types(test_params.bins_path.string());
+    instance_builder.read_parameters(test_params.parameters_path.string());
+    Instance instance = instance_builder.build();
+
+    SolutionBuilder solution_builder(instance);
+    solution_builder.read(test_params.certificate_path.string());
+    Solution solution = solution_builder.build();
+    EXPECT_EQ(solution.number_of_bins(), test_params.number_of_bins);
+    EXPECT_TRUE(solution.full());
+    EXPECT_TRUE(solution.feasible());
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        BoxStacks,
+        BoxStacksSolutionBuilderReadTest,
+        testing::ValuesIn(std::vector<BoxStacksSolutionBuilderReadTestParams>{
+            {
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "solution.csv",
+                2,
+            }, {
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_two_item_types_pallets_time_limit" / "solution.csv",
+                2,
+            }}));
