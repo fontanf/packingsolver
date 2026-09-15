@@ -255,6 +255,7 @@ packingsolver::boxstacks::Output packingsolver::boxstacks::optimize(
         sor_parameters.verbosity_level = 0;
         sor_parameters.timer = parameters.timer;
         sor_parameters.logger = logger;
+        sor_parameters.anytime = parameters.sequential_onedimensional_rectangle_anytime;
         sor_parameters.onedimensional_parameters.linear_programming_solver_name = parameters.linear_programming_solver_name;
         //sor_parameters.info.set_verbosity_level(2);
         sor_parameters.new_solution_callback = [

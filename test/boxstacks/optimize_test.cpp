@@ -18,6 +18,8 @@ struct BoxStacksOptimizeTestParams
     fs::path certificate_path;
     /** Time limit of the run; the default leaves the optimization unlimited. */
     double time_limit = std::numeric_limits<double>::infinity();
+    /** Anytime variant of the sequential one-dimensional rectangle algorithm. */
+    bool sequential_onedimensional_rectangle_anytime = false;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const BoxStacksOptimizeTestParams& test_params)
@@ -39,6 +41,7 @@ TEST_P(BoxStacksOptimizeTest, BoxStacksOptimize)
 
     OptimizeParameters optimize_parameters;
     optimize_parameters.optimization_mode = packingsolver::OptimizationMode::NotAnytimeSequential;
+    optimize_parameters.sequential_onedimensional_rectangle_anytime = test_params.sequential_onedimensional_rectangle_anytime;
     optimize_parameters.timer.set_time_limit(test_params.time_limit);
     Output output = optimize(instance, optimize_parameters);
 
@@ -68,6 +71,18 @@ INSTANTIATE_TEST_SUITE_P(
                 fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "bins.csv",
                 fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "parameters.csv",
                 fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "solution.csv",
+            }, {
+                // Same instance with the anytime variant of the sequential
+                // one-dimensional rectangle algorithm: its rectangle search grows
+                // its queue from 1 and reports every improvement (see
+                // 'rectangle_solution_to_boxstacks'); the optimum (two pallets,
+                // the volume bound) is reached either way.
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "items.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "bins.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "parameters.csv",
+                fs::path("data") / "boxstacks" / "tests" / "bin_packing_postal_cartons_eur_pallets" / "solution.csv",
+                std::numeric_limits<double>::infinity(),
+                true,
             },
             // The three instances below need a time limit to be meaningful:
             // with more items than fit and more than one item type, solving

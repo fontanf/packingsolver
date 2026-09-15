@@ -203,6 +203,27 @@ struct SequentialOneDimensionalRectangleSubproblemOutput
     Profit profit_before_repair = 0.0;
 };
 
+/**
+ * Convert the solution of the rectangle subproblem into a boxstacks solution
+ * (stacks placed at the rectangle locations, lightest stacks first, weight
+ * repair) and report it if it is feasible.
+ *
+ * Called once after the rectangle search and, with 'anytime' set, from the
+ * search's new-solution callback after every improvement, so that a time
+ * limit shorter than one full-width pass still leaves a complete solution.
+ */
+SequentialOneDimensionalRectangleSubproblemOutput rectangle_solution_to_boxstacks(
+        const Instance& instance,
+        const SequentialOneDimensionalRectangleParameters& parameters,
+        SequentialOneDimensionalRectangleOutput& sor_output,
+        AlgorithmFormatter& sor_algorithm_formatter,
+        const Solution& fixed_items,
+        std::vector<StackabilityGroup> stackability_groups,
+        const rectangle::Instance& rectangle_instance,
+        const std::vector<std::tuple<StackabilityId, int, StackId>>& rectangle2boxstacks,
+        const rectangle::BranchingScheme::Parameters& rectangle_parameters,
+        const rectangle::Solution& rectangle_solution);
+
 SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rectangle_subproblem(
         const Instance& instance,
         const SequentialOneDimensionalRectangleParameters& parameters,
@@ -229,8 +250,30 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     treesearchsolver::IterativeBeamSearch2Parameters<rectangle::BranchingScheme> ibs_parameters;
     ibs_parameters.verbosity_level = 0;
     ibs_parameters.timer = parameters.timer;
-    ibs_parameters.minimum_size_of_the_queue = parameters.rectangle_queue_size;
     ibs_parameters.maximum_size_of_the_queue = parameters.rectangle_queue_size;
+    if (parameters.anytime) {
+        // Anytime variant: grow the queue from 1 as the box tree search does,
+        // so that a time limit shorter than one full-width pass still leaves
+        // the best complete pass instead of a truncated one, and report every
+        // improvement as it is found.
+        ibs_parameters.minimum_size_of_the_queue = 1;
+        ibs_parameters.new_solution_callback = [&](const auto& ibs_output)
+        {
+            rectangle_solution_to_boxstacks(
+                    instance,
+                    parameters,
+                    sor_output,
+                    sor_algorithm_formatter,
+                    fixed_items,
+                    stackability_groups,
+                    rectangle_instance,
+                    rectangle2boxstacks,
+                    rectangle_parameters,
+                    rectangle_branching_scheme.to_solution(ibs_output.solution_pool.best()));
+        };
+    } else {
+        ibs_parameters.minimum_size_of_the_queue = parameters.rectangle_queue_size;
+    }
     auto rectangle_begin = std::chrono::steady_clock::now();
     auto rectangle_output = treesearchsolver::iterative_beam_search_2<rectangle::BranchingScheme>(
             rectangle_branching_scheme,
@@ -241,6 +284,35 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
     sor_output.rectangle_time += rectangle_time_span.count();
     sor_output.number_of_rectangle_calls++;
     auto rectangle_solution = rectangle_branching_scheme.to_solution(rectangle_output.solution_pool.best());
+    output = rectangle_solution_to_boxstacks(
+            instance,
+            parameters,
+            sor_output,
+            sor_algorithm_formatter,
+            fixed_items,
+            stackability_groups,
+            rectangle_instance,
+            rectangle2boxstacks,
+            rectangle_parameters,
+            rectangle_solution);
+    FFOT_LOG_FOLD_END(logger, "");
+    return output;
+}
+
+SequentialOneDimensionalRectangleSubproblemOutput rectangle_solution_to_boxstacks(
+        const Instance& instance,
+        const SequentialOneDimensionalRectangleParameters& parameters,
+        SequentialOneDimensionalRectangleOutput& sor_output,
+        AlgorithmFormatter& sor_algorithm_formatter,
+        const Solution& fixed_items,
+        std::vector<StackabilityGroup> stackability_groups,
+        const rectangle::Instance& rectangle_instance,
+        const std::vector<std::tuple<StackabilityId, int, StackId>>& rectangle2boxstacks,
+        const rectangle::BranchingScheme::Parameters& rectangle_parameters,
+        const rectangle::Solution& rectangle_solution)
+{
+    auto logger = parameters.get_logger();
+    SequentialOneDimensionalRectangleSubproblemOutput output(instance);
     FFOT_LOG(
             logger,
             "rectangle_solution.number_of_items " << rectangle_solution.number_of_items()
@@ -423,7 +495,6 @@ SequentialOneDimensionalRectangleSubproblemOutput sequential_onedimensional_rect
         parameters.new_solution_callback(sor_output);
     }
     output.solution = solution;
-    FFOT_LOG_FOLD_END(logger, "");
     return output;
 }
 

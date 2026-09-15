@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
 
             ("group-identical-bins,", po::value<bool>(), "")
             ("reduce,", po::value<bool>(), "enable/disable instance reduction (preprocessing)")
+            ("sequential-onedimensional-rectangle-anytime,", po::value<bool>(), "anytime variant of the sequential one-dimensional rectangle algorithm: rectangle queue grown from 1, every improvement reported (default: false)")
             ;
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -190,6 +191,8 @@ int main(int argc, char *argv[])
             parameters.memory_limit_megabytes = vm["memory-limit"].as<Megabytes>();
         if (vm.count("reduce"))
             parameters.reduction_parameters.reduce = vm["reduce"].as<bool>();
+        if (vm.count("sequential-onedimensional-rectangle-anytime"))
+            parameters.sequential_onedimensional_rectangle_anytime = vm["sequential-onedimensional-rectangle-anytime"].as<bool>();
 
         const boxstacks::Output output = optimize(instance, parameters);
 
