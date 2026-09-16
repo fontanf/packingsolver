@@ -68,15 +68,16 @@ struct SequentialOneDimensionalRectangleParameters: packingsolver::Parameters<In
     onedimensional::OptimizeParameters onedimensional_parameters;
 
     /**
-     * Anytime rectangle subproblem.
+     * Optimization mode of the rectangle subproblem.
      *
-     * When 'true', the rectangle subproblem grows its queue from 1 up to
-     * 'rectangle_queue_size' and reports every improvement, so that a time
-     * limit shorter than one full-width pass still leaves the best complete
-     * pass; when 'false' (the default) it performs a single pass of size
-     * 'rectangle_queue_size'.
+     * When 'Anytime', the rectangle subproblem is solved at growing queue
+     * sizes (1, 2, 4, ..., 'rectangle_queue_size'), reporting the best
+     * solution found at each size, so that a time limit shorter than the
+     * full-size pass still leaves a complete pass instead of a truncated
+     * one. Otherwise, a single pass of size 'rectangle_queue_size' is
+     * performed, as usual.
      */
-    bool anytime = false;
+    OptimizationMode optimization_mode = OptimizationMode::NotAnytime;
 
     /** Size of the queue in the rectangle subproblem. */
     NodeId rectangle_queue_size = 1024;

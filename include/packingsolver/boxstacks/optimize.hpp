@@ -177,14 +177,6 @@ struct OptimizeParameters: packingsolver::Parameters<Instance, Solution, Output>
     /** Use sequential single knapsack algorithm. */
     bool use_sequential_single_knapsack = false;
 
-    /**
-     * Anytime variant of the sequential one-dimensional rectangle algorithm:
-     * its rectangle subproblem grows its queue from 1 instead of performing a
-     * single full-width pass, and every improvement is reported. Off by
-     * default, which keeps the original behavior.
-     */
-    bool sequential_onedimensional_rectangle_anytime = false;
-
     /** Guides used in the tree search algorithm. */
     std::vector<GuideId> tree_search_guides;
 
